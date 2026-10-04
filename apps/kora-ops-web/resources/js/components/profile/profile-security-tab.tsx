@@ -76,7 +76,11 @@ export function ProfileSecurityTab({ security }: ProfileSecurityTabProps) {
                     currentPasswordInput.current?.focus();
                 }
 
-                form.reset('password', 'password_confirmation', 'current_password');
+                form.reset(
+                    'password',
+                    'password_confirmation',
+                    'current_password',
+                );
             },
         });
     };
@@ -86,7 +90,9 @@ export function ProfileSecurityTab({ security }: ProfileSecurityTabProps) {
             {/* Alerte contextuelle de politique de sécurité */}
             <PanelAlert tone="warning" icon={ShieldAlert}>
                 <span className="font-bold">Politique de sécurité KORA : </span>
-                Les mots de passe des comptes superviseurs doivent être renouvelés régulièrement. L'activation du double facteur (2FA) est obligatoire pour les opérations sensibles et les caisses.
+                Les mots de passe des comptes superviseurs doivent être
+                renouvelés régulièrement. L'activation du double facteur (2FA)
+                est obligatoire pour les opérations sensibles et les caisses.
             </PanelAlert>
 
             {/* 1. Mot de passe */}
@@ -105,7 +111,10 @@ export function ProfileSecurityTab({ security }: ProfileSecurityTabProps) {
                 <form onSubmit={handlePasswordSubmit} className="space-y-5">
                     {/* Mot de passe actuel */}
                     <div className="max-w-md space-y-1.5">
-                        <Label htmlFor="current_password" className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                        <Label
+                            htmlFor="current_password"
+                            className="flex items-center gap-1.5 text-xs font-bold text-foreground"
+                        >
                             <LockKeyhole className="size-3.5 text-muted-foreground" />
                             <span>Mot de passe actuel</span>
                             <span className="rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-extrabold tracking-wide text-amber-700 dark:text-amber-300">
@@ -116,7 +125,9 @@ export function ProfileSecurityTab({ security }: ProfileSecurityTabProps) {
                             id="current_password"
                             ref={currentPasswordInput}
                             value={form.data.current_password}
-                            onChange={(e) => form.setData('current_password', e.target.value)}
+                            onChange={(e) =>
+                                form.setData('current_password', e.target.value)
+                            }
                             placeholder="••••••••••••"
                             autoComplete="current-password"
                             required
@@ -129,7 +140,8 @@ export function ProfileSecurityTab({ security }: ProfileSecurityTabProps) {
                             </span>
                         ) : (
                             <span className="block text-[11px] leading-4 text-muted-foreground">
-                                Indispensable pour confirmer votre identité avant d'enregistrer la nouvelle phrase de passe.
+                                Indispensable pour confirmer votre identité
+                                avant d'enregistrer la nouvelle phrase de passe.
                             </span>
                         )}
                     </div>
@@ -137,7 +149,10 @@ export function ProfileSecurityTab({ security }: ProfileSecurityTabProps) {
                     {/* Nouveau mot de passe & Confirmation */}
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div className="space-y-1.5">
-                            <Label htmlFor="password" className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                            <Label
+                                htmlFor="password"
+                                className="flex items-center gap-1.5 text-xs font-bold text-foreground"
+                            >
                                 <KeyRound className="size-3.5 text-muted-foreground" />
                                 <span>Nouveau mot de passe</span>
                                 <span className="rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-extrabold tracking-wide text-amber-700 dark:text-amber-300">
@@ -148,7 +163,9 @@ export function ProfileSecurityTab({ security }: ProfileSecurityTabProps) {
                                 id="password"
                                 ref={passwordInput}
                                 value={form.data.password}
-                                onChange={(e) => form.setData('password', e.target.value)}
+                                onChange={(e) =>
+                                    form.setData('password', e.target.value)
+                                }
                                 placeholder="Nouveau mot de passe"
                                 autoComplete="new-password"
                                 required
@@ -161,15 +178,21 @@ export function ProfileSecurityTab({ security }: ProfileSecurityTabProps) {
                                 </span>
                             ) : (
                                 <span className="block text-[11px] leading-4 text-muted-foreground">
-                                    Au moins 8 caractères incluant majuscules, chiffres et caractères spéciaux.
+                                    Au moins 8 caractères incluant majuscules,
+                                    chiffres et caractères spéciaux.
                                 </span>
                             )}
                         </div>
 
                         <div className="space-y-1.5">
-                            <Label htmlFor="password_confirmation" className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                            <Label
+                                htmlFor="password_confirmation"
+                                className="flex items-center gap-1.5 text-xs font-bold text-foreground"
+                            >
                                 <Lock className="size-3.5 text-muted-foreground" />
-                                <span>Confirmation du nouveau mot de passe</span>
+                                <span>
+                                    Confirmation du nouveau mot de passe
+                                </span>
                                 <span className="rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-extrabold tracking-wide text-amber-700 dark:text-amber-300">
                                     Requis
                                 </span>
@@ -177,11 +200,18 @@ export function ProfileSecurityTab({ security }: ProfileSecurityTabProps) {
                             <PasswordInput
                                 id="password_confirmation"
                                 value={form.data.password_confirmation}
-                                onChange={(e) => form.setData('password_confirmation', e.target.value)}
+                                onChange={(e) =>
+                                    form.setData(
+                                        'password_confirmation',
+                                        e.target.value,
+                                    )
+                                }
                                 placeholder="Retapez le mot de passe"
                                 autoComplete="new-password"
                                 required
-                                aria-invalid={Boolean(form.errors.password_confirmation)}
+                                aria-invalid={Boolean(
+                                    form.errors.password_confirmation,
+                                )}
                                 className="h-10 rounded-[10px] font-mono"
                             />
                             {form.errors.password_confirmation ? (
@@ -190,7 +220,8 @@ export function ProfileSecurityTab({ security }: ProfileSecurityTabProps) {
                                 </span>
                             ) : (
                                 <span className="block text-[11px] leading-4 text-muted-foreground">
-                                    Retapez à l'identique pour éviter toute faute de frappe accidentelle.
+                                    Retapez à l'identique pour éviter toute
+                                    faute de frappe accidentelle.
                                 </span>
                             )}
                         </div>
@@ -200,8 +231,15 @@ export function ProfileSecurityTab({ security }: ProfileSecurityTabProps) {
                     {form.data.password.length > 0 && (
                         <div className="space-y-2 rounded-xl border border-border bg-muted/30 p-3.5">
                             <div className="flex items-center justify-between text-xs">
-                                <span className="text-muted-foreground">Indicateur de complexité :</span>
-                                <span className={cn('font-bold', passwordEvaluation.textColor)}>
+                                <span className="text-muted-foreground">
+                                    Indicateur de complexité :
+                                </span>
+                                <span
+                                    className={cn(
+                                        'font-bold',
+                                        passwordEvaluation.textColor,
+                                    )}
+                                >
                                     {passwordEvaluation.label}
                                 </span>
                             </div>
@@ -230,7 +268,9 @@ export function ProfileSecurityTab({ security }: ProfileSecurityTabProps) {
                             disabled={form.processing || !form.data.password}
                         >
                             <KeyRound className="size-3.5" />
-                            {form.processing ? 'Mise à jour en cours…' : 'Mettre à jour le mot de passe'}
+                            {form.processing
+                                ? 'Mise à jour en cours…'
+                                : 'Mettre à jour le mot de passe'}
                         </Button>
                     </div>
                 </form>
@@ -243,7 +283,11 @@ export function ProfileSecurityTab({ security }: ProfileSecurityTabProps) {
                     description="Code de validation temporaire à 6 chiffres via application mobile."
                     actions={
                         <KoraStatusBadge
-                            label={security.twoFactorEnabled ? '2FA activé' : '2FA inactif'}
+                            label={
+                                security.twoFactorEnabled
+                                    ? '2FA activé'
+                                    : '2FA inactif'
+                            }
                             tone={security.twoFactorEnabled ? 'blue' : 'muted'}
                         />
                     }

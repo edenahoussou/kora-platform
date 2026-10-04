@@ -88,7 +88,9 @@ export function PasswordConfirmDialog({
                         <PasswordInput
                             id="sensitive-action-password"
                             value={form.data.password}
-                            onChange={(e) => form.setData('password', e.target.value)}
+                            onChange={(e) =>
+                                form.setData('password', e.target.value)
+                            }
                             autoComplete="current-password"
                             placeholder="Saisissez votre mot de passe"
                             className="h-10 rounded-[10px]"

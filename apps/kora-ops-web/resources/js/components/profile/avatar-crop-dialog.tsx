@@ -122,13 +122,17 @@ export function AvatarCropDialog({
         ctx.scale(zoom, zoom);
 
         const scaleFactor = cropSize / 240;
-        const destWidth = (cropSize * (img.naturalWidth / Math.min(img.naturalWidth, img.naturalHeight)));
-        const destHeight = (cropSize * (img.naturalHeight / Math.min(img.naturalWidth, img.naturalHeight)));
+        const destWidth =
+            cropSize *
+            (img.naturalWidth / Math.min(img.naturalWidth, img.naturalHeight));
+        const destHeight =
+            cropSize *
+            (img.naturalHeight / Math.min(img.naturalWidth, img.naturalHeight));
 
         ctx.drawImage(
             img,
-            -destWidth / 2 + (offset.x * scaleFactor),
-            -destHeight / 2 + (offset.y * scaleFactor),
+            -destWidth / 2 + offset.x * scaleFactor,
+            -destHeight / 2 + offset.y * scaleFactor,
             destWidth,
             destHeight,
         );
@@ -159,8 +163,9 @@ export function AvatarCropDialog({
                             <DialogTitle className="text-base font-extrabold tracking-[-0.02em]">
                                 Cadrer la photo de profil
                             </DialogTitle>
-                            <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-                                Ajustez le zoom et glissez l'image pour positionner le visage.
+                            <DialogDescription className="mt-0.5 text-xs text-muted-foreground">
+                                Ajustez le zoom et glissez l'image pour
+                                positionner le visage.
                             </DialogDescription>
                         </div>
                     </div>
@@ -170,7 +175,7 @@ export function AvatarCropDialog({
                     {/* Viewport de cadrage interactif */}
                     <div className="flex flex-col items-center justify-center">
                         <div
-                            className="relative size-64 sm:size-72 overflow-hidden rounded-2xl border-2 border-gold/60 bg-slate-900 shadow-xl cursor-grab active:cursor-grabbing select-none"
+                            className="relative size-64 cursor-grab overflow-hidden rounded-2xl border-2 border-gold/60 bg-slate-900 shadow-xl select-none active:cursor-grabbing sm:size-72"
                             onMouseDown={handleMouseDown}
                             onMouseMove={handleMouseMove}
                             onMouseUp={handleMouseUp}
@@ -185,7 +190,7 @@ export function AvatarCropDialog({
                                 src={imageSrc}
                                 alt="À recadrer"
                                 draggable={false}
-                                className="pointer-events-none absolute left-1/2 top-1/2 max-w-none origin-center transition-transform duration-75"
+                                className="pointer-events-none absolute top-1/2 left-1/2 max-w-none origin-center transition-transform duration-75"
                                 style={{
                                     transform: `translate(-50%, -50%) translate(${offset.x}px, ${offset.y}px) scale(${zoom}) rotate(${rotation}deg)`,
                                     width: '100%',
@@ -212,12 +217,13 @@ export function AvatarCropDialog({
                         </div>
 
                         <span className="mt-2 text-[11px] text-muted-foreground">
-                            Glissez avec la souris ou le doigt pour centrer le sujet.
+                            Glissez avec la souris ou le doigt pour centrer le
+                            sujet.
                         </span>
                     </div>
 
                     {/* Contrôles de zoom & rotation */}
-                    <div className="rounded-xl border border-border bg-muted/40 p-4 space-y-3">
+                    <div className="space-y-3 rounded-xl border border-border bg-muted/40 p-4">
                         <div className="flex items-center justify-between text-xs font-bold text-foreground">
                             <span className="flex items-center gap-1.5">
                                 <ZoomIn className="size-3.5 text-muted-foreground" />
@@ -231,7 +237,9 @@ export function AvatarCropDialog({
                         <div className="flex items-center gap-3">
                             <button
                                 type="button"
-                                onClick={() => setZoom((z) => Math.max(1, z - 0.2))}
+                                onClick={() =>
+                                    setZoom((z) => Math.max(1, z - 0.2))
+                                }
                                 className="grid size-8 place-items-center rounded-lg border border-border bg-card text-muted-foreground hover:text-foreground"
                                 title="Zoom arrière"
                             >
@@ -244,13 +252,17 @@ export function AvatarCropDialog({
                                 max="3"
                                 step="0.05"
                                 value={zoom}
-                                onChange={(e) => setZoom(parseFloat(e.target.value))}
-                                className="h-2 flex-1 cursor-pointer accent-gold bg-muted rounded-lg"
+                                onChange={(e) =>
+                                    setZoom(parseFloat(e.target.value))
+                                }
+                                className="h-2 flex-1 cursor-pointer rounded-lg bg-muted accent-gold"
                             />
 
                             <button
                                 type="button"
-                                onClick={() => setZoom((z) => Math.min(3, z + 0.2))}
+                                onClick={() =>
+                                    setZoom((z) => Math.min(3, z + 0.2))
+                                }
                                 className="grid size-8 place-items-center rounded-lg border border-border bg-card text-muted-foreground hover:text-foreground"
                                 title="Zoom avant"
                             >
@@ -258,7 +270,7 @@ export function AvatarCropDialog({
                             </button>
                         </div>
 
-                        <div className="flex items-center justify-between pt-2 border-t border-border/60">
+                        <div className="flex items-center justify-between border-t border-border/60 pt-2">
                             <Button
                                 type="button"
                                 variant="ghost"

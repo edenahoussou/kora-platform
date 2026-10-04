@@ -78,18 +78,18 @@ export function UserDetailDrawer({
     const statusTone = isArchived
         ? 'muted'
         : isLocked
-            ? 'destructive'
-            : user.status === 'suspended'
-                ? 'gold'
-                : 'blue';
+          ? 'destructive'
+          : user.status === 'suspended'
+            ? 'gold'
+            : 'blue';
 
     const statusLabel = isArchived
         ? 'Archivé'
         : isLocked
-            ? 'Verrouillé (Tentatives dépassées)'
-            : user.status === 'suspended'
-                ? 'Suspendu'
-                : 'Actif';
+          ? 'Verrouillé (Tentatives dépassées)'
+          : user.status === 'suspended'
+            ? 'Suspendu'
+            : 'Actif';
 
     return (
         <div className="fixed inset-0 z-50 overflow-hidden" role="presentation">
@@ -228,8 +228,8 @@ export function UserDetailDrawer({
                                 {user.role?.category === 'central'
                                     ? 'Direction Centrale'
                                     : user.role?.category === 'agency'
-                                        ? 'Agence Locale'
-                                        : 'Équipage Terrain'}
+                                      ? 'Agence Locale'
+                                      : 'Équipage Terrain'}
                             </span>
                         </div>
 

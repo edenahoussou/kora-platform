@@ -99,12 +99,12 @@ export function KoraUserMenuContent({
                                 <KoraStatusBadge
                                     label={roleLabel}
                                     tone="gold"
-                                    className="border border-gold/40 bg-gold/20 text-[9px] font-mono tracking-wider text-gold uppercase"
+                                    className="border border-gold/40 bg-gold/20 font-mono text-[9px] tracking-wider text-gold uppercase"
                                 />
                                 {agencyName && (
                                     <span className="inline-flex items-center gap-1 text-[10px] text-white/70">
                                         <MapPin className="size-2.5 text-gold" />
-                                        <span className="truncate max-w-[120px]">
+                                        <span className="max-w-[120px] truncate">
                                             {agencyName}
                                         </span>
                                     </span>

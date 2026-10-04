@@ -34,25 +34,29 @@ export default function DeleteUser() {
                             Zone de danger — Clôture du compte
                         </h2>
                         <p className="text-xs text-muted-foreground">
-                            Suppression irréversible de votre accès et révocation des habilitations réseau.
+                            Suppression irréversible de votre accès et
+                            révocation des habilitations réseau.
                         </p>
                     </div>
                 </div>
             </header>
 
-            <div className="p-5 sm:p-6 space-y-4">
+            <div className="space-y-4 p-5 sm:p-6">
                 <PanelAlert tone="danger" icon={AlertTriangle}>
                     <span className="font-bold">Attention : </span>
-                    Cette action désactivera immédiatement votre profil, révoquera vos sessions actives sur tous les terminaux P501 et supprimera vos accès aux modules opérationnels.
+                    Cette action désactivera immédiatement votre profil,
+                    révoquera vos sessions actives sur tous les terminaux P501
+                    et supprimera vos accès aux modules opérationnels.
                 </PanelAlert>
 
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-2">
+                <div className="flex flex-col gap-4 pt-2 sm:flex-row sm:items-center sm:justify-between">
                     <div className="space-y-0.5">
                         <span className="text-sm font-bold text-foreground">
                             Supprimer définitivement ce compte
                         </span>
                         <p className="text-xs text-muted-foreground">
-                            Une confirmation par mot de passe sera exigée avant toute clôture.
+                            Une confirmation par mot de passe sera exigée avant
+                            toute clôture.
                         </p>
                     </div>
 
@@ -73,10 +77,15 @@ export default function DeleteUser() {
                             <DialogHeader>
                                 <DialogTitle className="flex items-center gap-2 text-base font-bold text-destructive">
                                     <ShieldAlert className="size-5" />
-                                    <span>Confirmer la suppression du compte</span>
+                                    <span>
+                                        Confirmer la suppression du compte
+                                    </span>
                                 </DialogTitle>
                                 <DialogDescription className="text-xs text-muted-foreground">
-                                    Cette opération est irréversible. Pour valider la clôture définitive de votre accès KORA OPS, veuillez saisir votre mot de passe actuel.
+                                    Cette opération est irréversible. Pour
+                                    valider la clôture définitive de votre accès
+                                    KORA OPS, veuillez saisir votre mot de passe
+                                    actuel.
                                 </DialogDescription>
                             </DialogHeader>
 
@@ -89,7 +98,11 @@ export default function DeleteUser() {
                                 resetOnSuccess
                                 className="space-y-4 pt-2"
                             >
-                                {({ resetAndClearErrors, processing, errors }) => (
+                                {({
+                                    resetAndClearErrors,
+                                    processing,
+                                    errors,
+                                }) => (
                                     <>
                                         <div className="space-y-1.5">
                                             <Label
@@ -97,7 +110,9 @@ export default function DeleteUser() {
                                                 className="flex items-center gap-1.5 text-xs font-bold text-foreground"
                                             >
                                                 <LockKeyhole className="size-3.5 text-muted-foreground" />
-                                                <span>Mot de passe de confirmation</span>
+                                                <span>
+                                                    Mot de passe de confirmation
+                                                </span>
                                             </Label>
 
                                             <PasswordInput
@@ -109,7 +124,9 @@ export default function DeleteUser() {
                                                 className="h-10 rounded-[10px]"
                                             />
 
-                                            <InputError message={errors.password} />
+                                            <InputError
+                                                message={errors.password}
+                                            />
                                         </div>
 
                                         <DialogFooter className="gap-2 pt-2">

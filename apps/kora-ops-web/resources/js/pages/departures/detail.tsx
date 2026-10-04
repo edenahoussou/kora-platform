@@ -339,16 +339,16 @@ export default function DepartureDetailPage({
         icon: LucideIcon;
         count?: number;
     }[] = [
-            { key: 'exploitation', label: 'Exploitation', icon: ListChecks },
-            {
-                key: 'passengers',
-                label: 'Passagers',
-                icon: Users,
-                count: passengers.length,
-            },
-            { key: 'crew', label: 'Équipage', icon: UserCheck },
-            { key: 'parcels', label: 'Colis', icon: Package },
-        ];
+        { key: 'exploitation', label: 'Exploitation', icon: ListChecks },
+        {
+            key: 'passengers',
+            label: 'Passagers',
+            icon: Users,
+            count: passengers.length,
+        },
+        { key: 'crew', label: 'Équipage', icon: UserCheck },
+        { key: 'parcels', label: 'Colis', icon: Package },
+    ];
 
     const tabLabel = tabs.find((t) => t.key === tab)?.label ?? '';
 
@@ -479,7 +479,7 @@ export default function DepartureDetailPage({
             const fraction = stopCount > 1 ? index / (stopCount - 1) : 0;
             const time = new Date(
                 baseTime.getTime() +
-                Math.round(totalDuration * fraction) * 60000,
+                    Math.round(totalDuration * fraction) * 60000,
             );
 
             return {
@@ -702,10 +702,11 @@ export default function DepartureDetailPage({
                         key={key}
                         type="button"
                         onClick={() => setTab(key)}
-                        className={`inline-flex items-center gap-2 border-b-2 px-4 py-3 text-[0.6875rem] font-extrabold tracking-[0.035em] whitespace-nowrap transition-colors ${tab === key
-                            ? 'border-gold text-foreground'
-                            : 'border-transparent text-muted-foreground hover:text-foreground'
-                            }`}
+                        className={`inline-flex items-center gap-2 border-b-2 px-4 py-3 text-[0.6875rem] font-extrabold tracking-[0.035em] whitespace-nowrap transition-colors ${
+                            tab === key
+                                ? 'border-gold text-foreground'
+                                : 'border-transparent text-muted-foreground hover:text-foreground'
+                        }`}
                     >
                         <Icon
                             className={`size-3.5 ${tab === key ? 'text-gold' : ''}`}
@@ -751,18 +752,18 @@ export default function DepartureDetailPage({
                             )}
                             {(!departure.driverName ||
                                 !departure.conductorName) && (
-                                    <PanelAlert tone="info" icon={TriangleAlert}>
-                                        Équipage incomplet :{' '}
-                                        {[
-                                            !departure.driverName && 'conducteur',
-                                            !departure.conductorName && 'convoyeur',
-                                        ]
-                                            .filter(Boolean)
-                                            .join(' et ')}{' '}
-                                        à affecter avant l'ouverture de
-                                        l'embarquement.
-                                    </PanelAlert>
-                                )}
+                                <PanelAlert tone="info" icon={TriangleAlert}>
+                                    Équipage incomplet :{' '}
+                                    {[
+                                        !departure.driverName && 'conducteur',
+                                        !departure.conductorName && 'convoyeur',
+                                    ]
+                                        .filter(Boolean)
+                                        .join(' et ')}{' '}
+                                    à affecter avant l'ouverture de
+                                    l'embarquement.
+                                </PanelAlert>
+                            )}
                             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                                 <InfoCard
                                     icon={MapPin}
@@ -1042,14 +1043,14 @@ export default function DepartureDetailPage({
                                                                         {row
                                                                             .passenger
                                                                             ?.phone && (
-                                                                                <span className="block text-[0.625rem] text-muted-foreground">
-                                                                                    {
-                                                                                        row
-                                                                                            .passenger
-                                                                                            .phone
-                                                                                    }
-                                                                                </span>
-                                                                            )}
+                                                                            <span className="block text-[0.625rem] text-muted-foreground">
+                                                                                {
+                                                                                    row
+                                                                                        .passenger
+                                                                                        .phone
+                                                                                }
+                                                                            </span>
+                                                                        )}
                                                                     </td>
                                                                     <td className="py-2.5 pr-4 text-muted-foreground">
                                                                         {
@@ -1075,9 +1076,9 @@ export default function DepartureDetailPage({
                                                                             }
                                                                             tone={
                                                                                 journeyTones[
-                                                                                row
-                                                                                    .journeyStatus
-                                                                                    .value
+                                                                                    row
+                                                                                        .journeyStatus
+                                                                                        .value
                                                                                 ] ??
                                                                                 'muted'
                                                                             }
@@ -1089,54 +1090,54 @@ export default function DepartureDetailPage({
                                                                                 {canEarlyExit(
                                                                                     row,
                                                                                 ) && (
-                                                                                        <button
-                                                                                            type="button"
-                                                                                            onClick={() =>
-                                                                                                setEarlyExitRow(
-                                                                                                    row,
-                                                                                                )
-                                                                                            }
-                                                                                            className="btn btn-navy btn-sm"
-                                                                                            title="Descente anticipée — libère les tronçons non parcourus"
-                                                                                        >
-                                                                                            <LogOut className="size-3.5" />
-                                                                                            Descente
-                                                                                        </button>
-                                                                                    )}
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onClick={() =>
+                                                                                            setEarlyExitRow(
+                                                                                                row,
+                                                                                            )
+                                                                                        }
+                                                                                        className="btn btn-navy btn-sm"
+                                                                                        title="Descente anticipée — libère les tronçons non parcourus"
+                                                                                    >
+                                                                                        <LogOut className="size-3.5" />
+                                                                                        Descente
+                                                                                    </button>
+                                                                                )}
                                                                                 {canNoShow(
                                                                                     row,
                                                                                 ) && (
-                                                                                        <button
-                                                                                            type="button"
-                                                                                            onClick={() =>
-                                                                                                setNoShowRow(
-                                                                                                    row,
-                                                                                                )
-                                                                                            }
-                                                                                            className="btn btn-danger btn-sm"
-                                                                                            title="No-show — libère tout le trajet"
-                                                                                        >
-                                                                                            <UserX className="size-3.5" />
-                                                                                            No-show
-                                                                                        </button>
-                                                                                    )}
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onClick={() =>
+                                                                                            setNoShowRow(
+                                                                                                row,
+                                                                                            )
+                                                                                        }
+                                                                                        className="btn btn-danger btn-sm"
+                                                                                        title="No-show — libère tout le trajet"
+                                                                                    >
+                                                                                        <UserX className="size-3.5" />
+                                                                                        No-show
+                                                                                    </button>
+                                                                                )}
                                                                                 {canReverseBoarding(
                                                                                     row,
                                                                                 ) && (
-                                                                                        <button
-                                                                                            type="button"
-                                                                                            onClick={() =>
-                                                                                                setReverseRow(
-                                                                                                    row,
-                                                                                                )
-                                                                                            }
-                                                                                            className="btn btn-danger btn-sm"
-                                                                                            title="Annuler l'embarquement — correction d'un scan erroné (motif requis, audité)"
-                                                                                        >
-                                                                                            <Undo2 className="size-3.5" />
-                                                                                            Annuler
-                                                                                        </button>
-                                                                                    )}
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onClick={() =>
+                                                                                            setReverseRow(
+                                                                                                row,
+                                                                                            )
+                                                                                        }
+                                                                                        className="btn btn-danger btn-sm"
+                                                                                        title="Annuler l'embarquement — correction d'un scan erroné (motif requis, audité)"
+                                                                                    >
+                                                                                        <Undo2 className="size-3.5" />
+                                                                                        Annuler
+                                                                                    </button>
+                                                                                )}
                                                                             </div>
                                                                         </td>
                                                                     )}
@@ -1184,17 +1185,17 @@ export default function DepartureDetailPage({
 
                             {(!departure.driverName ||
                                 !departure.conductorName) && (
-                                    <div className="mb-4">
-                                        <PanelAlert
-                                            tone="warning"
-                                            icon={TriangleAlert}
-                                        >
-                                            Affectation requise : l'embarquement ne
-                                            peut pas être ouvert sans conducteur et
-                                            convoyeur confirmés.
-                                        </PanelAlert>
-                                    </div>
-                                )}
+                                <div className="mb-4">
+                                    <PanelAlert
+                                        tone="warning"
+                                        icon={TriangleAlert}
+                                    >
+                                        Affectation requise : l'embarquement ne
+                                        peut pas être ouvert sans conducteur et
+                                        convoyeur confirmés.
+                                    </PanelAlert>
+                                </div>
+                            )}
 
                             <div className="grid gap-3">
                                 <CrewCard
@@ -1302,14 +1303,15 @@ export default function DepartureDetailPage({
                                                     <span
                                                         key={seat.uuid}
                                                         className={`seat${!seat.sellable ? 'blocked' : seat.boarded ? 'busy' : seat.occupied ? 'reserved' : ''}`}
-                                                        title={`${seat.code} · ${!seat.sellable
-                                                            ? 'Bloqué / équipage'
-                                                            : seat.boarded
-                                                                ? 'Embarqué sur ce départ'
-                                                                : seat.occupied
+                                                        title={`${seat.code} · ${
+                                                            !seat.sellable
+                                                                ? 'Bloqué / équipage'
+                                                                : seat.boarded
+                                                                  ? 'Embarqué sur ce départ'
+                                                                  : seat.occupied
                                                                     ? 'Réservé sur ce départ'
                                                                     : 'Libre'
-                                                            }`}
+                                                        }`}
                                                     >
                                                         {seat.code.replace(
                                                             /^\d+/,
@@ -1386,10 +1388,10 @@ export default function DepartureDetailPage({
                     confirmStatus === 'cancelled'
                         ? 'Annuler ce départ ?'
                         : confirmStatus === 'departed'
-                            ? 'Enregistrer le départ effectif ?'
-                            : confirmStatus === 'arrived'
-                                ? "Déclarer l'arrivée ?"
-                                : "Ouvrir l'embarquement ?"
+                          ? 'Enregistrer le départ effectif ?'
+                          : confirmStatus === 'arrived'
+                            ? "Déclarer l'arrivée ?"
+                            : "Ouvrir l'embarquement ?"
                 }
                 message={
                     confirmStatus === 'cancelled'
@@ -1499,11 +1501,11 @@ function CrewCard({
                 <AvatarFallback className="rounded-[0.75rem] bg-gold/20 text-[0.875rem] font-black text-[var(--kora)] dark:bg-gold/15 dark:text-gold">
                     {name
                         ? name
-                            .split(' ')
-                            .map((n) => n[0])
-                            .join('')
-                            .slice(0, 2)
-                            .toUpperCase()
+                              .split(' ')
+                              .map((n) => n[0])
+                              .join('')
+                              .slice(0, 2)
+                              .toUpperCase()
                         : '—'}
                 </AvatarFallback>
             </Avatar>

@@ -1,10 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import {
-    Laptop,
-    ShieldCheck,
-    SlidersHorizontal,
-    User,
-} from 'lucide-react';
+import { Laptop, ShieldCheck, SlidersHorizontal, User } from 'lucide-react';
 import { useState } from 'react';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import DeleteUser from '@/components/delete-user';
@@ -30,11 +25,16 @@ export default function Profile({
 }: ProfilePageProps) {
     const queryTab =
         typeof window !== 'undefined'
-            ? (new URLSearchParams(window.location.search).get('tab') as ProfileTab | null)
+            ? (new URLSearchParams(window.location.search).get(
+                  'tab',
+              ) as ProfileTab | null)
             : null;
 
     const [activeTab, setActiveTab] = useState<ProfileTab>(
-        queryTab && ['general', 'security', 'sessions', 'preferences'].includes(queryTab)
+        queryTab &&
+            ['general', 'security', 'sessions', 'preferences'].includes(
+                queryTab,
+            )
             ? queryTab
             : 'general',
     );
@@ -61,36 +61,36 @@ export default function Profile({
         icon: typeof User;
         badge?: string;
     }> = [
-            {
-                id: 'general',
-                label: 'Informations personnelles',
-                description: 'Identité et coordonnées',
-                icon: User,
-            },
-            {
-                id: 'security',
-                label: 'Sécurité & 2FA',
-                description: 'Mot de passe et passkeys',
-                icon: ShieldCheck,
-                badge: security.twoFactorEnabled ? '2FA Actif' : undefined,
-            },
-            {
-                id: 'sessions',
-                label: 'Sessions & Postes',
-                description: 'Terminaux et connexions',
-                icon: Laptop,
-                badge:
-                    sessions.length > 0
-                        ? `${sessions.length} active${sessions.length > 1 ? 's' : ''}`
-                        : undefined,
-            },
-            {
-                id: 'preferences',
-                label: 'Préférences',
-                description: 'Thème et notifications',
-                icon: SlidersHorizontal,
-            },
-        ];
+        {
+            id: 'general',
+            label: 'Informations personnelles',
+            description: 'Identité et coordonnées',
+            icon: User,
+        },
+        {
+            id: 'security',
+            label: 'Sécurité & 2FA',
+            description: 'Mot de passe et passkeys',
+            icon: ShieldCheck,
+            badge: security.twoFactorEnabled ? '2FA Actif' : undefined,
+        },
+        {
+            id: 'sessions',
+            label: 'Sessions & Postes',
+            description: 'Terminaux et connexions',
+            icon: Laptop,
+            badge:
+                sessions.length > 0
+                    ? `${sessions.length} active${sessions.length > 1 ? 's' : ''}`
+                    : undefined,
+        },
+        {
+            id: 'preferences',
+            label: 'Préférences',
+            description: 'Thème et notifications',
+            icon: SlidersHorizontal,
+        },
+    ];
 
     return (
         <>
@@ -107,7 +107,7 @@ export default function Profile({
 
                 {/* 2. Navigation Tabs (Identique aux SettingsTabs KORA) */}
                 <nav
-                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1.5 rounded-2xl border border-border bg-card p-1.5 shadow-[0_7px_28px_rgba(0,29,78,0.04)]"
+                    className="grid grid-cols-1 gap-1.5 rounded-2xl border border-border bg-card p-1.5 shadow-[0_7px_28px_rgba(0,29,78,0.04)] sm:grid-cols-2 lg:grid-cols-4"
                     aria-label="Navigation profil"
                 >
                     {tabs.map((tab) => {
@@ -120,7 +120,7 @@ export default function Profile({
                                 type="button"
                                 onClick={() => setActiveTab(tab.id)}
                                 className={cn(
-                                    'group flex items-center gap-3 rounded-xl px-3.5 py-2.5 transition-[background-color,box-shadow,transform] duration-200 outline-none focus-visible:ring-[3px] focus-visible:ring-gold/40 text-left',
+                                    'group flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-left transition-[background-color,box-shadow,transform] duration-200 outline-none focus-visible:ring-[3px] focus-visible:ring-gold/40',
                                     isActive
                                         ? 'bg-kora text-white shadow-[0_10px_26px_rgba(0,29,78,0.22)]'
                                         : 'text-foreground hover:-translate-y-px hover:bg-muted/70',

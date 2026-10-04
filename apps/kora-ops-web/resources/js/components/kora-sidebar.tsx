@@ -570,7 +570,7 @@ export function KoraSidebar({
                             <button
                                 type="button"
                                 className={cn(
-                                    'group flex w-full items-center rounded-[0.75rem] text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/50',
+                                    'group flex w-full items-center rounded-[0.75rem] text-left transition-all duration-200 focus-visible:ring-2 focus-visible:ring-gold/50 focus-visible:outline-none',
                                     isCollapsed
                                         ? 'justify-center p-0'
                                         : 'mx-0 bg-white/[0.07] p-2.5 hover:bg-white/[0.12]',
@@ -594,7 +594,10 @@ export function KoraSidebar({
                                     <>
                                         <Avatar className="size-8 shrink-0 rounded-[0.5625rem] ring-1 ring-white/20">
                                             <AvatarImage
-                                                src={auth.user.avatar ?? undefined}
+                                                src={
+                                                    auth.user.avatar ??
+                                                    undefined
+                                                }
                                                 alt={auth.user.name}
                                             />
                                             <AvatarFallback className="rounded-[0.5625rem] bg-white/[0.08] text-[0.6875rem] font-black text-gold">
@@ -611,7 +614,7 @@ export function KoraSidebar({
                                             </small>
                                         </div>
 
-                                        <ChevronUp className="size-4 shrink-0 text-white/40 transition-transform duration-200 group-data-[state=open]:rotate-180 group-hover:text-white" />
+                                        <ChevronUp className="size-4 shrink-0 text-white/40 transition-transform duration-200 group-hover:text-white group-data-[state=open]:rotate-180" />
                                     </>
                                 )}
                             </button>

@@ -68,7 +68,10 @@ export const useTwoFactorAuth = (): UseTwoFactorAuthReturn => {
 
             setManualSetupKey(key);
         } catch {
-            setErrors((prev) => [...prev, 'Impossible de charger la clé de configuration']);
+            setErrors((prev) => [
+                ...prev,
+                'Impossible de charger la clé de configuration',
+            ]);
             setManualSetupKey(null);
         }
     }, [submit]);
@@ -79,7 +82,10 @@ export const useTwoFactorAuth = (): UseTwoFactorAuthReturn => {
             const codes = (await submit(recoveryCodes())) as string[];
             setRecoveryCodesList(codes);
         } catch {
-            setErrors((prev) => [...prev, 'Impossible de charger les codes de secours']);
+            setErrors((prev) => [
+                ...prev,
+                'Impossible de charger les codes de secours',
+            ]);
             setRecoveryCodesList([]);
         }
     }, [submit]);

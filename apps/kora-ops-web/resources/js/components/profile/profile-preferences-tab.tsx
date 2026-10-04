@@ -41,7 +41,9 @@ type PreferenceFlag =
 /**
  * Onglet Préférences & Affichage KORA OPS.
  */
-export function ProfilePreferencesTab({ preferences }: ProfilePreferencesTabProps) {
+export function ProfilePreferencesTab({
+    preferences,
+}: ProfilePreferencesTabProps) {
     const { appearance, updateAppearance } = useAppearance();
     const [savingKey, setSavingKey] = useState<string | null>(null);
 
@@ -94,7 +96,9 @@ export function ProfilePreferencesTab({ preferences }: ProfilePreferencesTabProp
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     {icon}
-                    <span className="text-sm font-bold text-foreground">{title}</span>
+                    <span className="text-sm font-bold text-foreground">
+                        {title}
+                    </span>
                 </div>
                 {appearance === theme && (
                     <span className="grid size-4 place-items-center rounded-full bg-gold text-kora">
@@ -110,8 +114,13 @@ export function ProfilePreferencesTab({ preferences }: ProfilePreferencesTabProp
         <div className="space-y-6">
             {/* Alerte contextuelle de diffusion */}
             <PanelAlert tone="info" icon={Info}>
-                <span className="font-bold">Notifications en temps réel : </span>
-                Les alertes critiques de régulation (retards de bus, pannes de lignes) sont diffusées en priorité même si l'application est en arrière-plan. Les alertes de sécurité du compte restent toujours envoyées par e-mail.
+                <span className="font-bold">
+                    Notifications en temps réel :{' '}
+                </span>
+                Les alertes critiques de régulation (retards de bus, pannes de
+                lignes) sont diffusées en priorité même si l'application est en
+                arrière-plan. Les alertes de sécurité du compte restent toujours
+                envoyées par e-mail.
             </PanelAlert>
 
             {/* 1. Thème d'interface */}
@@ -120,9 +129,24 @@ export function ProfilePreferencesTab({ preferences }: ProfilePreferencesTabProp
                 description="Choisissez le mode d'affichage adapté à votre poste de travail."
             >
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                    {themeCard('light', <Sun className="size-4 text-amber-500" />, 'Clair', 'Interface claire pour les postes en plein jour.')}
-                    {themeCard('dark', <Moon className="size-4 text-digital" />, 'Sombre', 'Palette de nuit pour limiter la fatigue oculaire.')}
-                    {themeCard('system', <SunMoon className="size-4 text-muted-foreground" />, 'Système', "S'adapte automatiquement au système hôte.")}
+                    {themeCard(
+                        'light',
+                        <Sun className="size-4 text-amber-500" />,
+                        'Clair',
+                        'Interface claire pour les postes en plein jour.',
+                    )}
+                    {themeCard(
+                        'dark',
+                        <Moon className="size-4 text-digital" />,
+                        'Sombre',
+                        'Palette de nuit pour limiter la fatigue oculaire.',
+                    )}
+                    {themeCard(
+                        'system',
+                        <SunMoon className="size-4 text-muted-foreground" />,
+                        'Système',
+                        "S'adapte automatiquement au système hôte.",
+                    )}
                 </div>
             </SettingsSection>
 
@@ -215,7 +239,8 @@ export function ProfilePreferencesTab({ preferences }: ProfilePreferencesTabProp
                             <KoraStatusBadge label="UEMOA" tone="muted" />
                         </div>
                         <span className="text-[11px] leading-4 text-muted-foreground">
-                            Monnaie des tarifs, reçus de vente et clôtures de caisse.
+                            Monnaie des tarifs, reçus de vente et clôtures de
+                            caisse.
                         </span>
                     </div>
                 </div>

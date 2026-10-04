@@ -111,7 +111,9 @@ export function ProfileGeneralTab({
             {/* Alerte contextuelle d'audit & gouvernance */}
             <PanelAlert tone="info" icon={Info}>
                 <span className="font-bold">Gouvernance de l'identité : </span>
-                Les informations professionnelles sont visibles sur les manifestes de départ et la console de régulation. L'adresse email officielle est verrouillée au niveau du compte racine.
+                Les informations professionnelles sont visibles sur les
+                manifestes de départ et la console de régulation. L'adresse
+                email officielle est verrouillée au niveau du compte racine.
             </PanelAlert>
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
@@ -149,7 +151,9 @@ export function ProfileGeneralTab({
                                         />
                                     </div>
                                     <span className="text-[11px] leading-4 text-muted-foreground">
-                                        Nom officiel figurant sur les feuilles de route, reçus de vente et rapports d'exploitation.
+                                        Nom officiel figurant sur les feuilles
+                                        de route, reçus de vente et rapports
+                                        d'exploitation.
                                     </span>
                                 </div>
                             )}
@@ -160,7 +164,9 @@ export function ProfileGeneralTab({
                                     label="Téléphone mobile professionnel"
                                     icon={Phone}
                                     value={form.data.phone}
-                                    onChange={(v) => form.setData('phone', v ?? '')}
+                                    onChange={(v) =>
+                                        form.setData('phone', v ?? '')
+                                    }
                                     error={form.errors.phone}
                                     disabled={form.processing}
                                     hint="Ligne mobile utilisée pour les alertes d'exploitation urgentes et la coordination réseau."
@@ -184,7 +190,9 @@ export function ProfileGeneralTab({
                                         )}
                                     </div>
                                     <span className="text-[11px] leading-4 text-muted-foreground">
-                                        Ligne mobile utilisée pour les alertes d'exploitation urgentes et la coordination réseau.
+                                        Ligne mobile utilisée pour les alertes
+                                        d'exploitation urgentes et la
+                                        coordination réseau.
                                     </span>
                                 </div>
                             )}
@@ -196,7 +204,9 @@ export function ProfileGeneralTab({
                                         label="Fonction / Rôle"
                                         icon={Briefcase}
                                         value={form.data.job_title}
-                                        onChange={(v) => form.setData('job_title', v)}
+                                        onChange={(v) =>
+                                            form.setData('job_title', v)
+                                        }
                                         error={form.errors.job_title}
                                         disabled={form.processing}
                                         placeholder="Ex: Superviseur d'Exploitation"
@@ -222,7 +232,9 @@ export function ProfileGeneralTab({
                                         label="Direction de rattachement"
                                         icon={Building2}
                                         value={form.data.department}
-                                        onChange={(v) => form.setData('department', v)}
+                                        onChange={(v) =>
+                                            form.setData('department', v)
+                                        }
                                         error={form.errors.department}
                                         disabled={form.processing}
                                         placeholder="Ex: Direction des Opérations"
@@ -251,7 +263,9 @@ export function ProfileGeneralTab({
                                         label="Gare ou siège de rattachement"
                                         icon={MapPin}
                                         value={form.data.location}
-                                        onChange={(v) => form.setData('location', v)}
+                                        onChange={(v) =>
+                                            form.setData('location', v)
+                                        }
                                         error={form.errors.location}
                                         disabled={form.processing}
                                         placeholder="Ex: Cotonou, Gare Principale"
@@ -266,11 +280,13 @@ export function ProfileGeneralTab({
                                         <div className="flex items-center gap-2 rounded-[10px] border border-border bg-muted/40 px-3.5 py-2.5 text-sm font-medium text-foreground">
                                             <MapPin className="size-4 text-muted-foreground" />
                                             <span className="truncate">
-                                                {profile.location ?? profile.agency}
+                                                {profile.location ??
+                                                    profile.agency}
                                             </span>
                                         </div>
                                         <span className="text-[11px] leading-4 text-muted-foreground">
-                                            Site physique principal d'affectation.
+                                            Site physique principal
+                                            d'affectation.
                                         </span>
                                     </div>
                                 )}
@@ -280,7 +296,9 @@ export function ProfileGeneralTab({
                                         label="Fuseau horaire d'exploitation"
                                         icon={Globe}
                                         value={form.data.timezone}
-                                        onChange={(v) => form.setData('timezone', v)}
+                                        onChange={(v) =>
+                                            form.setData('timezone', v)
+                                        }
                                         error={form.errors.timezone}
                                         disabled={form.processing}
                                         options={timezoneOptions}
@@ -295,11 +313,13 @@ export function ProfileGeneralTab({
                                         <div className="flex items-center gap-2 rounded-[10px] border border-border bg-muted/40 px-3.5 py-2.5 text-sm font-medium text-foreground">
                                             <Globe className="size-4 text-muted-foreground" />
                                             <span>
-                                                {profile.timezone ?? 'Africa/Porto-Novo'}
+                                                {profile.timezone ??
+                                                    'Africa/Porto-Novo'}
                                             </span>
                                         </div>
                                         <span className="text-[11px] leading-4 text-muted-foreground">
-                                            Référence horaire pour les départs et clôtures.
+                                            Référence horaire pour les départs
+                                            et clôtures.
                                         </span>
                                     </div>
                                 )}
@@ -311,8 +331,14 @@ export function ProfileGeneralTab({
                                     <div className="flex items-start gap-2.5">
                                         <ShieldAlert className="mt-0.5 size-4 shrink-0 text-amber-600" />
                                         <p className="text-[11px] leading-relaxed text-amber-800 dark:text-amber-300">
-                                            <span className="font-bold">Action sensible détectée : </span>
-                                            la modification du numéro de téléphone sert aux alertes et à la vérification d'identité. Confirmez votre mot de passe pour autoriser ce changement.
+                                            <span className="font-bold">
+                                                Action sensible détectée :{' '}
+                                            </span>
+                                            la modification du numéro de
+                                            téléphone sert aux alertes et à la
+                                            vérification d'identité. Confirmez
+                                            votre mot de passe pour autoriser ce
+                                            changement.
                                         </p>
                                     </div>
                                     <div className="grid content-start gap-1.5">
@@ -321,7 +347,9 @@ export function ProfileGeneralTab({
                                             className="flex items-center gap-1.5 text-xs font-bold text-foreground"
                                         >
                                             <LockKeyhole className="size-3.5 text-muted-foreground" />
-                                            <span>Mot de passe de confirmation</span>
+                                            <span>
+                                                Mot de passe de confirmation
+                                            </span>
                                             <span className="rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-extrabold tracking-wide text-amber-700 dark:text-amber-300">
                                                 Requis
                                             </span>
@@ -329,7 +357,12 @@ export function ProfileGeneralTab({
                                         <PasswordInput
                                             id="password"
                                             value={form.data.password}
-                                            onChange={(e) => form.setData('password', e.target.value)}
+                                            onChange={(e) =>
+                                                form.setData(
+                                                    'password',
+                                                    e.target.value,
+                                                )
+                                            }
                                             autoComplete="current-password"
                                             className="h-10 rounded-[10px]"
                                             placeholder="Saisissez votre mot de passe"
@@ -363,7 +396,9 @@ export function ProfileGeneralTab({
                                     disabled={form.processing}
                                 >
                                     <Save className="size-3.5" />
-                                    {form.processing ? 'Enregistrement…' : 'Enregistrer'}
+                                    {form.processing
+                                        ? 'Enregistrement…'
+                                        : 'Enregistrer'}
                                 </Button>
                             </footer>
                         )}
@@ -389,7 +424,8 @@ export function ProfileGeneralTab({
                                     {profile.email}
                                 </span>
                                 <span className="block pt-1 text-[10px] text-muted-foreground">
-                                    Utilisée pour la double authentification et les notifications d'audit.
+                                    Utilisée pour la double authentification et
+                                    les notifications d'audit.
                                 </span>
                             </div>
 
@@ -399,7 +435,10 @@ export function ProfileGeneralTab({
                                     <span>Modification verrouillée</span>
                                 </div>
                                 <p className="text-[11px] leading-relaxed text-muted-foreground">
-                                    Pour des impératifs de conformité e-MECeF et d'audit, l'adresse de messagerie ne peut être modifiée que par l'équipe d'administration système.
+                                    Pour des impératifs de conformité e-MECeF et
+                                    d'audit, l'adresse de messagerie ne peut
+                                    être modifiée que par l'équipe
+                                    d'administration système.
                                 </p>
                             </div>
 
@@ -408,7 +447,9 @@ export function ProfileGeneralTab({
                                     <span className="block text-[10px] font-bold text-muted-foreground uppercase">
                                         Identifiant unique KORA (UUID)
                                     </span>
-                                    <span className="font-mono text-[11px] text-foreground">{profile.uuid}</span>
+                                    <span className="font-mono text-[11px] text-foreground">
+                                        {profile.uuid}
+                                    </span>
                                 </div>
                                 <button
                                     type="button"
@@ -435,12 +476,17 @@ export function ProfileGeneralTab({
                             </span>
                         }
                     >
-                        <ul className="-m-5 divide-y divide-border/60 max-h-80 overflow-y-auto">
+                        <ul className="-m-5 max-h-80 divide-y divide-border/60 overflow-y-auto">
                             {profile.permissions.map((perm) => (
-                                <li key={perm.code} className="flex items-center justify-between px-5 py-3 text-xs">
+                                <li
+                                    key={perm.code}
+                                    className="flex items-center justify-between px-5 py-3 text-xs"
+                                >
                                     <div className="flex items-center gap-2">
                                         <CheckCircle2 className="size-3.5 shrink-0 text-emerald-500" />
-                                        <span className="font-medium text-foreground">{perm.label}</span>
+                                        <span className="font-medium text-foreground">
+                                            {perm.label}
+                                        </span>
                                     </div>
                                     <KoraStatusBadge
                                         label={perm.category}

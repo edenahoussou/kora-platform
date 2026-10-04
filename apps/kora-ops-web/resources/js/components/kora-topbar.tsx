@@ -96,9 +96,9 @@ export function KoraTopbar({ user, onMenuClick }: Props) {
             .then((response) =>
                 response.ok
                     ? (response.json() as Promise<{
-                        configured: boolean;
-                        firebase: OpsFirebaseConfig | null;
-                    }>)
+                          configured: boolean;
+                          firebase: OpsFirebaseConfig | null;
+                      }>)
                     : null,
             )
             .then(async (config) => {
@@ -245,10 +245,10 @@ export function KoraTopbar({ user, onMenuClick }: Props) {
                     <DropdownMenuTrigger asChild>
                         <button
                             type="button"
-                            className="group flex items-center gap-2.5 rounded-[0.8125rem] p-1 text-left transition-all duration-200 hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/40"
+                            className="group flex items-center gap-2.5 rounded-[0.8125rem] p-1 text-left transition-all duration-200 hover:bg-muted/70 focus-visible:ring-2 focus-visible:ring-gold/40 focus-visible:outline-none"
                             data-test="profile-button"
                         >
-                            <Avatar className="size-9 rounded-[0.625rem] ring-1 ring-border shadow-xs transition-transform duration-200 group-hover:scale-105">
+                            <Avatar className="size-9 rounded-[0.625rem] shadow-xs ring-1 ring-border transition-transform duration-200 group-hover:scale-105">
                                 <AvatarImage
                                     src={user.avatar ?? undefined}
                                     alt={user.name}
@@ -261,7 +261,7 @@ export function KoraTopbar({ user, onMenuClick }: Props) {
                                 <strong className="block text-[0.75rem] font-extrabold tracking-tight text-foreground">
                                     {user.name}
                                 </strong>
-                                <small className="block truncate max-w-[140px] text-[0.625rem] text-muted-foreground">
+                                <small className="block max-w-[140px] truncate text-[0.625rem] text-muted-foreground">
                                     {user.email}
                                 </small>
                             </span>

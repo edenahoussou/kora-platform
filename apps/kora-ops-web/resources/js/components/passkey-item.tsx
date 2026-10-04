@@ -83,7 +83,9 @@ export default function PasskeyItem({ passkey, onDelete }: Props) {
                             onClick={handleDelete}
                             disabled={isDeleting}
                         >
-                            {isDeleting ? 'Suppression...' : 'Supprimer la passkey'}
+                            {isDeleting
+                                ? 'Suppression...'
+                                : 'Supprimer la passkey'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

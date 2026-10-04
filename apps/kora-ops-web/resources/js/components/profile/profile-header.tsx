@@ -91,7 +91,7 @@ export function ProfileHeader({
                             onChange={handleFileChange}
                         />
 
-                        <div className="relative flex size-20 sm:size-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-gold/40 bg-white/10 shadow-lg transition-transform duration-200 group-hover:scale-105">
+                        <div className="relative flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-gold/40 bg-white/10 shadow-lg transition-transform duration-200 group-hover:scale-105 sm:size-24">
                             {profile.avatar ? (
                                 <img
                                     src={profile.avatar}
@@ -99,7 +99,7 @@ export function ProfileHeader({
                                     className="h-full w-full object-cover"
                                 />
                             ) : (
-                                <span className="font-mono text-2xl sm:text-3xl font-extrabold text-white">
+                                <span className="font-mono text-2xl font-extrabold text-white sm:text-3xl">
                                     {profile.name
                                         .split(' ')
                                         .map((n) => n[0])
@@ -125,7 +125,7 @@ export function ProfileHeader({
                         </div>
 
                         {/* Live active beacon */}
-                        <span className="absolute -bottom-1 -right-1 flex size-4">
+                        <span className="absolute -right-1 -bottom-1 flex size-4">
                             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                             <span className="relative inline-flex size-4 rounded-full border-2 border-[var(--kora)] bg-emerald-500" />
                         </span>
@@ -134,7 +134,7 @@ export function ProfileHeader({
                     {/* Identity Details */}
                     <div className="space-y-1.5">
                         <div className="flex flex-wrap items-center gap-2.5">
-                            <h1 className="text-xl sm:text-2xl font-extrabold tracking-[-0.03em] text-white">
+                            <h1 className="text-xl font-extrabold tracking-[-0.03em] text-white sm:text-2xl">
                                 {profile.name}
                             </h1>
                             <span className="inline-flex items-center gap-1.5">

@@ -40,16 +40,16 @@ export function ProfileSessionsTab({ sessions }: ProfileSessionsTabProps) {
         session.kind === 'terminal'
             ? 'la session terminal'
             : session.kind === 'device'
-                ? "l'appareil de confiance"
-                : 'la session navigateur';
+              ? "l'appareil de confiance"
+              : 'la session navigateur';
 
     const handleRevoke = (session: UserSessionItem) => {
         const url =
             session.kind === 'terminal'
                 ? ProfileSessionController.destroyTerminal.url(session.id)
                 : session.kind === 'device'
-                    ? ProfileSessionController.destroyDevice.url(session.id)
-                    : ProfileSessionController.destroySession.url(session.id);
+                  ? ProfileSessionController.destroyDevice.url(session.id)
+                  : ProfileSessionController.destroySession.url(session.id);
 
         setPending({
             title: `Déconnecter ${revokeLabel(session)} ?`,
@@ -85,8 +85,12 @@ export function ProfileSessionsTab({ sessions }: ProfileSessionsTabProps) {
         <div className="space-y-6">
             {/* Alerte contextuelle de surveillance */}
             <PanelAlert tone="info" icon={Info}>
-                <span className="font-bold">Contrôle télématique et sécurité des accès : </span>
-                Chaque connexion depuis un poste d'agence ou un terminal P501 fait l'objet d'un suivi horodaté. Toute déconnexion à distance exige la confirmation de votre mot de passe.
+                <span className="font-bold">
+                    Contrôle télématique et sécurité des accès :{' '}
+                </span>
+                Chaque connexion depuis un poste d'agence ou un terminal P501
+                fait l'objet d'un suivi horodaté. Toute déconnexion à distance
+                exige la confirmation de votre mot de passe.
             </PanelAlert>
 
             {/* Session courante */}
@@ -106,7 +110,8 @@ export function ProfileSessionsTab({ sessions }: ProfileSessionsTabProps) {
                                     {currentSession.device}
                                 </h3>
                                 <p className="text-xs text-muted-foreground">
-                                    {currentSession.browser ?? 'Navigateur inconnu'}
+                                    {currentSession.browser ??
+                                        'Navigateur inconnu'}
                                 </p>
                             </div>
                         </div>
@@ -116,7 +121,9 @@ export function ProfileSessionsTab({ sessions }: ProfileSessionsTabProps) {
                                 <div className="flex items-center gap-2 text-muted-foreground">
                                     <Globe className="size-3.5" />
                                     <span>Adresse IP :</span>
-                                    <strong className="font-mono text-foreground">{currentSession.ip}</strong>
+                                    <strong className="font-mono text-foreground">
+                                        {currentSession.ip}
+                                    </strong>
                                 </div>
                             )}
 
@@ -124,7 +131,9 @@ export function ProfileSessionsTab({ sessions }: ProfileSessionsTabProps) {
                                 <div className="flex items-center gap-2 text-muted-foreground">
                                     <MapPin className="size-3.5" />
                                     <span>Localisation :</span>
-                                    <strong className="text-foreground">{currentSession.location}</strong>
+                                    <strong className="text-foreground">
+                                        {currentSession.location}
+                                    </strong>
                                 </div>
                             )}
                         </div>
@@ -158,7 +167,10 @@ export function ProfileSessionsTab({ sessions }: ProfileSessionsTabProps) {
                         </div>
                     ) : (
                         otherSessions.map((session) => (
-                            <div key={`${session.kind}-${session.id}`} className="flex flex-col gap-3 px-5 py-4 text-xs sm:flex-row sm:items-center sm:justify-between">
+                            <div
+                                key={`${session.kind}-${session.id}`}
+                                className="flex flex-col gap-3 px-5 py-4 text-xs sm:flex-row sm:items-center sm:justify-between"
+                            >
                                 <div className="flex items-center gap-3">
                                     <span className="grid size-9 place-items-center rounded-xl bg-muted text-foreground">
                                         {getDeviceIcon(session.type)}
@@ -171,7 +183,11 @@ export function ProfileSessionsTab({ sessions }: ProfileSessionsTabProps) {
                                             {kindBadge(session)}
                                         </div>
                                         <p className="text-[11px] text-muted-foreground">
-                                            {[session.browser, session.ip, session.location]
+                                            {[
+                                                session.browser,
+                                                session.ip,
+                                                session.location,
+                                            ]
                                                 .filter(Boolean)
                                                 .join(' • ') || '—'}
                                         </p>
@@ -189,7 +205,9 @@ export function ProfileSessionsTab({ sessions }: ProfileSessionsTabProps) {
                                         onClick={() => handleRevoke(session)}
                                         className="rounded-lg text-xs text-destructive hover:bg-destructive/10"
                                     >
-                                        {session.kind === 'device' ? 'Retirer' : 'Déconnecter'}
+                                        {session.kind === 'device'
+                                            ? 'Retirer'
+                                            : 'Déconnecter'}
                                     </Button>
                                 </div>
                             </div>

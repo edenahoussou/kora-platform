@@ -28,7 +28,8 @@ export function KoraCorridorFlagPicker({
     defaultCountry = 'BJ',
     onCountryChange,
 }: KoraCorridorFlagPickerProps) {
-    const [selectedCode, setSelectedCode] = useState<CorridorCountryCode>(defaultCountry);
+    const [selectedCode, setSelectedCode] =
+        useState<CorridorCountryCode>(defaultCountry);
 
     const activeCountry =
         CORRIDOR_COUNTRIES.find((c) => c.code === selectedCode) ??
@@ -45,7 +46,7 @@ export function KoraCorridorFlagPicker({
                 <button
                     type="button"
                     className={cn(
-                        'group flex h-[2.625rem] items-center gap-2 rounded-full border border-border bg-card px-2 text-xs font-bold text-foreground shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-gold/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/30',
+                        'group flex h-[2.625rem] items-center gap-2 rounded-full border border-border bg-card px-2 text-xs font-bold text-foreground shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-gold/60 hover:shadow-sm focus-visible:ring-2 focus-visible:ring-gold/30 focus-visible:outline-none',
                         className,
                     )}
                     aria-label={`Corridor KORA — ${activeCountry.name} actif`}
@@ -54,17 +55,18 @@ export function KoraCorridorFlagPicker({
                     <div className="flex items-center -space-x-2 overflow-visible py-0.5">
                         {CORRIDOR_COUNTRIES.map((country, idx) => {
                             const Flag = country.flag;
-                            const isCurrent = country.code === activeCountry.code;
+                            const isCurrent =
+                                country.code === activeCountry.code;
 
                             return (
                                 <div
                                     key={country.code}
                                     style={{ zIndex: isCurrent ? 10 : 4 - idx }}
                                     className={cn(
-                                        'relative size-6 shrink-0 overflow-hidden rounded-full ring-2 shadow-xs transition-transform duration-200 group-hover:scale-105',
+                                        'relative size-6 shrink-0 overflow-hidden rounded-full shadow-xs ring-2 transition-transform duration-200 group-hover:scale-105',
                                         isCurrent
-                                            ? 'ring-gold scale-110 shadow-[0_0_10px_rgba(246,176,0,0.45)]'
-                                            : 'ring-card opacity-90 group-hover:opacity-100',
+                                            ? 'scale-110 shadow-[0_0_10px_rgba(246,176,0,0.45)] ring-gold'
+                                            : 'opacity-90 ring-card group-hover:opacity-100',
                                     )}
                                     title={`${country.name} (${country.code})`}
                                 >
@@ -77,8 +79,12 @@ export function KoraCorridorFlagPicker({
                     {/* Kicker corridor actif */}
                     <span className="hidden items-center gap-1.5 pl-1 font-mono text-[11px] font-black tracking-wider text-foreground sm:inline-flex">
                         <span className="text-gold">{activeCountry.code}</span>
-                        <span className="text-muted-foreground/40 font-normal">/</span>
-                        <span className="text-[10px] font-bold text-muted-foreground">Corridor</span>
+                        <span className="font-normal text-muted-foreground/40">
+                            /
+                        </span>
+                        <span className="text-[10px] font-bold text-muted-foreground">
+                            Corridor
+                        </span>
                     </span>
 
                     <ChevronDown className="size-3 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
@@ -100,8 +106,9 @@ export function KoraCorridorFlagPicker({
                             4 Pays
                         </span>
                     </div>
-                    <p className="mt-1 text-[11px] font-normal leading-4 text-muted-foreground">
-                        Axes d'exploitation interconnectés du réseau de transport KORA.
+                    <p className="mt-1 text-[11px] leading-4 font-normal text-muted-foreground">
+                        Axes d'exploitation interconnectés du réseau de
+                        transport KORA.
                     </p>
                 </DropdownMenuLabel>
 
@@ -124,12 +131,12 @@ export function KoraCorridorFlagPicker({
                                 )}
                             >
                                 <div className="flex items-center gap-2.5">
-                                    <span className="size-7 shrink-0 overflow-hidden rounded-full ring-2 ring-black/10 shadow-xs dark:ring-white/10">
+                                    <span className="size-7 shrink-0 overflow-hidden rounded-full shadow-xs ring-2 ring-black/10 dark:ring-white/10">
                                         <Flag className="size-full" />
                                     </span>
                                     <div>
                                         <div className="flex items-center gap-1.5">
-                                            <span className="text-xs font-bold leading-tight">
+                                            <span className="text-xs leading-tight font-bold">
                                                 {country.name}
                                             </span>
                                             <span
@@ -188,10 +195,12 @@ export function KoraCorridorFlagPicker({
 
                 <div className="flex items-center justify-between px-2.5 py-1.5 text-[10px] text-muted-foreground">
                     <span className="flex items-center gap-1">
-                        <Radio className="size-2.5 text-emerald-500 animate-pulse" />
+                        <Radio className="size-2.5 animate-pulse text-emerald-500" />
                         Liaisons transfrontalières actives
                     </span>
-                    <span className="font-mono text-gold font-bold">FR / EN</span>
+                    <span className="font-mono font-bold text-gold">
+                        FR / EN
+                    </span>
                 </div>
             </DropdownMenuContent>
         </DropdownMenu>

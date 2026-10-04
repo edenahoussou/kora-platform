@@ -586,10 +586,10 @@ export default function UsersPage({
                                         s === 'active'
                                             ? 'Actif'
                                             : s === 'suspended'
-                                                ? 'Suspendu'
-                                                : s === 'locked'
-                                                    ? 'Verrouillé'
-                                                    : s,
+                                              ? 'Suspendu'
+                                              : s === 'locked'
+                                                ? 'Verrouillé'
+                                                : s,
                                     ] as [string, string],
                             ),
                         ],
@@ -685,36 +685,36 @@ export default function UsersPage({
                                             const statusTone = isArchived
                                                 ? 'muted'
                                                 : isLocked
-                                                    ? 'destructive'
-                                                    : user.status === 'suspended'
-                                                        ? 'gold'
-                                                        : 'blue';
+                                                  ? 'destructive'
+                                                  : user.status === 'suspended'
+                                                    ? 'gold'
+                                                    : 'blue';
 
                                             const statusLabel = isArchived
                                                 ? 'Archivé'
                                                 : isLocked
-                                                    ? 'Verrouillé'
-                                                    : user.status === 'suspended'
-                                                        ? 'Suspendu'
-                                                        : 'Actif';
+                                                  ? 'Verrouillé'
+                                                  : user.status === 'suspended'
+                                                    ? 'Suspendu'
+                                                    : 'Actif';
 
                                             const roleCategoryLabel =
                                                 user.role?.category ===
-                                                    'central'
+                                                'central'
                                                     ? 'Siège'
                                                     : user.role?.category ===
                                                         'agency'
-                                                        ? 'Agence'
-                                                        : 'Terrain';
+                                                      ? 'Agence'
+                                                      : 'Terrain';
 
                                             const roleBadgeTone =
                                                 user.role?.category ===
-                                                    'central'
+                                                'central'
                                                     ? 'bg-kora/10 text-kora dark:bg-digital/20 dark:text-digital'
                                                     : user.role?.category ===
                                                         'agency'
-                                                        ? 'bg-gold/15 text-gold'
-                                                        : 'bg-emerald-500/10 text-emerald-600';
+                                                      ? 'bg-gold/15 text-gold'
+                                                      : 'bg-emerald-500/10 text-emerald-600';
 
                                             return (
                                                 <tr
