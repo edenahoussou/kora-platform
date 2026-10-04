@@ -146,6 +146,8 @@ enum SystemRole: string
                 'assisted-bookings.view-network',
                 'assisted-bookings.reassign-network',
                 'assisted-bookings.refuse',
+                'passengers.erase',
+                'sensitive-data.export',
             ],
             self::CommercialDirector => [
                 'notifications.view',
@@ -223,6 +225,8 @@ enum SystemRole: string
                 'seat-releases.view',
                 'tickets.view',
                 'assisted-bookings.view-network',
+                'passengers.erase',
+                'sensitive-data.export',
             ],
             self::SystemAdmin => self::allPermissions(),
         };
@@ -313,6 +317,7 @@ enum SystemRole: string
             'revenue.export',
             'users.view',
             'users.manage',
+            'passengers.erase',
             'roles.view',
             'roles.manage',
             'settings.general.view',

@@ -45,6 +45,10 @@ class PassengerIndexController extends Controller
                 'to' => $paginated->lastItem() ?? 0,
             ],
             'filters' => $filters,
+            'permissions' => [
+                'canExport' => $request->user()?->can('sensitive-data.export') ?? false,
+                'canErase' => $request->user()?->can('passengers.erase') ?? false,
+            ],
         ]);
     }
 
