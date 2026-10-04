@@ -1,16 +1,17 @@
 import { router } from '@inertiajs/react';
 import { Menu, Moon, Search, Sun } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { KoraCorridorFlagPicker } from '@/components/kora-corridor-flag-picker';
+import { KoraUserMenuContent } from '@/components/kora-user-menu';
 import { OpsNotificationDrawer } from '@/components/ops-notification-drawer';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
     DropdownMenu,
     DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAppearance } from '@/hooks/use-appearance';
+import { useInitials } from '@/hooks/use-initials';
 import { getOpsMessaging, listenForOpsPush } from '@/lib/firebase-messaging';
 import type { OpsFirebaseConfig } from '@/lib/firebase-messaging';
 import { logout } from '@/routes';
@@ -18,7 +19,6 @@ import {
     unreadCount as notificationUnreadCount,
     webPushConfiguration,
 } from '@/routes/api/v1/notifications';
-import { edit } from '@/routes/profile';
 import { update as updatePushPreference } from '@/routes/settings/notifications/push';
 import type { User } from '@/types';
 
@@ -96,9 +96,9 @@ export function KoraTopbar({ user, onMenuClick }: Props) {
             .then((response) =>
                 response.ok
                     ? (response.json() as Promise<{
-                          configured: boolean;
-                          firebase: OpsFirebaseConfig | null;
-                      }>)
+                        configured: boolean;
+                        firebase: OpsFirebaseConfig | null;
+                    }>)
                     : null,
             )
             .then(async (config) => {
@@ -177,14 +177,8 @@ export function KoraTopbar({ user, onMenuClick }: Props) {
         );
     };
 
-    const initials = user
-        ? user.name
-              .split(' ')
-              .map((n) => n[0])
-              .slice(0, 2)
-              .join('')
-              .toUpperCase()
-        : 'KO';
+    const getInitials = useInitials();
+    const initials = user ? getInitials(user.name) : 'KO';
 
     return (
         <header className="kora-topbar sticky top-0 z-30 flex h-[4.75rem] items-center gap-4 border-b border-border bg-background/96 px-[clamp(1rem,3vw,1.875rem)] backdrop-blur-xl">
@@ -215,14 +209,8 @@ export function KoraTopbar({ user, onMenuClick }: Props) {
 
             <div className="flex-1" />
 
-            {/* Language switch */}
-            <button
-                type="button"
-                className="grid size-[2.625rem] place-items-center rounded-[0.6875rem] text-[0.75rem] font-bold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                aria-label="Changer de langue"
-            >
-                EN
-            </button>
+            {/* Corridor transnational KORA (Bénin · Togo · Ghana · Côte d'Ivoire) */}
+            <KoraCorridorFlagPicker />
 
             <OpsNotificationDrawer
                 unreadCount={unreadCount}
@@ -251,60 +239,46 @@ export function KoraTopbar({ user, onMenuClick }: Props) {
                 )}
             </button>
 
-            {/* Profile — avatar and name separated */}
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <button
-                        type="button"
-                        className="flex items-center gap-2.5 rounded-[0.8125rem] px-1 py-1 text-left transition-colors hover:bg-muted"
-                        data-test="profile-button"
-                    >
-                        <span className="grid size-9 place-items-center rounded-[0.625rem] bg-gold text-[0.75rem] font-black text-[var(--kora)]">
-                            {initials}
-                        </span>
-                        <span className="hidden sm:block">
-                            <strong className="block text-[0.75rem] font-bold text-foreground">
-                                {user?.name ?? 'Utilisateur'}
-                            </strong>
-                            <small className="block text-[0.625rem] text-muted-foreground">
-                                {user?.email ?? ''}
-                            </small>
-                        </span>
-                    </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                    align="end"
-                    className="w-64 rounded-[0.9375rem]"
-                >
-                    <DropdownMenuLabel className="font-normal">
-                        <div className="flex flex-col gap-0.5">
-                            <span className="text-sm font-bold text-foreground">
-                                {user?.name ?? 'Utilisateur'}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                                {user?.email ?? ''}
-                            </span>
-                        </div>
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                        <a href={edit().url} className="cursor-pointer">
-                            Paramètres du profil
-                        </a>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
+            {/* Profile Dropdown KORA OPS unifié */}
+            {user && (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
                         <button
                             type="button"
-                            className="w-full cursor-pointer text-destructive"
-                            onClick={handleLogout}
-                            data-test="logout-button"
+                            className="group flex items-center gap-2.5 rounded-[0.8125rem] p-1 text-left transition-all duration-200 hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/40"
+                            data-test="profile-button"
                         >
-                            Se déconnecter
+                            <Avatar className="size-9 rounded-[0.625rem] ring-1 ring-border shadow-xs transition-transform duration-200 group-hover:scale-105">
+                                <AvatarImage
+                                    src={user.avatar ?? undefined}
+                                    alt={user.name}
+                                />
+                                <AvatarFallback className="rounded-[0.625rem] bg-gold text-[0.75rem] font-black text-[var(--kora)]">
+                                    {initials}
+                                </AvatarFallback>
+                            </Avatar>
+                            <span className="hidden sm:block">
+                                <strong className="block text-[0.75rem] font-extrabold tracking-tight text-foreground">
+                                    {user.name}
+                                </strong>
+                                <small className="block truncate max-w-[140px] text-[0.625rem] text-muted-foreground">
+                                    {user.email}
+                                </small>
+                            </span>
                         </button>
-                    </DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                        align="end"
+                        sideOffset={8}
+                        className="rounded-2xl border-border bg-card p-1.5 shadow-[0_20px_50px_rgba(0,29,78,0.2)]"
+                    >
+                        <KoraUserMenuContent
+                            user={user}
+                            onLogout={handleLogout}
+                        />
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            )}
         </header>
     );
 }

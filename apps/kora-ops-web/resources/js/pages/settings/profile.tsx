@@ -1,4 +1,4 @@
-import { Head, usePage } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import {
     Laptop,
     ShieldCheck,
@@ -6,50 +6,52 @@ import {
     User,
 } from 'lucide-react';
 import { useState } from 'react';
+import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import DeleteUser from '@/components/delete-user';
 import { ProfileGeneralTab } from '@/components/profile/profile-general-tab';
 import { ProfileHeader } from '@/components/profile/profile-header';
-import type { UserProfileData } from '@/components/profile/profile-mock-data';
-import {
-    INITIAL_PROFILE_DATA,
-} from '@/components/profile/profile-mock-data';
 import { ProfilePreferencesTab } from '@/components/profile/profile-preferences-tab';
 import { ProfileSecurityTab } from '@/components/profile/profile-security-tab';
 import { ProfileSessionsTab } from '@/components/profile/profile-sessions-tab';
+import type { ProfilePageProps } from '@/components/profile/profile-types';
 import { cn } from '@/lib/utils';
 import { edit } from '@/routes/profile';
-import type { AuthenticatedAuth } from '@/types';
-
-type PageProps = {
-    auth: AuthenticatedAuth;
-    mustVerifyEmail?: boolean;
-    status?: string;
-};
 
 type ProfileTab = 'general' | 'security' | 'sessions' | 'preferences';
 
 /**
  * Hub Profil Utilisateur KORA OPS.
  */
-export default function Profile() {
-    const { auth } = usePage<PageProps>().props;
+export default function Profile({
+    profile,
+    security,
+    sessions,
+    preferences,
+}: ProfilePageProps) {
+    const queryTab =
+        typeof window !== 'undefined'
+            ? (new URLSearchParams(window.location.search).get('tab') as ProfileTab | null)
+            : null;
 
-    const [profile, setProfile] = useState<UserProfileData>(() => ({
-        ...INITIAL_PROFILE_DATA,
-        name: auth?.user?.name || INITIAL_PROFILE_DATA.name,
-        email: auth?.user?.email || INITIAL_PROFILE_DATA.email,
-        avatar: auth?.user?.avatar || null,
-    }));
-
-    const [activeTab, setActiveTab] = useState<ProfileTab>('general');
+    const [activeTab, setActiveTab] = useState<ProfileTab>(
+        queryTab && ['general', 'security', 'sessions', 'preferences'].includes(queryTab)
+            ? queryTab
+            : 'general',
+    );
     const [isEditing, setIsEditing] = useState(false);
 
-    const handleSaveProfile = (updated: Partial<UserProfileData>) => {
-        setProfile((prev) => ({
-            ...prev,
-            ...updated,
-        }));
-        setIsEditing(false);
+    const handleAvatarUpload = async (dataUrl: string) => {
+        const response = await fetch(dataUrl);
+        const blob = await response.blob();
+        const file = new File([blob], 'avatar.png', {
+            type: blob.type || 'image/png',
+        });
+
+        router.post(
+            ProfileController.updateAvatar.url(),
+            { avatar: file },
+            { forceFormData: true, preserveScroll: true },
+        );
     };
 
     const tabs: Array<{
@@ -70,14 +72,17 @@ export default function Profile() {
                 label: 'Sécurité & 2FA',
                 description: 'Mot de passe et passkeys',
                 icon: ShieldCheck,
-                badge: '2FA Actif',
+                badge: security.twoFactorEnabled ? '2FA Actif' : undefined,
             },
             {
                 id: 'sessions',
                 label: 'Sessions & Postes',
                 description: 'Terminaux et connexions',
                 icon: Laptop,
-                badge: '4 actives',
+                badge:
+                    sessions.length > 0
+                        ? `${sessions.length} active${sessions.length > 1 ? 's' : ''}`
+                        : undefined,
             },
             {
                 id: 'preferences',
@@ -97,9 +102,7 @@ export default function Profile() {
                     profile={profile}
                     isEditing={isEditing}
                     onToggleEdit={() => setIsEditing(!isEditing)}
-                    onUpdateAvatar={(newAvatar) =>
-                        setProfile((prev) => ({ ...prev, avatar: newAvatar }))
-                    }
+                    onUpdateAvatar={handleAvatarUpload}
                 />
 
                 {/* 2. Navigation Tabs (Identique aux SettingsTabs KORA) */}
@@ -162,21 +165,25 @@ export default function Profile() {
                         <ProfileGeneralTab
                             profile={profile}
                             isEditing={isEditing}
-                            onSaveProfile={handleSaveProfile}
+                            onSaveProfile={() => setIsEditing(false)}
                             onCancelEdit={() => setIsEditing(false)}
                         />
                     )}
 
                     {activeTab === 'security' && (
                         <div className="space-y-6">
-                            <ProfileSecurityTab />
+                            <ProfileSecurityTab security={security} />
                             <DeleteUser />
                         </div>
                     )}
 
-                    {activeTab === 'sessions' && <ProfileSessionsTab />}
+                    {activeTab === 'sessions' && (
+                        <ProfileSessionsTab sessions={sessions} />
+                    )}
 
-                    {activeTab === 'preferences' && <ProfilePreferencesTab />}
+                    {activeTab === 'preferences' && (
+                        <ProfilePreferencesTab preferences={preferences} />
+                    )}
                 </div>
             </div>
         </>

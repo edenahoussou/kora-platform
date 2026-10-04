@@ -14,6 +14,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property bool $email_notifications
  * @property string $locale
  * @property string $theme
+ * @property string|null $timezone
+ * @property bool $dispatch_alerts
+ * @property bool $cashier_alerts
+ * @property bool $security_alerts
  * @property User $user
  */
 class UserPreference extends Model
@@ -25,6 +29,10 @@ class UserPreference extends Model
         'email_notifications',
         'locale',
         'theme',
+        'timezone',
+        'dispatch_alerts',
+        'cashier_alerts',
+        'security_alerts',
     ];
 
     /**
@@ -41,6 +49,9 @@ class UserPreference extends Model
             'push_notifications' => 'boolean',
             'whatsapp_notifications' => 'boolean',
             'email_notifications' => 'boolean',
+            'dispatch_alerts' => 'boolean',
+            'cashier_alerts' => 'boolean',
+            'security_alerts' => 'boolean',
         ];
     }
 }

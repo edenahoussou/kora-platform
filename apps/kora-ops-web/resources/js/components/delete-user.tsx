@@ -106,7 +106,7 @@ export default function DeleteUser() {
                                                 ref={passwordInput}
                                                 placeholder="Saisissez votre mot de passe"
                                                 autoComplete="current-password"
-                                                className="h-10 rounded-xl"
+                                                className="h-10 rounded-[10px]"
                                             />
 
                                             <InputError message={errors.password} />

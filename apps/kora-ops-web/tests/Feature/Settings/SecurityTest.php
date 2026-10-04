@@ -13,7 +13,36 @@ class SecurityTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_security_page_is_displayed()
+    public function test_legacy_security_url_redirects_to_the_profile_hub()
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get(route('security.edit'))
+            ->assertRedirect(route('profile.edit'));
+    }
+
+    public function test_two_factor_endpoints_still_require_password_confirmation()
+    {
+        $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
+
+        Features::twoFactorAuthentication([
+            'confirm' => true,
+            'confirmPassword' => true,
+        ]);
+
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get(route('two-factor.qr-code'))
+            ->assertRedirect(route('password.confirm'));
+
+        $this->actingAs($user)
+            ->post(route('two-factor.enable'))
+            ->assertRedirect(route('password.confirm'));
+    }
+
+    public function test_profile_hub_exposes_security_props()
     {
         $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
 
@@ -28,53 +57,13 @@ class SecurityTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAs($user)
-            ->withSession(['auth.password_confirmed_at' => time()])
-            ->get(route('security.edit'))
+            ->get(route('profile.edit'))
             ->assertInertia(fn (Assert $page) => $page
-                ->component('settings/security')
-                ->where('canManagePasskeys', true)
-                ->where('passkeys', [])
-                ->where('canManageTwoFactor', true)
-                ->where('twoFactorEnabled', false),
-            );
-    }
-
-    public function test_security_page_requires_password_confirmation_when_enabled()
-    {
-        $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
-
-        $user = User::factory()->create();
-
-        Features::twoFactorAuthentication([
-            'confirm' => true,
-            'confirmPassword' => true,
-        ]);
-
-        $response = $this->actingAs($user)
-            ->get(route('security.edit'));
-
-        $response->assertRedirect(route('password.confirm'));
-    }
-
-    public function test_security_page_renders_without_two_factor_when_feature_is_disabled()
-    {
-        $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
-
-        config(['fortify.features' => []]);
-
-        $user = User::factory()->create();
-
-        $this->actingAs($user)
-            ->withSession(['auth.password_confirmed_at' => time()])
-            ->get(route('security.edit'))
-            ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->component('settings/security')
-                ->where('canManagePasskeys', false)
-                ->where('passkeys', [])
-                ->where('canManageTwoFactor', false)
-                ->missing('twoFactorEnabled')
-                ->missing('requiresConfirmation'),
+                ->component('settings/profile')
+                ->where('security.canManagePasskeys', true)
+                ->where('security.passkeys', [])
+                ->where('security.canManageTwoFactor', true)
+                ->where('security.twoFactorEnabled', false),
             );
     }
 
@@ -84,7 +73,7 @@ class SecurityTest extends TestCase
 
         $response = $this
             ->actingAs($user)
-            ->from(route('security.edit'))
+            ->from(route('profile.edit'))
             ->put(route('user-password.update'), [
                 'current_password' => 'password',
                 'password' => 'Kora@Express2026',
@@ -93,7 +82,7 @@ class SecurityTest extends TestCase
 
         $response
             ->assertSessionHasNoErrors()
-            ->assertRedirect(route('security.edit'));
+            ->assertRedirect(route('profile.edit'));
 
         $this->assertTrue(Hash::check('Kora@Express2026', $user->refresh()->password));
     }
@@ -104,7 +93,7 @@ class SecurityTest extends TestCase
 
         $response = $this
             ->actingAs($user)
-            ->from(route('security.edit'))
+            ->from(route('profile.edit'))
             ->put(route('user-password.update'), [
                 'current_password' => 'wrong-password',
                 'password' => 'Kora@Express2026',
@@ -113,6 +102,6 @@ class SecurityTest extends TestCase
 
         $response
             ->assertSessionHasErrors('current_password')
-            ->assertRedirect(route('security.edit'));
+            ->assertRedirect(route('profile.edit'));
     }
 }

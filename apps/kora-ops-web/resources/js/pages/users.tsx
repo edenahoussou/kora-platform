@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { UserCredentialsDialog } from '@/components/users/user-credentials-dialog';
 import { UserDetailDrawer } from '@/components/users/user-detail-drawer';
 import { UserFormModal } from '@/components/users/user-form-modal';
@@ -585,10 +586,10 @@ export default function UsersPage({
                                         s === 'active'
                                             ? 'Actif'
                                             : s === 'suspended'
-                                              ? 'Suspendu'
-                                              : s === 'locked'
-                                                ? 'Verrouillé'
-                                                : s,
+                                                ? 'Suspendu'
+                                                : s === 'locked'
+                                                    ? 'Verrouillé'
+                                                    : s,
                                     ] as [string, string],
                             ),
                         ],
@@ -684,36 +685,36 @@ export default function UsersPage({
                                             const statusTone = isArchived
                                                 ? 'muted'
                                                 : isLocked
-                                                  ? 'destructive'
-                                                  : user.status === 'suspended'
-                                                    ? 'gold'
-                                                    : 'blue';
+                                                    ? 'destructive'
+                                                    : user.status === 'suspended'
+                                                        ? 'gold'
+                                                        : 'blue';
 
                                             const statusLabel = isArchived
                                                 ? 'Archivé'
                                                 : isLocked
-                                                  ? 'Verrouillé'
-                                                  : user.status === 'suspended'
-                                                    ? 'Suspendu'
-                                                    : 'Actif';
+                                                    ? 'Verrouillé'
+                                                    : user.status === 'suspended'
+                                                        ? 'Suspendu'
+                                                        : 'Actif';
 
                                             const roleCategoryLabel =
                                                 user.role?.category ===
-                                                'central'
+                                                    'central'
                                                     ? 'Siège'
                                                     : user.role?.category ===
                                                         'agency'
-                                                      ? 'Agence'
-                                                      : 'Terrain';
+                                                        ? 'Agence'
+                                                        : 'Terrain';
 
                                             const roleBadgeTone =
                                                 user.role?.category ===
-                                                'central'
+                                                    'central'
                                                     ? 'bg-kora/10 text-kora dark:bg-digital/20 dark:text-digital'
                                                     : user.role?.category ===
                                                         'agency'
-                                                      ? 'bg-gold/15 text-gold'
-                                                      : 'bg-emerald-500/10 text-emerald-600';
+                                                        ? 'bg-gold/15 text-gold'
+                                                        : 'bg-emerald-500/10 text-emerald-600';
 
                                             return (
                                                 <tr
@@ -726,20 +727,40 @@ export default function UsersPage({
                                                     {/* Nom & Email */}
                                                     <td className="px-4 py-3.5">
                                                         <div className="flex items-center gap-3">
-                                                            <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-gold/15 text-xs font-black text-gold">
-                                                                {user.name
-                                                                    .split(' ')
-                                                                    .map(
-                                                                        (n) =>
-                                                                            n[0],
-                                                                    )
-                                                                    .filter(
-                                                                        Boolean,
-                                                                    )
-                                                                    .slice(0, 2)
-                                                                    .join('')
-                                                                    .toUpperCase()}
-                                                            </span>
+                                                            <Avatar className="size-9 shrink-0 rounded-xl">
+                                                                <AvatarImage
+                                                                    src={
+                                                                        user.avatar ??
+                                                                        undefined
+                                                                    }
+                                                                    alt={
+                                                                        user.name
+                                                                    }
+                                                                />
+                                                                <AvatarFallback className="rounded-xl bg-gold/15 text-xs font-black text-gold">
+                                                                    {user.name
+                                                                        .split(
+                                                                            ' ',
+                                                                        )
+                                                                        .map(
+                                                                            (
+                                                                                n,
+                                                                            ) =>
+                                                                                n[0],
+                                                                        )
+                                                                        .filter(
+                                                                            Boolean,
+                                                                        )
+                                                                        .slice(
+                                                                            0,
+                                                                            2,
+                                                                        )
+                                                                        .join(
+                                                                            '',
+                                                                        )
+                                                                        .toUpperCase()}
+                                                                </AvatarFallback>
+                                                            </Avatar>
                                                             <div>
                                                                 <p className="text-xs font-black text-foreground">
                                                                     {user.name}

@@ -1,3 +1,4 @@
+import { useForm } from '@inertiajs/react';
 import {
     Briefcase,
     Building2,
@@ -7,30 +8,49 @@ import {
     Globe,
     Info,
     Lock,
+    LockKeyhole,
     Mail,
     MapPin,
     Phone,
     Save,
+    ShieldAlert,
     User as UserIcon,
     X,
 } from 'lucide-react';
 import { useState } from 'react';
-import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 import { toast } from 'sonner';
+import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
+import {
+    SettingsField,
+    SettingsPhoneField,
+    SettingsSection,
+    SettingsSelectField,
+} from '@/components/administration/settings/settings-ui';
+import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { PanelAlert } from '@/components/panel-alert';
-import { Badge } from '@/components/ui/badge';
+import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type { UserProfileData } from './profile-mock-data';
+import type { UserProfileData } from './profile-types';
 
 interface ProfileGeneralTabProps {
     profile: UserProfileData;
     isEditing: boolean;
-    onSaveProfile: (updated: Partial<UserProfileData>) => void;
+    onSaveProfile: () => void;
     onCancelEdit: () => void;
 }
+
+const timezoneOptions = [
+    { value: 'Africa/Porto-Novo', label: 'Africa/Porto-Novo (GMT+1)' },
+    { value: 'Africa/Lagos', label: 'Africa/Lagos (GMT+1)' },
+    { value: 'Africa/Abidjan', label: 'Africa/Abidjan (GMT)' },
+    { value: 'Africa/Dakar', label: 'Africa/Dakar (GMT)' },
+    { value: 'Africa/Accra', label: 'Africa/Accra (GMT)' },
+    { value: 'Africa/Douala', label: 'Africa/Douala (GMT+1)' },
+    { value: 'Europe/Paris', label: 'Europe/Paris (CET)' },
+    { value: 'UTC', label: 'UTC' },
+];
 
 /**
  * Onglet Informations Générales KORA OPS avec icônes de labels, hints et alertes.
@@ -41,42 +61,49 @@ export function ProfileGeneralTab({
     onSaveProfile,
     onCancelEdit,
 }: ProfileGeneralTabProps) {
-    const [name, setName] = useState(profile.name);
-    const [phone, setPhone] = useState(profile.phone);
-    const [jobTitle, setJobTitle] = useState(profile.jobTitle);
-    const [department, setDepartment] = useState(profile.department);
-    const [location, setLocation] = useState(profile.location);
-    const [timezone, setTimezone] = useState(profile.timezone);
-    const [isSaving, setIsSaving] = useState(false);
     const [copiedId, setCopiedId] = useState(false);
 
+    const form = useForm({
+        name: profile.name,
+        phone: profile.phone ?? '',
+        job_title: profile.jobTitle ?? '',
+        department: profile.department ?? '',
+        location: profile.location ?? '',
+        timezone: profile.timezone ?? 'Africa/Porto-Novo',
+        password: '',
+    });
+
+    const phoneChanged = (form.data.phone || '') !== (profile.phone ?? '');
+
     const handleCopyId = () => {
-        navigator.clipboard.writeText(profile.id);
+        navigator.clipboard.writeText(profile.uuid);
         setCopiedId(true);
         toast.success('Identifiant KORA copié', {
-            description: profile.id,
+            description: profile.uuid,
         });
         setTimeout(() => setCopiedId(false), 2000);
     };
 
     const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
-        setIsSaving(true);
 
-        setTimeout(() => {
-            onSaveProfile({
-                name,
-                phone: phone || profile.phone,
-                jobTitle,
-                department,
-                location,
-                timezone,
-            });
-            setIsSaving(false);
-            toast.success('Profil mis à jour avec succès', {
-                description: 'Vos coordonnées ont été enregistrées.',
-            });
-        }, 300);
+        form.transform((data) => ({
+            name: data.name,
+            phone: data.phone || null,
+            job_title: data.job_title || null,
+            department: data.department || null,
+            location: data.location || null,
+            timezone: data.timezone || null,
+            ...(phoneChanged ? { password: data.password } : {}),
+        }));
+
+        form.patch(ProfileController.update.url(), {
+            preserveScroll: true,
+            onSuccess: () => {
+                form.reset('password');
+                onSaveProfile();
+            },
+        });
     };
 
     return (
@@ -90,249 +117,283 @@ export function ProfileGeneralTab({
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
                 {/* Formulaire Principal (8 cols) */}
                 <div className="space-y-6 lg:col-span-8">
-                    <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-[0_7px_28px_rgba(0,29,78,0.04)]">
-                        <header className="flex items-center justify-between border-b border-border/70 px-5 py-4">
-                            <div className="flex items-center gap-3">
-                                <span className="h-4 w-1 shrink-0 rounded-full bg-gold" />
-                                <div>
-                                    <h2 className="text-[15px] font-extrabold tracking-[-0.02em] text-foreground">
-                                        Coordonnées professionnelles
-                                    </h2>
-                                    <p className="text-xs text-muted-foreground">
-                                        Informations opérationnelles associées à vos actions sur le réseau.
-                                    </p>
-                                </div>
-                            </div>
-                        </header>
-
-                        <div className="p-5 sm:p-6 space-y-5">
+                    <SettingsSection
+                        title="Coordonnées professionnelles"
+                        description="Informations opérationnelles associées à vos actions sur le réseau."
+                    >
+                        <div className="space-y-5">
                             {/* Nom & Prénoms */}
-                            <div className="space-y-1.5">
-                                <Label htmlFor="fullName" className="flex items-center gap-1.5 text-xs font-bold text-foreground">
-                                    <UserIcon className="size-3.5 text-muted-foreground" />
-                                    <span>Nom & Prénoms complets</span>
-                                    {isEditing && (
-                                        <span className="rounded-full bg-amber-500/10 px-1.5 py-0.2 text-[9px] font-bold text-amber-700 dark:text-amber-300">
-                                            Requis
-                                        </span>
-                                    )}
-                                </Label>
-                                {isEditing ? (
-                                    <Input
-                                        id="fullName"
-                                        value={name}
-                                        onChange={(e) => setName(e.target.value)}
-                                        required
-                                        className="h-10 rounded-xl"
-                                        placeholder="Ex: Eden Ahoussou"
-                                    />
-                                ) : (
-                                    <div className="flex items-center justify-between rounded-xl border border-border bg-muted/40 px-3.5 py-2.5 text-sm font-semibold text-foreground">
+                            {isEditing ? (
+                                <SettingsField
+                                    label="Nom & Prénoms complets"
+                                    icon={UserIcon}
+                                    value={form.data.name}
+                                    onChange={(v) => form.setData('name', v)}
+                                    error={form.errors.name}
+                                    disabled={form.processing}
+                                    required
+                                    placeholder="Ex: Eden Ahoussou"
+                                    hint="Nom officiel figurant sur les feuilles de route, reçus de vente et rapports d'exploitation."
+                                />
+                            ) : (
+                                <div className="grid content-start gap-1.5">
+                                    <span className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                                        <UserIcon className="size-3.5 text-muted-foreground" />
+                                        Nom & Prénoms complets
+                                    </span>
+                                    <div className="flex items-center justify-between rounded-[10px] border border-border bg-muted/40 px-3.5 py-2.5 text-sm font-semibold text-foreground">
                                         <span>{profile.name}</span>
-                                        <Badge variant="outline" className="text-[10px]">
-                                            Identité validée
-                                        </Badge>
-                                    </div>
-                                )}
-                                <span className="block text-[11px] leading-4 text-muted-foreground">
-                                    Nom officiel figurant sur les feuilles de route, reçus de vente et rapports d'exploitation.
-                                </span>
-                            </div>
-
-                            {/* Téléphone Professionnel */}
-                            <div className="space-y-1.5">
-                                <Label htmlFor="phone" className="flex items-center gap-1.5 text-xs font-bold text-foreground">
-                                    <Phone className="size-3.5 text-muted-foreground" />
-                                    <span>Téléphone mobile professionnel</span>
-                                    {isEditing && (
-                                        <span className="rounded-full bg-amber-500/10 px-1.5 py-0.2 text-[9px] font-bold text-amber-700 dark:text-amber-300">
-                                            Requis
-                                        </span>
-                                    )}
-                                </Label>
-                                {isEditing ? (
-                                    <div className="kora-phone-wrapper">
-                                        <PhoneInput
-                                            international
-                                            defaultCountry="BJ"
-                                            value={phone}
-                                            onChange={(val) => setPhone(val || '')}
-                                            className="flex h-10 w-full rounded-xl border border-input bg-background px-3 text-sm font-medium shadow-xs focus-within:ring-2 focus-within:ring-gold"
+                                        <KoraStatusBadge
+                                            label="Identité validée"
+                                            tone="blue"
                                         />
                                     </div>
-                                ) : (
-                                    <div className="flex items-center justify-between rounded-xl border border-border bg-muted/40 px-3.5 py-2.5 text-sm font-medium text-foreground">
+                                    <span className="text-[11px] leading-4 text-muted-foreground">
+                                        Nom officiel figurant sur les feuilles de route, reçus de vente et rapports d'exploitation.
+                                    </span>
+                                </div>
+                            )}
+
+                            {/* Téléphone Professionnel */}
+                            {isEditing ? (
+                                <SettingsPhoneField
+                                    label="Téléphone mobile professionnel"
+                                    icon={Phone}
+                                    value={form.data.phone}
+                                    onChange={(v) => form.setData('phone', v ?? '')}
+                                    error={form.errors.phone}
+                                    disabled={form.processing}
+                                    hint="Ligne mobile utilisée pour les alertes d'exploitation urgentes et la coordination réseau."
+                                />
+                            ) : (
+                                <div className="grid content-start gap-1.5">
+                                    <span className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                                        <Phone className="size-3.5 text-muted-foreground" />
+                                        Téléphone mobile professionnel
+                                    </span>
+                                    <div className="flex items-center justify-between rounded-[10px] border border-border bg-muted/40 px-3.5 py-2.5 text-sm font-medium text-foreground">
                                         <div className="flex items-center gap-2">
                                             <Phone className="size-4 text-digital" />
-                                            <span>{profile.phone}</span>
+                                            <span>{profile.phone ?? '—'}</span>
                                         </div>
-                                        <Badge variant="outline" className="border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[10px]">
-                                            Ligne active
-                                        </Badge>
+                                        {profile.phone && (
+                                            <KoraStatusBadge
+                                                label="Ligne active"
+                                                tone="blue"
+                                            />
+                                        )}
                                     </div>
-                                )}
-                                <span className="block text-[11px] leading-4 text-muted-foreground">
-                                    Ligne mobile utilisée pour les alertes d'exploitation urgentes et la coordination réseau.
-                                </span>
-                            </div>
+                                    <span className="text-[11px] leading-4 text-muted-foreground">
+                                        Ligne mobile utilisée pour les alertes d'exploitation urgentes et la coordination réseau.
+                                    </span>
+                                </div>
+                            )}
 
                             {/* Poste & Département */}
                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                <div className="space-y-1.5">
-                                    <Label htmlFor="jobTitle" className="flex items-center gap-1.5 text-xs font-bold text-foreground">
-                                        <Briefcase className="size-3.5 text-muted-foreground" />
-                                        <span>Fonction / Rôle</span>
-                                    </Label>
-                                    {isEditing ? (
-                                        <Input
-                                            id="jobTitle"
-                                            value={jobTitle}
-                                            onChange={(e) => setJobTitle(e.target.value)}
-                                            className="h-10 rounded-xl"
-                                            placeholder="Ex: Superviseur d'Exploitation"
-                                        />
-                                    ) : (
-                                        <div className="rounded-xl border border-border bg-muted/40 px-3.5 py-2.5 text-sm font-medium text-foreground">
-                                            {profile.jobTitle}
+                                {isEditing ? (
+                                    <SettingsField
+                                        label="Fonction / Rôle"
+                                        icon={Briefcase}
+                                        value={form.data.job_title}
+                                        onChange={(v) => form.setData('job_title', v)}
+                                        error={form.errors.job_title}
+                                        disabled={form.processing}
+                                        placeholder="Ex: Superviseur d'Exploitation"
+                                        hint="Titre du poste opérationnel."
+                                    />
+                                ) : (
+                                    <div className="grid content-start gap-1.5">
+                                        <span className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                                            <Briefcase className="size-3.5 text-muted-foreground" />
+                                            Fonction / Rôle
+                                        </span>
+                                        <div className="rounded-[10px] border border-border bg-muted/40 px-3.5 py-2.5 text-sm font-medium text-foreground">
+                                            {profile.jobTitle ?? '—'}
                                         </div>
-                                    )}
-                                    <span className="block text-[11px] leading-4 text-muted-foreground">
-                                        Titre du poste opérationnel.
-                                    </span>
-                                </div>
+                                        <span className="text-[11px] leading-4 text-muted-foreground">
+                                            Titre du poste opérationnel.
+                                        </span>
+                                    </div>
+                                )}
 
-                                <div className="space-y-1.5">
-                                    <Label htmlFor="department" className="flex items-center gap-1.5 text-xs font-bold text-foreground">
-                                        <Building2 className="size-3.5 text-muted-foreground" />
-                                        <span>Direction de rattachement</span>
-                                    </Label>
-                                    {isEditing ? (
-                                        <Input
-                                            id="department"
-                                            value={department}
-                                            onChange={(e) => setDepartment(e.target.value)}
-                                            className="h-10 rounded-xl"
-                                            placeholder="Ex: Direction des Opérations"
-                                        />
-                                    ) : (
-                                        <div className="rounded-xl border border-border bg-muted/40 px-3.5 py-2.5 text-sm font-medium text-foreground">
-                                            {profile.department}
+                                {isEditing ? (
+                                    <SettingsField
+                                        label="Direction de rattachement"
+                                        icon={Building2}
+                                        value={form.data.department}
+                                        onChange={(v) => form.setData('department', v)}
+                                        error={form.errors.department}
+                                        disabled={form.processing}
+                                        placeholder="Ex: Direction des Opérations"
+                                        hint="Entité organisationnelle."
+                                    />
+                                ) : (
+                                    <div className="grid content-start gap-1.5">
+                                        <span className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                                            <Building2 className="size-3.5 text-muted-foreground" />
+                                            Direction de rattachement
+                                        </span>
+                                        <div className="rounded-[10px] border border-border bg-muted/40 px-3.5 py-2.5 text-sm font-medium text-foreground">
+                                            {profile.department ?? '—'}
                                         </div>
-                                    )}
-                                    <span className="block text-[11px] leading-4 text-muted-foreground">
-                                        Entité organisationnelle.
-                                    </span>
-                                </div>
+                                        <span className="text-[11px] leading-4 text-muted-foreground">
+                                            Entité organisationnelle.
+                                        </span>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Site & Fuseau Horaire */}
                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                <div className="space-y-1.5">
-                                    <Label htmlFor="location" className="flex items-center gap-1.5 text-xs font-bold text-foreground">
-                                        <MapPin className="size-3.5 text-muted-foreground" />
-                                        <span>Gare ou siège de rattachement</span>
-                                    </Label>
-                                    {isEditing ? (
-                                        <Input
-                                            id="location"
-                                            value={location}
-                                            onChange={(e) => setLocation(e.target.value)}
-                                            className="h-10 rounded-xl"
-                                            placeholder="Ex: Cotonou, Gare Principale"
-                                        />
-                                    ) : (
-                                        <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/40 px-3.5 py-2.5 text-sm font-medium text-foreground">
+                                {isEditing ? (
+                                    <SettingsField
+                                        label="Gare ou siège de rattachement"
+                                        icon={MapPin}
+                                        value={form.data.location}
+                                        onChange={(v) => form.setData('location', v)}
+                                        error={form.errors.location}
+                                        disabled={form.processing}
+                                        placeholder="Ex: Cotonou, Gare Principale"
+                                        hint="Site physique principal d'affectation."
+                                    />
+                                ) : (
+                                    <div className="grid content-start gap-1.5">
+                                        <span className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                                            <MapPin className="size-3.5 text-muted-foreground" />
+                                            Gare ou siège de rattachement
+                                        </span>
+                                        <div className="flex items-center gap-2 rounded-[10px] border border-border bg-muted/40 px-3.5 py-2.5 text-sm font-medium text-foreground">
                                             <MapPin className="size-4 text-muted-foreground" />
-                                            <span className="truncate">{profile.location}</span>
+                                            <span className="truncate">
+                                                {profile.location ?? profile.agency}
+                                            </span>
                                         </div>
-                                    )}
-                                    <span className="block text-[11px] leading-4 text-muted-foreground">
-                                        Site physique principal d'affectation.
-                                    </span>
-                                </div>
+                                        <span className="text-[11px] leading-4 text-muted-foreground">
+                                            Site physique principal d'affectation.
+                                        </span>
+                                    </div>
+                                )}
 
-                                <div className="space-y-1.5">
-                                    <Label htmlFor="timezone" className="flex items-center gap-1.5 text-xs font-bold text-foreground">
-                                        <Globe className="size-3.5 text-muted-foreground" />
-                                        <span>Fuseau horaire d'exploitation</span>
-                                    </Label>
-                                    {isEditing ? (
-                                        <Input
-                                            id="timezone"
-                                            value={timezone}
-                                            onChange={(e) => setTimezone(e.target.value)}
-                                            className="h-10 rounded-xl"
-                                            placeholder="Africa/Porto-Novo (GMT+1)"
-                                        />
-                                    ) : (
-                                        <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/40 px-3.5 py-2.5 text-sm font-medium text-foreground">
+                                {isEditing ? (
+                                    <SettingsSelectField
+                                        label="Fuseau horaire d'exploitation"
+                                        icon={Globe}
+                                        value={form.data.timezone}
+                                        onChange={(v) => form.setData('timezone', v)}
+                                        error={form.errors.timezone}
+                                        disabled={form.processing}
+                                        options={timezoneOptions}
+                                        hint="Référence horaire pour les départs et clôtures."
+                                    />
+                                ) : (
+                                    <div className="grid content-start gap-1.5">
+                                        <span className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                                            <Globe className="size-3.5 text-muted-foreground" />
+                                            Fuseau horaire d'exploitation
+                                        </span>
+                                        <div className="flex items-center gap-2 rounded-[10px] border border-border bg-muted/40 px-3.5 py-2.5 text-sm font-medium text-foreground">
                                             <Globe className="size-4 text-muted-foreground" />
-                                            <span>{profile.timezone}</span>
+                                            <span>
+                                                {profile.timezone ?? 'Africa/Porto-Novo'}
+                                            </span>
                                         </div>
-                                    )}
-                                    <span className="block text-[11px] leading-4 text-muted-foreground">
-                                        Référence horaire pour les départs et clôtures.
-                                    </span>
-                                </div>
+                                        <span className="text-[11px] leading-4 text-muted-foreground">
+                                            Référence horaire pour les départs et clôtures.
+                                        </span>
+                                    </div>
+                                )}
                             </div>
+
+                            {/* Confirmation par mot de passe — exigée si le téléphone change */}
+                            {isEditing && phoneChanged && (
+                                <div className="space-y-3 rounded-xl border border-amber-500/40 bg-amber-500/5 p-4">
+                                    <div className="flex items-start gap-2.5">
+                                        <ShieldAlert className="mt-0.5 size-4 shrink-0 text-amber-600" />
+                                        <p className="text-[11px] leading-relaxed text-amber-800 dark:text-amber-300">
+                                            <span className="font-bold">Action sensible détectée : </span>
+                                            la modification du numéro de téléphone sert aux alertes et à la vérification d'identité. Confirmez votre mot de passe pour autoriser ce changement.
+                                        </p>
+                                    </div>
+                                    <div className="grid content-start gap-1.5">
+                                        <Label
+                                            htmlFor="password"
+                                            className="flex items-center gap-1.5 text-xs font-bold text-foreground"
+                                        >
+                                            <LockKeyhole className="size-3.5 text-muted-foreground" />
+                                            <span>Mot de passe de confirmation</span>
+                                            <span className="rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-extrabold tracking-wide text-amber-700 dark:text-amber-300">
+                                                Requis
+                                            </span>
+                                        </Label>
+                                        <PasswordInput
+                                            id="password"
+                                            value={form.data.password}
+                                            onChange={(e) => form.setData('password', e.target.value)}
+                                            autoComplete="current-password"
+                                            className="h-10 rounded-[10px]"
+                                            placeholder="Saisissez votre mot de passe"
+                                        />
+                                        {form.errors.password && (
+                                            <span className="text-[11px] font-semibold text-destructive">
+                                                {form.errors.password}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {isEditing && (
-                            <footer className="flex items-center justify-end gap-3 border-t border-border/70 bg-muted/30 px-5 py-4">
+                            <footer className="mt-5 flex items-center justify-end gap-3 border-t border-border/70 pt-4">
                                 <Button
                                     type="button"
-                                    variant="ghost"
+                                    variant="kora-secondary"
+                                    size="kora"
                                     onClick={onCancelEdit}
-                                    className="rounded-xl text-xs"
                                 >
-                                    <X className="mr-1.5 size-4" />
+                                    <X className="size-3.5" />
                                     Annuler
                                 </Button>
 
                                 <Button
                                     type="submit"
-                                    disabled={isSaving}
-                                    className="rounded-xl bg-kora text-white hover:bg-[#002d75] dark:bg-gold dark:text-kora text-xs font-bold px-5"
+                                    variant="kora"
+                                    size="kora"
+                                    disabled={form.processing}
                                 >
-                                    <Save className="mr-1.5 size-4" />
-                                    {isSaving ? 'Enregistrement...' : 'Enregistrer les modifications'}
+                                    <Save className="size-3.5" />
+                                    {form.processing ? 'Enregistrement…' : 'Enregistrer'}
                                 </Button>
                             </footer>
                         )}
-                    </section>
+                    </SettingsSection>
                 </div>
 
                 {/* Right Column: Identity Governance & Security (4 cols) */}
                 <div className="space-y-6 lg:col-span-4">
                     {/* Carte Email Verrouillé */}
-                    <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-[0_7px_28px_rgba(0,29,78,0.04)]">
-                        <header className="flex items-center justify-between border-b border-border/70 px-5 py-4">
-                            <div className="flex items-center gap-2.5">
-                                <span className="h-4 w-1 shrink-0 rounded-full bg-gold" />
-                                <h3 className="text-[14px] font-extrabold tracking-[-0.01em] text-foreground">
-                                    Identité officielle
-                                </h3>
-                            </div>
-                            <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 font-mono text-[10px] text-emerald-600 dark:text-emerald-400">
-                                Certifié DSI
-                            </Badge>
-                        </header>
-
-                        <div className="p-5 space-y-4">
-                            <div className="rounded-xl border border-border bg-muted/40 p-3.5 space-y-1">
+                    <SettingsSection
+                        title="Identité officielle"
+                        actions={
+                            <KoraStatusBadge label="Certifié DSI" tone="navy" />
+                        }
+                    >
+                        <div className="space-y-4">
+                            <div className="space-y-1 rounded-xl border border-border bg-muted/40 p-3.5">
                                 <span className="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground uppercase">
                                     <Mail className="size-3 text-muted-foreground" />
                                     <span>Adresse e-mail certifiée</span>
                                 </span>
-                                <span className="font-mono text-xs font-bold text-foreground block truncate">
+                                <span className="block truncate font-mono text-xs font-bold text-foreground">
                                     {profile.email}
                                 </span>
-                                <span className="block text-[10px] text-muted-foreground pt-1">
+                                <span className="block pt-1 text-[10px] text-muted-foreground">
                                     Utilisée pour la double authentification et les notifications d'audit.
                                 </span>
                             </div>
 
-                            <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3.5 text-xs text-amber-800 dark:text-amber-300 space-y-1">
+                            <div className="space-y-1 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3.5 text-xs text-amber-800 dark:text-amber-300">
                                 <div className="flex items-center gap-1.5 font-bold">
                                     <Lock className="size-3.5" />
                                     <span>Modification verrouillée</span>
@@ -347,12 +408,12 @@ export function ProfileGeneralTab({
                                     <span className="block text-[10px] font-bold text-muted-foreground uppercase">
                                         Identifiant unique KORA (UUID)
                                     </span>
-                                    <span className="font-mono text-[11px] text-foreground">{profile.id}</span>
+                                    <span className="font-mono text-[11px] text-foreground">{profile.uuid}</span>
                                 </div>
                                 <button
                                     type="button"
                                     onClick={handleCopyId}
-                                    className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                                    className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                                     title="Copier l'UUID"
                                 >
                                     {copiedId ? (
@@ -363,36 +424,32 @@ export function ProfileGeneralTab({
                                 </button>
                             </div>
                         </div>
-                    </section>
+                    </SettingsSection>
 
                     {/* Carte Permissions */}
-                    <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-[0_7px_28px_rgba(0,29,78,0.04)]">
-                        <header className="flex items-center justify-between border-b border-border/70 px-5 py-4">
-                            <div className="flex items-center gap-2.5">
-                                <span className="h-4 w-1 shrink-0 rounded-full bg-gold" />
-                                <h3 className="text-[14px] font-extrabold tracking-[-0.01em] text-foreground">
-                                    Habilitations actives
-                                </h3>
-                            </div>
+                    <SettingsSection
+                        title="Habilitations actives"
+                        actions={
                             <span className="font-mono text-xs text-muted-foreground">
                                 {profile.permissions.length} actives
                             </span>
-                        </header>
-
-                        <ul className="divide-y divide-border/60">
+                        }
+                    >
+                        <ul className="-m-5 divide-y divide-border/60 max-h-80 overflow-y-auto">
                             {profile.permissions.map((perm) => (
                                 <li key={perm.code} className="flex items-center justify-between px-5 py-3 text-xs">
                                     <div className="flex items-center gap-2">
-                                        <CheckCircle2 className="size-3.5 text-emerald-500 shrink-0" />
+                                        <CheckCircle2 className="size-3.5 shrink-0 text-emerald-500" />
                                         <span className="font-medium text-foreground">{perm.label}</span>
                                     </div>
-                                    <Badge variant="outline" className="text-[10px] font-mono shrink-0">
-                                        {perm.category}
-                                    </Badge>
+                                    <KoraStatusBadge
+                                        label={perm.category}
+                                        tone="muted"
+                                    />
                                 </li>
                             ))}
                         </ul>
-                    </section>
+                    </SettingsSection>
                 </div>
             </div>
         </form>

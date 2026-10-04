@@ -43,6 +43,9 @@ use Spatie\Permission\Traits\HasRoles;
  * @property string $email
  * @property string|null $phone
  * @property string|null $country_code
+ * @property string|null $job_title
+ * @property string|null $department
+ * @property string|null $location
  * @property Carbon|null $birth_date
  * @property int|null $agency_id
  * @property Carbon|null $deleted_at
@@ -53,6 +56,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property Carbon|null $email_verified_at
  * @property string $password
  * @property bool $must_change_password
+ * @property Carbon|null $password_changed_at
  * @property string|null $two_factor_secret
  * @property string|null $two_factor_recovery_codes
  * @property Carbon|null $two_factor_confirmed_at
@@ -60,7 +64,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['uuid', 'name', 'email', 'phone', 'country_code', 'birth_date', 'agency_id', 'status', 'pin_hash', 'password', 'must_change_password'])]
+#[Fillable(['uuid', 'name', 'email', 'phone', 'country_code', 'job_title', 'department', 'location', 'birth_date', 'agency_id', 'status', 'pin_hash', 'password', 'must_change_password', 'password_changed_at'])]
 #[Hidden(['id', 'password', 'pin_hash', 'failed_pin_attempts', 'locked_until', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 #[ObservedBy([UserOpsSessionObserver::class])]
 class User extends Authenticatable implements HasMedia, PasskeyUser
@@ -172,6 +176,7 @@ class User extends Authenticatable implements HasMedia, PasskeyUser
             'password' => 'hashed',
             'pin_hash' => 'hashed',
             'must_change_password' => 'boolean',
+            'password_changed_at' => 'datetime',
             'status' => UserStatus::class,
             'two_factor_confirmed_at' => 'datetime',
         ];

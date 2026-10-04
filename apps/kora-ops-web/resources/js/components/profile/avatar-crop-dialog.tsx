@@ -297,10 +297,12 @@ export function AvatarCropDialog({
 
                     <Button
                         type="button"
+                        variant="kora"
+                        size="lg"
                         onClick={handleApplyCrop}
-                        className="rounded-xl bg-kora text-white hover:bg-[#002d75] dark:bg-gold dark:text-kora text-xs font-bold px-5"
+                        className="rounded-xl text-xs font-extrabold"
                     >
-                        <Check className="mr-1.5 size-4" />
+                        <Check className="size-4" />
                         Valider et appliquer
                     </Button>
                 </DialogFooter>

@@ -50,7 +50,7 @@ class HandleInertiaRequests extends Middleware
                     'uuid' => $user->uuid,
                     'name' => $user->name,
                     'email' => $user->email,
-                    'avatar' => null,
+                    'avatar' => $user->getFirstMediaUrl('avatar', 'thumb') ?: null,
                     'canViewCash' => $user->can('viewAny', CashSession::class),
                     'canViewTickets' => $user->can('viewAny', Ticket::class),
                     'email_verified_at' => $user->email_verified_at?->toISOString(),

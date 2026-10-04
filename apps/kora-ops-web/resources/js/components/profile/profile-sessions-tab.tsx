@@ -8,48 +8,54 @@ import {
     Tablet,
 } from 'lucide-react';
 import { useState } from 'react';
-import { toast } from 'sonner';
+import ProfileSessionController from '@/actions/App/Http/Controllers/Settings/ProfileSessionController';
+import { SettingsSection } from '@/components/administration/settings/settings-ui';
+import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { PanelAlert } from '@/components/panel-alert';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import type { UserSessionItem } from './profile-mock-data';
-import {
-    INITIAL_SESSIONS_DATA,
-} from './profile-mock-data';
+import { PasswordConfirmDialog } from './password-confirm-dialog';
+import type { UserSessionItem } from './profile-types';
+
+interface ProfileSessionsTabProps {
+    sessions: UserSessionItem[];
+}
+
+type PendingRevocation = {
+    title: string;
+    description: string;
+    url: string;
+} | null;
 
 /**
  * Onglet Sessions & Postes d'exploitation KORA OPS.
  */
-export function ProfileSessionsTab() {
-    const [sessions, setSessions] =
-        useState<UserSessionItem[]>(INITIAL_SESSIONS_DATA);
+export function ProfileSessionsTab({ sessions }: ProfileSessionsTabProps) {
+    const [pending, setPending] = useState<PendingRevocation>(null);
     const [showRevokeAllModal, setShowRevokeAllModal] = useState(false);
-    const [revokingId, setRevokingId] = useState<string | null>(null);
 
     const currentSession = sessions.find((s) => s.isCurrent);
     const otherSessions = sessions.filter((s) => !s.isCurrent);
 
-    const handleRevokeSession = (id: string, deviceName: string) => {
-        setRevokingId(id);
-        setTimeout(() => {
-            setSessions((prev) => prev.filter((s) => s.id !== id));
-            setRevokingId(null);
-            toast.success(`Session « ${deviceName} » révoquée`);
-        }, 300);
-    };
+    const revokeLabel = (session: UserSessionItem): string =>
+        session.kind === 'terminal'
+            ? 'la session terminal'
+            : session.kind === 'device'
+                ? "l'appareil de confiance"
+                : 'la session navigateur';
 
-    const handleRevokeAllOthers = () => {
-        setShowRevokeAllModal(false);
-        setSessions((prev) => prev.filter((s) => s.isCurrent));
-        toast.success('Toutes les autres sessions ont été clôturées');
+    const handleRevoke = (session: UserSessionItem) => {
+        const url =
+            session.kind === 'terminal'
+                ? ProfileSessionController.destroyTerminal.url(session.id)
+                : session.kind === 'device'
+                    ? ProfileSessionController.destroyDevice.url(session.id)
+                    : ProfileSessionController.destroySession.url(session.id);
+
+        setPending({
+            title: `Déconnecter ${revokeLabel(session)} ?`,
+            description: `« ${session.device} » perdra immédiatement son accès à KORA OPS. Confirmez votre identité par mot de passe.`,
+            url,
+        });
     };
 
     const getDeviceIcon = (type: UserSessionItem['type']) => {
@@ -63,35 +69,34 @@ export function ProfileSessionsTab() {
         }
     };
 
+    const kindBadge = (session: UserSessionItem) => {
+        if (session.kind === 'terminal') {
+            return <KoraStatusBadge label="P501" tone="gold" />;
+        }
+
+        if (session.kind === 'device') {
+            return <KoraStatusBadge label="Confiance" tone="blue" />;
+        }
+
+        return null;
+    };
+
     return (
         <div className="space-y-6">
             {/* Alerte contextuelle de surveillance */}
             <PanelAlert tone="info" icon={Info}>
                 <span className="font-bold">Contrôle télématique et sécurité des accès : </span>
-                Chaque connexion depuis un poste d'agence ou un terminal P501 fait l'objet d'un suivi horodaté. Les sessions inactives depuis plus de 24 heures sont invalidées automatiquement.
+                Chaque connexion depuis un poste d'agence ou un terminal P501 fait l'objet d'un suivi horodaté. Toute déconnexion à distance exige la confirmation de votre mot de passe.
             </PanelAlert>
 
             {/* Session courante */}
             {currentSession && (
-                <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-[0_7px_28px_rgba(0,29,78,0.04)]">
-                    <header className="flex items-center justify-between border-b border-border/70 px-5 py-4">
-                        <div className="flex items-center gap-3">
-                            <span className="h-4 w-1 shrink-0 rounded-full bg-gold" />
-                            <div>
-                                <h2 className="text-[15px] font-extrabold tracking-[-0.02em] text-foreground">
-                                    Session courante
-                                </h2>
-                                <p className="text-xs text-muted-foreground">
-                                    Appareil actuellement utilisé pour administrer KORA OPS.
-                                </p>
-                            </div>
-                        </div>
-                        <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono text-[10px]">
-                            En ligne
-                        </Badge>
-                    </header>
-
-                    <div className="p-5 sm:p-6 space-y-4">
+                <SettingsSection
+                    title="Session courante"
+                    description="Appareil actuellement utilisé pour administrer KORA OPS."
+                    actions={<KoraStatusBadge label="En ligne" tone="blue" />}
+                >
+                    <div className="space-y-4">
                         <div className="flex items-center gap-3.5">
                             <span className="grid size-10 place-items-center rounded-xl bg-muted text-foreground">
                                 {getDeviceIcon(currentSession.type)}
@@ -101,44 +106,38 @@ export function ProfileSessionsTab() {
                                     {currentSession.device}
                                 </h3>
                                 <p className="text-xs text-muted-foreground">
-                                    {currentSession.browser}
+                                    {currentSession.browser ?? 'Navigateur inconnu'}
                                 </p>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 gap-3 pt-2 sm:grid-cols-2 text-xs">
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                                <Globe className="size-3.5" />
-                                <span>Adresse IP :</span>
-                                <strong className="font-mono text-foreground">{currentSession.ip}</strong>
-                            </div>
+                        <div className="grid grid-cols-1 gap-3 pt-2 text-xs sm:grid-cols-2">
+                            {currentSession.ip && (
+                                <div className="flex items-center gap-2 text-muted-foreground">
+                                    <Globe className="size-3.5" />
+                                    <span>Adresse IP :</span>
+                                    <strong className="font-mono text-foreground">{currentSession.ip}</strong>
+                                </div>
+                            )}
 
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                                <MapPin className="size-3.5" />
-                                <span>Localisation :</span>
-                                <strong className="text-foreground">{currentSession.location}</strong>
-                            </div>
+                            {currentSession.location && (
+                                <div className="flex items-center gap-2 text-muted-foreground">
+                                    <MapPin className="size-3.5" />
+                                    <span>Localisation :</span>
+                                    <strong className="text-foreground">{currentSession.location}</strong>
+                                </div>
+                            )}
                         </div>
                     </div>
-                </section>
+                </SettingsSection>
             )}
 
-            {/* Autres sessions */}
-            <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-[0_7px_28px_rgba(0,29,78,0.04)]">
-                <header className="flex items-center justify-between border-b border-border/70 px-5 py-4">
-                    <div className="flex items-center gap-3">
-                        <span className="h-4 w-1 shrink-0 rounded-full bg-gold" />
-                        <div>
-                            <h2 className="text-[15px] font-extrabold tracking-[-0.02em] text-foreground">
-                                Autres appareils connectés
-                            </h2>
-                            <p className="text-xs text-muted-foreground">
-                                Postes d'agences et terminaux mobiles autorisés.
-                            </p>
-                        </div>
-                    </div>
-
-                    {otherSessions.length > 0 && (
+            {/* Autres sessions & appareils */}
+            <SettingsSection
+                title="Autres appareils connectés"
+                description="Postes d'agences, appareils de confiance et terminaux mobiles autorisés."
+                actions={
+                    otherSessions.length > 0 ? (
                         <Button
                             type="button"
                             variant="destructive"
@@ -149,79 +148,82 @@ export function ProfileSessionsTab() {
                             <LogOut className="mr-1.5 size-3.5" />
                             Déconnecter les autres sessions
                         </Button>
-                    )}
-                </header>
-
-                <div className="divide-y divide-border/60">
+                    ) : undefined
+                }
+            >
+                <div className="-m-5 divide-y divide-border/60">
                     {otherSessions.length === 0 ? (
                         <div className="p-6 text-center text-xs text-muted-foreground">
-                            Aucune autre session active.
+                            Aucune autre session ou appareil actif.
                         </div>
                     ) : (
                         otherSessions.map((session) => (
-                            <div key={session.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4 text-xs">
+                            <div key={`${session.kind}-${session.id}`} className="flex flex-col gap-3 px-5 py-4 text-xs sm:flex-row sm:items-center sm:justify-between">
                                 <div className="flex items-center gap-3">
                                     <span className="grid size-9 place-items-center rounded-xl bg-muted text-foreground">
                                         {getDeviceIcon(session.type)}
                                     </span>
                                     <div>
                                         <div className="flex items-center gap-2">
-                                            <span className="font-bold text-foreground text-sm">
+                                            <span className="text-sm font-bold text-foreground">
                                                 {session.device}
                                             </span>
-                                            {session.type === 'pos' && (
-                                                <Badge variant="outline" className="text-[9px] font-mono text-gold border-gold/40">
-                                                    P501
-                                                </Badge>
-                                            )}
+                                            {kindBadge(session)}
                                         </div>
                                         <p className="text-[11px] text-muted-foreground">
-                                            {session.browser} • {session.ip} • {session.location}
+                                            {[session.browser, session.ip, session.location]
+                                                .filter(Boolean)
+                                                .join(' • ') || '—'}
                                         </p>
                                     </div>
                                 </div>
 
-                                <div className="flex items-center justify-between sm:justify-end gap-3">
+                                <div className="flex items-center justify-between gap-3 sm:justify-end">
                                     <span className="text-[11px] text-muted-foreground">
-                                        {session.lastActive}
+                                        {session.lastActive ?? '—'}
                                     </span>
                                     <Button
                                         type="button"
                                         variant="ghost"
                                         size="sm"
-                                        disabled={revokingId === session.id}
-                                        onClick={() => handleRevokeSession(session.id, session.device)}
+                                        onClick={() => handleRevoke(session)}
                                         className="rounded-lg text-xs text-destructive hover:bg-destructive/10"
                                     >
-                                        {revokingId === session.id ? 'Fermeture...' : 'Déconnecter'}
+                                        {session.kind === 'device' ? 'Retirer' : 'Déconnecter'}
                                     </Button>
                                 </div>
                             </div>
                         ))
                     )}
                 </div>
-            </section>
+            </SettingsSection>
 
-            {/* Modal Déconnexion globale */}
-            <Dialog open={showRevokeAllModal} onOpenChange={setShowRevokeAllModal}>
-                <DialogContent className="max-w-md rounded-2xl">
-                    <DialogHeader>
-                        <DialogTitle className="text-base font-bold">Déconnecter toutes les autres sessions ?</DialogTitle>
-                        <DialogDescription className="text-xs text-muted-foreground">
-                            Tous les accès ouverts sur d'autres navigateurs et terminaux d'agence seront clôturés.
-                        </DialogDescription>
-                    </DialogHeader>
+            {/* Dialog de confirmation mot de passe — révocation unitaire */}
+            <PasswordConfirmDialog
+                open={pending !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setPending(null);
+                    }
+                }}
+                title={pending?.title ?? ''}
+                description={pending?.description ?? ''}
+                confirmLabel="Confirmer la déconnexion"
+                action={{ url: pending?.url ?? '', method: 'delete' }}
+            />
 
-                    <DialogFooter>
-                        <Button type="button" variant="ghost" onClick={() => setShowRevokeAllModal(false)} className="rounded-xl text-xs">
-                            Annuler
-                        </Button>
-                        <Button type="button" variant="destructive" onClick={handleRevokeAllOthers} className="rounded-xl text-xs font-bold">
-                            Confirmer la déconnexion
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            {/* Dialog de confirmation mot de passe — déconnexion globale */}
+            <PasswordConfirmDialog
+                open={showRevokeAllModal}
+                onOpenChange={setShowRevokeAllModal}
+                title="Déconnecter toutes les autres sessions ?"
+                description="Toutes les sessions de navigateur ouvertes sur d'autres postes seront clôturées. Confirmez votre identité par mot de passe."
+                confirmLabel="Tout déconnecter"
+                action={{
+                    url: ProfileSessionController.destroyOthers.url(),
+                    method: 'delete',
+                }}
+            />
         </div>
     );
 }

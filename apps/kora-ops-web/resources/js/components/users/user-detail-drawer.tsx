@@ -14,6 +14,7 @@ import {
     X,
 } from 'lucide-react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { AdministrationUser } from '@/types/administration';
 
 type Props = {
@@ -77,18 +78,18 @@ export function UserDetailDrawer({
     const statusTone = isArchived
         ? 'muted'
         : isLocked
-          ? 'destructive'
-          : user.status === 'suspended'
-            ? 'gold'
-            : 'blue';
+            ? 'destructive'
+            : user.status === 'suspended'
+                ? 'gold'
+                : 'blue';
 
     const statusLabel = isArchived
         ? 'Archivé'
         : isLocked
-          ? 'Verrouillé (Tentatives dépassées)'
-          : user.status === 'suspended'
-            ? 'Suspendu'
-            : 'Actif';
+            ? 'Verrouillé (Tentatives dépassées)'
+            : user.status === 'suspended'
+                ? 'Suspendu'
+                : 'Actif';
 
     return (
         <div className="fixed inset-0 z-50 overflow-hidden" role="presentation">
@@ -108,9 +109,15 @@ export function UserDetailDrawer({
                 {/* Header */}
                 <header className="flex items-start justify-between gap-4 border-b border-border px-6 py-5">
                     <div className="flex items-center gap-3.5">
-                        <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-gold/20 text-sm font-black text-gold">
-                            {getInitials(user.name)}
-                        </span>
+                        <Avatar className="size-12 shrink-0 rounded-2xl">
+                            <AvatarImage
+                                src={user.avatar ?? undefined}
+                                alt={user.name}
+                            />
+                            <AvatarFallback className="rounded-2xl bg-gold/20 text-sm font-black text-gold">
+                                {getInitials(user.name)}
+                            </AvatarFallback>
+                        </Avatar>
                         <div>
                             <span className="section-kicker">
                                 Compte utilisateur
@@ -221,8 +228,8 @@ export function UserDetailDrawer({
                                 {user.role?.category === 'central'
                                     ? 'Direction Centrale'
                                     : user.role?.category === 'agency'
-                                      ? 'Agence Locale'
-                                      : 'Équipage Terrain'}
+                                        ? 'Agence Locale'
+                                        : 'Équipage Terrain'}
                             </span>
                         </div>
 

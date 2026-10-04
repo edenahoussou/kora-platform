@@ -8,17 +8,17 @@ import {
     X,
 } from 'lucide-react';
 import { useRef, useState } from 'react';
-import { Badge } from '@/components/ui/badge';
+import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { AvatarCropDialog } from './avatar-crop-dialog';
-import type { UserProfileData } from './profile-mock-data';
+import type { UserProfileData } from './profile-types';
 
 interface ProfileHeaderProps {
     profile: UserProfileData;
     isEditing: boolean;
     onToggleEdit: () => void;
-    onUpdateAvatar: (url: string) => void;
+    onUpdateAvatar: (dataUrl: string) => void;
 }
 
 /**
@@ -137,14 +137,18 @@ export function ProfileHeader({
                             <h1 className="text-xl sm:text-2xl font-extrabold tracking-[-0.03em] text-white">
                                 {profile.name}
                             </h1>
-                            <Badge className="border border-gold/40 bg-gold/15 font-mono text-[11px] font-bold text-gold">
-                                <Sparkles className="mr-1 size-3" />
-                                {profile.roleBadge}
-                            </Badge>
+                            <span className="inline-flex items-center gap-1.5">
+                                <Sparkles className="size-3.5 text-gold" />
+                                <KoraStatusBadge
+                                    label={profile.roleLabel}
+                                    tone="gold"
+                                    className="border border-gold/40 bg-gold/15 font-mono text-[10px] tracking-[0.08em] text-gold uppercase dark:bg-gold/15 dark:text-gold"
+                                />
+                            </span>
                         </div>
 
                         <p className="text-sm font-medium text-white/80">
-                            {profile.jobTitle}
+                            {profile.jobTitle ?? profile.roleLabel}
                         </p>
 
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-1 text-xs text-white/70">
@@ -170,13 +174,10 @@ export function ProfileHeader({
                 <div className="flex items-center">
                     <Button
                         type="button"
+                        variant={isEditing ? 'kora-secondary' : 'kora'}
+                        size="lg"
                         onClick={onToggleEdit}
-                        className={cn(
-                            'group inline-flex min-h-10 items-center gap-2 rounded-xl px-4 text-xs font-extrabold shadow-sm transition-all duration-200 active:scale-[0.98]',
-                            isEditing
-                                ? 'bg-gold text-[var(--kora)] hover:bg-[#e5a400]'
-                                : 'border border-white/20 bg-white/10 text-white hover:bg-white/20',
-                        )}
+                        className="rounded-xl text-xs font-extrabold"
                     >
                         {isEditing ? (
                             <>
