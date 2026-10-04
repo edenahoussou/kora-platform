@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { UserCredentialsDialog } from '@/components/users/user-credentials-dialog';
 import { UserDetailDrawer } from '@/components/users/user-detail-drawer';
 import { UserFormModal } from '@/components/users/user-form-modal';
@@ -726,20 +727,40 @@ export default function UsersPage({
                                                     {/* Nom & Email */}
                                                     <td className="px-4 py-3.5">
                                                         <div className="flex items-center gap-3">
-                                                            <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-gold/15 text-xs font-black text-gold">
-                                                                {user.name
-                                                                    .split(' ')
-                                                                    .map(
-                                                                        (n) =>
-                                                                            n[0],
-                                                                    )
-                                                                    .filter(
-                                                                        Boolean,
-                                                                    )
-                                                                    .slice(0, 2)
-                                                                    .join('')
-                                                                    .toUpperCase()}
-                                                            </span>
+                                                            <Avatar className="size-9 shrink-0 rounded-xl">
+                                                                <AvatarImage
+                                                                    src={
+                                                                        user.avatar ??
+                                                                        undefined
+                                                                    }
+                                                                    alt={
+                                                                        user.name
+                                                                    }
+                                                                />
+                                                                <AvatarFallback className="rounded-xl bg-gold/15 text-xs font-black text-gold">
+                                                                    {user.name
+                                                                        .split(
+                                                                            ' ',
+                                                                        )
+                                                                        .map(
+                                                                            (
+                                                                                n,
+                                                                            ) =>
+                                                                                n[0],
+                                                                        )
+                                                                        .filter(
+                                                                            Boolean,
+                                                                        )
+                                                                        .slice(
+                                                                            0,
+                                                                            2,
+                                                                        )
+                                                                        .join(
+                                                                            '',
+                                                                        )
+                                                                        .toUpperCase()}
+                                                                </AvatarFallback>
+                                                            </Avatar>
                                                             <div>
                                                                 <p className="text-xs font-black text-foreground">
                                                                     {user.name}

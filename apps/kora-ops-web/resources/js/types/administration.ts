@@ -24,6 +24,7 @@ export type AdministrationUser = {
     uuid: string;
     name: string;
     email: string;
+    avatar: string | null;
     phone: string | null;
     country_code: string | null;
     birth_date: string | null;

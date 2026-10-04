@@ -1,8 +1,9 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import {
     AlertTriangle,
     Building2,
     Bus,
+    ChevronUp,
     FileText,
     LayoutDashboard,
     PanelLeftClose,
@@ -15,11 +16,20 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import AppLogoIcon from '@/components/app-logo-icon';
+import { KoraUserMenuContent } from '@/components/kora-user-menu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useCurrentUrl } from '@/hooks/use-current-url';
+import { useInitials } from '@/hooks/use-initials';
 import { usePermissions } from '@/hooks/use-permissions';
 import { cn } from '@/lib/utils';
-import { dashboard, revenue } from '@/routes';
+import { dashboard, logout, revenue } from '@/routes';
 import programming from '@/routes/programming';
+import { update as updatePushPreference } from '@/routes/settings/notifications/push';
 
 type NavPermission = string | string[] | null;
 
@@ -269,7 +279,54 @@ export function KoraSidebar({
     const { isCurrentUrl } = useCurrentUrl();
     const { auth, companyPortal } = usePage().props;
     const { can, canAny, hasRole } = usePermissions();
+    const getInitials = useInitials();
     const [openGroups, setOpenGroups] = useState<string[]>([]);
+
+    const handleLogout = async () => {
+        const fingerprint = window.localStorage.getItem(
+            'kora-ops-web-push-device',
+        );
+
+        if (
+            fingerprint &&
+            window.localStorage.getItem('kora-ops-web-push-enabled') === 'true'
+        ) {
+            const xsrf = document.cookie
+                .split('; ')
+                .find((part) => part.startsWith('XSRF-TOKEN='))
+                ?.slice('XSRF-TOKEN='.length);
+
+            try {
+                await fetch(updatePushPreference.url(), {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-XSRF-TOKEN': xsrf ? decodeURIComponent(xsrf) : '',
+                    },
+                    body: JSON.stringify({
+                        device_fingerprint: fingerprint,
+                        device_name: 'Navigateur Web',
+                        push_token: null,
+                    }),
+                });
+            } catch {
+                // Logout still proceeds if best-effort token cleanup is offline.
+            }
+        }
+
+        router.post(
+            logout().url,
+            {},
+            {
+                onFinish: () => {
+                    window.localStorage.removeItem('kora-ops-web-push-enabled');
+                    router.flushAll();
+                },
+            },
+        );
+    };
 
     // La sidebar est remontée à chaque visite Inertia : on restaure les
     // groupes ouverts manuellement. Différé d'un tick pour rester hors du
@@ -508,42 +565,96 @@ export function KoraSidebar({
                 })}
             </nav>
 
-            {/* Bottom: site pill */}
+            {/* Bottom: utilisateur actif avec dropdown vers le haut (side="top") */}
             <div
                 className={cn(
                     'mt-auto border-t border-white/10 pt-3.5',
                     isCollapsed && 'border-t-0 pt-0',
                 )}
             >
-                <div
-                    className={cn(
-                        'mx-1 rounded-[0.75rem] bg-white/[0.07] p-2.75',
-                        isCollapsed && 'mx-0 bg-transparent p-0',
-                    )}
-                >
-                    {isCollapsed ? (
-                        <span
-                            className="mx-auto grid size-9 place-items-center rounded-[0.6875rem] bg-white/[0.08] text-[0.6875rem] font-black text-gold"
-                            title={auth?.user?.name ?? 'Siège Cotonou'}
+                {auth?.user ? (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <button
+                                type="button"
+                                className={cn(
+                                    'group flex w-full items-center rounded-[0.75rem] text-left transition-all duration-200 focus-visible:ring-2 focus-visible:ring-gold/50 focus-visible:outline-none',
+                                    isCollapsed
+                                        ? 'justify-center p-0'
+                                        : 'mx-0 bg-white/[0.07] p-2.5 hover:bg-white/[0.12]',
+                                )}
+                                aria-label="Menu utilisateur"
+                            >
+                                {isCollapsed ? (
+                                    <Avatar
+                                        className="mx-auto size-9 rounded-[0.6875rem] ring-1 ring-white/15 transition-transform duration-200 group-hover:scale-105"
+                                        title={auth.user.name}
+                                    >
+                                        <AvatarImage
+                                            src={auth.user.avatar ?? undefined}
+                                            alt={auth.user.name}
+                                        />
+                                        <AvatarFallback className="rounded-[0.6875rem] bg-white/[0.08] text-[0.6875rem] font-black text-gold">
+                                            {getInitials(auth.user.name)}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                ) : (
+                                    <>
+                                        <Avatar className="size-8 shrink-0 rounded-[0.5625rem] ring-1 ring-white/20">
+                                            <AvatarImage
+                                                src={
+                                                    auth.user.avatar ??
+                                                    undefined
+                                                }
+                                                alt={auth.user.name}
+                                            />
+                                            <AvatarFallback className="rounded-[0.5625rem] bg-white/[0.08] text-[0.6875rem] font-black text-gold">
+                                                {getInitials(auth.user.name)}
+                                            </AvatarFallback>
+                                        </Avatar>
+
+                                        <div className="ml-2.5 min-w-0 flex-1">
+                                            <strong className="block truncate text-[0.75rem] font-bold text-white">
+                                                {auth.user.name}
+                                            </strong>
+                                            <small className="block truncate text-[0.625rem] text-white/55">
+                                                {auth.user.email}
+                                            </small>
+                                        </div>
+
+                                        <ChevronUp className="size-4 shrink-0 text-white/40 transition-transform duration-200 group-hover:text-white group-data-[state=open]:rotate-180" />
+                                    </>
+                                )}
+                            </button>
+                        </DropdownMenuTrigger>
+
+                        <DropdownMenuContent
+                            side="top"
+                            align={isCollapsed ? 'start' : 'center'}
+                            sideOffset={12}
+                            className="rounded-2xl border-border bg-card p-1.5 shadow-[0_-20px_50px_rgba(0,29,78,0.22)]"
                         >
-                            {(auth?.user?.name ?? 'SC')
-                                .split(' ')
-                                .map((part) => part[0])
-                                .join('')
-                                .slice(0, 2)
-                                .toUpperCase()}
-                        </span>
-                    ) : (
-                        <>
-                            <small className="block text-[0.625rem] text-white/45">
-                                Périmètre actif
-                            </small>
-                            <strong className="mt-1 block text-[0.75rem] text-white">
-                                {auth?.user?.name ?? 'Siège Cotonou'}
-                            </strong>
-                        </>
-                    )}
-                </div>
+                            <KoraUserMenuContent
+                                user={auth.user}
+                                onLogout={handleLogout}
+                            />
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                ) : (
+                    <div
+                        className={cn(
+                            'mx-1 rounded-[0.75rem] bg-white/[0.07] p-2.75',
+                            isCollapsed && 'mx-0 bg-transparent p-0',
+                        )}
+                    >
+                        <small className="block text-[0.625rem] text-white/45">
+                            Périmètre actif
+                        </small>
+                        <strong className="mt-1 block text-[0.75rem] text-white">
+                            Siège Cotonou
+                        </strong>
+                    </div>
+                )}
             </div>
         </>
     );

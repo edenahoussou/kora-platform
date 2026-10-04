@@ -14,6 +14,7 @@ import {
     X,
 } from 'lucide-react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { AdministrationUser } from '@/types/administration';
 
 type Props = {
@@ -108,9 +109,15 @@ export function UserDetailDrawer({
                 {/* Header */}
                 <header className="flex items-start justify-between gap-4 border-b border-border px-6 py-5">
                     <div className="flex items-center gap-3.5">
-                        <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-gold/20 text-sm font-black text-gold">
-                            {getInitials(user.name)}
-                        </span>
+                        <Avatar className="size-12 shrink-0 rounded-2xl">
+                            <AvatarImage
+                                src={user.avatar ?? undefined}
+                                alt={user.name}
+                            />
+                            <AvatarFallback className="rounded-2xl bg-gold/20 text-sm font-black text-gold">
+                                {getInitials(user.name)}
+                            </AvatarFallback>
+                        </Avatar>
                         <div>
                             <span className="section-kicker">
                                 Compte utilisateur

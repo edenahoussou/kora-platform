@@ -27,6 +27,7 @@ import { useMemo, useState } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { KoraTooltip } from '@/components/kora-tooltip';
 import { PanelAlert } from '@/components/panel-alert';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import departures from '@/routes/departures';
 import manifest from '@/routes/manifest';
 import type { BreadcrumbItem } from '@/types';
@@ -71,8 +72,10 @@ type DepartureDetail = {
     estimatedArrivalAt: string | null;
     driverUuid: string | null;
     driverName: string | null;
+    driverAvatar: string | null;
     conductorUuid: string | null;
     conductorName: string | null;
+    conductorAvatar: string | null;
     creatorName: string | null;
     fillRate: number;
     averageFillRate: number;
@@ -1199,6 +1202,7 @@ export default function DepartureDetailPage({
                                     role="Conducteur"
                                     icon={LifeBuoy}
                                     name={departure.driverName}
+                                    avatar={departure.driverAvatar}
                                     hint={
                                         departure.driverName
                                             ? 'Permis · habilitation requise'
@@ -1214,6 +1218,7 @@ export default function DepartureDetailPage({
                                     role="Convoyeur"
                                     icon={ScanLine}
                                     name={departure.conductorName}
+                                    avatar={departure.conductorAvatar}
                                     hint={
                                         departure.conductorName
                                             ? 'Terminal P501 · session prête'
@@ -1478,27 +1483,32 @@ function CrewCard({
     role,
     icon: Icon,
     name,
+    avatar,
     hint,
     badge,
 }: {
     role: string;
     icon: LucideIcon;
     name: string | null;
+    avatar?: string | null;
     hint: string;
     badge: string;
 }) {
     return (
         <article className="flex items-center gap-3.5 rounded-[1rem] border border-border/50 bg-card p-4 shadow-[0_10px_24px_rgba(0,29,78,0.06)]">
-            <span className="grid size-12 shrink-0 place-items-center rounded-[0.75rem] bg-gold/20 text-[0.875rem] font-black text-[var(--kora)] dark:bg-gold/15 dark:text-gold">
-                {name
-                    ? name
-                          .split(' ')
-                          .map((n) => n[0])
-                          .join('')
-                          .slice(0, 2)
-                          .toUpperCase()
-                    : '—'}
-            </span>
+            <Avatar className="size-12 shrink-0 rounded-[0.75rem]">
+                <AvatarImage src={avatar ?? undefined} alt={name ?? role} />
+                <AvatarFallback className="rounded-[0.75rem] bg-gold/20 text-[0.875rem] font-black text-[var(--kora)] dark:bg-gold/15 dark:text-gold">
+                    {name
+                        ? name
+                              .split(' ')
+                              .map((n) => n[0])
+                              .join('')
+                              .slice(0, 2)
+                              .toUpperCase()
+                        : '—'}
+                </AvatarFallback>
+            </Avatar>
             <div className="flex-1">
                 <small className="flex items-center gap-1 text-[0.5rem] font-bold text-[var(--digital)]">
                     <Icon className="size-3" />

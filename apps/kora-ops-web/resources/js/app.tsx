@@ -6,7 +6,6 @@ import AdministrationSettingsLayout from '@/layouts/administration-settings-layo
 import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import PublicLegalLayout from '@/layouts/public-legal-layout';
-import SettingsLayout from '@/layouts/settings/layout';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
@@ -23,7 +22,7 @@ createInertiaApp({
             case name.startsWith('administration/settings'):
                 return AdministrationSettingsLayout;
             case name.startsWith('settings/'):
-                return [AppLayout, SettingsLayout];
+                return AppLayout;
             default:
                 return AppLayout;
         }
