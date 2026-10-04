@@ -228,7 +228,7 @@ export default function CompanyPortalTravelers({
     return (
         <>
             <Head title="Membres voyageurs" />
-            <div className="px-4 py-6 sm:px-6 lg:px-8">
+            <div className="cash-page">
                 <div className="kora-page-head cash-reveal mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                     <div>
                         <div className="kora-breadcrumb mb-2 text-[0.6875rem] text-muted-foreground">
