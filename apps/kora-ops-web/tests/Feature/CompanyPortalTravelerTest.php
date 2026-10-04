@@ -236,6 +236,31 @@ it('returns 404 when changing the status of a traveler of another account', func
     expect($foreign->refresh()->status->value)->toBe('active');
 });
 
+it('filters the roster by status and search query', function (): void {
+    [$user, $account] = rosterReferent();
+    rosterTraveler($account, ['phone' => '+22997000050']);
+    rosterTraveler($account, [
+        'first_name' => 'Brice',
+        'phone' => '+22997000051',
+        'status' => 'inactive',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('company-portal.travelers.index', ['status' => 'inactive']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('travelers.data', 1)
+            ->where('travelers.data.0.firstName', 'Brice')
+            ->where('filters.status', 'inactive'),
+        );
+
+    $this->actingAs($user)
+        ->get(route('company-portal.travelers.index', ['q' => '97000051']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('travelers.data', 1)
+            ->where('travelers.data.0.firstName', 'Brice'),
+        );
+});
+
 it('exposes only active travelers through the eligible endpoint', function (): void {
     [$user, $account] = rosterReferent();
     rosterTraveler($account, ['phone' => '+22997000050']);

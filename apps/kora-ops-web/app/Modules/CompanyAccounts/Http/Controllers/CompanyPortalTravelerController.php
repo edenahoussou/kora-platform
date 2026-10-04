@@ -30,6 +30,8 @@ class CompanyPortalTravelerController extends Controller
     {
         $account = $this->account($request);
 
+        $status = CompanyTravelerStatus::tryFrom($request->string('status')->toString());
+
         $travelers = $account->travelers()
             ->when($request->filled('q'), function ($query) use ($request): void {
                 $term = '%'.$request->string('q')->trim().'%';
@@ -40,6 +42,7 @@ class CompanyPortalTravelerController extends Controller
                         ->orWhere('email', 'like', $term);
                 });
             })
+            ->when($status !== null, fn ($query) => $query->where('status', $status->value))
             ->orderBy('last_name')
             ->orderBy('first_name')
             ->paginate(15)
@@ -56,7 +59,10 @@ class CompanyPortalTravelerController extends Controller
                 'reference' => $account->reference,
             ],
             'travelers' => $travelers,
-            'filters' => ['q' => $request->string('q')->toString()],
+            'filters' => [
+                'q' => $request->string('q')->toString(),
+                'status' => $status instanceof CompanyTravelerStatus ? $status->value : 'all',
+            ],
             'documentTypes' => collect(PassengerDocumentType::cases())->mapWithKeys(
                 fn (PassengerDocumentType $type): array => [$type->value => __("enums.passenger_document_type.{$type->value}")],
             )->all(),
@@ -106,14 +112,13 @@ class CompanyPortalTravelerController extends Controller
         $account = $this->account($request);
 
         return [
-            'travelers' => $account->travelers()
+            'travelers' => array_values($account->travelers()
                 ->where('status', CompanyTravelerStatus::Active->value)
                 ->orderBy('last_name')
                 ->orderBy('first_name')
                 ->get()
                 ->map(fn (CompanyTraveler $traveler): array => $this->serialize($traveler))
-                ->values()
-                ->all(),
+                ->all()),
         ];
     }
 

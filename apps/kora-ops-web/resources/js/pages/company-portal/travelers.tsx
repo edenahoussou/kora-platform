@@ -35,7 +35,7 @@ type Props = {
         reference: string;
     };
     travelers: Paginated<CompanyTravelerRecord>;
-    filters: { q: string };
+    filters: { q: string; status: string };
     documentTypes: Record<string, string>;
 };
 
@@ -48,6 +48,45 @@ const statusTones: Record<string, 'navy' | 'muted'> = {
     active: 'navy',
     inactive: 'muted',
 };
+
+const statusOptions: [string, string][] = [
+    ['all', 'Tous les statuts'],
+    ['active', 'Actifs'],
+    ['inactive', 'Retirés'],
+];
+
+function FilterSelect({
+    label,
+    value,
+    onChange,
+    options,
+}: {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    options: [string, string][];
+}) {
+    return (
+        <label className="cash-filter-field relative block">
+            <span className="sr-only">{label}</span>
+            <select
+                value={value}
+                onChange={(event) => onChange(event.target.value)}
+                className="cash-filter-select h-11 w-full appearance-none rounded-xl bg-muted/55 px-3 pr-8 text-xs font-bold text-foreground ring-1 ring-black/[0.045] transition-[box-shadow,background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] outline-none focus:bg-card focus:ring-2 focus:ring-gold/35"
+            >
+                {options.map(([optionValue, optionLabel]) => (
+                    <option key={optionValue} value={optionValue}>
+                        {optionLabel}
+                    </option>
+                ))}
+            </select>
+            <ChevronRight
+                className="pointer-events-none absolute top-1/2 right-3 size-3.5 -translate-y-1/2 rotate-90 text-muted-foreground"
+                strokeWidth={1.7}
+            />
+        </label>
+    );
+}
 
 function Pagination({
     currentPage,
@@ -114,27 +153,34 @@ export default function CompanyPortalTravelers({
         useState<CompanyTravelerRecord | null>(null);
 
     const { url: currentUrl } = usePage();
-    const initialQuery = useMemo(() => {
-        if (!currentUrl.includes('?')) {
-            return filters.q ?? '';
-        }
+    const initialFilters = useMemo(() => {
+        const params = currentUrl.includes('?')
+            ? new URLSearchParams(currentUrl.slice(currentUrl.indexOf('?') + 1))
+            : new URLSearchParams();
 
-        return (
-            new URLSearchParams(
-                currentUrl.slice(currentUrl.indexOf('?') + 1),
-            ).get('q') ?? ''
-        );
+        return {
+            q: params.get('q') ?? filters.q ?? '',
+            status: params.get('status') ?? filters.status ?? 'all',
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const [query, setQuery] = useState(initialQuery);
+    const [query, setQuery] = useState(initialFilters.q);
+    const [status, setStatus] = useState(initialFilters.status);
 
-    const visit = (overrides: { q?: string; page?: number } = {}) => {
+    const visit = (
+        overrides: { q?: string; status?: string; page?: number } = {},
+    ) => {
         const nextQuery = overrides.q ?? query;
+        const nextStatus = overrides.status ?? status;
         const params: Record<string, string> = {};
 
         if (nextQuery.trim() !== '') {
             params.q = nextQuery.trim();
+        }
+
+        if (nextStatus !== 'all') {
+            params.status = nextStatus;
         }
 
         if (overrides.page !== undefined && overrides.page > 1) {
@@ -219,18 +265,28 @@ export default function CompanyPortalTravelers({
                         placeholder="Rechercher par nom, téléphone ou email…"
                         className="cash-filter-search"
                     />
+                    <FilterSelect
+                        label="Statut"
+                        value={status}
+                        onChange={(value) => {
+                            setStatus(value);
+                            visit({ status: value, page: 1 });
+                        }}
+                        options={statusOptions}
+                    />
                     <button
                         type="button"
                         className="btn btn-navy cash-filter-submit"
                         onClick={() => visit({ page: 1 })}
                     >
-                        <SlidersHorizontal className="size-4" /> Filtrer
+                        <SlidersHorizontal className="size-4" /> Rechercher
                     </button>
                     <button
                         type="button"
                         className="btn btn-ghost cash-filter-reset"
                         onClick={() => {
                             setQuery('');
+                            setStatus('all');
                             router.get(
                                 companyPortal.travelers.index.url(),
                                 {},
