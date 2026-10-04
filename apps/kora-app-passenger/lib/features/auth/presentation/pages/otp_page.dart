@@ -247,13 +247,11 @@ class _OtpPageState extends State<OtpPage> {
                         builder: (context, flow) => Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            KoraButton(
-                              label: 'Vérifier le code',
-                              isLoading: flow.isSubmitting,
-                              onPressed: flow.isSubmitting ? null : _verify,
-                            ),
+                            // Au-dessus du bouton : le clavier numérique
+                            // reste ouvert sur cet écran, et tout ce qui
+                            // suit le bouton passe dessous. Un code refusé
+                            // doit se lire sans avoir à faire défiler.
                             if (flow.hasError) ...[
-                              const SizedBox(height: 12),
                               Text(
                                 flow.errorMessage,
                                 textAlign: TextAlign.center,
@@ -263,7 +261,13 @@ class _OtpPageState extends State<OtpPage> {
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),
+                              const SizedBox(height: 12),
                             ],
+                            KoraButton(
+                              label: 'Vérifier le code',
+                              isLoading: flow.isSubmitting,
+                              onPressed: flow.isSubmitting ? null : _verify,
+                            ),
                           ],
                         ),
                       ),
