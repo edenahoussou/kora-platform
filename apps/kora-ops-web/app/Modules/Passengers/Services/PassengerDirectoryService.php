@@ -91,7 +91,7 @@ class PassengerDirectoryService
                 MAX(document_number) as document_number,
                 MAX(birth_date) as birth_date,
                 MAX(user_id) as user_id,
-                MAX(yellow_fever_vaccinated) as yellow_fever_vaccinated,
+                MAX(CASE WHEN yellow_fever_vaccinated THEN 1 ELSE 0 END) as yellow_fever_vaccinated,
                 COUNT(DISTINCT reservation_id) as reservations_count,
                 COUNT(DISTINCT id) as records_count,
                 MAX(created_at) as last_seen_at,
