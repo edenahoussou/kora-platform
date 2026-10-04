@@ -1,16 +1,17 @@
 import { Head, Link } from '@inertiajs/react';
 import {
-    Building2,
     CalendarClock,
     CreditCard,
     History,
     Ticket,
     Users,
+    UserRoundCheck,
     Wallet,
 } from 'lucide-react';
 import { formatFcfa } from '@/components/company-accounts/company-account-types';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { cn } from '@/lib/utils';
+import companyPortal from '@/routes/company-portal';
 
 type Props = {
     account: {
@@ -23,6 +24,11 @@ type Props = {
         monthlyLimit: number;
         available: number;
         periodKey: string;
+    };
+    stats: {
+        travelersTotal: number;
+        travelersActive: number;
+        monthlyReservations: number;
     };
 };
 
@@ -38,7 +44,7 @@ const typeTones: Record<Props['account']['type'], 'navy' | 'gold' | 'blue'> = {
     embassy: 'gold',
 };
 
-export default function CompanyPortalIndex({ account, credit }: Props) {
+export default function CompanyPortalIndex({ account, credit, stats }: Props) {
     const creditUsed = Math.min(
         100,
         credit.monthlyLimit
@@ -60,7 +66,7 @@ export default function CompanyPortalIndex({ account, credit }: Props) {
             description:
                 'Déclarez les employés autorisés à voyager et gérez leur fiche.',
             icon: Users,
-            href: null,
+            href: companyPortal.travelers.index.url(),
         },
         {
             title: 'Historique des achats',
@@ -81,7 +87,7 @@ export default function CompanyPortalIndex({ account, credit }: Props) {
     return (
         <>
             <Head title="Espace entreprise" />
-            <div className="px-4 py-6 sm:px-6 lg:px-8">
+            <div className="cash-page">
                 <div className="kora-page-head cash-reveal mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                     <div>
                         <div className="kora-breadcrumb mb-2 text-[0.6875rem] text-muted-foreground">
@@ -103,8 +109,8 @@ export default function CompanyPortalIndex({ account, credit }: Props) {
                     </div>
                 </div>
 
-                <section className="cash-ledger-grid companies-ledger-grid cash-reveal cash-reveal-delay-1">
-                    <div className="kora-panel p-5">
+                <section className="cash-ledger-grid cash-reveal cash-reveal-delay-1">
+                    <div className="cash-ledger-card cash-ledger-card-cash">
                         <span className="grid size-9 place-items-center rounded-xl bg-gold/10 text-gold">
                             <CreditCard className="size-4" />
                         </span>
@@ -115,7 +121,7 @@ export default function CompanyPortalIndex({ account, credit }: Props) {
                             {formatFcfa(credit.monthlyLimit)}
                         </strong>
                     </div>
-                    <div className="kora-panel p-5">
+                    <div className="cash-ledger-card cash-ledger-card-cash">
                         <span className="grid size-9 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600">
                             <Wallet className="size-4" />
                         </span>
@@ -132,16 +138,34 @@ export default function CompanyPortalIndex({ account, credit }: Props) {
                             />
                         </div>
                     </div>
-                    <div className="kora-panel p-5">
-                        <span className="grid size-9 place-items-center rounded-xl bg-muted text-foreground">
-                            <Building2 className="size-4" />
+                    <div className="cash-ledger-card cash-ledger-card-cash">
+                        <span className="grid size-9 place-items-center rounded-xl bg-gold/10 text-gold">
+                            <UserRoundCheck className="size-4" />
                         </span>
                         <span className="mt-4 block text-[0.5625rem] font-extrabold tracking-[0.08em] text-muted-foreground uppercase">
-                            Période en cours
+                            Membres voyageurs
                         </span>
                         <strong className="mt-1 block text-lg font-black text-foreground">
-                            {credit.periodKey}
+                            {stats.travelersTotal}
                         </strong>
+                        <p className="mt-1 text-[0.6875rem] font-bold text-muted-foreground">
+                            dont {stats.travelersActive} actif
+                            {stats.travelersActive > 1 ? 's' : ''}
+                        </p>
+                    </div>
+                    <div className="cash-ledger-card cash-ledger-card-cash">
+                        <span className="grid size-9 place-items-center rounded-xl bg-muted text-foreground">
+                            <Ticket className="size-4" />
+                        </span>
+                        <span className="mt-4 block text-[0.5625rem] font-extrabold tracking-[0.08em] text-muted-foreground uppercase">
+                            Réservations du mois
+                        </span>
+                        <strong className="mt-1 block text-lg font-black text-foreground">
+                            {stats.monthlyReservations}
+                        </strong>
+                        <p className="mt-1 text-[0.6875rem] font-bold text-muted-foreground">
+                            période {credit.periodKey}
+                        </p>
                     </div>
                 </section>
 
@@ -179,7 +203,7 @@ export default function CompanyPortalIndex({ account, credit }: Props) {
                             <div
                                 key={section.title}
                                 className={cn(
-                                    'kora-panel p-5 opacity-70',
+                                    'cash-ledger-card opacity-70',
                                     'select-none',
                                 )}
                                 aria-disabled="true"
@@ -190,7 +214,7 @@ export default function CompanyPortalIndex({ account, credit }: Props) {
                             <Link
                                 key={section.title}
                                 href={section.href}
-                                className="kora-panel block p-5 transition-shadow hover:shadow-md"
+                                className="cash-ledger-card cash-ledger-card-cash block"
                             >
                                 {content}
                             </Link>

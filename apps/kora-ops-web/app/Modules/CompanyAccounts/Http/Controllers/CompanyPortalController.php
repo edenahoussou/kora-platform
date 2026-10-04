@@ -3,6 +3,8 @@
 namespace App\Modules\CompanyAccounts\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Booking\Data\ReservationStatus;
+use App\Modules\CompanyAccounts\Data\CompanyTravelerStatus;
 use App\Modules\CompanyAccounts\Models\CompanyAccount;
 use App\Modules\CompanyAccounts\Services\CompanyCreditService;
 use Illuminate\Http\Request;
@@ -30,6 +32,20 @@ class CompanyPortalController extends Controller
                 'monthlyLimit' => (int) $account->monthly_credit_limit,
                 'available' => $this->companyCredit->availableCredit($account, $periodKey),
                 'periodKey' => $periodKey,
+            ],
+            'stats' => [
+                'travelersTotal' => $account->travelers()->count(),
+                'travelersActive' => $account->travelers()
+                    ->where('status', CompanyTravelerStatus::Active->value)
+                    ->count(),
+                'monthlyReservations' => $account->reservations()
+                    ->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])
+                    ->whereNotIn('status', [
+                        ReservationStatus::Cancelled->value,
+                        ReservationStatus::Expired->value,
+                        ReservationStatus::Unavailable->value,
+                    ])
+                    ->count(),
             ],
         ]);
     }

@@ -4,6 +4,7 @@ Before planning or editing, find the row whose globs match the file's path and r
 
 | Applies to | Rule file |
 | --- | --- |
+| ** (avant toute PR ou push) | .ai/rules/pre-pr-ci.md |
 | app/**, config/**, database/**, routes/**, tests/**, resources/** | .ai/rules/code-style.md |
 | app/Modules/Departures/** | .ai/rules/departures.md |
 | resources/js/** | .ai/rules/js.md |
