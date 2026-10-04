@@ -27,6 +27,7 @@ use App\Modules\Fiscalization\Http\Controllers\FiscalInvoiceController;
 use App\Modules\Fiscalization\Http\Controllers\FiscalTestInvoiceController;
 use App\Modules\IdentityAccess\Http\Controllers\AgencyController;
 use App\Modules\IdentityAccess\Http\Controllers\TerminalP501Controller;
+use App\Modules\Passengers\Http\Controllers\PassengerIndexController;
 use App\Modules\Payments\Http\Controllers\AgencyPaymentAccountController;
 use App\Modules\Ticketing\Http\Controllers\TicketIndexController;
 use App\Modules\Ticketing\Http\Controllers\TicketPreviewController;
@@ -166,6 +167,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('tax-rules', [TaxRuleController::class, 'store'])->name('tax-rules.store');
     Route::put('tax-rules/{taxRule:uuid}', [TaxRuleController::class, 'update'])->name('tax-rules.update');
     Route::patch('tax-rules/{taxRule:uuid}/status', [TaxRuleController::class, 'changeStatus'])->name('tax-rules.status');
+    Route::get('passengers', [PassengerIndexController::class, 'index'])->name('passengers.index');
+    Route::get('passengers/{phone}', [PassengerIndexController::class, 'show'])->name('passengers.show');
+
     Route::get('tickets', [TicketIndexController::class, 'index'])->name('tickets');
     Route::get('tickets/{ticket:uuid}', [TicketViewController::class, 'show'])->name('tickets.show');
     Route::get('tickets/{ticket:uuid}/pdf', [TicketViewController::class, 'pdf'])->name('tickets.pdf');
