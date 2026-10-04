@@ -5,18 +5,23 @@ namespace App\Modules\CompanyAccounts\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Booking\Data\PassengerDocumentType;
 use App\Modules\CompanyAccounts\Actions\ChangeCompanyTravelerStatusAction;
+use App\Modules\CompanyAccounts\Actions\ImportCompanyTravelersAction;
 use App\Modules\CompanyAccounts\Actions\StoreCompanyTravelerAction;
 use App\Modules\CompanyAccounts\Actions\UpdateCompanyTravelerAction;
 use App\Modules\CompanyAccounts\Data\CompanyTravelerStatus;
 use App\Modules\CompanyAccounts\Http\Requests\ChangeCompanyTravelerStatusRequest;
+use App\Modules\CompanyAccounts\Http\Requests\ImportCompanyTravelersRequest;
 use App\Modules\CompanyAccounts\Http\Requests\StoreCompanyTravelerRequest;
 use App\Modules\CompanyAccounts\Http\Requests\UpdateCompanyTravelerRequest;
 use App\Modules\CompanyAccounts\Models\CompanyAccount;
 use App\Modules\CompanyAccounts\Models\CompanyTraveler;
+use App\Modules\Finance\Services\FinanceExportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CompanyPortalTravelerController extends Controller
 {
@@ -24,6 +29,8 @@ class CompanyPortalTravelerController extends Controller
         private readonly StoreCompanyTravelerAction $storeTraveler,
         private readonly UpdateCompanyTravelerAction $updateTraveler,
         private readonly ChangeCompanyTravelerStatusAction $changeTravelerStatus,
+        private readonly ImportCompanyTravelersAction $importTravelers,
+        private readonly FinanceExportService $exports,
     ) {}
 
     public function index(Request $request): Response
@@ -100,6 +107,37 @@ class CompanyPortalTravelerController extends Controller
         ]);
 
         return to_route('company-portal.travelers.index');
+    }
+
+    public function import(ImportCompanyTravelersRequest $request): RedirectResponse
+    {
+        $account = $this->account($request);
+        /** @var UploadedFile $file */
+        $file = $request->file('file');
+
+        $report = $this->importTravelers->execute($account, $file);
+        activity()->performedOn($account)->causedBy($request->user())->withProperties($report)->log('company_travelers_imported');
+
+        Inertia::flash('toast', [
+            'type' => $report['errors'] === [] ? 'success' : 'warning',
+            'message' => "{$report['imported']} voyageur(s) ajouté(s), {$report['updated']} mis à jour"
+                .($report['errors'] !== [] ? ', '.count($report['errors']).' ligne(s) ignorée(s).' : '.'),
+        ]);
+        Inertia::flash('importReport', $report);
+
+        return to_route('company-portal.travelers.index');
+    }
+
+    public function template(): StreamedResponse
+    {
+        return $this->exports->xlsx(
+            'modele-membres-voyageurs.xlsx',
+            ImportCompanyTravelersAction::TEMPLATE_HEADERS,
+            [[
+                'Aïcha', 'Mensah', '+22997000000', 'aicha.mensah@exemple.bj',
+                'national_id', 'ID-000000', 'BJ', '1990-05-12', 'oui',
+            ]],
+        );
     }
 
     /**

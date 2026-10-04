@@ -64,6 +64,18 @@ it('denies the portal when the company account is inactive', function (): void {
 
 it('renders the portal for the referent of an active account', function (): void {
     [$user, $account] = portalUser('referent');
+    $account->travelers()->create([
+        'first_name' => 'Aïcha',
+        'last_name' => 'Mensah',
+        'phone' => '+22997000050',
+        'status' => 'active',
+    ]);
+    $account->travelers()->create([
+        'first_name' => 'Brice',
+        'last_name' => 'Soglo',
+        'phone' => '+22997000051',
+        'status' => 'inactive',
+    ]);
 
     $this->actingAs($user)
         ->get(route('company-portal.index'))
@@ -74,6 +86,9 @@ it('renders the portal for the referent of an active account', function (): void
             ->where('account.reference', 'ORG-2026-HZN')
             ->where('credit.monthlyLimit', 500000)
             ->where('credit.available', 500000)
+            ->where('stats.travelersTotal', 2)
+            ->where('stats.travelersActive', 1)
+            ->where('stats.monthlyReservations', 0)
             ->missing('account.id'),
         );
 });

@@ -1,19 +1,28 @@
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
+    ArrowLeft,
+    CheckCircle2,
     ChevronRight,
     Edit3,
+    FileUp,
     Plus,
     Power,
     RotateCcw,
     Search,
     SlidersHorizontal,
     Syringe,
+    TriangleAlert,
     Users,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { CompanyTravelerFormModal } from '@/components/company-portal/company-traveler-form-modal';
-import type { CompanyTravelerRecord } from '@/components/company-portal/company-traveler-types';
+import { CompanyTravelerImportModal } from '@/components/company-portal/company-traveler-import-modal';
+import type {
+    CompanyTravelerImportReport,
+    CompanyTravelerRecord,
+} from '@/components/company-portal/company-traveler-types';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
+import { PanelAlert } from '@/components/panel-alert';
 import { cn } from '@/lib/utils';
 import companyPortal from '@/routes/company-portal';
 import type { BreadcrumbItem } from '@/types';
@@ -149,8 +158,23 @@ export default function CompanyPortalTravelers({
     documentTypes,
 }: Props) {
     const [modalOpen, setModalOpen] = useState(false);
+    const [importOpen, setImportOpen] = useState(false);
     const [editingTraveler, setEditingTraveler] =
         useState<CompanyTravelerRecord | null>(null);
+    const [importReport, setImportReport] =
+        useState<CompanyTravelerImportReport | null>(null);
+
+    useEffect(() => {
+        return router.on('flash', (event) => {
+            const flash = (event as CustomEvent).detail?.flash;
+            const report = flash?.importReport as
+                CompanyTravelerImportReport | undefined;
+
+            if (report) {
+                setImportReport(report);
+            }
+        });
+    }, []);
 
     const { url: currentUrl } = usePage();
     const initialFilters = useMemo(() => {
@@ -242,14 +266,77 @@ export default function CompanyPortalTravelers({
                             voyager pour le compte de votre organisation.
                         </p>
                     </div>
-                    <button
-                        type="button"
-                        className="btn btn-primary"
-                        onClick={openCreate}
-                    >
-                        <Plus className="size-4" /> Déclarer un voyageur
-                    </button>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Link
+                            href={companyPortal.index.url()}
+                            className="btn btn-ghost"
+                        >
+                            <ArrowLeft className="size-4" /> Retour
+                        </Link>
+                        <button
+                            type="button"
+                            className="btn btn-navy"
+                            onClick={() => setImportOpen(true)}
+                        >
+                            <FileUp className="size-4" /> Importer une liste
+                        </button>
+                        <button
+                            type="button"
+                            className="btn btn-primary"
+                            onClick={openCreate}
+                        >
+                            <Plus className="size-4" /> Déclarer un voyageur
+                        </button>
+                    </div>
                 </div>
+
+                {importReport && (
+                    <PanelAlert
+                        tone={
+                            importReport.errors.length > 0
+                                ? 'warning'
+                                : 'success'
+                        }
+                        icon={
+                            importReport.errors.length > 0
+                                ? TriangleAlert
+                                : CheckCircle2
+                        }
+                        className="cash-reveal cash-reveal-delay-1 mb-4"
+                    >
+                        <strong className="font-extrabold">
+                            {importReport.errors.length > 0
+                                ? 'Import terminé avec des lignes rejetées — '
+                                : 'Import terminé — '}
+                        </strong>
+                        {importReport.imported} fiche(s) créée(s),{' '}
+                        {importReport.updated} mise(s) à jour.
+                        {importReport.errors.length > 0 && (
+                            <>
+                                {' '}
+                                {importReport.errors.length} ligne(s) rejetée(s)
+                                :
+                                <ul className="mt-1 list-disc pl-4">
+                                    {importReport.errors
+                                        .slice(0, 10)
+                                        .map((error) => (
+                                            <li key={error.row}>
+                                                Ligne {error.row} :{' '}
+                                                {error.message}
+                                            </li>
+                                        ))}
+                                    {importReport.errors.length > 10 && (
+                                        <li>
+                                            … et{' '}
+                                            {importReport.errors.length - 10}{' '}
+                                            autre(s) ligne(s).
+                                        </li>
+                                    )}
+                                </ul>
+                            </>
+                        )}
+                    </PanelAlert>
+                )}
 
                 <div className="cash-filterbar cash-reveal cash-reveal-delay-1">
                     <Search className="cash-filter-icon size-4" />
@@ -488,6 +575,10 @@ export default function CompanyPortalTravelers({
                 traveler={editingTraveler}
                 documentTypes={documentTypes}
                 onOpenChange={setModalOpen}
+            />
+            <CompanyTravelerImportModal
+                open={importOpen}
+                onOpenChange={setImportOpen}
             />
         </>
     );

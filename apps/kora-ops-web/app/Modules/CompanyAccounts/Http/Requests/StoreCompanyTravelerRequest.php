@@ -31,10 +31,22 @@ class StoreCompanyTravelerRequest extends FormRequest
     /** @return array<string, list<mixed>> */
     public function rules(): array
     {
+        return array_merge(self::baseRules(), [
+            'phone' => ['required', 'string', 'max:32', $this->phoneUniqueRule()],
+        ]);
+    }
+
+    /**
+     * Règles partagées avec l'import Excel (hors unicité du téléphone).
+     *
+     * @return array<string, list<mixed>>
+     */
+    public static function baseRules(): array
+    {
         return [
             'first_name' => ['required', 'string', 'max:120'],
             'last_name' => ['required', 'string', 'max:120'],
-            'phone' => ['required', 'string', 'max:32', $this->phoneUniqueRule()],
+            'phone' => ['required', 'string', 'max:32'],
             'email' => ['nullable', 'email', 'max:255'],
             'document_type' => ['nullable', 'required_with:document_number', Rule::enum(PassengerDocumentType::class)],
             'document_number' => ['nullable', 'required_with:document_type', 'string', 'max:64'],

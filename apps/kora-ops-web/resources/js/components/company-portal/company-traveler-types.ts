@@ -25,6 +25,12 @@ export type CompanyTravelerFormValues = {
     yellow_fever_vaccinated: boolean;
 };
 
+export type CompanyTravelerImportReport = {
+    imported: number;
+    updated: number;
+    errors: { row: number; message: string }[];
+};
+
 export const emptyTravelerValues: CompanyTravelerFormValues = {
     first_name: '',
     last_name: '',

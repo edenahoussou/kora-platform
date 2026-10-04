@@ -1,12 +1,17 @@
 <?php
 
 use App\Models\User;
+use App\Modules\CompanyAccounts\Actions\ImportCompanyTravelersAction;
 use App\Modules\CompanyAccounts\Models\CompanyAccount;
 use App\Modules\CompanyAccounts\Models\CompanyAccountMember;
 use App\Modules\CompanyAccounts\Models\CompanyTraveler;
 use Database\Seeders\KoraBusRolePermissionSeeder;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 beforeEach(function (): void {
     $this->seed(KoraBusRolePermissionSeeder::class);
@@ -49,6 +54,41 @@ function rosterTraveler(CompanyAccount $account, array $attributes = []): Compan
         'status' => 'active',
         ...$attributes,
     ]);
+}
+
+/**
+ * @param  list<list<mixed>>  $rows
+ */
+function rosterImportFile(array $rows, string $extension = 'xlsx'): UploadedFile
+{
+    $headers = ImportCompanyTravelersAction::TEMPLATE_HEADERS;
+
+    if ($extension === 'csv') {
+        $path = tempnam(sys_get_temp_dir(), 'roster-import-').'.csv';
+        $handle = fopen($path, 'wb');
+        fputcsv($handle, $headers);
+        foreach ($rows as $row) {
+            fputcsv($handle, $row);
+        }
+        fclose($handle);
+
+        return new UploadedFile($path, 'voyageurs.csv', 'text/csv', null, true);
+    }
+
+    $spreadsheet = new Spreadsheet;
+    $spreadsheet->getActiveSheet()->fromArray([$headers, ...$rows]);
+
+    $path = tempnam(sys_get_temp_dir(), 'roster-import-').'.xlsx';
+    (new Xlsx($spreadsheet))->save($path);
+    $spreadsheet->disconnectWorksheets();
+
+    return new UploadedFile(
+        $path,
+        'voyageurs.xlsx',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        null,
+        true,
+    );
 }
 
 it('redirects guests to login', function (): void {
@@ -279,4 +319,120 @@ it('exposes only active travelers through the eligible endpoint', function (): v
         ->not->toContain('+22997000052');
 
     expect($response->json('travelers.0.id'))->toBeNull();
+});
+
+it('requires authentication and referent role to import or download the template', function (): void {
+    $this->post(route('company-portal.travelers.import'))
+        ->assertRedirect(route('login'));
+    $this->get(route('company-portal.travelers.template'))
+        ->assertRedirect(route('login'));
+
+    [$member] = rosterReferent('member');
+
+    $this->actingAs($member)
+        ->post(route('company-portal.travelers.import'))
+        ->assertForbidden();
+    $this->actingAs($member)
+        ->get(route('company-portal.travelers.template'))
+        ->assertForbidden();
+});
+
+it('lets the referent download a readable xlsx template', function (): void {
+    [$user] = rosterReferent();
+
+    $response = $this->actingAs($user)
+        ->get(route('company-portal.travelers.template'))
+        ->assertSuccessful();
+
+    $response->assertHeader(
+        'content-type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    expect($response->headers->get('content-disposition'))
+        ->toContain('modele-membres-voyageurs.xlsx');
+
+    $path = tempnam(sys_get_temp_dir(), 'template-check-').'.xlsx';
+    file_put_contents($path, $response->streamedContent());
+    $reloaded = IOFactory::load($path);
+    $headers = $reloaded->getActiveSheet()->toArray(null, true, true, false)[0];
+    $reloaded->disconnectWorksheets();
+
+    expect($headers)->toBe(ImportCompanyTravelersAction::TEMPLATE_HEADERS);
+});
+
+it('imports valid xlsx rows onto the referent account with normalized phones', function (): void {
+    [$user, $account] = rosterReferent();
+    [, $otherAccount] = rosterReferent();
+
+    $file = rosterImportFile([
+        ['Koffi', 'Agbessi', '97 00 00 42', 'koffi@meridian.bj', 'Passeport', 'P-12345', 'TG', '1990-05-12', 'oui'],
+        ['Aïcha', 'Mensah', '+22997000043', '', '', '', 'BJ', '', 'non'],
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('company-portal.travelers.import'), ['file' => $file])
+        ->assertRedirect(route('company-portal.travelers.index'))
+        ->assertSessionHas('inertia.flash_data.importReport.imported', 2);
+
+    $travelers = $account->travelers()->orderBy('phone')->get();
+
+    expect($travelers)->toHaveCount(2)
+        ->and($travelers[0]->phone)->toBe('+22997000042')
+        ->and($travelers[0]->document_type->value)->toBe('passport')
+        ->and($travelers[0]->yellow_fever_vaccinated)->toBeTrue()
+        ->and($travelers[1]->phone)->toBe('+22997000043')
+        ->and($otherAccount->travelers()->count())->toBe(0);
+});
+
+it('updates an existing traveler when the phone already exists', function (): void {
+    [$user, $account] = rosterReferent();
+    $existing = rosterTraveler($account, ['phone' => '+22997000042']);
+
+    $file = rosterImportFile([
+        ['Koffi', 'Agbessi', '97000042', 'new@meridian.bj', '', '', 'BJ', '', ''],
+        ['Nouveau', 'Voyageur', '97000044', '', '', '', 'BJ', '', ''],
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('company-portal.travelers.import'), ['file' => $file])
+        ->assertRedirect(route('company-portal.travelers.index'))
+        ->assertSessionHas('inertia.flash_data.importReport.imported', 1)
+        ->assertSessionHas('inertia.flash_data.importReport.updated', 1);
+
+    expect($account->travelers()->count())->toBe(2)
+        ->and($existing->refresh()->first_name)->toBe('Koffi')
+        ->and($existing->email)->toBe('new@meridian.bj');
+});
+
+it('reports invalid rows without aborting the import', function (): void {
+    [$user, $account] = rosterReferent();
+
+    $file = rosterImportFile([
+        ['Koffi', 'Agbessi', '97000042', '', '', '', 'BJ', '', ''],
+        ['', 'SansPrenom', '97000045', '', '', '', 'BJ', '', ''],
+        ['Mauvais', 'Email', '97000046', 'pas-un-email', '', '', 'BJ', '', ''],
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('company-portal.travelers.import'), ['file' => $file])
+        ->assertRedirect(route('company-portal.travelers.index'))
+        ->assertSessionHas('inertia.flash_data.importReport.imported', 1)
+        ->assertSessionHas('inertia.flash_data.importReport.errors.0.row', 3);
+
+    expect($account->travelers()->count())->toBe(1)
+        ->and($account->travelers()->sole()->phone)->toBe('+22997000042');
+});
+
+it('rejects unsupported or oversized import files', function (): void {
+    [$user] = rosterReferent();
+
+    $this->actingAs($user)
+        ->post(route('company-portal.travelers.import'), [
+            'file' => UploadedFile::fake()->create('voyageurs.pdf', 10, 'application/pdf'),
+        ])
+        ->assertSessionHasErrors('file');
+
+    $this->actingAs($user)
+        ->post(route('company-portal.travelers.import'), [])
+        ->assertSessionHasErrors('file');
 });
