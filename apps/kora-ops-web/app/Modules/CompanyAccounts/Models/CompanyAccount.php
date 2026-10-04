@@ -55,6 +55,12 @@ class CompanyAccount extends KoraModel
         return $this->hasMany(CompanyAccountMember::class);
     }
 
+    /** @return HasMany<CompanyTraveler, $this> */
+    public function travelers(): HasMany
+    {
+        return $this->hasMany(CompanyTraveler::class);
+    }
+
     /** @return HasMany<CompanyCreditHold, $this> */
     public function creditHolds(): HasMany
     {

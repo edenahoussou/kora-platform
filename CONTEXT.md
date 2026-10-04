@@ -236,6 +236,10 @@ _Avoid_: Propriétaire du compte voyageur ; agent de caisse ; contact externe no
 Utilisateur KORA actif, hors personnel interne, autorisé à utiliser un compte organisationnel dans le cadre des achats de groupe. Il peut être membre sans être le référent unique.
 _Avoid_: Voyageur automatiquement créé ; référent obligatoire ; payeur personnel
 
+**Voyageur déclaré**:
+Personne enregistrée par le référent dans le roster « Membres voyageurs » de son compte organisationnel, sans nécessairement posséder un compte KORA. Sa fiche porte identité, téléphone normalisé (clé de dédoublonnage par compte) et pièce d’identité optionnelle. Seuls les voyageurs déclarés actifs sont éligibles à un achat self-service ; un voyageur retiré reste visible dans le roster et l’historique. Modèle `CompanyTraveler`, distinct du membre du compte (`CompanyAccountMember`) qui est un utilisateur authentifié rattaché à l’organisation.
+_Avoid_: Acheteur d’organisation ; compte voyageur ; fiche voyageur d’une réservation
+
 **Plafond de crédit mensuel**:
 Montant maximal en FCFA qu’un compte organisationnel peut engager pendant le mois civil courant. Le disponible soustrait les débits confirmés et les réservations actives, ajoute les remboursements et ne se reporte pas automatiquement au mois suivant.
 _Avoid_: Solde Wallet ; plafond par agence ; limite annuelle

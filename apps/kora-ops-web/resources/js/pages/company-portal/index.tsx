@@ -11,6 +11,7 @@ import {
 import { formatFcfa } from '@/components/company-accounts/company-account-types';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { cn } from '@/lib/utils';
+import companyPortal from '@/routes/company-portal';
 
 type Props = {
     account: {
@@ -60,7 +61,7 @@ export default function CompanyPortalIndex({ account, credit }: Props) {
             description:
                 'Déclarez les employés autorisés à voyager et gérez leur fiche.',
             icon: Users,
-            href: null,
+            href: companyPortal.travelers.index.url(),
         },
         {
             title: 'Historique des achats',
