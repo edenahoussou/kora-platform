@@ -11,4 +11,6 @@ return [
     'settings.operations.manage' => "Gérer les paramètres d'exploitation",
     'settings.integrations.view' => "Consulter les paramètres d'intégration",
     'settings.integrations.manage' => "Gérer les paramètres d'intégration",
+    'passengers.erase' => 'Effacer définitivement un compte passager',
+    'sensitive-data.export' => 'Exporter les données sensibles',
 ];

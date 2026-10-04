@@ -11,4 +11,6 @@ return [
     'settings.operations.manage' => 'Manage operations settings',
     'settings.integrations.view' => 'View integration settings',
     'settings.integrations.manage' => 'Manage integration settings',
+    'passengers.erase' => 'Permanently erase a passenger account',
+    'sensitive-data.export' => 'Export sensitive data',
 ];

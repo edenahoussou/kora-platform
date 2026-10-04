@@ -3,6 +3,7 @@ import {
     Calendar,
     Check,
     Copy,
+    Download,
     ExternalLink,
     FileText,
     Globe,
@@ -10,12 +11,15 @@ import {
     Loader2,
     Mail,
     Phone,
+    ShieldAlert,
     Smartphone,
     Ticket as TicketIcon,
+    Trash2,
     X,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
+import { PasswordConfirmDialog } from '@/components/profile/password-confirm-dialog';
 import { cn } from '@/lib/utils';
 import type { PassengerSummary } from '@/types/passengers';
 
@@ -23,6 +27,8 @@ type Props = {
     open: boolean;
     passenger: PassengerSummary | null;
     onClose: () => void;
+    canExport?: boolean;
+    canErase?: boolean;
 };
 
 function getInitials(name: string): string {
@@ -35,8 +41,15 @@ function getInitials(name: string): string {
         .toUpperCase();
 }
 
-export function PassengerDetailDrawer({ open, passenger, onClose }: Props) {
+export function PassengerDetailDrawer({
+    open,
+    passenger,
+    onClose,
+    canExport = false,
+    canErase = false,
+}: Props) {
     const [copiedPhone, setCopiedPhone] = useState(false);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [fetchedDetail, setFetchedDetail] = useState<PassengerSummary | null>(
         null,
     );
@@ -425,6 +438,45 @@ export function PassengerDetailDrawer({ open, passenger, onClose }: Props) {
                             </div>
                         )}
                     </div>
+
+                    {/* Zone de danger — droit à l'oubli */}
+                    {(canExport || canErase) && (
+                        <div className="rounded-2xl border border-destructive/30 bg-destructive/[0.03] p-5">
+                            <h3 className="mb-2 flex items-center gap-2 text-xs font-black tracking-wider text-destructive uppercase">
+                                <ShieldAlert className="size-3.5" />
+                                Zone de danger — Droit à l'oubli
+                            </h3>
+                            <p className="mb-4 text-xs text-muted-foreground">
+                                Exportez d'abord les données du passager, puis
+                                effacez définitivement ses informations
+                                personnelles. L'historique financier (billets,
+                                factures) est conservé sous forme anonymisée.
+                            </p>
+                            <div className="flex flex-col gap-2 sm:flex-row">
+                                {canExport && (
+                                    <a
+                                        href={`/passengers/${encodeURIComponent(current.phone)}/export`}
+                                        className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-black/[0.08] bg-card px-3 py-2 text-xs font-bold text-foreground transition hover:bg-muted"
+                                    >
+                                        <Download className="size-3.5" />
+                                        Exporter les données (ZIP)
+                                    </a>
+                                )}
+                                {canErase && (
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setDeleteDialogOpen(true)
+                                        }
+                                        className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-destructive px-3 py-2 text-xs font-bold text-destructive-foreground transition hover:bg-destructive/90"
+                                    >
+                                        <Trash2 className="size-3.5" />
+                                        Supprimer définitivement
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Footer du Drawer */}
@@ -438,6 +490,22 @@ export function PassengerDetailDrawer({ open, passenger, onClose }: Props) {
                     </button>
                 </div>
             </aside>
+
+            <PasswordConfirmDialog
+                open={deleteDialogOpen}
+                onOpenChange={setDeleteDialogOpen}
+                title="Effacer définitivement ce passager"
+                description="Les données personnelles seront anonymisées et le compte supprimé. Cette action est irréversible et sera journalisée."
+                confirmLabel="Effacer le compte"
+                action={{
+                    method: 'delete',
+                    url: `/passengers/${encodeURIComponent(current.phone)}`,
+                }}
+                onSuccess={() => {
+                    setDeleteDialogOpen(false);
+                    onClose();
+                }}
+            />
         </div>
     );
 }

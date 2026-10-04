@@ -55,6 +55,11 @@ export type PaginatedPassengers = {
     to: number;
 };
 
+export type PassengerPermissions = {
+    canExport: boolean;
+    canErase: boolean;
+};
+
 export type PassengerFilters = {
     q?: string | null;
     status?: string | null;

@@ -21,12 +21,14 @@ import { cn } from '@/lib/utils';
 import type {
     PaginatedPassengers,
     PassengerFilters,
+    PassengerPermissions,
     PassengerSummary,
 } from '@/types/passengers';
 
 type Props = {
     passengers: PaginatedPassengers;
     filters: PassengerFilters;
+    permissions?: PassengerPermissions;
 };
 
 function getInitials(name: string): string {
@@ -50,6 +52,7 @@ export default function PassengersPage({
         to: 0,
     },
     filters = {},
+    permissions = { canExport: false, canErase: false },
 }: Props) {
     const [query, setQuery] = useState(filters.q ?? '');
     const [selectedStatus, setSelectedStatus] = useState(
@@ -550,6 +553,8 @@ export default function PassengersPage({
                 open={drawerOpen}
                 passenger={selectedPassenger}
                 onClose={() => setDrawerOpen(false)}
+                canExport={permissions.canExport}
+                canErase={permissions.canErase}
             />
         </>
     );
