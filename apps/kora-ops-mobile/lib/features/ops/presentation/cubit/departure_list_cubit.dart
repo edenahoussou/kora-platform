@@ -30,7 +30,8 @@ class DepartureListCubit extends Cubit<DepartureListState> {
       clearSelectedDate: true,
     ));
 
-    final result = await _repository.listAssigned(date: _isoDate(DateTime.now()));
+    final result =
+        await _repository.listAssigned(date: _isoDate(DateTime.now()));
     result.when(
       onSuccess: (departs) => emit(state.copyWith(
         status: departs.isEmpty

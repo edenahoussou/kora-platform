@@ -189,6 +189,45 @@ void main() {
     expect(signedIn, isTrue);
   });
 
+  testWidgets('un envoi de code impossible se lit au-dessus du bouton', (
+    tester,
+  ) async {
+    // Le serveur répond `503 otp_delivery_unavailable` quand aucun canal
+    // ne peut porter le code — un numéro sans WhatsApp, par exemple.
+    //
+    // Le message existait déjà, mais il était rendu SOUS le bouton, là où
+    // le clavier le recouvre : le voyageur touchait « Recevoir mon code »,
+    // voyait tourner, puis retrouvait le même écran sans un mot. Ce test
+    // garde sa place, pas seulement sa présence.
+    repository = StubAuthRepository(
+      failure: const AuthFailure(
+        'Impossible d’envoyer le code. Réessayez plus tard.',
+      ),
+    );
+
+    await pumpPage(tester);
+    await switchToEmail(tester);
+
+    await tester.enterText(find.byType(TextField), 'aicha@example.com');
+    await tester.tap(find.text('Recevoir mon code'));
+    await tester.pumpAndSettle();
+
+    final message = find.text(
+      'Impossible d’envoyer le code. Réessayez plus tard.',
+    );
+    expect(message, findsOneWidget);
+
+    // Au-dessus, donc hors d'atteinte du clavier.
+    expect(
+      tester.getTopLeft(message).dy,
+      lessThan(tester.getTopLeft(find.text('Recevoir mon code')).dy),
+    );
+
+    // Et le parcours n'avance pas : aucun code n'est parti.
+    expect(submitted, 'aicha@example.com');
+    expect(find.text('Code de vérification'), findsNothing);
+  });
+
   testWidgets('refuse un champ vide', (tester) async {
     await pumpPage(tester);
     await switchToEmail(tester);

@@ -23,14 +23,16 @@ void main() {
       expect(model.country, 'BJ');
       expect(model.stopsCount, 3);
 
-      final city = model.toEntity();
+      final cities = model.toEntities();
+      expect(cities, hasLength(1));
+
+      final city = cities.single;
       // L'identifiant est le nom : c'est la clé qu'attendent les filtres
       // `from` / `to` de l'API.
       expect(city.id, 'Cotonou');
       expect(city.name, 'Cotonou');
       expect(city.code, 'COT');
-      // Une ville peut desservir plusieurs arrêts : aucun n'est « la »
-      // gare de la ville.
+      // Une seule gare : rien à arbitrer, donc rien à nommer.
       expect(city.station, isNull);
       expect(city.label, 'Cotonou');
       // L'arrêt physique est ce que `bus/itineraries` interroge : une ville
@@ -42,13 +44,40 @@ void main() {
     test('une ville sans arrêt physique ne peut pas être cherchée', () {
       // Bohicon est desservie par la ligne, mais le catalogue ne lui
       // rattache aucun arrêt : la proposer en départ mènerait à un 422.
-      final city = CityModel.fromJson(
+      final cities = CityModel.fromJson(
         ApiJson.list(kCitiesResponse).last,
-      ).toEntity();
+      ).toEntities();
 
-      expect(city.name, 'Bohicon');
-      expect(city.physicalStopId, isNull);
-      expect(city.isSearchable, isFalse);
+      // Aucune entrée : il n'y a pas d'arrêt à interroger, et une ville
+      // sans arrêt proposée au voyageur mène droit au 422.
+      expect(cities, isEmpty);
+    });
+
+    test('une ville à plusieurs gares donne une entrée par gare', () {
+      // Le cas qui faisait annoncer « Aucun voyage ce jour-là » quand les
+      // départs vivaient sur la seconde gare : retenir la première menait
+      // l'app vers un arrêt sans départ, sans que personne puisse corriger.
+      final cities = CityModel.fromJson({
+        'city': 'Cotonou',
+        'country': 'BJ',
+        'stops_count': 2,
+        'physical_stops': [
+          {'uuid': 'stop-une', 'name': 'Arrêt Cotonou'},
+          {'uuid': 'stop-deux', 'name': 'Cotonou'},
+        ],
+      }).toEntities();
+
+      expect(cities, hasLength(2));
+      expect(cities.map((city) => city.physicalStopId), [
+        'stop-une',
+        'stop-deux',
+      ]);
+      // Les deux gares restent distinctes dans le sélecteur…
+      expect(cities.first.id, isNot(cities.last.id));
+      // … et la première se nomme, pour qu'on sache laquelle on choisit.
+      expect(cities.first.label, 'Cotonou · Arrêt Cotonou');
+      // La gare homonyme de sa ville ne se répète pas.
+      expect(cities.last.label, 'Cotonou');
     });
 
     test('dérive un code de trois lettres, accents et tirets retirés', () {

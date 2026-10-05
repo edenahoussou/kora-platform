@@ -43,14 +43,16 @@ class PaymentFlowBloc extends Bloc<PaymentFlowEvent, PaymentFlowState> {
     PaymentFlowStarted event,
     Emitter<PaymentFlowState> emit,
   ) async {
-    // Un paiement déjà lancé ne se relance pas : ni pendant que l'appel
-    // vole, ni une fois la demande partie chez l'opérateur. La clé
-    // d'idempotence protège le serveur, mais le double débit commence
-    // toujours par un double appel — autant ne pas le passer.
+    // Un paiement **en vie** ne se relance pas : ni pendant que l'appel
+    // vole, ni tant que la demande suit son cours chez l'opérateur. Le
+    // double débit commence toujours par un double appel, et la clé
+    // d'idempotence n'est qu'un filet.
     //
-    // Pour recommencer après un échec, il faut passer par
-    // [PaymentFlowReset], qui est un geste explicite.
-    if (state.isStarting || state.attempt != null) return;
+    // Un paiement **refusé**, lui, ne retient rien : le voyageur corrige
+    // son numéro et réessaie. Le lui interdire ici le laissait appuyer
+    // sur « Payer » sans que rien ne parte.
+    final current = state.attempt;
+    if (state.isStarting || (current != null && !current.isRefused)) return;
 
     emit(
       state.copyWith(status: PaymentFlowStatus.starting, clearFailure: true),
@@ -61,12 +63,18 @@ class PaymentFlowBloc extends Bloc<PaymentFlowEvent, PaymentFlowState> {
       provider: event.provider,
       network: event.network,
       phone: event.phone,
-      idempotencyKey: event.idempotencyKey,
+      idempotencyKey: _keyFor(event),
     );
 
     result.fold(
+      // Le numéro d'essai avance : le prochain « Payer » sera une demande
+      // neuve, pas la relecture de ce refus.
       (failure) => emit(
-        state.copyWith(status: PaymentFlowStatus.failure, failure: failure),
+        state.copyWith(
+          status: PaymentFlowStatus.failure,
+          failure: failure,
+          round: state.round + 1,
+        ),
       ),
       (attempt) {
         emit(_settled(attempt));
@@ -128,9 +136,33 @@ class PaymentFlowBloc extends Bloc<PaymentFlowEvent, PaymentFlowState> {
     emit(PaymentFlowState(round: state.round + 1));
   }
 
+  /// La clé d'idempotence de cette demande-ci.
+  ///
+  /// **Elle décrit ce qu'on demande**, pas seulement à qui : réservation,
+  /// réseau, numéro à débiter, et le numéro d'essai. Le serveur refuse en
+  /// 422 une clé déjà vue avec un contenu différent — c'est ce qui
+  /// arrivait après un refus, quand le voyageur revenait taper un autre
+  /// numéro : la clé n'avait pas bougé, le contenu si, et l'essai suivant
+  /// échouait sans jamais atteindre l'opérateur.
+  ///
+  /// Le numéro d'essai, lui, avance à chaque échec : il faut bien qu'un
+  /// second essai sur le **même** numéro parte aussi, au lieu de
+  /// ressortir le refus précédent.
+  String _keyFor(PaymentFlowStarted event) {
+    final phone = event.phone.replaceAll(RegExp(r'\D'), '');
+    return 'kora-${event.reservationId}-${event.network}-$phone-${state.round}';
+  }
+
   /// L'état correspondant à un paiement fraîchement lu.
   PaymentFlowState _settled(PaymentAttempt attempt) {
+    final failed = switch (attempt.status) {
+      PaymentAttemptStatus.confirmed || PaymentAttemptStatus.pending => false,
+      _ => true,
+    };
+
     return state.copyWith(
+      // Un paiement refusé par l'opérateur compte comme un essai consommé.
+      round: failed ? state.round + 1 : state.round,
       status: switch (attempt.status) {
         PaymentAttemptStatus.confirmed => PaymentFlowStatus.confirmed,
         PaymentAttemptStatus.pending => PaymentFlowStatus.pending,

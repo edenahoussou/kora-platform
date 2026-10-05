@@ -36,8 +36,8 @@ class AuthCubit extends Cubit<AuthState> {
           emit(AuthAuthenticated(session.user));
           return;
         }
-        emit(
-            AuthUnauthenticated(savedIdentifier: await _authRepository.lastIdentifier()));
+        emit(AuthUnauthenticated(
+            savedIdentifier: await _authRepository.lastIdentifier()));
       },
       onFailure: (Failure failure) async {
         // Erreur du stockage local lui-même (rare) : on ne peut pas
@@ -69,7 +69,8 @@ class AuthCubit extends Cubit<AuthState> {
     // expiration naturelle, comme pour logout() (compromis assumé, voir
     // AuthRepository.logout).
     await _authRepository.purgeLocalSession();
-    emit(AuthUnauthenticated(savedIdentifier: await _authRepository.lastIdentifier()));
+    emit(AuthUnauthenticated(
+        savedIdentifier: await _authRepository.lastIdentifier()));
   }
 
   Future<void> logout() async {
@@ -77,15 +78,15 @@ class AuthCubit extends Cubit<AuthState> {
     final result = await _authRepository.logout();
     await result.when(
       onSuccess: (_) async {
-        emit(
-            AuthUnauthenticated(savedIdentifier: await _authRepository.lastIdentifier()));
+        emit(AuthUnauthenticated(
+            savedIdentifier: await _authRepository.lastIdentifier()));
       },
       onFailure: (_) async {
         // La purge locale a lieu quoi qu'il arrive dans le repository
         // (voir AuthRepositoryImpl.logout) : l'utilisateur est donc bien
         // déconnecté localement même si l'appel serveur a échoué.
-        emit(
-            AuthUnauthenticated(savedIdentifier: await _authRepository.lastIdentifier()));
+        emit(AuthUnauthenticated(
+            savedIdentifier: await _authRepository.lastIdentifier()));
       },
     );
   }

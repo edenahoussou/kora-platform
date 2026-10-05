@@ -22,8 +22,21 @@ import '../widgets/booking_progress.dart';
 /// qu'on compose ici et sur l'accueil, avec les mêmes écrans de sélection.
 /// Deux blocs séparés donneraient deux recherches divergentes selon
 /// l'endroit d'où on est parti.
-class BusSearchPage extends StatelessWidget {
-  const BusSearchPage({super.key, this.tripType = TripType.oneway});
+/// Ce qu'on apporte au formulaire en y entrant.
+///
+/// Le bloc du formulaire naît avec l'écran : sans ces valeurs, un
+/// voyageur renvoyé ici — depuis « Aucun retour », par exemple — retrouve
+/// un formulaire vide et doit ressaisir un trajet qu'il vient de composer,
+/// alors qu'il ne voulait changer qu'une date.
+class BusSearchArgs {
+  const BusSearchArgs({
+    this.tripType = TripType.oneway,
+    this.origin,
+    this.destination,
+    this.date,
+    this.returnDate,
+    this.passengers,
+  });
 
   /// L'onglet ouvert à l'arrivée.
   ///
@@ -33,14 +46,45 @@ class BusSearchPage extends StatelessWidget {
   /// « Aller simple », à recliquer sur l'onglet d'à côté.
   final TripType tripType;
 
+  final City? origin;
+  final City? destination;
+  final DateTime? date;
+  final DateTime? returnDate;
+  final int? passengers;
+}
+
+class BusSearchPage extends StatelessWidget {
+  const BusSearchPage({super.key, this.args = const BusSearchArgs()});
+
+  final BusSearchArgs args;
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider<HomeBloc>(
       create: (_) {
         final bloc = getIt<HomeBloc>()..add(const HomeStarted());
-        if (tripType != TripType.oneway) {
-          bloc.add(HomeTripTypeChanged(tripType));
+        if (args.tripType != TripType.oneway) {
+          bloc.add(HomeTripTypeChanged(args.tripType));
         }
+
+        // Ce qu'on rapporte du parcours précédent. Les villes arrivent
+        // pendant que `HomeStarted` charge encore la liste : les
+        // gestionnaires se composent sur l'état du moment, la sélection
+        // survit donc au chargement.
+        final origin = args.origin;
+        if (origin != null) bloc.add(HomeOriginSelected(origin));
+
+        final destination = args.destination;
+        if (destination != null) bloc.add(HomeDestinationSelected(destination));
+
+        final date = args.date;
+        if (date != null) bloc.add(HomeDateSelected(date));
+
+        final returnDate = args.returnDate;
+        if (returnDate != null) bloc.add(HomeReturnDateSelected(returnDate));
+
+        final passengers = args.passengers;
+        if (passengers != null) bloc.add(HomePassengersSelected(passengers));
 
         return bloc;
       },

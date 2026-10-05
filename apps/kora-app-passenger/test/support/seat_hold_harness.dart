@@ -360,6 +360,10 @@ class StubPaymentRepository implements PaymentRepository {
   final List<PaymentAttempt> statuses;
 
   final List<String> calls = [];
+
+  /// Les clés d'idempotence reçues, dans l'ordre des demandes.
+  final List<String> idempotencyKeys = [];
+
   int _statusReads = 0;
 
   @override
@@ -378,6 +382,9 @@ class StubPaymentRepository implements PaymentRepository {
     required String idempotencyKey,
   }) async {
     calls.add('initiate:$provider/$network');
+    // La clé d'idempotence se relit dans les tests : c'est elle qui décide
+    // si le serveur voit une demande neuve ou la relecture d'un refus.
+    idempotencyKeys.add(idempotencyKey);
     final failure = initiateFailure ?? this.failure;
     return failure != null ? Left(failure) : Right(attempt);
   }

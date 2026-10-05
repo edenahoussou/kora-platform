@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
+import 'package:go_router/go_router.dart';
 
 import '../utils/title_color.dart';
 
@@ -42,6 +43,25 @@ class ScreenHeader extends StatelessWidget {
   /// eux-mêmes par où l'on sort.
   final VoidCallback? onBack;
 
+  /// Le retour par défaut : l'écran précédent s'il y en a un, l'accueil
+  /// sinon.
+  ///
+  /// Un `context.go()` **remplace** la pile : l'écran atteint devient le
+  /// seul, et le `pop` d'alors ne dépilait rien — il quittait la dernière
+  /// route et laissait un écran noir dont on ne sortait plus. C'est ce
+  /// qui arrivait au formulaire de recherche, rejoint depuis « Changer la
+  /// date du retour ».
+  static void _back(BuildContext context) {
+    if (context.canPop()) {
+      context.pop();
+      return;
+    }
+
+    // L'onglet d'accueil : le garde de navigation renverra vers la
+    // bienvenue si la session s'est fermée entre-temps.
+    context.go('/home');
+  }
+
   /// Ce qui prend la place du bouton retour quand [showBack] est faux.
   ///
   /// `back: false` dans la maquette ne retire pas le bouton, il le
@@ -80,7 +100,7 @@ class ScreenHeader extends StatelessWidget {
             if (showBack) ...[
               KoraIconButton(
                 icon: Icons.chevron_left_rounded,
-                onTap: onBack ?? () => Navigator.of(context).pop(),
+                onTap: onBack ?? () => _back(context),
               ),
               const SizedBox(width: AppSpacing.md),
             ] else if (leading != null) ...[

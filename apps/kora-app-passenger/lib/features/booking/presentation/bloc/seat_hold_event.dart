@@ -59,8 +59,9 @@ class SeatHoldReleased extends SeatHoldEvent {
   const SeatHoldReleased();
 }
 
-/// Le paiement a abouti — ou la réservation est confiée à une agence : les
-/// sièges ne sont plus retenus par l'app.
+/// Les sièges ne sont plus retenus par l'app : paiement abouti,
+/// réservation confiée à une agence, ou réservation expirée par le
+/// serveur après un refus de paiement.
 ///
 /// Distinct de [SeatHoldReleased], qui rend les places à la vente : ici on
 /// coupe seulement le décompte, sans rien libérer. Réutiliser la

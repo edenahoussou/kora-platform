@@ -350,6 +350,50 @@ class _SignupEmailPageState extends State<SignupEmailPage> {
                       builder: (context, flow) => Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
+                          // Le refus se lit **au-dessus** du bouton, et
+                          // c'est tout l'enjeu : sous le bouton, le clavier
+                          // le recouvrait. Le voyageur touchait « Recevoir
+                          // mon code », voyait tourner, puis retrouvait le
+                          // même écran sans un mot — et recommençait. Le
+                          // serveur, lui, avait répondu (« Impossible
+                          // d'envoyer le code », compte déjà inscrit…) ;
+                          // seule la place du message manquait.
+                          if (flow.hasError) ...[
+                            Text(
+                              flow.errorMessage,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: AppColors.danger,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                          ],
+                          // Un compte déjà créé n'est pas une saisie à
+                          // corriger : rien ne sert de retaper la même
+                          // adresse, c'est la connexion qu'il faut. On y
+                          // mène, plutôt que de laisser le voyageur
+                          // chercher le chemin tout seul.
+                          if (flow.accountExists) ...[
+                            Text(
+                              l10n.signupAccountExistsLead,
+                              textAlign: TextAlign.center,
+                              style: AppTextStyles.body(koraColors.textMuted),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                final goToSignIn = widget.onSignIn;
+                                if (goToSignIn != null) {
+                                  goToSignIn();
+                                  return;
+                                }
+                                Navigator.of(context).maybePop();
+                              },
+                              child: Text(l10n.signupAccountExistsLink),
+                            ),
+                            const SizedBox(height: 4),
+                          ],
                           KoraButton(
                             label: l10n.signupSubmit,
                             isLoading: flow.isSubmitting,
@@ -367,45 +411,6 @@ class _SignupEmailPageState extends State<SignupEmailPage> {
                                   : l10n.signupSwitchToEmail,
                             ),
                           ),
-                          // Adresse déjà inscrite, envoi impossible : le
-                          // message vient du serveur et se lit ici, sous le
-                          // bouton, comme sur les autres écrans du parcours.
-                          if (flow.hasError) ...[
-                            const SizedBox(height: 12),
-                            Text(
-                              flow.errorMessage,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: AppColors.danger,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ],
-                          // Un compte déjà créé n'est pas une saisie à
-                          // corriger : rien ne sert de retaper la même
-                          // adresse, c'est la connexion qu'il faut. On y
-                          // mène, plutôt que de laisser le voyageur
-                          // chercher le chemin tout seul.
-                          if (flow.accountExists) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              l10n.signupAccountExistsLead,
-                              textAlign: TextAlign.center,
-                              style: AppTextStyles.body(koraColors.textMuted),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                final goToSignIn = widget.onSignIn;
-                                if (goToSignIn != null) {
-                                  goToSignIn();
-                                  return;
-                                }
-                                Navigator.of(context).maybePop();
-                              },
-                              child: Text(l10n.signupAccountExistsLink),
-                            ),
-                          ],
                         ],
                       ),
                     ),

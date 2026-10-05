@@ -50,8 +50,7 @@ class _SentNotificationsPageState extends State<SentNotificationsPage> {
                   message: state.errorMessage ??
                       'Impossible de charger vos notifications envoyées.',
                   actionLabel: 'Réessayer',
-                  onAction: () =>
-                      context.read<SentNotificationCubit>().load(),
+                  onAction: () => context.read<SentNotificationCubit>().load(),
                 ),
               SentNotificationStatus.empty => const AppStatePlaceholder.empty(
                   message: 'Vous n\'avez encore déclenché aucune alerte.',

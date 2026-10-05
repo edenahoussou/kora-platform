@@ -363,21 +363,21 @@ class _PassengerCard extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.md),
           KoraInput(
-            label: l10n.passengersFirstName,
+            label: _required(l10n.passengersFirstName),
             controller: fields.firstName,
             errorText: errors['firstName'],
             onChanged: (_) => onChanged(),
           ),
           const SizedBox(height: AppSpacing.md),
           KoraInput(
-            label: l10n.passengersLastName,
+            label: _required(l10n.passengersLastName),
             controller: fields.lastName,
             errorText: errors['lastName'],
             onChanged: (_) => onChanged(),
           ),
           const SizedBox(height: AppSpacing.md),
           _PhoneField(
-            label: l10n.passengersPhone,
+            label: _required(l10n.passengersPhone),
             country: fields.country,
             controller: fields.phone,
             errorText: errors['phone'],
@@ -437,18 +437,22 @@ class _PassengerCard extends StatelessWidget {
               ],
             ),
           ],
-          const SizedBox(height: AppSpacing.md),
-          // Posée pour tout le monde, intérieur comme international : la
-          // revue Kora la veut « indépendante », et elle ne suit donc pas
-          // la bascule qui gouverne les champs du manifeste.
-          _CheckRow(
-            value: fields.yellowFeverVaccinated,
-            label: l10n.passengersYellowFever,
-            onChanged: (value) {
-              fields.yellowFeverVaccinated = value;
-              onChanged();
-            },
-          ),
+          // La déclaration de vaccination ne se pose qu'aux traversées
+          // de frontière : c'est là qu'un carnet est réclamé, et le
+          // certificat international de vaccination n'a pas cours sur un
+          // Cotonou–Parakou. La demander pour un trajet intérieur
+          // faisait cocher une case sans objet.
+          if (international) ...[
+            const SizedBox(height: AppSpacing.md),
+            _CheckRow(
+              value: fields.yellowFeverVaccinated,
+              label: l10n.passengersYellowFever,
+              onChanged: (value) {
+                fields.yellowFeverVaccinated = value;
+                onChanged();
+              },
+            ),
+          ],
         ],
       ),
     );
@@ -707,6 +711,15 @@ String _lineLabel(AppLocalization l10n, Departure departure) {
 
   return '$route · ${l10n.passengersEyebrowInternational}';
 }
+
+/// Le libellé d'un champ que la validation exige.
+///
+/// L'astérisque dit au voyageur ce qu'il ne pourra pas laisser vide
+/// **avant** qu'il l'apprenne par un message d'erreur, une fois le
+/// formulaire déjà rempli. Elle ne rejoint pas les libellés de
+/// [_fieldLabel] : dans un message, « Prénom * est obligatoire » se
+/// lirait mal.
+String _required(String label) => '$label *';
 
 /// Le nom affichable d'un champ, depuis la clé que porte son erreur.
 ///
