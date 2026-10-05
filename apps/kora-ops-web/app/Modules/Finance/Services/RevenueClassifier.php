@@ -53,6 +53,12 @@ final class RevenueClassifier
                 'qualified' => true,
                 'reason' => null,
             ],
+            ReservationChannel::CompanyPortal->value => [
+                'key' => 'company_portal',
+                'label' => 'Vente portail entreprise',
+                'qualified' => true,
+                'reason' => null,
+            ],
             ReservationChannel::Online->value => $hasIntegration
                 ? [
                     'key' => 'mobile',
@@ -100,7 +106,11 @@ final class RevenueClassifier
         $method ??= 'unknown';
         $channelLabel = $context === 'counter'
             ? 'Guichet'
-            : ($context === 'mobile' ? 'Application passager' : 'Canal à qualifier');
+            : match ($context) {
+                'mobile' => 'Application passager',
+                'company_portal' => 'Espace entreprise',
+                default => 'Canal à qualifier',
+            };
         $networkLabel = $this->networkLabel($network);
         $integrationLabel = $this->integrationLabel($provider);
         $isIntegrated = $context === 'mobile'

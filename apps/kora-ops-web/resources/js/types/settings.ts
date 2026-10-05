@@ -31,6 +31,9 @@ export type OperationsSettingsValues = {
     manifestStaleDebounceSeconds: number;
     passengerDepartureReminderHours: number[];
     passengerDelayThresholdMinutes: number;
+    groupDiscountEnabled: boolean;
+    groupDiscountPassengerThreshold: number;
+    groupDiscountPercentage: number;
 };
 
 export type IntegrationsSettingsValues = Record<

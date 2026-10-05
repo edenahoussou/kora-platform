@@ -226,6 +226,7 @@ class GenerateTicketPdfAction
             'counter' => 'Vente au guichet',
             'online' => 'Vente en ligne',
             'mobile' => 'Vente mobile',
+            'company_portal' => 'Espace entreprise',
             'ops' => 'Vente OPS',
             default => 'KORA EXPRESS',
         };

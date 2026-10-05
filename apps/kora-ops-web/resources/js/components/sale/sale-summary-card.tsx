@@ -44,6 +44,9 @@ type Props = {
     onCompanyAccountChange?: (uuid: string | null) => void;
     promoCode?: string;
     onPromoCodeChange?: (code: string) => void;
+    companyPortal?: boolean;
+    companyName?: string;
+    creditAvailable?: number;
 };
 
 export function SaleSummaryCard({
@@ -61,6 +64,9 @@ export function SaleSummaryCard({
     selectedCompanyAccountUuid = null,
     promoCode = '',
     onPromoCodeChange,
+    companyPortal = false,
+    companyName,
+    creditAvailable,
 }: Props) {
     if (!selectedItinerary) {
         return (
@@ -87,7 +93,12 @@ export function SaleSummaryCard({
         const currency = itineraryQuote?.currency ?? selectedItinerary.currency;
         const canQuote = selectedItinerary !== null;
         const isGroup = itineraryQuote?.isGroup ?? passengerCount >= 5;
-        const hasDiscount = (itineraryQuote?.groupDiscountAmount ?? 0) > 0;
+        const companyDiscountAmount =
+            itineraryQuote?.companyDiscount?.amount ?? 0;
+        const discountAmount = companyPortal
+            ? companyDiscountAmount
+            : (itineraryQuote?.groupDiscountAmount ?? 0);
+        const hasDiscount = discountAmount > 0;
 
         const renderLegGroup = (
             legs: SaleItinerary['legs'],
@@ -141,7 +152,7 @@ export function SaleSummaryCard({
                     <span>Passagers</span>
                     <strong>
                         {passengerCount}
-                        {isGroup && (
+                        {isGroup && !companyPortal && (
                             <span className="badge badge-group">
                                 <Users className="size-3" />
                                 Groupe
@@ -195,14 +206,27 @@ export function SaleSummaryCard({
 
                 {itineraryQuote && hasDiscount && (
                     <div className="summary-row summary-discount-row">
-                        <span>Remise groupe</span>
+                        <span>
+                            {companyPortal
+                                ? 'Remise entreprise'
+                                : 'Remise groupe'}
+                        </span>
                         <strong className="is-discount">
-                            −
-                            {formatMoney(
-                                itineraryQuote.groupDiscountAmount,
-                                currency,
-                            )}
+                            −{formatMoney(discountAmount, currency)}
                         </strong>
+                    </div>
+                )}
+
+                {companyPortal && creditAvailable !== undefined && (
+                    <div className="summary-payer-section">
+                        <span className="field-label">
+                            <Building2 className="size-3.5" />
+                            Payeur entreprise
+                        </span>
+                        <small className="payment-field-help">
+                            {companyName} ·{' '}
+                            {formatMoney(creditAvailable, currency)} dispo
+                        </small>
                     </div>
                 )}
 

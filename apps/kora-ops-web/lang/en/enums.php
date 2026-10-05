@@ -103,6 +103,7 @@ return [
         'mobile_app' => 'Mobile App',
         'counter' => 'Counter',
         'agency' => 'Agency',
+        'company_portal' => 'Company Portal',
     ],
 
     'ticket_status' => [

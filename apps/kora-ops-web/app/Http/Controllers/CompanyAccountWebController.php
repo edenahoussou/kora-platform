@@ -277,6 +277,8 @@ class CompanyAccountWebController extends Controller
             'rccm' => $account->rccm,
             'status' => $account->status->value,
             'monthlyCreditLimit' => (int) $account->monthly_credit_limit,
+            'discountType' => $account->discount_type?->value,
+            'discountValue' => $account->discount_value !== null ? (float) $account->discount_value : null,
             'consumedCredit' => $metric['consumedCredit'],
             'reservedCredit' => $metric['reservedCredit'],
             'availableCredit' => $metric['availableCredit'],

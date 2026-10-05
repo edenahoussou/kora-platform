@@ -10,6 +10,7 @@ use App\Modules\Booking\Models\ItineraryQuoteLeg;
 use App\Modules\Booking\Services\DepartureStopTimeResolver;
 use App\Modules\Booking\Services\GroupPricingService;
 use App\Modules\BusNetwork\Models\Stop;
+use App\Modules\CompanyAccounts\Models\CompanyAccount;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Actions\CalculatePromotionDiscountAction;
 use App\Modules\DynamicPricing\Actions\CalculateQuoteAction;
@@ -85,6 +86,7 @@ class CalculateItineraryQuoteAction
         ?User $user = null,
         ?string $promoCode = null,
         ?ReservationChannel $channel = null,
+        ?CompanyAccount $companyAccount = null,
     ): ItineraryQuoteResult {
         if ($legs === []) {
             throw ValidationException::withMessages([
@@ -104,7 +106,7 @@ class CalculateItineraryQuoteAction
             ? $this->resolvePromotion->execute($promoCode, $legs, $channel)
             : null;
 
-        return DB::transaction(function () use ($legs, $passengerCount, $user, $resolvedPromotion): ItineraryQuoteResult {
+        return DB::transaction(function () use ($legs, $passengerCount, $user, $resolvedPromotion, $companyAccount): ItineraryQuoteResult {
             $legQuotes = [];
             $legSnapshots = [];
             $totalAmount = 0;
@@ -170,6 +172,7 @@ class CalculateItineraryQuoteAction
                 dynamicAdjustments: array_map(fn (PriceQuote $quote): int => (int) $quote->final_amount - (int) $quote->base_amount, $legQuotes),
                 expiresAt: $earliestExpiry,
                 promotionDiscount: $promotionDiscount,
+                companyAccount: $companyAccount,
             );
 
             $promotion = $resolvedPromotion?->promotion;
@@ -208,6 +211,10 @@ class CalculateItineraryQuoteAction
                 'passenger_allocations' => $pricing['passenger_allocations'],
                 'legs' => $legSnapshots,
                 'pricing_breakdown' => $breakdown->toArray(),
+                ...($companyAccount !== null ? [
+                    'company_account_uuid' => $companyAccount->uuid,
+                    'company_discount' => $pricing['company_discount'] ?? null,
+                ] : []),
             ];
 
             $itineraryQuote = ItineraryQuote::create([

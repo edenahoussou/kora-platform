@@ -47,7 +47,7 @@ class CounterSaleSearchRequest extends JsonValidationRequest
     }
 
     /**
-     * @return array{departure_uuid: string|null, origin_stop_uuid: string|null, destination_stop_uuid: string|null, quote_uuid: string|null, reservation_uuid: string|null}
+     * @return array{departure_uuid: string|null, origin_stop_uuid: string|null, destination_stop_uuid: string|null, quote_uuid: string|null, itinerary_quote_uuid: string|null, reservation_uuid: string|null}
      */
     public function selectedContext(): array
     {

@@ -59,7 +59,7 @@ export default function CompanyPortalIndex({ account, credit, stats }: Props) {
             description:
                 'Réservez des trajets pour les membres de votre organisation, réglés par votre crédit mensuel.',
             icon: Ticket,
-            href: null as string | null,
+            href: companyPortal.sale.index.url(),
         },
         {
             title: 'Membres voyageurs',

@@ -2,6 +2,7 @@
 
 use App\Models\User;
 use App\Modules\Booking\Models\Reservation;
+use App\Modules\CompanyAccounts\Models\CompanyAccount;
 use App\Modules\Finance\Data\RevenuePeriod;
 use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\Payments\Models\Payment;
@@ -125,8 +126,8 @@ it('consolidates confirmed payments once and caps cancellation deductions by pay
             ->where('byChannel.0.key', 'counter')
             ->where('byChannel.0.gross', 10000)
             ->where('byChannel.0.deductions', 10000)
-            ->where('byChannel.2.key', 'unclassified')
-            ->where('byChannel.2.net', 7000)
+            ->where('byChannel.3.key', 'unclassified')
+            ->where('byChannel.3.net', 7000)
             ->where('byPaymentMethod.3.key', 'company_credit')
             ->where('byPaymentMethod.3.gross', 5000)
             ->where('period.timezone', RevenuePeriod::TIMEZONE)
@@ -216,6 +217,24 @@ it('classifies the final sale channel and keeps passenger sales out of agency to
         'method' => 'cash',
     ]);
 
+    $companyAccount = CompanyAccount::query()->create([
+        'name' => 'Organisation Portail',
+        'type' => 'company',
+        'reference' => 'REV-PORTAL-01',
+        'monthly_credit_limit' => 500000,
+        'status' => 'active',
+    ]);
+    $companyPortalReservation = revenueReservation([
+        'company_account_id' => $companyAccount->id,
+        'payer_type' => 'company',
+        'channel' => 'company_portal',
+        'total_amount' => 6000,
+    ]);
+    revenuePayment($companyPortalReservation, [
+        'amount' => 6000,
+        'method' => 'company_credit',
+    ]);
+
     $this->actingAs($daf)
         ->get(route('revenue'))
         ->assertSuccessful()
@@ -224,13 +243,18 @@ it('classifies the final sale channel and keeps passenger sales out of agency to
             ->where('byChannel.0.net', 10000)
             ->where('byChannel.1.key', 'mobile')
             ->where('byChannel.1.net', 11000)
-            ->where('byChannel.2.key', 'unclassified')
-            ->where('byChannel.2.net', 2000)
+            ->where('byChannel.2.key', 'company_portal')
+            ->where('byChannel.2.net', 6000)
+            ->where('byChannel.3.key', 'unclassified')
+            ->where('byChannel.3.net', 2000)
             ->has('byAgency', 1)
             ->where('byAgency.0.name', 'Agence Atlantique')
-            ->where('digitalWithoutAgency.net', 11000)
+            ->where('digitalWithoutAgency.name', 'Ventes digitales — hors agence')
+            ->where('digitalWithoutAgency.net', 17000)
             ->where('paymentSources.0.label', 'FedaPay · MTN MoMo')
-            ->where('paymentSources.0.net', 11000));
+            ->where('paymentSources.0.net', 11000)
+            ->where('paymentSources.2.key', 'company_portal:company_credit')
+            ->where('paymentSources.2.label', 'Crédit entreprise · Espace entreprise'));
 });
 
 it('exports the same totals to six protected XLSX sheets and records the audit event', function (): void {

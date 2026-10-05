@@ -228,6 +228,7 @@ class TicketViewController extends Controller
             'counter' => 'Vente au guichet',
             'online' => 'Vente en ligne',
             'mobile' => 'Vente mobile',
+            'company_portal' => 'Vente portail entreprise',
             'ops' => 'Vente OPS',
             default => 'KORA EXPRESS',
         };

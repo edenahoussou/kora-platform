@@ -164,6 +164,10 @@ _Avoid_: Déduire un fournisseur du seul canal ; afficher le réseau Mobile Mone
 Vente finalisée dans le parcours mobile, dont la source d'encaissement peut être détaillée par fournisseur d'intégration et réseau ou par un moyen mobile reconnu.
 _Avoid_: Fusionner l'application passager avec une ligne générique « En ligne » ; rattacher automatiquement une vente mobile à une agence
 
+**Vente portail entreprise**:
+Vente Bus finalisée par le référent d’un compte organisationnel, payée sur son crédit mensuel et rattachée au canal `company_portal`. Les voyageurs doivent être des membres actifs du roster de cette organisation.
+_Avoid_: Vente guichet ; vente via l’application passager ; vente en ligne générique
+
 **Compte voyageur**:
 Identite client KORA retrouvee ou creee automatiquement a partir d'un telephone personnel normalise lors de l'achat ou de l'emission d'un billet. Elle existe avec son Wallet meme sans acces active a l'application ; son titulaire peut voyager, payer pour un tiers ou faire les deux.
 _Avoid_: Inscription obligatoire dans l'application, fiche voyageur sans telephone personnel
@@ -227,6 +231,14 @@ _Avoid_: Modifier l’identifiant en place ; supprimer l’ancien compte ; chang
 **Compte organisationnel**:
 Compte entreprise, ONG ou ambassade utilisé comme payeur pour des achats Bus à crédit. Il possède une référence métier KORA, un plafond mensuel et un cycle actif/inactif ; il est distinct des utilisateurs qui peuvent acheter ou référer l’organisation.
 _Avoid_: Compte voyageur ; compte personnel d’un agent ; portefeuille Wallet
+
+**Remise négociée**:
+Avantage tarifaire défini sur un compte organisationnel, exprimé en pourcentage ou montant fixe et calculé sur le panier entier après une éventuelle promotion. Elle remplace la remise groupe pour l’achat self-service de cette organisation.
+_Avoid_: Remise groupe ; promotion à code ; crédit entreprise
+
+**Remise groupe**:
+Avantage automatique paramétré par l’exploitation, avec activation, seuil de voyageurs et pourcentage ; elle s’applique aux groupes individuels éligibles, après une éventuelle promotion. L’achat portail entreprise utilise la remise négociée à sa place.
+_Avoid_: Remise négociée ; promotion à code ; tarif dynamique
 
 **Référent d’organisation**:
 Utilisateur KORA actif, hors personnel interne, désigné comme contact principal d’un compte organisationnel. Affiché « Responsable du compte » dans l’interface. Une seule personne peut être référente active à la fois ; un remplacement conserve l’ancien rattachement comme inactif.

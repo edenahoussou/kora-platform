@@ -4694,6 +4694,19 @@ paths:
                   type: integer
                   description: 'Plafond de crédit mensuel en unité monétaire. Le champ value doit être au moins 0.'
                   example: 42
+                discount_type:
+                  type: string
+                  description: 'Type de remise négociée : percentage ou amount.'
+                  example: percentage
+                  enum:
+                    - percentage
+                    - amount
+                  nullable: true
+                discount_value:
+                  type: number
+                  description: 'Valeur de la remise négociée. This field is required when <code>discount_type</code> is present. Le champ value doit être au moins 0.'
+                  example: 37
+                  nullable: true
               required:
                 - name
                 - type
@@ -4841,6 +4854,19 @@ paths:
                   type: integer
                   description: 'Plafond de crédit mensuel en unité monétaire. Le champ value doit être au moins 0.'
                   example: 42
+                discount_type:
+                  type: string
+                  description: 'Type de remise négociée : percentage ou amount.'
+                  example: percentage
+                  enum:
+                    - percentage
+                    - amount
+                  nullable: true
+                discount_value:
+                  type: number
+                  description: 'Valeur de la remise négociée. This field is required when <code>discount_type</code> is present. Le champ value doit être au moins 0.'
+                  example: 37
+                  nullable: true
               required:
                 - name
                 - type
@@ -5167,10 +5193,11 @@ paths:
                     example: 'This action is unauthorized.'
       tags:
         - 'Group Discounts'
+      deprecated: true
     post:
       summary: 'Create a new group discount rule.'
       operationId: createANewGroupDiscountRule
-      description: "The passenger threshold must be >= the configured minimum group size.\nOnly one active rule can cover a given period."
+      description: ''
       parameters: []
       responses:
         201:
@@ -5284,6 +5311,7 @@ paths:
                               type: string
       tags:
         - 'Group Discounts'
+      deprecated: true
       requestBody:
         required: true
         content:
@@ -5410,6 +5438,7 @@ paths:
                           type: string
       tags:
         - 'Group Discounts'
+      deprecated: true
       requestBody:
         required: true
         content:

@@ -12,14 +12,13 @@ use App\Modules\BusNetwork\Models\Seat;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\CompanyAccounts\Models\CompanyAccount;
 use App\Modules\Departures\Models\Departure;
-use App\Modules\DynamicPricing\Data\GroupDiscountRuleStatus;
 use App\Modules\DynamicPricing\Data\PricingRuleType;
 use App\Modules\DynamicPricing\Models\Fare;
-use App\Modules\DynamicPricing\Models\GroupDiscountRule;
 use App\Modules\DynamicPricing\Models\PricingRule;
 use App\Modules\DynamicPricing\Models\ServiceClass;
 use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\Payments\Models\Payment;
+use App\Modules\Settings\Settings\OperationsSettings;
 use App\Modules\Ticketing\Models\Ticket;
 use Database\Seeders\KoraBusRolePermissionSeeder;
 use Illuminate\Support\Carbon;
@@ -30,11 +29,11 @@ beforeEach(function (): void {
     Carbon::setTestNow('2026-08-19 07:00:00');
     $this->seed(KoraBusRolePermissionSeeder::class);
     GroupBookingSetting::query()->create(['minimum_passengers' => 5, 'maximum_passengers' => 10]);
-    GroupDiscountRule::query()->create([
-        'status' => GroupDiscountRuleStatus::Active,
-        'passenger_threshold' => 10,
-        'percentage' => 10,
-    ]);
+    $settings = app(OperationsSettings::class);
+    $settings->groupDiscountEnabled = true;
+    $settings->groupDiscountPassengerThreshold = 10;
+    $settings->groupDiscountPercentage = 10;
+    $settings->save();
 });
 
 afterEach(function (): void {

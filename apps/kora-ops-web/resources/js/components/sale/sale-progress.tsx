@@ -10,7 +10,13 @@ const steps = [
     { number: 5, label: 'Billets' },
 ];
 
-export function SaleProgress({ stage }: { stage: SaleStage }) {
+export function SaleProgress({
+    stage,
+    channelLabel = 'Vente guichet',
+}: {
+    stage: SaleStage;
+    channelLabel?: string;
+}) {
     const activeStep =
         stage === 'search'
             ? 1
@@ -29,7 +35,7 @@ export function SaleProgress({ stage }: { stage: SaleStage }) {
     return (
         <section className="sale-progress">
             <div className="progress-copy">
-                <span>Vente guichet</span>
+                <span>{channelLabel}</span>
                 <strong>
                     Étape {activeStep} sur 5 · {activeLabel}
                 </strong>

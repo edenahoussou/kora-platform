@@ -26,6 +26,8 @@ it('renders the company account list with public identifiers and credit metrics'
         'type' => 'ngo',
         'reference' => 'HZN-001',
         'monthly_credit_limit' => 500000,
+        'discount_type' => 'percentage',
+        'discount_value' => 7.5,
         'status' => 'active',
         'city' => 'Cotonou',
         'country' => 'BJ',
@@ -47,6 +49,8 @@ it('renders the company account list with public identifiers and credit metrics'
             ->where('accounts.data.0.uuid', $account->uuid)
             ->missing('accounts.data.0.id')
             ->where('accounts.data.0.availableCredit', 375000)
+            ->where('accounts.data.0.discountType', 'percentage')
+            ->where('accounts.data.0.discountValue', 7.5)
             ->where('accounts.data.0.city', 'Cotonou')
             ->where('summary.total', 1)
             ->where('summary.active', 1)
@@ -93,6 +97,51 @@ it('requires a phone when creating an organisation', function (): void {
         ->assertSessionHasErrors('phone');
 
     expect(CompanyAccount::query()->where('name', 'Société Validation')->exists())->toBeFalse();
+});
+
+it('configures negotiated percentage or fixed discounts on an organisation', function (): void {
+    $user = companyAdmin();
+
+    $this->actingAs($user)
+        ->post(route('companies.store'), [
+            'name' => 'Société Remise',
+            'type' => 'company',
+            'phone' => '+22997000000',
+            'monthly_credit_limit' => 750000,
+            'discount_type' => 'percentage',
+            'discount_value' => 12.5,
+        ])
+        ->assertRedirect(route('companies.index', absolute: false));
+
+    $account = CompanyAccount::query()->where('name', 'Société Remise')->firstOrFail();
+    expect($account->discount_type->value)->toBe('percentage')
+        ->and((float) $account->discount_value)->toBe(12.5)
+        ->and($account->hasDiscount())->toBeTrue();
+
+    $this->actingAs($user)
+        ->put(route('companies.update', $account), [
+            'name' => $account->name,
+            'type' => $account->type->value,
+            'phone' => '+22997000000',
+            'monthly_credit_limit' => 750000,
+            'discount_type' => 'percentage',
+            'discount_value' => 100.01,
+        ])
+        ->assertSessionHasErrors('discount_value');
+
+    $this->actingAs($user)
+        ->put(route('companies.update', $account), [
+            'name' => $account->name,
+            'type' => $account->type->value,
+            'phone' => '+22997000000',
+            'monthly_credit_limit' => 750000,
+            'discount_type' => 'amount',
+            'discount_value' => 25000,
+        ])
+        ->assertRedirect(route('companies.index', absolute: false));
+
+    expect($account->refresh()->discount_type->value)->toBe('amount')
+        ->and((float) $account->discount_value)->toBe(25000.0);
 });
 
 it('rejects an update that lowers the monthly credit limit below confirmed debits', function (): void {

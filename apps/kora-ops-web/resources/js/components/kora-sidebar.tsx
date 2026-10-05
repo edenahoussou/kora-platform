@@ -29,6 +29,7 @@ import { useInitials } from '@/hooks/use-initials';
 import { usePermissions } from '@/hooks/use-permissions';
 import { cn } from '@/lib/utils';
 import { dashboard, logout, revenue } from '@/routes';
+import companyPortalRoutes from '@/routes/company-portal';
 import programming from '@/routes/programming';
 import { update as updatePushPreference } from '@/routes/settings/notifications/push';
 
@@ -39,6 +40,7 @@ type NavChild = {
     href: string;
     permission: NavPermission;
     role?: string;
+    exact?: boolean;
 };
 
 type NavEntry = {
@@ -49,6 +51,8 @@ type NavEntry = {
     children?: NavChild[];
 };
 
+const companyPortalHref = companyPortalRoutes.index.url();
+
 const navItems: NavEntry[] = [
     {
         title: 'Accueil',
@@ -58,9 +62,27 @@ const navItems: NavEntry[] = [
     },
     {
         title: 'Espace entreprise',
-        href: '/entreprise',
+        href: companyPortalHref,
         icon: Building2,
-        permission: 'company-portal.access',
+        permission: null,
+        children: [
+            {
+                title: 'Tableau de bord',
+                href: companyPortalRoutes.index.url(),
+                permission: null,
+                exact: true,
+            },
+            {
+                title: 'Acheter des billets',
+                href: companyPortalRoutes.sale.index.url(),
+                permission: null,
+            },
+            {
+                title: 'Membres voyageurs',
+                href: companyPortalRoutes.travelers.index.url(),
+                permission: null,
+            },
+        ],
     },
     {
         title: 'Vente',
@@ -384,9 +406,10 @@ export function KoraSidebar({
         );
     };
 
-    const isActive = (href: string) =>
+    const isActive = (href: string, exact = false) =>
         isCurrentUrl(href) ||
-        (href !== dashboard().url &&
+        (!exact &&
+            href !== dashboard().url &&
             typeof window !== 'undefined' &&
             window.location.pathname.startsWith(href));
 
@@ -477,7 +500,7 @@ export function KoraSidebar({
                         (item.href === '/cash' && !auth?.user?.canViewCash) ||
                         (item.href === '/tickets' &&
                             !auth?.user?.canViewTickets) ||
-                        (item.href === '/entreprise' && !companyPortal) ||
+                        (item.href === companyPortalHref && !companyPortal) ||
                         (item.children && visibleChildren?.length === 0)
                     ) {
                         return null;
@@ -486,9 +509,10 @@ export function KoraSidebar({
                     const active = isActive(item.href);
 
                     if (item.children) {
-                        const hasActiveChild = item.children.some((c) =>
-                            isActive(c.href),
-                        );
+                        const hasActiveChild =
+                            visibleChildren?.some((child) =>
+                                isActive(child.href, child.exact),
+                            ) ?? false;
                         // Le groupe contenant la page active reste toujours
                         // déplié — le repère "où suis-je" ne doit jamais
                         // disparaître après un reload ou un remount.
@@ -535,7 +559,10 @@ export function KoraSidebar({
                                                 href={child.href}
                                                 className={cn(
                                                     'flex min-h-[2.1875rem] items-center rounded-[0.6875rem] px-3 text-[0.75rem] font-bold transition-colors',
-                                                    isActive(child.href)
+                                                    isActive(
+                                                        child.href,
+                                                        child.exact,
+                                                    )
                                                         ? 'bg-white/10 text-white shadow-[inset_3px_0_var(--gold)]'
                                                         : 'text-white/70 hover:bg-white/10 hover:text-white',
                                                 )}

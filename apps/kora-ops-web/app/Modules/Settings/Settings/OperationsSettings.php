@@ -66,6 +66,12 @@ final class OperationsSettings extends Settings
 
     public int $trackingCacheTtlSeconds = 600;
 
+    public bool $groupDiscountEnabled = true;
+
+    public int $groupDiscountPassengerThreshold = 10;
+
+    public float $groupDiscountPercentage = 10.0;
+
     public static function group(): string
     {
         return 'operations';
