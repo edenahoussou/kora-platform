@@ -22,8 +22,7 @@ abstract final class AuthDtos {
     return Map<String, dynamic>.from(body);
   }
 
-  static OtpChallenge otpChallenge(Object? body,
-      {required String identifier}) {
+  static OtpChallenge otpChallenge(Object? body, {required String identifier}) {
     final data = unwrap(body);
 
     return OtpChallenge(

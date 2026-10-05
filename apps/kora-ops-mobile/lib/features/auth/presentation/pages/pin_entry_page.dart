@@ -219,8 +219,7 @@ class _Logo extends StatelessWidget {
 }
 
 class _Header extends StatelessWidget {
-  const _Header(
-      {required this.identifier, required this.onChangeIdentifier});
+  const _Header({required this.identifier, required this.onChangeIdentifier});
 
   final String identifier;
 
