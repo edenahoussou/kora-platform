@@ -64,6 +64,9 @@ class ManifesteCubit extends Cubit<ManifesteState> {
         fetchedAt: snapshot.fetchedAt,
         isStale: snapshot.isStale,
         isFromCache: snapshot.isFromCache,
+        // Sentinelle dans copyWith : `null` (inconnu) remplace bien la
+        // valeur du départ précédent au lieu de la conserver (MEZ-94).
+        isInternational: snapshot.isInternational,
         // Un rafraîchissement complet fait foi : les indicateurs "en
         // attente de sync" purement locaux n'ont plus lieu d'être — le
         // vrai statut serveur (ou, à défaut, l'état persistant de la
