@@ -17,6 +17,7 @@ class Mez57GroupPurchaseSeeder extends Seeder
             'maximum_passengers' => 10,
         ]);
 
+        // Kept for API compatibility; pricing reads the Operations settings.
         GroupDiscountRule::query()->firstOrCreate([
             'passenger_threshold' => 10,
             'percentage' => 10,

@@ -103,6 +103,7 @@ return [
         'mobile_app' => 'Application mobile',
         'counter' => 'Guichet',
         'agency' => 'Agence',
+        'company_portal' => 'Espace entreprise',
     ],
 
     'ticket_status' => [

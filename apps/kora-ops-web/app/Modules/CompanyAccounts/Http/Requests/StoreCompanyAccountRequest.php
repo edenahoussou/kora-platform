@@ -3,6 +3,7 @@
 namespace App\Modules\CompanyAccounts\Http\Requests;
 
 use App\Modules\CompanyAccounts\Data\CompanyAccountType;
+use App\Modules\CompanyAccounts\Data\CompanyDiscountType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -23,6 +24,14 @@ class StoreCompanyAccountRequest extends FormRequest
             'phone' => ['nullable', 'string', 'max:32'],
             'email' => ['nullable', 'email', 'max:255'],
             'monthly_credit_limit' => ['required', 'integer', 'min:0'],
+            'discount_type' => ['nullable', Rule::enum(CompanyDiscountType::class)],
+            'discount_value' => [
+                'nullable',
+                'required_with:discount_type',
+                'numeric',
+                'min:0',
+                Rule::when($this->input('discount_type') === CompanyDiscountType::Percentage->value, ['max:100']),
+            ],
         ];
     }
 
@@ -36,6 +45,8 @@ class StoreCompanyAccountRequest extends FormRequest
             'phone' => ['description' => 'Numéro de téléphone.'],
             'email' => ['description' => 'Adresse email.'],
             'monthly_credit_limit' => ['description' => 'Plafond de crédit mensuel en unité monétaire.'],
+            'discount_type' => ['description' => 'Type de remise négociée : percentage ou amount.'],
+            'discount_value' => ['description' => 'Valeur de la remise négociée.'],
         ];
     }
 }

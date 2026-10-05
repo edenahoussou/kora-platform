@@ -19,9 +19,14 @@ abstract class JsonValidationRequest extends FormRequest
     {
         throw new HttpResponseException(
             redirect()
-                ->route('sale')
+                ->route($this->validationRoute())
                 ->withInput($this->except($this->dontFlash))
                 ->withErrors($validator->errors(), $this->errorBag)
         );
+    }
+
+    protected function validationRoute(): string
+    {
+        return 'sale';
     }
 }

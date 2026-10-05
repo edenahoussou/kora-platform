@@ -229,6 +229,7 @@ export function SettingsField({
     source,
     configured = false,
     showConfigured = false,
+    step,
 }: {
     label: string;
     hint?: string;
@@ -244,6 +245,7 @@ export function SettingsField({
     source?: string;
     configured?: boolean;
     showConfigured?: boolean;
+    step?: string | number;
 }) {
     return (
         <label className="grid content-start gap-1.5">
@@ -278,6 +280,7 @@ export function SettingsField({
             <span className="relative block">
                 <Input
                     type={type}
+                    step={step}
                     value={value ?? ''}
                     disabled={disabled}
                     placeholder={placeholder}

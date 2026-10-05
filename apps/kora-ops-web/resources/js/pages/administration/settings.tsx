@@ -3,6 +3,7 @@ import {
     AppWindow,
     Activity,
     AtSign,
+    BadgePercent,
     BellRing,
     Building2,
     ChevronDown,
@@ -1029,6 +1030,54 @@ export default function SettingsPage({
 
         return (
             <div className="cash-reveal cash-reveal-delay-2 grid gap-4">
+                <SettingsSection
+                    title="Remise groupe automatique"
+                    description="Une remise d’exploitation s’applique aux groupes individuels au seuil configuré."
+                >
+                    <div className="grid gap-5 md:grid-cols-3">
+                        <SettingsToggle
+                            label="Remise groupe active"
+                            hint="Les comptes entreprise utilisent leur remise négociée à la place."
+                            icon={BadgePercent}
+                            checked={Boolean(value('groupDiscountEnabled'))}
+                            disabled={!permissions.canManage}
+                            onChange={(checked) =>
+                                setValue('groupDiscountEnabled', checked)
+                            }
+                        />
+                        <SettingsField
+                            label="Seuil de voyageurs"
+                            hint="Doit rester dans les bornes groupe configurées."
+                            value={
+                                value(
+                                    'groupDiscountPassengerThreshold',
+                                ) as number
+                            }
+                            type="number"
+                            disabled={!permissions.canManage}
+                            error={error('groupDiscountPassengerThreshold')}
+                            onChange={(nextValue) =>
+                                setNumber(
+                                    'groupDiscountPassengerThreshold',
+                                    nextValue,
+                                )
+                            }
+                        />
+                        <SettingsField
+                            label="Pourcentage de remise"
+                            hint="Pourcentage appliqué au panier après promotion."
+                            value={value('groupDiscountPercentage') as number}
+                            type="number"
+                            step="0.01"
+                            suffix="%"
+                            disabled={!permissions.canManage}
+                            error={error('groupDiscountPercentage')}
+                            onChange={(nextValue) =>
+                                setNumber('groupDiscountPercentage', nextValue)
+                            }
+                        />
+                    </div>
+                </SettingsSection>
                 <SettingsSection
                     title="Réservation et vente"
                     description="Ces valeurs encadrent la durée de vie des devis et des paiements avant expiration."

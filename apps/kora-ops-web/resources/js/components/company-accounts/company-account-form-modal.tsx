@@ -38,6 +38,8 @@ const emptyValues: CompanyAccountFormValues = {
     ifu: '',
     rccm: '',
     monthly_credit_limit: '0',
+    discount_type: '',
+    discount_value: '',
 };
 
 function normalizePhoneValue(value: string | null | undefined): string {
@@ -70,6 +72,9 @@ function valuesFromAccount(
         ifu: account.ifu ?? '',
         rccm: account.rccm ?? '',
         monthly_credit_limit: String(account.monthlyCreditLimit),
+        discount_type: account.discountType ?? '',
+        discount_value:
+            account.discountValue !== null ? String(account.discountValue) : '',
     };
 }
 
@@ -234,6 +239,75 @@ export function CompanyAccountFormModal({
                                     </small>
                                 )}
                             </label>
+                            <label className="field">
+                                <span>Remise négociée</span>
+                                <select
+                                    className="control"
+                                    value={form.data.discount_type}
+                                    onChange={(event) => {
+                                        const discountType = event.target
+                                            .value as CompanyAccountFormValues['discount_type'];
+                                        form.setData(
+                                            'discount_type',
+                                            discountType,
+                                        );
+
+                                        if (discountType === '') {
+                                            form.setData('discount_value', '');
+                                        }
+                                    }}
+                                    aria-invalid={!!form.errors.discount_type}
+                                >
+                                    <option value="">Aucune</option>
+                                    <option value="percentage">
+                                        Pourcentage
+                                    </option>
+                                    <option value="amount">Montant fixe</option>
+                                </select>
+                                {form.errors.discount_type && (
+                                    <small className="field-error-text">
+                                        {form.errors.discount_type}
+                                    </small>
+                                )}
+                            </label>
+                            {form.data.discount_type !== '' && (
+                                <label className="field">
+                                    <span>
+                                        Valeur de la remise{' '}
+                                        {form.data.discount_type ===
+                                        'percentage'
+                                            ? '(%)'
+                                            : '(FCFA)'}
+                                    </span>
+                                    <input
+                                        className="control"
+                                        type="number"
+                                        min="0"
+                                        max={
+                                            form.data.discount_type ===
+                                            'percentage'
+                                                ? '100'
+                                                : undefined
+                                        }
+                                        step="0.01"
+                                        value={form.data.discount_value}
+                                        onChange={(event) =>
+                                            form.setData(
+                                                'discount_value',
+                                                event.target.value,
+                                            )
+                                        }
+                                        aria-invalid={
+                                            !!form.errors.discount_value
+                                        }
+                                    />
+                                    {form.errors.discount_value && (
+                                        <small className="field-error-text">
+                                            {form.errors.discount_value}
+                                        </small>
+                                    )}
+                                </label>
+                            )}
                         </div>
                         {isEditing ? (
                             <label className="field">

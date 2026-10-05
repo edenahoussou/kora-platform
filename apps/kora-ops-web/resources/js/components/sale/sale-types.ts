@@ -359,6 +359,12 @@ export type SaleItineraryQuoteLeg = SaleItineraryLeg & {
 export type SaleItineraryQuote = SaleQuote & {
     groupDiscountAmount: number;
     promotionDiscountAmount: number;
+    companyDiscount?: {
+        applied: boolean;
+        type: 'percentage' | 'amount' | null;
+        value: number | null;
+        amount: number;
+    } | null;
     promotion: {
         uuid: string | null;
         code: string | null;

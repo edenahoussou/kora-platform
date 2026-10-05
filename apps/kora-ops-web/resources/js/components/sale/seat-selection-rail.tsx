@@ -47,6 +47,7 @@ type Props = {
     selectedSeatCodes: string[];
     passengerCount: number;
     maxPassengers?: number;
+    minPassengers?: number;
     loading: boolean;
     processing: boolean;
     onPassengerCountChange: (count: number) => void;
@@ -67,6 +68,7 @@ export function SeatSelectionRail({
     selectedSeatCodes,
     passengerCount,
     maxPassengers = 10,
+    minPassengers = 1,
     loading,
     processing,
     onPassengerCountChange,
@@ -201,7 +203,9 @@ export function SeatSelectionRail({
                         <button
                             type="button"
                             aria-label="Retirer un voyageur"
-                            disabled={passengerCount <= 1 || processing}
+                            disabled={
+                                passengerCount <= minPassengers || processing
+                            }
                             onClick={() =>
                                 onPassengerCountChange(passengerCount - 1)
                             }

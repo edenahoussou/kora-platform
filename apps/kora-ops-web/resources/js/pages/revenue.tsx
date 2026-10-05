@@ -1091,7 +1091,7 @@ export default function RevenuePage(props: Props) {
                             <div className="revenue-non-agency-row">
                                 <div>
                                     <strong>
-                                        Application passager — hors agence
+                                        Ventes digitales — hors agence
                                     </strong>
                                     <span>
                                         {digitalWithoutAgency.count} vente

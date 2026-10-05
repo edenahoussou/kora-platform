@@ -245,6 +245,8 @@ class CompanyAccountController extends Controller
             'ifu' => $account->ifu,
             'rccm' => $account->rccm,
             'status' => $account->status->value,
+            'discount_type' => $account->discount_type?->value,
+            'discount_value' => $account->discount_value !== null ? (float) $account->discount_value : null,
             'monthly_credit_limit' => $viewer->can('company-credit.view') ? $account->monthly_credit_limit : null,
             'available_credit' => $viewer->can('company-credit.view') ? $account->availableCredit() : null,
         ], fn (mixed $value): bool => $value !== null);

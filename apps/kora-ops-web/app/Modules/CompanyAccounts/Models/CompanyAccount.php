@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\CompanyAccounts\Data\CompanyAccountStatus;
 use App\Modules\CompanyAccounts\Data\CompanyAccountType;
+use App\Modules\CompanyAccounts\Data\CompanyDiscountType;
 use App\Modules\CompanyAccounts\Services\CompanyCreditService;
 use App\Modules\Support\Models\KoraModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,6 +17,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 /**
  * @property CompanyAccountStatus $status
  * @property CompanyAccountType $type
+ * @property CompanyDiscountType|null $discount_type
+ * @property string|null $discount_value
  * @property int $monthly_credit_limit
  */
 class CompanyAccount extends KoraModel
@@ -35,6 +38,8 @@ class CompanyAccount extends KoraModel
         'ifu',
         'rccm',
         'monthly_credit_limit',
+        'discount_type',
+        'discount_value',
         'status',
         'created_by',
         'updated_by',
@@ -46,7 +51,16 @@ class CompanyAccount extends KoraModel
             'type' => CompanyAccountType::class,
             'status' => CompanyAccountStatus::class,
             'monthly_credit_limit' => 'integer',
+            'discount_type' => CompanyDiscountType::class,
+            'discount_value' => 'decimal:2',
         ];
+    }
+
+    public function hasDiscount(): bool
+    {
+        return $this->discount_type !== null
+            && $this->discount_value !== null
+            && (float) $this->discount_value > 0;
     }
 
     /** @return HasMany<CompanyAccountMember, $this> */

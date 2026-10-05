@@ -59,6 +59,30 @@ it('distributes the unit price without rounding loss across passengers', functio
         ->and($payload['items'][2]['price'])->toBe(3333);
 });
 
+it('declares a negotiated company discount in the fiscal invoice payload', function (): void {
+    $user = User::factory()->create();
+    $reservation = createFiscalizationReservation($user, PayerType::Company, 9000);
+    $reservation->update([
+        'total_snapshot' => [
+            'subtotal_amount' => 10000,
+            'promotion_discount_amount' => 0,
+            'group_discount' => ['amount' => 0],
+            'company_discount' => [
+                'applied' => true,
+                'type' => 'percentage',
+                'value' => 10,
+                'amount' => 1000,
+            ],
+        ],
+    ]);
+
+    $payload = app(FiscalInvoicePayloadBuilder::class)->build($reservation->refresh());
+
+    expect($payload['items'][0]['price'])->toBe(9000)
+        ->and($payload['items'][0]['originalPrice'])->toBe(10000)
+        ->and($payload['items'][0]['priceModification'])->toBe('Remise entreprise');
+});
+
 it('marks the fiscal invoice as failed when e-MECeF is not configured', function (): void {
     // Le job lit la configuration e-MECeF dans IntegrationsSettings
     // (les clés config('emecf.*') ne sont rechargées qu'au runtime job).

@@ -5,6 +5,8 @@ namespace App\Modules\Payments\Actions;
 use App\Models\User;
 use App\Modules\AssistedBooking\Data\AssistedBookingStatus;
 use App\Modules\AssistedBooking\Models\AssistedBooking;
+use App\Modules\Booking\Data\PayerType;
+use App\Modules\Booking\Data\ReservationChannel;
 use App\Modules\Booking\Data\ReservationSegmentStatus;
 use App\Modules\Booking\Data\ReservationStatus;
 use App\Modules\Booking\Models\Reservation;
@@ -156,7 +158,9 @@ class RecordCounterSalePaymentAction
                     'tax_snapshot' => [
                         'taxRate' => 0,
                         'taxCode' => 'exempt',
-                        'source' => 'counter_sale',
+                        'source' => $lockedReservation->channel === ReservationChannel::CompanyPortal
+                            ? 'company_portal'
+                            : 'counter_sale',
                     ],
                 ],
             );
@@ -219,7 +223,13 @@ class RecordCounterSalePaymentAction
                 'total_without_tax' => $total,
                 'total_tax' => 0,
                 'total_with_tax' => $total,
-                'tax_snapshot' => ['taxRate' => 0, 'taxCode' => 'exempt', 'source' => 'counter_sale'],
+                'tax_snapshot' => [
+                    'taxRate' => 0,
+                    'taxCode' => 'exempt',
+                    'source' => $reservation->channel === ReservationChannel::CompanyPortal
+                        ? 'company_portal'
+                        : 'counter_sale',
+                ],
             ]);
         }
 
@@ -233,7 +243,11 @@ class RecordCounterSalePaymentAction
 
     private function ensureReservationCanBePaid(Reservation $reservation, User $agent, ?AssistedBooking $assistedBooking): void
     {
-        if (! $agent->can('manageCounterSale', $reservation)) {
+        $isCompanyPortalOwner = $reservation->channel === ReservationChannel::CompanyPortal
+            && $reservation->payer_type === PayerType::Company
+            && $reservation->created_by_user_id === $agent->getKey();
+
+        if (! $agent->can('manageCounterSale', $reservation) && ! $isCompanyPortalOwner) {
             throw ValidationException::withMessages(['reservation' => 'Cette vente n’est pas attribuée à cet agent.']);
         }
         if ($assistedBooking !== null
@@ -242,9 +256,9 @@ class RecordCounterSalePaymentAction
                 || $assistedBooking->preferred_agency_id !== $agent->agency_id)) {
             throw ValidationException::withMessages(['reservation' => 'Le dossier assisté n’est plus attribué à cet agent ou à cette agence.']);
         }
-        if ($reservation->channel?->value !== 'counter') {
+        if (! in_array($reservation->channel, [ReservationChannel::Counter, ReservationChannel::CompanyPortal], true)) {
             throw ValidationException::withMessages([
-                'reservation' => 'Cette réservation ne provient pas du guichet.',
+                'reservation' => 'Cette réservation ne peut pas être payée depuis ce parcours.',
             ]);
         }
 
@@ -362,7 +376,10 @@ class RecordCounterSalePaymentAction
                 'confirmed_at' => now(),
                 'verified_by' => $agent->getKey(),
                 'verified_at' => now(),
-                'provider_payload' => ['channel' => 'counter_sale', 'source' => 'company_credit'],
+                'provider_payload' => [
+                    'channel' => $reservation->channel->value ?? 'counter_sale',
+                    'source' => 'company_credit',
+                ],
             ];
         }
 

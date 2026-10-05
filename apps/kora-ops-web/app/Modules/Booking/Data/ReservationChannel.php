@@ -12,4 +12,5 @@ enum ReservationChannel: string
     case Counter = 'counter';
     case Mobile = 'mobile';
     case Ops = 'ops';
+    case CompanyPortal = 'company_portal';
 }

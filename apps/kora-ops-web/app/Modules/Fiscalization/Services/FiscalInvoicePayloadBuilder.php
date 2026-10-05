@@ -21,10 +21,14 @@ class FiscalInvoicePayloadBuilder
         $unitPrice = intdiv($total, $passengerCount);
         $remainder = $total - ($unitPrice * $passengerCount);
 
-        // Prix d'origine avant remises (promo et remise groupe) : e-MECeF
-        // attend une déclaration explicite via originalPrice/priceModification.
+        // e-MECeF needs the pre-discount price and the applied discount reason.
         $originalTotal = (int) ($reservation->total_snapshot['subtotal_amount']
-            ?? ($total + (int) $reservation->promotion_discount_amount + (int) ($reservation->total_snapshot['group_discount']['amount'] ?? 0)));
+            ?? (
+                $total
+                + (int) $reservation->promotion_discount_amount
+                + (int) ($reservation->total_snapshot['group_discount']['amount'] ?? 0)
+                + (int) ($reservation->total_snapshot['company_discount']['amount'] ?? 0)
+            ));
         $originalUnitPrice = intdiv($originalTotal, $passengerCount);
         $originalRemainder = $originalTotal - ($originalUnitPrice * $passengerCount);
         $priceModification = $this->priceModification($reservation);
@@ -82,10 +86,7 @@ class FiscalInvoicePayloadBuilder
         ];
     }
 
-    /**
-     * Motif de la modification de prix déclaré à e-MECeF (remise promotion
-     * et/ou remise groupe). Null quand aucune remise ne s'applique.
-     */
+    /** Fiscal reason for a promotional, group, or negotiated discount. */
     private function priceModification(Reservation $reservation): ?string
     {
         $reasons = [];
@@ -98,6 +99,10 @@ class FiscalInvoicePayloadBuilder
 
         if ((int) ($reservation->total_snapshot['group_discount']['amount'] ?? 0) > 0) {
             $reasons[] = 'Remise groupe';
+        }
+
+        if ((int) ($reservation->total_snapshot['company_discount']['amount'] ?? 0) > 0) {
+            $reasons[] = 'Remise entreprise';
         }
 
         return $reasons === [] ? null : implode(' · ', $reasons);
