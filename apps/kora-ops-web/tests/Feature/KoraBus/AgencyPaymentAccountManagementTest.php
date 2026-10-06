@@ -41,7 +41,7 @@ it('renders an empty agency payment account state with public identifiers only',
             ->missing('paymentAccounts.0.id')
             ->missing('paymentAccounts.0.agencyId'));
 
-    expect(route('agencies.show', $agency))->not->toContain('/'.$agency->id);
+    expect(route('agencies.show', $agency))->toEndWith('/'.$agency->uuid);
 });
 
 it('creates the first active shared Mobile Money account from the agency page', function (): void {

@@ -74,7 +74,7 @@ class ExportPassengerDataAction
                 'segments' => $reservation->segments->sortBy('leg_order')->map(fn ($segment) => [
                     'origin' => $segment->originStop?->city,
                     'destination' => $segment->destinationStop?->city,
-                    'departure_time' => $segment->departure?->departure_time?->toIso8601String(),
+                    'departure_time' => $segment->departure?->scheduledDepartureAt()->toIso8601String(),
                     'line' => $segment->departure?->line?->name,
                     'seat' => $segment->seat?->code,
                 ])->values()->all(),
@@ -148,7 +148,7 @@ class ExportPassengerDataAction
     private function buildZip(string $phone, array $profile, array $documents, Collection $reservations, Collection $tickets): string
     {
         $dir = storage_path('app/temp/passenger-exports');
-        File::ensureDirectoryExists($dir);
+        File::ensureDirectoryExists($dir, 0775);
         $zipPath = $dir.'/passenger-data-'.Str::uuid().'.zip';
 
         $zip = new ZipArchive;

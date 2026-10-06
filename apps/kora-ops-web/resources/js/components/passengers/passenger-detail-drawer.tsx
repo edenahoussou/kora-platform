@@ -18,6 +18,7 @@ import {
     X,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { PasswordConfirmDialog } from '@/components/profile/password-confirm-dialog';
 import { cn } from '@/lib/utils';
@@ -50,6 +51,7 @@ export function PassengerDetailDrawer({
 }: Props) {
     const [copiedPhone, setCopiedPhone] = useState(false);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
     const [fetchedDetail, setFetchedDetail] = useState<PassengerSummary | null>(
         null,
     );
@@ -127,6 +129,36 @@ export function PassengerDetailDrawer({
     };
 
     const tickets = current.tickets ?? [];
+
+    const exportPassengerData = () => {
+        if (!current.phone || isExporting) {
+            return;
+        }
+
+        setIsExporting(true);
+
+        fetch(`/passengers/${encodeURIComponent(current.phone)}/export`)
+            .then(async (res) => {
+                if (!res.ok) {
+                    throw new Error(`Export failed: ${res.status}`);
+                }
+
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'kora-passenger-data.zip';
+                link.click();
+                link.remove();
+                URL.revokeObjectURL(url);
+            })
+            .catch(() => {
+                toast.error(
+                    "L'export des données a échoué. Veuillez réessayer.",
+                );
+            })
+            .finally(() => setIsExporting(false));
+    };
 
     return (
         <div className="fixed inset-0 z-50 flex animate-in justify-end bg-black/40 backdrop-blur-xs transition-opacity fade-in-0">
@@ -454,13 +486,21 @@ export function PassengerDetailDrawer({
                             </p>
                             <div className="flex flex-col gap-2 sm:flex-row">
                                 {canExport && (
-                                    <a
-                                        href={`/passengers/${encodeURIComponent(current.phone)}/export`}
-                                        className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-black/[0.08] bg-card px-3 py-2 text-xs font-bold text-foreground transition hover:bg-muted"
+                                    <button
+                                        type="button"
+                                        onClick={exportPassengerData}
+                                        disabled={isExporting}
+                                        className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-black/[0.08] bg-card px-3 py-2 text-xs font-bold text-foreground transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
                                     >
-                                        <Download className="size-3.5" />
-                                        Exporter les données (ZIP)
-                                    </a>
+                                        {isExporting ? (
+                                            <Loader2 className="size-3.5 animate-spin" />
+                                        ) : (
+                                            <Download className="size-3.5" />
+                                        )}
+                                        {isExporting
+                                            ? 'Export en cours…'
+                                            : 'Exporter les données (ZIP)'}
+                                    </button>
                                 )}
                                 {canErase && (
                                     <button
