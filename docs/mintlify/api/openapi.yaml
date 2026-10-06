@@ -1251,6 +1251,22 @@ paths:
                     - architecto
                   items:
                     type: string
+                payer:
+                  type: object
+                  description: 'Informations sur le payeur.'
+                  example: null
+                  properties:
+                    type:
+                      type: string
+                      description: 'Type de l’événement ou de la ressource. This field is required when <code>payer</code> is present.'
+                      example: personal
+                      enum:
+                        - personal
+                        - company
+                    company_account_uuid:
+                      type: string
+                      description: 'UUID du compte entreprise payeur. This field is required when <code>payer.type</code> is <code>company</code>. Le champ value doit être un UUID valide. Must match an existing stored value.'
+                      example: 00000000-0000-4000-8000-000000000000
               required:
                 - legs
   /api/v1/bus/itinerary-holds:

@@ -297,10 +297,15 @@ class ItineraryController extends Controller
      *   }
      * }
      */
-    public function quote(ItineraryQuoteRequest $request, CalculateItineraryQuoteAction $calculateQuote): JsonResponse
+    public function quote(ItineraryQuoteRequest $request, CalculateItineraryQuoteAction $calculateQuote, ResolvePayerContextAction $resolvePayer): JsonResponse
     {
         $legs = $this->buildLegQuoteRequests($request);
         $passengerCount = (int) $request->integer('passenger_count', 1);
+
+        $payerData = $request->payer();
+        $companyAccount = ($payerData['type'] ?? 'personal') === 'company'
+            ? $resolvePayer->handle($request->user(), $payerData)->companyAccount
+            : null;
 
         $result = $calculateQuote->handle(
             $legs,
@@ -308,6 +313,7 @@ class ItineraryController extends Controller
             $request->user(),
             $request->string('promo_code')->trim()->value() ?: null,
             ReservationChannel::Mobile,
+            $companyAccount,
         );
 
         $tripType = collect($legs)->contains(fn (ItineraryLegQuoteRequest $leg): bool => $leg->direction === 'inbound')
@@ -338,6 +344,7 @@ class ItineraryController extends Controller
                 'promotion' => $result->snapshot['promotion'] ?? null,
                 'promotion_discount_amount' => $result->snapshot['promotion_discount_amount'] ?? 0,
                 'group_discount' => $result->snapshot['group_discount'],
+                'company_discount' => $result->snapshot['company_discount'] ?? null,
                 'passenger_allocations' => $result->snapshot['passenger_allocations'],
                 'total_amount' => $result->totalAmount,
                 'currency' => $result->currency,

@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Modules\Booking\Models\GroupBookingSetting;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\Booking\Models\ReservationPassenger;
 use App\Modules\Booking\Models\ReservationSegment;
@@ -9,8 +10,12 @@ use App\Modules\BusNetwork\Models\Line;
 use App\Modules\BusNetwork\Models\PhysicalStop;
 use App\Modules\BusNetwork\Models\Seat;
 use App\Modules\BusNetwork\Models\Stop;
+use App\Modules\CompanyAccounts\Data\CompanyDiscountType;
+use App\Modules\CompanyAccounts\Models\CompanyAccount;
+use App\Modules\CompanyAccounts\Models\CompanyAccountMember;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Models\Fare;
+use App\Modules\Settings\Settings\OperationsSettings;
 use Carbon\CarbonImmutable;
 use Laravel\Sanctum\Sanctum;
 
@@ -111,6 +116,94 @@ it('returns the same itinerary hold for a repeated idempotency key', function ()
     expect(Reservation::query()->where('idempotency_key', 'itinerary-test-repeat')->count())->toBe(1);
 });
 
+it('reprices an api quote with the negotiated discount when the hold uses a company payer', function (): void {
+    $scenario = itineraryTestScenario();
+    $account = companyApiAccount($scenario['user']);
+    $extraSeatA = Seat::create(['bus_id' => $scenario['firstSeat']->bus_id, 'code' => '1B', 'type' => 'standard', 'sellable' => true, 'status' => 'active']);
+    $extraSeatB = Seat::create(['bus_id' => $scenario['secondSeat']->bus_id, 'code' => '1B', 'type' => 'standard', 'sellable' => true, 'status' => 'active']);
+    Sanctum::actingAs($scenario['user']);
+
+    $legs = [[
+        'departure_uuid' => $scenario['firstDeparture']->uuid,
+        'origin_stop_uuid' => $scenario['origin']->uuid,
+        'destination_stop_uuid' => $scenario['connection']->uuid,
+    ], [
+        'departure_uuid' => $scenario['secondDeparture']->uuid,
+        'origin_stop_uuid' => $scenario['secondConnection']->uuid,
+        'destination_stop_uuid' => $scenario['destination']->uuid,
+    ]];
+
+    $quoteUuid = $this->postJson('/api/v1/bus/itinerary-quotes', [
+        'passenger_count' => 2,
+        'legs' => $legs,
+    ])->assertOk()
+        ->assertJsonPath('data.pricing.total_amount', 27000)
+        ->assertJsonPath('data.pricing.group_discount.applied', true)
+        ->json('data.itinerary_quote_uuid');
+
+    $hold = $this->postJson('/api/v1/bus/itinerary-holds', [
+        'itinerary_quote_uuid' => $quoteUuid,
+        'idempotency_key' => 'itinerary-company-1',
+        'passengers' => [[
+            'passenger_index' => 0,
+            'seat_assignments' => [
+                ['leg_order' => 1, 'seat_uuid' => $scenario['firstSeat']->uuid],
+                ['leg_order' => 2, 'seat_uuid' => $scenario['secondSeat']->uuid],
+            ],
+        ], [
+            'passenger_index' => 1,
+            'seat_assignments' => [
+                ['leg_order' => 1, 'seat_uuid' => $extraSeatA->uuid],
+                ['leg_order' => 2, 'seat_uuid' => $extraSeatB->uuid],
+            ],
+        ]],
+        'payer' => [
+            'type' => 'company',
+            'company_account_uuid' => $account->uuid,
+        ],
+    ])->assertCreated();
+
+    $hold->assertJsonPath('data.total_amount', 24000);
+
+    $reservation = Reservation::query()->where('uuid', $hold->json('data.uuid'))->firstOrFail();
+    $snapshot = $reservation->total_snapshot;
+    expect($snapshot['group_discount']['applied'])->toBeFalse()
+        ->and($snapshot['company_account_uuid'])->toBe($account->uuid)
+        ->and($snapshot['company_discount'])->toEqual([
+            'applied' => true,
+            'type' => 'percentage',
+            'value' => 20.0,
+            'amount' => 6000,
+        ]);
+});
+
+it('applies the negotiated company discount on the api quote when a company payer is provided', function (): void {
+    $scenario = itineraryTestScenario();
+    $account = companyApiAccount($scenario['user']);
+    Sanctum::actingAs($scenario['user']);
+
+    $this->postJson('/api/v1/bus/itinerary-quotes', [
+        'passenger_count' => 2,
+        'legs' => [[
+            'departure_uuid' => $scenario['firstDeparture']->uuid,
+            'origin_stop_uuid' => $scenario['origin']->uuid,
+            'destination_stop_uuid' => $scenario['connection']->uuid,
+        ], [
+            'departure_uuid' => $scenario['secondDeparture']->uuid,
+            'origin_stop_uuid' => $scenario['secondConnection']->uuid,
+            'destination_stop_uuid' => $scenario['destination']->uuid,
+        ]],
+        'payer' => [
+            'type' => 'company',
+            'company_account_uuid' => $account->uuid,
+        ],
+    ])->assertOk()
+        ->assertJsonPath('data.pricing.total_amount', 24000)
+        ->assertJsonPath('data.pricing.group_discount.applied', false)
+        ->assertJsonPath('data.pricing.company_discount.applied', true)
+        ->assertJsonPath('data.pricing.company_discount.amount', 6000);
+});
+
 it('rejects an itinerary quote with disconnected legs', function (): void {
     $scenario = itineraryTestScenario();
     Sanctum::actingAs($scenario['user']);
@@ -183,4 +276,32 @@ function itineraryTestScenario(): array
     Fare::create(['line_id' => $secondLine->id, 'origin_stop_id' => $secondConnection->id, 'destination_stop_id' => $destination->id, 'base_amount' => 5000, 'currency' => 'XOF', 'effective_from' => '2026-01-01', 'status' => 'active']);
 
     return compact('user', 'originPhysical', 'connectionPhysical', 'destinationPhysical', 'origin', 'connection', 'secondConnection', 'destination', 'firstDeparture', 'secondDeparture', 'firstSeat', 'secondSeat', 'departureDate');
+}
+
+function companyApiAccount(User $user): CompanyAccount
+{
+    GroupBookingSetting::query()->create(['minimum_passengers' => 2, 'maximum_passengers' => 10]);
+    $settings = app(OperationsSettings::class);
+    $settings->groupDiscountEnabled = true;
+    $settings->groupDiscountPassengerThreshold = 2;
+    $settings->groupDiscountPercentage = 10;
+    $settings->save();
+
+    $account = CompanyAccount::query()->create([
+        'name' => 'ACME API',
+        'type' => 'company',
+        'reference' => 'ACME-API',
+        'monthly_credit_limit' => 5000000,
+        'status' => 'active',
+        'discount_type' => CompanyDiscountType::Percentage,
+        'discount_value' => 20,
+    ]);
+    CompanyAccountMember::query()->create([
+        'company_account_id' => $account->id,
+        'user_id' => $user->id,
+        'role' => 'member',
+        'status' => 'active',
+    ]);
+
+    return $account;
 }

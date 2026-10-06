@@ -10,6 +10,7 @@ use App\Modules\BusNetwork\Models\Line;
 use App\Modules\BusNetwork\Models\PhysicalStop;
 use App\Modules\BusNetwork\Models\Seat;
 use App\Modules\BusNetwork\Models\Stop;
+use App\Modules\CompanyAccounts\Data\CompanyDiscountType;
 use App\Modules\CompanyAccounts\Models\CompanyAccount;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Data\PricingRuleType;
@@ -164,6 +165,104 @@ it('creates a group hold with a company payer and reserves company credit', func
         'company_account_id' => $account->id,
         'status' => 'reserved',
     ]);
+});
+
+it('reprices a personal quote with the negotiated discount when the counter hold uses a company payer', function (): void {
+    $scenario = groupSaleScenario();
+    $context = groupSaleContext($scenario);
+    $account = CompanyAccount::query()->create([
+        'name' => 'ACME Corp',
+        'type' => 'company',
+        'reference' => 'ACME-NEG',
+        'monthly_credit_limit' => 5000000,
+        'status' => 'active',
+        'discount_type' => CompanyDiscountType::Percentage,
+        'discount_value' => 5,
+    ]);
+
+    $this->actingAs($scenario['agent'])
+        ->post(route('sale.quote'), $context + ['passenger_count' => 10])
+        ->assertRedirect();
+
+    $quote = ItineraryQuote::query()->latest('id')->firstOrFail();
+    expect($quote->snapshot['group_discount']['applied'])->toBeTrue()
+        ->and((int) $quote->total_amount)->toBe(99000);
+
+    $seatUuids = collect($scenario['seats'])->take(10)->values();
+    $passengers = $seatUuids->map(fn (Seat $seat, int $i): array => [
+        'passenger_index' => $i,
+        'seat_assignments' => [
+            ['leg_order' => 1, 'direction' => 'outbound', 'seat_uuid' => $seat->uuid],
+        ],
+    ])->all();
+
+    $this->actingAs($scenario['agent'])
+        ->post(route('sale.hold'), $context + [
+            'itinerary_quote_uuid' => $quote->uuid,
+            'idempotency_key' => (string) Str::uuid(),
+            'passengers' => $passengers,
+            'payer' => [
+                'type' => 'company',
+                'company_account_uuid' => $account->uuid,
+            ],
+        ])
+        ->assertRedirect();
+
+    $reservation = Reservation::query()->latest('id')->firstOrFail();
+    $snapshot = $reservation->total_snapshot;
+
+    expect((int) $reservation->total_amount)->toBe(104500)
+        ->and($snapshot['group_discount']['applied'])->toBeFalse()
+        ->and($snapshot['group_discount']['amount'])->toBe(0)
+        ->and($snapshot['company_account_uuid'])->toBe($account->uuid)
+        ->and($snapshot['company_discount'])->toEqual([
+            'applied' => true,
+            'type' => 'percentage',
+            'value' => 5.0,
+            'amount' => 5500,
+        ]);
+});
+
+it('excludes the group discount on a one-shot counter confirm paid by a company account', function (): void {
+    $scenario = groupSaleScenario();
+    $context = groupSaleContext($scenario);
+    $account = CompanyAccount::query()->create([
+        'name' => 'ACME Corp',
+        'type' => 'company',
+        'reference' => 'ACME-NODISC',
+        'monthly_credit_limit' => 5000000,
+        'status' => 'active',
+    ]);
+
+    $seatUuids = collect($scenario['seats'])->take(10)->values();
+    $passengers = $seatUuids->map(fn (Seat $seat, int $i): array => [
+        'passenger_index' => $i,
+        'seat_assignments' => [
+            ['leg_order' => 1, 'direction' => 'outbound', 'seat_uuid' => $seat->uuid],
+        ],
+    ])->all();
+
+    $this->actingAs($scenario['agent'])
+        ->post(route('sale.confirm'), $context + [
+            'trip_type' => 'one_way',
+            'passenger_count' => 10,
+            'idempotency_key' => (string) Str::uuid(),
+            'passengers' => $passengers,
+            'payer' => [
+                'type' => 'company',
+                'company_account_uuid' => $account->uuid,
+            ],
+        ])
+        ->assertRedirect();
+
+    $reservation = Reservation::query()->latest('id')->firstOrFail();
+    $snapshot = $reservation->total_snapshot;
+
+    expect((int) $reservation->total_amount)->toBe(110000)
+        ->and($reservation->channel->value)->toBe('counter')
+        ->and($snapshot['group_discount']['applied'])->toBeFalse()
+        ->and($snapshot['company_discount']['applied'])->toBeFalse()
+        ->and($snapshot['company_discount']['amount'])->toBe(0);
 });
 
 it('serializes the reservation group and payer metadata in Inertia props', function (): void {
