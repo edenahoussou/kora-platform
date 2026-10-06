@@ -7,6 +7,7 @@ use App\Modules\AssistedBooking\Http\Controllers\AssistedBookingController;
 use App\Modules\Booking\Http\Controllers\CounterSaleController;
 use App\Modules\BusNetwork\Http\Controllers\BusAmenityController;
 use App\Modules\BusNetwork\Http\Controllers\BusController;
+use App\Modules\BusNetwork\Http\Controllers\BusModelController;
 use App\Modules\BusNetwork\Http\Controllers\LineController;
 use App\Modules\BusNetwork\Http\Controllers\MapSettingsController;
 use App\Modules\Cash\Http\Controllers\CashMediaController;
@@ -200,6 +201,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('amenities', [BusAmenityController::class, 'store'])->name('amenities.store');
     Route::put('amenities/{amenity:uuid}', [BusAmenityController::class, 'update'])->name('amenities.update');
     Route::patch('amenities/{amenity:uuid}/status', [BusAmenityController::class, 'changeStatus'])->name('amenities.status');
+
+    // Modèles de bus — référentiel top-level (même règle que les commodités).
+    Route::get('models', [BusModelController::class, 'index'])->name('models.index');
+    Route::post('models', [BusModelController::class, 'store'])->name('models.store');
+    Route::put('models/{model:uuid}', [BusModelController::class, 'update'])->name('models.update');
+    Route::patch('models/{model:uuid}/status', [BusModelController::class, 'changeStatus'])->name('models.status');
 
     // V1 MVP — Agences (Ressources — référentiel parent de la flotte et des utilisateurs)
     Route::get('agencies', [AgencyController::class, 'index'])->name('agencies.index');

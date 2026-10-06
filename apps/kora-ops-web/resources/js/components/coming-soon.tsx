@@ -1,4 +1,5 @@
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
+import { ArrowLeft } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { BreadcrumbItem } from '@/types';
 
@@ -8,6 +9,8 @@ type ComingSoonProps = {
     module?: string;
     icon?: LucideIcon;
     breadcrumbs?: BreadcrumbItem[];
+    backHref?: string;
+    backLabel?: string;
 };
 
 /**
@@ -21,6 +24,8 @@ export function ComingSoon({
     module,
     icon: Icon,
     breadcrumbs = [],
+    backHref,
+    backLabel,
 }: ComingSoonProps) {
     const crumbs: BreadcrumbItem[] = [...breadcrumbs, { title, href: '' }];
 
@@ -45,6 +50,17 @@ export function ComingSoon({
                         {description}
                     </p>
                 </div>
+
+                {backHref && (
+                    <button
+                        type="button"
+                        onClick={() => router.get(backHref)}
+                        className="btn btn-ghost"
+                    >
+                        <ArrowLeft className="size-3.5" />
+                        {backLabel ?? 'Retour'}
+                    </button>
+                )}
             </div>
 
             <div className="kora-panel flex min-h-[50vh] flex-col items-center justify-center rounded-[var(--kora-radius)] border border-border bg-card p-8 text-center shadow-[0_8px_30px_rgba(0,29,78,0.045)]">
