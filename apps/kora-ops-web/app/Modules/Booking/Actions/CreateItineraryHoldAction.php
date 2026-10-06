@@ -8,7 +8,9 @@ use App\Modules\Booking\Data\ReservationChannel;
 use App\Modules\Booking\Data\ReservationStatus;
 use App\Modules\Booking\Exceptions\SeatUnavailableException;
 use App\Modules\Booking\Models\ItineraryQuote;
+use App\Modules\Booking\Models\ItineraryQuoteLeg;
 use App\Modules\Booking\Models\Reservation;
+use App\Modules\CompanyAccounts\Models\CompanyAccount;
 use App\Modules\CompanyAccounts\Services\CompanyCreditService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -21,6 +23,7 @@ class CreateItineraryHoldAction
     public function __construct(
         private ApplyItinerarySeatHoldAction $applySeatHold,
         private CompanyCreditService $companyCredit,
+        private CalculateItineraryQuoteAction $calculateItineraryQuote,
     ) {}
 
     /**
@@ -47,7 +50,11 @@ class CreateItineraryHoldAction
         $payer ??= PayerContext::personal($user?->id);
 
         return DB::transaction(function () use ($user, $itineraryQuote, $seatAssignments, $channel, $idempotencyKey, $payer): Reservation {
-            $quote = ItineraryQuote::query()->whereKey($itineraryQuote->getKey())->lockForUpdate()->firstOrFail();
+            $quote = ItineraryQuote::query()
+                ->with(['legs.departure', 'legs.originStop', 'legs.destinationStop'])
+                ->whereKey($itineraryQuote->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
             $existingReservation = Reservation::query()
                 ->where('idempotency_key', $idempotencyKey)
                 ->where('created_by_user_id', $user?->id)
@@ -64,6 +71,10 @@ class CreateItineraryHoldAction
             }
             if ($user !== null && $quote->user_id !== null && $quote->user_id !== $user->id) {
                 throw ValidationException::withMessages(['itinerary_quote_uuid' => 'Le devis ne vous appartient pas.']);
+            }
+
+            if ($payer->companyAccount !== null && ($quote->snapshot['company_account_uuid'] ?? null) !== $payer->companyAccount->uuid) {
+                $quote = $this->repriceForCompanyPayer($quote, $user, $channel, $payer->companyAccount);
             }
 
             $reservation = Reservation::query()->create([
@@ -93,5 +104,31 @@ class CreateItineraryHoldAction
 
             return $reservation;
         });
+    }
+
+    /**
+     * Recalcule le devis avec la remise négociée du compte : les comptes
+     * entreprise n'ont pas droit à la remise groupe automatique.
+     */
+    private function repriceForCompanyPayer(ItineraryQuote $quote, ?User $user, ReservationChannel $channel, CompanyAccount $account): ItineraryQuote
+    {
+        $legs = array_values($quote->legs
+            ->sortBy('leg_order')
+            ->map(fn (ItineraryQuoteLeg $leg): ItineraryLegQuoteRequest => new ItineraryLegQuoteRequest(
+                departure: $leg->departure,
+                originStop: $leg->originStop,
+                destinationStop: $leg->destinationStop,
+                direction: $leg->direction,
+            ))
+            ->all());
+
+        return $this->calculateItineraryQuote->handle(
+            legs: $legs,
+            passengerCount: (int) $quote->passenger_count,
+            user: $user,
+            promoCode: $quote->snapshot['promotion']['code'] ?? null,
+            channel: $channel,
+            companyAccount: $account,
+        )->itineraryQuote;
     }
 }

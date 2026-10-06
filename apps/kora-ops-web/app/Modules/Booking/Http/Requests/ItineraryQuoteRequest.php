@@ -4,6 +4,7 @@ namespace App\Modules\Booking\Http\Requests;
 
 use App\Modules\Booking\Models\GroupBookingSetting;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class ItineraryQuoteRequest extends FormRequest
 {
@@ -26,7 +27,16 @@ class ItineraryQuoteRequest extends FormRequest
             'legs.*.destination_stop_uuid' => ['required', 'uuid', 'exists:stops,uuid'],
             'legs.*.leg_order' => ['sometimes', 'integer', 'min:1', 'max:6'],
             'legs.*.direction' => ['sometimes', 'string', 'in:outbound,inbound'],
+            'payer' => ['sometimes', 'array'],
+            'payer.type' => ['required_with:payer', Rule::in(['personal', 'company'])],
+            'payer.company_account_uuid' => ['required_if:payer.type,company', 'uuid', 'exists:company_accounts,uuid'],
         ];
+    }
+
+    /** @return array<string, mixed> */
+    public function payer(): array
+    {
+        return $this->input('payer', ['type' => 'personal']);
     }
 
     /** @return array<string, array{description: string}> */
@@ -41,6 +51,9 @@ class ItineraryQuoteRequest extends FormRequest
             'legs.*.destination_stop_uuid' => ['description' => 'Valeur de « destination stop uuid ».'],
             'legs.*.leg_order' => ['description' => 'Ordre du segment dans l’itinéraire.'],
             'legs.*.direction' => ['description' => 'Ordre de tri ou direction du trajet.'],
+            'payer' => ['description' => 'Informations sur le payeur.'],
+            'payer.type' => ['description' => 'Type de l’événement ou de la ressource.'],
+            'payer.company_account_uuid' => ['description' => 'UUID du compte entreprise payeur.'],
         ];
     }
 }

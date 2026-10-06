@@ -232,17 +232,18 @@ class CounterSaleController extends Controller
 
         $legs = $this->buildItineraryLegs($data['outbound_legs'], $data['inbound_legs']);
 
+        $payer = $data['payer'] !== null
+            ? $resolvePayer->handle($request->user(), $data['payer'])
+            : null;
+
         $quoteResult = $calculateItineraryQuote->handle(
             $legs,
             $data['passenger_count'],
             $request->user(),
             $data['promo_code'],
             ReservationChannel::Counter,
+            $payer?->companyAccount,
         );
-
-        $payer = $data['payer'] !== null
-            ? $resolvePayer->handle($request->user(), $data['payer'])
-            : null;
 
         try {
             $reservation = $createItineraryHold->handle(
@@ -662,6 +663,7 @@ class CounterSaleController extends Controller
             'totalAmount' => (int) $quote->total_amount,
             'currency' => $quote->currency,
             'groupDiscount' => $snapshot['group_discount'] ?? null,
+            'companyDiscount' => $snapshot['company_discount'] ?? null,
             'passengerAllocations' => $snapshot['passenger_allocations'] ?? [],
             'legs' => array_values($legs->map(fn (ItineraryQuoteLeg $leg): array => $this->serializeItineraryQuoteLeg($leg, $quote->currency))->all()),
             'expiresAt' => $quote->expires_at->toISOString(),
