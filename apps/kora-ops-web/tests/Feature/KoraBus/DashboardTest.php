@@ -6,6 +6,7 @@ use App\Modules\Booking\Models\Reservation;
 use App\Modules\Booking\Models\ReservationPassenger;
 use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\Departures\Models\Departure;
+use App\Modules\Finance\Data\RevenuePeriod;
 use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\Notifications\Models\OpsNotification;
 use App\Modules\Notifications\Models\OpsNotificationEvent;
@@ -121,9 +122,9 @@ it('counts issued tickets and departures of the period', function (): void {
         'uuid' => (string) Str::uuid(),
         'line_id' => $line->id,
         'bus_id' => $bus->id,
-        'departure_date' => now()->toDateString(),
+        'departure_date' => now(RevenuePeriod::TIMEZONE)->toDateString(),
         'departure_time' => '18:00',
-        'scheduled_at' => now()->startOfDay()->addHours(12),
+        'scheduled_at' => now(RevenuePeriod::TIMEZONE)->startOfDay()->addHours(12),
         'status' => 'scheduled',
     ]);
 

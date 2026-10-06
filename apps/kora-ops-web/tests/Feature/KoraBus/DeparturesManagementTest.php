@@ -17,6 +17,7 @@ use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Data\DepartureStatus;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\Departures\Services\DepartureSearchService;
+use App\Modules\Finance\Data\RevenuePeriod;
 use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Ticketing\Models\Ticket;
@@ -130,9 +131,9 @@ it('lists departures with line, bus, and crew without exposing numeric ids', fun
         'uuid' => (string) Str::uuid(),
         'line_id' => $line->id,
         'bus_id' => $bus->id,
-        'departure_date' => Carbon::today()->format('Y-m-d'),
+        'departure_date' => Carbon::today(RevenuePeriod::TIMEZONE)->format('Y-m-d'),
         'departure_time' => '07:30',
-        'estimated_arrival_at' => Carbon::today()->setTime(7, 30)->addMinutes(1260),
+        'estimated_arrival_at' => Carbon::today(RevenuePeriod::TIMEZONE)->setTime(7, 30)->addMinutes(1260),
         'driver_id' => $driver->id,
         'conductor_id' => $conductor->id,
         'status' => DepartureStatus::Scheduled->value,
@@ -173,7 +174,7 @@ it('filters departures by status and search term', function (): void {
         'uuid' => (string) Str::uuid(),
         'line_id' => $line->id,
         'bus_id' => $bus1->id,
-        'departure_date' => Carbon::today()->format('Y-m-d'),
+        'departure_date' => Carbon::today(RevenuePeriod::TIMEZONE)->format('Y-m-d'),
         'departure_time' => '07:30',
         'status' => DepartureStatus::Scheduled->value,
     ]);
@@ -182,7 +183,7 @@ it('filters departures by status and search term', function (): void {
         'uuid' => (string) Str::uuid(),
         'line_id' => $line->id,
         'bus_id' => $bus2->id,
-        'departure_date' => Carbon::today()->format('Y-m-d'),
+        'departure_date' => Carbon::today(RevenuePeriod::TIMEZONE)->format('Y-m-d'),
         'departure_time' => '10:30',
         'status' => DepartureStatus::Boarding->value,
     ]);
@@ -213,9 +214,9 @@ it('shows a departure detail with line stops, bus, and crew', function (): void 
         'uuid' => (string) Str::uuid(),
         'line_id' => $line->id,
         'bus_id' => $bus->id,
-        'departure_date' => Carbon::today()->format('Y-m-d'),
+        'departure_date' => Carbon::today(RevenuePeriod::TIMEZONE)->format('Y-m-d'),
         'departure_time' => '07:30',
-        'estimated_arrival_at' => Carbon::today()->setTime(7, 30)->addMinutes(1260),
+        'estimated_arrival_at' => Carbon::today(RevenuePeriod::TIMEZONE)->setTime(7, 30)->addMinutes(1260),
         'driver_id' => $driver->id,
         'conductor_id' => $conductor->id,
         'status' => DepartureStatus::Scheduled->value,
@@ -245,7 +246,7 @@ it('creates a departure and computes estimated arrival from line duration', func
     $response = $this->actingAs($manager)->post(route('departures.store'), [
         'line_uuid' => $line->uuid,
         'bus_uuid' => $bus->uuid,
-        'departure_date' => Carbon::today()->addDay()->format('Y-m-d'),
+        'departure_date' => Carbon::today(RevenuePeriod::TIMEZONE)->addDay()->format('Y-m-d'),
         'departure_time' => '08:00',
         'driver_uuid' => null,
         'conductor_uuid' => null,
@@ -271,7 +272,7 @@ it('updates a scheduled departure and blocks modification after departure', func
         'uuid' => (string) Str::uuid(),
         'line_id' => $line->id,
         'bus_id' => $bus->id,
-        'departure_date' => Carbon::today()->format('Y-m-d'),
+        'departure_date' => Carbon::today(RevenuePeriod::TIMEZONE)->format('Y-m-d'),
         'departure_time' => '07:30',
         'status' => DepartureStatus::Scheduled->value,
     ]);
@@ -302,7 +303,7 @@ it('allows valid status transitions and blocks invalid ones', function (): void 
         'uuid' => (string) Str::uuid(),
         'line_id' => $line->id,
         'bus_id' => $bus->id,
-        'departure_date' => Carbon::today()->format('Y-m-d'),
+        'departure_date' => Carbon::today(RevenuePeriod::TIMEZONE)->format('Y-m-d'),
         'departure_time' => '07:30',
         'status' => DepartureStatus::Scheduled->value,
     ]);
@@ -338,7 +339,7 @@ it('cancels a scheduled departure', function (): void {
         'uuid' => (string) Str::uuid(),
         'line_id' => $line->id,
         'bus_id' => $bus->id,
-        'departure_date' => Carbon::today()->format('Y-m-d'),
+        'departure_date' => Carbon::today(RevenuePeriod::TIMEZONE)->format('Y-m-d'),
         'departure_time' => '07:30',
         'status' => DepartureStatus::Scheduled->value,
     ]);
@@ -357,7 +358,7 @@ it('prevents agency agents from creating departures', function (): void {
         ->post(route('departures.store'), [
             'line_uuid' => $line->uuid,
             'bus_uuid' => $bus->uuid,
-            'departure_date' => Carbon::today()->addDay()->format('Y-m-d'),
+            'departure_date' => Carbon::today(RevenuePeriod::TIMEZONE)->addDay()->format('Y-m-d'),
             'departure_time' => '08:00',
         ])
         ->assertForbidden();
@@ -369,13 +370,13 @@ it('exposes stats for the departures ribbon', function (): void {
     Departure::query()->create([
         'uuid' => (string) Str::uuid(),
         'line_id' => $line->id, 'bus_id' => $bus->id,
-        'departure_date' => Carbon::today()->format('Y-m-d'), 'departure_time' => '07:30',
+        'departure_date' => Carbon::today(RevenuePeriod::TIMEZONE)->format('Y-m-d'), 'departure_time' => '07:30',
         'status' => DepartureStatus::Scheduled->value,
     ]);
     Departure::query()->create([
         'uuid' => (string) Str::uuid(),
         'line_id' => $line->id, 'bus_id' => $bus->id,
-        'departure_date' => Carbon::today()->format('Y-m-d'), 'departure_time' => '10:30',
+        'departure_date' => Carbon::today(RevenuePeriod::TIMEZONE)->format('Y-m-d'), 'departure_time' => '10:30',
         'status' => DepartureStatus::Boarding->value,
     ]);
 
@@ -395,18 +396,18 @@ it('filters departures by exact date', function (): void {
     $today = Departure::query()->create([
         'uuid' => (string) Str::uuid(),
         'line_id' => $line->id, 'bus_id' => $bus->id,
-        'departure_date' => Carbon::today()->format('Y-m-d'), 'departure_time' => '07:30',
+        'departure_date' => Carbon::today(RevenuePeriod::TIMEZONE)->format('Y-m-d'), 'departure_time' => '07:30',
         'status' => DepartureStatus::Scheduled->value,
     ]);
     Departure::query()->create([
         'uuid' => (string) Str::uuid(),
         'line_id' => $line->id, 'bus_id' => $bus->id,
-        'departure_date' => Carbon::tomorrow()->format('Y-m-d'), 'departure_time' => '07:30',
+        'departure_date' => Carbon::tomorrow(RevenuePeriod::TIMEZONE)->format('Y-m-d'), 'departure_time' => '07:30',
         'status' => DepartureStatus::Scheduled->value,
     ]);
 
     $this->actingAs(departuresManager())
-        ->get(route('departures.index', ['date' => Carbon::today()->format('Y-m-d')]))
+        ->get(route('departures.index', ['date' => Carbon::today(RevenuePeriod::TIMEZONE)->format('Y-m-d')]))
         ->assertSuccessful()
         ->assertInertia(fn (Assert $page) => $page
             ->where('departures.total', 1)
@@ -421,7 +422,7 @@ it('exposes crew and passenger manifest data on the departure detail', function 
         'uuid' => (string) Str::uuid(),
         'line_id' => $line->id,
         'bus_id' => $bus->id,
-        'departure_date' => Carbon::today()->format('Y-m-d'),
+        'departure_date' => Carbon::today(RevenuePeriod::TIMEZONE)->format('Y-m-d'),
         'departure_time' => '07:30',
         'driver_id' => $driver->id,
         'conductor_id' => $conductor->id,
@@ -451,7 +452,7 @@ it('never exposes internal numeric ids on departure ERP pages', function (): voi
         'uuid' => (string) Str::uuid(),
         'line_id' => $line->id,
         'bus_id' => $bus->id,
-        'departure_date' => Carbon::today()->format('Y-m-d'),
+        'departure_date' => Carbon::today(RevenuePeriod::TIMEZONE)->format('Y-m-d'),
         'departure_time' => '07:30',
         'driver_id' => $driver->id,
         'conductor_id' => $conductor->id,
@@ -526,14 +527,14 @@ it('exposes a non-paginated collection via searchSellable for internal consumers
     Departure::query()->create([
         'uuid' => (string) Str::uuid(),
         'line_id' => $line->id, 'bus_id' => $bus->id,
-        'departure_date' => Carbon::today()->format('Y-m-d'), 'departure_time' => '07:30',
+        'departure_date' => Carbon::today(RevenuePeriod::TIMEZONE)->format('Y-m-d'), 'departure_time' => '07:30',
         'status' => DepartureStatus::Scheduled->value,
     ]);
 
     $service = app(DepartureSearchService::class);
 
     $results = $service->searchSellable([
-        'date' => Carbon::today()->format('Y-m-d'),
+        'date' => Carbon::today(RevenuePeriod::TIMEZONE)->format('Y-m-d'),
         'from' => 'Cotonou',
         'to' => 'Abidjan',
     ]);
@@ -544,7 +545,7 @@ it('exposes a non-paginated collection via searchSellable for internal consumers
 
     // search() keeps returning a paginator for the public API — the two methods must not collide.
     $paginated = $service->search([
-        'date' => Carbon::today()->format('Y-m-d'),
+        'date' => Carbon::today(RevenuePeriod::TIMEZONE)->format('Y-m-d'),
         'from' => 'Cotonou',
         'to' => 'Abidjan',
     ]);
@@ -560,7 +561,7 @@ it('boards only today by default and filters by origin city and physical stop', 
         'uuid' => (string) Str::uuid(),
         'line_id' => $line->id,
         'bus_id' => $bus->id,
-        'departure_date' => Carbon::today()->format('Y-m-d'),
+        'departure_date' => Carbon::today(RevenuePeriod::TIMEZONE)->format('Y-m-d'),
         'departure_time' => '07:30',
         'status' => DepartureStatus::Scheduled->value,
     ]);
@@ -569,7 +570,7 @@ it('boards only today by default and filters by origin city and physical stop', 
         'uuid' => (string) Str::uuid(),
         'line_id' => $line->id,
         'bus_id' => $bus->id,
-        'departure_date' => Carbon::today()->addDay()->format('Y-m-d'),
+        'departure_date' => Carbon::today(RevenuePeriod::TIMEZONE)->addDay()->format('Y-m-d'),
         'departure_time' => '10:30',
         'status' => DepartureStatus::Scheduled->value,
     ]);
@@ -585,7 +586,7 @@ it('boards only today by default and filters by origin city and physical stop', 
             ->where('departures.data.0.originCity', 'Cotonou')
             ->where('departures.data.0.destinationCity', 'Abidjan')
             ->where('departures.data.0.originPoint', 'Cotonou DM')
-            ->where('appliedDate', Carbon::today()->format('Y-m-d')),
+            ->where('appliedDate', Carbon::today(RevenuePeriod::TIMEZONE)->format('Y-m-d')),
         );
 
     $this->actingAs($manager)
@@ -610,7 +611,7 @@ it('computes the fill rate per leg, not reservations over seats', function (): v
         'uuid' => (string) Str::uuid(),
         'line_id' => $line->id,
         'bus_id' => $bus->id,
-        'departure_date' => Carbon::today()->format('Y-m-d'),
+        'departure_date' => Carbon::today(RevenuePeriod::TIMEZONE)->format('Y-m-d'),
         'departure_time' => '07:30',
         'status' => DepartureStatus::Scheduled->value,
     ]);
@@ -679,7 +680,7 @@ it('releases segments from the departure detail via web no-show and early-exit',
         'uuid' => (string) Str::uuid(),
         'line_id' => $line->id,
         'bus_id' => $bus->id,
-        'departure_date' => Carbon::today()->format('Y-m-d'),
+        'departure_date' => Carbon::today(RevenuePeriod::TIMEZONE)->format('Y-m-d'),
         'departure_time' => '07:30',
         'status' => DepartureStatus::Departed->value,
     ]);
@@ -777,7 +778,7 @@ it('closes no-shows in bulk and reverses a boarding from the departure detail', 
         'uuid' => (string) Str::uuid(),
         'line_id' => $line->id,
         'bus_id' => $bus->id,
-        'departure_date' => Carbon::today()->format('Y-m-d'),
+        'departure_date' => Carbon::today(RevenuePeriod::TIMEZONE)->format('Y-m-d'),
         'departure_time' => '07:30',
         'status' => DepartureStatus::Departed->value,
     ]);
