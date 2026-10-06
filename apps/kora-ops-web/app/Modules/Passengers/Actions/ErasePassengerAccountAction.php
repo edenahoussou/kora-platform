@@ -10,11 +10,16 @@ use App\Modules\CompanyAccounts\Models\CompanyTraveler;
 use App\Modules\IdentityAccess\Actions\RevokeUserAccessAction;
 use App\Modules\IdentityAccess\Contracts\PassengerIdentityResolver;
 use App\Modules\IdentityAccess\Data\UserStatus;
+use App\Modules\Notifications\Channels\OtpCodeChannel;
 use App\Modules\Passengers\Data\PassengerErasureStatus;
 use App\Modules\Passengers\Models\PassengerErasureRequest;
+use App\Notifications\Passengers\PassengerAccountErasedNotification;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
+use Throwable;
 
 /**
  * Effacement définitif d'un compte passager : anonymise les PII des lignes
@@ -32,7 +37,9 @@ class ErasePassengerAccountAction
      */
     public function execute(string $phone, User $actor): ?PassengerErasureRequest
     {
-        return DB::transaction(function () use ($phone, $actor): ?PassengerErasureRequest {
+        $contact = ['email' => null, 'phone' => $phone];
+
+        $request = DB::transaction(function () use ($phone, $actor, &$contact): ?PassengerErasureRequest {
             $passengers = ReservationPassenger::query()->where('phone', $phone)->get();
 
             if ($passengers->isEmpty()) {
@@ -41,6 +48,10 @@ class ErasePassengerAccountAction
 
             $normalizedPhone = $this->identityResolver->normalizePhone($phone);
             $linkedUser = $this->resolveLinkedUser($passengers, $phone, $normalizedPhone);
+            $contact = [
+                'email' => $this->resolveContactEmail($passengers, $linkedUser),
+                'phone' => $normalizedPhone ?? $phone,
+            ];
             $scope = $this->buildScope($passengers);
 
             $this->anonymizePassengerRecords($passengers);
@@ -65,6 +76,42 @@ class ErasePassengerAccountAction
 
             return $request;
         });
+
+        if ($request !== null) {
+            $this->notifyAccountErased($contact['email'], $contact['phone']);
+        }
+
+        return $request;
+    }
+
+    /**
+     * Dernier contact utilisable avant anonymisation : la confirmation
+     * d'effacement part par email si joignable, sinon par WhatsApp.
+     *
+     * @param  EloquentCollection<int, ReservationPassenger>  $passengers
+     */
+    private function resolveContactEmail(EloquentCollection $passengers, ?User $linkedUser): ?string
+    {
+        $email = $passengers->pluck('email')
+            ->push($linkedUser?->email)
+            ->filter()
+            ->unique()
+            ->first(fn (mixed $candidate) => is_string($candidate) && OtpCodeChannel::isContactableEmail($candidate));
+
+        return is_string($email) ? $email : null;
+    }
+
+    private function notifyAccountErased(?string $email, string $phone): void
+    {
+        try {
+            Notification::route('mail', $email)
+                ->route('whatsapp', $phone)
+                ->notify(new PassengerAccountErasedNotification);
+        } catch (Throwable $exception) {
+            Log::warning('Confirmation d’effacement du compte passager non envoyée.', [
+                'exception' => $exception::class,
+            ]);
+        }
     }
 
     /**
@@ -194,15 +241,14 @@ class ErasePassengerAccountAction
             $emails->push($linkedUser->email);
         }
 
-        if ($emails->isNotEmpty()) {
-            DB::table('auth_otp_challenges')->whereIn('email', $emails->unique())->delete();
+        $identifiers = $emails->merge(array_filter([$phone, $normalizedPhone]))->unique();
+        if ($identifiers->isEmpty()) {
+            return;
         }
 
-        $recipients = $emails->merge(array_filter([$phone, $normalizedPhone]))->unique();
-        if ($recipients->isNotEmpty()) {
-            DB::table('notification_logs')->whereIn('recipient', $recipients)
-                ->update(['recipient' => 'anonymized']);
-        }
+        DB::table('auth_otp_challenges')->whereIn('identifier', $identifiers)->delete();
+        DB::table('notification_logs')->whereIn('recipient', $identifiers)
+            ->update(['recipient' => 'anonymized']);
     }
 
     /**

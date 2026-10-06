@@ -11,6 +11,7 @@ use App\Modules\Passengers\Models\PassengerErasureRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
@@ -70,8 +71,11 @@ class PassengerErasureController extends Controller
             abort(404, 'Passager non trouvé.');
         }
 
-        return redirect()
-            ->route('passengers.index')
-            ->with('success', 'Les données personnelles du passager ont été définitivement effacées.');
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => 'Les données personnelles du passager ont été définitivement effacées.',
+        ]);
+
+        return redirect()->route('passengers.index');
     }
 }
