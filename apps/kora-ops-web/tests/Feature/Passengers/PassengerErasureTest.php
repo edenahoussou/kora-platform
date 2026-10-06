@@ -3,8 +3,16 @@
 use App\Models\User;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\Booking\Models\ReservationPassenger;
+use App\Modules\Booking\Models\ReservationSegment;
+use App\Modules\BusNetwork\Models\Bus;
+use App\Modules\BusNetwork\Models\Line;
+use App\Modules\BusNetwork\Models\PhysicalStop;
+use App\Modules\BusNetwork\Models\Seat;
+use App\Modules\BusNetwork\Models\Stop;
+use App\Modules\Departures\Models\Departure;
 use App\Modules\Ticketing\Models\Ticket;
 use App\Notifications\Passengers\PassengerAccountErasedNotification;
+use Carbon\CarbonImmutable;
 use Database\Seeders\KoraBusRolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
@@ -117,6 +125,118 @@ class PassengerErasureTest extends TestCase
         $this->assertDatabaseHas('activity_log', [
             'description' => 'passenger_data_exported',
         ]);
+    }
+
+    public function test_export_includes_segment_departure_schedule(): void
+    {
+        $admin = $this->admin();
+        $this->actingAs($admin);
+        ['reservation' => $reservation, 'passenger' => $passenger] = $this->passengerFixture($admin);
+        $departure = $this->departureFixture($reservation, $passenger);
+
+        $response = $this->get(route('passengers.export', ['phone' => '+22997000300']));
+
+        $response->assertOk();
+
+        $zip = new ZipArchive;
+        $zip->open($response->getFile()->getPathname());
+        $profile = json_decode((string) $zip->getFromName('profile.json'), true);
+        $zip->close();
+
+        $this->assertSame(
+            $departure->refresh()->scheduledDepartureAt()->toIso8601String(),
+            $profile['reservations'][0]['segments'][0]['departure_time'],
+        );
+    }
+
+    private function departureFixture(Reservation $reservation, ReservationPassenger $passenger): Departure
+    {
+        $originPhysical = PhysicalStop::create([
+            'name' => 'Cotonou Gare',
+            'code' => 'COT'.strtoupper(bin2hex(random_bytes(2))),
+            'city' => 'Cotonou',
+            'country' => 'BJ',
+            'status' => 'active',
+        ]);
+        $destinationPhysical = PhysicalStop::create([
+            'name' => 'Djougou Centre',
+            'code' => 'DJG'.strtoupper(bin2hex(random_bytes(2))),
+            'city' => 'Djougou',
+            'country' => 'BJ',
+            'status' => 'active',
+        ]);
+
+        $line = Line::create([
+            'code' => 'K'.strtoupper(bin2hex(random_bytes(4))),
+            'name' => 'Cotonou-Djougou',
+            'countries_crossed' => ['BJ'],
+            'status' => 'active',
+        ]);
+        $origin = Stop::create([
+            'line_id' => $line->id,
+            'physical_stop_id' => $originPhysical->id,
+            'name' => 'Cotonou',
+            'city' => 'Cotonou',
+            'country' => 'BJ',
+            'stop_order' => 1,
+            'status' => 'active',
+        ]);
+        $destination = Stop::create([
+            'line_id' => $line->id,
+            'physical_stop_id' => $destinationPhysical->id,
+            'name' => 'Djougou',
+            'city' => 'Djougou',
+            'country' => 'BJ',
+            'stop_order' => 2,
+            'status' => 'active',
+        ]);
+
+        $bus = Bus::create([
+            'registration_number' => 'BJ-'.uniqid(),
+            'brand' => 'KORA',
+            'model' => 'Coach',
+            'seat_count' => 2,
+            'status' => 'active',
+        ]);
+        $seat = Seat::create([
+            'bus_id' => $bus->id,
+            'code' => '12A',
+            'type' => 'standard',
+            'sellable' => true,
+            'status' => 'active',
+        ]);
+
+        $departure = Departure::create([
+            'line_id' => $line->id,
+            'bus_id' => $bus->id,
+            'departure_date' => '2026-09-07',
+            'departure_time' => '08:00',
+            'scheduled_at' => CarbonImmutable::parse('2026-09-07 08:00', 'Africa/Porto-Novo'),
+            'departure_timezone' => 'Africa/Porto-Novo',
+            'stop_times' => [
+                ['stop_uuid' => $origin->uuid, 'departure_minutes' => 0, 'arrival_minutes' => null, 'timezone' => 'Africa/Porto-Novo'],
+                ['stop_uuid' => $destination->uuid, 'departure_minutes' => null, 'arrival_minutes' => 240, 'timezone' => 'Africa/Porto-Novo'],
+            ],
+            'estimated_arrival_at' => CarbonImmutable::parse('2026-09-07 12:00', 'Africa/Porto-Novo'),
+            'status' => 'scheduled',
+        ]);
+
+        ReservationSegment::create([
+            'reservation_id' => $reservation->id,
+            'reservation_passenger_id' => $passenger->id,
+            'departure_id' => $departure->id,
+            'seat_id' => $seat->id,
+            'origin_stop_id' => $origin->id,
+            'destination_stop_id' => $destination->id,
+            'origin_stop_order' => 1,
+            'destination_stop_order' => 2,
+            'leg_order' => 1,
+            'direction' => 'outbound',
+            'passenger_index' => 0,
+            'status' => 'ticketed',
+        ]);
+
+        return $departure;
     }
 
     public function test_destroy_requires_permission(): void
