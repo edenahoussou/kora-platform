@@ -2,7 +2,10 @@ import { Head, router } from '@inertiajs/react';
 import {
     Archive,
     Building2,
+    CheckCircle2,
+    Clock,
     Edit3,
+    Globe,
     MoreHorizontal,
     Plus,
     RotateCcw,
@@ -14,6 +17,7 @@ import type {
     AgencyRecord,
     HeadCandidate,
 } from '@/components/agencies/agency-form-dialog';
+import { CORRIDOR_COUNTRIES } from '@/components/corridor-flags';
 import { KoraFilterBar } from '@/components/kora-filter-bar';
 import type { FilterConfig } from '@/components/kora-filter-bar';
 import { KoraTable } from '@/components/kora-table';
@@ -25,6 +29,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
 import agencyRoutes from '@/routes/agencies';
 import type { BreadcrumbItem } from '@/types';
 
@@ -57,11 +62,54 @@ const statusLabels: Record<string, string> = {
 };
 
 const statusStyles: Record<string, string> = {
-    active: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-    draft: 'bg-gold/15 text-[var(--kora)] dark:text-gold',
-    suspended: 'bg-orange-500/10 text-orange-700 dark:text-orange-300',
-    archived: 'bg-muted text-muted-foreground',
+    active: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/20',
+    draft: 'bg-gold/15 text-[var(--kora)] dark:text-gold ring-1 ring-gold/30',
+    suspended: 'bg-orange-500/10 text-orange-700 dark:text-orange-300 ring-1 ring-orange-500/20',
+    archived: 'bg-muted text-muted-foreground ring-1 ring-border',
 };
+
+function KpiCard({
+    icon: Icon,
+    label,
+    hint,
+    value,
+    tone = 'navy',
+}: {
+    icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+    label: string;
+    hint: string;
+    value: string | number;
+    tone: 'navy' | 'gold' | 'blue' | 'muted' | 'green' | 'rose';
+}) {
+    const toneStyles = {
+        navy: 'bg-kora text-white',
+        gold: 'bg-gold/15 text-gold',
+        blue: 'bg-digital/10 text-digital',
+        muted: 'bg-muted text-muted-foreground',
+        green: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+        rose: 'bg-destructive/10 text-destructive',
+    };
+
+    return (
+        <article className="cash-ledger-card cash-ledger-card-cash">
+            <div className="cash-ledger-head">
+                <div className="cash-ledger-identity">
+                    <span className={cn('cash-ledger-brand', toneStyles[tone])}>
+                        <Icon className="size-4" strokeWidth={1.8} />
+                    </span>
+                    <div>
+                        <span className="cash-ledger-title">{label}</span>
+                        <small>{hint}</small>
+                    </div>
+                </div>
+            </div>
+            <div className="cash-ledger-balance">
+                <span>Total</span>
+                <strong>{value}</strong>
+            </div>
+        </article>
+    );
+}
 
 export default function AgenciesPage({
     agencies,
@@ -73,6 +121,20 @@ export default function AgenciesPage({
     const [selectedAgency, setSelectedAgency] = useState<AgencyRecord | null>(
         null,
     );
+
+    const stats = useMemo(() => {
+        const data = agencies.data;
+        const active = data.filter((a) => a.status === 'active').length;
+        const draft = data.filter((a) => a.status === 'draft').length;
+        const countries = new Set(data.map((a) => a.country.toUpperCase())).size;
+
+        return {
+            total: agencies.total,
+            active,
+            draft,
+            countries: Math.max(countries, 1),
+        };
+    }, [agencies]);
 
     const filterConfigs: FilterConfig[] = useMemo(
         () => [
@@ -117,8 +179,8 @@ export default function AgenciesPage({
             status === 'archived'
                 ? 'archiver cette agence'
                 : status === 'suspended'
-                  ? 'suspendre cette agence'
-                  : 'réactiver cette agence';
+                    ? 'suspendre cette agence'
+                    : 'réactiver cette agence';
 
         if (!window.confirm(`Voulez-vous vraiment ${action} ?`)) {
             return;
@@ -144,7 +206,7 @@ export default function AgenciesPage({
                         <strong className="block font-bold text-foreground">
                             {agency.name}
                         </strong>
-                        <span className="text-xs font-medium tracking-[0.08em] text-muted-foreground uppercase">
+                        <span className="text-xs font-semibold tracking-[0.08em] text-muted-foreground uppercase">
                             {agency.code}
                         </span>
                     </div>
@@ -154,14 +216,30 @@ export default function AgenciesPage({
         {
             key: 'location',
             header: 'Localisation',
-            render: (agency) => (
-                <div className="text-muted-foreground">
-                    <span className="block font-medium text-foreground">
-                        {agency.city}
-                    </span>
-                    <span className="text-xs uppercase">{agency.country}</span>
-                </div>
-            ),
+            render: (agency) => {
+                const countryItem = CORRIDOR_COUNTRIES.find(
+                    (c) => c.code === agency.country.toUpperCase(),
+                );
+                const Flag = countryItem?.flag;
+
+                return (
+                    <div className="flex items-center gap-2">
+                        {Flag && (
+                            <span className="size-4 shrink-0 overflow-hidden rounded-full shadow-xs ring-1 ring-border">
+                                <Flag className="size-full" />
+                            </span>
+                        )}
+                        <div>
+                            <span className="block font-medium text-foreground">
+                                {agency.city}
+                            </span>
+                            <span className="text-xs font-semibold text-muted-foreground uppercase">
+                                {countryItem?.name ?? agency.country}
+                            </span>
+                        </div>
+                    </div>
+                );
+            },
         },
         {
             key: 'head',
@@ -277,16 +355,47 @@ export default function AgenciesPage({
                     </p>
                 </div>
                 {permissions.canCreate && (
-                    <Button
+                    <button
                         type="button"
                         onClick={openCreateDialog}
-                        className="h-11 rounded-[0.75rem] bg-gold px-5 font-medium text-[var(--kora)] shadow-[0_9px_22px_rgba(246,176,0,0.2)] hover:bg-[var(--kora)] hover:text-white"
+                        className="btn btn-primary"
                     >
-                        <Plus className="size-4" />
+                        <Plus className="size-3.5" />
                         Nouvelle agence
-                    </Button>
+                    </button>
                 )}
             </div>
+
+            <section className="mb-6 grid grid-cols-2 gap-3.5 sm:grid-cols-4">
+                <KpiCard
+                    icon={Building2}
+                    label="Agences"
+                    hint="Réseau physique"
+                    value={stats.total}
+                    tone="navy"
+                />
+                <KpiCard
+                    icon={CheckCircle2}
+                    label="Actives"
+                    hint="En exploitation"
+                    value={stats.active}
+                    tone="green"
+                />
+                <KpiCard
+                    icon={Clock}
+                    label="En préparation"
+                    hint="Brouillons"
+                    value={stats.draft}
+                    tone="gold"
+                />
+                <KpiCard
+                    icon={Globe}
+                    label="Corridors"
+                    hint="Pays desservis"
+                    value={stats.countries}
+                    tone="blue"
+                />
+            </section>
 
             <KoraFilterBar
                 route="/agencies"

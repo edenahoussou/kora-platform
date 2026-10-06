@@ -197,38 +197,49 @@ export function KoraFilterBar({
                     </select>
                 ),
             )}
-            <Button
-                type="button"
-                onClick={applyFilters}
-                variant={appearance === 'compact' ? 'kora' : 'default'}
-                size={appearance === 'compact' ? 'kora' : 'default'}
-                className={
-                    appearance === 'compact'
-                        ? 'shrink-0'
-                        : 'h-10 shrink-0 rounded-[0.625rem] bg-gold px-4 font-medium text-[var(--kora)] shadow-[0_6px_18px_rgba(246,176,0,0.18)] hover:bg-[var(--kora)] hover:text-white'
-                }
-            >
-                <Filter className="size-4" />
-                Filtrer
-            </Button>
-            {hasActiveFilters && (
+            {appearance === 'compact' ? (
                 <Button
                     type="button"
-                    variant={
-                        appearance === 'compact' ? 'kora-secondary' : 'ghost'
-                    }
-                    size={appearance === 'compact' ? 'kora' : 'default'}
-                    onClick={resetFilters}
-                    className={
-                        appearance === 'compact'
-                            ? 'shrink-0'
-                            : 'h-10 shrink-0 rounded-[0.625rem] px-3 font-medium text-muted-foreground hover:text-foreground'
-                    }
+                    onClick={applyFilters}
+                    variant="kora"
+                    size="kora"
+                    className="shrink-0"
                 >
-                    <X className="size-4" />
-                    Réinitialiser
+                    <Filter className="size-4" />
+                    Filtrer
                 </Button>
+            ) : (
+                <button
+                    type="button"
+                    onClick={applyFilters}
+                    className="btn btn-navy cash-filter-submit shrink-0"
+                >
+                    <Filter className="size-4" />
+                    Filtrer
+                </button>
             )}
+            {hasActiveFilters &&
+                (appearance === 'compact' ? (
+                    <Button
+                        type="button"
+                        variant="kora-secondary"
+                        size="kora"
+                        onClick={resetFilters}
+                        className="shrink-0"
+                    >
+                        <X className="size-4" />
+                        Réinitialiser
+                    </Button>
+                ) : (
+                    <button
+                        type="button"
+                        onClick={resetFilters}
+                        className="btn btn-ghost cash-filter-reset shrink-0"
+                    >
+                        <X className="size-4" />
+                        Réinitialiser
+                    </button>
+                ))}
         </div>
     );
 }

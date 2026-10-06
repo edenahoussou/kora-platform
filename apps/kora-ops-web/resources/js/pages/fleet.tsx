@@ -1,13 +1,17 @@
 import { Head, router } from '@inertiajs/react';
 import {
+    Archive,
+    Armchair,
     BusFront,
+    CheckCircle2,
     Edit3,
     Eye,
+    Layers,
     MoreHorizontal,
     Plus,
     RotateCcw,
+    Sparkles,
     Wrench,
-    Archive,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { BusFormDialog } from '@/components/buses/bus-form-dialog';
@@ -24,8 +28,10 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
 import amenitiesRoutes from '@/routes/amenities';
 import fleet from '@/routes/fleet';
+import modelsRoutes from '@/routes/models';
 import type { BreadcrumbItem } from '@/types';
 
 type AmenityOption = {
@@ -55,18 +61,63 @@ type PageProps = {
         canDeactivate: boolean;
     };
 };
+
 const statusLabels: Record<string, string> = {
     active: 'Actif',
     draft: 'Brouillon',
     maintenance: 'En maintenance',
     retired: 'Retiré',
 };
+
 const statusTones: Record<string, 'navy' | 'gold' | 'blue' | 'muted'> = {
     active: 'navy',
     draft: 'gold',
     maintenance: 'gold',
     retired: 'muted',
 };
+
+function KpiCard({
+    icon: Icon,
+    label,
+    hint,
+    value,
+    tone = 'navy',
+}: {
+    icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+    label: string;
+    hint: string;
+    value: string | number;
+    tone: 'navy' | 'gold' | 'blue' | 'muted' | 'green' | 'rose';
+}) {
+    const toneStyles = {
+        navy: 'bg-kora text-white',
+        gold: 'bg-gold/15 text-gold',
+        blue: 'bg-digital/10 text-digital',
+        muted: 'bg-muted text-muted-foreground',
+        green: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+        rose: 'bg-destructive/10 text-destructive',
+    };
+
+    return (
+        <article className="cash-ledger-card cash-ledger-card-cash">
+            <div className="cash-ledger-head">
+                <div className="cash-ledger-identity">
+                    <span className={cn('cash-ledger-brand', toneStyles[tone])}>
+                        <Icon className="size-4" strokeWidth={1.8} />
+                    </span>
+                    <div>
+                        <span className="cash-ledger-title">{label}</span>
+                        <small>{hint}</small>
+                    </div>
+                </div>
+            </div>
+            <div className="cash-ledger-balance">
+                <span>Total</span>
+                <strong>{value}</strong>
+            </div>
+        </article>
+    );
+}
 
 export default function FleetPage({
     buses,
@@ -78,6 +129,26 @@ export default function FleetPage({
 }: PageProps) {
     const [open, setOpen] = useState(false);
     const [selected, setSelected] = useState<BusRecord | null>(null);
+
+    const stats = useMemo(() => {
+        const data = buses.data;
+        const active = data.filter((b) => b.status === 'active').length;
+        const maintenance = data.filter(
+            (b) => b.status === 'maintenance',
+        ).length;
+        const totalSeats = data.reduce(
+            (acc, b) => acc + (b.seatCount || 0),
+            0,
+        );
+
+        return {
+            total: buses.total,
+            active,
+            maintenance,
+            totalSeats,
+        };
+    }, [buses]);
+
     const filters: FilterConfig[] = useMemo(
         () => [
             {
@@ -92,6 +163,7 @@ export default function FleetPage({
         ],
         [statuses],
     );
+
     const pagination: PaginationMeta = {
         currentPage: buses.current_page,
         lastPage: buses.last_page,
@@ -101,6 +173,7 @@ export default function FleetPage({
         to: buses.to,
         baseUrl: '/fleet',
     };
+
     const changeStatus = (bus: BusRecord, status: string) => {
         if (
             window.confirm(
@@ -114,6 +187,7 @@ export default function FleetPage({
             );
         }
     };
+
     const columns: TableColumn<BusRecord>[] = [
         {
             key: 'bus',
@@ -127,7 +201,7 @@ export default function FleetPage({
                         <strong className="block font-bold text-foreground">
                             {bus.registrationNumber}
                         </strong>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs font-semibold text-muted-foreground">
                             {bus.modelName ?? 'Modèle non renseigné'}
                         </span>
                     </div>
@@ -142,7 +216,7 @@ export default function FleetPage({
                     <span className="block font-medium text-foreground">
                         {bus.compositionName ?? '—'}
                     </span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs font-semibold text-muted-foreground">
                         {bus.seatCount} places
                     </span>
                 </div>
@@ -152,29 +226,30 @@ export default function FleetPage({
             key: 'amenities',
             header: 'Équipements',
             render: (bus) => {
-                const labels = bus.amenityLabels ?? [];
+                const labelsList = bus.amenityLabels ?? [];
 
-                if (labels.length === 0) {
+                if (labelsList.length === 0) {
                     return (
                         <span className="text-xs text-muted-foreground">—</span>
                     );
                 }
 
-                const shown = labels.slice(0, 2);
-                const rest = labels.length - shown.length;
+                const shown = labelsList.slice(0, 3);
+                const rest = labelsList.length - shown.length;
 
                 return (
                     <div className="flex flex-wrap gap-1.5">
                         {shown.map((label) => (
                             <span
                                 key={label}
-                                className="rounded-full bg-muted px-2 py-1 text-[0.6875rem] font-medium text-foreground"
+                                className="inline-flex items-center gap-1 rounded-full bg-muted/80 px-2 py-0.5 text-[0.6875rem] font-medium text-foreground ring-1 ring-border"
                             >
+                                <Sparkles className="size-2.5 text-gold" />
                                 {label}
                             </span>
                         ))}
                         {rest > 0 && (
-                            <span className="rounded-full bg-muted px-2 py-1 text-[0.6875rem] font-medium text-muted-foreground">
+                            <span className="inline-flex items-center rounded-full bg-gold/15 px-2 py-0.5 font-mono text-[0.6875rem] font-bold text-[var(--kora)] dark:text-gold">
                                 +{rest}
                             </span>
                         )}
@@ -277,48 +352,92 @@ export default function FleetPage({
     return (
         <>
             <Head title="Flotte" />
+
             <div className="kora-page-head mb-6 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                     <div className="kora-breadcrumb mb-2 text-[0.6875rem] text-muted-foreground">
                         KORA OPS / Ressources / Flotte
                     </div>
                     <h1 className="text-[1.8125rem] font-extrabold tracking-[-0.035em] text-foreground">
-                        Flotte
+                        Flotte de bus
                     </h1>
                     <p className="mt-1.5 text-[0.8125rem] text-muted-foreground">
-                        Gérez les bus et leur composition.
+                        Gérez les véhicules du parc KORA, leur gabarit et leurs
+                        équipements à bord.
                     </p>
                 </div>
-                {permissions.canCreate && (
-                    <div className="flex gap-2.5">
-                        <Button
-                            variant="ghost"
-                            onClick={() =>
-                                router.get(amenitiesRoutes.index.url())
-                            }
-                            className="h-11 rounded-[0.75rem] border border-border/60 px-5 font-medium text-foreground"
-                        >
-                            <Wrench className="size-4" />
-                            Commodités
-                        </Button>
-                        <Button
+
+                <div className="flex flex-wrap items-center gap-2.5">
+                    <button
+                        type="button"
+                        onClick={() => router.get(modelsRoutes.index.url())}
+                        className="btn btn-ghost"
+                    >
+                        <Layers className="size-3.5 text-gold" />
+                        Modèles
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => router.get(amenitiesRoutes.index.url())}
+                        className="btn btn-ghost"
+                    >
+                        <Sparkles className="size-3.5 text-gold" />
+                        Commodités
+                    </button>
+
+                    {permissions.canCreate && (
+                        <button
+                            type="button"
                             onClick={() => {
                                 setSelected(null);
                                 setOpen(true);
                             }}
-                            className="h-11 rounded-[0.75rem] bg-gold px-5 font-medium text-[var(--kora)] hover:bg-[var(--kora)] hover:text-white"
+                            className="btn btn-primary"
                         >
-                            <Plus className="size-4" />
+                            <Plus className="size-3.5" />
                             Nouveau bus
-                        </Button>
-                    </div>
-                )}
+                        </button>
+                    )}
+                </div>
             </div>
+
+            <section className="mb-6 grid grid-cols-2 gap-3.5 sm:grid-cols-4">
+                <KpiCard
+                    icon={BusFront}
+                    label="Véhicules"
+                    hint="Parc total"
+                    value={stats.total}
+                    tone="navy"
+                />
+                <KpiCard
+                    icon={CheckCircle2}
+                    label="Actifs"
+                    hint="En exploitation"
+                    value={stats.active}
+                    tone="green"
+                />
+                <KpiCard
+                    icon={Wrench}
+                    label="Maintenance"
+                    hint="Immobilisés"
+                    value={stats.maintenance}
+                    tone="gold"
+                />
+                <KpiCard
+                    icon={Armchair}
+                    label="Places assises"
+                    hint="Capacité cumulée"
+                    value={stats.totalSeats}
+                    tone="blue"
+                />
+            </section>
+
             <KoraFilterBar
                 route="/fleet"
                 searchPlaceholder="Rechercher par immatriculation ou modèle…"
                 filters={filters}
             />
+
             <KoraTable
                 title="Référentiel des bus"
                 subtitle={`${buses.total} bus au total`}
@@ -334,6 +453,7 @@ export default function FleetPage({
                 emptyIcon={BusFront}
                 pagination={pagination}
             />
+
             <BusFormDialog
                 open={open}
                 bus={selected}
@@ -346,6 +466,9 @@ export default function FleetPage({
         </>
     );
 }
+
 FleetPage.layout = {
-    breadcrumbs: [{ title: 'Flotte', href: '/fleet' } satisfies BreadcrumbItem],
+    breadcrumbs: [
+        { title: 'Flotte', href: '/fleet' } satisfies BreadcrumbItem,
+    ],
 };

@@ -1,17 +1,15 @@
 import { Form } from '@inertiajs/react';
-import { BusFront, Check, X } from 'lucide-react';
-import InputError from '@/components/input-error';
-import { Button } from '@/components/ui/button';
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogOverlay,
-    DialogPortal,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+    Activity,
+    BusFront,
+    Check,
+    Layers,
+    Sparkles,
+    X,
+} from 'lucide-react';
+import { useState } from 'react';
+import { BusAmenityPicker } from '@/components/buses/bus-amenity-picker';
+import { cn } from '@/lib/utils';
 import fleet from '@/routes/fleet';
 
 export type BusRecord = {
@@ -26,13 +24,16 @@ export type BusRecord = {
     amenityLabels?: string[];
     status: string;
 };
+
 type Option = { id: number | string; label: string };
+
 type AmenityOption = {
     id: number;
     code: string;
     label: string;
     icon: string | null;
 };
+
 type Props = {
     open: boolean;
     bus?: BusRecord | null;
@@ -64,208 +65,432 @@ export function BusFormDialog({
         ? fleet.update.form({ bus: bus!.uuid })
         : fleet.store.form();
 
+    const [selectedAmenityIds, setSelectedAmenityIds] = useState<number[]>(
+        bus?.amenityIds ?? [],
+    );
+    const [createStatus, setCreateStatus] = useState<'active' | 'draft'>('active');
+    const [showAmenities, setShowAmenities] = useState(true);
+
+    if (!open) {
+        return null;
+    }
+
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogPortal>
-                <DialogOverlay className="bg-[rgba(0,29,78,0.24)] backdrop-blur-md" />
-            </DialogPortal>
-            <DialogContent
-                overlay={false}
-                className="max-w-[42rem] rounded-[1.75rem] border-border/50 bg-card p-0 shadow-[0_30px_80px_rgba(0,29,78,0.35)] [&>button]:hidden"
+        <div
+            className="cash-modal-backdrop"
+            role="presentation"
+            onMouseDown={(e) =>
+                e.target === e.currentTarget && onOpenChange(false)
+            }
+        >
+            <Form
+                key={bus?.uuid ?? 'new'}
+                {...form}
+                options={{ preserveScroll: true }}
+                resetOnSuccess
+                onSuccess={() => onOpenChange(false)}
+                className="cash-modal cash-opening-modal w-[54rem]! max-w-[95vw]!"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="bus-modal-title"
             >
-                <Form
-                    key={bus?.uuid ?? 'new'}
-                    {...form}
-                    options={{ preserveScroll: true }}
-                    resetOnSuccess
-                    onSuccess={() => onOpenChange(false)}
-                    className="flex flex-col"
-                >
-                    {({ processing, errors }) => (
-                        <>
-                            <div className="flex items-start justify-between gap-5 border-b border-border/70 p-7 pb-6">
-                                <div className="flex items-start gap-4">
-                                    <span className="grid size-12 shrink-0 place-items-center rounded-[0.9rem] bg-gold text-[var(--kora)]">
-                                        <BusFront className="size-5" />
+                {({ processing, errors }) => (
+                    <>
+                        <div className="cash-modal-head">
+                            <div className="flex items-start gap-3">
+                                <span className="cash-opening-icon">
+                                    <BusFront className="size-5" />
+                                </span>
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="section-kicker">
+                                            Référentiel · Flotte
+                                        </span>
+                                        {editing &&
+                                            bus?.registrationNumber && (
+                                                <span className="rounded bg-gold/15 px-2 py-0.5 font-mono text-[11px] font-bold text-[var(--kora)]">
+                                                    {bus.registrationNumber}
+                                                </span>
+                                            )}
+                                    </div>
+                                    <h3 id="bus-modal-title">
+                                        {editing
+                                            ? 'Modifier le bus'
+                                            : 'Nouveau bus'}
+                                    </h3>
+                                    <p>
+                                        Identifiez le véhicule, sa composition
+                                        et ses commodités à bord.
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => onOpenChange(false)}
+                                className="cash-modal-close"
+                                aria-label="Fermer"
+                                disabled={processing}
+                            >
+                                <X className="size-4" />
+                            </button>
+                        </div>
+
+                        <div className="cash-opening-list">
+                            {/* Row 1 : Identification & Gabarit */}
+                            <div className="cash-opening-row">
+                                <div className="cash-opening-row-head">
+                                    <span className="cash-opening-icon">
+                                        <Layers className="size-4" />
                                     </span>
                                     <div>
-                                        <span className="mb-1 block text-[0.6875rem] font-black tracking-[0.15em] text-gold uppercase">
-                                            Référentiel flotte
-                                        </span>
-                                        <DialogTitle className="text-[1.5rem] font-extrabold tracking-[-0.03em] text-foreground">
-                                            {editing
-                                                ? 'Modifier le bus'
-                                                : 'Nouveau bus'}
-                                        </DialogTitle>
-                                        <DialogDescription className="mt-1.5 text-sm text-muted-foreground">
-                                            Identifiez le véhicule et sa
-                                            composition.
-                                        </DialogDescription>
+                                        <strong>
+                                            Identification & Gabarit
+                                        </strong>
+                                        <small>
+                                            Immatriculation, modèle constructeur
+                                            et capacité passagers
+                                        </small>
                                     </div>
                                 </div>
-                                <button
-                                    type="button"
-                                    onClick={() => onOpenChange(false)}
-                                    className="grid size-9 place-items-center rounded-[0.7rem] bg-muted"
-                                    aria-label="Fermer"
-                                >
-                                    <X className="size-4" />
-                                </button>
-                            </div>
-                            <div className="grid gap-5 p-7">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="registration-number">
-                                        Immatriculation *
-                                    </Label>
-                                    <Input
-                                        id="registration-number"
-                                        name="registration_number"
-                                        defaultValue={
-                                            bus?.registrationNumber ?? ''
-                                        }
-                                        required
-                                        placeholder="BJ 9254 RB"
-                                        className="h-12 rounded-[0.875rem] border-0 bg-muted uppercase shadow-[inset_0_0_0_1px_var(--border)]"
-                                    />
-                                    <InputError
-                                        message={errors.registration_number}
-                                    />
-                                </div>
-                                <div className="grid gap-5 sm:grid-cols-2">
-                                    <FieldSelect
-                                        id="bus-model"
-                                        name="bus_model_id"
-                                        label="Modèle *"
-                                        value={bus?.modelId}
-                                        options={models}
-                                        placeholder="Sélectionner un modèle"
-                                        error={errors.bus_model_id}
-                                    />
-                                    <FieldSelect
-                                        id="bus-composition"
-                                        name="composition_id"
-                                        label="Composition *"
-                                        value={bus?.compositionId}
-                                        options={compositions.map((item) => ({
-                                            id: item.id,
-                                            label: `${item.label} · ${item.seatCount} places`,
-                                        }))}
-                                        placeholder="Sélectionner un gabarit"
-                                        error={errors.composition_id}
-                                    />
-                                </div>
-                                {amenities.length > 0 && (
-                                    <div className="grid gap-2">
-                                        <Label>Équipements</Label>
-                                        <div className="grid grid-cols-2 gap-2.5 rounded-[0.875rem] bg-muted p-3.5 shadow-[inset_0_0_0_1px_var(--border)] sm:grid-cols-3">
-                                            {amenities.map((amenity) => (
-                                                <label
-                                                    key={amenity.id}
-                                                    htmlFor={`amenity-${amenity.id}`}
-                                                    className="flex cursor-pointer items-center gap-2 rounded-[0.6rem] px-2 py-1.5 text-sm text-foreground hover:bg-card"
-                                                >
-                                                    <input
-                                                        type="checkbox"
-                                                        id={`amenity-${amenity.id}`}
-                                                        name="amenity_ids[]"
-                                                        value={amenity.id}
-                                                        defaultChecked={bus?.amenityIds?.includes(
-                                                            amenity.id,
-                                                        )}
-                                                        className="size-4 rounded border-border/60 accent-[var(--kora)]"
-                                                    />
-                                                    {amenity.label}
-                                                </label>
-                                            ))}
-                                        </div>
-                                        <InputError
-                                            message={errors.amenity_ids}
+
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                                    <label className="field">
+                                        <span>
+                                            Immatriculation{' '}
+                                            <b className="font-black text-destructive">
+                                                *
+                                            </b>
+                                        </span>
+                                        <input
+                                            className="control font-mono font-bold uppercase"
+                                            name="registration_number"
+                                            defaultValue={
+                                                bus?.registrationNumber ?? ''
+                                            }
+                                            required
+                                            placeholder="ex: BJ 9254 RB"
+                                            aria-invalid={
+                                                !!errors.registration_number
+                                            }
                                         />
+                                        {errors.registration_number ? (
+                                            <small className="field-error-text">
+                                                {errors.registration_number}
+                                            </small>
+                                        ) : (
+                                            <small>
+                                                Numéro officiel de la plaque.
+                                            </small>
+                                        )}
+                                    </label>
+
+                                    <label className="field">
+                                        <span>
+                                            Modèle constructeur{' '}
+                                            <b className="font-black text-destructive">
+                                                *
+                                            </b>
+                                        </span>
+                                        <select
+                                            className="control"
+                                            name="bus_model_id"
+                                            defaultValue={bus?.modelId ?? ''}
+                                            required
+                                            aria-invalid={!!errors.bus_model_id}
+                                        >
+                                            <option value="">
+                                                Sélectionner un modèle…
+                                            </option>
+                                            {models.map((m) => (
+                                                <option key={m.id} value={m.id}>
+                                                    {m.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {errors.bus_model_id ? (
+                                            <small className="field-error-text">
+                                                {errors.bus_model_id}
+                                            </small>
+                                        ) : (
+                                            <small>
+                                                Marque et modèle technique.
+                                            </small>
+                                        )}
+                                    </label>
+
+                                    <label className="field">
+                                        <span>
+                                            Gabarit & Sièges{' '}
+                                            <b className="font-black text-destructive">
+                                                *
+                                            </b>
+                                        </span>
+                                        <select
+                                            className="control"
+                                            name="composition_id"
+                                            defaultValue={
+                                                bus?.compositionId ?? ''
+                                            }
+                                            required
+                                            aria-invalid={
+                                                !!errors.composition_id
+                                            }
+                                        >
+                                            <option value="">
+                                                Sélectionner un gabarit…
+                                            </option>
+                                            {compositions.map((c) => (
+                                                <option key={c.id} value={c.id}>
+                                                    {c.label} · {c.seatCount}{' '}
+                                                    places
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {errors.composition_id ? (
+                                            <small className="field-error-text">
+                                                {errors.composition_id}
+                                            </small>
+                                        ) : (
+                                            <small>
+                                                Plan de sièges et capacité.
+                                            </small>
+                                        )}
+                                    </label>
+                                </div>
+                            </div>
+
+                            {/* Row 2 : Statut opérationnel avec interrupteur / toggle */}
+                            <div className="cash-opening-row">
+                                <div className="cash-opening-row-head">
+                                    <span className="cash-opening-icon">
+                                        <Activity className="size-4" />
+                                    </span>
+                                    <div>
+                                        <strong>Statut opérationnel</strong>
+                                        <small>
+                                            Disponibilité du bus pour les
+                                            départs et rotations
+                                        </small>
+                                    </div>
+                                </div>
+
+                                {editing ? (
+                                    <label className="field">
+                                        <span>
+                                            Statut{' '}
+                                            <b className="font-black text-destructive">
+                                                *
+                                            </b>
+                                        </span>
+                                        <select
+                                            className="control"
+                                            name="status"
+                                            defaultValue={
+                                                bus?.status ?? 'active'
+                                            }
+                                            required
+                                        >
+                                            {Object.entries(statuses).map(
+                                                ([val, lbl]) => (
+                                                    <option
+                                                        key={val}
+                                                        value={val}
+                                                    >
+                                                        {labels[val] ?? lbl}
+                                                    </option>
+                                                ),
+                                            )}
+                                        </select>
+                                    </label>
+                                ) : (
+                                    <div>
+                                        <input
+                                            type="hidden"
+                                            name="status"
+                                            value={createStatus}
+                                        />
+                                        <div className="flex items-center justify-between rounded-xl border border-border bg-card p-3">
+                                            <div className="space-y-0.5">
+                                                <div className="flex items-center gap-2">
+                                                    <span
+                                                        className={cn(
+                                                            'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold transition-colors',
+                                                            createStatus ===
+                                                                'active'
+                                                                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                                                                : 'bg-gold/15 text-[var(--kora)] dark:text-gold',
+                                                        )}
+                                                    >
+                                                        {createStatus ===
+                                                            'active'
+                                                            ? 'Actif'
+                                                            : 'Brouillon'}
+                                                    </span>
+                                                    <span className="text-xs font-semibold text-foreground">
+                                                        {createStatus ===
+                                                            'active'
+                                                            ? 'Disponible pour exploitation immédiate'
+                                                            : 'Enregistrement en préparation (non affecté)'}
+                                                    </span>
+                                                </div>
+                                                <small className="block text-[11px] text-muted-foreground">
+                                                    {createStatus === 'active'
+                                                        ? 'Le bus pourra être immédiatement affecté à des programmations de départ.'
+                                                        : 'Le bus est enregistré sans être affecté aux départs en vente.'}
+                                                </small>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                role="switch"
+                                                aria-checked={
+                                                    createStatus === 'active'
+                                                }
+                                                onClick={() =>
+                                                    setCreateStatus((s) =>
+                                                        s === 'active'
+                                                            ? 'draft'
+                                                            : 'active',
+                                                    )
+                                                }
+                                                className={cn(
+                                                    'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:ring-2 focus-visible:ring-gold/50 focus-visible:outline-none',
+                                                    createStatus === 'active'
+                                                        ? 'bg-emerald-500'
+                                                        : 'bg-muted-foreground/30',
+                                                )}
+                                            >
+                                                <span
+                                                    className={cn(
+                                                        'pointer-events-none inline-block size-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out',
+                                                        createStatus ===
+                                                            'active'
+                                                            ? 'translate-x-5'
+                                                            : 'translate-x-0',
+                                                    )}
+                                                />
+                                            </button>
+                                        </div>
                                     </div>
                                 )}
-                                <FieldSelect
-                                    id="bus-status"
-                                    name="status"
-                                    label="Statut *"
-                                    value={bus?.status}
-                                    options={Object.entries(statuses).map(
-                                        ([id, label]) => ({
-                                            id,
-                                            label: labels[id] ?? label,
-                                        }),
-                                    )}
-                                    placeholder="Sélectionner un statut"
-                                    error={errors.status}
-                                    defaultValue={bus?.status ?? 'draft'}
-                                />
                             </div>
-                            <div className="flex flex-col-reverse gap-3 border-t border-border/70 bg-muted/30 p-7 sm:flex-row sm:justify-end">
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    onClick={() => onOpenChange(false)}
-                                    disabled={processing}
-                                >
-                                    Annuler
-                                </Button>
-                                <Button
-                                    type="submit"
-                                    disabled={processing}
-                                    className="bg-gold font-medium text-[var(--kora)] hover:bg-[var(--kora)] hover:text-white"
-                                >
-                                    <Check className="size-4" />
-                                    {processing
-                                        ? 'Enregistrement…'
-                                        : editing
-                                          ? 'Enregistrer les changements'
-                                          : 'Créer le bus'}
-                                </Button>
-                            </div>
-                        </>
-                    )}
-                </Form>
-            </DialogContent>
-        </Dialog>
-    );
-}
 
-function FieldSelect({
-    id,
-    name,
-    label,
-    value,
-    options,
-    placeholder,
-    error,
-    defaultValue,
-}: {
-    id: string;
-    name: string;
-    label: string;
-    value?: number | string | null;
-    options: Option[];
-    placeholder: string;
-    error?: string;
-    defaultValue?: string;
-}) {
-    return (
-        <div className="grid gap-2">
-            <Label htmlFor={id}>{label}</Label>
-            <select
-                id={id}
-                name={name}
-                defaultValue={value ?? defaultValue ?? ''}
-                required
-                className="h-12 w-full rounded-[0.875rem] border-0 bg-muted px-3 text-sm text-foreground shadow-[inset_0_0_0_1px_var(--border)] outline-none"
-            >
-                <option value="">{placeholder}</option>
-                {options.map((option) => (
-                    <option key={option.id} value={option.id}>
-                        {option.label}
-                    </option>
-                ))}
-            </select>
-            <InputError message={error} />
+                            {/* Row 3 : Commodités avec TOGGLE pour afficher / masquer */}
+                            {amenities.length > 0 && (
+                                <div className="cash-opening-row">
+                                    <div className="flex items-center justify-between">
+                                        <div className="cash-opening-row-head">
+                                            <span className="cash-opening-icon">
+                                                <Sparkles className="size-4" />
+                                            </span>
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <strong>
+                                                        Équipements & commodités
+                                                        à bord
+                                                    </strong>
+                                                    <span className="rounded bg-gold/15 px-2 py-0.5 font-mono text-[10px] font-bold text-[var(--kora)]">
+                                                        {
+                                                            selectedAmenityIds.length
+                                                        }{' '}
+                                                        sélectionné
+                                                        {selectedAmenityIds.length >
+                                                            1
+                                                            ? 's'
+                                                            : ''}
+                                                    </span>
+                                                </div>
+                                                <small>
+                                                    Climatisation, Wi-Fi, prises
+                                                    électriques, écran TV, etc.
+                                                </small>
+                                            </div>
+                                        </div>
+
+                                        {/* Toggle switch to expand / collapse amenities */}
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs font-semibold text-muted-foreground">
+                                                {showAmenities
+                                                    ? 'Déplié'
+                                                    : 'Replié'}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                role="switch"
+                                                aria-checked={showAmenities}
+                                                onClick={() =>
+                                                    setShowAmenities((v) => !v)
+                                                }
+                                                className={cn(
+                                                    'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:ring-2 focus-visible:ring-gold/50 focus-visible:outline-none',
+                                                    showAmenities
+                                                        ? 'bg-gold'
+                                                        : 'bg-muted-foreground/30',
+                                                )}
+                                                aria-label="Afficher ou masquer les commodités"
+                                            >
+                                                <span
+                                                    className={cn(
+                                                        'pointer-events-none inline-block size-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out',
+                                                        showAmenities
+                                                            ? 'translate-x-5'
+                                                            : 'translate-x-0',
+                                                    )}
+                                                />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {showAmenities ? (
+                                        <div className="mt-2 border-t border-border/60 pt-3">
+                                            <BusAmenityPicker
+                                                amenities={amenities}
+                                                selectedIds={
+                                                    selectedAmenityIds
+                                                }
+                                                onChange={setSelectedAmenityIds}
+                                            />
+                                        </div>
+                                    ) : (
+                                        // Still submit hidden inputs when collapsed
+                                        selectedAmenityIds.map((id) => (
+                                            <input
+                                                key={`hidden-collapsed-${id}`}
+                                                type="hidden"
+                                                name="amenity_ids[]"
+                                                value={id}
+                                            />
+                                        ))
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Footer Buttons using Caisse style classes */}
+                        <div className="cash-modal-actions mt-6">
+                            <button
+                                type="button"
+                                onClick={() => onOpenChange(false)}
+                                className="btn btn-ghost"
+                                disabled={processing}
+                            >
+                                Annuler
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={processing}
+                                className="btn btn-primary"
+                            >
+                                <Check className="size-4" />
+                                {processing
+                                    ? 'Enregistrement…'
+                                    : editing
+                                        ? 'Enregistrer les changements'
+                                        : 'Créer le bus'}
+                            </button>
+                        </div>
+                    </>
+                )}
+            </Form>
         </div>
     );
 }
