@@ -75,7 +75,7 @@ export function CorridorCountrySelect({
             >
                 <SelectTrigger
                     className={cn(
-                        'min-h-[42px] h-11 w-full rounded-[10px] border border-border bg-card px-3 text-xs font-bold text-foreground shadow-xs transition-colors hover:border-gold/60 focus-visible:border-gold focus-visible:ring-2 focus-visible:ring-gold/20',
+                        'h-11 min-h-[42px] w-full rounded-[10px] border border-border bg-card px-3 text-xs font-bold text-foreground shadow-xs transition-colors hover:border-gold/60 focus-visible:border-gold focus-visible:ring-2 focus-visible:ring-gold/20',
                         className,
                     )}
                 >
@@ -104,7 +104,7 @@ export function CorridorCountrySelect({
                                 className={cn(
                                     'cursor-pointer rounded-lg px-2.5 py-2 transition-colors',
                                     isSelected
-                                        ? 'bg-gold/15 text-foreground font-semibold'
+                                        ? 'bg-gold/15 font-semibold text-foreground'
                                         : 'hover:bg-muted/70',
                                 )}
                             >

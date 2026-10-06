@@ -119,7 +119,7 @@ export function BusAmenityPicker({
                         className={cn(
                             'font-mono text-[11px] font-bold transition-colors',
                             selectedIds.length > 0
-                                ? 'bg-gold/20 text-[var(--kora)] dark:text-gold ring-1 ring-gold/40'
+                                ? 'bg-gold/20 text-[var(--kora)] ring-1 ring-gold/40 dark:text-gold'
                                 : 'text-muted-foreground',
                         )}
                     >
@@ -195,7 +195,7 @@ export function BusAmenityPicker({
                                     className={cn(
                                         'group inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-150 select-none',
                                         isSelected
-                                            ? 'bg-gold/20 text-foreground font-semibold shadow-xs ring-1 ring-gold dark:bg-gold/25'
+                                            ? 'bg-gold/20 font-semibold text-foreground shadow-xs ring-1 ring-gold dark:bg-gold/25'
                                             : 'border border-border/80 bg-background/80 text-muted-foreground hover:border-gold/50 hover:bg-background hover:text-foreground',
                                     )}
                                 >

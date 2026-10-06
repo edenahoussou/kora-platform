@@ -64,7 +64,8 @@ const statusLabels: Record<string, string> = {
 const statusStyles: Record<string, string> = {
     active: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/20',
     draft: 'bg-gold/15 text-[var(--kora)] dark:text-gold ring-1 ring-gold/30',
-    suspended: 'bg-orange-500/10 text-orange-700 dark:text-orange-300 ring-1 ring-orange-500/20',
+    suspended:
+        'bg-orange-500/10 text-orange-700 dark:text-orange-300 ring-1 ring-orange-500/20',
     archived: 'bg-muted text-muted-foreground ring-1 ring-border',
 };
 
@@ -126,7 +127,8 @@ export default function AgenciesPage({
         const data = agencies.data;
         const active = data.filter((a) => a.status === 'active').length;
         const draft = data.filter((a) => a.status === 'draft').length;
-        const countries = new Set(data.map((a) => a.country.toUpperCase())).size;
+        const countries = new Set(data.map((a) => a.country.toUpperCase()))
+            .size;
 
         return {
             total: agencies.total,
@@ -179,8 +181,8 @@ export default function AgenciesPage({
             status === 'archived'
                 ? 'archiver cette agence'
                 : status === 'suspended'
-                    ? 'suspendre cette agence'
-                    : 'réactiver cette agence';
+                  ? 'suspendre cette agence'
+                  : 'réactiver cette agence';
 
         if (!window.confirm(`Voulez-vous vraiment ${action} ?`)) {
             return;

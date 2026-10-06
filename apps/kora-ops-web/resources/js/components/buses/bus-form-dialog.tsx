@@ -1,12 +1,5 @@
 import { Form } from '@inertiajs/react';
-import {
-    Activity,
-    BusFront,
-    Check,
-    Layers,
-    Sparkles,
-    X,
-} from 'lucide-react';
+import { Activity, BusFront, Check, Layers, Sparkles, X } from 'lucide-react';
 import { useState } from 'react';
 import { BusAmenityPicker } from '@/components/buses/bus-amenity-picker';
 import { cn } from '@/lib/utils';
@@ -68,7 +61,9 @@ export function BusFormDialog({
     const [selectedAmenityIds, setSelectedAmenityIds] = useState<number[]>(
         bus?.amenityIds ?? [],
     );
-    const [createStatus, setCreateStatus] = useState<'active' | 'draft'>('active');
+    const [createStatus, setCreateStatus] = useState<'active' | 'draft'>(
+        'active',
+    );
     const [showAmenities, setShowAmenities] = useState(true);
 
     if (!open) {
@@ -106,12 +101,11 @@ export function BusFormDialog({
                                         <span className="section-kicker">
                                             Référentiel · Flotte
                                         </span>
-                                        {editing &&
-                                            bus?.registrationNumber && (
-                                                <span className="rounded bg-gold/15 px-2 py-0.5 font-mono text-[11px] font-bold text-[var(--kora)]">
-                                                    {bus.registrationNumber}
-                                                </span>
-                                            )}
+                                        {editing && bus?.registrationNumber && (
+                                            <span className="rounded bg-gold/15 px-2 py-0.5 font-mono text-[11px] font-bold text-[var(--kora)]">
+                                                {bus.registrationNumber}
+                                            </span>
+                                        )}
                                     </div>
                                     <h3 id="bus-modal-title">
                                         {editing
@@ -322,13 +316,13 @@ export function BusFormDialog({
                                                         )}
                                                     >
                                                         {createStatus ===
-                                                            'active'
+                                                        'active'
                                                             ? 'Actif'
                                                             : 'Brouillon'}
                                                     </span>
                                                     <span className="text-xs font-semibold text-foreground">
                                                         {createStatus ===
-                                                            'active'
+                                                        'active'
                                                             ? 'Disponible pour exploitation immédiate'
                                                             : 'Enregistrement en préparation (non affecté)'}
                                                     </span>
@@ -394,7 +388,7 @@ export function BusFormDialog({
                                                         }{' '}
                                                         sélectionné
                                                         {selectedAmenityIds.length >
-                                                            1
+                                                        1
                                                             ? 's'
                                                             : ''}
                                                     </span>
@@ -444,9 +438,7 @@ export function BusFormDialog({
                                         <div className="mt-2 border-t border-border/60 pt-3">
                                             <BusAmenityPicker
                                                 amenities={amenities}
-                                                selectedIds={
-                                                    selectedAmenityIds
-                                                }
+                                                selectedIds={selectedAmenityIds}
                                                 onChange={setSelectedAmenityIds}
                                             />
                                         </div>
@@ -484,8 +476,8 @@ export function BusFormDialog({
                                 {processing
                                     ? 'Enregistrement…'
                                     : editing
-                                        ? 'Enregistrer les changements'
-                                        : 'Créer le bus'}
+                                      ? 'Enregistrer les changements'
+                                      : 'Créer le bus'}
                             </button>
                         </div>
                     </>

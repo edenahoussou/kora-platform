@@ -71,8 +71,12 @@ export function AgencyFormDialog({
         ? agencies.update.form({ agency: agency!.uuid })
         : agencies.store.form();
 
-    const [createStatus, setCreateStatus] = useState<'active' | 'draft'>('active');
-    const [editStatus, setEditStatus] = useState<string>(agency?.status ?? 'active');
+    const [createStatus, setCreateStatus] = useState<'active' | 'draft'>(
+        'active',
+    );
+    const [editStatus, setEditStatus] = useState<string>(
+        agency?.status ?? 'active',
+    );
 
     const [accountNetwork, setAccountNetwork] =
         useState<AgencyPaymentAccountRecord['network']>('mtn_momo');
@@ -237,9 +241,7 @@ export function AgencyFormDialog({
                                         <Building2 className="size-4" />
                                     </span>
                                     <div>
-                                        <strong>
-                                            Implantation & Identité
-                                        </strong>
+                                        <strong>Implantation & Identité</strong>
                                         <small>
                                             Dénomination officielle et
                                             localisation de l’agence
@@ -327,7 +329,7 @@ export function AgencyFormDialog({
                                                 {errors.country}
                                             </small>
                                         ) : (
-                                            <small className="text-muted-foreground text-[11px]">
+                                            <small className="text-[11px] text-muted-foreground">
                                                 Pays du corridor KORA de
                                                 rattachement.
                                             </small>
@@ -354,8 +356,7 @@ export function AgencyFormDialog({
                                 <div className="grid grid-cols-1 gap-4">
                                     <label className="field">
                                         <span>
-                                            Chef d’agence{' '}
-                                            <em>(Optionnel)</em>
+                                            Chef d’agence <em>(Optionnel)</em>
                                         </span>
                                         <select
                                             className="control"
@@ -445,20 +446,20 @@ export function AgencyFormDialog({
                                                             )}
                                                         >
                                                             {createStatus ===
-                                                                'active'
+                                                            'active'
                                                                 ? 'Active'
                                                                 : 'Brouillon'}
                                                         </span>
                                                         <span className="text-xs font-semibold text-foreground">
                                                             {createStatus ===
-                                                                'active'
+                                                            'active'
                                                                 ? 'Opérationnelle immédiatement'
                                                                 : 'En préparation (non visible aux guichets)'}
                                                         </span>
                                                     </div>
                                                     <small className="block text-[11px] text-muted-foreground">
                                                         {createStatus ===
-                                                            'active'
+                                                        'active'
                                                             ? 'L’agence sera directement active pour la billetterie et les caisses.'
                                                             : 'L’agence est enregistrée sans être ouverte aux opérations de vente.'}
                                                     </small>
@@ -475,7 +476,7 @@ export function AgencyFormDialog({
                                                         setCreateStatus(
                                                             (prev) =>
                                                                 prev ===
-                                                                    'active'
+                                                                'active'
                                                                     ? 'draft'
                                                                     : 'active',
                                                         )
@@ -517,7 +518,9 @@ export function AgencyFormDialog({
                                             <CreditCard className="size-4" />
                                         </span>
                                         <div>
-                                            <strong>Comptes Mobile Money</strong>
+                                            <strong>
+                                                Comptes Mobile Money
+                                            </strong>
                                             <small>
                                                 Ces comptes seront proposés aux
                                                 agents de cette agence.
@@ -526,7 +529,8 @@ export function AgencyFormDialog({
                                     </div>
 
                                     <div className="grid gap-2">
-                                        {agency!.paymentAccounts.length === 0 ? (
+                                        {agency!.paymentAccounts.length ===
+                                        0 ? (
                                             <p className="rounded-lg border border-dashed border-border p-3 text-xs text-muted-foreground">
                                                 Aucun compte configuré.
                                             </p>
@@ -562,7 +566,7 @@ export function AgencyFormDialog({
                                                                 )}
                                                             >
                                                                 {account.status ===
-                                                                    'active'
+                                                                'active'
                                                                     ? 'Actif'
                                                                     : 'Inactif'}
                                                             </span>
@@ -585,7 +589,7 @@ export function AgencyFormDialog({
                                         )}
                                     </div>
 
-                                    <div className="mt-2 grid gap-2 rounded-lg bg-card p-3 border border-border">
+                                    <div className="mt-2 grid gap-2 rounded-lg border border-border bg-card p-3">
                                         <div className="grid gap-2 sm:grid-cols-2">
                                             <select
                                                 value={accountNetwork}
@@ -637,9 +641,9 @@ export function AgencyFormDialog({
                                                 disabled={
                                                     accountProcessing ||
                                                     accountLabel.trim() ===
-                                                    '' ||
+                                                        '' ||
                                                     accountIdentifier.trim() ===
-                                                    ''
+                                                        ''
                                                 }
                                                 onClick={submitAccount}
                                                 className="btn btn-primary"
@@ -672,8 +676,8 @@ export function AgencyFormDialog({
                                 {processing
                                     ? 'Enregistrement…'
                                     : isEditing
-                                        ? 'Enregistrer les changements'
-                                        : 'Créer l’agence'}
+                                      ? 'Enregistrer les changements'
+                                      : 'Créer l’agence'}
                             </button>
                         </div>
                     </>

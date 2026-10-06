@@ -237,8 +237,8 @@ export function AmenityFormDialog({ open, amenity, onOpenChange }: Props) {
                                 {processing
                                     ? 'Enregistrement…'
                                     : editing
-                                        ? 'Enregistrer les changements'
-                                        : 'Créer la commodité'}
+                                      ? 'Enregistrer les changements'
+                                      : 'Créer la commodité'}
                             </button>
                         </div>
                     </>

@@ -334,8 +334,8 @@ export function ModelFormDialog({ open, model, onOpenChange }: Props) {
                                 {processing
                                     ? 'Enregistrement…'
                                     : editing
-                                        ? 'Enregistrer les changements'
-                                        : 'Créer le modèle'}
+                                      ? 'Enregistrer les changements'
+                                      : 'Créer le modèle'}
                             </button>
                         </div>
                     </>

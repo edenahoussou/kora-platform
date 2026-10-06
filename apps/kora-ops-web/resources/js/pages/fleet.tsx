@@ -136,10 +136,7 @@ export default function FleetPage({
         const maintenance = data.filter(
             (b) => b.status === 'maintenance',
         ).length;
-        const totalSeats = data.reduce(
-            (acc, b) => acc + (b.seatCount || 0),
-            0,
-        );
+        const totalSeats = data.reduce((acc, b) => acc + (b.seatCount || 0), 0);
 
         return {
             total: buses.total,
@@ -468,7 +465,5 @@ export default function FleetPage({
 }
 
 FleetPage.layout = {
-    breadcrumbs: [
-        { title: 'Flotte', href: '/fleet' } satisfies BreadcrumbItem,
-    ],
+    breadcrumbs: [{ title: 'Flotte', href: '/fleet' } satisfies BreadcrumbItem],
 };
