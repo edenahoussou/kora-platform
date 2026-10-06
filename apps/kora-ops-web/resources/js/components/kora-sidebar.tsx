@@ -82,6 +82,11 @@ const navItems: NavEntry[] = [
                 href: companyPortalRoutes.travelers.index.url(),
                 permission: null,
             },
+            {
+                title: 'Historique des achats',
+                href: companyPortalRoutes.reservations.index.url(),
+                permission: null,
+            },
         ],
     },
     {
