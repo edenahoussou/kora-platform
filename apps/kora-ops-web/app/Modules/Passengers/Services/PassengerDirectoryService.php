@@ -285,7 +285,7 @@ class PassengerDirectoryService
                 'uuid' => $ticket->uuid,
                 'shortCode' => $ticket->short_code,
                 'route' => $originCity.' → '.$destinationCity,
-                'departureTime' => $firstSegment?->departure?->departure_time?->format('d/m/Y H:i') ?? '—',
+                'departureTime' => $firstSegment?->departure?->scheduledDepartureAt()->format('d/m/Y H:i') ?? '—',
                 'lineCode' => $firstSegment?->departure?->line->code ?? 'Ligne',
                 'seatCode' => $firstSegment?->seat->code ?? '—',
                 'amount' => $amount,

@@ -4,8 +4,10 @@ use App\Models\User;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\Booking\Models\ReservationPassenger;
 use App\Modules\Ticketing\Models\Ticket;
+use App\Notifications\Passengers\PassengerAccountErasedNotification;
 use Database\Seeders\KoraBusRolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -17,6 +19,7 @@ class PassengerErasureTest extends TestCase
     {
         parent::setUp();
         $this->seed(KoraBusRolePermissionSeeder::class);
+        Notification::fake();
     }
 
     private function admin(): User
@@ -186,6 +189,12 @@ class PassengerErasureTest extends TestCase
         $this->assertDatabaseHas('activity_log', [
             'description' => 'passenger_account_erased',
         ]);
+
+        Notification::assertSentOnDemand(
+            PassengerAccountErasedNotification::class,
+            fn (PassengerAccountErasedNotification $notification, array $channels, object $notifiable): bool => ($notifiable->routes['mail'] ?? null) === 'awa.bio@example.com'
+                && is_string($notifiable->routes['whatsapp'] ?? null),
+        );
     }
 
     public function test_destroy_removes_passenger_from_directory(): void
@@ -213,5 +222,7 @@ class PassengerErasureTest extends TestCase
         $this->delete(route('passengers.destroy', ['phone' => '+0000000000']), [
             'password' => 'password',
         ])->assertNotFound();
+
+        Notification::assertNothingSent();
     }
 }
