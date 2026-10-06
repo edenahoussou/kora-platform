@@ -73,7 +73,7 @@ export default function CompanyPortalIndex({ account, credit, stats }: Props) {
             description:
                 'Retrouvez vos réservations, voyageurs et billets émis.',
             icon: History,
-            href: null,
+            href: companyPortal.reservations.index.url(),
         },
         {
             title: 'Relevés de facturation',

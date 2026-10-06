@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\CompanyAccountWebController;
 use App\Modules\CompanyAccounts\Http\Controllers\CompanyPortalController;
+use App\Modules\CompanyAccounts\Http\Controllers\CompanyPortalReservationController;
 use App\Modules\CompanyAccounts\Http\Controllers\CompanyPortalSaleController;
 use App\Modules\CompanyAccounts\Http\Controllers\CompanyPortalTravelerController;
 use Illuminate\Support\Facades\Route;
@@ -28,6 +29,9 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::post('achat/{reservation:uuid}/voyageurs', [CompanyPortalSaleController::class, 'storePassengers'])->name('sale.passengers');
         Route::post('achat/{reservation:uuid}/paiement', [CompanyPortalSaleController::class, 'storePayment'])->name('sale.payment');
         Route::post('achat/{reservation:uuid}/billets/reessayer', [CompanyPortalSaleController::class, 'retryTicketIssuance'])->name('sale.tickets.retry');
+        Route::get('achats', [CompanyPortalReservationController::class, 'index'])->name('reservations.index');
+        Route::get('achats/export', [CompanyPortalReservationController::class, 'export'])->name('reservations.export');
+        Route::get('achats/{reservation:uuid}', [CompanyPortalReservationController::class, 'show'])->name('reservations.show');
         Route::get('membres', [CompanyPortalTravelerController::class, 'index'])->name('travelers.index');
         Route::post('membres', [CompanyPortalTravelerController::class, 'store'])->name('travelers.store');
         Route::post('membres/import', [CompanyPortalTravelerController::class, 'import'])->name('travelers.import');
