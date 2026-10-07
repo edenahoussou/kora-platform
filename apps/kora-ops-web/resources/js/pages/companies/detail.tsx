@@ -1,14 +1,19 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
+    Activity,
     AlertTriangle,
     ArrowDownLeft,
+    ArrowDownUp,
     ArrowLeft,
     ArrowUpRight,
+    BadgePercent,
     Building2,
     CheckCircle2,
+    Clock,
     CreditCard,
     Download,
     Edit3,
+    FileSpreadsheet,
     FileText,
     History,
     Mail,
@@ -37,6 +42,10 @@ import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { PanelAlert } from '@/components/panel-alert';
 import { cn } from '@/lib/utils';
 import companies from '@/routes/companies';
+import {
+    pdf as fiscalInvoicePdf,
+    show as fiscalInvoiceShow,
+} from '@/routes/fiscal-invoices';
 
 type CreditSummary = {
     monthlyLimit: number;
@@ -120,6 +129,7 @@ type BillingStatementItem = {
     invoicesCount: number;
     generatedAt: string | null;
     emailedAt: string | null;
+    exportable: boolean;
 };
 
 type FiscalInvoiceItem = {
@@ -358,16 +368,18 @@ export default function CompanyAccountDetail({
         );
     };
 
-    const exportUrl = companies.reservations.export.url(
-        { companyAccount: account.uuid },
-        {
-            query: {
-                q: query.trim() || undefined,
-                status: statusFilter !== 'all' ? statusFilter : undefined,
-                month: monthFilter !== 'all' ? monthFilter : undefined,
+    const exportUrl = (format: 'csv' | 'xlsx') =>
+        companies.reservations.export.url(
+            { companyAccount: account.uuid },
+            {
+                query: {
+                    q: query.trim() || undefined,
+                    status: statusFilter !== 'all' ? statusFilter : undefined,
+                    month: monthFilter !== 'all' ? monthFilter : undefined,
+                    format,
+                },
             },
-        },
-    );
+        );
 
     const gaugeTone =
         aside.creditSummary.percentage >= 90
@@ -451,7 +463,7 @@ export default function CompanyAccountDetail({
                         {permissions.canUpdate && (
                             <button
                                 type="button"
-                                className="btn btn-ghost"
+                                className="btn btn-primary"
                                 onClick={() => setEditModalOpen(true)}
                             >
                                 <Edit3 className="size-4" />
@@ -465,8 +477,8 @@ export default function CompanyAccountDetail({
                                 className={cn(
                                     'btn',
                                     account.status === 'active'
-                                        ? 'btn-ghost text-destructive'
-                                        : 'btn-navy',
+                                        ? 'btn-danger'
+                                        : 'btn-success',
                                 )}
                                 onClick={toggleStatus}
                                 disabled={statusProcessing}
@@ -480,12 +492,25 @@ export default function CompanyAccountDetail({
                     </div>
                 </div>
 
+                {/* Alerte contextuelle : compte désactivé */}
+                {account.status !== 'active' && (
+                    <PanelAlert
+                        tone="danger"
+                        icon={AlertTriangle}
+                        className="cash-reveal"
+                    >
+                        Ce compte est actuellement désactivé : les achats au
+                        débit du plafond et l'accès au portail entreprise sont
+                        suspendus jusqu'à réactivation.
+                    </PanelAlert>
+                )}
+
                 {/* KPI Ribbon (style Caisse) */}
                 <section className="cash-ledger-grid cash-reveal cash-reveal-delay-1">
-                    <article className="cash-ledger-card">
+                    <article className="cash-ledger-card cash-ledger-card-kpi-navy">
                         <div className="cash-ledger-head">
                             <div className="cash-ledger-identity">
-                                <span className="cash-ledger-brand bg-primary/10 text-primary">
+                                <span className="cash-ledger-brand">
                                     <Wallet
                                         className="size-4"
                                         strokeWidth={1.8}
@@ -507,10 +532,10 @@ export default function CompanyAccountDetail({
                         </div>
                     </article>
 
-                    <article className="cash-ledger-card">
+                    <article className="cash-ledger-card cash-ledger-card-kpi-gold">
                         <div className="cash-ledger-head">
                             <div className="cash-ledger-identity">
-                                <span className="cash-ledger-brand bg-gold/15 text-gold">
+                                <span className="cash-ledger-brand">
                                     <CreditCard
                                         className="size-4"
                                         strokeWidth={1.8}
@@ -526,16 +551,16 @@ export default function CompanyAccountDetail({
                         </div>
                         <div className="cash-ledger-balance">
                             <span>Ce mois</span>
-                            <strong className="text-foreground">
+                            <strong>
                                 {formatFcfa(account.consumedCredit)}
                             </strong>
                         </div>
                     </article>
 
-                    <article className="cash-ledger-card">
+                    <article className="cash-ledger-card cash-ledger-card-kpi-emerald">
                         <div className="cash-ledger-head">
                             <div className="cash-ledger-identity">
-                                <span className="cash-ledger-brand bg-emerald-500/10 text-emerald-600">
+                                <span className="cash-ledger-brand">
                                     <CheckCircle2
                                         className="size-4"
                                         strokeWidth={1.8}
@@ -551,16 +576,16 @@ export default function CompanyAccountDetail({
                         </div>
                         <div className="cash-ledger-balance">
                             <span>Solde</span>
-                            <strong className="text-emerald-600 dark:text-emerald-400">
+                            <strong>
                                 {formatFcfa(account.availableCredit)}
                             </strong>
                         </div>
                     </article>
 
-                    <article className="cash-ledger-card">
+                    <article className="cash-ledger-card cash-ledger-card-kpi-digital">
                         <div className="cash-ledger-head">
                             <div className="cash-ledger-identity">
-                                <span className="cash-ledger-brand bg-blue-500/10 text-blue-600">
+                                <span className="cash-ledger-brand">
                                     <Ticket
                                         className="size-4"
                                         strokeWidth={1.8}
@@ -621,15 +646,21 @@ export default function CompanyAccountDetail({
                                 {/* Holds en cours */}
                                 <section className="cash-table-card rounded-2xl border border-border/50 bg-card p-5 shadow-sm">
                                     <div className="mb-4 flex items-center justify-between">
-                                        <div>
-                                            <h3 className="text-sm font-black text-foreground">
-                                                Réservations & options posées
-                                                (Holds)
-                                            </h3>
-                                            <p className="text-xs text-muted-foreground">
-                                                Montants temporairement bloqués
-                                                avant émission définitive
-                                            </p>
+                                        <div className="flex items-center gap-3">
+                                            <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-gold/15 text-gold">
+                                                <Clock className="size-4" />
+                                            </span>
+                                            <div>
+                                                <h3 className="text-sm font-black text-foreground">
+                                                    Réservations & options
+                                                    posées (Holds)
+                                                </h3>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Montants temporairement
+                                                    bloqués avant émission
+                                                    définitive
+                                                </p>
+                                            </div>
                                         </div>
                                         <span className="rounded-full bg-muted px-2 py-0.5 text-[0.6875rem] font-bold text-muted-foreground">
                                             {credit.holds.length} actif
@@ -710,15 +741,20 @@ export default function CompanyAccountDetail({
                                 {/* Journal des mouvements de crédit */}
                                 <section className="cash-table-card rounded-2xl border border-border/50 bg-card p-5 shadow-sm">
                                     <div className="mb-4 flex items-center justify-between">
-                                        <div>
-                                            <h3 className="text-sm font-black text-foreground">
-                                                Mouvements de crédit récents
-                                            </h3>
-                                            <p className="text-xs text-muted-foreground">
-                                                Historique chronologique des
-                                                débits d'achats et
-                                                remboursements
-                                            </p>
+                                        <div className="flex items-center gap-3">
+                                            <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-digital/10 text-digital">
+                                                <ArrowDownUp className="size-4" />
+                                            </span>
+                                            <div>
+                                                <h3 className="text-sm font-black text-foreground">
+                                                    Mouvements de crédit récents
+                                                </h3>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Historique chronologique des
+                                                    débits d'achats et
+                                                    remboursements
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -880,14 +916,24 @@ export default function CompanyAccountDetail({
                                         <RotateCcw className="size-3.5" />
                                     </button>
 
-                                    <a
-                                        href={exportUrl}
-                                        download
-                                        className="btn btn-ghost ml-auto h-10 px-3 text-xs"
-                                    >
-                                        <Download className="size-3.5" />
-                                        Exporter CSV
-                                    </a>
+                                    <div className="ml-auto flex items-center gap-2">
+                                        <a
+                                            href={exportUrl('xlsx')}
+                                            download
+                                            className="btn btn-primary h-10 px-3 text-xs"
+                                        >
+                                            <FileSpreadsheet className="size-3.5" />
+                                            Exporter Excel
+                                        </a>
+                                        <a
+                                            href={exportUrl('csv')}
+                                            download
+                                            className="btn btn-ghost h-10 px-3 text-xs"
+                                        >
+                                            <Download className="size-3.5" />
+                                            CSV
+                                        </a>
+                                    </div>
                                 </div>
 
                                 {/* Table */}
@@ -1009,19 +1055,22 @@ export default function CompanyAccountDetail({
                                                                         }
                                                                         tone={
                                                                             res.status ===
-                                                                                'ticketed' ||
-                                                                            res.status ===
-                                                                                'boarded'
-                                                                                ? 'blue'
+                                                                            'cancelled'
+                                                                                ? 'destructive'
                                                                                 : res.status ===
-                                                                                        'paid' ||
+                                                                                        'ticketed' ||
                                                                                     res.status ===
-                                                                                        'confirmed'
-                                                                                  ? 'navy'
+                                                                                        'boarded'
+                                                                                  ? 'blue'
                                                                                   : res.status ===
-                                                                                      'held'
-                                                                                    ? 'gold'
-                                                                                    : 'muted'
+                                                                                          'paid' ||
+                                                                                      res.status ===
+                                                                                          'confirmed'
+                                                                                    ? 'navy'
+                                                                                    : res.status ===
+                                                                                        'held'
+                                                                                      ? 'gold'
+                                                                                      : 'muted'
                                                                         }
                                                                     />
                                                                 </td>
@@ -1047,15 +1096,20 @@ export default function CompanyAccountDetail({
                                 {/* Relevés mensuels consolidés */}
                                 <section className="cash-table-card rounded-2xl border border-border/50 bg-card p-5 shadow-sm">
                                     <div className="mb-4 flex items-center justify-between">
-                                        <div>
-                                            <h3 className="text-sm font-black text-foreground">
-                                                Relevés mensuels consolidés
-                                                (MEZ-118)
-                                            </h3>
-                                            <p className="text-xs text-muted-foreground">
-                                                Relevés d'achats périodiques
-                                                pour règlement à terme
-                                            </p>
+                                        <div className="flex items-center gap-3">
+                                            <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-digital/10 text-digital">
+                                                <FileText className="size-4" />
+                                            </span>
+                                            <div>
+                                                <h3 className="text-sm font-black text-foreground">
+                                                    Relevés mensuels consolidés
+                                                    (MEZ-118)
+                                                </h3>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Relevés d'achats périodiques
+                                                    pour règlement à terme
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -1154,10 +1208,64 @@ export default function CompanyAccountDetail({
                                                                     </span>
                                                                 </td>
                                                                 <td className="px-3 py-2.5 text-right">
-                                                                    <span className="text-[0.6875rem] font-bold text-muted-foreground group-hover:text-foreground">
-                                                                        Consulter
-                                                                        →
-                                                                    </span>
+                                                                    <div className="inline-flex items-center justify-end gap-1.5">
+                                                                        {stmt.exportable && (
+                                                                            <>
+                                                                                <a
+                                                                                    href={companies.statements.export.url(
+                                                                                        {
+                                                                                            companyAccount:
+                                                                                                account.uuid,
+                                                                                            statement:
+                                                                                                stmt.uuid,
+                                                                                        },
+                                                                                        {
+                                                                                            query: {
+                                                                                                format: 'pdf',
+                                                                                            },
+                                                                                        },
+                                                                                    )}
+                                                                                    onClick={(
+                                                                                        e,
+                                                                                    ) =>
+                                                                                        e.stopPropagation()
+                                                                                    }
+                                                                                    title="Télécharger le relevé en PDF"
+                                                                                    className="inline-flex size-7 items-center justify-center rounded-lg bg-destructive/10 text-destructive transition-colors hover:bg-destructive/20"
+                                                                                >
+                                                                                    <FileText className="size-3.5" />
+                                                                                </a>
+                                                                                <a
+                                                                                    href={companies.statements.export.url(
+                                                                                        {
+                                                                                            companyAccount:
+                                                                                                account.uuid,
+                                                                                            statement:
+                                                                                                stmt.uuid,
+                                                                                        },
+                                                                                        {
+                                                                                            query: {
+                                                                                                format: 'xlsx',
+                                                                                            },
+                                                                                        },
+                                                                                    )}
+                                                                                    onClick={(
+                                                                                        e,
+                                                                                    ) =>
+                                                                                        e.stopPropagation()
+                                                                                    }
+                                                                                    title="Exporter le relevé en Excel"
+                                                                                    className="inline-flex size-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 transition-colors hover:bg-emerald-500/20"
+                                                                                >
+                                                                                    <FileSpreadsheet className="size-3.5" />
+                                                                                </a>
+                                                                            </>
+                                                                        )}
+                                                                        <span className="text-[0.6875rem] font-bold text-muted-foreground group-hover:text-foreground">
+                                                                            Consulter
+                                                                            →
+                                                                        </span>
+                                                                    </div>
                                                                 </td>
                                                             </tr>
                                                         ),
@@ -1171,16 +1279,21 @@ export default function CompanyAccountDetail({
                                 {/* Factures normalisées certifiées */}
                                 <section className="cash-table-card rounded-2xl border border-border/50 bg-card p-5 shadow-sm">
                                     <div className="mb-4 flex items-center justify-between">
-                                        <div>
-                                            <h3 className="text-sm font-black text-foreground">
-                                                Factures normalisées certifiées
-                                                (MECeF)
-                                            </h3>
-                                            <p className="text-xs text-muted-foreground">
-                                                Factures et avoirs fiscaux émis
-                                                pour les achats de cette
-                                                organisation
-                                            </p>
+                                        <div className="flex items-center gap-3">
+                                            <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600">
+                                                <Receipt className="size-4" />
+                                            </span>
+                                            <div>
+                                                <h3 className="text-sm font-black text-foreground">
+                                                    Factures normalisées
+                                                    certifiées (MECeF)
+                                                </h3>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Factures et avoirs fiscaux
+                                                    émis pour les achats de
+                                                    cette organisation
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -1257,13 +1370,26 @@ export default function CompanyAccountDetail({
                                                                     </span>
                                                                 </td>
                                                                 <td className="px-3 py-2.5 text-right">
-                                                                    <Link
-                                                                        href={`/fiscal-invoices/${inv.uuid}`}
-                                                                        className="inline-flex items-center gap-1 font-bold text-muted-foreground hover:text-foreground"
-                                                                    >
-                                                                        <FileText className="size-3.5" />
-                                                                        Ouvrir
-                                                                    </Link>
+                                                                    <div className="inline-flex items-center justify-end gap-1.5">
+                                                                        <a
+                                                                            href={fiscalInvoicePdf.url(
+                                                                                inv.uuid,
+                                                                            )}
+                                                                            title="Télécharger la facture PDF"
+                                                                            className="inline-flex size-7 items-center justify-center rounded-lg bg-destructive/10 text-destructive transition-colors hover:bg-destructive/20"
+                                                                        >
+                                                                            <Download className="size-3.5" />
+                                                                        </a>
+                                                                        <Link
+                                                                            href={fiscalInvoiceShow.url(
+                                                                                inv.uuid,
+                                                                            )}
+                                                                            className="inline-flex items-center gap-1 font-bold text-muted-foreground hover:text-foreground"
+                                                                        >
+                                                                            <FileText className="size-3.5" />
+                                                                            Ouvrir
+                                                                        </Link>
+                                                                    </div>
                                                                 </td>
                                                             </tr>
                                                         ),
@@ -1282,16 +1408,21 @@ export default function CompanyAccountDetail({
                                 {/* Fiche référent */}
                                 <section className="rounded-2xl border border-border/50 bg-card p-5 shadow-sm">
                                     <div className="mb-4 flex items-center justify-between">
-                                        <div>
-                                            <h3 className="text-sm font-black text-foreground">
-                                                Fiche du responsable de compte
-                                                (Référent)
-                                            </h3>
-                                            <p className="text-xs text-muted-foreground">
-                                                Utilisateur autorisé à
-                                                administrer le portail et
-                                                valider les achats
-                                            </p>
+                                        <div className="flex items-center gap-3">
+                                            <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-gold/15 text-gold">
+                                                <User className="size-4" />
+                                            </span>
+                                            <div>
+                                                <h3 className="text-sm font-black text-foreground">
+                                                    Fiche du responsable de
+                                                    compte (Référent)
+                                                </h3>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Utilisateur autorisé à
+                                                    administrer le portail et
+                                                    valider les achats
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -1335,16 +1466,23 @@ export default function CompanyAccountDetail({
                                 {/* Roster des voyageurs rattachés */}
                                 <section className="cash-table-card rounded-2xl border border-border/50 bg-card p-5 shadow-sm">
                                     <div className="mb-4 flex items-center justify-between">
-                                        <div>
-                                            <h3 className="text-sm font-black text-foreground">
-                                                Personnes rattachées au compte (
-                                                {referent.travelers.length})
-                                            </h3>
-                                            <p className="text-xs text-muted-foreground">
-                                                Collaborateurs et bénéficiaires
-                                                éligibles aux réservations au
-                                                débit du compte
-                                            </p>
+                                        <div className="flex items-center gap-3">
+                                            <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-digital/10 text-digital">
+                                                <Users className="size-4" />
+                                            </span>
+                                            <div>
+                                                <h3 className="text-sm font-black text-foreground">
+                                                    Personnes rattachées au
+                                                    compte (
+                                                    {referent.travelers.length})
+                                                </h3>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Collaborateurs et
+                                                    bénéficiaires éligibles aux
+                                                    réservations au débit du
+                                                    compte
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -1432,14 +1570,21 @@ export default function CompanyAccountDetail({
                         {/* TAB 5: HISTORIQUE */}
                         {currentTab === 'historique' && (
                             <section className="rounded-2xl border border-border/50 bg-card p-6 shadow-sm">
-                                <div className="mb-6">
-                                    <h3 className="text-sm font-black text-foreground">
-                                        Journal d'audit & chronologie du compte
-                                    </h3>
-                                    <p className="text-xs text-muted-foreground">
-                                        Traçabilité immuable des modifications
-                                        de plafond, statut et habilitations
-                                    </p>
+                                <div className="mb-6 flex items-center gap-3">
+                                    <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-gold/15 text-gold">
+                                        <History className="size-4" />
+                                    </span>
+                                    <div>
+                                        <h3 className="text-sm font-black text-foreground">
+                                            Journal d'audit & chronologie du
+                                            compte
+                                        </h3>
+                                        <p className="text-xs text-muted-foreground">
+                                            Traçabilité immuable des
+                                            modifications de plafond, statut et
+                                            habilitations
+                                        </p>
+                                    </div>
                                 </div>
 
                                 <div className="relative space-y-6 border-l border-border/60 pl-6">
@@ -1476,19 +1621,24 @@ export default function CompanyAccountDetail({
                     {/* Permanent Aside (Synthèse Crédit & Mini Timeline) */}
                     <aside className="space-y-6">
                         {/* Synthèse crédit permanente */}
-                        <div className="rounded-2xl border border-border/50 bg-card p-5 shadow-sm">
+                        <div className="rounded-2xl border border-[#0a2f6b]/60 bg-[#001d4e] p-5 shadow-[0_18px_45px_rgba(0,29,78,0.28)]">
                             <div className="mb-3 flex items-center justify-between">
-                                <span className="text-[0.625rem] font-black tracking-widest text-muted-foreground uppercase">
-                                    Synthèse crédit
-                                </span>
+                                <div className="flex items-center gap-2.5">
+                                    <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-gold/20 text-gold">
+                                        <Wallet className="size-4" />
+                                    </span>
+                                    <span className="text-[0.625rem] font-black tracking-widest text-white/70 uppercase">
+                                        Synthèse crédit
+                                    </span>
+                                </div>
                                 <span
                                     className={cn(
                                         'rounded-full px-2 py-0.5 text-[0.6875rem] font-bold',
                                         gaugeTone === 'destructive'
-                                            ? 'bg-destructive/10 text-destructive'
+                                            ? 'bg-red-500/20 text-red-300'
                                             : gaugeTone === 'gold'
-                                              ? 'bg-gold/15 text-gold'
-                                              : 'bg-emerald-500/10 text-emerald-600',
+                                              ? 'bg-gold/20 text-gold'
+                                              : 'bg-emerald-400/15 text-emerald-300',
                                     )}
                                 >
                                     {aside.creditSummary.percentage} % consommé
@@ -1497,22 +1647,22 @@ export default function CompanyAccountDetail({
 
                             {/* Jauge visuelle */}
                             <div className="mb-4 space-y-1.5">
-                                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                                <div className="h-2 w-full overflow-hidden rounded-full bg-white/15">
                                     <div
                                         className={cn(
                                             'h-full transition-all duration-500',
                                             gaugeTone === 'destructive'
-                                                ? 'bg-destructive'
+                                                ? 'bg-red-400'
                                                 : gaugeTone === 'gold'
                                                   ? 'bg-gold'
-                                                  : 'bg-[var(--kora)]',
+                                                  : 'bg-emerald-400',
                                         )}
                                         style={{
                                             width: `${Math.min(100, aside.creditSummary.percentage)}%`,
                                         }}
                                     />
                                 </div>
-                                <div className="flex justify-between text-[0.6875rem] font-semibold text-muted-foreground">
+                                <div className="flex justify-between text-[0.6875rem] font-semibold text-white/60">
                                     <span>0 FCFA</span>
                                     <span>
                                         {formatFcfa(
@@ -1522,26 +1672,26 @@ export default function CompanyAccountDetail({
                                 </div>
                             </div>
 
-                            <div className="divide-y divide-border/40 text-xs">
-                                <div className="flex justify-between py-2 text-muted-foreground">
+                            <div className="divide-y divide-white/10 text-xs">
+                                <div className="flex justify-between py-2 text-white/65">
                                     <span>Consommé</span>
-                                    <strong className="text-foreground">
+                                    <strong className="text-white">
                                         {formatFcfa(
                                             aside.creditSummary.consumed,
                                         )}
                                     </strong>
                                 </div>
-                                <div className="flex justify-between py-2 text-muted-foreground">
+                                <div className="flex justify-between py-2 text-white/65">
                                     <span>Réservé (holds)</span>
-                                    <strong className="text-foreground">
+                                    <strong className="text-white">
                                         {formatFcfa(
                                             aside.creditSummary.reserved,
                                         )}
                                     </strong>
                                 </div>
-                                <div className="flex justify-between py-2 text-muted-foreground">
+                                <div className="flex justify-between py-2 text-white/65">
                                     <span>Disponible</span>
-                                    <strong className="font-black text-emerald-600 dark:text-emerald-400">
+                                    <strong className="font-black text-emerald-300">
                                         {formatFcfa(
                                             aside.creditSummary.available,
                                         )}
@@ -1565,9 +1715,14 @@ export default function CompanyAccountDetail({
                         {/* Mini-timeline (3 derniers événements) */}
                         <div className="rounded-2xl border border-border/50 bg-card p-5 shadow-sm">
                             <div className="mb-4 flex items-center justify-between">
-                                <span className="text-[0.625rem] font-black tracking-widest text-muted-foreground uppercase">
-                                    Dernières activités
-                                </span>
+                                <div className="flex items-center gap-2.5">
+                                    <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-digital/10 text-digital">
+                                        <Activity className="size-4" />
+                                    </span>
+                                    <span className="text-[0.625rem] font-black tracking-widest text-muted-foreground uppercase">
+                                        Dernières activités
+                                    </span>
+                                </div>
                                 <button
                                     type="button"
                                     onClick={() => switchTab('historique')}
@@ -1593,10 +1748,15 @@ export default function CompanyAccountDetail({
                         </div>
 
                         {/* Rappel des conditions commerciales */}
-                        <div className="space-y-2 rounded-2xl border border-border/50 bg-card p-5 text-xs shadow-sm">
-                            <span className="text-[0.625rem] font-black tracking-widest text-muted-foreground uppercase">
-                                Paramétrage commercial
-                            </span>
+                        <div className="space-y-2.5 rounded-2xl border border-gold/40 bg-gold/5 p-5 text-xs shadow-sm">
+                            <div className="flex items-center gap-2.5">
+                                <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-gold/20 text-gold">
+                                    <BadgePercent className="size-4" />
+                                </span>
+                                <span className="text-[0.625rem] font-black tracking-widest text-muted-foreground uppercase">
+                                    Paramétrage commercial
+                                </span>
+                            </div>
                             <div className="space-y-1 text-muted-foreground">
                                 <p>
                                     Remise contractuelle :{' '}

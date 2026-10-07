@@ -93,12 +93,32 @@ export type DashboardPeriod = {
 /** Libellés, icônes et tons des quatre KPIs — les valeurs arrivent du backend. */
 export const metricCards: Record<
     MetricKey,
-    { label: string; icon: LucideIcon; tone: MetricTone }
+    { label: string; hint: string; icon: LucideIcon; tone: MetricTone }
 > = {
-    sales: { label: 'Ventes', icon: Banknote, tone: 'gold' },
-    tickets: { label: 'Billets émis', icon: Ticket, tone: 'blue' },
-    cash: { label: 'Caisse attendue', icon: CircleDollarSign, tone: 'navy' },
-    departures: { label: 'Départs', icon: BusFront, tone: 'green' },
+    sales: {
+        label: 'Ventes',
+        hint: 'Encaissements nets',
+        icon: Banknote,
+        tone: 'gold',
+    },
+    tickets: {
+        label: 'Billets émis',
+        hint: 'Sur la période',
+        icon: Ticket,
+        tone: 'blue',
+    },
+    cash: {
+        label: 'Caisse attendue',
+        hint: 'Sessions de caisse',
+        icon: CircleDollarSign,
+        tone: 'navy',
+    },
+    departures: {
+        label: 'Départs',
+        hint: 'Voyages planifiés',
+        icon: BusFront,
+        tone: 'green',
+    },
 };
 
 /** Ordre d'affichage des KPIs. */
