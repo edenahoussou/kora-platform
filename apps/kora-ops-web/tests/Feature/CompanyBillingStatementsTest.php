@@ -2,14 +2,16 @@
 
 use App\Models\User;
 use App\Modules\Booking\Models\Reservation;
-use App\Modules\CompanyAccounts\Mail\CompanyBillingStatementMail;
+use App\Modules\CompanyAccounts\Actions\GenerateCompanyStatementPdfAction;
 use App\Modules\CompanyAccounts\Models\CompanyAccount;
 use App\Modules\CompanyAccounts\Models\CompanyAccountMember;
 use App\Modules\CompanyAccounts\Models\CompanyBillingStatement;
 use App\Modules\CompanyAccounts\Models\CompanyCreditTransaction;
+use App\Modules\Fiscalization\Actions\GenerateFiscalInvoicePdfAction;
 use App\Modules\Fiscalization\Models\FiscalInvoice;
 use App\Modules\Payments\Models\Payment;
-use Illuminate\Support\Facades\Mail;
+use App\Notifications\CompanyAccounts\MonthlyBillingStatementNotification;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -73,7 +75,7 @@ function statementReservation(CompanyAccount $account, array $attributes = []): 
 }
 
 it('generates a monthly statement aggregating debits and refunds per account', function (): void {
-    Mail::fake();
+    Notification::fake();
 
     [$referent, $account] = statementReferent();
     $period = '2026-08';
@@ -130,11 +132,12 @@ it('generates a monthly statement aggregating debits and refunds per account', f
         ->and($statement->lines[1]['type'])->toBe('refund')
         ->and($statement->emailed_at)->not->toBeNull();
 
-    Mail::assertSent(CompanyBillingStatementMail::class, fn (CompanyBillingStatementMail $mail): bool => $mail->hasTo($referent->email));
+    Notification::assertSentTo($referent, MonthlyBillingStatementNotification::class);
+    Notification::assertSentOnDemand(MonthlyBillingStatementNotification::class);
 });
 
 it('regenerates a statement idempotently without duplicating or resending the email', function (): void {
-    Mail::fake();
+    Notification::fake();
 
     [, $account] = statementReferent();
     $period = '2026-08';
@@ -158,11 +161,133 @@ it('regenerates a statement idempotently without duplicating or resending the em
         ->and($second->reservations_count)->toBe(2)
         ->and($second->emailed_at->toIso8601String())->toBe($firstEmailedAt->toIso8601String());
 
-    Mail::assertSent(CompanyBillingStatementMail::class, 1);
+    // Une notification par destinataire : référent + email générique du compte.
+    Notification::assertCount(2);
+});
+
+it('addresses the billing email to the referent by name', function (): void {
+    Notification::fake();
+
+    [$referent, $account] = statementReferent();
+    $period = '2026-08';
+    statementTransaction($account, 'debit', 19000, $period, statementReservation($account));
+
+    $this->artisan('companies:billing-statements', ['--period' => $period])->assertSuccessful();
+
+    Notification::assertSentTo(
+        $referent,
+        MonthlyBillingStatementNotification::class,
+        fn (MonthlyBillingStatementNotification $notification): bool => $notification->recipientName === $referent->name,
+    );
+    Notification::assertSentOnDemand(
+        MonthlyBillingStatementNotification::class,
+        fn (MonthlyBillingStatementNotification $notification, array $channels, object $notifiable): bool => array_key_exists(
+            $account->email,
+            $notifiable->routes['mail'] ?? [],
+        ),
+    );
+});
+
+it('attaches the branded statement PDF and only certified sale invoices', function (): void {
+    [, $account] = statementReferent();
+    $period = '2026-08';
+
+    $reservation = statementReservation($account);
+    $payment = Payment::query()->create([
+        'uuid' => (string) Str::uuid(),
+        'reservation_id' => $reservation->id,
+        'method' => 'company_credit',
+        'provider' => 'company_credit',
+        'provider_reference' => 'CC-'.Str::upper(Str::random(10)),
+        'idempotency_key' => (string) Str::uuid(),
+        'amount' => 19000,
+        'currency' => 'XOF',
+        'status' => 'confirmed',
+        'payer_name' => $account->name,
+        'confirmed_at' => now(),
+    ]);
+    $saleInvoice = FiscalInvoice::query()->create([
+        'reservation_id' => $reservation->id,
+        'payment_id' => $payment->id,
+        'kora_reference' => 'KORA-STMT-001',
+        'status' => 'certified',
+        'document_kind' => 'sale',
+        'total_without_tax' => 19000,
+        'total_tax' => 0,
+        'total_with_tax' => 19000,
+        'tax_snapshot' => [],
+        'fiscalized_at' => now(),
+    ]);
+    $creditNote = FiscalInvoice::query()->create([
+        'reservation_id' => $reservation->id,
+        'payment_id' => $payment->id,
+        'kora_reference' => 'KORA-AV-001',
+        'status' => 'certified',
+        'document_kind' => 'credit_note',
+        'original_fiscal_invoice_id' => $saleInvoice->id,
+        'total_without_tax' => 4000,
+        'total_tax' => 0,
+        'total_with_tax' => 4000,
+        'tax_snapshot' => [],
+        'fiscalized_at' => now(),
+    ]);
+
+    $statement = CompanyBillingStatement::query()->create([
+        'company_account_id' => $account->id,
+        'period_key' => $period,
+        'reference' => "RLV-{$period}-{$account->reference}",
+        'status' => 'available',
+        'debit_total' => 19000,
+        'refund_total' => 4000,
+        'net_total' => 15000,
+        'reservations_count' => 1,
+        'invoices_count' => 2,
+        'lines' => [
+            [
+                'type' => 'debit',
+                'reference' => 'DEBIT-ABC',
+                'amount' => 19000,
+                'occurredAt' => now()->toISOString(),
+                'reservation' => ['uuid' => $reservation->uuid, 'reference' => 'RES-1', 'itinerary' => 'Cotonou → Parakou', 'passengers' => 2],
+                'invoice' => ['uuid' => $saleInvoice->uuid, 'koraReference' => 'KORA-STMT-001', 'status' => 'certified'],
+            ],
+            [
+                'type' => 'refund',
+                'reference' => 'REFUND-ABC',
+                'amount' => 4000,
+                'occurredAt' => now()->toISOString(),
+                'reservation' => null,
+                'invoice' => ['uuid' => $creditNote->uuid, 'koraReference' => 'KORA-AV-001', 'status' => 'certified'],
+            ],
+        ],
+        'generated_at' => now(),
+    ]);
+
+    $statementPdf = Mockery::mock(GenerateCompanyStatementPdfAction::class)
+        ->shouldReceive('execute')
+        ->once()
+        ->andReturn(['content' => '%PDF-releve', 'filename' => 'releve-test.pdf'])
+        ->getMock();
+    $this->instance(GenerateCompanyStatementPdfAction::class, $statementPdf);
+
+    $invoicePdf = Mockery::mock(GenerateFiscalInvoicePdfAction::class);
+    $invoicePdf->shouldReceive('execute')
+        ->once()
+        ->with(Mockery::on(fn (FiscalInvoice $invoice): bool => $invoice->uuid === $saleInvoice->uuid))
+        ->andReturn(['content' => '%PDF-facture', 'filename' => 'facture-KORA-STMT-001.pdf']);
+    $this->instance(GenerateFiscalInvoicePdfAction::class, $invoicePdf);
+
+    $message = (new MonthlyBillingStatementNotification($account, $statement, 'Kossi'))
+        ->toMail(new User);
+
+    expect($message->rawAttachments)->toHaveCount(2)
+        ->and($message->rawAttachments[0]['name'])->toBe('releve-test.pdf')
+        ->and($message->rawAttachments[1]['name'])->toBe('facture-KORA-STMT-001.pdf')
+        ->and($message->rawAttachments[0]['options']['mime'])->toBe('application/pdf');
 });
 
 it('generates a statement without sending email when the period has no reservations', function (): void {
-    Mail::fake();
+    Notification::fake();
 
     [, $account] = statementReferent();
     $period = '2026-08';
@@ -177,11 +302,11 @@ it('generates a statement without sending email when the period has no reservati
         ->and($statement->net_total)->toBe(0)
         ->and($statement->emailed_at)->toBeNull();
 
-    Mail::assertNothingSent();
+    Notification::assertNothingSent();
 });
 
 it('generates a statement for the previous month by default and skips suspended accounts', function (): void {
-    Mail::fake();
+    Notification::fake();
 
     [, $active] = statementReferent();
     [, $suspended] = statementReferent(['status' => 'inactive']);

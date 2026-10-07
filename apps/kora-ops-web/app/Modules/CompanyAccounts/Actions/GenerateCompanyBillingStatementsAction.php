@@ -8,12 +8,12 @@ use App\Modules\CompanyAccounts\Data\CompanyBillingStatementStatus;
 use App\Modules\CompanyAccounts\Data\CompanyCreditTransactionType;
 use App\Modules\CompanyAccounts\Data\CompanyMemberRole;
 use App\Modules\CompanyAccounts\Data\CompanyMemberStatus;
-use App\Modules\CompanyAccounts\Mail\CompanyBillingStatementMail;
 use App\Modules\CompanyAccounts\Models\CompanyAccount;
 use App\Modules\CompanyAccounts\Models\CompanyBillingStatement;
 use App\Modules\CompanyAccounts\Models\CompanyCreditTransaction;
+use App\Notifications\CompanyAccounts\MonthlyBillingStatementNotification;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
 
 /**
  * Génère (ou régénère) le relevé de facturation mensuel d'un compte
@@ -155,22 +155,35 @@ class GenerateCompanyBillingStatementsAction
             return false;
         }
 
-        $emails = $account->members()
+        // Une notification par destinataire
+        $referents = $account->members()
             ->where('role', CompanyMemberRole::Referent->value)
             ->where('status', CompanyMemberStatus::Active->value)
             ->with('user')
             ->get()
-            ->map(fn ($member): ?string => $member->user?->email)
-            ->merge([$account->email])
+            ->pluck('user')
             ->filter()
-            ->unique()
+            ->unique('email')
             ->values();
 
-        if ($emails->isEmpty()) {
+        $sent = false;
+        foreach ($referents as $referent) {
+            $referent->notify(
+                new MonthlyBillingStatementNotification($account, $statement, $referent->name),
+            );
+            $sent = true;
+        }
+
+        if ($account->email !== null && $referents->doesntContain('email', $account->email)) {
+            Notification::route('mail', [$account->email => $account->name])
+                ->notify(new MonthlyBillingStatementNotification($account, $statement, $account->name));
+            $sent = true;
+        }
+
+        if (! $sent) {
             return false;
         }
 
-        Mail::to($emails->all())->send(new CompanyBillingStatementMail($account, $statement));
         $statement->forceFill(['emailed_at' => now()])->save();
 
         return true;
