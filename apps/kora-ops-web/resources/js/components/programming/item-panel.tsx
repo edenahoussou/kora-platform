@@ -35,6 +35,7 @@ import {
     crewFields,
     dateLabel,
     Errors,
+    exceptionLabel,
     Field,
     OccupancyRing,
     PrimaryButton,
@@ -61,10 +62,22 @@ const crewIcons: Record<string, LucideIcon> = {
 
 const eventLabels: Record<string, string> = {
     'programming.departure.published': 'Départ publié et mis en vente',
-    'programming.exception': 'Exception manuelle appliquée à cette date',
 };
 
-function eventLabel(event: string): string {
+const exceptionOperationLabels: Record<string, string> = {
+    assign: 'Ressources affectées manuellement',
+    exclude: 'Date exclue du programme',
+    change: 'Ajustement manuel appliqué à cette date',
+};
+
+function eventLabel(event: string, operation?: string | null): string {
+    if (event === 'programming.exception') {
+        return (
+            exceptionOperationLabels[operation ?? ''] ??
+            'Ajustement manuel appliqué à cette date'
+        );
+    }
+
     return (
         eventLabels[event] ??
         event.replace(/^programming\./, '').replace(/[._]/g, ' ')
@@ -208,8 +221,16 @@ export function ItemPanel({
                                         {states[item.state]}
                                     </span>
                                     {item.isException && (
-                                        <span className="inline-flex items-center gap-1.5 rounded-md bg-violet-400/15 px-2 py-1 text-[0.625rem] font-extrabold text-violet-200 ring-1 ring-violet-300/25">
-                                            Exception
+                                        <span
+                                            className={cn(
+                                                'inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[0.625rem] font-extrabold ring-1',
+                                                item.exceptionKind ===
+                                                    'resources'
+                                                    ? 'bg-sky-400/15 text-sky-200 ring-sky-300/25'
+                                                    : 'bg-violet-400/15 text-violet-200 ring-violet-300/25',
+                                            )}
+                                        >
+                                            {exceptionLabel(item.exceptionKind)}
                                         </span>
                                     )}
                                     {item.protected && (
@@ -443,8 +464,10 @@ export function ItemPanel({
                                     </div>
                                     {item.isException && (
                                         <span className="mt-1 block font-semibold text-gold">
-                                            • Ce départ comporte des exceptions
-                                            manuelles.
+                                            •{' '}
+                                            {item.exceptionKind === 'resources'
+                                                ? 'Ressources affectées manuellement sur ce départ.'
+                                                : 'Ce départ comporte des exceptions manuelles.'}
                                         </span>
                                     )}
                                 </section>
@@ -624,7 +647,10 @@ export function ItemPanel({
                                             <span className="relative z-10 mt-1.5 size-3 shrink-0 rounded-full border-2 border-border bg-card" />
                                             <div className="min-w-0">
                                                 <p className="text-xs leading-relaxed font-semibold text-foreground">
-                                                    {eventLabel(entry.event)}
+                                                    {eventLabel(
+                                                        entry.event,
+                                                        entry.operation,
+                                                    )}
                                                 </p>
                                                 <p className="mt-0.5 text-[0.6875rem] font-medium text-muted-foreground">
                                                     {entry.actor ?? 'Système'} ·{' '}

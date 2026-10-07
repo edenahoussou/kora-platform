@@ -120,6 +120,7 @@ const items: PlanningItem[] = Array.from({ length: 28 }, (_, i) => {
         programmeUuid: 'programme',
         programmeName: 'Septembre · Ligne côtière',
         isException: i === 6,
+        exceptionKind: i === 6 ? 'resources' : null,
         protected: state === 'published',
         editable: state !== 'published',
         manual: false,

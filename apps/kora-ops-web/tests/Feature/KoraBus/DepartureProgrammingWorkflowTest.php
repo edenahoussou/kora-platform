@@ -136,3 +136,64 @@ it('blocks but never excludes applied departures colliding with a manual departu
         ->and(array_keys($result['errors']))->toHaveCount(1)
         ->and($programme->occurrences()->whereNull('departure_id')->count())->toBe(1);
 });
+
+it('distinguishes manual resource assignments from schedule exceptions', function (): void {
+    // Créneau sans bus : l'affectation manuelle est du remplissage, pas une exception d'horaire.
+    $version = workflowPublishTemplate($this, workflowSlot($this, null));
+    $programme = workflowApply($this, $version);
+    [$first, $second] = $programme->occurrences()->orderBy('service_date')->limit(2)->get()->all();
+
+    $this->actingAs($this->actor)->postJson(route('programming.actions'), [
+        'operation' => 'assign',
+        'items' => [['uuid' => $first->uuid, 'revision' => $first->revision]],
+        'changes' => ['bus_uuid' => $this->bus->uuid],
+    ])->assertOk();
+
+    $this->actingAs($this->actor)->postJson(route('programming.actions'), [
+        'operation' => 'change',
+        'items' => [['uuid' => $second->uuid, 'revision' => $second->revision]],
+        'changes' => ['time' => '09:30'],
+    ])->assertOk();
+
+    $assigned = $this->actingAs($this->actor)
+        ->getJson(route('programming.items.show', $first->uuid))->assertOk()->json();
+    expect($assigned['isException'])->toBeTrue()
+        ->and($assigned['exceptionKind'])->toBe('resources')
+        ->and($assigned['history'][0]['operation'])->toBe('assign');
+
+    $changed = $this->actingAs($this->actor)
+        ->getJson(route('programming.items.show', $second->uuid))->assertOk()->json();
+    expect($changed['isException'])->toBeTrue()
+        ->and($changed['exceptionKind'])->toBe('schedule')
+        ->and($changed['history'][0]['operation'])->toBe('change');
+
+    // L'affectation de ressources débloque la publication sans passer par une exclusion.
+    $result = $this->actingAs($this->actor)->postJson(route('programming.actions'), [
+        'operation' => 'publish',
+        'items' => [['uuid' => $first->uuid, 'revision' => $first->fresh()->revision]],
+    ])->assertOk()->json();
+
+    expect($result['processed'])->toBe(1)->and($result['errors'])->toBe([])
+        ->and($first->fresh()->state)->toBe('planned')
+        ->and($first->fresh()->departure->getRawOriginal('status'))->toBe('scheduled');
+});
+
+it('keeps programme calendar exceptions flagged as schedule exceptions', function (): void {
+    $slot = array_merge(workflowSlot($this, $this->bus->uuid), ['days' => [1, 2, 3, 4, 5]]);
+    $version = workflowPublishTemplate($this, $slot);
+
+    $this->actingAs($this->actor)->post(route('programming.programmes.store'), [
+        'name' => 'Avec ajout', 'version_uuid' => $version->uuid,
+        'starts_on' => '2026-09-07', 'ends_on' => '2026-09-13',
+        'horizon_days' => 30,
+        'exceptions' => [['slot_key' => $slot['key'], 'date' => '2026-09-13', 'action' => 'add']],
+    ])->assertSessionHasNoErrors()->assertRedirect();
+
+    $added = PlannedDeparture::query()->whereDate('service_date', '2026-09-13')->sole();
+    $item = $this->actingAs($this->actor)
+        ->getJson(route('programming.items.show', $added->uuid))->assertOk()->json();
+
+    expect($item['isException'])->toBeTrue()
+        ->and($item['exceptionKind'])->toBe('schedule')
+        ->and($item['state'])->not->toBe('excluded');
+});
