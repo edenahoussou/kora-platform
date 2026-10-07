@@ -17,6 +17,7 @@ declare module '@inertiajs/core' {
                 name: string;
                 reference: string;
             } | null;
+            portalOnly: boolean;
             sidebarOpen: boolean;
             mapConfig: {
                 provider: 'openstreetmap' | 'google';

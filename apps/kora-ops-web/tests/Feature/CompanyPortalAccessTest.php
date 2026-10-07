@@ -24,10 +24,10 @@ function portalAccount(array $attributes = []): CompanyAccount
     ]);
 }
 
-function portalUser(string $role = 'member'): array
+function portalUser(string $role = 'member', array $accountAttributes = []): array
 {
     $user = User::factory()->create();
-    $account = portalAccount();
+    $account = portalAccount($accountAttributes);
 
     $member = CompanyAccountMember::query()->create([
         'company_account_id' => $account->id,
@@ -252,4 +252,46 @@ it('requires the manage permission to invite a referent', function (): void {
             'email' => 'awa@horizon.bj',
         ])
         ->assertForbidden();
+});
+
+it('denies the companies admin index to a portal-only referent', function (): void {
+    [$user] = portalUser('referent');
+    $user->assignRole('passenger');
+
+    $this->actingAs($user)->get(route('companies.index'))->assertForbidden();
+});
+
+it('denies the companies admin index to a passenger-only user', function (): void {
+    $user = User::factory()->create();
+    $user->assignRole('passenger');
+
+    $this->actingAs($user)->get(route('companies.index'))->assertForbidden();
+});
+
+it('keeps the companies index accessible to internal staff', function (): void {
+    $daf = User::factory()->create();
+    $daf->assignRole('daf');
+    $agent = User::factory()->create();
+    $agent->assignRole('agency_agent');
+    [$internalReferent] = portalUser('referent', ['reference' => 'ORG-2026-INT']);
+    $internalReferent->assignRole('daf');
+
+    $this->actingAs($daf)->get(route('companies.index'))->assertSuccessful();
+    $this->actingAs($agent)->get(route('companies.index'))->assertSuccessful();
+    $this->actingAs($internalReferent)->get(route('companies.index'))->assertSuccessful();
+});
+
+it('flags a portal-only referent in the shared props', function (): void {
+    [$user] = portalUser('referent');
+    $user->assignRole('passenger');
+    [$internalReferent] = portalUser('referent', ['reference' => 'ORG-2026-INT']);
+    $internalReferent->assignRole('daf');
+
+    $this->actingAs($user)
+        ->get(route('company-portal.index'))
+        ->assertInertia(fn (Assert $page) => $page->where('portalOnly', true));
+
+    $this->actingAs($internalReferent)
+        ->get(route('dashboard'))
+        ->assertInertia(fn (Assert $page) => $page->where('portalOnly', false));
 });

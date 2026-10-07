@@ -321,7 +321,7 @@ export function KoraSidebar({
     onToggleCollapse: () => void;
 }) {
     const { isCurrentUrl } = useCurrentUrl();
-    const { auth, companyPortal } = usePage().props;
+    const { auth, companyPortal, portalOnly } = usePage().props;
     const { can, canAny, hasRole } = usePermissions();
     const getInitials = useInitials();
     const [openGroups, setOpenGroups] = useState<string[]>([]);
@@ -503,7 +503,10 @@ export function KoraSidebar({
                 className="flex flex-1 flex-col gap-[3px] overflow-y-auto"
                 aria-label="Navigation principale"
             >
-                {navItems.map((item) => {
+                {(portalOnly
+                    ? navItems.filter((item) => item.href === companyPortalHref)
+                    : navItems
+                ).map((item) => {
                     const visibleChildren = item.children?.filter(
                         (child) =>
                             canAccess(child.permission) &&
