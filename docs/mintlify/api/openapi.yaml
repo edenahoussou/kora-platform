@@ -3899,20 +3899,20 @@ paths:
                 name:
                   type: string
                   description: 'Nom affiché ou nom de l’appareil. Le champ value ne doit pas dépasser 120 caractères.'
-                  example: b
+                  example: 'Awa Ndiaye'
                 email:
                   type: string
                   description: 'Adresse email. Le champ value doit être une adresse e-mail valide. Le champ value ne doit pas dépasser 255 caractères.'
-                  example: zbailey@example.net
+                  example: awa.ndiaye@example.com
                 phone:
                   type: string
                   description: 'Numéro de téléphone. Must match the regex /^\+?[\d\s\-.()]{6,20}$/. Le champ value ne doit pas dépasser 20 caractères.'
-                  example: iyvdljnikhwaykcm
+                  example: '+2290191003606'
                   nullable: true
                 country_code:
                   type: string
                   description: 'Indicatif téléphonique du pays. Must match the regex /^\+?[\d\s\-.()]{1,7}$/. Le champ value ne doit pas dépasser 4 caractères.'
-                  example: yuwp
+                  example: '+229'
                   nullable: true
                 birth_date:
                   type: string

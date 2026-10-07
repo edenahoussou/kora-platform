@@ -87,6 +87,11 @@ const navItems: NavEntry[] = [
                 href: companyPortalRoutes.reservations.index.url(),
                 permission: null,
             },
+            {
+                title: 'Relevés de facturation',
+                href: companyPortalRoutes.statements.index.url(),
+                permission: null,
+            },
         ],
     },
     {

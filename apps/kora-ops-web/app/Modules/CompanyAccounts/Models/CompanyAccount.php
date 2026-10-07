@@ -87,6 +87,12 @@ class CompanyAccount extends KoraModel
         return $this->hasMany(CompanyCreditTransaction::class);
     }
 
+    /** @return HasMany<CompanyBillingStatement, $this> */
+    public function billingStatements(): HasMany
+    {
+        return $this->hasMany(CompanyBillingStatement::class);
+    }
+
     /** @return HasMany<Reservation, $this> */
     public function reservations(): HasMany
     {
