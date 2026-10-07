@@ -150,6 +150,22 @@ export const stateTheme: Record<
     },
 };
 export const days = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+
+/**
+ * Libellé du marqueur d'écart au modèle : une affectation manuelle de
+ * ressources (bus, équipage) n'est pas une exception d'horaire.
+ */
+export function exceptionLabel(kind: PlanningItem['exceptionKind']): string {
+    return kind === 'resources' ? 'Affecté manuellement' : 'Exception';
+}
+
+export function exceptionClassName(
+    kind: PlanningItem['exceptionKind'],
+): string {
+    return kind === 'resources'
+        ? 'bg-sky-500/15 text-sky-700 dark:text-sky-300'
+        : 'bg-violet-500/15 text-violet-600 dark:text-violet-400';
+}
 export const crewFields = [
     { key: 'driver_uuid', label: 'Chauffeur principal', role: 'bus_driver' },
     {
@@ -1099,8 +1115,12 @@ export function PlanningCard({
                     {item.isException && (
                         <GitBranch
                             size={13}
-                            className="text-violet-500"
-                            aria-label="Exception"
+                            className={
+                                item.exceptionKind === 'resources'
+                                    ? 'text-sky-500'
+                                    : 'text-violet-500'
+                            }
+                            aria-label={exceptionLabel(item.exceptionKind)}
                         />
                     )}
                     {item.blockers.length > 0 && (

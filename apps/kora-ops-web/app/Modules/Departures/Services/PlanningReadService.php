@@ -102,11 +102,12 @@ class PlanningReadService
      */
     public function item(PlannedDeparture $item, bool $history = false, ?array $assessment = null, ?array $occupancy = null): array
     {
-        $item->loadMissing(['programme', 'departure']);
+        $item->loadMissing(['programme', 'departure', 'version']);
         $result = [
             'uuid' => $item->uuid, 'revision' => $item->revision, 'date' => $item->service_date->toDateString(),
             'scheduledAt' => $item->scheduled_at->toIso8601String(), 'arrivalAt' => $item->arrival_at->toIso8601String(),
             'snapshot' => $item->snapshot, 'isException' => $item->is_exception,
+            'exceptionKind' => $this->exceptionKind($item),
             'programmeUuid' => $item->programme->uuid, 'programmeName' => $item->programme->name,
             'departureUuid' => $item->departure?->uuid, 'departureStatus' => $item->departure?->getRawOriginal('status'),
             'protected' => $this->planning->protected($item), 'manual' => false,
@@ -114,10 +115,40 @@ class PlanningReadService
             'occupancy' => $occupancy ?? $this->occupancyFor($item->departure?->id, $item->snapshot['bus_uuid'] ?? null),
         ] + ($assessment ?? $this->publication->assess($item));
         if ($history) {
-            $result['history'] = Activity::query()->where('subject_type', $item->getMorphClass())->where('subject_id', $item->id)->with('causer')->latest()->limit(30)->get()->map(fn (Activity $entry): array => ['event' => $entry->description, 'at' => $entry->created_at?->toIso8601String(), 'actor' => $entry->causer?->getAttribute('name')])->all();
+            $result['history'] = Activity::query()->where('subject_type', $item->getMorphClass())->where('subject_id', $item->id)->with('causer')->latest()->limit(30)->get()->map(fn (Activity $entry): array => ['event' => $entry->description, 'operation' => $entry->properties['operation'] ?? null, 'at' => $entry->created_at?->toIso8601String(), 'actor' => $entry->causer?->getAttribute('name')])->all();
         }
 
         return $result;
+    }
+
+    /**
+     * Nature de l'écart par rapport au créneau du modèle : « resources » pour
+     * une affectation manuelle (bus, équipage), « schedule » pour une vraie
+     * exception d'horaire ou de calendrier.
+     */
+    private function exceptionKind(PlannedDeparture $item): ?string
+    {
+        if (! $item->is_exception) {
+            return null;
+        }
+        $slot = collect($item->version->slots ?? [])->firstWhere('key', $item->slot_key);
+        if ($slot === null) {
+            return 'schedule';
+        }
+        $exception = collect($item->programme->exceptions ?? [])->first(
+            fn (array $entry): bool => ($entry['slot_key'] ?? null) === $item->slot_key
+                && ($entry['date'] ?? null) === $item->service_date->toDateString(),
+        );
+        if (($exception['action'] ?? null) === 'add') {
+            return 'schedule';
+        }
+        foreach (['line_uuid', 'time', 'timezone', 'days', 'interval_weeks', 'duration_minutes', 'stops', 'direction', 'return_key', 'return_day_offset', 'turnaround_minutes', 'preparation_minutes'] as $field) {
+            if (($item->snapshot[$field] ?? null) != ($slot[$field] ?? null)) {
+                return 'schedule';
+            }
+        }
+
+        return 'resources';
     }
 
     /**
@@ -232,7 +263,7 @@ class PlanningReadService
             'uuid' => $departure->uuid, 'revision' => 0, 'date' => $departure->scheduledDepartureAt()->setTimezone($slot['timezone'])->toDateString(),
             'scheduledAt' => $departure->scheduledDepartureAt()->toIso8601String(),
             'arrivalAt' => $departure->estimated_arrival_at?->toIso8601String() ?? $departure->scheduledDepartureAt()->addMinutes($slot['duration_minutes'])->toIso8601String(),
-            'snapshot' => $slot, 'isException' => false, 'programmeUuid' => '', 'programmeName' => 'Départ ponctuel',
+            'snapshot' => $slot, 'isException' => false, 'exceptionKind' => null, 'programmeUuid' => '', 'programmeName' => 'Départ ponctuel',
             'departureUuid' => $departure->uuid, 'departureStatus' => $departure->getRawOriginal('status'),
             'protected' => true, 'editable' => false, 'manual' => true, 'state' => $departure->getRawOriginal('status') === 'cancelled' ? 'excluded' : 'published',
             'blockers' => [], 'warnings' => [],

@@ -13,6 +13,8 @@ import {
     ProgrammingButton as Button,
     dateLabel,
     days,
+    exceptionClassName,
+    exceptionLabel,
     Empty,
     FillGauge,
     PlanningCard,
@@ -189,8 +191,17 @@ export function PlanningCalendar({
                                                 {item.snapshot.time}
                                             </strong>
                                             {item.isException && (
-                                                <span className="rounded bg-violet-500/15 px-1 py-0.5 text-[0.5625rem] font-bold text-violet-600 dark:text-violet-400">
-                                                    Exception
+                                                <span
+                                                    className={cn(
+                                                        'rounded px-1 py-0.5 text-[0.5625rem] font-bold',
+                                                        exceptionClassName(
+                                                            item.exceptionKind,
+                                                        ),
+                                                    )}
+                                                >
+                                                    {exceptionLabel(
+                                                        item.exceptionKind,
+                                                    )}
                                                 </span>
                                             )}
                                         </div>
