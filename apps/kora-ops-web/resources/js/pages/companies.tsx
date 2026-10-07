@@ -543,7 +543,12 @@ export default function CompaniesPage({
                                             key={account.uuid}
                                             className="group cursor-pointer border-b border-black/[0.045] transition-[background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-muted/30"
                                             onClick={() =>
-                                                setSelectedAccount(account)
+                                                router.get(
+                                                    companies.show.url({
+                                                        companyAccount:
+                                                            account.uuid,
+                                                    }),
+                                                )
                                             }
                                         >
                                             <td className="px-4 py-3.5">
@@ -645,8 +650,13 @@ export default function CompaniesPage({
                                                         type="button"
                                                         className="grid size-8 place-items-center rounded-full bg-muted text-foreground transition-[transform,background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:scale-105 hover:bg-gold/15"
                                                         onClick={() =>
-                                                            setSelectedAccount(
-                                                                account,
+                                                            router.get(
+                                                                companies.show.url(
+                                                                    {
+                                                                        companyAccount:
+                                                                            account.uuid,
+                                                                    },
+                                                                ),
                                                             )
                                                         }
                                                         aria-label={`Consulter ${account.name}`}

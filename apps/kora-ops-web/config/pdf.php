@@ -83,5 +83,22 @@ return [
                 '--enable-font-antialiasing',
             ],
         ],
+
+        // A4 paysage — relevé de facturation mensuel entreprise, lecture
+        // « relevé de banque ». Marges à 0 : bandeau navy + filet gold saignants.
+        'statement' => [
+            'paper_size' => [210, 297],
+            'landscape' => true,
+            'margins' => [0, 0, 0, 0],
+            'window_size' => [1123, 794],
+            'device_scale_factor' => 2,
+            'wait_until_network_idle' => false,
+            'emulate_media' => 'print',
+            'args' => [
+                '--disable-crash-reporter',
+                '--font-render-hinting=medium',
+                '--enable-font-antialiasing',
+            ],
+        ],
     ],
 ];
