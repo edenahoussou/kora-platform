@@ -12,4 +12,5 @@ Schedule::command('bus:expire-holds')->everyMinute()->withoutOverlapping();
 Schedule::command('bus:expire-assisted-bookings')->everyMinute()->withoutOverlapping();
 Schedule::command('bus:flag-stale-departures')->dailyAt('02:00')->withoutOverlapping();
 Schedule::command('bus:maintain-programmes')->hourly()->withoutOverlapping();
+Schedule::command('companies:billing-statements')->monthlyOn(1, '03:15')->withoutOverlapping();
 Schedule::command('whatsapp:retry-skipped --hours=2 --limit=50')->hourly()->withoutOverlapping();

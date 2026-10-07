@@ -80,7 +80,7 @@ export default function CompanyPortalIndex({ account, credit, stats }: Props) {
             description:
                 'Consultez vos relevés mensuels consolidés et les factures normalisées.',
             icon: CalendarClock,
-            href: null,
+            href: companyPortal.statements.index.url(),
         },
     ];
 

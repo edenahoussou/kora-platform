@@ -4,6 +4,7 @@ use App\Http\Controllers\CompanyAccountWebController;
 use App\Modules\CompanyAccounts\Http\Controllers\CompanyPortalController;
 use App\Modules\CompanyAccounts\Http\Controllers\CompanyPortalReservationController;
 use App\Modules\CompanyAccounts\Http\Controllers\CompanyPortalSaleController;
+use App\Modules\CompanyAccounts\Http\Controllers\CompanyPortalStatementController;
 use App\Modules\CompanyAccounts\Http\Controllers\CompanyPortalTravelerController;
 use Illuminate\Support\Facades\Route;
 
@@ -32,6 +33,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('achats', [CompanyPortalReservationController::class, 'index'])->name('reservations.index');
         Route::get('achats/export', [CompanyPortalReservationController::class, 'export'])->name('reservations.export');
         Route::get('achats/{reservation:uuid}', [CompanyPortalReservationController::class, 'show'])->name('reservations.show');
+        Route::get('releves', [CompanyPortalStatementController::class, 'index'])->name('statements.index');
+        Route::get('releves/{statement:uuid}', [CompanyPortalStatementController::class, 'show'])->name('statements.show');
         Route::get('membres', [CompanyPortalTravelerController::class, 'index'])->name('travelers.index');
         Route::post('membres', [CompanyPortalTravelerController::class, 'store'])->name('travelers.store');
         Route::post('membres/import', [CompanyPortalTravelerController::class, 'import'])->name('travelers.import');
