@@ -42,7 +42,8 @@ class HandleInertiaRequests extends Middleware
     {
         $user = $request->user();
         $settings = app(IntegrationsSettings::class);
-        $referentAccount = app(ResolveReferentCompanyAccountAction::class)->handle($user);
+        $referentResolver = app(ResolveReferentCompanyAccountAction::class);
+        $referentAccount = $referentResolver->handle($user);
 
         return [
             ...parent::share($request),
@@ -65,6 +66,7 @@ class HandleInertiaRequests extends Middleware
                 'name' => $referentAccount->name,
                 'reference' => $referentAccount->reference,
             ],
+            'portalOnly' => $referentResolver->isPortalOnlyUser($user),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'mapConfig' => [
                 'provider' => MapSetting::resolvedProvider()->value,

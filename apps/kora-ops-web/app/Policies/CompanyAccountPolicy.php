@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\User;
 use App\Modules\CompanyAccounts\Models\CompanyAccount;
+use App\Modules\IdentityAccess\Data\SystemRole;
 use App\Modules\IdentityAccess\Data\UserStatus;
 
 use function Illuminate\Support\enum_value;
@@ -12,8 +13,15 @@ class CompanyAccountPolicy
 {
     public function viewAny(User $user): bool
     {
+        // Le rôle passenger porte company-accounts.view pour l'API membre :
+        // un utilisateur cantonné à ce seul rôle n'a pas accès à l'index admin.
         return enum_value($user->status) === UserStatus::Active->value
-            && $user->can('company-accounts.view');
+            && $user->can('company-accounts.view')
+            && (! $user->hasRole(SystemRole::Passenger->value)
+                || $user->hasAnyRole(array_map(
+                    fn (SystemRole $role): string => $role->value,
+                    SystemRole::internalRoles(),
+                )));
     }
 
     public function view(User $user, CompanyAccount $account): bool
