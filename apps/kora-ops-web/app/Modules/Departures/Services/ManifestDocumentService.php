@@ -9,8 +9,7 @@ use App\Modules\Departures\Actions\ComputeManifestVersionAction;
 use App\Modules\Departures\Actions\ResolveManifestSegmentsAction;
 use App\Modules\Departures\Data\ManifestSegmentStatus;
 use App\Modules\Departures\Models\Departure;
-use App\Modules\Settings\Settings\GeneralSettings;
-use App\Modules\Settings\Settings\IntegrationsSettings;
+use App\Modules\Support\Services\DocumentBrandingService;
 use App\Modules\Ticketing\Models\Ticket;
 
 use function Illuminate\Support\enum_value;
@@ -42,8 +41,7 @@ class ManifestDocumentService
         private readonly ResolveManifestSegmentsAction $resolveSegments,
         private readonly ComputeManifestVersionAction $computeVersion,
         private readonly DepartureStopTimeResolver $stopTimeResolver,
-        private readonly GeneralSettings $generalSettings,
-        private readonly IntegrationsSettings $integrationsSettings,
+        private readonly DocumentBrandingService $branding,
     ) {}
 
     /** @return array<string, mixed> */
@@ -110,8 +108,8 @@ class ManifestDocumentService
 
         return [
             'international' => $international,
-            'logoDataUri' => $this->logoDataUri(),
-            'company' => $this->company(),
+            'logoDataUri' => $this->branding->logoDataUri(),
+            'company' => $this->branding->company(),
             'document' => [
                 'number' => $this->documentNumber($departure),
                 'version' => $this->computeVersion->execute($departure, $segments, $ticketsByPassengerId),
@@ -235,36 +233,5 @@ class ManifestDocumentService
         $time = substr(str_replace(':', '', (string) $departure->departure_time), 0, 4);
 
         return "MAN-{$lineCode}-{$date}-{$time}";
-    }
-
-    /** @return array<string, mixed> */
-    private function company(): array
-    {
-        $settings = $this->integrationsSettings;
-
-        return [
-            'name' => $settings->emecfShopName ?? $this->generalSettings->displayName,
-            'tagline' => 'Transport interurbain de voyageurs',
-            'addressLines' => array_values(array_filter([
-                $settings->emecfAddress1,
-                $settings->emecfAddress2,
-                $settings->emecfAddress3,
-            ])),
-            'contacts' => array_values(array_filter([
-                $settings->emecfContact1,
-                $settings->emecfContact2,
-                $settings->emecfContact3,
-                $this->generalSettings->supportCallPhone,
-            ])),
-            'ifu' => $settings->emecfDefaultIfu,
-            'nim' => $settings->emecfNim,
-        ];
-    }
-
-    private function logoDataUri(): string
-    {
-        return 'data:image/png;base64,'.base64_encode(
-            (string) file_get_contents(public_path('kora-logo-sidebar.png')),
-        );
     }
 }

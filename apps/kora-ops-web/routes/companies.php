@@ -16,6 +16,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('{companyAccount:uuid}', [CompanyAccountWebController::class, 'show'])->name('show');
         Route::get('{companyAccount:uuid}/achats/export', [CompanyAccountWebController::class, 'exportReservations'])->name('reservations.export');
         Route::get('{companyAccount:uuid}/achats/{reservation:uuid}', [CompanyAccountWebController::class, 'showReservation'])->name('reservations.show');
+        Route::get('{companyAccount:uuid}/releves/{statement:uuid}/export', [CompanyAccountWebController::class, 'exportStatement'])->name('statements.export');
         Route::get('{companyAccount:uuid}/releves/{statement:uuid}', [CompanyAccountWebController::class, 'showStatement'])->name('statements.show');
         Route::put('{companyAccount:uuid}', [CompanyAccountWebController::class, 'update'])->name('update');
         Route::patch('{companyAccount:uuid}/status', [CompanyAccountWebController::class, 'changeStatus'])->name('status');

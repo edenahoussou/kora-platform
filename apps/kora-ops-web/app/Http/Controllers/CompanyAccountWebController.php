@@ -9,6 +9,7 @@ use App\Http\Requests\UpdateCompanyAccountWebRequest;
 use App\Models\User;
 use App\Modules\Booking\Data\ReservationStatus;
 use App\Modules\Booking\Models\Reservation;
+use App\Modules\CompanyAccounts\Actions\GenerateCompanyStatementPdfAction;
 use App\Modules\CompanyAccounts\Data\CompanyAccountStatus;
 use App\Modules\CompanyAccounts\Data\CompanyAccountType;
 use App\Modules\CompanyAccounts\Data\CompanyCreditHoldStatus;
@@ -21,6 +22,7 @@ use App\Modules\CompanyAccounts\Models\CompanyBillingStatement;
 use App\Modules\CompanyAccounts\Models\CompanyCreditHold;
 use App\Modules\CompanyAccounts\Models\CompanyCreditTransaction;
 use App\Modules\CompanyAccounts\Models\CompanyTraveler;
+use App\Modules\CompanyAccounts\Services\CompanyBillingStatementDocumentService;
 use App\Modules\CompanyAccounts\Services\CompanyPurchaseHistoryReadService;
 use App\Modules\Finance\Services\FinanceExportService;
 use App\Modules\Fiscalization\Data\FiscalInvoiceStatus;
@@ -41,6 +43,7 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Activitylog\Models\Activity;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CompanyAccountWebController extends Controller
@@ -49,6 +52,8 @@ class CompanyAccountWebController extends Controller
         private readonly PassengerIdentityResolver $identityResolver,
         private readonly FinanceExportService $exportService,
         private readonly CompanyPurchaseHistoryReadService $historyService,
+        private readonly CompanyBillingStatementDocumentService $statementDocuments,
+        private readonly GenerateCompanyStatementPdfAction $statementPdf,
     ) {}
 
     public function index(Request $request): Response
@@ -515,11 +520,82 @@ class CompanyAccountWebController extends Controller
             ]);
         }
 
-        return $this->exportService->csv(
-            "achats-{$companyAccount->reference}-{$month}.csv",
-            ['Référence', 'Date d’achat', 'Itinéraire', 'Date de voyage', 'Voyageurs', 'Statut', 'Montant (F CFA)'],
-            $rows,
-        );
+        $headers = ['Référence', 'Date d’achat', 'Itinéraire', 'Date de voyage', 'Voyageurs', 'Statut', 'Montant (F CFA)'];
+        $filename = "achats-{$companyAccount->reference}-{$month}";
+
+        return $request->string('format', 'csv')->toString() === 'xlsx'
+            ? $this->exportService->xlsx("{$filename}.xlsx", $headers, $rows)
+            : $this->exportService->csv("{$filename}.csv", $headers, $rows);
+    }
+
+    /**
+     * Export du relevé mensuel : PDF brandé KORA (A4) ou classeur Excel
+     * (synthèse + opérations). Réservé aux relevés réellement générés.
+     */
+    public function exportStatement(Request $request, CompanyAccount $companyAccount, string $statement): HttpResponse|StreamedResponse
+    {
+        Gate::authorize('viewAny', CompanyAccount::class);
+
+        abort_unless(Str::isUuid($statement), 404);
+
+        $realStatement = CompanyBillingStatement::query()
+            ->where('uuid', $statement)
+            ->where('company_account_id', $companyAccount->id)
+            ->firstOrFail();
+
+        if ($request->string('format', 'pdf')->toString() === 'xlsx') {
+            $payload = $this->statementDocuments->payload($realStatement);
+            /** @var list<array<string, mixed>> $lines */
+            $lines = is_array($payload['lines'] ?? null) ? array_values($payload['lines']) : [];
+
+            return $this->exportService->workbook(
+                "releve-{$realStatement->reference}.xlsx",
+                [
+                    [
+                        'title' => 'Synthèse',
+                        'headers' => ['Champ', 'Valeur'],
+                        'rows' => [
+                            ['Organisation', $payload['account']['name']],
+                            ['Compte', $payload['account']['reference']],
+                            ['Type', $payload['account']['typeLabel']],
+                            ['IFU', $payload['account']['ifu'] ?? ''],
+                            ['RCCM', $payload['account']['rccm'] ?? ''],
+                            ['Période', $payload['statement']['periodLabel']],
+                            ['Référence relevé', $payload['document']['reference']],
+                            ['Statut', $payload['document']['statusLabel']],
+                            ['Réservations', $payload['statement']['reservationsCount']],
+                            ['Factures normalisées', $payload['statement']['invoicesCount']],
+                            ['Total débits (F CFA)', $payload['statement']['debitTotal']],
+                            ['Avoirs (F CFA)', $payload['statement']['refundTotal']],
+                            ['Net à régler (F CFA)', $payload['statement']['netTotal']],
+                            ['Généré le', $payload['document']['generatedAt']],
+                            ['Transmis le', $payload['document']['emailedAt'] ?? ''],
+                        ],
+                    ],
+                    [
+                        'title' => 'Opérations',
+                        'headers' => ['Date', 'Référence', 'Type', 'Réservation', 'Itinéraire', 'Voyageurs', 'Facture', 'Montant (F CFA)'],
+                        'rows' => collect($lines)->map(fn (array $line): array => [
+                            $line['occurredAt'],
+                            $line['reference'],
+                            $line['typeLabel'],
+                            $line['reservation']['reference'] ?? '',
+                            $line['reservation']['itinerary'] ?? '',
+                            $line['reservation']['passengers'] ?? '',
+                            $line['invoice']['koraReference'] ?? '',
+                            $line['signedAmount'],
+                        ]),
+                    ],
+                ],
+            );
+        }
+
+        $pdf = $this->statementPdf->execute($realStatement);
+
+        return response($pdf['content'], 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$pdf['filename'].'"',
+        ]);
     }
 
     /**
@@ -754,6 +830,7 @@ class CompanyAccountWebController extends Controller
                     'invoicesCount' => 12,
                     'generatedAt' => '2026-10-01T07:00:00Z',
                     'emailedAt' => '2026-10-01T08:00:00Z',
+                    'exportable' => false,
                 ],
                 [
                     'uuid' => 'stmt-fixture-2',
@@ -770,6 +847,7 @@ class CompanyAccountWebController extends Controller
                     'invoicesCount' => 9,
                     'generatedAt' => '2026-09-01T07:00:00Z',
                     'emailedAt' => '2026-09-01T08:00:00Z',
+                    'exportable' => false,
                 ],
             ];
 
@@ -1022,6 +1100,7 @@ class CompanyAccountWebController extends Controller
             'lines' => $statement->lines ?? [],
             'generatedAt' => $statement->generated_at?->toISOString(),
             'emailedAt' => $statement->emailed_at?->toISOString(),
+            'exportable' => true,
         ];
     }
 
@@ -1069,6 +1148,7 @@ class CompanyAccountWebController extends Controller
             ],
             'generatedAt' => '2026-10-01T07:00:00Z',
             'emailedAt' => '2026-10-01T08:00:00Z',
+            'exportable' => false,
         ];
     }
 

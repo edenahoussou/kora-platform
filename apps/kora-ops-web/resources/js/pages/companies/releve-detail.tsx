@@ -4,6 +4,8 @@ import {
     ArrowLeft,
     ArrowUpRight,
     CalendarClock,
+    Download,
+    FileSpreadsheet,
     FileText,
     MailCheck,
     Receipt,
@@ -49,6 +51,7 @@ type Statement = {
     lines: StatementLine[];
     generatedAt: string | null;
     emailedAt: string | null;
+    exportable: boolean;
 };
 
 type Props = {
@@ -172,12 +175,44 @@ export default function CompanyAccountStatementDetail({
                             .
                         </p>
                     </div>
-                    <Link
-                        href={`/companies/${account.uuid}?tab=factures`}
-                        className="btn btn-ghost"
-                    >
-                        <ArrowLeft className="size-4" /> Retour aux factures
-                    </Link>
+                    <div className="flex flex-wrap items-center gap-2.5">
+                        {statement.exportable && (
+                            <>
+                                <a
+                                    href={companies.statements.export.url(
+                                        {
+                                            companyAccount: account.uuid,
+                                            statement: statement.uuid,
+                                        },
+                                        { query: { format: 'pdf' } },
+                                    )}
+                                    className="btn btn-primary"
+                                >
+                                    <Download className="size-4" />
+                                    Relevé PDF
+                                </a>
+                                <a
+                                    href={companies.statements.export.url(
+                                        {
+                                            companyAccount: account.uuid,
+                                            statement: statement.uuid,
+                                        },
+                                        { query: { format: 'xlsx' } },
+                                    )}
+                                    className="btn btn-navy"
+                                >
+                                    <FileSpreadsheet className="size-4" />
+                                    Excel
+                                </a>
+                            </>
+                        )}
+                        <Link
+                            href={`/companies/${account.uuid}?tab=factures`}
+                            className="btn btn-ghost"
+                        >
+                            <ArrowLeft className="size-4" /> Retour aux factures
+                        </Link>
+                    </div>
                 </div>
 
                 <section className="cash-ledger-grid cash-reveal cash-reveal-delay-1">

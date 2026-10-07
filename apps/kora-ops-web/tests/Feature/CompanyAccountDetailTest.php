@@ -1,10 +1,15 @@
 <?php
 
 use App\Models\User;
+use App\Modules\CompanyAccounts\Actions\GenerateCompanyStatementPdfAction;
 use App\Modules\CompanyAccounts\Models\CompanyAccount;
 use App\Modules\CompanyAccounts\Models\CompanyAccountMember;
+use App\Modules\CompanyAccounts\Models\CompanyBillingStatement;
+use App\Modules\CompanyAccounts\Services\CompanyBillingStatementDocumentService;
 use Database\Seeders\KoraBusRolePermissionSeeder;
+use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
+use Mockery\MockInterface;
 
 beforeEach(function (): void {
     $this->seed(KoraBusRolePermissionSeeder::class);
@@ -24,6 +29,49 @@ function detailCompanyAccount(array $attributes = []): CompanyAccount
         'country' => 'BJ',
         ...$attributes,
     ]);
+}
+
+function detailBillingStatement(CompanyAccount $account): CompanyBillingStatement
+{
+    return CompanyBillingStatement::query()->create([
+        'company_account_id' => $account->id,
+        'period_key' => '2026-09',
+        'reference' => 'RLV-2026-09-ATL',
+        'status' => 'available',
+        'currency' => 'XOF',
+        'debit_total' => 45000,
+        'refund_total' => 8000,
+        'net_total' => 37000,
+        'reservations_count' => 2,
+        'invoices_count' => 2,
+        'lines' => [
+            [
+                'type' => 'debit',
+                'reference' => 'DEB-2026-0928-01',
+                'amount' => 16200,
+                'occurredAt' => '2026-09-28T09:15:00Z',
+                'reservation' => ['uuid' => Str::uuid()->toString(), 'reference' => 'RES-2026-08412', 'itinerary' => 'Cotonou → Parakou', 'passengers' => 2],
+                'invoice' => ['uuid' => Str::uuid()->toString(), 'koraReference' => 'KOR-INV-8412', 'status' => 'certified', 'totalWithTax' => 16200],
+            ],
+            [
+                'type' => 'refund',
+                'reference' => 'REF-2026-0918-01',
+                'amount' => 8000,
+                'occurredAt' => '2026-09-18T16:00:00Z',
+                'reservation' => null,
+                'invoice' => null,
+            ],
+        ],
+        'generated_at' => now(),
+        'emailed_at' => now(),
+    ]);
+}
+
+function statementPdfAction(): MockInterface
+{
+    return Mockery::mock(GenerateCompanyStatementPdfAction::class, [
+        app(CompanyBillingStatementDocumentService::class),
+    ])->makePartial()->shouldAllowMockingProtectedMethods();
 }
 
 it('renders the company account detail page with 5 tabs and aside for internal staff', function (): void {
@@ -150,4 +198,118 @@ it('exports reservations as a streamed CSV file in admin context', function (): 
 
     $response->assertSuccessful();
     expect($response->headers->get('content-type'))->toContain('text/csv');
+});
+
+it('exports reservations as an Excel workbook when format=xlsx', function (): void {
+    $admin = User::factory()->create();
+    $admin->assignRole('daf');
+    $account = detailCompanyAccount();
+
+    $response = $this->actingAs($admin)
+        ->get(route('companies.reservations.export', [
+            'companyAccount' => $account->uuid,
+            'format' => 'xlsx',
+        ]));
+
+    $response->assertSuccessful();
+    expect($response->headers->get('content-type'))->toContain('spreadsheetml');
+});
+
+it('exports the statement as a branded KORA PDF document', function (): void {
+    $admin = User::factory()->create();
+    $admin->assignRole('daf');
+    $account = detailCompanyAccount();
+    $statement = detailBillingStatement($account);
+
+    $action = statementPdfAction();
+    $action->shouldReceive('renderPdf')
+        ->once()
+        ->withArgs(function (string $html): bool {
+            // Les fonts/logo en data-URI base64 peuvent contenir ces
+            // sous-chaînes par hasard — on les exclut avant l'assertion.
+            $visible = preg_replace('/data:[^"\')\s]+/', '', $html);
+            expect($visible)->toContain('RELEVÉ')
+                ->toContain('RLV-2026-09-ATL')
+                ->toContain('Septembre 2026')
+                ->toContain('Société Atlantique')
+                ->toContain('ORG-2026-ATL')
+                ->toContain('RES-2026-08412')
+                ->toContain('KOR-INV-8412')
+                ->toContain('Net à régler');
+
+            return true;
+        })
+        ->andReturn('%PDF-KORA statement');
+    $this->instance(GenerateCompanyStatementPdfAction::class, $action);
+
+    $this->actingAs($admin)
+        ->get(route('companies.statements.export', [
+            'companyAccount' => $account->uuid,
+            'statement' => $statement->uuid,
+            'format' => 'pdf',
+        ]))
+        ->assertOk()
+        ->assertHeader('Content-Type', 'application/pdf')
+        ->assertHeader('Content-Disposition', 'attachment; filename="releve-RLV-2026-09-ATL.pdf"');
+});
+
+it('exports the statement as an Excel workbook with summary and operations sheets', function (): void {
+    $admin = User::factory()->create();
+    $admin->assignRole('daf');
+    $account = detailCompanyAccount();
+    $statement = detailBillingStatement($account);
+
+    $response = $this->actingAs($admin)
+        ->get(route('companies.statements.export', [
+            'companyAccount' => $account->uuid,
+            'statement' => $statement->uuid,
+            'format' => 'xlsx',
+        ]));
+
+    $response->assertSuccessful();
+    expect($response->headers->get('content-type'))->toContain('spreadsheetml');
+    expect($response->headers->get('content-disposition'))->toContain('releve-RLV-2026-09-ATL.xlsx');
+});
+
+it('returns 404 when exporting a statement of another account or a fake uuid', function (): void {
+    $admin = User::factory()->create();
+    $admin->assignRole('daf');
+    $account = detailCompanyAccount();
+    $otherAccount = detailCompanyAccount(['name' => 'Autre Org', 'reference' => 'ORG-2026-OTH']);
+    $statement = detailBillingStatement($otherAccount);
+
+    $this->actingAs($admin)
+        ->get(route('companies.statements.export', [
+            'companyAccount' => $account->uuid,
+            'statement' => $statement->uuid,
+        ]))
+        ->assertNotFound();
+
+    $this->actingAs($admin)
+        ->get(route('companies.statements.export', [
+            'companyAccount' => $account->uuid,
+            'statement' => 'stmt-fixture-1',
+        ]))
+        ->assertNotFound();
+});
+
+it('denies statement export to a portal-only referent', function (): void {
+    $user = User::factory()->create();
+    $user->assignRole('passenger');
+    $account = detailCompanyAccount();
+    $statement = detailBillingStatement($account);
+
+    CompanyAccountMember::query()->create([
+        'company_account_id' => $account->id,
+        'user_id' => $user->id,
+        'role' => 'referent',
+        'status' => 'active',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('companies.statements.export', [
+            'companyAccount' => $account->uuid,
+            'statement' => $statement->uuid,
+        ]))
+        ->assertForbidden();
 });
