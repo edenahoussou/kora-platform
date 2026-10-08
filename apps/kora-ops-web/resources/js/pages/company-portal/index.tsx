@@ -1,14 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import { Basket, Drawer, Plot, Terrain } from '@lucasmarkes/hairline/react';
-import {
-    CalendarClock,
-    CreditCard,
-    History,
-    Ticket,
-    Users,
-    UserRoundCheck,
-    Wallet,
-} from 'lucide-react';
+import { CreditCard, Ticket, UserRoundCheck, Wallet } from 'lucide-react';
 import type { CSSProperties } from 'react';
 import { formatFcfa } from '@/components/company-accounts/company-account-types';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
@@ -59,13 +51,11 @@ export default function CompanyPortalIndex({ account, credit, stats }: Props) {
         {
             title: 'Acheter des billets',
             description:
-                'Réservez des trajets pour les membres de votre organisation, réglés par votre crédit mensuel.',
-            icon: Ticket,
+                'Réservez des trajets pour vos membres, réglés par crédit mensuel.',
             href: companyPortal.sale.index.url(),
             figure: Basket,
             figureLabel: 'Un panier qui s’incline vers le pointeur',
             cardClass: 'bg-gold text-kora',
-            iconClass: 'bg-kora/10 text-kora',
             mutedClass: 'text-kora/70',
             figureTheme: {
                 '--hairline-plate': 'var(--gold)',
@@ -79,13 +69,11 @@ export default function CompanyPortalIndex({ account, credit, stats }: Props) {
             title: 'Membres voyageurs',
             description:
                 'Déclarez les employés autorisés à voyager et gérez leur fiche.',
-            icon: Users,
             href: companyPortal.travelers.index.url(),
             figure: Terrain,
             figureLabel:
                 'Un champ de piliers qui se soulève autour du pointeur',
             cardClass: 'bg-kora text-white',
-            iconClass: 'bg-white/15 text-white',
             mutedClass: 'text-white/70',
             figureTheme: {
                 '--hairline-plate': 'var(--kora)',
@@ -99,12 +87,10 @@ export default function CompanyPortalIndex({ account, credit, stats }: Props) {
             title: 'Historique des achats',
             description:
                 'Retrouvez vos réservations, voyageurs et billets émis.',
-            icon: History,
             href: companyPortal.reservations.index.url(),
             figure: Drawer,
             figureLabel: 'Un meuble à tiroirs qui s’ouvre sous le pointeur',
             cardClass: 'bg-digital text-white',
-            iconClass: 'bg-white/15 text-white',
             mutedClass: 'text-white/70',
             figureTheme: {
                 '--hairline-plate': 'var(--digital)',
@@ -117,14 +103,12 @@ export default function CompanyPortalIndex({ account, credit, stats }: Props) {
         {
             title: 'Relevés de facturation',
             description:
-                'Consultez vos relevés mensuels consolidés et les factures normalisées.',
-            icon: CalendarClock,
+                'Consultez vos relevés mensuels et factures normalisées.',
             href: companyPortal.statements.index.url(),
             figure: Plot,
             figureLabel:
                 'Un diagramme en barres qui se soulève sous le pointeur',
             cardClass: 'bg-emerald-600 text-white',
-            iconClass: 'bg-white/15 text-white',
             mutedClass: 'text-white/70',
             figureTheme: {
                 '--hairline-plate': '#059669',
@@ -228,7 +212,7 @@ export default function CompanyPortalIndex({ account, credit, stats }: Props) {
                     </div>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
                     {sections.map((section) => {
                         const Figure = section.figure;
                         const content = (
@@ -236,36 +220,21 @@ export default function CompanyPortalIndex({ account, credit, stats }: Props) {
                                 <Figure
                                     intensity={0.7}
                                     label={section.figureLabel}
-                                    className="absolute top-1/2 right-0 h-[115%] w-auto -translate-y-1/2"
+                                    className="h-24 w-30 shrink-0"
                                     style={section.figureTheme as CSSProperties}
                                 />
-                                <div className="relative z-10 flex min-h-40 flex-col justify-between gap-6 p-5 pr-[46%]">
-                                    <span
+                                <div className="min-w-0">
+                                    <strong className="block truncate text-sm font-extrabold">
+                                        {section.title}
+                                    </strong>
+                                    <p
                                         className={cn(
-                                            'grid size-9 place-items-center rounded-xl',
-                                            section.iconClass,
+                                            'mt-1 line-clamp-3 text-[0.75rem] leading-4.5',
+                                            section.mutedClass,
                                         )}
                                     >
-                                        <section.icon className="size-4" />
-                                    </span>
-                                    <div>
-                                        <strong className="block text-sm font-extrabold">
-                                            {section.title}
-                                        </strong>
-                                        <p
-                                            className={cn(
-                                                'mt-1 text-[0.75rem] leading-5',
-                                                section.mutedClass,
-                                            )}
-                                        >
-                                            {section.description}
-                                        </p>
-                                    </div>
-                                    {section.href === null && (
-                                        <span className="text-[0.625rem] font-bold tracking-[0.08em] uppercase opacity-70">
-                                            Bientôt disponible
-                                        </span>
-                                    )}
+                                        {section.description}
+                                    </p>
                                 </div>
                             </>
                         );
@@ -274,7 +243,7 @@ export default function CompanyPortalIndex({ account, credit, stats }: Props) {
                             <div
                                 key={section.title}
                                 className={cn(
-                                    'relative block min-h-40 cursor-pointer overflow-hidden rounded-2xl opacity-70 select-none',
+                                    'flex cursor-pointer items-center gap-4 rounded-xl px-4 py-5 opacity-70 select-none',
                                     section.cardClass,
                                 )}
                                 aria-disabled="true"
@@ -286,7 +255,7 @@ export default function CompanyPortalIndex({ account, credit, stats }: Props) {
                                 key={section.title}
                                 href={section.href}
                                 className={cn(
-                                    'group relative block min-h-40 cursor-pointer overflow-hidden rounded-2xl shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg',
+                                    'group flex cursor-pointer items-center gap-4 rounded-xl px-4 py-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg',
                                     section.cardClass,
                                 )}
                             >
