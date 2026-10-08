@@ -1,4 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
+import { Basket, Drawer, Plot, Terrain } from '@lucasmarkes/hairline/react';
 import {
     CalendarClock,
     CreditCard,
@@ -8,6 +9,7 @@ import {
     UserRoundCheck,
     Wallet,
 } from 'lucide-react';
+import type { CSSProperties } from 'react';
 import { formatFcfa } from '@/components/company-accounts/company-account-types';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { cn } from '@/lib/utils';
@@ -60,6 +62,18 @@ export default function CompanyPortalIndex({ account, credit, stats }: Props) {
                 'Réservez des trajets pour les membres de votre organisation, réglés par votre crédit mensuel.',
             icon: Ticket,
             href: companyPortal.sale.index.url(),
+            figure: Basket,
+            figureLabel: 'Un panier qui s’incline vers le pointeur',
+            cardClass: 'bg-gold text-kora',
+            iconClass: 'bg-kora/10 text-kora',
+            mutedClass: 'text-kora/70',
+            figureTheme: {
+                '--hairline-plate': 'var(--gold)',
+                '--hairline-hi': '#001d4e',
+                '--hairline-edge': 'rgba(0, 29, 78, 0.55)',
+                '--hairline-mid': 'rgba(0, 29, 78, 0.30)',
+                '--hairline-lo': 'rgba(0, 29, 78, 0.14)',
+            },
         },
         {
             title: 'Membres voyageurs',
@@ -67,6 +81,19 @@ export default function CompanyPortalIndex({ account, credit, stats }: Props) {
                 'Déclarez les employés autorisés à voyager et gérez leur fiche.',
             icon: Users,
             href: companyPortal.travelers.index.url(),
+            figure: Terrain,
+            figureLabel:
+                'Un champ de piliers qui se soulève autour du pointeur',
+            cardClass: 'bg-kora text-white',
+            iconClass: 'bg-white/15 text-white',
+            mutedClass: 'text-white/70',
+            figureTheme: {
+                '--hairline-plate': 'var(--kora)',
+                '--hairline-hi': '#ffffff',
+                '--hairline-edge': 'rgba(255, 255, 255, 0.5)',
+                '--hairline-mid': 'rgba(255, 255, 255, 0.26)',
+                '--hairline-lo': 'rgba(255, 255, 255, 0.12)',
+            },
         },
         {
             title: 'Historique des achats',
@@ -74,6 +101,18 @@ export default function CompanyPortalIndex({ account, credit, stats }: Props) {
                 'Retrouvez vos réservations, voyageurs et billets émis.',
             icon: History,
             href: companyPortal.reservations.index.url(),
+            figure: Drawer,
+            figureLabel: 'Un meuble à tiroirs qui s’ouvre sous le pointeur',
+            cardClass: 'bg-digital text-white',
+            iconClass: 'bg-white/15 text-white',
+            mutedClass: 'text-white/70',
+            figureTheme: {
+                '--hairline-plate': 'var(--digital)',
+                '--hairline-hi': '#ffffff',
+                '--hairline-edge': 'rgba(255, 255, 255, 0.5)',
+                '--hairline-mid': 'rgba(255, 255, 255, 0.26)',
+                '--hairline-lo': 'rgba(255, 255, 255, 0.12)',
+            },
         },
         {
             title: 'Relevés de facturation',
@@ -81,6 +120,19 @@ export default function CompanyPortalIndex({ account, credit, stats }: Props) {
                 'Consultez vos relevés mensuels consolidés et les factures normalisées.',
             icon: CalendarClock,
             href: companyPortal.statements.index.url(),
+            figure: Plot,
+            figureLabel:
+                'Un diagramme en barres qui se soulève sous le pointeur',
+            cardClass: 'bg-emerald-600 text-white',
+            iconClass: 'bg-white/15 text-white',
+            mutedClass: 'text-white/70',
+            figureTheme: {
+                '--hairline-plate': '#059669',
+                '--hairline-hi': '#ffffff',
+                '--hairline-edge': 'rgba(255, 255, 255, 0.5)',
+                '--hairline-mid': 'rgba(255, 255, 255, 0.26)',
+                '--hairline-lo': 'rgba(255, 255, 255, 0.12)',
+            },
         },
     ];
 
@@ -178,24 +230,43 @@ export default function CompanyPortalIndex({ account, credit, stats }: Props) {
 
                 <div className="grid gap-4 sm:grid-cols-2">
                     {sections.map((section) => {
+                        const Figure = section.figure;
                         const content = (
                             <>
-                                <span className="grid size-9 place-items-center rounded-xl bg-gold/10 text-gold">
-                                    <section.icon className="size-4" />
-                                </span>
-                                <div className="mt-4">
-                                    <strong className="block text-sm font-extrabold text-foreground">
-                                        {section.title}
-                                    </strong>
-                                    <p className="mt-1 text-[0.75rem] leading-5 text-muted-foreground">
-                                        {section.description}
-                                    </p>
-                                </div>
-                                {section.href === null && (
-                                    <span className="mt-3 inline-block text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
-                                        Bientôt disponible
+                                <Figure
+                                    intensity={0.7}
+                                    label={section.figureLabel}
+                                    className="absolute top-1/2 right-0 h-[115%] w-auto -translate-y-1/2"
+                                    style={section.figureTheme as CSSProperties}
+                                />
+                                <div className="relative z-10 flex min-h-40 flex-col justify-between gap-6 p-5 pr-[46%]">
+                                    <span
+                                        className={cn(
+                                            'grid size-9 place-items-center rounded-xl',
+                                            section.iconClass,
+                                        )}
+                                    >
+                                        <section.icon className="size-4" />
                                     </span>
-                                )}
+                                    <div>
+                                        <strong className="block text-sm font-extrabold">
+                                            {section.title}
+                                        </strong>
+                                        <p
+                                            className={cn(
+                                                'mt-1 text-[0.75rem] leading-5',
+                                                section.mutedClass,
+                                            )}
+                                        >
+                                            {section.description}
+                                        </p>
+                                    </div>
+                                    {section.href === null && (
+                                        <span className="text-[0.625rem] font-bold tracking-[0.08em] uppercase opacity-70">
+                                            Bientôt disponible
+                                        </span>
+                                    )}
+                                </div>
                             </>
                         );
 
@@ -203,8 +274,8 @@ export default function CompanyPortalIndex({ account, credit, stats }: Props) {
                             <div
                                 key={section.title}
                                 className={cn(
-                                    'cash-ledger-card opacity-70',
-                                    'select-none',
+                                    'relative block min-h-40 cursor-pointer overflow-hidden rounded-2xl opacity-70 select-none',
+                                    section.cardClass,
                                 )}
                                 aria-disabled="true"
                             >
@@ -214,7 +285,10 @@ export default function CompanyPortalIndex({ account, credit, stats }: Props) {
                             <Link
                                 key={section.title}
                                 href={section.href}
-                                className="cash-ledger-card cash-ledger-card-cash block"
+                                className={cn(
+                                    'group relative block min-h-40 cursor-pointer overflow-hidden rounded-2xl shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg',
+                                    section.cardClass,
+                                )}
                             >
                                 {content}
                             </Link>
