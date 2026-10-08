@@ -3085,12 +3085,12 @@ paths:
                 birth_date:
                   type: string
                   description: 'Date de naissance. Le champ value doit être une date valide. Le champ value doit être une date antérieure à <code>today</code>.'
-                  example: '2022-11-01'
+                  example: '1990-05-15'
                   nullable: true
                 device_name:
                   type: string
                   description: 'Nom de l’appareil à enregistrer. Le champ value ne doit pas dépasser 120 caractères.'
-                  example: 'n'
+                  example: v
                 platform:
                   type: string
                   description: 'Plateforme de l’appareil ou du client.'
@@ -3103,11 +3103,11 @@ paths:
                 device_fingerprint:
                   type: string
                   description: 'Valeur de « device fingerprint ». Le champ value doit contenir au moins 16 caractères. Le champ value ne doit pas dépasser 255 caractères.'
-                  example: g
+                  example: q
                 push_token:
                   type: string
                   description: 'Jeton de notification push de l’appareil. Le champ value ne doit pas dépasser 512 caractères.'
-                  example: z
+                  example: w
                   nullable: true
               required:
                 - otp_challenge_uuid

@@ -1124,6 +1124,18 @@ export default function SettingsPage({
                             }
                         />
                         <SettingsField
+                            label="Blocage des sièges"
+                            hint="Durée de blocage des sièges — bornée par la validité du devis."
+                            value={value('seatHoldMinutes') as number}
+                            type="number"
+                            suffix="min"
+                            disabled={!permissions.canManage}
+                            error={error('seatHoldMinutes')}
+                            onChange={(nextValue) =>
+                                setNumber('seatHoldMinutes', nextValue)
+                            }
+                        />
+                        <SettingsField
                             label="Coupure avant départ"
                             hint="Délai global avant fermeture de la vente."
                             value={value('saleCutoffMinutes') as number}

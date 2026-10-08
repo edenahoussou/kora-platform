@@ -12,6 +12,7 @@ use App\Modules\BusNetwork\Models\Seat;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Models\Fare;
+use App\Modules\DynamicPricing\Models\Promotion;
 use Database\Seeders\KoraBusRolePermissionSeeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
@@ -161,6 +162,77 @@ it('validates required fields', function (): void {
     $this->actingAs($scenario['agent'])
         ->post(route('sale.confirm'), [])
         ->assertSessionHasErrors(['outbound_legs', 'passenger_count', 'passengers', 'date']);
+});
+
+it('redirects business validation errors to the sale page instead of the post-only endpoint', function (): void {
+    $scenario = confirmEndpointScenario();
+
+    Promotion::query()->create([
+        'name' => 'Promotion brouillon',
+        'code' => 'DRAFTPROMO',
+        'benefit_type' => 'percentage',
+        'benefit_value' => 10,
+        'scope_type' => 'network',
+        'priority' => 10,
+        'starts_at' => now()->subDay(),
+        'status' => 'draft',
+    ]);
+
+    $this->actingAs($scenario['agent'])
+        ->post(route('sale.confirm'), [
+            'date' => '2026-08-20',
+            'from' => 'Cotonou',
+            'to' => 'Abidjan',
+            'trip_type' => 'one_way',
+            'passenger_count' => 1,
+            'promo_code' => 'DRAFTPROMO',
+            'idempotency_key' => 'confirm-draft-promo',
+            'outbound_legs' => [[
+                'departure_uuid' => $scenario['departure']->uuid,
+                'origin_stop_uuid' => $scenario['origin']->uuid,
+                'destination_stop_uuid' => $scenario['destination']->uuid,
+            ]],
+            'passengers' => [[
+                'passenger_index' => 0,
+                'seat_assignments' => [
+                    ['leg_order' => 1, 'direction' => 'outbound', 'seat_uuid' => $scenario['seat']->uuid],
+                ],
+            ]],
+        ])
+        ->assertSessionHasErrors('promo_code')
+        ->assertSessionDoesntHaveErrors('seats');
+
+    $response = $this->actingAs($scenario['agent'])
+        ->post(route('sale.confirm'), [
+            'date' => '2026-08-20',
+            'from' => 'Cotonou',
+            'to' => 'Abidjan',
+            'trip_type' => 'one_way',
+            'passenger_count' => 1,
+            'promo_code' => 'DRAFTPROMO',
+            'idempotency_key' => 'confirm-draft-promo-2',
+            'outbound_legs' => [[
+                'departure_uuid' => $scenario['departure']->uuid,
+                'origin_stop_uuid' => $scenario['origin']->uuid,
+                'destination_stop_uuid' => $scenario['destination']->uuid,
+            ]],
+            'passengers' => [[
+                'passenger_index' => 0,
+                'seat_assignments' => [
+                    ['leg_order' => 1, 'direction' => 'outbound', 'seat_uuid' => $scenario['seat']->uuid],
+                ],
+            ]],
+        ]);
+
+    expect($response->headers->get('Location'))->toStartWith(route('sale'));
+});
+
+it('redirects stray GET hits on post-only sale endpoints to the sale page', function (): void {
+    $agent = User::factory()->create();
+    $agent->assignRole('agency_agent');
+
+    $this->actingAs($agent)->get('/sale/seats')->assertRedirect(route('sale'));
+    $this->actingAs($agent)->get('/sale/confirm')->assertRedirect(route('sale'));
 });
 
 function confirmEndpointScenario(bool $roundTrip = false): array

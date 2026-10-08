@@ -171,13 +171,18 @@ class CounterSaleController extends Controller
             ...$buildLegs($data['outbound_legs'], 'outbound'),
             ...$buildLegs($data['inbound_legs'], 'inbound'),
         ]);
-        $result = $calculateItineraryQuote->handle(
-            $legs,
-            $data['passenger_count'],
-            $request->user(),
-            $data['promo_code'],
-            ReservationChannel::Counter,
-        );
+
+        try {
+            $result = $calculateItineraryQuote->handle(
+                $legs,
+                $data['passenger_count'],
+                $request->user(),
+                $data['promo_code'],
+                ReservationChannel::Counter,
+            );
+        } catch (ValidationException $exception) {
+            throw $exception->redirectTo(route('sale', $request->saleQuery()));
+        }
 
         return to_route('sale', $request->saleQuery(null, $result->itineraryQuote->uuid));
     }
@@ -201,7 +206,9 @@ class CounterSaleController extends Controller
         } catch (SeatUnavailableException $exception) {
             throw ValidationException::withMessages([
                 'seats' => $exception->getMessage(),
-            ]);
+            ])->redirectTo(route('sale', $request->saleQuery()));
+        } catch (ValidationException $exception) {
+            throw $exception->redirectTo(route('sale', $request->saleQuery()));
         }
 
         return to_route('sale', $request->saleQuery($reservation->uuid));
@@ -236,16 +243,16 @@ class CounterSaleController extends Controller
             ? $resolvePayer->handle($request->user(), $data['payer'])
             : null;
 
-        $quoteResult = $calculateItineraryQuote->handle(
-            $legs,
-            $data['passenger_count'],
-            $request->user(),
-            $data['promo_code'],
-            ReservationChannel::Counter,
-            $payer?->companyAccount,
-        );
-
         try {
+            $quoteResult = $calculateItineraryQuote->handle(
+                $legs,
+                $data['passenger_count'],
+                $request->user(),
+                $data['promo_code'],
+                ReservationChannel::Counter,
+                $payer?->companyAccount,
+            );
+
             $reservation = $createItineraryHold->handle(
                 user: $request->user(),
                 itineraryQuote: $quoteResult->itineraryQuote,
@@ -257,7 +264,9 @@ class CounterSaleController extends Controller
         } catch (SeatUnavailableException $exception) {
             throw ValidationException::withMessages([
                 'seats' => $exception->getMessage(),
-            ]);
+            ])->redirectTo(route('sale', $request->saleQuery()));
+        } catch (ValidationException $exception) {
+            throw $exception->redirectTo(route('sale', $request->saleQuery()));
         }
 
         session()->forget('counter_sale_pending_legs');

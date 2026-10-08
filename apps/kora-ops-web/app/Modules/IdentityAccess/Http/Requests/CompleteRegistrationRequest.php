@@ -101,7 +101,7 @@ class CompleteRegistrationRequest extends FormRequest
             'email' => ['description' => 'Adresse email.'],
             'phone' => ['description' => 'Numéro de téléphone.'],
             'country_code' => ['description' => 'Indicatif téléphonique du pays.'],
-            'birth_date' => ['description' => 'Date de naissance.'],
+            'birth_date' => ['description' => 'Date de naissance.', 'example' => '1990-05-15'],
             'device_name' => ['description' => 'Nom de l’appareil à enregistrer.'],
             'platform' => ['description' => 'Plateforme de l’appareil ou du client.'],
             'device_fingerprint' => ['description' => 'Valeur de « device fingerprint ».'],

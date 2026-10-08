@@ -699,7 +699,8 @@ export function PassengerFinalization({
                     />
                     <span>
                         L’acheteur confirme les informations fournies pour
-                        chaque voyageur.
+                        chaque voyageur.{' '}
+                        <span className="required-asterisk">*</span>
                     </span>
                 </label>
 

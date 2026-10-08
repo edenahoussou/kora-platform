@@ -16,6 +16,7 @@ use App\Modules\BusNetwork\Models\Seat;
 use App\Modules\Departures\Actions\ResolveDepartureSellabilityAction;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\SeatInventory\Actions\FindOccupiedSeatIdsAction;
+use App\Modules\Settings\Settings\OperationsSettings;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -31,6 +32,7 @@ class ApplyItinerarySeatHoldAction
         private FindOccupiedSeatIdsAction $findOccupiedSeatIds,
         private ResolveDepartureSellabilityAction $resolveSellability,
         private DepartureStopTimeResolver $stopTimeResolver,
+        private OperationsSettings $operationsSettings,
     ) {}
 
     /**
@@ -172,7 +174,10 @@ class ApplyItinerarySeatHoldAction
                     ReservationSegment::query()->create($segment);
                 }
 
-                $reservationExpiresAt = min(now()->addMinutes(15), $quote->expires_at);
+                $reservationExpiresAt = min(
+                    now()->addMinutes($this->operationsSettings->seatHoldMinutes),
+                    $quote->expires_at,
+                );
                 $lockedReservation->update([
                     'itinerary_quote_id' => $quote->id,
                     'promotion_id' => $quote->promotion_id,
