@@ -172,6 +172,14 @@ final class IntegrationsSettings extends Settings
 
     public string $tiktokOauthRedirect = '/api/v1/auth/oauth/tiktok/callback';
 
+    public bool $tawktoEnabled = false;
+
+    public ?string $tawktoPropertyId = null;
+
+    public string $tawktoWidgetId = 'default';
+
+    public ?string $tawktoApiKey = null;
+
     public static function group(): string
     {
         return 'integrations';
@@ -196,6 +204,7 @@ final class IntegrationsSettings extends Settings
             'googleOauthClientSecret',
             'facebookOauthClientSecret',
             'tiktokOauthClientSecret',
+            'tawktoApiKey',
         ];
     }
 }

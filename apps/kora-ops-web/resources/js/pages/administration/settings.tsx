@@ -96,6 +96,7 @@ const sensitiveKeys = new Set([
     'googleOauthClientSecret',
     'facebookOauthClientSecret',
     'tiktokOauthClientSecret',
+    'tawktoApiKey',
 ]);
 
 const integrationFields: Record<string, IntegrationFieldDefinition[]> = {
@@ -646,6 +647,33 @@ const integrationFields: Record<string, IntegrationFieldDefinition[]> = {
             required: true,
             showConfigured: true,
             source: 'TikTok for Developers → Manage apps → votre application → Login Kit → Redirect URI.',
+        },
+    ],
+    tawkto: [
+        {
+            key: 'tawktoPropertyId',
+            label: 'Property ID tawk.to',
+            hint: 'Identifiant public de la propriété tawk.to.',
+            icon: Fingerprint,
+            required: true,
+            showConfigured: true,
+            source: 'tawk.to Dashboard → Administration → Channels → Chat Widget → Property ID (visible dans l’URL d’intégration du widget).',
+        },
+        {
+            key: 'tawktoWidgetId',
+            label: 'Widget ID',
+            hint: 'Identifiant du widget de chat, « default » pour le premier widget.',
+            icon: MessagesSquare,
+            required: true,
+            source: 'tawk.to Dashboard → Administration → Channels → Chat Widget → Widget ID.',
+        },
+        {
+            key: 'tawktoApiKey',
+            label: 'Clé API tawk.to',
+            hint: 'Active le mode sécurisé : l’identité des utilisateurs connectés est signée en HMAC et vérifiée par tawk.to.',
+            secret: true,
+            icon: KeyRound,
+            source: 'tawk.to Dashboard → Administration → Channels → Chat Widget → Secure Mode (JavaScript API Key). Recommandée pour identifier les agents sans réinscription.',
         },
     ],
 };
@@ -1898,6 +1926,18 @@ export default function SettingsPage({
                 ),
                 '',
                 Globe2,
+            )}
+            {renderIntegrationGroup(
+                'Support client',
+                'Chat en direct tawk.to sur le back-office et l’app Passager.',
+                renderIntegrationCard(
+                    'tawkto',
+                    'tawk.to Live Chat',
+                    'Widget de chat chargé sur le back-office et exposé à l’app mobile via l’API.',
+                    { enabledKey: 'tawktoEnabled', icon: MessagesSquare },
+                ),
+                '',
+                MessagesSquare,
             )}
             {renderIntegrationGroup(
                 'Autres intégrations',
