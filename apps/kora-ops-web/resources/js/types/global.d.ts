@@ -29,6 +29,14 @@ declare module '@inertiajs/core' {
                 propertyId: string | null;
                 widgetId: string | null;
                 visitorHash: string | null;
+                visitor: {
+                    name: string | null;
+                    email: string | null;
+                    phone: string | null;
+                    jobTitle: string | null;
+                    agency: string | null;
+                    role: string | null;
+                } | null;
             };
             [key: string]: unknown;
         };

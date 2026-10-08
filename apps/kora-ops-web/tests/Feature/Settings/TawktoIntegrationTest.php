@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\Settings\Contracts\SettingsCoordinator;
 use App\Modules\Settings\Data\SettingsGroup;
 use App\Modules\Settings\DTO\IntegrationsSettingsUpdate;
@@ -60,6 +61,37 @@ it('reports the chat as disabled until tawk.to is configured', function (): void
         ->assertOk()
         ->assertJsonPath('data.enabled', false)
         ->assertJsonMissingPath('data.property_id');
+});
+
+it('exposes the connected agent identity to the tawk.to dashboard', function (): void {
+    $settings = app(IntegrationsSettings::class);
+    $settings->tawktoEnabled = true;
+    $settings->tawktoPropertyId = '64f0a1b2c3d4e5f6';
+    $settings->tawktoWidgetId = 'default';
+    $settings->tawktoApiKey = 'test-api-key';
+    $settings->save();
+
+    $agency = Agency::factory()->create(['name' => 'Agence Étoile']);
+    $agent = User::factory()->create([
+        'name' => 'Agent Guichet',
+        'email' => 'agent@kora.test',
+        'phone' => '+22997000000',
+        'job_title' => 'Chef de guichet',
+        'agency_id' => $agency->id,
+    ]);
+    $agent->assignRole('system_admin');
+
+    $this->actingAs($agent)
+        ->get(route('dashboard'))
+        ->assertSuccessful()
+        ->assertInertia(fn ($page) => $page
+            ->where('supportChat.visitor.name', 'Agent Guichet')
+            ->where('supportChat.visitor.email', 'agent@kora.test')
+            ->where('supportChat.visitor.phone', '+22997000000')
+            ->where('supportChat.visitor.jobTitle', 'Chef de guichet')
+            ->where('supportChat.visitor.agency', 'Agence Étoile')
+            ->where('supportChat.visitor.role', 'Administrateur système')
+            ->where('supportChat.visitorHash', hash_hmac('sha256', 'agent@kora.test', 'test-api-key')));
 });
 
 it('exposes the public tawk.to configuration to the passenger app', function (): void {

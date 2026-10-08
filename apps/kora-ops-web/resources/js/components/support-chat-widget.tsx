@@ -9,6 +9,12 @@ declare global {
     interface Window {
         Tawk_API?: {
             onLoad?: () => void;
+            visitor?: {
+                name: string;
+                email: string;
+                phone?: string;
+                hash?: string;
+            };
             hideWidget?: () => void;
             showWidget?: () => void;
             maximize?: () => void;
@@ -27,8 +33,8 @@ declare global {
  * peut masquer la bulle depuis le menu Aide du topbar.
  */
 export function SupportChatWidget() {
-    const { auth, supportChat } = usePage().props;
-    const user = auth?.user;
+    const { supportChat } = usePage().props;
+    const visitor = supportChat?.visitor;
 
     useEffect(() => {
         if (
@@ -55,18 +61,45 @@ export function SupportChatWidget() {
 
         window.Tawk_API = window.Tawk_API ?? {};
         window.Tawk_LoadStart = new Date();
+
+        // Renseigné avant le téléchargement du script : tawk.to
+        // transmet l'identité au dashboard même sans Secure Mode.
+        if (visitor?.name || visitor?.email) {
+            window.Tawk_API.visitor = {
+                name: visitor.name ?? '',
+                email: visitor.email ?? '',
+                ...(visitor.phone ? { phone: visitor.phone } : {}),
+                ...(supportChat.visitorHash
+                    ? { hash: supportChat.visitorHash }
+                    : {}),
+            };
+        }
+
         window.Tawk_API.onLoad = () => {
-            if (user?.name || user?.email) {
-                window.Tawk_API?.setAttributes?.(
-                    {
-                        name: user.name ?? '',
-                        email: user.email ?? '',
-                        ...(supportChat.visitorHash
-                            ? { hash: supportChat.visitorHash }
-                            : {}),
-                    },
-                    () => undefined,
-                );
+            const attributes: Record<string, string> = {};
+
+            if (visitor?.phone) {
+                attributes['telephone'] = visitor.phone;
+            }
+
+            if (visitor?.jobTitle) {
+                attributes['poste'] = visitor.jobTitle;
+            }
+
+            if (visitor?.agency) {
+                attributes['agence'] = visitor.agency;
+            }
+
+            if (visitor?.role) {
+                attributes['role'] = visitor.role;
+            }
+
+            if (Object.keys(attributes).length > 0) {
+                window.Tawk_API?.setAttributes?.(attributes, (error) => {
+                    if (error) {
+                        console.warn('[tawk.to] setAttributes', error);
+                    }
+                });
             }
 
             if (isSupportChatHidden()) {
@@ -87,8 +120,12 @@ export function SupportChatWidget() {
         supportChat?.propertyId,
         supportChat?.widgetId,
         supportChat?.visitorHash,
-        user?.name,
-        user?.email,
+        visitor?.name,
+        visitor?.email,
+        visitor?.phone,
+        visitor?.jobTitle,
+        visitor?.agency,
+        visitor?.role,
     ]);
 
     return null;
