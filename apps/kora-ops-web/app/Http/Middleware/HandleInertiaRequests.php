@@ -2,10 +2,10 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\User;
 use App\Modules\BusNetwork\Models\MapSetting;
 use App\Modules\Cash\Models\CashSession;
 use App\Modules\CompanyAccounts\Actions\ResolveReferentCompanyAccountAction;
+use App\Modules\Notifications\Actions\BuildSupportChatVisitorAction;
 use App\Modules\Settings\Settings\IntegrationsSettings;
 use App\Modules\Ticketing\Models\Ticket;
 use Illuminate\Http\Request;
@@ -95,38 +95,8 @@ class HandleInertiaRequests extends Middleware
                 'visitorHash' => $user?->email && $settings->tawktoApiKey
                     ? hash_hmac('sha256', $user->email, $settings->tawktoApiKey)
                     : null,
-                'visitor' => $user ? [
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'phone' => $this->e164Phone($user),
-                    'jobTitle' => $user->job_title,
-                    'agency' => $user->agency?->name,
-                    'role' => $user->roles->pluck('label')->filter()->implode(', ') ?: null,
-                ] : null,
+                'visitor' => $user ? app(BuildSupportChatVisitorAction::class)->execute($user) : null,
             ],
         ];
-    }
-
-    /**
-     * Normalise le numéro au format E.164 attendu par tawk.to.
-     */
-    private function e164Phone(?User $user): ?string
-    {
-        if (! $user?->phone) {
-            return null;
-        }
-
-        $digits = preg_replace('/[^\d+]/', '', $user->phone) ?? '';
-
-        if ($digits === '') {
-            return null;
-        }
-
-        if (! str_starts_with($digits, '+') && $user->country_code) {
-            $digits = rtrim($user->country_code, '+') === '' ? $digits
-                : '+'.ltrim($user->country_code, '+').ltrim($digits, '0');
-        }
-
-        return $digits;
     }
 }
