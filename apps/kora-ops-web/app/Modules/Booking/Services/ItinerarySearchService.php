@@ -20,58 +20,6 @@ use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 /**
- * Itinerary data for a single leg of a multi-line journey.
- */
-final class ItineraryLegData
-{
-    public function __construct(
-        public readonly Departure $departure,
-        public readonly Stop $originStop,
-        public readonly Stop $destinationStop,
-        public readonly int $legOrder,
-        public readonly int $amount,
-        public readonly CarbonImmutable $departureAt,
-        public readonly CarbonImmutable $arrivalAt,
-        public readonly int $availableSeatsCount = 0,
-        public readonly ?string $serviceClassCode = null,
-        public readonly ?string $serviceClassName = null,
-        public readonly ?int $estimatedDurationMinutes = null,
-        public readonly ?Bus $bus = null,
-        public readonly ?int $baseAmount = null,
-        public readonly ?float $coefficient = null,
-        public readonly ?int $finalAmount = null,
-        public readonly ?int $dynamicAdjustmentAmount = null,
-        public readonly ?string $pricingRuleUuid = null,
-        public readonly ?float $fillRate = null,
-        public readonly ?float $hoursBeforeDeparture = null,
-    ) {}
-}
-
-/**
- * Itinerary data for a complete multi-line journey (one or more legs).
- */
-final class ItineraryData
-{
-    /**
-     * @param  list<ItineraryLegData>  $legs
-     */
-    public function __construct(
-        public readonly array $legs,
-        public readonly int $totalAmount,
-        public readonly string $currency,
-        public readonly int $connectionsCount,
-        public readonly CarbonImmutable $departureAt,
-        public readonly CarbonImmutable $arrivalAt,
-        public readonly int $connectionMarginMinutes,
-    ) {}
-
-    public function isDirect(): bool
-    {
-        return $this->connectionsCount === 0;
-    }
-}
-
-/**
  * Searches for multi-line itineraries with connections.
  *
  * Given an origin and destination physical stop and a date, finds all valid

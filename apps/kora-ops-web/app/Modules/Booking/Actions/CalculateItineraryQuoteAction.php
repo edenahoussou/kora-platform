@@ -23,42 +23,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Leg data for a multi-leg quote request.
- *
- * `direction` distinguishes the outbound trip from the return trip of an
- * aller-retour: a quote can carry legs from both directions at once, all
- * priced and held together as a single reservation.
- */
-final class ItineraryLegQuoteRequest
-{
-    public function __construct(
-        public readonly Departure $departure,
-        public readonly Stop $originStop,
-        public readonly Stop $destinationStop,
-        public readonly string $direction = 'outbound',
-    ) {}
-}
-
-/**
- * Aggregated quote result for a multi-leg itinerary.
- */
-final class ItineraryQuoteResult
-{
-    /**
-     * @param  list<PriceQuote>  $legQuotes
-     * @param  array<string, mixed>  $snapshot
-     */
-    public function __construct(
-        public readonly int $totalAmount,
-        public readonly string $currency,
-        public readonly array $legQuotes,
-        public readonly array $snapshot,
-        public readonly ItineraryQuote $itineraryQuote,
-        public readonly ?CarbonImmutable $expiresAt = null,
-    ) {}
-}
-
-/**
  * Calculates an aggregated quote for a multi-leg itinerary.
  *
  * Reuses the existing per-leg pricing engine (CalculateQuoteAction) for each
