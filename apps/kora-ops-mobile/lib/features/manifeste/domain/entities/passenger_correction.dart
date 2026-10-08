@@ -39,10 +39,9 @@ extension PassengerCorrectionApply on Passenger {
     final Map<String, Object?> c = correction.changes;
     bool has(String key) => c.containsKey(key);
 
-    final String newPrenom =
-        has(PassengerCorrectionKeys.firstName)
-            ? '${c[PassengerCorrectionKeys.firstName]}'
-            : (prenom ?? _splitName().$1);
+    final String newPrenom = has(PassengerCorrectionKeys.firstName)
+        ? '${c[PassengerCorrectionKeys.firstName]}'
+        : (prenom ?? _splitName().$1);
     final String newNom = has(PassengerCorrectionKeys.lastName)
         ? '${c[PassengerCorrectionKeys.lastName]}'
         : (nom ?? _splitName().$2);
@@ -97,8 +96,9 @@ extension PassengerCorrectionApply on Passenger {
   }
 
   /// Prénom/nom à pré-remplir dans le formulaire de correction.
-  (String, String) get editableName =>
-      (prenom != null || nom != null) ? (prenom ?? '', nom ?? '') : _splitName();
+  (String, String) get editableName => (prenom != null || nom != null)
+      ? (prenom ?? '', nom ?? '')
+      : _splitName();
 }
 
 /// Issue d'une demande de correction.

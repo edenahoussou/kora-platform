@@ -103,8 +103,8 @@ class DetailPassagerPage extends StatelessWidget {
         SpeedDialAction(
           icon: Icons.edit_outlined,
           label: 'Corriger les informations',
-          onPressed: () => _correctPassenger(
-              context, passenger, showBorderFields: isInternational),
+          onPressed: () => _correctPassenger(context, passenger,
+              showBorderFields: isInternational),
         ),
       if (depart != null)
         SpeedDialAction(

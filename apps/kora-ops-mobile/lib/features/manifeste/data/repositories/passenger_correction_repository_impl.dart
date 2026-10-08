@@ -129,7 +129,8 @@ class PassengerCorrectionRepositoryImpl
 
   Future<void> _applyToCache(String departureUuid, String ticketUuid,
       PassengerCorrection correction) async {
-    final CachedManifest? cached = await _manifestCache.readCache(departureUuid);
+    final CachedManifest? cached =
+        await _manifestCache.readCache(departureUuid);
     if (cached == null) return;
     for (final Passenger p in cached.passengers) {
       if (p.id != ticketUuid) continue;

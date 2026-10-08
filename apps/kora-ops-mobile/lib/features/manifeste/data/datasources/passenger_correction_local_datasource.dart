@@ -71,8 +71,7 @@ class PassengerCorrectionLocalDataSourceImpl
   }
 
   @override
-  Future<List<PendingPassengerCorrection>> pending(
-      String departureUuid) async {
+  Future<List<PendingPassengerCorrection>> pending(String departureUuid) async {
     final Database db = await _database.database;
     final List<Map<String, Object?>> rows = await db.query(
       'passenger_correction_operations',

@@ -52,8 +52,8 @@ void main() {
       final Passenger passenger = _passenger();
       expect(passenger.editableName, ('Awa', 'Traoré Diallo'));
 
-      final Passenger updated = passenger.withCorrection(
-          const PassengerCorrection(<String, Object?>{
+      final Passenger updated =
+          passenger.withCorrection(const PassengerCorrection(<String, Object?>{
         PassengerCorrectionKeys.lastName: 'Diallo',
       }));
       expect(updated.nomComplet, 'Awa Diallo');
@@ -62,8 +62,7 @@ void main() {
 
   group('ManifesteDtos.passenger', () {
     test('lit l\'identité détaillée, la pièce et le vaccin', () {
-      final Passenger? passenger =
-          ManifesteDtos.passenger(<String, dynamic>{
+      final Passenger? passenger = ManifesteDtos.passenger(<String, dynamic>{
         'ticketUuid': 't1',
         'shortCode': 'AB12CD',
         'name': 'Awa Traoré',
@@ -88,8 +87,7 @@ void main() {
     });
 
     test('ligne nationale : champs frontière absents', () {
-      final Passenger? passenger =
-          ManifesteDtos.passenger(<String, dynamic>{
+      final Passenger? passenger = ManifesteDtos.passenger(<String, dynamic>{
         'ticketUuid': 't1',
         'name': 'Awa Traoré',
         'firstName': 'Awa',
