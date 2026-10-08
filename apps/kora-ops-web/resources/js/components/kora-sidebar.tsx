@@ -16,7 +16,6 @@ import {
     Wallet,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import AppLogoIcon from '@/components/app-logo-icon';
 import { KoraUserMenuContent } from '@/components/kora-user-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -447,9 +446,11 @@ export function KoraSidebar({
                     className={cn(isCollapsed && 'flex justify-center')}
                 >
                     {isCollapsed ? (
-                        <span className="grid size-10 place-items-center rounded-[0.75rem] bg-gold text-[var(--kora)] shadow-[0_10px_22px_rgba(246,176,0,0.22)]">
-                            <AppLogoIcon className="size-5 fill-current" />
-                        </span>
+                        <img
+                            src="/android-chrome-192x192.png"
+                            alt="KORA EXPRESS"
+                            className="size-10 rounded-[0.75rem] object-cover shadow-[0_10px_22px_rgba(246,176,0,0.22)]"
+                        />
                     ) : (
                         <img
                             src="/kora-logo-sidebar.png"
