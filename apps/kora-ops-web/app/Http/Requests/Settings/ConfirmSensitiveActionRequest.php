@@ -1,0 +1,35 @@
+<?php
+
+namespace App\Http\Requests\Settings;
+
+use App\Concerns\PasswordValidationRules;
+use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Foundation\Http\FormRequest;
+
+class ConfirmSensitiveActionRequest extends FormRequest
+{
+    use PasswordValidationRules;
+
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
+    public function rules(): array
+    {
+        return [
+            'password' => $this->currentPasswordRules(),
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'password.required' => 'La confirmation par mot de passe est obligatoire.',
+            'password.current_password' => 'Le mot de passe saisi est incorrect.',
+        ];
+    }
+}

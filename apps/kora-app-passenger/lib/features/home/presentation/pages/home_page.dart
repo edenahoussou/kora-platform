@@ -10,6 +10,7 @@ import '../../../../core/widgets/section_title.dart';
 import '../../../auth/domain/entities/auth_user.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../booking/domain/entities/city.dart';
+import '../../../booking/presentation/pages/bus_search_page.dart';
 import '../bloc/home_bloc.dart';
 import '../widgets/home_hero.dart';
 import '../widgets/home_quick_grid.dart';
@@ -154,15 +155,18 @@ class _HomeContent extends StatelessWidget {
               // promettre de l'ouvrir.
               onTap: null,
             ),
+            // Colis et Wallet, comme Ride : la tuile dit ce que KORA
+            // fera, sans promettre de l'ouvrir. Leurs écrans attendent
+            // leur feature, et y mener n'ouvrirait qu'une page vide.
             QuickAccessItem(
               label: context.l10n.homeQuickParcels,
               icon: _quickIcon(context, KoraNavIconType.parcel),
-              onTap: () => context.go('/colis'),
+              onTap: null,
             ),
             QuickAccessItem(
               label: context.l10n.homeQuickWallet,
               icon: _quickIcon(context, KoraNavIconType.wallet),
-              onTap: () => context.go('/wallet'),
+              onTap: null,
             ),
             QuickAccessItem(
               label: context.l10n.homeQuickTickets,
@@ -208,8 +212,10 @@ class _HomeContent extends StatelessWidget {
           icon: Icons.swap_horiz_rounded,
           title: context.l10n.homeRoundTripTitle,
           message: context.l10n.homeRoundTripText,
-          onTap: () =>
-              context.push(AppRouter.busSearchPath, extra: TripType.roundtrip),
+          onTap: () => context.push(
+            AppRouter.busSearchPath,
+            extra: const BusSearchArgs(tripType: TripType.roundtrip),
+          ),
         ),
       ],
     );

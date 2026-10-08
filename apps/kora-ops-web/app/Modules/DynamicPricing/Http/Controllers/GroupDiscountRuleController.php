@@ -21,6 +21,8 @@ class GroupDiscountRuleController extends Controller
     /**
      * List all group discount rules ordered by start date.
      *
+     * @deprecated Group discount pricing is managed through operations settings.
+     *
      * @authenticated
      *
      * @response 200 scenario="Discount rule list" {
@@ -51,6 +53,8 @@ class GroupDiscountRuleController extends Controller
 
     /**
      * Create a new group discount rule.
+     *
+     * @deprecated Group discount pricing is managed through operations settings.
      *
      * The passenger threshold must be >= the configured minimum group size.
      * Only one active rule can cover a given period.
@@ -100,6 +104,8 @@ class GroupDiscountRuleController extends Controller
 
     /**
      * Update an existing group discount rule.
+     *
+     * @deprecated Group discount pricing is managed through operations settings.
      *
      * @authenticated
      *

@@ -6,7 +6,9 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/phone_number.dart';
+import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/screen_header.dart';
+import '../../../../core/widgets/section_title.dart';
 import '../../../auth/domain/entities/phone_country.dart';
 import '../../../booking/presentation/bloc/seat_hold_bloc.dart';
 import '../../../booking/presentation/widgets/hold_countdown.dart';
@@ -14,6 +16,8 @@ import '../../domain/entities/payment_attempt.dart';
 import '../bloc/payment_catalog_bloc.dart';
 import '../bloc/payment_flow_bloc.dart';
 import '../widgets/labelled_field.dart';
+import '../widgets/operator_badge.dart';
+import '../widgets/payment_amount_card.dart';
 import 'payment_args.dart';
 import 'payment_flow_args.dart';
 import 'payment_method_page.dart';
@@ -175,17 +179,6 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
         provider: provider.code,
         network: network,
         phone: '${_country.code}${_phone.text.replaceAll(RegExp(r'\D'), '')}',
-        // Volontairement déterministe : un réseau qui coupe entre l'envoi
-        // et la réponse laisse le voyageur retaper « Payer », et cette clé
-        // fait alors répondre au serveur le paiement déjà ouvert plutôt
-        // que d'en créer un second. Une clé tirée au hasard à chaque appui
-        // provoquerait exactement le double débit qu'elle prétend éviter.
-        //
-        // Le numéro d'essai la complète : sans lui, un essai après un refus
-        // renvoyait la même clé, et le serveur ressortait l'ancien refus.
-        idempotencyKey:
-            'kora-${hold.id}-$network-'
-            '${context.read<PaymentFlowBloc>().state.round}',
       ),
     );
   }
@@ -280,18 +273,11 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
       );
     }
 
-    // Refusé : réessayer suppose de repartir d'une demande neuve, et cela
-    // se décide sur l'écran des moyens de paiement.
-    if (flow.attempt != null) {
-      return KoraButton(
-        label: l10n.paymentFailedSwitch,
-        variant: KoraButtonVariant.ghost,
-        onPressed: () {
-          context.read<PaymentFlowBloc>().add(const PaymentFlowReset());
-          backToPaymentMethods(context);
-        },
-      );
-    }
+    // Un paiement refusé ne verrouille plus l'écran : le voyageur corrige
+    // son numéro et réessaie ici même. C'est ce qu'il fait naturellement,
+    // et le renvoyer au choix du moyen pour ça n'apportait rien — le
+    // bouton « Payer » ci-dessous remet la demande à zéro avant de
+    // repartir.
 
     return KoraButton(
       label: l10n.paymentMomoPay(widget.args!.total.formatted),
@@ -323,51 +309,47 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
                   padding: EdgeInsets.zero,
                   children: [
                     const HoldCountdown(margin: EdgeInsets.only(bottom: 11)),
-                    LabelledField(
-                      label: l10n.paymentMomoOperator,
-                      // `DropdownMenu` et non `DropdownButtonFormField` :
-                      // le second aligne l'élément choisi sur le champ,
-                      // donc recouvre le champ et son intitulé. Celui-ci
-                      // s'ancre **sous** le champ, comme le `<select>` de
-                      // la maquette — on garde sous les yeux ce qu'on est
-                      // en train de renseigner.
-                      child:
-                          BlocBuilder<PaymentCatalogBloc, PaymentCatalogState>(
-                            builder: (context, catalog) => LayoutBuilder(
-                              builder: (context, constraints) =>
-                                  DropdownMenu<String>(
-                                    width: constraints.maxWidth,
-                                    initialSelection: _operator,
-                                    // Rien à choisir tant que le serveur
-                                    // n'a pas répondu : un menu vide qui
-                                    // s'ouvre sur rien vaut moins qu'un
-                                    // champ visiblement inerte.
-                                    enabled: catalog.hasMobileMoney,
-                                    hintText: _hint(context, catalog),
-                                    errorText: _showErrors
-                                        ? _operatorError
-                                        : null,
-                                    textStyle: AppTextStyles.body(
-                                      koraColors.textPrimary,
-                                    ),
-                                    menuStyle: MenuStyle(
-                                      backgroundColor: WidgetStatePropertyAll(
-                                        koraColors.surface,
-                                      ),
-                                    ),
-                                    onSelected: (value) =>
-                                        setState(() => _operator = value),
-                                    dropdownMenuEntries: [
-                                      for (final network
-                                          in catalog.mobileMoneyNetworks)
-                                        DropdownMenuEntry(
-                                          value: network,
-                                          label: mobileMoneyLabel(network),
-                                        ),
-                                    ],
-                                  ),
+                    // Le montant d'abord, comme sur un terminal de
+                    // paiement : c'est ce que le voyageur vérifie avant
+                    // de choisir par où il paie.
+                    PaymentAmountCard(total: args.total.formatted),
+                    const SizedBox(height: AppSpacing.md),
+                    SectionTitle(title: l10n.paymentMomoOperator),
+                    BlocBuilder<PaymentCatalogBloc, PaymentCatalogState>(
+                      builder: (context, catalog) {
+                        if (!catalog.hasMobileMoney) {
+                          return KoraCard(
+                            variant: KoraCardVariant.mist,
+                            child: Text(
+                              _hint(context, catalog),
+                              style: AppTextStyles.body(koraColors.textMuted),
                             ),
-                          ),
+                          );
+                        }
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            for (final network in catalog.mobileMoneyNetworks)
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  bottom: AppSpacing.sm,
+                                ),
+                                child: _OperatorTile(
+                                  network: network,
+                                  selected: _operator == network,
+                                  onTap: () =>
+                                      setState(() => _operator = network),
+                                ),
+                              ),
+                            if (_showErrors && _operatorError != null)
+                              Text(
+                                _operatorError!,
+                                style: AppTextStyles.caption(AppColors.danger),
+                              ),
+                          ],
+                        );
+                      },
                     ),
                     const SizedBox(height: AppSpacing.md),
                     LabelledField(
@@ -412,12 +394,15 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
                       ),
                     ),
                     const SizedBox(height: AppSpacing.md),
-                    KoraCard(
-                      variant: KoraCardVariant.mist,
-                      child: Text(
-                        l10n.paymentMomoNotice,
-                        style: AppTextStyles.body(koraColors.textMuted),
-                      ),
+                    // Le message qui protège le voyageur : personne ne
+                    // doit lui demander son code secret. Il se lisait en
+                    // gris, dans une carte de la même couleur que le
+                    // reste — autant dire qu'il ne se lisait pas. Il
+                    // reprend donc la forme du décompte, la seule que
+                    // l'œil retient dans ce tunnel.
+                    _SecurityNotice(
+                      title: l10n.paymentMomoNoticeTitle,
+                      message: l10n.paymentMomoNotice,
                     ),
                     const SizedBox(height: AppSpacing.xl),
                   ],
@@ -431,6 +416,133 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Le rappel de sécurité, posé comme le décompte des sièges : une
+/// pastille dorée, un surtitre, et la phrase en toutes lettres.
+///
+/// C'est la seule information de l'écran que le voyageur doit lire
+/// **avant** d'appuyer : aucune fenêtre KORA ne lui demandera jamais son
+/// code Mobile Money, et c'est exactement ce qu'on lui soutire au
+/// téléphone.
+class _SecurityNotice extends StatelessWidget {
+  const _SecurityNotice({required this.title, required this.message});
+
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final koraColors = context.koraColors;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.gold.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppRadius.input),
+        border: Border.all(color: AppColors.gold.withValues(alpha: 0.45)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(
+              color: AppColors.gold,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.shield_rounded,
+              size: 18,
+              color: AppColors.kora,
+            ),
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title.toUpperCase(),
+                  style: AppTextStyles.eyebrow(koraColors.textMuted),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  message,
+                  style: TextStyle(
+                    color: context.koraTitleColor,
+                    fontSize: 12,
+                    height: 1.4,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Un opérateur, présenté comme on le choisit à une caisse : sa
+/// vignette, son nom, et une pastille qui dit lequel est retenu.
+///
+/// La liste des réseaux vient du serveur ; un code inconnu garde donc sa
+/// place, avec une vignette neutre plutôt qu'un trou.
+class _OperatorTile extends StatelessWidget {
+  const _OperatorTile({
+    required this.network,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String network;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final koraColors = context.koraColors;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.sm),
+        decoration: BoxDecoration(
+          color: koraColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: Border.all(
+            color: selected ? AppColors.gold : koraColors.line,
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            OperatorBadge(network: network),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                mobileMoneyLabel(network),
+                style: AppTextStyles.titleMedium(context.koraTitleColor),
+              ),
+            ),
+            Icon(
+              selected
+                  ? Icons.check_circle_rounded
+                  : Icons.radio_button_unchecked_rounded,
+              size: 21,
+              color: selected ? AppColors.gold : koraColors.line,
+            ),
+          ],
         ),
       ),
     );

@@ -23,6 +23,7 @@ type Props = {
     legSeats: SaleItineraryLegSeat[];
     passengerCount: number;
     maxPassengers?: number;
+    minPassengers?: number;
     processing: boolean;
     onPassengerCountChange: (count: number) => void;
     onClose: () => void;
@@ -65,6 +66,7 @@ export function SeatPicker({
     legSeats,
     passengerCount,
     maxPassengers = 10,
+    minPassengers = 1,
     processing,
     onPassengerCountChange,
     onClose,
@@ -401,6 +403,7 @@ export function SeatPicker({
                     selectedSeatCodes={selectedSeatCodes}
                     passengerCount={passengerCount}
                     maxPassengers={maxPassengers}
+                    minPassengers={minPassengers}
                     loading={seatsForActiveLeg.length === 0}
                     processing={processing}
                     onPassengerCountChange={handlePassengerCountChange}

@@ -341,13 +341,14 @@ class _Details extends StatelessWidget {
                   '${KoraDateFormats.time.format(departsAt)}',
                 ),
         ),
-        const SizedBox(height: 13),
         // Ce que dit le statut, en une phrase : la pastille de la carte le
-        // nomme, elle n'explique pas ce qu'il faut faire.
-        Text(
-          _statusText(l10n, status),
-          style: AppTextStyles.body(koraColors.textMuted),
-        ),
+        // nomme, elle n'explique pas ce qu'il faut faire. Une demande
+        // expirée n'en a plus besoin — la pastille le dit déjà, et le
+        // bloc du bas propose la suite.
+        if (_statusText(l10n, status) case final text?) ...[
+          const SizedBox(height: 13),
+          Text(text, style: AppTextStyles.body(koraColors.textMuted)),
+        ],
         if (channelFailed && !status.isClosed) ...[
           const SizedBox(height: AppSpacing.sm),
           Text(
@@ -433,13 +434,15 @@ class _Details extends StatelessWidget {
     ];
   }
 
-  String _statusText(AppLocalization l10n, AssistanceStatus status) =>
+  /// La phrase du statut, ou `null` quand il n'y a rien à ajouter.
+  String? _statusText(AppLocalization l10n, AssistanceStatus status) =>
       switch (status) {
         AssistanceStatus.pending => l10n.assistStatusPendingText,
         AssistanceStatus.inProgress => l10n.assistStatusInProgressText,
         AssistanceStatus.finalized => l10n.assistStatusFinalizedText,
         AssistanceStatus.refused => l10n.assistStatusRefusedText,
-        AssistanceStatus.expired => l10n.assistStatusExpiredText,
+        // Rien : la pastille « Expirée » porte déjà l'information.
+        AssistanceStatus.expired => null,
         AssistanceStatus.unavailable => l10n.assistStatusUnavailableText,
         AssistanceStatus.cancelled => l10n.assistStatusCancelledText,
         AssistanceStatus.resumedOnline => l10n.assistStatusResumedText,

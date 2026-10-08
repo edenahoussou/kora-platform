@@ -11,13 +11,21 @@ import 'package:kora_app_passenger/features/payment/presentation/bloc/payment_fl
 
 import '../../../../support/seat_hold_harness.dart';
 
+/// Un paiement que l'opérateur refuse.
+const kRefusedAttempt = PaymentAttempt(
+  id: 'pay-refuse',
+  status: PaymentAttemptStatus.failed,
+  failureMessage: 'Paiement refusé par l’opérateur.',
+);
+
 void main() {
+  _retryAfterFailure();
+
   const started = PaymentFlowStarted(
     reservationId: 'res-1',
     provider: 'fedapay',
     network: 'mtn_momo',
     phone: '+2290152235689',
-    idempotencyKey: 'kora-res-1-mtn_momo',
   );
 
   const confirmed = PaymentAttempt(
@@ -119,13 +127,16 @@ void main() {
 
     bloc.add(started);
     await bloc.stream.firstWhere((state) => state.hasFailed);
-    // L'essai en cours garde son numéro : un double appui reste protégé.
-    expect(bloc.state.round, 0);
+    // Le refus consomme l'essai : la demande suivante ne doit pas
+    // ressortir celle-ci, quel que soit le chemin emprunté pour y
+    // revenir. Seul un paiement **vivant** garde son numéro, et c'est lui
+    // que protège le garde du double appel.
+    expect(bloc.state.round, 1);
 
     bloc.add(const PaymentFlowReset());
     await bloc.stream.firstWhere((state) => state.attempt == null);
 
-    expect(bloc.state.round, 1);
+    expect(bloc.state.round, 2);
     expect(bloc.state.hasFailed, isFalse);
   });
 
@@ -142,5 +153,78 @@ void main() {
 
     // C'est le serveur qui interroge le provider, pas l'app.
     expect(repository.calls, contains('verify'));
+  });
+}
+
+/// Ce qui se passe après un refus : le voyageur corrige son numéro et
+/// réessaie, sur le même écran.
+void _retryAfterFailure() {
+  group('après un refus', () {
+    late StubPaymentRepository repository;
+
+    setUp(() => repository = StubPaymentRepository(attempt: kRefusedAttempt));
+
+    test('un autre numéro part sous une clé neuve', () async {
+      final bloc = PaymentFlowBloc(repository);
+      addTearDown(bloc.close);
+
+      bloc.add(
+        const PaymentFlowStarted(
+          reservationId: 'res-1',
+          provider: 'fedapay',
+          network: 'mtn_momo',
+          phone: '+2290191003606',
+        ),
+      );
+      await bloc.stream.firstWhere((state) => state.hasFailed);
+
+      bloc.add(
+        const PaymentFlowStarted(
+          reservationId: 'res-1',
+          provider: 'fedapay',
+          network: 'mtn_momo',
+          phone: '+2290166000001',
+        ),
+      );
+      await bloc.stream.firstWhere(
+        (_) => repository.idempotencyKeys.length > 1,
+      );
+
+      // Deux demandes, deux clés : le serveur refuse en 422 une clé déjà
+      // vue avec un contenu différent, et c'est ce qui faisait échouer le
+      // second essai sans qu'il atteigne jamais l'opérateur.
+      expect(repository.idempotencyKeys, hasLength(2));
+      expect(
+        repository.idempotencyKeys.first,
+        isNot(repository.idempotencyKeys.last),
+      );
+      expect(repository.idempotencyKeys.last, contains('0166000001'));
+    });
+
+    test('le même numéro repart aussi, sous une clé neuve', () async {
+      // Sans ça, le serveur ressortait le refus précédent — la clé étant
+      // identique — et l'écran affichait un échec qui datait.
+      final bloc = PaymentFlowBloc(repository);
+      addTearDown(bloc.close);
+
+      for (var essai = 0; essai < 2; essai++) {
+        bloc.add(
+          const PaymentFlowStarted(
+            reservationId: 'res-1',
+            provider: 'fedapay',
+            network: 'mtn_momo',
+            phone: '+2290191003606',
+          ),
+        );
+        await bloc.stream.firstWhere(
+          (_) => repository.idempotencyKeys.length > essai,
+        );
+      }
+
+      expect(
+        repository.idempotencyKeys.first,
+        isNot(repository.idempotencyKeys.last),
+      );
+    });
   });
 }

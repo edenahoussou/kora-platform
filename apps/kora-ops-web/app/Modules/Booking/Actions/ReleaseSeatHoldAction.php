@@ -3,6 +3,8 @@
 namespace App\Modules\Booking\Actions;
 
 use App\Models\User;
+use App\Modules\Booking\Data\PayerType;
+use App\Modules\Booking\Data\ReservationChannel;
 use App\Modules\Booking\Data\ReservationSegmentStatus;
 use App\Modules\Booking\Data\ReservationStatus;
 use App\Modules\Booking\Models\Reservation;
@@ -25,7 +27,7 @@ class ReleaseSeatHoldAction
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if (! $user->can('manageCounterSale', $lockedReservation)) {
+            if (! $user->can('manageCounterSale', $lockedReservation) && ! $this->isCompanyPortalOwner($lockedReservation, $user)) {
                 throw new AccessDeniedHttpException;
             }
 
@@ -46,5 +48,12 @@ class ReleaseSeatHoldAction
                 ]);
             $this->companyCredit->release($lockedReservation);
         });
+    }
+
+    private function isCompanyPortalOwner(Reservation $reservation, User $user): bool
+    {
+        return $reservation->channel === ReservationChannel::CompanyPortal
+            && $reservation->payer_type === PayerType::Company
+            && $reservation->created_by_user_id === $user->getKey();
     }
 }

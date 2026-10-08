@@ -75,17 +75,28 @@ class BookingRemoteDataSourceImpl implements BookingDataSource {
   }
 
   /// Les villes cherchables, triées comme la liste qu'on parcourt des yeux.
+  ///
+  /// Une ville à plusieurs gares donne **plusieurs entrées**, une par
+  /// arrêt — voir [CityModel.toEntities]. Les replier en une seule
+  /// reviendrait à choisir une gare au hasard pour le voyageur, et à lui
+  /// annoncer « Aucun voyage ce jour-là » quand c'est la mauvaise.
   static List<City> _citiesOf(List<Map<String, dynamic>> raw) {
-    final cities = [for (final json in raw) CityModel.fromJson(json).toEntity()]
-      ..removeWhere((city) => city.name.isEmpty || !city.isSearchable);
+    final cities = [
+      for (final json in raw) ...CityModel.fromJson(json).toEntities(),
+    ]..removeWhere((city) => city.name.isEmpty || !city.isSearchable);
 
     // Une ville sans arrêt physique est écartée : depuis MEZ-63 la
     // recherche interroge des arrêts, et la proposer mènerait le voyageur
     // à une impasse plutôt qu'à un résultat.
     //
     // L'API ne garantit pas d'ordre ; le sélecteur, lui, est une liste
-    // qu'on parcourt des yeux.
-    cities.sort((a, b) => a.name.compareTo(b.name));
+    // qu'on parcourt des yeux. Les gares d'une même ville se suivent, et
+    // celle qui porte le nom de la ville ouvre le groupe.
+    cities.sort((a, b) {
+      final byCity = a.name.compareTo(b.name);
+      if (byCity != 0) return byCity;
+      return (a.station ?? '').compareTo(b.station ?? '');
+    });
     return cities;
   }
 

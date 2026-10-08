@@ -14,7 +14,6 @@ class PaymentFlowStarted extends PaymentFlowEvent {
     required this.provider,
     required this.network,
     required this.phone,
-    required this.idempotencyKey,
   });
 
   final String reservationId;
@@ -28,18 +27,8 @@ class PaymentFlowStarted extends PaymentFlowEvent {
   /// Numéro à débiter, indicatif compris.
   final String phone;
 
-  /// Protège du double débit quand le réseau coupe entre l'envoi et la
-  /// réponse : le serveur rend alors le paiement déjà créé.
-  final String idempotencyKey;
-
   @override
-  List<Object?> get props => [
-    reservationId,
-    provider,
-    network,
-    phone,
-    idempotencyKey,
-  ];
+  List<Object?> get props => [reservationId, provider, network, phone];
 }
 
 /// Un tour de relecture, émis par la minuterie interne.

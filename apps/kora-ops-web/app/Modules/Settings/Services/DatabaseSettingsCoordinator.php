@@ -3,6 +3,7 @@
 namespace App\Modules\Settings\Services;
 
 use App\Models\User;
+use App\Modules\Booking\Models\GroupBookingSetting;
 use App\Modules\BusNetwork\Data\LineStatus;
 use App\Modules\BusNetwork\Models\Line;
 use App\Modules\IdentityAccess\Data\UserStatus;
@@ -199,6 +200,14 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
                 'trackingMaxPositionAgeMinutes' => ['required', 'integer', 'min:1', 'max:1440'],
                 'trackingMaxPositionsPerBatch' => ['required', 'integer', 'min:1', 'max:1000'],
                 'trackingCacheTtlSeconds' => ['required', 'integer', 'min:0', 'max:86400'],
+                'groupDiscountEnabled' => ['required', 'boolean'],
+                'groupDiscountPassengerThreshold' => [
+                    'required',
+                    'integer',
+                    'min:'.GroupBookingSetting::current()->minimum_passengers,
+                    'max:'.GroupBookingSetting::current()->maximum_passengers,
+                ],
+                'groupDiscountPercentage' => ['required', 'numeric', 'min:0', 'max:100'],
             ];
         }
 

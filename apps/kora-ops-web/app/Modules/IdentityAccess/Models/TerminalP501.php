@@ -6,6 +6,8 @@ use App\Models\User;
 use App\Modules\IdentityAccess\Data\TerminalP501Status;
 use App\Modules\IdentityAccess\Data\TerminalType;
 use App\Modules\Support\Models\KoraModel;
+use Database\Factories\TerminalP501Factory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -29,7 +31,13 @@ use Illuminate\Support\Carbon;
  */
 class TerminalP501 extends KoraModel
 {
-    use SoftDeletes;
+    /** @use HasFactory<TerminalP501Factory> */
+    use HasFactory, SoftDeletes;
+
+    protected static function newFactory(): TerminalP501Factory
+    {
+        return TerminalP501Factory::new();
+    }
 
     protected $table = 'terminals_p501';
 

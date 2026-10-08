@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Models\User;
+use App\Modules\Booking\Data\ReservationChannel;
 use App\Modules\Booking\Models\Reservation;
 use App\Policies\Concerns\AuthorizesPermissions;
 
@@ -40,8 +41,9 @@ class ReservationPolicy
      */
     public function updatePromoCode(User $user, Reservation $reservation): bool
     {
-        return $reservation->created_by_user_id === $user->id
-            || $reservation->payer_user_id === $user->id;
+        return $reservation->channel !== ReservationChannel::CompanyPortal
+            && ($reservation->created_by_user_id === $user->id
+                || $reservation->payer_user_id === $user->id);
     }
 
     public function requestAssistance(User $user, Reservation $reservation): bool

@@ -191,6 +191,7 @@ class TicketIndexController extends Controller
             'counter' => 'Guichet',
             'online' => 'En ligne',
             'mobile' => 'Mobile',
+            'company_portal' => 'Espace entreprise',
             'ops' => 'OPS',
             default => '—',
         };

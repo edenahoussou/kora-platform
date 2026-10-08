@@ -12,11 +12,10 @@ use App\Modules\BusNetwork\Models\Seat;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Actions\RecordPromotionRedemptionAction;
-use App\Modules\DynamicPricing\Data\GroupDiscountRuleStatus;
 use App\Modules\DynamicPricing\Models\Fare;
-use App\Modules\DynamicPricing\Models\GroupDiscountRule;
 use App\Modules\DynamicPricing\Models\Promotion;
 use App\Modules\DynamicPricing\Models\PromotionRedemption;
+use App\Modules\Settings\Settings\OperationsSettings;
 use Carbon\CarbonImmutable;
 use Laravel\Sanctum\Sanctum;
 
@@ -111,11 +110,11 @@ it('rejects unknown, scheduled, expired or exhausted codes', function (string $c
 
 it('calculates the group discount on the post-promotion subtotal', function (): void {
     GroupBookingSetting::query()->create(['minimum_passengers' => 5, 'maximum_passengers' => 10]);
-    GroupDiscountRule::query()->create([
-        'status' => GroupDiscountRuleStatus::Active,
-        'passenger_threshold' => 10,
-        'percentage' => 10,
-    ]);
+    $settings = app(OperationsSettings::class);
+    $settings->groupDiscountEnabled = true;
+    $settings->groupDiscountPassengerThreshold = 10;
+    $settings->groupDiscountPercentage = 10;
+    $settings->save();
 
     $pricing = app(GroupPricingService::class)->calculate(
         unitAmounts: [10000, 5000],

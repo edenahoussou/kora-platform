@@ -4418,6 +4418,83 @@
         border-top: 3px solid var(--gold);
     }
 
+    .cash-ledger-card-kpi-navy,
+    .cash-ledger-card-kpi-gold,
+    .cash-ledger-card-kpi-digital,
+    .cash-ledger-card-kpi-emerald {
+        border-color: transparent;
+    }
+
+    .cash-ledger-card-kpi-navy {
+        background: #001d4e;
+    }
+
+    .cash-ledger-card-kpi-gold {
+        background: var(--gold);
+    }
+
+    .cash-ledger-card-kpi-digital {
+        background: #0057b8;
+    }
+
+    .cash-ledger-card-kpi-emerald {
+        background: #059669;
+    }
+
+    .cash-ledger-card-kpi-navy::after,
+    .cash-ledger-card-kpi-digital::after,
+    .cash-ledger-card-kpi-emerald::after {
+        border-color: rgba(255, 255, 255, 0.14);
+    }
+
+    .cash-ledger-card-kpi-gold::after {
+        border-color: color-mix(in srgb, var(--kora) 9%, transparent);
+    }
+
+    .cash-ledger-card-kpi-navy .cash-ledger-brand {
+        color: var(--kora);
+        background: var(--gold);
+    }
+
+    .cash-ledger-card-kpi-gold .cash-ledger-brand {
+        color: #fff;
+        background: var(--kora);
+    }
+
+    .cash-ledger-card-kpi-digital .cash-ledger-brand,
+    .cash-ledger-card-kpi-emerald .cash-ledger-brand {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.18);
+    }
+
+    .cash-ledger-card-kpi-navy .cash-ledger-title,
+    .cash-ledger-card-kpi-navy .cash-ledger-balance strong,
+    .cash-ledger-card-kpi-digital .cash-ledger-title,
+    .cash-ledger-card-kpi-digital .cash-ledger-balance strong,
+    .cash-ledger-card-kpi-emerald .cash-ledger-title,
+    .cash-ledger-card-kpi-emerald .cash-ledger-balance strong {
+        color: #fff;
+    }
+
+    .cash-ledger-card-kpi-gold .cash-ledger-title,
+    .cash-ledger-card-kpi-gold .cash-ledger-balance strong {
+        color: var(--kora);
+    }
+
+    .cash-ledger-card-kpi-navy .cash-ledger-identity small,
+    .cash-ledger-card-kpi-navy .cash-ledger-balance span,
+    .cash-ledger-card-kpi-digital .cash-ledger-identity small,
+    .cash-ledger-card-kpi-digital .cash-ledger-balance span,
+    .cash-ledger-card-kpi-emerald .cash-ledger-identity small,
+    .cash-ledger-card-kpi-emerald .cash-ledger-balance span {
+        color: rgba(255, 255, 255, 0.66);
+    }
+
+    .cash-ledger-card-kpi-gold .cash-ledger-identity small,
+    .cash-ledger-card-kpi-gold .cash-ledger-balance span {
+        color: color-mix(in srgb, var(--kora) 64%, transparent);
+    }
+
     .cash-ledger-head,
     .cash-ledger-identity,
     .cash-ledger-foot {

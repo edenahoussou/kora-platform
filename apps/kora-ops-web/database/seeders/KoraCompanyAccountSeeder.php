@@ -7,8 +7,10 @@ use App\Modules\CompanyAccounts\Data\CompanyAccountStatus;
 use App\Modules\CompanyAccounts\Data\CompanyAccountType;
 use App\Modules\CompanyAccounts\Data\CompanyMemberRole;
 use App\Modules\CompanyAccounts\Data\CompanyMemberStatus;
+use App\Modules\CompanyAccounts\Data\CompanyTravelerStatus;
 use App\Modules\CompanyAccounts\Models\CompanyAccount;
 use App\Modules\CompanyAccounts\Models\CompanyAccountMember;
+use App\Modules\CompanyAccounts\Models\CompanyTraveler;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
@@ -90,6 +92,72 @@ class KoraCompanyAccountSeeder extends Seeder
                     ],
                 );
             }
+        }
+
+        $this->seedSbtTravelers();
+    }
+
+    /** Roster de démonstration pour l'espace entreprise SBT (MEZ-120). */
+    private function seedSbtTravelers(): void
+    {
+        $sbt = CompanyAccount::query()->where('reference', 'SBT-2026-001')->first();
+
+        if ($sbt === null) {
+            return;
+        }
+
+        $travelers = [
+            [
+                'first_name' => 'Sandrine',
+                'last_name' => 'Kouassi',
+                'phone' => '+22997000011',
+                'email' => 'sandrine.kouassi@benin-transport.bj',
+                'nationality' => 'BJ',
+                'document_type' => 'national_id',
+                'document_number' => 'ID-BJ-778845',
+                'status' => CompanyTravelerStatus::Active,
+            ],
+            [
+                'first_name' => 'Brice',
+                'last_name' => 'Hounsou',
+                'phone' => '+22997000012',
+                'email' => 'brice.hounsou@benin-transport.bj',
+                'nationality' => 'BJ',
+                'status' => CompanyTravelerStatus::Active,
+            ],
+            [
+                'first_name' => 'Adjoua',
+                'last_name' => 'Sanni',
+                'phone' => '+22997000013',
+                'email' => null,
+                'nationality' => 'BJ',
+                'document_type' => 'passport',
+                'document_number' => 'BJ-P-552310',
+                'birth_date' => '1986-04-17',
+                'yellow_fever_vaccinated' => true,
+                'status' => CompanyTravelerStatus::Active,
+            ],
+            [
+                'first_name' => 'Koffi',
+                'last_name' => 'Agossou',
+                'phone' => '+22997000014',
+                'email' => 'k.agossou@benin-transport.bj',
+                'nationality' => 'TG',
+                'status' => CompanyTravelerStatus::Inactive,
+            ],
+        ];
+
+        foreach ($travelers as $data) {
+            CompanyTraveler::query()->firstOrCreate(
+                [
+                    'company_account_id' => $sbt->id,
+                    'phone' => $data['phone'],
+                ],
+                [
+                    'uuid' => (string) Str::uuid(),
+                    ...$data,
+                ],
+            );
         }
     }
 }

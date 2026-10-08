@@ -398,17 +398,11 @@ class _LoginPageState extends State<LoginPage> {
                         builder: (context, flow) => Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            // Le pavé disparaît en saisie d'adresse ; le
-                            // bouton qui le remplace vit en bas d'écran,
-                            // hors de cette liste.
-                            if (_asking == null)
-                              PinKeypad(
-                                onKey: _press,
-                                onNavy: true,
-                                isSubmitting: flow.isSubmitting,
-                              ),
+                            // Le refus passe avant le pavé : en saisie
+                            // d'identifiant c'est le clavier système qui
+                            // occupe le bas de l'écran, et le message s'y
+                            // perdait.
                             if (flow.hasError) ...[
-                              const SizedBox(height: 12),
                               Text(
                                 flow.errorMessage,
                                 textAlign: TextAlign.center,
@@ -418,7 +412,17 @@ class _LoginPageState extends State<LoginPage> {
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),
+                              const SizedBox(height: 12),
                             ],
+                            // Le pavé disparaît en saisie d'adresse ; le
+                            // bouton qui le remplace vit en bas d'écran,
+                            // hors de cette liste.
+                            if (_asking == null)
+                              PinKeypad(
+                                onKey: _press,
+                                onNavy: true,
+                                isSubmitting: flow.isSubmitting,
+                              ),
                             // Compte bloqué après trop d'essais : le
                             // déverrouillage passe par un code, pas par un
                             // nouveau PIN. On l'annonce ici plutôt que de

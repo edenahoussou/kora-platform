@@ -18,6 +18,8 @@ export type CompanyAccountRecord = {
     country: string | null;
     ifu: string | null;
     rccm: string | null;
+    discountType: 'percentage' | 'amount' | null;
+    discountValue: number | null;
     status: 'active' | 'inactive';
     monthlyCreditLimit: number;
     consumedCredit: number;
@@ -52,6 +54,8 @@ export type CompanyAccountFormValues = {
     ifu: string;
     rccm: string;
     monthly_credit_limit: string;
+    discount_type: '' | 'percentage' | 'amount';
+    discount_value: string;
 };
 
 export function formatFcfa(amount: number): string {

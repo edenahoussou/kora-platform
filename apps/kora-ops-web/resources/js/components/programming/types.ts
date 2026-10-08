@@ -85,6 +85,7 @@ export type PlanningItem = {
     arrivalAt: string;
     snapshot: Slot;
     isException: boolean;
+    exceptionKind: 'resources' | 'schedule' | null;
     programmeUuid: string;
     programmeName: string;
     departureUuid: string | null;
@@ -100,7 +101,12 @@ export type PlanningItem = {
         capacity: number | null;
         ratio: number | null;
     } | null;
-    history?: { event: string; at: string; actor: string | null }[];
+    history?: {
+        event: string;
+        operation?: string | null;
+        at: string;
+        actor: string | null;
+    }[];
 };
 export type Run = {
     uuid: string;

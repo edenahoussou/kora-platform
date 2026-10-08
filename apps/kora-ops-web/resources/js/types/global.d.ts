@@ -12,6 +12,12 @@ declare module '@inertiajs/core' {
         sharedPageProps: {
             name: string;
             auth: Auth;
+            companyPortal: {
+                uuid: string;
+                name: string;
+                reference: string;
+            } | null;
+            portalOnly: boolean;
             sidebarOpen: boolean;
             mapConfig: {
                 provider: 'openstreetmap' | 'google';

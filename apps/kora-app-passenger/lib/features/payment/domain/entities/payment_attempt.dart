@@ -48,6 +48,7 @@ class PaymentAttempt extends Equatable {
     this.expiresAt,
     this.failureMessage,
     this.checkoutUrl,
+    this.reservationHeld = true,
   });
 
   /// `uuid` du paiement, avec lequel on interroge son état.
@@ -77,19 +78,41 @@ class PaymentAttempt extends Equatable {
   /// aujourd'hui — voir la note de classe.
   final String? checkoutUrl;
 
+  /// La réservation tient-elle encore ses sièges ?
+  ///
+  /// **Un refus d'opérateur la fait expirer côté serveur** : les sièges
+  /// repartent à la vente à la seconde, et toute nouvelle demande de
+  /// paiement est refusée — « Cette réservation doit d'abord être
+  /// reprise ». L'app le lit dans la réponse plutôt que de laisser le
+  /// décompte tourner sur des places déjà rendues.
+  ///
+  /// Vrai par défaut : une réponse qui ne dit rien du statut ne doit pas
+  /// faire croire à une réservation perdue.
+  final bool reservationHeld;
+
   /// Cadence retenue quand le serveur n'en annonce pas.
   static const Duration defaultPollingInterval = Duration(seconds: 10);
 
   bool get isConfirmed => status == PaymentAttemptStatus.confirmed;
   bool get isPending => status == PaymentAttemptStatus.pending;
 
+  /// Refusé, annulé, expiré : la demande est close et n'aboutira pas. Un
+  /// nouvel essai est alors légitime — c'est ce que fait le voyageur qui
+  /// corrige son numéro.
+  bool get isRefused => !isPending && !isConfirmed;
+
   /// Les billets sont émis et consultables.
   bool get hasTickets => nextAction == 'show_tickets';
+
+  /// Refusé **et** sans sièges : réessayer ne mènerait nulle part, il faut
+  /// repartir d'une recherche.
+  bool get needsNewBooking => isRefused && !reservationHeld;
 
   @override
   List<Object?> get props => [
     id,
     status,
+    reservationHeld,
     reference,
     nextAction,
     pollingInterval,

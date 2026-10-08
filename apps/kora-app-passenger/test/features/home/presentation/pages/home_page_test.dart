@@ -21,6 +21,7 @@ import 'package:kora_app_passenger/features/booking/domain/entities/upcoming_tri
 import 'package:kora_app_passenger/features/booking/domain/usecases/get_cities_usecase.dart';
 import 'package:kora_app_passenger/features/booking/domain/usecases/get_next_trip_usecase.dart';
 import 'package:kora_app_passenger/features/booking/domain/usecases/get_recent_cities_usecase.dart';
+import 'package:kora_app_passenger/features/booking/presentation/pages/bus_search_page.dart';
 import 'package:kora_app_passenger/features/home/presentation/bloc/home_bloc.dart';
 import 'package:kora_app_passenger/features/home/presentation/pages/city_picker_page.dart';
 import 'package:kora_app_passenger/features/home/presentation/pages/home_page.dart';
@@ -264,6 +265,9 @@ void main() {
     await tester.tap(card);
     await tester.pumpAndSettle();
 
-    expect(opened, [TripType.roundtrip]);
+    // Le formulaire reçoit désormais tout ce qu'on lui apporte — ici le
+    // seul type de trajet, puisque l'accueil ne compose rien d'autre.
+    expect(opened, hasLength(1));
+    expect((opened.single! as BusSearchArgs).tripType, TripType.roundtrip);
   });
 }

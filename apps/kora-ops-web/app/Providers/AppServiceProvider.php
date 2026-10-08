@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Listeners\SendTwoFactorSecurityAlert;
 use App\Models\User;
 use App\Modules\AssistedBooking\Models\AssistedBooking;
 use App\Modules\Boarding\Models\BoardingEvent;
@@ -69,6 +70,10 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Laravel\Fortify\Events\PasswordUpdatedViaController;
+use Laravel\Fortify\Events\RecoveryCodesGenerated;
+use Laravel\Fortify\Events\TwoFactorAuthenticationConfirmed;
+use Laravel\Fortify\Events\TwoFactorAuthenticationDisabled;
 use SocialiteProviders\Manager\SocialiteWasCalled;
 use SocialiteProviders\TikTok\TikTokExtendSocialite;
 
@@ -141,6 +146,21 @@ class AppServiceProvider extends ServiceProvider
         $this->configureRateLimiting();
         $this->configureDefaults();
         $this->registerSocialiteProviders();
+        $this->registerSecurityAlertListeners();
+    }
+
+    /**
+     * Branche les alertes e-mail de sécurité sur les événements Fortify
+     * (activation/désactivation 2FA, régénération des codes, mot de passe).
+     */
+    protected function registerSecurityAlertListeners(): void
+    {
+        Event::listen([
+            TwoFactorAuthenticationConfirmed::class,
+            TwoFactorAuthenticationDisabled::class,
+            RecoveryCodesGenerated::class,
+            PasswordUpdatedViaController::class,
+        ], SendTwoFactorSecurityAlert::class);
     }
 
     /**

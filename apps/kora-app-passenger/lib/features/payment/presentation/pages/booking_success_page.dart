@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/di/injector.dart';
 import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/router/app_router.dart';
-import '../../../../core/utils/date_formats.dart';
 import '../../../booking/presentation/bloc/cancel_ticket_cubit.dart';
 import '../../../booking/presentation/bloc/seat_hold_bloc.dart';
 import '../../../booking/presentation/pages/group_tickets_page.dart';
@@ -99,8 +98,6 @@ class _BookingSuccessPageState extends State<BookingSuccessPage> {
 
     if (args == null) return const PaymentMissingArgs();
 
-    final departure = args.departure;
-
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -120,55 +117,6 @@ class _BookingSuccessPageState extends State<BookingSuccessPage> {
                 secondaryLabel: l10n.holdExpiredSecondary,
                 onSecondary: () => context.go('/home'),
               ),
-              if (departure != null) ...[
-                const SizedBox(height: AppSpacing.lg),
-                KoraCard(
-                  variant: KoraCardVariant.navy,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          KoraTag(
-                            label: KoraDateFormats.dayMonth.format(
-                              departure.departsAt,
-                            ),
-                          ),
-                          if (args.seatLabel != null)
-                            Text(
-                              l10n.bookingSuccessSeat(args.seatLabel!),
-                              style: const TextStyle(
-                                color: AppColors.white,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      Text(
-                        '${departure.line.origin.name} → '
-                        '${departure.line.destination.name}',
-                        style: const TextStyle(
-                          color: AppColors.white,
-                          fontSize: 19,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        l10n.bookingSuccessDeparture(
-                          KoraDateFormats.time.format(departure.departsAt),
-                          departure.line.origin.label,
-                        ),
-                        style: TextStyle(
-                          color: AppColors.white.withValues(alpha: 0.75),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
               const SizedBox(height: AppSpacing.xl),
             ],
           ),

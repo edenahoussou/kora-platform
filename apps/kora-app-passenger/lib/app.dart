@@ -6,6 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/di/injector.dart';
 import 'core/env/app_env.dart';
 import 'core/l10n/app_localization.dart';
+import 'core/network/session_expiry.dart';
 import 'core/router/app_router.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/language/domain/entities/app_language.dart';
@@ -41,7 +42,13 @@ class KoraApp extends StatelessWidget {
         // relit le stockage sécurisé : tant qu'il n'a pas répondu, le
         // garde de navigation ne redirige personne.
         BlocProvider<AuthBloc>(
-          create: (_) => getIt<AuthBloc>()..add(const AuthStarted()),
+          create: (_) => getIt<AuthBloc>()
+            ..add(const AuthStarted())
+            // Un 401 sur une requête qui portait un token veut dire que
+            // la session est finie. Le bloc le sait d'ici, et le garde de
+            // navigation ramène à l'accueil public — sans quoi l'app
+            // restait sur un écran qui répétait « Unauthenticated ».
+            ..watchExpiry(getIt<SessionExpiry>()),
         ),
       ],
       child: BlocBuilder<ThemeBloc, ThemeState>(

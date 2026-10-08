@@ -2,7 +2,7 @@ name: kora_app_passenger
 description: "KORA EXPRESS — application mobile Passager (Clean Architecture + Bloc)."
 publish_to: 'none'
 
-version: 1.0.0+4
+version: 1.0.0+8
 
 environment:
   sdk: ^3.12.2
@@ -102,6 +102,7 @@ flutter:
   # dès que l'app dépend de ce package.
   assets:
     - assets/images/
+    - assets/images/operators/
     - assets/languages/
 
   # Pour ajouter la police Aptos plus tard (voir GUIDE.md, section design

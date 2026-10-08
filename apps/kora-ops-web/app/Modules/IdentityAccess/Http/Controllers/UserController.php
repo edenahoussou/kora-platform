@@ -217,6 +217,7 @@ class UserController extends Controller
             'uuid' => $user->uuid,
             'name' => $user->name,
             'email' => $user->email,
+            'avatar' => $user->getFirstMediaUrl('avatar', 'thumb') ?: null,
             'phone' => $user->phone,
             'country_code' => $user->country_code,
             'birth_date' => $user->birth_date?->toDateString(),

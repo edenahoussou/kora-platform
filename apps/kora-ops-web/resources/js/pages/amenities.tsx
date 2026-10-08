@@ -2,8 +2,11 @@ import { Head, router } from '@inertiajs/react';
 import {
     Archive,
     ArrowLeft,
+    BusFront,
     CheckCircle,
+    CheckCircle2,
     Edit3,
+    Layers,
     MoreHorizontal,
     Plus,
     Sparkles,
@@ -23,8 +26,10 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
 import amenitiesRoutes from '@/routes/amenities';
 import fleet from '@/routes/fleet';
+import modelsRoutes from '@/routes/models';
 import type { BreadcrumbItem } from '@/types';
 
 type PageProps = {
@@ -49,18 +54,79 @@ const statusLabels: Record<string, string> = {
     active: 'Active',
     archived: 'Archivée',
 };
+
 const statusTones: Record<string, 'navy' | 'gold' | 'blue' | 'muted'> = {
     active: 'navy',
     archived: 'muted',
 };
 
-export default function FleetAmenitiesPage({
+function KpiCard({
+    icon: Icon,
+    label,
+    hint,
+    value,
+    tone = 'navy',
+}: {
+    icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+    label: string;
+    hint: string;
+    value: string | number;
+    tone: 'navy' | 'gold' | 'blue' | 'muted' | 'green' | 'rose';
+}) {
+    const toneStyles = {
+        navy: 'bg-kora text-white',
+        gold: 'bg-gold/15 text-gold',
+        blue: 'bg-digital/10 text-digital',
+        muted: 'bg-muted text-muted-foreground',
+        green: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+        rose: 'bg-destructive/10 text-destructive',
+    };
+
+    return (
+        <article className="cash-ledger-card cash-ledger-card-cash">
+            <div className="cash-ledger-head">
+                <div className="cash-ledger-identity">
+                    <span className={cn('cash-ledger-brand', toneStyles[tone])}>
+                        <Icon className="size-4" strokeWidth={1.8} />
+                    </span>
+                    <div>
+                        <span className="cash-ledger-title">{label}</span>
+                        <small>{hint}</small>
+                    </div>
+                </div>
+            </div>
+            <div className="cash-ledger-balance">
+                <span>Total</span>
+                <strong>{value}</strong>
+            </div>
+        </article>
+    );
+}
+
+export default function AmenitiesPage({
     amenities,
     statuses,
     permissions,
 }: PageProps) {
     const [open, setOpen] = useState(false);
     const [selected, setSelected] = useState<AmenityRecord | null>(null);
+
+    const stats = useMemo(() => {
+        const data = amenities.data;
+        const active = data.filter((a) => a.status === 'active').length;
+        const archived = data.filter((a) => a.status === 'archived').length;
+        const equippedBuses = data.reduce(
+            (acc, a) => acc + (a.busesCount || 0),
+            0,
+        );
+
+        return {
+            total: amenities.total,
+            active,
+            archived,
+            equippedBuses,
+        };
+    }, [amenities]);
 
     const filters: FilterConfig[] = useMemo(
         () => [
@@ -119,9 +185,12 @@ export default function FleetAmenitiesPage({
             key: 'buses',
             header: 'Bus rattachés',
             render: (amenity) => (
-                <span className="font-medium text-foreground">
-                    {amenity.busesCount}
-                </span>
+                <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/80 px-2.5 py-1 text-xs font-semibold text-foreground ring-1 ring-border">
+                        <BusFront className="size-3.5 text-gold" />
+                        {amenity.busesCount} bus
+                    </span>
+                </div>
             ),
         },
         {
@@ -197,46 +266,94 @@ export default function FleetAmenitiesPage({
     return (
         <>
             <Head title="Commodités" />
+
             <div className="kora-page-head mb-6 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                    <div className="kora-breadcrumb mb-2 flex items-center gap-2 text-[0.6875rem] text-muted-foreground">
-                        <button
-                            onClick={() => router.get(fleet.index.url())}
-                            className="inline-flex items-center gap-1 hover:text-foreground"
-                        >
-                            <ArrowLeft className="size-3" />
-                            Flotte
-                        </button>
-                        <span>/ Commodités</span>
+                    <div className="kora-breadcrumb mb-2 text-[0.6875rem] text-muted-foreground">
+                        KORA OPS / Flotte / Commodités
                     </div>
                     <h1 className="text-[1.8125rem] font-extrabold tracking-[-0.035em] text-foreground">
-                        Commodités
+                        Commodités de la flotte
                     </h1>
                     <p className="mt-1.5 text-[0.8125rem] text-muted-foreground">
-                        Le référentiel des équipements réutilisables (Wi-Fi,
-                        climatisation…) rattachables à n'importe quel bus.
+                        Gérez le catalogue réutilisable des équipements
+                        rattachables aux bus du réseau KORA.
                     </p>
                 </div>
-                {permissions.canCreate && (
-                    <Button
-                        onClick={() => {
-                            setSelected(null);
-                            setOpen(true);
-                        }}
-                        className="h-11 rounded-[0.75rem] bg-gold px-5 font-medium text-[var(--kora)] hover:bg-[var(--kora)] hover:text-white"
+
+                <div className="flex flex-wrap items-center gap-2.5">
+                    <button
+                        type="button"
+                        onClick={() => router.get(fleet.index.url())}
+                        className="btn btn-ghost"
                     >
-                        <Plus className="size-4" />
-                        Nouvelle commodité
-                    </Button>
-                )}
+                        <ArrowLeft className="size-3.5" />
+                        Flotte de bus
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => router.get(modelsRoutes.index.url())}
+                        className="btn btn-ghost"
+                    >
+                        <Layers className="size-3.5 text-gold" />
+                        Modèles
+                    </button>
+
+                    {permissions.canCreate && (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setSelected(null);
+                                setOpen(true);
+                            }}
+                            className="btn btn-primary"
+                        >
+                            <Plus className="size-3.5" />
+                            Nouvelle commodité
+                        </button>
+                    )}
+                </div>
             </div>
+
+            <section className="mb-6 grid grid-cols-2 gap-3.5 sm:grid-cols-4">
+                <KpiCard
+                    icon={Sparkles}
+                    label="Commodités"
+                    hint="Catalogue total"
+                    value={stats.total}
+                    tone="navy"
+                />
+                <KpiCard
+                    icon={CheckCircle2}
+                    label="Actives"
+                    hint="Disponibles pour bus"
+                    value={stats.active}
+                    tone="green"
+                />
+                <KpiCard
+                    icon={Archive}
+                    label="Archivées"
+                    hint="Hors catalogue actif"
+                    value={stats.archived}
+                    tone="muted"
+                />
+                <KpiCard
+                    icon={BusFront}
+                    label="Affectations"
+                    hint="Bus équipés"
+                    value={stats.equippedBuses}
+                    tone="gold"
+                />
+            </section>
+
             <KoraFilterBar
                 route="/amenities"
                 searchPlaceholder="Rechercher par code ou libellé…"
                 filters={filters}
             />
+
             <KoraTable
-                title="Référentiel des commodités"
+                title="Catalogue des commodités"
                 subtitle={`${amenities.total} commodité${amenities.total > 1 ? 's' : ''} au total`}
                 icon={Sparkles}
                 columns={columns}
@@ -247,6 +364,7 @@ export default function FleetAmenitiesPage({
                 emptyIcon={Sparkles}
                 pagination={pagination}
             />
+
             <AmenityFormDialog
                 open={open}
                 amenity={selected}
@@ -256,7 +374,7 @@ export default function FleetAmenitiesPage({
     );
 }
 
-FleetAmenitiesPage.layout = {
+AmenitiesPage.layout = {
     breadcrumbs: [
         { title: 'Flotte', href: '/fleet' } satisfies BreadcrumbItem,
         {

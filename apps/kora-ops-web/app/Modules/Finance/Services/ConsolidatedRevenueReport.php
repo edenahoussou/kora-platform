@@ -29,6 +29,7 @@ class ConsolidatedRevenueReport
     private const CHANNEL_LABELS = [
         'counter' => 'Vente au guichet',
         'mobile' => 'Vente via l’application passager',
+        'company_portal' => 'Vente portail entreprise',
         'unclassified' => 'Canal historique à qualifier',
     ];
 
@@ -192,9 +193,11 @@ class ConsolidatedRevenueReport
             $source = $this->classifier->source($payment);
             $agencyName = $payment->reservation?->sellingAgency?->name;
             if ($agencyName === null) {
-                $agencyName = $channel['key'] === 'mobile'
-                    ? 'Application passager — hors agence'
-                    : 'Attribution à qualifier';
+                $agencyName = match ($channel['key']) {
+                    'mobile' => 'Application passager — hors agence',
+                    'company_portal' => 'Vente portail entreprise — hors agence',
+                    default => 'Attribution à qualifier',
+                };
             }
 
             yield [
@@ -233,8 +236,12 @@ class ConsolidatedRevenueReport
                 $refund->providerTransactionId,
             );
             $agencyName = $refund->agencyUuid === null
-                ? ($channel['key'] === 'mobile' ? 'Application passager — hors agence' : 'Attribution à qualifier')
-                : $refund->agencyName;
+                ? match ($channel['key']) {
+                    'mobile' => 'Application passager — hors agence',
+                    'company_portal' => 'Vente portail entreprise — hors agence',
+                    default => 'Attribution à qualifier',
+                }
+            : $refund->agencyName;
 
             yield [
                 'Annulation',
@@ -577,13 +584,14 @@ class ConsolidatedRevenueReport
     private function digitalWithoutAgency(Collection $payments, array $refunds): array
     {
         $metric = array_merge(
-            $this->metric('passenger_app_without_agency', 'Application passager — hors agence'),
-            ['uuid' => null, 'name' => 'Application passager — hors agence'],
+            $this->metric('digital_without_agency', 'Ventes digitales — hors agence'),
+            ['uuid' => null, 'name' => 'Ventes digitales — hors agence'],
         );
 
         foreach ($payments as $payment) {
+            $channelKey = $this->classifier->channel($payment)['key'];
             if ($payment->reservation->getAttribute('selling_agency_id') !== null
-                || $this->classifier->channel($payment)['key'] !== 'mobile') {
+                || ! in_array($channelKey, ['mobile', 'company_portal'], true)) {
                 continue;
             }
 
@@ -592,20 +600,21 @@ class ConsolidatedRevenueReport
         }
 
         foreach ($refunds as $refund) {
+            $channelKey = $this->classifier->channelFromValues(
+                $refund->channel,
+                $refund->provider,
+                $refund->providerReference,
+                $refund->providerTransactionId,
+            )['key'];
             if ($refund->agencyUuid !== null
-                || $this->classifier->channelFromValues(
-                    $refund->channel,
-                    $refund->provider,
-                    $refund->providerReference,
-                    $refund->providerTransactionId,
-                )['key'] !== 'mobile') {
+                || ! in_array($channelKey, ['mobile', 'company_portal'], true)) {
                 continue;
             }
 
             $metric['deductions'] += $refund->recognized;
         }
 
-        return $this->finalizeMetrics(['passenger_app_without_agency' => $metric])[0];
+        return $this->finalizeMetrics(['digital_without_agency' => $metric])[0];
     }
 
     /** @return array{key: string, label: string, gross: int, deductions: int, net: int, count: int} */

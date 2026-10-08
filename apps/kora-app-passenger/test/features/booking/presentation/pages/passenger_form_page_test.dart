@@ -86,8 +86,11 @@ void main() {
     WidgetTester tester, {
     int passengers = 1,
     bool international = false,
+    // Un formulaire international à deux voyageurs dépasse la hauteur
+    // par défaut : ce qui n'est pas posé n'est pas trouvable.
+    double height = 1200,
   }) async {
-    tester.view.physicalSize = const Size(390 * 3, 1200 * 3);
+    tester.view.physicalSize = Size(390 * 3, height * 3);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
 
@@ -387,7 +390,7 @@ void main() {
     ) async {
       // Deux voyageurs sur un même billet n'ont pas le même carnet : la
       // case du premier ne doit rien décider pour le second.
-      await pumpForm(tester, passengers: 2);
+      await pumpForm(tester, passengers: 2, international: true, height: 2400);
 
       final boxes = find.byType(Checkbox);
       // Deux cases de vaccination, plus la confirmation d'exactitude.
@@ -399,6 +402,35 @@ void main() {
       // Le second bloc reste vierge : rien ne s'est propagé.
       expect(tester.widget<Checkbox>(boxes.at(0)).value, isTrue);
       expect(tester.widget<Checkbox>(boxes.at(1)).value, isFalse);
+    });
+
+    testWidgets('un trajet intérieur ne demande pas la vaccination', (
+      tester,
+    ) async {
+      // Le certificat international de vaccination n'a pas cours sur un
+      // Cotonou–Parakou : la case y faisait cocher une déclaration sans
+      // objet, que personne ne contrôlerait à l'embarquement.
+      await pumpForm(tester, passengers: 2);
+
+      expect(find.text('Vacciné contre la fièvre jaune'), findsNothing);
+      // Reste la seule confirmation d'exactitude, commune aux deux
+      // voyageurs.
+      expect(find.byType(Checkbox), findsOneWidget);
+    });
+
+    testWidgets('les champs obligatoires portent une astérisque', (
+      tester,
+    ) async {
+      // Ce que la validation exige se voit avant d'être appris par un
+      // message d'erreur, formulaire déjà rempli.
+      await pumpForm(tester);
+
+      expect(find.text('Prénom *'), findsOneWidget);
+      expect(find.text('Nom *'), findsOneWidget);
+      expect(find.text('Téléphone *'), findsOneWidget);
+
+      // L'e-mail n'est pas exigé : la validation ne vérifie que sa forme.
+      expect(find.text('E-mail (optionnel)'), findsOneWidget);
     });
   });
 

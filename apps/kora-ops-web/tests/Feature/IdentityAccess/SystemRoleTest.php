@@ -22,7 +22,7 @@ describe('SystemRole enum', function (): void {
     });
 
     it('returns permissions for each role', function (): void {
-        expect(SystemRole::Passenger->permissions())->toBe(['bookings.create', 'bookings.view-own', 'bookings.cancel', 'tickets.view', 'company-accounts.view'])
+        expect(SystemRole::Passenger->permissions())->toBe(['bookings.create', 'bookings.view-own', 'bookings.cancel', 'tickets.view', 'company-accounts.view', 'company-portal.access'])
             ->and(SystemRole::BusDriver->permissions())->toBe(['departures.progress', 'incidents.report', 'departures.view', 'notifications.view'])
             ->and(SystemRole::Conductor->permissions())->toContain('boarding.scan', 'seat-releases.create')
             ->and(SystemRole::CommercialDirector->permissions())->toContain('agencies.view', 'agencies.create', 'agencies.update', 'agencies.deactivate')
@@ -51,8 +51,9 @@ describe('SystemRole enum', function (): void {
             ->and($all)->toContain('users.view', 'users.manage', 'roles.view', 'roles.manage')
             ->and($all)->toContain('settings.general.view', 'settings.general.manage', 'settings.operations.view', 'settings.operations.manage', 'settings.integrations.view', 'settings.integrations.manage')
             ->and($all)->toContain('tracking.report', 'tracking.view-agency', 'tracking.view-network')
-            ->and($all)->toHaveCount(84)
-            ->and(count(array_unique($all)))->toBe(84);
+            ->and($all)->toContain('passengers.erase', 'sensitive-data.export')
+            ->and($all)->toHaveCount(86)
+            ->and(count(array_unique($all)))->toBe(86);
     });
 
     it('separates internal, field and management roles', function (): void {

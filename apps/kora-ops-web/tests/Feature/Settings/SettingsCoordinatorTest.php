@@ -1,14 +1,17 @@
 <?php
 
 use App\Models\User;
+use App\Modules\Booking\Models\GroupBookingSetting;
 use App\Modules\Settings\Contracts\SettingsCoordinator;
 use App\Modules\Settings\Data\SettingsGroup;
 use App\Modules\Settings\DTO\GeneralSettingsUpdate;
 use App\Modules\Settings\DTO\IntegrationsSettingsUpdate;
 use App\Modules\Settings\DTO\OperationsSettingsUpdate;
 use App\Modules\Settings\Settings\IntegrationsSettings;
+use App\Modules\Settings\Settings\OperationsSettings;
 use Database\Seeders\KoraBusRolePermissionSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 beforeEach(function (): void {
@@ -216,6 +219,54 @@ it('enforces cross-setting dependencies before persisting integrations and opera
     expect(fn () => $coordinator->update(
         SettingsGroup::Operations,
         new OperationsSettingsUpdate(['opsSessionTtlMinutes' => 2000]),
+        $admin,
+    ))->toThrow(ValidationException::class);
+});
+
+it('persists group discount settings within the configured passenger bounds', function (): void {
+    $admin = settingsAdmin();
+    $this->actingAs($admin);
+    GroupBookingSetting::query()->create([
+        'minimum_passengers' => 5,
+        'maximum_passengers' => 12,
+    ]);
+    $coordinator = app(SettingsCoordinator::class);
+    $defaults = $coordinator->snapshot(SettingsGroup::Operations)->values;
+
+    expect($defaults['groupDiscountEnabled'])->toBeTrue()
+        ->and($defaults['groupDiscountPassengerThreshold'])->toBe(10)
+        ->and($defaults['groupDiscountPercentage'])->toBe(10.0);
+
+    $snapshot = $coordinator->update(
+        SettingsGroup::Operations,
+        new OperationsSettingsUpdate([
+            'groupDiscountEnabled' => false,
+            'groupDiscountPassengerThreshold' => 8,
+            'groupDiscountPercentage' => 12.5,
+        ]),
+        $admin,
+    );
+
+    expect($snapshot->values['groupDiscountEnabled'])->toBeFalse()
+        ->and($snapshot->values['groupDiscountPassengerThreshold'])->toBe(8)
+        ->and($snapshot->values['groupDiscountPercentage'])->toBe(12.5)
+        ->and(app(OperationsSettings::class)->groupDiscountEnabled)->toBeFalse();
+
+    expect(fn () => $coordinator->update(
+        SettingsGroup::Operations,
+        new OperationsSettingsUpdate(['groupDiscountPassengerThreshold' => 4]),
+        $admin,
+    ))->toThrow(ValidationException::class);
+
+    expect(fn () => $coordinator->update(
+        SettingsGroup::Operations,
+        new OperationsSettingsUpdate(['groupDiscountPassengerThreshold' => 13]),
+        $admin,
+    ))->toThrow(ValidationException::class);
+
+    expect(fn () => $coordinator->update(
+        SettingsGroup::Operations,
+        new OperationsSettingsUpdate(['groupDiscountPercentage' => 100.01]),
         $admin,
     ))->toThrow(ValidationException::class);
 });

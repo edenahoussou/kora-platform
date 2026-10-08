@@ -1,12 +1,13 @@
 <?php
 
-use App\Http\Controllers\CompanyAccountWebController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\PublicLegalController;
 use App\Modules\AssistedBooking\Http\Controllers\AssistedBookingController;
 use App\Modules\Booking\Http\Controllers\CounterSaleController;
 use App\Modules\BusNetwork\Http\Controllers\BusAmenityController;
 use App\Modules\BusNetwork\Http\Controllers\BusController;
+use App\Modules\BusNetwork\Http\Controllers\BusModelController;
 use App\Modules\BusNetwork\Http\Controllers\LineController;
 use App\Modules\BusNetwork\Http\Controllers\MapSettingsController;
 use App\Modules\Cash\Http\Controllers\CashMediaController;
@@ -27,18 +28,16 @@ use App\Modules\Fiscalization\Http\Controllers\FiscalInvoiceController;
 use App\Modules\Fiscalization\Http\Controllers\FiscalTestInvoiceController;
 use App\Modules\IdentityAccess\Http\Controllers\AgencyController;
 use App\Modules\IdentityAccess\Http\Controllers\TerminalP501Controller;
+use App\Modules\Passengers\Http\Controllers\PassengerErasureController;
+use App\Modules\Passengers\Http\Controllers\PassengerIndexController;
 use App\Modules\Payments\Http\Controllers\AgencyPaymentAccountController;
 use App\Modules\Ticketing\Http\Controllers\TicketIndexController;
 use App\Modules\Ticketing\Http\Controllers\TicketPreviewController;
 use App\Modules\Ticketing\Http\Controllers\TicketViewController;
 use App\Modules\Tracking\Http\Controllers\FleetTrackingPageController;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', fn () => Auth::check()
-    ? redirect()->route('dashboard')
-    : redirect()->route('login')
-)->name('home');
+Route::get('/', HomeController::class)->name('home');
 
 Route::get('privacy-policy', [PublicLegalController::class, 'privacyPolicy'])
     ->name('privacy-policy');
@@ -170,6 +169,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('tax-rules', [TaxRuleController::class, 'store'])->name('tax-rules.store');
     Route::put('tax-rules/{taxRule:uuid}', [TaxRuleController::class, 'update'])->name('tax-rules.update');
     Route::patch('tax-rules/{taxRule:uuid}/status', [TaxRuleController::class, 'changeStatus'])->name('tax-rules.status');
+    Route::get('passengers', [PassengerIndexController::class, 'index'])->name('passengers.index');
+    Route::get('passengers/{phone}/export', [PassengerErasureController::class, 'export'])->name('passengers.export');
+    Route::delete('passengers/{phone}', [PassengerErasureController::class, 'destroy'])->name('passengers.destroy');
+    Route::get('passengers/{phone}', [PassengerIndexController::class, 'show'])->name('passengers.show');
+
     Route::get('tickets', [TicketIndexController::class, 'index'])->name('tickets');
     Route::get('tickets/{ticket:uuid}', [TicketViewController::class, 'show'])->name('tickets.show');
     Route::get('tickets/{ticket:uuid}/pdf', [TicketViewController::class, 'pdf'])->name('tickets.pdf');
@@ -197,6 +201,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('amenities', [BusAmenityController::class, 'store'])->name('amenities.store');
     Route::put('amenities/{amenity:uuid}', [BusAmenityController::class, 'update'])->name('amenities.update');
     Route::patch('amenities/{amenity:uuid}/status', [BusAmenityController::class, 'changeStatus'])->name('amenities.status');
+
+    // Modèles de bus — référentiel top-level (même règle que les commodités).
+    Route::get('models', [BusModelController::class, 'index'])->name('models.index');
+    Route::post('models', [BusModelController::class, 'store'])->name('models.store');
+    Route::put('models/{model:uuid}', [BusModelController::class, 'update'])->name('models.update');
+    Route::patch('models/{model:uuid}/status', [BusModelController::class, 'changeStatus'])->name('models.status');
 
     // V1 MVP — Agences (Ressources — référentiel parent de la flotte et des utilisateurs)
     Route::get('agencies', [AgencyController::class, 'index'])->name('agencies.index');
@@ -290,14 +300,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::put('{promotion:uuid}', [PromotionController::class, 'update'])->name('update');
         Route::patch('{promotion:uuid}/status', [PromotionController::class, 'changeStatus'])->name('status');
     });
-    Route::prefix('companies')->name('companies.')->group(function (): void {
-        Route::get('/', [CompanyAccountWebController::class, 'index'])->name('index');
-        Route::post('/', [CompanyAccountWebController::class, 'store'])->name('store');
-        Route::put('{companyAccount:uuid}', [CompanyAccountWebController::class, 'update'])->name('update');
-        Route::patch('{companyAccount:uuid}/status', [CompanyAccountWebController::class, 'changeStatus'])->name('status');
-        Route::post('{companyAccount:uuid}/members', [CompanyAccountWebController::class, 'addMember'])->name('members.store');
-    });
-
     // Ressources — V2 (sauf fleet qui est V1)
     Route::get('resources', $comingSoon('Ressources', 'Pilotez la disponibilité et les affectations des véhicules.', 'Ressources — V2'))->name('resources');
     Route::get('maintenance', $comingSoon('Maintenance', 'Planifiez les interventions et maîtrisez les immobilisations.', 'Ressources — V2'))->name('maintenance');
@@ -322,4 +324,5 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 require __DIR__.'/administration.php';
+require __DIR__.'/companies.php';
 require __DIR__.'/settings.php';

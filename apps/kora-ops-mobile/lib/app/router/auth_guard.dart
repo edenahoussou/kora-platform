@@ -92,7 +92,9 @@ class AuthGuard extends ChangeNotifier {
         AuthCheckFailed(:final savedIdentifier) => savedIdentifier,
         _ => null,
       };
-      return savedIdentifier == null ? AppRoutes.loginEmail : AppRoutes.loginPin;
+      return savedIdentifier == null
+          ? AppRoutes.loginEmail
+          : AppRoutes.loginPin;
     }
 
     return null;

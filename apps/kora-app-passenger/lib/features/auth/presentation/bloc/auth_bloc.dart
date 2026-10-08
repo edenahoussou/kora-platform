@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../../core/network/session_expiry.dart';
 
 import '../../domain/entities/auth_session.dart';
 import '../../domain/entities/auth_user.dart';
@@ -22,9 +26,28 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthUserRefreshed>(_onUserRefreshed);
     on<AuthProfileUpdated>(_onProfileUpdated);
     on<AuthLogoutRequested>(_onLogoutRequested);
+    on<AuthSessionExpired>(_onSessionExpired);
   }
 
   final AuthRepository _repository;
+
+  StreamSubscription<void>? _expiry;
+
+  /// Écoute les sessions refusées par le serveur.
+  ///
+  /// Posé par l'app plutôt qu'injecté : le bloc se teste sans réseau, et
+  /// un test qui n'appelle pas ceci ne voit jamais passer d'expiration.
+  void watchExpiry(SessionExpiry expiry) {
+    _expiry ??= expiry.expirations.listen(
+      (_) => add(const AuthSessionExpired()),
+    );
+  }
+
+  @override
+  Future<void> close() async {
+    await _expiry?.cancel();
+    return super.close();
+  }
 
   Future<void> _onStarted(AuthStarted event, Emitter<AuthState> emit) async {
     final result = await _repository.currentSession();
@@ -90,6 +113,23 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         errorMessage: '',
       ),
     );
+  }
+
+  Future<void> _onSessionExpired(
+    AuthSessionExpired event,
+    Emitter<AuthState> emit,
+  ) async {
+    // Déjà dehors : plusieurs requêtes en vol répondent 401 ensemble, et
+    // rejouer la purge à chacune ferait clignoter l'écran de connexion.
+    if (!state.isAuthenticated) return;
+
+    // L'état bascule d'abord : le garde de navigation écoute ce bloc, et
+    // c'est lui qui ramène à l'accueil public. Le stockage se purge
+    // ensuite — attendre l'écriture avant de rendre la main laisserait
+    // l'écran mort une fraction de seconde de plus.
+    emit(const AuthState(status: AuthStatus.unauthenticated));
+
+    await _repository.logout();
   }
 
   Future<void> _onLogoutRequested(

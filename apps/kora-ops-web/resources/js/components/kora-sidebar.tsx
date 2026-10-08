@@ -1,7 +1,9 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import {
     AlertTriangle,
+    Building2,
     Bus,
+    ChevronUp,
     FileText,
     LayoutDashboard,
     PanelLeftClose,
@@ -10,15 +12,25 @@ import {
     ShieldCheck,
     Store,
     Ticket,
+    Users,
     Wallet,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import AppLogoIcon from '@/components/app-logo-icon';
+import { KoraUserMenuContent } from '@/components/kora-user-menu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useCurrentUrl } from '@/hooks/use-current-url';
+import { useInitials } from '@/hooks/use-initials';
 import { usePermissions } from '@/hooks/use-permissions';
 import { cn } from '@/lib/utils';
-import { dashboard, revenue } from '@/routes';
+import { dashboard, logout, revenue } from '@/routes';
+import companyPortalRoutes from '@/routes/company-portal';
 import programming from '@/routes/programming';
+import { update as updatePushPreference } from '@/routes/settings/notifications/push';
 
 type NavPermission = string | string[] | null;
 
@@ -27,6 +39,7 @@ type NavChild = {
     href: string;
     permission: NavPermission;
     role?: string;
+    exact?: boolean;
 };
 
 type NavEntry = {
@@ -37,12 +50,48 @@ type NavEntry = {
     children?: NavChild[];
 };
 
+const companyPortalHref = companyPortalRoutes.index.url();
+
 const navItems: NavEntry[] = [
     {
         title: 'Accueil',
         href: dashboard().url,
         icon: LayoutDashboard,
         permission: null,
+    },
+    {
+        title: 'Espace entreprise',
+        href: companyPortalHref,
+        icon: Building2,
+        permission: null,
+        children: [
+            {
+                title: 'Tableau de bord',
+                href: companyPortalRoutes.index.url(),
+                permission: null,
+                exact: true,
+            },
+            {
+                title: 'Acheter des billets',
+                href: companyPortalRoutes.sale.index.url(),
+                permission: null,
+            },
+            {
+                title: 'Membres voyageurs',
+                href: companyPortalRoutes.travelers.index.url(),
+                permission: null,
+            },
+            {
+                title: 'Historique des achats',
+                href: companyPortalRoutes.reservations.index.url(),
+                permission: null,
+            },
+            {
+                title: 'Relevés de facturation',
+                href: companyPortalRoutes.statements.index.url(),
+                permission: null,
+            },
+        ],
     },
     {
         title: 'Vente',
@@ -177,6 +226,12 @@ const navItems: NavEntry[] = [
         ],
     },
     {
+        title: 'Passagers',
+        href: '/passengers',
+        icon: Users,
+        permission: 'tickets.view',
+    },
+    {
         title: 'Billets',
         href: '/tickets',
         icon: FileText,
@@ -194,6 +249,11 @@ const navItems: NavEntry[] = [
                 permission: 'agencies.view',
             },
             { title: 'Flotte', href: '/fleet', permission: 'fleet.view' },
+            {
+                title: 'Modèles',
+                href: '/models',
+                permission: 'fleet.view',
+            },
             {
                 title: 'Commodités',
                 href: '/amenities',
@@ -260,9 +320,56 @@ export function KoraSidebar({
     onToggleCollapse: () => void;
 }) {
     const { isCurrentUrl } = useCurrentUrl();
-    const { auth } = usePage().props;
+    const { auth, companyPortal, portalOnly } = usePage().props;
     const { can, canAny, hasRole } = usePermissions();
+    const getInitials = useInitials();
     const [openGroups, setOpenGroups] = useState<string[]>([]);
+
+    const handleLogout = async () => {
+        const fingerprint = window.localStorage.getItem(
+            'kora-ops-web-push-device',
+        );
+
+        if (
+            fingerprint &&
+            window.localStorage.getItem('kora-ops-web-push-enabled') === 'true'
+        ) {
+            const xsrf = document.cookie
+                .split('; ')
+                .find((part) => part.startsWith('XSRF-TOKEN='))
+                ?.slice('XSRF-TOKEN='.length);
+
+            try {
+                await fetch(updatePushPreference.url(), {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-XSRF-TOKEN': xsrf ? decodeURIComponent(xsrf) : '',
+                    },
+                    body: JSON.stringify({
+                        device_fingerprint: fingerprint,
+                        device_name: 'Navigateur Web',
+                        push_token: null,
+                    }),
+                });
+            } catch {
+                // Logout still proceeds if best-effort token cleanup is offline.
+            }
+        }
+
+        router.post(
+            logout().url,
+            {},
+            {
+                onFinish: () => {
+                    window.localStorage.removeItem('kora-ops-web-push-enabled');
+                    router.flushAll();
+                },
+            },
+        );
+    };
 
     // La sidebar est remontée à chaque visite Inertia : on restaure les
     // groupes ouverts manuellement. Différé d'un tick pour rester hors du
@@ -313,9 +420,10 @@ export function KoraSidebar({
         );
     };
 
-    const isActive = (href: string) =>
+    const isActive = (href: string, exact = false) =>
         isCurrentUrl(href) ||
-        (href !== dashboard().url &&
+        (!exact &&
+            href !== dashboard().url &&
             typeof window !== 'undefined' &&
             window.location.pathname.startsWith(href));
 
@@ -338,9 +446,11 @@ export function KoraSidebar({
                     className={cn(isCollapsed && 'flex justify-center')}
                 >
                     {isCollapsed ? (
-                        <span className="grid size-10 place-items-center rounded-[0.75rem] bg-gold text-[var(--kora)] shadow-[0_10px_22px_rgba(246,176,0,0.22)]">
-                            <AppLogoIcon className="size-5 fill-current" />
-                        </span>
+                        <img
+                            src="/android-chrome-192x192.png"
+                            alt="KORA EXPRESS"
+                            className="size-10 rounded-[0.75rem] object-cover shadow-[0_10px_22px_rgba(246,176,0,0.22)]"
+                        />
                     ) : (
                         <img
                             src="/kora-logo-sidebar.png"
@@ -394,7 +504,10 @@ export function KoraSidebar({
                 className="flex flex-1 flex-col gap-[3px] overflow-y-auto"
                 aria-label="Navigation principale"
             >
-                {navItems.map((item) => {
+                {(portalOnly
+                    ? navItems.filter((item) => item.href === companyPortalHref)
+                    : navItems
+                ).map((item) => {
                     const visibleChildren = item.children?.filter(
                         (child) =>
                             canAccess(child.permission) &&
@@ -406,6 +519,7 @@ export function KoraSidebar({
                         (item.href === '/cash' && !auth?.user?.canViewCash) ||
                         (item.href === '/tickets' &&
                             !auth?.user?.canViewTickets) ||
+                        (item.href === companyPortalHref && !companyPortal) ||
                         (item.children && visibleChildren?.length === 0)
                     ) {
                         return null;
@@ -414,9 +528,10 @@ export function KoraSidebar({
                     const active = isActive(item.href);
 
                     if (item.children) {
-                        const hasActiveChild = item.children.some((c) =>
-                            isActive(c.href),
-                        );
+                        const hasActiveChild =
+                            visibleChildren?.some((child) =>
+                                isActive(child.href, child.exact),
+                            ) ?? false;
                         // Le groupe contenant la page active reste toujours
                         // déplié — le repère "où suis-je" ne doit jamais
                         // disparaître après un reload ou un remount.
@@ -463,7 +578,10 @@ export function KoraSidebar({
                                                 href={child.href}
                                                 className={cn(
                                                     'flex min-h-[2.1875rem] items-center rounded-[0.6875rem] px-3 text-[0.75rem] font-bold transition-colors',
-                                                    isActive(child.href)
+                                                    isActive(
+                                                        child.href,
+                                                        child.exact,
+                                                    )
                                                         ? 'bg-white/10 text-white shadow-[inset_3px_0_var(--gold)]'
                                                         : 'text-white/70 hover:bg-white/10 hover:text-white',
                                                 )}
@@ -500,42 +618,96 @@ export function KoraSidebar({
                 })}
             </nav>
 
-            {/* Bottom: site pill */}
+            {/* Bottom: utilisateur actif avec dropdown vers le haut (side="top") */}
             <div
                 className={cn(
                     'mt-auto border-t border-white/10 pt-3.5',
                     isCollapsed && 'border-t-0 pt-0',
                 )}
             >
-                <div
-                    className={cn(
-                        'mx-1 rounded-[0.75rem] bg-white/[0.07] p-2.75',
-                        isCollapsed && 'mx-0 bg-transparent p-0',
-                    )}
-                >
-                    {isCollapsed ? (
-                        <span
-                            className="mx-auto grid size-9 place-items-center rounded-[0.6875rem] bg-white/[0.08] text-[0.6875rem] font-black text-gold"
-                            title={auth?.user?.name ?? 'Siège Cotonou'}
+                {auth?.user ? (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <button
+                                type="button"
+                                className={cn(
+                                    'group flex w-full items-center rounded-[0.75rem] text-left transition-all duration-200 focus-visible:ring-2 focus-visible:ring-gold/50 focus-visible:outline-none',
+                                    isCollapsed
+                                        ? 'justify-center p-0'
+                                        : 'mx-0 bg-white/[0.07] p-2.5 hover:bg-white/[0.12]',
+                                )}
+                                aria-label="Menu utilisateur"
+                            >
+                                {isCollapsed ? (
+                                    <Avatar
+                                        className="mx-auto size-9 rounded-[0.6875rem] ring-1 ring-white/15 transition-transform duration-200 group-hover:scale-105"
+                                        title={auth.user.name}
+                                    >
+                                        <AvatarImage
+                                            src={auth.user.avatar ?? undefined}
+                                            alt={auth.user.name}
+                                        />
+                                        <AvatarFallback className="rounded-[0.6875rem] bg-white/[0.08] text-[0.6875rem] font-black text-gold">
+                                            {getInitials(auth.user.name)}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                ) : (
+                                    <>
+                                        <Avatar className="size-8 shrink-0 rounded-[0.5625rem] ring-1 ring-white/20">
+                                            <AvatarImage
+                                                src={
+                                                    auth.user.avatar ??
+                                                    undefined
+                                                }
+                                                alt={auth.user.name}
+                                            />
+                                            <AvatarFallback className="rounded-[0.5625rem] bg-white/[0.08] text-[0.6875rem] font-black text-gold">
+                                                {getInitials(auth.user.name)}
+                                            </AvatarFallback>
+                                        </Avatar>
+
+                                        <div className="ml-2.5 min-w-0 flex-1">
+                                            <strong className="block truncate text-[0.75rem] font-bold text-white">
+                                                {auth.user.name}
+                                            </strong>
+                                            <small className="block truncate text-[0.625rem] text-white/55">
+                                                {auth.user.email}
+                                            </small>
+                                        </div>
+
+                                        <ChevronUp className="size-4 shrink-0 text-white/40 transition-transform duration-200 group-hover:text-white group-data-[state=open]:rotate-180" />
+                                    </>
+                                )}
+                            </button>
+                        </DropdownMenuTrigger>
+
+                        <DropdownMenuContent
+                            side="top"
+                            align={isCollapsed ? 'start' : 'center'}
+                            sideOffset={12}
+                            className="rounded-2xl border-border bg-card p-1.5 shadow-[0_-20px_50px_rgba(0,29,78,0.22)]"
                         >
-                            {(auth?.user?.name ?? 'SC')
-                                .split(' ')
-                                .map((part) => part[0])
-                                .join('')
-                                .slice(0, 2)
-                                .toUpperCase()}
-                        </span>
-                    ) : (
-                        <>
-                            <small className="block text-[0.625rem] text-white/45">
-                                Périmètre actif
-                            </small>
-                            <strong className="mt-1 block text-[0.75rem] text-white">
-                                {auth?.user?.name ?? 'Siège Cotonou'}
-                            </strong>
-                        </>
-                    )}
-                </div>
+                            <KoraUserMenuContent
+                                user={auth.user}
+                                onLogout={handleLogout}
+                            />
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                ) : (
+                    <div
+                        className={cn(
+                            'mx-1 rounded-[0.75rem] bg-white/[0.07] p-2.75',
+                            isCollapsed && 'mx-0 bg-transparent p-0',
+                        )}
+                    >
+                        <small className="block text-[0.625rem] text-white/45">
+                            Périmètre actif
+                        </small>
+                        <strong className="mt-1 block text-[0.75rem] text-white">
+                            Siège Cotonou
+                        </strong>
+                    </div>
+                )}
             </div>
         </>
     );

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useEffect } from 'react';
 import { retry } from '@/routes/sale/tickets';
+import tickets from '@/routes/tickets';
 import { ReceiptQr } from './receipt-qr';
 import type { SaleDeparture, SaleReservation, SaleTicket } from './sale-types';
 import { formatMoney, formatTime } from './sale-utils';
@@ -18,11 +19,15 @@ export function CounterSaleSuccess({
     reservation,
     onNewSale,
     releasing,
+    companyPortal = false,
+    onRetryTicketIssuance,
 }: {
     departure: SaleDeparture | null;
     reservation: SaleReservation;
     onNewSale: () => void;
     releasing: boolean;
+    companyPortal?: boolean;
+    onRetryTicketIssuance?: () => void;
 }) {
     useEffect(() => {
         const clearPrintMode = () => {
@@ -82,8 +87,12 @@ export function CounterSaleSuccess({
                     </h1>
                     <p>
                         {ticketCount > 1
-                            ? `La transaction ${departure?.line.code ?? 'KORA'} a été encaissée par ${paymentName.toLowerCase()} et intégrée à la caisse journalière.`
-                            : `La place ${reservation.tickets[0]?.seatCode ?? '—'} est réservée pour ${passengerName(reservation, reservation.tickets[0])}. Le paiement ${paymentName.toLowerCase()} est enregistré dans la caisse journalière.`}
+                            ? companyPortal
+                                ? `Les billets sont imputés au crédit mensuel de l’organisation.`
+                                : `La transaction ${departure?.line.code ?? 'KORA'} a été encaissée par ${paymentName.toLowerCase()} et intégrée à la caisse journalière.`
+                            : companyPortal
+                              ? `Les billets de ${passengerName(reservation, reservation.tickets[0])} sont réglés par ${paymentName}.`
+                              : `La place ${reservation.tickets[0]?.seatCode ?? '—'} est réservée pour ${passengerName(reservation, reservation.tickets[0])}. Le paiement ${paymentName.toLowerCase()} est enregistré dans la caisse journalière.`}
                     </p>
                 </div>
             </header>
@@ -112,12 +121,14 @@ export function CounterSaleSuccess({
                                 <button
                                     type="button"
                                     className="btn btn-primary mt-3"
-                                    onClick={() =>
-                                        router.post(
-                                            retry.url(reservation.uuid),
-                                            {},
-                                            { preserveScroll: true },
-                                        )
+                                    onClick={
+                                        onRetryTicketIssuance ??
+                                        (() =>
+                                            router.post(
+                                                retry.url(reservation.uuid),
+                                                {},
+                                                { preserveScroll: true },
+                                            ))
                                     }
                                 >
                                     <RefreshCw className="size-4" /> Relancer
@@ -134,6 +145,7 @@ export function CounterSaleSuccess({
                             payment={payment}
                             reservation={reservation}
                             ticket={ticket}
+                            companyPortal={companyPortal}
                         />
                     ))}
                 </div>
@@ -150,7 +162,7 @@ export function CounterSaleSuccess({
                         reservation.tickets.map((ticket) => (
                             <a
                                 key={ticket.uuid}
-                                href={`/tickets/${ticket.uuid}`}
+                                href={tickets.pdf.url({ ticket: ticket.uuid })}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="action-rail-button action-rail-button-primary"
@@ -162,7 +174,7 @@ export function CounterSaleSuccess({
                                     <ExternalLink size={18} strokeWidth={1.7} />
                                 </span>
                                 <span className="action-rail-label">
-                                    <strong>Voir le billet</strong>
+                                    <strong>Télécharger le PDF</strong>
                                     <small>{ticket.shortCode}</small>
                                 </span>
                             </a>
@@ -180,7 +192,11 @@ export function CounterSaleSuccess({
                             <strong>
                                 {releasing ? 'Libération…' : 'Nouvelle vente'}
                             </strong>
-                            <small>Revenir au guichet</small>
+                            <small>
+                                {companyPortal
+                                    ? 'Revenir à l’espace entreprise'
+                                    : 'Revenir au guichet'}
+                            </small>
                         </span>
                     </button>
                 </aside>
@@ -195,12 +211,14 @@ function TicketCard({
     payment,
     reservation,
     ticket,
+    companyPortal,
 }: {
     departure: SaleDeparture | null;
     fiscalization: SaleReservation['fiscalization'];
     payment: SaleReservation['payment'];
     reservation: SaleReservation;
     ticket: SaleTicket;
+    companyPortal: boolean;
 }) {
     const passenger = reservation.passengers.find(
         (item) => item.uuid === ticket.passengerUuid,
@@ -301,18 +319,19 @@ function TicketCard({
             <div className="ticket-code">
                 <span aria-hidden="true" />
                 <b>
-                    Achat guichet définitif · Agence{' '}
-                    {payment?.agencyCode ?? '—'}
+                    {companyPortal
+                        ? `Achat entreprise définitif · ${reservation.companyAccount?.name ?? 'Compte entreprise'}`
+                        : `Achat guichet définitif · Agence ${payment?.agencyCode ?? '—'}`}
                 </b>
                 <span aria-hidden="true" />
             </div>
             <a
-                href={`/tickets/${ticket.uuid}`}
+                href={tickets.pdf.url({ ticket: ticket.uuid })}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn btn-ghost ticket-screen-only mt-3 w-full"
             >
-                <ExternalLink className="size-4" /> Voir / Imprimer le billet
+                <ExternalLink className="size-4" /> Télécharger / Imprimer PDF
             </a>
         </article>
     );

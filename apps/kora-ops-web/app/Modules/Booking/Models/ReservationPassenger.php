@@ -38,6 +38,7 @@ class ReservationPassenger extends KoraModel
         'nationality',
         'birth_date',
         'yellow_fever_vaccinated',
+        'anonymized_at',
     ];
 
     /**
@@ -70,6 +71,7 @@ class ReservationPassenger extends KoraModel
             'refunded_amount' => 'integer',
             'passenger_index' => 'integer',
             'yellow_fever_vaccinated' => 'boolean',
+            'anonymized_at' => 'datetime',
         ];
     }
 }

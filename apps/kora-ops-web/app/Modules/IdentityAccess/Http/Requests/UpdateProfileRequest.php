@@ -83,15 +83,15 @@ class UpdateProfileRequest extends FormRequest
         ];
     }
 
-    /** @return array<string, array{description: string}> */
+    /** @return array<string, array{description: string, example: string}> */
     public function bodyParameters(): array
     {
         return [
-            'name' => ['description' => 'Nom affiché ou nom de l’appareil.'],
-            'email' => ['description' => 'Adresse email.'],
-            'phone' => ['description' => 'Numéro de téléphone.'],
-            'country_code' => ['description' => 'Indicatif téléphonique du pays.'],
-            'birth_date' => ['description' => 'Date de naissance.'],
+            'name' => ['description' => 'Nom affiché ou nom de l’appareil.', 'example' => 'Awa Ndiaye'],
+            'email' => ['description' => 'Adresse email.', 'example' => 'awa.ndiaye@example.com'],
+            'phone' => ['description' => 'Numéro de téléphone.', 'example' => '+2290191003606'],
+            'country_code' => ['description' => 'Indicatif téléphonique du pays.', 'example' => '+229'],
+            'birth_date' => ['description' => 'Date de naissance.', 'example' => '1990-05-15'],
         ];
     }
 }

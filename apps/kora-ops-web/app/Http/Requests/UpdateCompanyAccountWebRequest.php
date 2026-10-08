@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Modules\CompanyAccounts\Data\CompanyAccountType;
+use App\Modules\CompanyAccounts\Data\CompanyDiscountType;
 use App\Modules\CompanyAccounts\Models\CompanyAccount;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -33,6 +34,14 @@ class UpdateCompanyAccountWebRequest extends FormRequest
             'ifu' => ['nullable', 'string', 'max:64'],
             'rccm' => ['nullable', 'string', 'max:128'],
             'monthly_credit_limit' => ['required', 'integer', 'min:0'],
+            'discount_type' => ['nullable', Rule::enum(CompanyDiscountType::class)],
+            'discount_value' => [
+                'nullable',
+                'required_with:discount_type',
+                'numeric',
+                'min:0',
+                Rule::when($this->input('discount_type') === CompanyDiscountType::Percentage->value, ['max:100']),
+            ],
         ];
     }
 

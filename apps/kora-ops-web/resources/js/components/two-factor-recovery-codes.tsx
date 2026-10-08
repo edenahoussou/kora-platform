@@ -57,11 +57,12 @@ export default function TwoFactorRecoveryCodes({
             <CardHeader>
                 <CardTitle className="flex gap-3">
                     <LockKeyhole className="size-4" aria-hidden="true" />
-                    2FA recovery codes
+                    Codes de récupération 2FA
                 </CardTitle>
                 <CardDescription>
-                    Recovery codes let you regain access if you lose your 2FA
-                    device. Store them in a secure password manager.
+                    Ces codes permettent de retrouver l'accès au compte si vous
+                    perdez votre appareil 2FA. Conservez-les dans un
+                    gestionnaire de mots de passe sécurisé.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -76,7 +77,8 @@ export default function TwoFactorRecoveryCodes({
                             className="size-4"
                             aria-hidden="true"
                         />
-                        {codesAreVisible ? 'Hide' : 'View'} recovery codes
+                        {codesAreVisible ? 'Masquer' : 'Afficher'} les codes de
+                        secours
                     </Button>
 
                     {canRegenerateCodes && (
@@ -92,7 +94,7 @@ export default function TwoFactorRecoveryCodes({
                                     disabled={processing}
                                     aria-describedby="regenerate-warning"
                                 >
-                                    <RefreshCw /> Regenerate codes
+                                    <RefreshCw /> Régénérer les codes
                                 </Button>
                             )}
                         </Form>
@@ -145,13 +147,14 @@ export default function TwoFactorRecoveryCodes({
 
                                 <div className="text-xs text-muted-foreground select-none">
                                     <p id="regenerate-warning">
-                                        Each recovery code can be used once to
-                                        access your account and will be removed
-                                        after use. If you need more, click{' '}
+                                        Chaque code de secours n'est utilisable
+                                        qu'une seule fois et est supprimé après
+                                        usage. Pour en obtenir de nouveaux,
+                                        cliquez sur{' '}
                                         <span className="font-bold">
-                                            Regenerate codes
+                                            Régénérer les codes
                                         </span>{' '}
-                                        above.
+                                        ci-dessus.
                                     </p>
                                 </div>
                             </>
