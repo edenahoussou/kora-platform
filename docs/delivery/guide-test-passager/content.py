@@ -74,7 +74,9 @@ SHOTS = {
     "39-momo-filled": "Mobile Money, opérateur choisi et numéro saisi, encart « Avant de valider » visible.",
     "40-payment-pending": "« Paiement en cours de vérification… ».",
     "41-payment-success": "L'écran de paiement réussi.",
-    "42-payment-failed-held": "« Paiement refusé » avec les sièges encore retenus.",
+    "42-payment-failed-held": "« Paiement refusé » avec les sièges encore "
+    "retenus — écran que le serveur ne produit pas aujourd'hui, voir la "
+    "note du chapitre.",
     "43-payment-failed-lost": "« Paiement refusé » après relâchement des sièges.",
     "44-assist-request": "« Réserver avec un agent » — choix WhatsApp / Appel.",
     "45-assist-whatsapp": "La discussion WhatsApp avec le message KORA prérédigé.",
@@ -677,11 +679,13 @@ CHAPTERS = [
                 "tarif normal »."
             )),
             ("note", (
-                "<strong>Anomalie connue au moment de la rédaction</strong> : "
-                "l'application d'un code promo sur une réservation en cours "
-                "peut échouer côté serveur. Si cela vous arrive, notez-le et "
-                "poursuivez au tarif normal — le défaut est identifié et "
-                "suivi côté back-office."
+                "Ce point a longtemps échoué : tout code non vide renvoyait "
+                "une erreur serveur, faute de chargement d'une classe. Le "
+                "défaut a été corrigé côté back-office, et couvert par un "
+                "test de non-régression. <strong>Cette vérification n'a pas "
+                "encore été rejouée sur un téléphone depuis le "
+                "correctif</strong> : faites-la en priorité, et signalez "
+                "tout code valide qui serait encore refusé."
             )),
             ("step", "Choisir la sortie", (
                 "Deux boutons : « En ligne » pour payer vous-même, « Avec un "
@@ -753,6 +757,20 @@ CHAPTERS = [
                 "<strong>disparu</strong>. Un décompte qui continue à "
                 "tourner sur des sièges rendus serait un défaut : c'est "
                 "exactement ce que ce test cherche."
+            )),
+            ("note", (
+                "<strong>Aujourd'hui, c'est toujours ce second message qui "
+                "s'affiche.</strong> Le serveur fait expirer la réservation "
+                "à <em>chaque</em> paiement refusé : les sièges repartent à "
+                "la vente aussitôt, et l'écran « vos sièges restent "
+                "réservés » ne peut donc pas apparaître. Vérifié deux fois, "
+                "sur deux téléphones et deux comptes différents. "
+                "L'application sait afficher les deux cas ; c'est le "
+                "comportement serveur qui doit changer — seule l'échéance "
+                "de la réservation devrait la faire expirer, pas un "
+                "paiement manqué. En attendant, considérez cette "
+                "vérification comme <em>connue et non conforme</em> plutôt "
+                "que comme un test à refaire."
             )),
         ],
     },
