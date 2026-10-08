@@ -22,6 +22,7 @@ use Database\Seeders\KoraBusRolePermissionSeeder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Mockery\MockInterface;
+use Spatie\Activitylog\Models\Activity;
 
 beforeEach(function (): void {
     $this->seed(KoraBusRolePermissionSeeder::class);
@@ -800,4 +801,139 @@ it('keeps the document number on an international manifest row even without a do
 
     expect($row['document']['number'])->toBe('NO-TYPE-42')
         ->and($row['document']['type'])->toBeNull();
+});
+
+/** @return array{token: string, terminal: TerminalP501, departure: Departure, ticket: Ticket, passenger: ReservationPassenger, user: User} */
+function passengerCorrectionScenario(bool $international = true, string $segmentStatus = 'ticketed', string $serial = 'P501-CORRECT-01'): array
+{
+    [$user, $token] = manifestCrewToken('conductor');
+    $terminal = manifestActiveTerminal($serial);
+    $line = manifestLine(international: $international);
+    [$origin, $destination] = manifestStops($line, destinationCountry: $international ? 'TG' : 'BJ');
+    [$bus, $seat] = manifestBusWithSeat();
+    $departure = manifestOpsDeparture($line, $bus, ['conductor_id' => $user->id]);
+    [, $ticket, $passenger] = manifestBookedPassenger($departure, $origin, $destination, $seat, segmentStatus: $segmentStatus);
+
+    return compact('token', 'terminal', 'departure', 'ticket', 'passenger', 'user');
+}
+
+function patchPassenger(mixed $test, array $scenario, array $payload)
+{
+    return $test->withToken($scenario['token'])
+        ->withHeader('X-Terminal-Serial', $scenario['terminal']->serial_number)
+        ->patchJson("/api/v1/ops/departures/{$scenario['departure']->uuid}/tickets/{$scenario['ticket']->uuid}/passenger", $payload);
+}
+
+it('lets the conductor correct identity, passport number and yellow fever status, and audits it', function (): void {
+    $scenario = passengerCorrectionScenario();
+
+    patchPassenger($this, $scenario, [
+        'first_name' => 'Awa-Marie',
+        'phone' => '+229 01 97 00 00 01',
+        'document_type' => 'passport',
+        'document_number' => 'PP999888',
+        'nationality' => 'tg',
+        'birth_date' => '1991-02-03',
+        'yellow_fever_vaccinated' => false,
+        'reason' => 'Faute de frappe constatée à la montée',
+    ])->assertOk()
+        ->assertJsonPath('data.firstName', 'Awa-Marie')
+        ->assertJsonPath('data.document.number', 'PP999888')
+        ->assertJsonPath('data.nationality', 'TG')
+        ->assertJsonPath('data.yellowFeverVaccinated', false);
+
+    $passenger = $scenario['passenger']->fresh();
+    expect($passenger->first_name)->toBe('Awa-Marie')
+        ->and($passenger->last_name)->toBe('Traoré')
+        ->and($passenger->document_number)->toBe('PP999888')
+        ->and($passenger->yellow_fever_vaccinated)->toBeFalse()
+        ->and($passenger->birth_date->toDateString())->toBe('1991-02-03');
+
+    $log = Activity::query()->where('description', 'manifest_passenger_corrected')->latest('id')->first();
+    expect($log)->not->toBeNull()
+        ->and($log->causer_id)->toBe($scenario['user']->id)
+        ->and($log->properties['reason'])->toBe('Faute de frappe constatée à la montée')
+        ->and(json_encode($log->properties))->not->toContain('PP999888')
+        ->not->toContain('PP123456');
+});
+
+it('allows a correction after boarding and on a domestic line (identity fields)', function (): void {
+    $scenario = passengerCorrectionScenario(international: false, segmentStatus: 'boarded');
+
+    patchPassenger($this, $scenario, ['last_name' => 'Traore', 'email' => 'Awa@Example.com'])
+        ->assertOk()
+        ->assertJsonPath('data.lastName', 'Traore')
+        ->assertJsonPath('data.email', 'awa@example.com');
+});
+
+it('writes nothing to the audit log when nothing really changes', function (): void {
+    $scenario = passengerCorrectionScenario();
+
+    patchPassenger($this, $scenario, ['first_name' => 'Awa'])->assertOk();
+
+    expect(Activity::query()->where('description', 'manifest_passenger_corrected')->count())->toBe(0);
+});
+
+it('invalidates the manifest version after a correction', function (): void {
+    $scenario = passengerCorrectionScenario();
+    $headers = ['X-Terminal-Serial' => $scenario['terminal']->serial_number];
+    $url = "/api/v1/ops/departures/{$scenario['departure']->uuid}/manifest";
+
+    $before = $this->withToken($scenario['token'])->withHeaders($headers)->getJson($url)->json('manifestVersion');
+
+    $this->travel(2)->seconds();
+    patchPassenger($this, $scenario, ['first_name' => 'Awa-Marie'])->assertOk();
+
+    $after = $this->withToken($scenario['token'])->withHeaders($headers)->getJson($url)->json('manifestVersion');
+    expect($after)->not->toBe($before);
+});
+
+it('exposes first name, last name, phone and email on every manifest row', function (): void {
+    $scenario = passengerCorrectionScenario(international: false);
+
+    $row = $this->withToken($scenario['token'])
+        ->withHeader('X-Terminal-Serial', $scenario['terminal']->serial_number)
+        ->getJson("/api/v1/ops/departures/{$scenario['departure']->uuid}/manifest")
+        ->assertOk()->json('data.0');
+
+    expect($row['firstName'])->toBe('Awa')->and($row['lastName'])->toBe('Traoré')->and($row['phone'])->toBe('+22900000000');
+});
+
+it('rejects a document type without number, an invalid birth date and a blank name', function (): void {
+    $scenario = passengerCorrectionScenario();
+
+    patchPassenger($this, $scenario, ['document_number' => null])->assertStatus(422);
+    patchPassenger($this, $scenario, ['birth_date' => '2999-01-01'])->assertStatus(422);
+    patchPassenger($this, $scenario, ['first_name' => ''])->assertStatus(422);
+    patchPassenger($this, $scenario, ['nationality' => 'BEN'])->assertStatus(422);
+});
+
+it('refuses a correction from a crew member not assigned to the departure', function (): void {
+    $scenario = passengerCorrectionScenario();
+    [, $otherToken] = manifestCrewToken('conductor');
+
+    $this->withToken($otherToken)
+        ->withHeader('X-Terminal-Serial', $scenario['terminal']->serial_number)
+        ->patchJson("/api/v1/ops/departures/{$scenario['departure']->uuid}/tickets/{$scenario['ticket']->uuid}/passenger", ['first_name' => 'X'])
+        ->assertForbidden();
+
+    expect($scenario['passenger']->fresh()->first_name)->toBe('Awa');
+});
+
+it('refuses a ticket that is not on this departure', function (): void {
+    $scenario = passengerCorrectionScenario();
+    $other = passengerCorrectionScenario(serial: 'P501-CORRECT-02');
+
+    $this->withToken($scenario['token'])
+        ->withHeader('X-Terminal-Serial', $scenario['terminal']->serial_number)
+        ->patchJson("/api/v1/ops/departures/{$scenario['departure']->uuid}/tickets/{$other['ticket']->uuid}/passenger", ['first_name' => 'X'])
+        ->assertStatus(422)
+        ->assertJsonPath('error.code', 'ticket_not_for_departure');
+});
+
+it('refuses to correct an anonymized passenger', function (): void {
+    $scenario = passengerCorrectionScenario();
+    $scenario['passenger']->update(['anonymized_at' => now()]);
+
+    patchPassenger($this, $scenario, ['first_name' => 'X'])->assertStatus(422);
 });

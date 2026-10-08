@@ -52,6 +52,14 @@ abstract class ManifesteLocalDataSource {
     required String ticketUuid,
     required BoardingStatus statut,
   });
+
+  /// Répercute dans le cache local une correction d'informations passager
+  /// (déjà affichée à l'écran) pour qu'elle survive à un redémarrage à
+  /// froid. Silencieux si [passenger] n'est plus dans le cache.
+  Future<void> updateCachedPassenger({
+    required String departureUuid,
+    required Passenger passenger,
+  });
 }
 
 class ManifesteLocalDataSourceImpl implements ManifesteLocalDataSource {
@@ -121,6 +129,15 @@ class ManifesteLocalDataSourceImpl implements ManifesteLocalDataSource {
           'segment_status': passenger.statut.name,
           'nationality': passenger.nationalite,
           'document_number': passenger.documentNumero,
+          'first_name': passenger.prenom,
+          'last_name': passenger.nom,
+          'phone': passenger.telephone,
+          'email': passenger.email,
+          'document_type': passenger.documentType,
+          'birth_date': passenger.dateNaissance,
+          'yellow_fever': passenger.fievreJauneVaccine == null
+              ? null
+              : (passenger.fievreJauneVaccine! ? 1 : 0),
           'fetched_at': fetchedAt,
         });
       }
@@ -158,6 +175,33 @@ class ManifesteLocalDataSourceImpl implements ManifesteLocalDataSource {
     );
   }
 
+  @override
+  Future<void> updateCachedPassenger({
+    required String departureUuid,
+    required Passenger passenger,
+  }) async {
+    final Database db = await _database.database;
+    await db.update(
+      'manifest_cache',
+      <String, Object?>{
+        'passenger_name': passenger.nomComplet,
+        'first_name': passenger.prenom,
+        'last_name': passenger.nom,
+        'phone': passenger.telephone,
+        'email': passenger.email,
+        'nationality': passenger.nationalite,
+        'document_number': passenger.documentNumero,
+        'document_type': passenger.documentType,
+        'birth_date': passenger.dateNaissance,
+        'yellow_fever': passenger.fievreJauneVaccine == null
+            ? null
+            : (passenger.fievreJauneVaccine! ? 1 : 0),
+      },
+      where: 'departure_uuid = ? AND ticket_uuid = ?',
+      whereArgs: <Object?>[departureUuid, passenger.id],
+    );
+  }
+
   Passenger _passengerOf(Map<String, Object?> row) => Passenger(
         id: row['ticket_uuid'] as String? ?? '',
         nomComplet: row['passenger_name'] as String? ?? 'Passager',
@@ -174,5 +218,16 @@ class ManifesteLocalDataSourceImpl implements ManifesteLocalDataSource {
         boardingEventUuid: row['boarding_event_uuid'] as String?,
         nationalite: row['nationality'] as String?,
         documentNumero: row['document_number'] as String?,
+        prenom: row['first_name'] as String?,
+        nom: row['last_name'] as String?,
+        telephone: row['phone'] as String?,
+        email: row['email'] as String?,
+        documentType: row['document_type'] as String?,
+        dateNaissance: row['birth_date'] as String?,
+        fievreJauneVaccine: switch (row['yellow_fever']) {
+          1 => true,
+          0 => false,
+          _ => null,
+        },
       );
 }

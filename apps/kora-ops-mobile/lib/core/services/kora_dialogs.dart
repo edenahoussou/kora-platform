@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:kora_ops_mobile/app/theme/app_colors.dart';
 import 'package:pro_dialog/pro_dialog.dart';
 import '../../app/theme/app_radius.dart';
+import '../../app/theme/kora_colors.dart';
 
 /// Point d'accès unique à toutes les alertes/dialogues de l'application,
 /// construit sur **pro_dialog** (pub.dev/packages/pro_dialog, v1.0.9).
@@ -138,15 +139,40 @@ abstract final class KoraDialogs {
     return completer.future;
   }
 
-  /// Affiche un dialogue de chargement bloquant. **Toujours** en paire avec
-  /// [hideLoading] une fois l'opération terminée.
+  /// Affiche le chargement de l'application : exactement celui de l'écran
+  /// de connexion (`PinEntryPage`) — le même `CircularProgressIndicator`
+  /// doré, centré, sans texte, sur un voile plein écran (couleur de fond du mode
+  /// clair / sombre, 85 % d'opacité) pour rester bien visible. Il remplace l'ancien chargement
+  /// `pro_dialog`. Les touches sont bloquées (barrière transparente, retour
+  /// système inactif) tant que [hideLoading] n'a pas été appelé : **toujours**
+  /// en paire avec [hideLoading] une fois l'opération terminée.
+  ///
+  /// [message] n'est plus affiché (le chargement de la connexion n'a pas de
+  /// texte) ; le paramètre est conservé pour ne pas toucher aux appelants.
   static void showLoading(BuildContext context,
       {String message = 'Chargement…'}) {
-    showLoadingDialog(
-      context,
-      title: message,
-      description: '',
-      theme: _theme,
+    showGeneralDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.transparent,
+      transitionDuration: Duration.zero,
+      pageBuilder: (BuildContext dialogContext, Animation<double> _,
+              Animation<double> __) =>
+          PopScope(
+        canPop: false,
+        // Voile plein écran à la couleur de fond du mode actif (clair /
+        // sombre) à 85 % d'opacité : l'écran derrière reste à peine
+        // perceptible et le spinner doré bien visible. Il absorbe aussi
+        // les touches.
+        child: SizedBox.expand(
+          child: ColoredBox(
+            color: dialogContext.koraColors.background.withValues(alpha: 0.85),
+            child: const Center(
+              child: CircularProgressIndicator(color: AppColors.gold),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -231,152 +257,5 @@ abstract final class KoraDialogs {
     controller.dispose();
     isValid.dispose();
     return result;
-  }
-
-  /// Retard + motif (MEZ-98, `PATCH .../delay`) — `delay_minutes` (entier,
-  /// `0` pour annuler un retard déjà enregistré) et `delay_reason`
-  /// (obligatoire, 255 caractères max côté serveur). Contenu porté par
-  /// [_DelayPromptDialog] (StatefulWidget dédié) plutôt que des
-  /// `TextEditingController` créés/disposés manuellement autour de
-  /// `showDialog` : ce dernier pattern disposait les contrôleurs dès que
-  /// `showDialog` rendait la main, alors que la boîte de dialogue est
-  /// encore montée pendant son animation de fermeture — `TextEditingController
-  /// was used after being disposed`. Un State géré par Flutter n'a pas ce
-  /// problème : `dispose()` n'est appelé qu'une fois le widget réellement
-  /// démonté. Retourne `null` si annulé.
-  static Future<({int minutes, String reason})?> promptDelay(
-    BuildContext context, {
-    required String title,
-    String? description,
-    int initialMinutes = 0,
-    String confirmLabel = 'Enregistrer',
-    String cancelLabel = 'Annuler',
-  }) {
-    return showDialog<({int minutes, String reason})>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext dialogContext) => _DelayPromptDialog(
-        title: title,
-        description: description,
-        initialMinutes: initialMinutes,
-        confirmLabel: confirmLabel,
-        cancelLabel: cancelLabel,
-      ),
-    );
-  }
-}
-
-/// Contenu de [KoraDialogs.promptDelay] — voir sa docstring pour la
-/// raison d'être de ce StatefulWidget plutôt que des contrôleurs gérés à
-/// la main. `content` est enveloppé dans un `SingleChildScrollView` :
-/// l'`AlertDialog` de Flutter n'est pas scrollable par défaut, ce qui
-/// provoquait un débordement (`RenderFlex overflowed`) quand le clavier
-/// réduisait l'espace disponible sur un petit écran.
-class _DelayPromptDialog extends StatefulWidget {
-  const _DelayPromptDialog({
-    required this.title,
-    required this.initialMinutes,
-    required this.confirmLabel,
-    required this.cancelLabel,
-    this.description,
-  });
-
-  final String title;
-  final String? description;
-  final int initialMinutes;
-  final String confirmLabel;
-  final String cancelLabel;
-
-  @override
-  State<_DelayPromptDialog> createState() => _DelayPromptDialogState();
-}
-
-class _DelayPromptDialogState extends State<_DelayPromptDialog> {
-  late final TextEditingController _minutesController =
-      TextEditingController(text: widget.initialMinutes.toString());
-  final TextEditingController _reasonController = TextEditingController();
-  bool _isValid = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _minutesController.addListener(_revalidate);
-    _reasonController.addListener(_revalidate);
-  }
-
-  void _revalidate() {
-    final int? minutes = int.tryParse(_minutesController.text.trim());
-    final bool valid = minutes != null &&
-        minutes >= 0 &&
-        _reasonController.text.trim().isNotEmpty;
-    if (valid != _isValid) setState(() => _isValid = valid);
-  }
-
-  @override
-  void dispose() {
-    // Appelé uniquement quand ce State est réellement démonté — jamais
-    // en course avec l'animation de fermeture du dialogue (voir docstring
-    // de KoraDialogs.promptDelay).
-    _minutesController.dispose();
-    _reasonController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-      ),
-      title: Text(widget.title),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            if (widget.description != null) ...<Widget>[
-              Text(widget.description!),
-              const SizedBox(height: 12),
-            ],
-            TextField(
-              controller: _minutesController,
-              autofocus: true,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Retard (minutes)'),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _reasonController,
-              minLines: 2,
-              maxLines: 4,
-              maxLength: 255,
-              decoration: const InputDecoration(hintText: 'Motif du retard'),
-            ),
-          ],
-        ),
-      ),
-      actions: <Widget>[
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(widget.cancelLabel),
-        ),
-        FilledButton(
-          style: FilledButton.styleFrom(
-            backgroundColor: KoraDialogs._primaryColor,
-            foregroundColor: AppColors.onGold,
-            disabledBackgroundColor:
-                KoraDialogs._primaryColor.withValues(alpha: 0.5),
-            disabledForegroundColor: AppColors.onGold.withValues(alpha: 0.5),
-          ),
-          onPressed: _isValid
-              ? () => Navigator.of(context).pop((
-                    minutes: int.parse(_minutesController.text.trim()),
-                    reason: _reasonController.text.trim(),
-                  ))
-              : null,
-          child: Text(widget.confirmLabel),
-        ),
-      ],
-    );
   }
 }

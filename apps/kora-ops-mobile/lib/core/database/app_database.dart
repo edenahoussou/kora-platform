@@ -46,6 +46,12 @@ import 'package:sqflite/sqflite.dart';
 ///   séquence) — restaure le suivi après un crash ou un redémarrage à
 ///   froid sans perdre de point ni recommencer la séquence à zéro, voir
 ///   `TrackingLocalDataSource`.
+/// - `passenger_correction_operations` (v9) : file des corrections
+///   d'informations passager faites par le convoyeur hors ligne, en
+///   attente d'envoi (`PATCH .../tickets/{ticket}/passenger`). Le v9
+///   ajoute aussi à `manifest_cache` l'identité détaillée (prénom, nom,
+///   téléphone, email) et les champs frontière complémentaires (type de
+///   pièce, naissance, fièvre jaune) — voir `PassengerCorrectionRepository`.
 ///
 /// Singleton : une seule connexion ouverte pour toute l'app (voir
 /// `injection.dart`), comme `SharedPreferences`/`FlutterSecureStorage` —
@@ -57,7 +63,7 @@ class AppDatabase {
   AppDatabase();
 
   static const String _fileName = 'kora_ops.db';
-  static const int _schemaVersion = 8;
+  static const int _schemaVersion = 9;
 
   Database? _database;
 
@@ -86,6 +92,7 @@ class AppDatabase {
         await _createOpsNotifications(db);
         await _createIncidentOperations(db);
         await _createTrackingTables(db);
+        await _createPassengerCorrectionOperations(db);
       },
       onUpgrade: (Database db, int oldVersion, int newVersion) async {
         if (oldVersion < 2) {
@@ -110,6 +117,10 @@ class AppDatabase {
         }
         if (oldVersion < 8) {
           await _createTrackingTables(db);
+        }
+        if (oldVersion < 9) {
+          await _addPassengerIdentityColumns(db);
+          await _createPassengerCorrectionOperations(db);
         }
       },
     );
@@ -154,6 +165,13 @@ class AppDatabase {
         ticket_status TEXT,
         nationality TEXT,
         document_number TEXT,
+        first_name TEXT,
+        last_name TEXT,
+        phone TEXT,
+        email TEXT,
+        document_type TEXT,
+        birth_date TEXT,
+        yellow_fever INTEGER,
         fetched_at TEXT NOT NULL
       )
     ''');
@@ -199,6 +217,49 @@ class AppDatabase {
     await _addColumnIfMissing(db, 'manifest_cache', 'nationality', 'TEXT');
     await _addColumnIfMissing(db, 'manifest_cache', 'document_number', 'TEXT');
     await _addColumnIfMissing(db, 'manifest_meta', 'international', 'INTEGER');
+  }
+
+  /// Terminal déjà en service avant la correction passager (v9) :
+  /// `manifest_cache` existe sans l'identité détaillée — `ALTER TABLE ADD
+  /// COLUMN`, le cache reste valide ; `ManifesteRepositoryImpl.load`
+  /// retélécharge une fois le manifeste pour remplir ces colonnes.
+  Future<void> _addPassengerIdentityColumns(Database db) async {
+    await _addColumnIfMissing(db, 'manifest_cache', 'first_name', 'TEXT');
+    await _addColumnIfMissing(db, 'manifest_cache', 'last_name', 'TEXT');
+    await _addColumnIfMissing(db, 'manifest_cache', 'phone', 'TEXT');
+    await _addColumnIfMissing(db, 'manifest_cache', 'email', 'TEXT');
+    await _addColumnIfMissing(db, 'manifest_cache', 'document_type', 'TEXT');
+    await _addColumnIfMissing(db, 'manifest_cache', 'birth_date', 'TEXT');
+    await _addColumnIfMissing(db, 'manifest_cache', 'yellow_fever', 'INTEGER');
+    // Version volontairement invalide : au prochain chargement le serveur
+    // la déclare périmée et le manifeste est retéléchargé, ce qui remplit
+    // les nouvelles colonnes.
+    await db.update(
+        'manifest_meta', <String, Object?>{'manifest_version': 'legacy-v8'});
+  }
+
+  /// File des corrections d'informations passager en attente d'envoi (v9).
+  /// `payload` = JSON du corps `PATCH` (champs envoyés uniquement) ;
+  /// `sync_status` : `pending` (à envoyer) ou `rejected` (refusée
+  /// définitivement par le serveur, `last_error` = motif — conservée pour
+  /// trace, jamais rejouée ni réappliquée au manifeste).
+  Future<void> _createPassengerCorrectionOperations(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS passenger_correction_operations (
+        operation_uuid TEXT PRIMARY KEY,
+        departure_uuid TEXT NOT NULL,
+        ticket_uuid TEXT NOT NULL,
+        payload TEXT NOT NULL,
+        reason TEXT,
+        sync_status TEXT NOT NULL,
+        last_error TEXT,
+        created_at TEXT NOT NULL
+      )
+    ''');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_passenger_correction_status '
+      'ON passenger_correction_operations(departure_uuid, sync_status)',
+    );
   }
 
   Future<void> _addColumnIfMissing(

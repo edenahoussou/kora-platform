@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../app/config/app_config.dart';
 import '../app/config/terminal_mode.dart';
 import '../app/theme/theme_cubit.dart';
@@ -38,8 +39,12 @@ import '../features/incidents/data/repositories/incident_repository_impl.dart';
 import '../features/incidents/domain/repositories/incident_repository.dart';
 import '../features/manifeste/data/datasources/manifeste_local_datasource.dart';
 import '../features/manifeste/data/datasources/manifeste_remote_datasource.dart';
+import '../features/manifeste/data/datasources/passenger_correction_local_datasource.dart';
+import '../features/manifeste/data/datasources/passenger_correction_remote_datasource.dart';
 import '../features/manifeste/data/repositories/manifeste_repository_impl.dart';
+import '../features/manifeste/data/repositories/passenger_correction_repository_impl.dart';
 import '../features/manifeste/domain/repositories/manifeste_repository.dart';
+import '../features/manifeste/domain/repositories/passenger_correction_repository.dart';
 import '../features/manifeste/presentation/cubit/manifeste_cubit.dart';
 import '../features/notifications/data/datasources/notification_local_datasource.dart';
 import '../features/notifications/data/datasources/notification_remote_datasource.dart';
@@ -488,11 +493,27 @@ Future<void> configureDependencies() async {
       isOnline: () async => getIt<SyncCubit>().state.isOnline,
     ),
   );
+  // Correction des informations passager par le convoyeur (avant/après
+  // embarquement) — envoi immédiat, file locale si hors ligne.
+  getIt.registerLazySingleton<PassengerCorrectionRemoteDataSource>(
+    () => PassengerCorrectionRemoteDataSourceImpl(opsDioClient.dio),
+  );
+  getIt.registerLazySingleton<PassengerCorrectionLocalDataSource>(
+    () => PassengerCorrectionLocalDataSourceImpl(getIt<AppDatabase>()),
+  );
+  getIt.registerLazySingleton<PassengerCorrectionRepository>(
+    () => PassengerCorrectionRepositoryImpl(
+      getIt<PassengerCorrectionRemoteDataSource>(),
+      getIt<PassengerCorrectionLocalDataSource>(),
+      getIt<ManifesteLocalDataSource>(),
+    ),
+  );
   getIt.registerSingleton<ManifesteCubit>(
     ManifesteCubit(
       selectedDepartCubit: getIt<SelectedDepartCubit>(),
       syncCubit: getIt<SyncCubit>(),
       repository: getIt<ManifesteRepository>(),
+      passengerCorrectionRepository: getIt<PassengerCorrectionRepository>(),
     ),
   );
 

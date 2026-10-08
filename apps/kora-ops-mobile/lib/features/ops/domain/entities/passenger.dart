@@ -28,6 +28,12 @@ class Passenger extends Equatable {
     this.boardingEventUuid,
     this.nationalite,
     this.documentNumero,
+    this.prenom,
+    this.nom,
+    this.email,
+    this.documentType,
+    this.dateNaissance,
+    this.fievreJauneVaccine,
   });
 
   final String id;
@@ -74,6 +80,28 @@ class Passenger extends Equatable {
   /// (voir `BorderManifestPrintCubit`).
   final String? documentNumero;
 
+  /// Prénom / nom séparés, tels que saisis à la réservation — nécessaires
+  /// au formulaire de correction (voir `OpsManifestRowResource.firstName`
+  /// / `lastName`). `null` pour un cache antérieur à cette fonction : le
+  /// formulaire retombe alors sur un découpage de [nomComplet].
+  final String? prenom;
+  final String? nom;
+
+  /// Adresse email du passager (facultative).
+  final String? email;
+
+  /// Type de la pièce (`national_id`, `biometric_card`, `passport`,
+  /// `consular_card`, `cip`) — champ de contrôle frontière, lignes
+  /// internationales uniquement. Un passeport = `passport` + [documentNumero].
+  final String? documentType;
+
+  /// Date de naissance `yyyy-MM-dd` — lignes internationales uniquement.
+  final String? dateNaissance;
+
+  /// Vaccination fièvre jaune : `true` / `false`, `null` = non renseigné —
+  /// lignes internationales uniquement.
+  final bool? fievreJauneVaccine;
+
   Passenger copyWith({BoardingStatus? statut}) => Passenger(
         id: id,
         nomComplet: nomComplet,
@@ -88,6 +116,12 @@ class Passenger extends Equatable {
         boardingEventUuid: boardingEventUuid,
         nationalite: nationalite,
         documentNumero: documentNumero,
+        prenom: prenom,
+        nom: nom,
+        email: email,
+        documentType: documentType,
+        dateNaissance: dateNaissance,
+        fievreJauneVaccine: fievreJauneVaccine,
       );
 
   @override
@@ -105,5 +139,11 @@ class Passenger extends Equatable {
         boardingEventUuid,
         nationalite,
         documentNumero,
+        prenom,
+        nom,
+        email,
+        documentType,
+        dateNaissance,
+        fievreJauneVaccine,
       ];
 }

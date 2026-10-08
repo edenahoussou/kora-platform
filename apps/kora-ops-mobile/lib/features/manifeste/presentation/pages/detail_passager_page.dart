@@ -28,7 +28,9 @@ import '../../../seat_release/domain/entities/seat_release_outcome.dart';
 import '../../../seat_release/domain/entities/seat_release_outcome_status.dart';
 import '../../../seat_release/domain/repositories/seat_release_repository.dart';
 import '../../../synchro/presentation/widgets/sync_status_banner.dart';
+import '../../domain/entities/passenger_correction.dart';
 import '../cubit/manifeste_cubit.dart';
+import '../widgets/passenger_correction_sheet.dart';
 
 /// Détail d'un passager — infos billet, segment, siège, statut. Écran
 /// empilé au-dessus de la bottom nav, ouvert depuis une ligne du Manifeste
@@ -52,6 +54,19 @@ class DetailPassagerPage extends StatelessWidget {
         .state
         .pendingReleaseTicketUuids
         .contains(passengerId);
+    final bool isPendingCorrection = context
+        .watch<ManifesteCubit>()
+        .state
+        .pendingCorrectionTicketUuids
+        .contains(passengerId);
+    // Champs de contrôle frontière : lignes internationales uniquement
+    // (le serveur ne les envoie pas autrement).
+    final bool isInternational =
+        context.watch<ManifesteCubit>().state.isInternational == true;
+    // Même droit que le scan d'embarquement (`boarding.scan`, convoyeur) :
+    // corriger un passager avant comme après l'embarquement.
+    final bool canCorrectPassenger =
+        authState is AuthAuthenticated && authState.user.can('boarding.scan');
 
     if (passenger == null) {
       return const Scaffold(body: Center(child: Text('Passager introuvable.')));
@@ -83,6 +98,13 @@ class DetailPassagerPage extends StatelessWidget {
           label: 'Annuler l\'embarquement',
           danger: true,
           onPressed: () => _reverseBoarding(context, passenger),
+        ),
+      if (depart != null && canCorrectPassenger)
+        SpeedDialAction(
+          icon: Icons.edit_outlined,
+          label: 'Corriger les informations',
+          onPressed: () => _correctPassenger(
+              context, passenger, showBorderFields: isInternational),
         ),
       if (depart != null)
         SpeedDialAction(
@@ -170,13 +192,45 @@ class DetailPassagerPage extends StatelessWidget {
                         _InfoRow(
                             label: 'Téléphone',
                             value: passenger.telephone ?? '—'),
+                        _InfoRow(label: 'Email', value: passenger.email ?? '—'),
+                        if (isInternational) ...<Widget>[
+                          _InfoRow(
+                              label: 'Pièce',
+                              value: passenger.documentType == null
+                                  ? '—'
+                                  : (kDocumentTypeLabels[
+                                          passenger.documentType] ??
+                                      passenger.documentType!)),
+                          _InfoRow(
+                              label: passenger.documentType == 'passport'
+                                  ? 'N° de passeport'
+                                  : 'N° de pièce',
+                              value: passenger.documentNumero ?? '—'),
+                          _InfoRow(
+                              label: 'Nationalité',
+                              value: passenger.nationalite == null
+                                  ? '—'
+                                  : (kCountryLabels[passenger.nationalite] ??
+                                      passenger.nationalite!)),
+                          _InfoRow(
+                              label: 'Naissance',
+                              value: passenger.dateNaissance ?? '—'),
+                          _InfoRow(
+                              label: 'Fièvre jaune',
+                              value: switch (passenger.fievreJauneVaccine) {
+                                true => 'Vacciné',
+                                false => 'Non vacciné',
+                                null => 'Non renseigné',
+                              }),
+                        ],
                         const SizedBox(height: AppSpacing.sm),
                         Row(
                           children: <Widget>[
                             Text('Statut : ',
                                 style: Theme.of(context).textTheme.bodyMedium),
                             StatutBadge(statut: passenger.statut),
-                            if (isPendingRelease) ...<Widget>[
+                            if (isPendingRelease ||
+                                isPendingCorrection) ...<Widget>[
                               const SizedBox(width: AppSpacing.sm),
                               const _PendingSyncTag(),
                             ],
@@ -275,6 +329,31 @@ class DetailPassagerPage extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// Formulaire de correction des informations du passager (nom,
+  /// téléphone, passeport, vaccin...). Possible avant comme après
+  /// l'embarquement ; hors ligne, la correction est mise en file.
+  Future<void> _correctPassenger(BuildContext context, Passenger passenger,
+      {required bool showBorderFields}) async {
+    final PassengerCorrectionOutcome? outcome =
+        await showPassengerCorrectionSheet(
+      context,
+      passenger: passenger,
+      showBorderFields: showBorderFields,
+    );
+    if (outcome == null || !context.mounted) return;
+
+    if (outcome == PassengerCorrectionOutcome.pendingSync) {
+      await KoraDialogs.warning(context,
+          title: 'Enregistré hors ligne',
+          description:
+              'La correction sera envoyée dès le retour de la connexion.');
+    } else {
+      await KoraDialogs.success(context,
+          title: 'Informations corrigées',
+          description: 'Les informations du passager ont été mises à jour.');
+    }
   }
 
   Future<void> _showTicket(
