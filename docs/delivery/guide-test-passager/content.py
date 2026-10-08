@@ -679,11 +679,13 @@ CHAPTERS = [
                 "tarif normal »."
             )),
             ("note", (
-                "<strong>Anomalie connue au moment de la rédaction</strong> : "
-                "l'application d'un code promo sur une réservation en cours "
-                "peut échouer côté serveur. Si cela vous arrive, notez-le et "
-                "poursuivez au tarif normal — le défaut est identifié et "
-                "suivi côté back-office."
+                "Ce point a longtemps échoué : tout code non vide renvoyait "
+                "une erreur serveur, faute de chargement d'une classe. Le "
+                "défaut a été corrigé côté back-office, et couvert par un "
+                "test de non-régression. <strong>Cette vérification n'a pas "
+                "encore été rejouée sur un téléphone depuis le "
+                "correctif</strong> : faites-la en priorité, et signalez "
+                "tout code valide qui serait encore refusé."
             )),
             ("step", "Choisir la sortie", (
                 "Deux boutons : « En ligne » pour payer vous-même, « Avec un "
