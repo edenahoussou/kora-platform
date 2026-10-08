@@ -10344,6 +10344,13 @@ paths:
                         widget_id: default
                         direct_chat_url: 'https://tawk.to/chat/abc123def456/default'
                         secure_hash: hmac-sha256
+                        visitor:
+                          name: 'Awa Kora'
+                          email: awa@kora.test
+                          phone: '+22997000000'
+                          jobTitle: null
+                          agency: null
+                          role: Passager
                     properties:
                       data:
                         type: object
@@ -10363,6 +10370,29 @@ paths:
                           secure_hash:
                             type: string
                             example: hmac-sha256
+                          visitor:
+                            type: object
+                            properties:
+                              name:
+                                type: string
+                                example: 'Awa Kora'
+                              email:
+                                type: string
+                                example: awa@kora.test
+                              phone:
+                                type: string
+                                example: '+22997000000'
+                              jobTitle:
+                                type: string
+                                example: null
+                                nullable: true
+                              agency:
+                                type: string
+                                example: null
+                                nullable: true
+                              role:
+                                type: string
+                                example: Passager
                   -
                     description: 'Configuration indisponible'
                     type: object

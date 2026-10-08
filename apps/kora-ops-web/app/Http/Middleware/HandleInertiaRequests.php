@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Modules\BusNetwork\Models\MapSetting;
 use App\Modules\Cash\Models\CashSession;
 use App\Modules\CompanyAccounts\Actions\ResolveReferentCompanyAccountAction;
+use App\Modules\Notifications\Actions\BuildSupportChatVisitorAction;
 use App\Modules\Settings\Settings\IntegrationsSettings;
 use App\Modules\Ticketing\Models\Ticket;
 use Illuminate\Http\Request;
@@ -94,6 +95,7 @@ class HandleInertiaRequests extends Middleware
                 'visitorHash' => $user?->email && $settings->tawktoApiKey
                     ? hash_hmac('sha256', $user->email, $settings->tawktoApiKey)
                     : null,
+                'visitor' => $user ? app(BuildSupportChatVisitorAction::class)->execute($user) : null,
             ],
         ];
     }
