@@ -221,6 +221,15 @@ it('enforces cross-setting dependencies before persisting integrations and opera
         new OperationsSettingsUpdate(['opsSessionTtlMinutes' => 2000]),
         $admin,
     ))->toThrow(ValidationException::class);
+
+    expect(fn () => $coordinator->update(
+        SettingsGroup::Operations,
+        new OperationsSettingsUpdate([
+            'quoteTtlMinutes' => 60,
+            'seatHoldMinutes' => 1440,
+        ]),
+        $admin,
+    ))->toThrow(ValidationException::class);
 });
 
 it('persists group discount settings within the configured passenger bounds', function (): void {
