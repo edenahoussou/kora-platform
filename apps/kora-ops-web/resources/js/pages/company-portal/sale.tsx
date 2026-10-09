@@ -313,7 +313,7 @@ export default function CompanyPortalSalePage(props: Props) {
             !reservation ||
             passengerSelections.some((passenger) => !passenger.travelerUuid)
         ) {
-            toast.error('Sélectionnez un membre différent pour chaque siège.');
+            toast.error('Sélectionnez un voyageur pour chaque siège.');
 
             return;
         }
@@ -368,7 +368,7 @@ export default function CompanyPortalSalePage(props: Props) {
                 <SalePageHeading
                     eyebrow="KORA OPS / Espace entreprise / Achat"
                     title="Acheter des billets"
-                    description="Réservez pour les voyageurs actifs de votre roster. Le compte entreprise paie par crédit mensuel."
+                    description="Réservez pour les voyageurs de votre entreprise. Le compte entreprise paie par crédit mensuel."
                     action={
                         <Link
                             href={companyPortal.index.url()}
@@ -533,8 +533,8 @@ export default function CompanyPortalSalePage(props: Props) {
                                             {roster.length === 0 && (
                                                 <p className="text-xs text-destructive">
                                                     Ajoutez d’abord des
-                                                    voyageurs actifs à votre
-                                                    roster.
+                                                    voyageurs à votre
+                                                    entreprise.
                                                 </p>
                                             )}
                                         </div>
@@ -554,10 +554,10 @@ export default function CompanyPortalSalePage(props: Props) {
                                                 Associer les voyageurs
                                             </h2>
                                             <p className="mt-1 text-sm text-muted-foreground">
-                                                L’identité est reprise du
-                                                roster. Les informations de
-                                                pièce manquantes peuvent être
-                                                complétées.
+                                                L’identité est reprise de vos
+                                                voyageurs enregistrés. Les
+                                                informations de pièce manquantes
+                                                peuvent être complétées.
                                             </p>
                                         </div>
                                         <RosterPassengerPicker
