@@ -28,6 +28,7 @@ use App\Modules\IdentityAccess\Models\Role;
 use App\Modules\IdentityAccess\Models\TerminalP501;
 use App\Modules\IdentityAccess\Services\AuthIdentifierResolver;
 use App\Modules\IdentityAccess\Services\PhonePassengerIdentityResolver;
+use App\Modules\Monitoring\Data\MonitoringPermission;
 use App\Modules\Notifications\Channels\OpsDatabaseChannel;
 use App\Modules\Notifications\Channels\OpsFirebaseChannel;
 use App\Modules\Notifications\Channels\OpsMailChannel;
@@ -74,8 +75,15 @@ use Laravel\Fortify\Events\PasswordUpdatedViaController;
 use Laravel\Fortify\Events\RecoveryCodesGenerated;
 use Laravel\Fortify\Events\TwoFactorAuthenticationConfirmed;
 use Laravel\Fortify\Events\TwoFactorAuthenticationDisabled;
+use Opcodes\LogViewer\Facades\LogViewer;
 use SocialiteProviders\Manager\SocialiteWasCalled;
 use SocialiteProviders\TikTok\TikTokExtendSocialite;
+use Spatie\Health\Checks\Checks\CacheCheck;
+use Spatie\Health\Checks\Checks\DatabaseCheck;
+use Spatie\Health\Checks\Checks\DebugModeCheck;
+use Spatie\Health\Checks\Checks\RedisCheck;
+use Spatie\Health\Checks\Checks\UsedDiskSpaceCheck;
+use Spatie\Health\Facades\Health;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -147,6 +155,26 @@ class AppServiceProvider extends ServiceProvider
         $this->configureDefaults();
         $this->registerSocialiteProviders();
         $this->registerSecurityAlertListeners();
+        $this->registerMonitoring();
+    }
+
+    /**
+     * Health checks alimentant l'écran Monitoring et auth du log viewer
+     * (API + interface package), tous deux gatés par monitoring.view.
+     */
+    protected function registerMonitoring(): void
+    {
+        Health::checks([
+            DatabaseCheck::new(),
+            CacheCheck::new(),
+            RedisCheck::new(),
+            UsedDiskSpaceCheck::new(),
+            DebugModeCheck::new(),
+        ]);
+
+        LogViewer::auth(
+            fn (Request $request): bool => $request->user()?->can(MonitoringPermission::View->value) ?? false,
+        );
     }
 
     /**
