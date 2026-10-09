@@ -99,6 +99,11 @@ export function SaleSummaryCard({
             ? companyDiscountAmount
             : (itineraryQuote?.groupDiscountAmount ?? 0);
         const hasDiscount = discountAmount > 0;
+        const heldDiscounts = reservation?.discounts ?? null;
+        const hasHeldPromo = (heldDiscounts?.promotionDiscountAmount ?? 0) > 0;
+        const hasHeldOtherDiscount =
+            heldDiscounts !== null &&
+            heldDiscounts.totalDiscount > heldDiscounts.promotionDiscountAmount;
 
         const renderLegGroup = (
             legs: SaleItinerary['legs'],
@@ -213,6 +218,42 @@ export function SaleSummaryCard({
                         </span>
                         <strong className="is-discount">
                             −{formatMoney(discountAmount, currency)}
+                        </strong>
+                    </div>
+                )}
+
+                {heldDiscounts && hasHeldPromo && (
+                    <div className="summary-row summary-discount-row">
+                        <span>
+                            Code promo{' '}
+                            {heldDiscounts.promotionCode ??
+                                heldDiscounts.label ??
+                                ''}
+                        </span>
+                        <strong className="is-discount">
+                            −
+                            {formatMoney(
+                                heldDiscounts.promotionDiscountAmount,
+                                reservation?.currency ?? currency,
+                            )}
+                        </strong>
+                    </div>
+                )}
+
+                {heldDiscounts && hasHeldOtherDiscount && (
+                    <div className="summary-row summary-discount-row">
+                        <span>
+                            {(heldDiscounts.companyDiscountAmount ?? 0) > 0
+                                ? 'Remise entreprise'
+                                : 'Remise groupe'}
+                        </span>
+                        <strong className="is-discount">
+                            −
+                            {formatMoney(
+                                heldDiscounts.totalDiscount -
+                                    heldDiscounts.promotionDiscountAmount,
+                                reservation?.currency ?? currency,
+                            )}
                         </strong>
                     </div>
                 )}

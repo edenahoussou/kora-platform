@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Modules\AssistedBooking\Services\AssistedBookingWorkflow;
 use App\Modules\Booking\Actions\CalculateItineraryQuoteAction;
 use App\Modules\Booking\Actions\CreateItineraryHoldAction;
+use App\Modules\Booking\Actions\DescribeReservationDiscountAction;
 use App\Modules\Booking\Actions\ItineraryLegQuoteRequest;
 use App\Modules\Booking\Actions\ReleaseSeatHoldAction;
 use App\Modules\Booking\Actions\ResolvePayerContextAction;
@@ -921,6 +922,7 @@ class CounterSaleController extends Controller
                 'type' => $reservation->companyAccount->getRawOriginal('type'),
                 'reference' => $reservation->companyAccount->reference,
             ] : null,
+            'discounts' => $this->serializeDiscounts($reservation),
             'passengerAllocations' => is_array($reservation->total_snapshot['passenger_allocations'] ?? null)
                 ? $reservation->total_snapshot['passenger_allocations']
                 : [],
@@ -1038,6 +1040,34 @@ class CounterSaleController extends Controller
                         'seatCode' => $segments->pluck('seat.code')->filter()->implode(' · '),
                     ];
                 })->values()->all(),
+        ];
+    }
+
+    /**
+     * @return array{subtotalAmount: int, totalDiscount: int, label: string|null, promotionCode: string|null, companyDiscountAmount: int, groupDiscountAmount: int, promotionDiscountAmount: int}|null
+     */
+    private function serializeDiscounts(Reservation $reservation): ?array
+    {
+        $snapshot = is_array($reservation->total_snapshot) ? $reservation->total_snapshot : [];
+        $promotionDiscount = (int) $reservation->promotion_discount_amount;
+        $groupDiscount = (int) ($snapshot['group_discount']['amount'] ?? 0);
+        $companyDiscount = (int) ($snapshot['company_discount']['amount'] ?? 0);
+        $totalDiscount = $promotionDiscount + $groupDiscount + $companyDiscount;
+
+        if ($totalDiscount <= 0) {
+            return null;
+        }
+
+        $discounts = app(DescribeReservationDiscountAction::class);
+
+        return [
+            'subtotalAmount' => $discounts->originalTotal($reservation),
+            'totalDiscount' => $totalDiscount,
+            'label' => $discounts->execute($reservation),
+            'promotionCode' => $snapshot['promotion']['code'] ?? null,
+            'promotionDiscountAmount' => $promotionDiscount,
+            'groupDiscountAmount' => $groupDiscount,
+            'companyDiscountAmount' => $companyDiscount,
         ];
     }
 

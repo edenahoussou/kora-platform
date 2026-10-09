@@ -45,6 +45,15 @@ export function HoldConfirmation({
                             reservation.currency,
                         )}
                     </strong>
+                    {reservation.discounts ? (
+                        <span className="mt-0.5 block text-[0.625rem] font-semibold text-emerald-600">
+                            {reservation.discounts.label ?? 'Remise'} : −
+                            {formatMoney(
+                                reservation.discounts.totalDiscount,
+                                reservation.currency,
+                            )}
+                        </span>
+                    ) : null}
                 </div>
                 <div>
                     <span className="block text-[0.625rem] text-muted-foreground">

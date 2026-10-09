@@ -404,6 +404,32 @@ export function SaleJourneySummary({
                     </div>
                 )}
 
+            {reservation.discounts ? (
+                <div className="summary-discounts">
+                    <div className="summary-row">
+                        <span>Sous-total</span>
+                        <span>
+                            {formatMoney(
+                                reservation.discounts.subtotalAmount,
+                                reservation.currency,
+                            )}
+                        </span>
+                    </div>
+                    <div className="summary-row summary-discount-row">
+                        <span className="discount-label">
+                            {reservation.discounts.label ?? 'Remise'}
+                        </span>
+                        <strong className="is-discount">
+                            −
+                            {formatMoney(
+                                reservation.discounts.totalDiscount,
+                                reservation.currency,
+                            )}
+                        </strong>
+                    </div>
+                </div>
+            ) : null}
+
             <div className="summary-total">
                 <span>Total à encaisser</span>
                 <strong>
