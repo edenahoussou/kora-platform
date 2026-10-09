@@ -38,7 +38,7 @@ class OpsDepartureResource extends JsonResource
                 'international' => $this->line->type === LineType::Internationale,
             ]),
             'stops' => $this->whenLoaded('line', fn () => $this->line->relationLoaded('stops')
-                ? $this->line->stops->map(fn ($stop) => [
+                ? $this->tripStops()->map(fn ($stop) => [
                     'uuid' => $stop->uuid,
                     'name' => $stop->name,
                     'city' => $stop->city,
