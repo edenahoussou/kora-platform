@@ -21,11 +21,13 @@
         "laravel/socialite": "^5.30",
         "laravel/tinker": "^3.0",
         "laravel/wayfinder": "^0.1.14",
+        "opcodesio/log-viewer": "^3.24",
         "phpoffice/phpspreadsheet": "^2.2",
         "predis/predis": "^3.5",
         "socialiteproviders/tiktok": "^5.2",
         "spatie/browsershot": "^5.4",
         "spatie/laravel-activitylog": "^5.1",
+        "spatie/laravel-health": "^1.40",
         "spatie/laravel-medialibrary": "^11.23",
         "spatie/laravel-permission": "^8.3",
         "spatie/laravel-settings": "^3.9"
