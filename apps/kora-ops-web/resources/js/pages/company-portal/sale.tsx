@@ -313,7 +313,7 @@ export default function CompanyPortalSalePage(props: Props) {
             !reservation ||
             passengerSelections.some((passenger) => !passenger.travelerUuid)
         ) {
-            toast.error('Sélectionnez un membre différent pour chaque siège.');
+            toast.error('Sélectionnez un voyageur pour chaque siège.');
 
             return;
         }
@@ -368,7 +368,7 @@ export default function CompanyPortalSalePage(props: Props) {
                 <SalePageHeading
                     eyebrow="KORA OPS / Espace entreprise / Achat"
                     title="Acheter des billets"
-                    description="Réservez pour les voyageurs actifs de votre roster. Le compte entreprise paie par crédit mensuel."
+                    description="Réservez pour les voyageurs de votre entreprise. Le compte entreprise paie par crédit mensuel."
                     action={
                         <Link
                             href={companyPortal.index.url()}
@@ -476,6 +476,70 @@ export default function CompanyPortalSalePage(props: Props) {
                                             direction="inbound"
                                         />
                                     )}
+
+                                    {activeOutbound && roster.length > 0 && (
+                                        <div className="flex flex-wrap items-end gap-4 rounded-2xl border border-border bg-card p-4">
+                                            <label className="field w-40">
+                                                <span>Voyageurs</span>
+                                                <select
+                                                    className="control"
+                                                    value={passengerCount}
+                                                    onChange={(event) => {
+                                                        const nextCount =
+                                                            Number(
+                                                                event.target
+                                                                    .value,
+                                                            );
+                                                        setPassengerCount(
+                                                            nextCount,
+                                                        );
+                                                        setPassengerSelections(
+                                                            blankSelections(
+                                                                nextCount,
+                                                            ),
+                                                        );
+                                                        setIgnoreQuote(true);
+                                                    }}
+                                                >
+                                                    {Array.from(
+                                                        {
+                                                            length: maxPassengers,
+                                                        },
+                                                        (_, index) => index + 1,
+                                                    ).map((count) => (
+                                                        <option
+                                                            key={count}
+                                                            value={count}
+                                                        >
+                                                            {count}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </label>
+                                            <Button
+                                                type="button"
+                                                variant="kora"
+                                                size="kora"
+                                                onClick={calculateQuote}
+                                                disabled={
+                                                    processing ||
+                                                    (search.tripType ===
+                                                        'round_trip' &&
+                                                        !activeInbound)
+                                                }
+                                            >
+                                                Calculer le devis
+                                            </Button>
+                                            {roster.length === 0 && (
+                                                <p className="text-xs text-destructive">
+                                                    Ajoutez d’abord des
+                                                    voyageurs à votre
+                                                    entreprise.
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+
                                 </>
                             )}
 
@@ -491,10 +555,10 @@ export default function CompanyPortalSalePage(props: Props) {
                                                 Associer les voyageurs
                                             </h2>
                                             <p className="mt-1 text-sm text-muted-foreground">
-                                                L’identité est reprise du
-                                                roster. Les informations de
-                                                pièce manquantes peuvent être
-                                                complétées.
+                                                L’identité est reprise de vos
+                                                voyageurs enregistrés. Les
+                                                informations de pièce manquantes
+                                                peuvent être complétées.
                                             </p>
                                         </div>
                                         <RosterPassengerPicker
