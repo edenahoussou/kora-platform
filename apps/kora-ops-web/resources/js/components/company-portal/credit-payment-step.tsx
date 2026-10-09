@@ -43,15 +43,11 @@ export function CreditPaymentStep({
                             </h2>
                             <p className="mt-1 text-sm leading-6 text-muted-foreground">
                                 Le payeur et le moyen de paiement sont imposés
-                                par le compte. Aucun montant saisi par le
-                                navigateur ne sera utilisé.
+                                par le compte.
                             </p>
                         </div>
                     </div>
-                </div>
-
-                <div className="rounded-2xl border border-border bg-card p-5">
-                    <h3 className="text-sm font-extrabold text-foreground">
+                    <h3 className="mt-5 text-sm font-extrabold text-foreground">
                         Détail du montant
                     </h3>
                     <div className="mt-4 grid gap-3 text-sm">

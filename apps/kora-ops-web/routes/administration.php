@@ -3,6 +3,7 @@
 use App\Modules\IdentityAccess\Http\Controllers\RoleController;
 use App\Modules\IdentityAccess\Http\Controllers\TerminalManagementController;
 use App\Modules\IdentityAccess\Http\Controllers\UserController;
+use App\Modules\Monitoring\Http\Controllers\MonitoringController;
 use App\Modules\Settings\Http\Controllers\IntegrationConnectionTestController;
 use App\Modules\Settings\Http\Controllers\SettingsController;
 use Illuminate\Support\Facades\Route;
@@ -56,6 +57,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
 
     Route::get('terminals', [TerminalManagementController::class, 'index'])
         ->name('terminals');
+    Route::get('administration/monitoring', MonitoringController::class)
+        ->name('administration.monitoring');
     Route::get('terminals/{terminal:uuid}', [TerminalManagementController::class, 'show'])
         ->name('terminals.show');
     Route::get('integrations', $comingSoon('Intégrations', 'Supervisez CassKai, MECeF, Mobile Money et les files de synchronisation.', 'Administration'))

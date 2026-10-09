@@ -36,6 +36,14 @@ jobs:
           context: .
           file: infra/docker/kora-ops-web/Dockerfile.prod
           push: true
+          build-args: |
+            VITE_APP_ENV=production
+            VITE_SENTRY_DSN=${{ vars.SENTRY_DSN_PUBLIC }}
+            SENTRY_RELEASE=${{ steps.tag.outputs.VERSION }}
+            SENTRY_ORG=${{ vars.SENTRY_ORG }}
+            SENTRY_PROJECT=${{ vars.SENTRY_PROJECT }}
+          secrets: |
+            sentry_auth_token=${{ secrets.SENTRY_AUTH_TOKEN }}
           tags: |
             ghcr.io/${{ github.repository_owner }}/kora-ops-web:latest
             ghcr.io/${{ github.repository_owner }}/kora-ops-web:${{ steps.tag.outputs.VERSION }}

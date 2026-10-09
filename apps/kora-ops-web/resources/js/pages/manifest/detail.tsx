@@ -30,6 +30,7 @@ type DepartureRef = {
     lineTypeLabel: string | null;
     originCity: string | null;
     destinationCity: string | null;
+    isReturn: boolean;
     busRegistration: string | null;
     seatCount: number | null;
     departureDate: string | null;
@@ -207,6 +208,7 @@ export default function ManifestDetailPage({
                     </h1>
                     <p className="mt-1.5 text-[0.8125rem] leading-6 text-muted-foreground">
                         {departure.lineCode} · {departure.lineName} ·{' '}
+                        {departure.isReturn ? 'Sens retour · ' : ''}
                         {formatDate(departure.departureDate)} ·{' '}
                         {departure.busRegistration}
                     </p>

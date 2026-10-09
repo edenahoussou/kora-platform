@@ -186,8 +186,7 @@ class PassengerNotificationPublisher
 
     private function departureDestination(Departure $departure): ?string
     {
-        $stops = $departure->line?->stops;
-        $destination = $stops?->last();
+        $destination = $departure->tripStops()->last();
 
         return $destination?->physicalStop?->city ?: $destination?->city ?: $destination?->name;
     }
