@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
+const HOLD_DURATION_MS = 15 * 60 * 1000;
 const URGENCY_THRESHOLD_MS = 5 * 60 * 1000;
 
 export type HoldCountdown = {
@@ -14,7 +15,6 @@ export function useHoldCountdown(
     startedAt: string | null = null,
 ): HoldCountdown {
     const [now, setNow] = useState<number | null>(null);
-    const [totalMs, setTotalMs] = useState(0);
 
     useEffect(() => {
         const update = () => setNow(Date.now());
@@ -25,48 +25,43 @@ export function useHoldCountdown(
         return () => window.clearInterval(interval);
     }, [expiresAt]);
 
-    useEffect(() => {
-        if (!expiresAt) {
-            setTotalMs(0);
-
-            return;
-        }
-
-        const expirationTimestamp = new Date(expiresAt).getTime();
-
-        if (Number.isNaN(expirationTimestamp)) {
-            setTotalMs(0);
-
-            return;
-        }
-
+    const totalMs = useMemo(() => {
+        const expirationTimestamp = expiresAt
+            ? new Date(expiresAt).getTime()
+            : NaN;
         const startedTimestamp = startedAt
             ? new Date(startedAt).getTime()
             : NaN;
 
-        setTotalMs(
+        if (
+            Number.isNaN(expirationTimestamp) ||
             Number.isNaN(startedTimestamp)
-                ? Math.max(1, expirationTimestamp - Date.now())
-                : Math.max(1, expirationTimestamp - startedTimestamp),
-        );
+        ) {
+            return HOLD_DURATION_MS;
+        }
+
+        return Math.max(1, expirationTimestamp - startedTimestamp);
     }, [expiresAt, startedAt]);
 
     return useMemo(() => {
-        const empty = {
-            label: '—',
-            percentage: 0,
-            isUrgent: false,
-            isExpired: false,
-        };
-
         if (!expiresAt || now === null) {
-            return empty;
+            return {
+                label: '—',
+                percentage: 0,
+                isUrgent: false,
+                isExpired: false,
+            };
         }
 
         const expirationTimestamp = new Date(expiresAt).getTime();
 
         if (Number.isNaN(expirationTimestamp)) {
-            return empty;
+            return {
+                label: '—',
+                percentage: 0,
+                isUrgent: false,
+                isExpired: false,
+            };
         }
 
         const remainingMs = Math.max(0, expirationTimestamp - now);
