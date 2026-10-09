@@ -36,6 +36,7 @@ type Stop = {
     uuid: string;
     name: string;
     stopOrder: number;
+    circulationOrder: number;
     city: string;
     physicalStopName: string | null;
 };
@@ -59,6 +60,7 @@ type DepartureDetail = {
     originCity: string | null;
     destinationCity: string | null;
     originPoint: string | null;
+    isReturn: boolean;
     stops: Stop[];
     busUuid: string | null;
     busRegistration: string;
@@ -579,7 +581,14 @@ export default function DepartureDetailPage({
                             'Équipage à affecter'}
                     </p>
                 </div>
-                <span className="absolute top-6 right-7 z-10">
+                <span className="absolute top-6 right-7 z-10 flex items-center gap-2">
+                    {departure.isReturn && (
+                        <KoraStatusBadge
+                            label="Sens retour"
+                            tone="muted"
+                            className="border border-white/20 bg-white/5"
+                        />
+                    )}
                     <KoraStatusBadge
                         label={
                             statusLabels[departure.status] ?? departure.status
@@ -1623,8 +1632,8 @@ function EarlyExitDialog({
     // fin normale du trajet, pas une descente anticipée.
     const eligibleStops = stops.filter(
         (s) =>
-            s.stopOrder >= row.originStopOrder &&
-            s.stopOrder < row.destinationStopOrder,
+            s.circulationOrder >= row.originStopOrder &&
+            s.circulationOrder < row.destinationStopOrder,
     );
 
     return (

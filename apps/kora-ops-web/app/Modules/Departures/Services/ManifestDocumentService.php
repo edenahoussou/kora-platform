@@ -58,7 +58,7 @@ class ManifestDocumentService
         [$segments, $ticketsByPassengerId, $statusesBySegmentId] = $this->resolveSegments->execute($departure);
 
         $international = $departure->line->type === LineType::Internationale;
-        $stops = $departure->line->stops;
+        $stops = $departure->tripStops();
         $originStop = $stops->first();
         $destinationStop = $stops->last();
 
@@ -129,6 +129,7 @@ class ManifestDocumentService
                 'originPoint' => $originStop?->physicalStop->name ?? $originStop?->name,
                 'seatCount' => $departure->bus->seat_count ?? 0,
                 'stopsLabel' => $stops->map(fn ($stop) => $stop->physicalStop->city ?? $stop->city ?? $stop->name)->implode(' · '),
+                'isReturn' => $departure->isReturnTrip(),
                 'statusLabel' => $departure->status->translatedLabel(),
             ],
             'summary' => $summary,

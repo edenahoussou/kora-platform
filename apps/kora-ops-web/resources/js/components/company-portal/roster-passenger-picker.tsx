@@ -1,4 +1,6 @@
-import { UserRound } from 'lucide-react';
+import { Search, UserRound, X } from 'lucide-react';
+import { useMemo, useRef, useState } from 'react';
+import { cn } from '@/lib/utils';
 
 export type CompanyPortalTraveler = {
     uuid: string;
@@ -36,6 +38,26 @@ const documentTypes = [
     ['passport', 'Passeport'],
     ['consular_card', 'Carte consulaire'],
 ];
+
+const MAX_SUGGESTIONS = 10;
+
+function normalize(value: string): string {
+    return value
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+}
+
+function matchesQuery(traveler: CompanyPortalTraveler, query: string): boolean {
+    const haystack = normalize(
+        `${traveler.firstName} ${traveler.lastName} ${traveler.phone} ${traveler.email ?? ''}`,
+    );
+
+    return normalize(query)
+        .split(/\s+/)
+        .filter(Boolean)
+        .every((token) => haystack.includes(token));
+}
 
 export function RosterPassengerPicker({ roster, selections, onChange }: Props) {
     const update = (
@@ -87,55 +109,32 @@ export function RosterPassengerPicker({ roster, selections, onChange }: Props) {
                                 <h3 className="text-sm font-extrabold text-foreground">
                                     {traveler
                                         ? `${traveler.firstName} ${traveler.lastName}`
-                                        : 'Choisir dans le roster'}
+                                        : 'Sélectionner un voyageur'}
                                 </h3>
                             </div>
                         </div>
 
-                        <label className="field mt-4">
-                            <span>Membre voyageur</span>
-                            <select
-                                className="control"
-                                value={selection.travelerUuid}
-                                onChange={(event) => {
-                                    const selectedTraveler = roster.find(
-                                        (candidate) =>
-                                            candidate.uuid ===
-                                            event.target.value,
-                                    );
-                                    update(selection.passengerIndex, {
-                                        travelerUuid: event.target.value,
-                                        documentType:
-                                            selectedTraveler?.documentType ??
-                                            '',
-                                        documentNumber:
-                                            selectedTraveler?.documentNumber ??
-                                            '',
-                                        nationality:
-                                            selectedTraveler?.nationality ?? '',
-                                        birthDate:
-                                            selectedTraveler?.birthDate ?? '',
-                                        yellowFeverVaccinated:
-                                            selectedTraveler?.yellowFeverVaccinated ??
-                                            null,
-                                    });
-                                }}
-                            >
-                                <option value="">Sélectionner un membre</option>
-                                {roster.map((candidate) => (
-                                    <option
-                                        key={candidate.uuid}
-                                        value={candidate.uuid}
-                                        disabled={chosenElsewhere.has(
-                                            candidate.uuid,
-                                        )}
-                                    >
-                                        {candidate.firstName}{' '}
-                                        {candidate.lastName} · {candidate.phone}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
+                        <TravelerSearch
+                            roster={roster}
+                            excludedUuids={chosenElsewhere}
+                            selected={traveler ?? null}
+                            onSelect={(selectedTraveler) =>
+                                update(selection.passengerIndex, {
+                                    travelerUuid: selectedTraveler?.uuid ?? '',
+                                    documentType:
+                                        selectedTraveler?.documentType ?? '',
+                                    documentNumber:
+                                        selectedTraveler?.documentNumber ?? '',
+                                    nationality:
+                                        selectedTraveler?.nationality ?? '',
+                                    birthDate:
+                                        selectedTraveler?.birthDate ?? '',
+                                    yellowFeverVaccinated:
+                                        selectedTraveler?.yellowFeverVaccinated ??
+                                        null,
+                                })
+                            }
+                        />
 
                         {traveler && (
                             <>
@@ -288,6 +287,167 @@ export function RosterPassengerPicker({ roster, selections, onChange }: Props) {
                 );
             })}
         </section>
+    );
+}
+
+function TravelerSearch({
+    roster,
+    excludedUuids,
+    selected,
+    onSelect,
+}: {
+    roster: CompanyPortalTraveler[];
+    excludedUuids: Set<string>;
+    selected: CompanyPortalTraveler | null;
+    onSelect: (traveler: CompanyPortalTraveler | null) => void;
+}) {
+    const [query, setQuery] = useState('');
+    const [open, setOpen] = useState(false);
+    const blurTimeout = useRef<number | null>(null);
+
+    const candidates = useMemo(() => {
+        const available = roster.filter(
+            (candidate) =>
+                candidate.uuid === selected?.uuid ||
+                !excludedUuids.has(candidate.uuid),
+        );
+
+        if (!query.trim()) {
+            return available;
+        }
+
+        return available.filter((candidate) => matchesQuery(candidate, query));
+    }, [roster, excludedUuids, selected?.uuid, query]);
+
+    const visible = candidates.slice(0, MAX_SUGGESTIONS);
+    const hiddenCount = candidates.length - visible.length;
+
+    const choose = (traveler: CompanyPortalTraveler) => {
+        onSelect(traveler);
+        setQuery('');
+        setOpen(false);
+    };
+
+    return (
+        <div className="field mt-4">
+            <span>Voyageur</span>
+            <div className="relative">
+                <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                    type="text"
+                    className="control pl-9"
+                    placeholder="Rechercher par nom ou téléphone…"
+                    value={
+                        query !== ''
+                            ? query
+                            : selected
+                              ? `${selected.firstName} ${selected.lastName}`
+                              : ''
+                    }
+                    onFocus={() => {
+                        if (blurTimeout.current !== null) {
+                            window.clearTimeout(blurTimeout.current);
+                        }
+
+                        setOpen(true);
+                    }}
+                    onBlur={() => {
+                        blurTimeout.current = window.setTimeout(
+                            () => setOpen(false),
+                            120,
+                        );
+                    }}
+                    onChange={(event) => {
+                        setQuery(event.target.value);
+                        setOpen(true);
+
+                        if (selected) {
+                            onSelect(null);
+                        }
+                    }}
+                    onKeyDown={(event) => {
+                        if (event.key === 'Escape') {
+                            setOpen(false);
+                            event.currentTarget.blur();
+                        }
+
+                        if (
+                            event.key === 'Enter' &&
+                            open &&
+                            visible.length > 0
+                        ) {
+                            event.preventDefault();
+                            choose(visible[0]);
+                        }
+                    }}
+                    role="combobox"
+                    aria-expanded={open}
+                    aria-label="Rechercher un voyageur"
+                />
+                {selected && !open && (
+                    <button
+                        type="button"
+                        className="absolute top-1/2 right-2 grid size-6 -translate-y-1/2 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
+                        onClick={() => {
+                            onSelect(null);
+                            setQuery('');
+                        }}
+                        aria-label="Retirer ce voyageur"
+                    >
+                        <X className="size-3.5" />
+                    </button>
+                )}
+                {open && (
+                    <ul
+                        className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-xl border border-border bg-popover p-1 shadow-lg"
+                        role="listbox"
+                    >
+                        {visible.map((candidate) => (
+                            <li key={candidate.uuid}>
+                                <button
+                                    type="button"
+                                    role="option"
+                                    aria-selected={
+                                        candidate.uuid === selected?.uuid
+                                    }
+                                    className={cn(
+                                        'flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm hover:bg-muted',
+                                        candidate.uuid === selected?.uuid &&
+                                            'bg-gold/10',
+                                    )}
+                                    onMouseDown={(event) =>
+                                        event.preventDefault()
+                                    }
+                                    onClick={() => choose(candidate)}
+                                >
+                                    <span className="font-bold text-foreground">
+                                        {candidate.firstName}{' '}
+                                        {candidate.lastName}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">
+                                        {candidate.phone}
+                                    </span>
+                                </button>
+                            </li>
+                        ))}
+                        {visible.length === 0 && (
+                            <li className="px-3 py-2 text-sm text-muted-foreground">
+                                {query.trim()
+                                    ? 'Aucun voyageur ne correspond à cette recherche.'
+                                    : 'Aucun voyageur disponible.'}
+                            </li>
+                        )}
+                        {hiddenCount > 0 && (
+                            <li className="px-3 py-2 text-xs text-muted-foreground">
+                                {hiddenCount} autre
+                                {hiddenCount > 1 ? 's' : ''} — affinez la
+                                recherche.
+                            </li>
+                        )}
+                    </ul>
+                )}
+            </div>
+        </div>
     );
 }
 

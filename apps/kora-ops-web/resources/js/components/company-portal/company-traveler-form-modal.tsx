@@ -142,8 +142,8 @@ export function CompanyTravelerFormModal({
                                 : 'Déclarer un voyageur'}
                         </h3>
                         <p>
-                            Seuls les voyageurs actifs du roster peuvent être
-                            sélectionnés lors d’un achat de billets.
+                            Seuls les voyageurs actifs peuvent être sélectionnés
+                            lors d’un achat de billets.
                         </p>
                     </div>
                     <button
@@ -273,7 +273,7 @@ export function CompanyTravelerFormModal({
                             <div>
                                 <strong>Pièce et nationalité</strong>
                                 <small>
-                                    Facultatif au roster — exigé à
+                                    Facultatif sur la fiche — exigé à
                                     l’embarquement selon la destination.
                                 </small>
                             </div>
@@ -400,8 +400,8 @@ export function CompanyTravelerFormModal({
                         <div className="flex items-start gap-3 rounded-xl bg-digital/10 p-3 text-xs leading-5 text-muted-foreground">
                             <AlertCircle className="mt-0.5 size-4 shrink-0 text-digital" />
                             <span>
-                                Le téléphone sert de clé de dédoublonnage dans
-                                votre roster : deux fiches ne peuvent pas
+                                Le téléphone sert de clé de dédoublonnage parmi
+                                vos voyageurs : deux fiches ne peuvent pas
                                 partager le même numéro.
                             </span>
                         </div>
