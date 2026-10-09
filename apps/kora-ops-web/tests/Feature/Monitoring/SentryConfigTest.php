@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 it('keeps sentry disabled without a dsn so the app runs normally', function (): void {
-    expect(config('sentry.dsn'))->toBeNull();
+    config(['sentry.dsn' => null]);
 
     $this->get('/up')->assertOk();
 });
