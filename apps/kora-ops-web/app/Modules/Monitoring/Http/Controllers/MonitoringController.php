@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Modules\IdentityAccess\Data\UserStatus;
 use App\Modules\Monitoring\Data\MonitoringPermission;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -34,6 +35,9 @@ final class MonitoringController
                 'php' => PHP_VERSION,
             ],
             'checks' => $this->runChecks(),
+            'queues' => [
+                'failedJobs' => DB::table('failed_jobs')->count(),
+            ],
             'logViewer' => [
                 'apiBase' => url('/log-viewer/api'),
             ],
