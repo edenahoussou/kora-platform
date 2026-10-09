@@ -17,7 +17,7 @@ services:
       DB_DATABASE: kora_staging
       DB_USERNAME: kora
       DB_PASSWORD: ${DB_PASSWORD_STAGING}
-      REDIS_CLIENT: predis
+      REDIS_CLIENT: phpredis
       REDIS_HOST: redis
       REDIS_PORT: 6379
       MAIL_MAILER: smtp
