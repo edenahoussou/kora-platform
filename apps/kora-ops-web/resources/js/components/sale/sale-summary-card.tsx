@@ -21,9 +21,9 @@ import {
     formatIsoDate,
     formatIsoTime,
     formatMoney,
-    formatRemainingTime,
     formatShortDate,
 } from './sale-utils';
+import { useHoldCountdown } from './use-hold-countdown';
 
 type Props = {
     className?: string;
@@ -70,6 +70,12 @@ export function SaleSummaryCard({
     companyName,
     creditAvailable,
 }: Props) {
+    const holdCountdown = useHoldCountdown(
+        reservation?.expiresAt ?? null,
+        reservation?.heldAt ?? null,
+    );
+    const quoteCountdown = useHoldCountdown(itineraryQuote?.expiresAt ?? null);
+
     if (!selectedItinerary) {
         return (
             <aside className={cn('summary empty-summary', className)}>
@@ -329,23 +335,39 @@ export function SaleSummaryCard({
                 </div>
 
                 {reservation ? (
-                    <div className="summary-callout success">
+                    <div
+                        className={cn(
+                            'summary-callout',
+                            holdCountdown.isExpired || holdCountdown.isUrgent
+                                ? 'danger'
+                                : 'success',
+                        )}
+                    >
                         <div>
                             <CheckCircle2 className="size-4" />
                             Places bloquées
                         </div>
                         <p>
-                            Expiration dans{' '}
-                            {formatRemainingTime(reservation.expiresAt)}.
+                            {holdCountdown.isExpired
+                                ? 'Blocage expiré.'
+                                : `Expiration dans ${holdCountdown.label}.`}
                         </p>
                     </div>
                 ) : (
                     <>
                         {itineraryQuote && (
-                            <div className="summary-callout warning">
+                            <div
+                                className={cn(
+                                    'summary-callout warning',
+                                    (quoteCountdown.isExpired ||
+                                        quoteCountdown.isUrgent) &&
+                                        'danger',
+                                )}
+                            >
                                 <Clock3 className="size-3.5" />
-                                Devis valable encore{' '}
-                                {formatRemainingTime(itineraryQuote.expiresAt)}
+                                {quoteCountdown.isExpired
+                                    ? 'Devis expiré'
+                                    : `Devis valable encore ${quoteCountdown.label}`}
                             </div>
                         )}
                         {onOpenSeatPicker && (

@@ -18,6 +18,8 @@ use App\Modules\CompanyAccounts\Models\CompanyCreditHold;
 use App\Modules\CompanyAccounts\Models\CompanyCreditTransaction;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Models\PriceQuote;
+use App\Modules\Ticketing\Actions\GenerateTicketPdfAction;
+use App\Modules\Ticketing\Data\TicketStatus;
 use App\Modules\Ticketing\Models\Ticket;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
@@ -314,4 +316,79 @@ it('exports the filtered reservations as csv without internal identifiers', func
         ->assertSuccessful();
 
     expect($empty->streamedContent())->not->toContain($reservation->reference);
+});
+
+it('lets the referent download the pdf of an issued ticket of its own account', function (): void {
+    [$referent, $account] = portalHistoryReferent();
+    ['reservation' => $reservation, 'ticket' => $ticket] = portalHistoryReservation($account);
+
+    $this->mock(GenerateTicketPdfAction::class)
+        ->shouldReceive('execute')
+        ->once()
+        ->andReturn(['content' => '%PDF-test', 'filename' => 'billet.pdf']);
+
+    $this->actingAs($referent)
+        ->get(route('company-portal.reservations.tickets.pdf', [
+            'reservation' => $reservation->uuid,
+            'ticket' => $ticket->uuid,
+        ]))
+        ->assertOk()
+        ->assertHeader('Content-Type', 'application/pdf')
+        ->assertHeader('Content-Disposition', 'attachment; filename="billet.pdf"');
+});
+
+it('denies the ticket pdf when the reservation belongs to another account', function (): void {
+    [$referent] = portalHistoryReferent();
+    [, $otherAccount] = portalHistoryReferent();
+    $other = portalHistoryReservation($otherAccount);
+
+    $this->mock(GenerateTicketPdfAction::class)
+        ->shouldNotReceive('execute');
+
+    $this->actingAs($referent)
+        ->get(route('company-portal.reservations.tickets.pdf', [
+            'reservation' => $other['reservation']->uuid,
+            'ticket' => $other['ticket']->uuid,
+        ]))
+        ->assertNotFound();
+});
+
+it('denies the ticket pdf when the ticket is cancelled', function (): void {
+    [$referent, $account] = portalHistoryReferent();
+    $reservation = portalHistoryReservation($account)['reservation'];
+    $ticket = Ticket::query()->create([
+        'uuid' => (string) Str::uuid(),
+        'reservation_id' => $reservation->id,
+        'reservation_passenger_id' => $reservation->passengers->first()->id,
+        'qr_code' => 'qr-'.(string) Str::uuid(),
+        'short_code' => 'KBR-CAN001',
+        'status' => TicketStatus::Cancelled->value,
+        'issued_at' => now(),
+    ]);
+
+    $this->mock(GenerateTicketPdfAction::class)
+        ->shouldNotReceive('execute');
+
+    $this->actingAs($referent)
+        ->get(route('company-portal.reservations.tickets.pdf', [
+            'reservation' => $reservation->uuid,
+            'ticket' => $ticket->uuid,
+        ]))
+        ->assertNotFound();
+});
+
+it('denies the ticket pdf when the ticket belongs to another reservation', function (): void {
+    [$referent, $account] = portalHistoryReferent();
+    $reservation = portalHistoryReservation($account)['reservation'];
+    $other = portalHistoryReservation($account);
+
+    $this->mock(GenerateTicketPdfAction::class)
+        ->shouldNotReceive('execute');
+
+    $this->actingAs($referent)
+        ->get(route('company-portal.reservations.tickets.pdf', [
+            'reservation' => $reservation->uuid,
+            'ticket' => $other['ticket']->uuid,
+        ]))
+        ->assertNotFound();
 });

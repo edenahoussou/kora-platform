@@ -38,6 +38,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('achats', [CompanyPortalReservationController::class, 'index'])->name('reservations.index');
         Route::get('achats/export', [CompanyPortalReservationController::class, 'export'])->name('reservations.export');
         Route::get('achats/{reservation:uuid}', [CompanyPortalReservationController::class, 'show'])->name('reservations.show');
+        Route::get('achats/{reservation:uuid}/billets/{ticket:uuid}/pdf', [CompanyPortalReservationController::class, 'ticketPdf'])->name('reservations.tickets.pdf');
         Route::get('releves', [CompanyPortalStatementController::class, 'index'])->name('statements.index');
         Route::get('releves/{statement:uuid}', [CompanyPortalStatementController::class, 'show'])->name('statements.show');
         Route::get('membres', [CompanyPortalTravelerController::class, 'index'])->name('travelers.index');
