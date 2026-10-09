@@ -21,6 +21,9 @@ type PageProps = {
         php: string;
     };
     checks: HealthCheckItem[];
+    queues: {
+        failedJobs: number;
+    };
     logViewer: {
         apiBase: string;
     };
@@ -37,6 +40,7 @@ const environmentLabels: Record<string, string> = {
 export default function MonitoringPage({
     app,
     checks,
+    queues,
     generatedAt,
 }: PageProps) {
     const degraded = checks.filter(
@@ -82,6 +86,12 @@ export default function MonitoringPage({
                         >
                             <ListChecks className="size-3.5" />
                             Queues (Horizon)
+                            {queues.failedJobs > 0 && (
+                                <span className="rounded-full bg-destructive px-2 py-0.5 text-[0.625rem] font-extrabold text-white">
+                                    {queues.failedJobs} échoué
+                                    {queues.failedJobs > 1 ? 's' : ''}
+                                </span>
+                            )}
                         </a>
                     </div>
                 </header>
