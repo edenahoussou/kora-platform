@@ -172,7 +172,10 @@ export function SaleJourneySummary({
     selectedNetwork,
     selectedAccount,
 }: Props) {
-    const holdCountdown = useHoldCountdown(reservation.expiresAt);
+    const holdCountdown = useHoldCountdown(
+        reservation.expiresAt,
+        reservation.heldAt,
+    );
 
     const directionGroups = useMemo(
         () => buildDirectionGroups(reservation, itineraryQuote),

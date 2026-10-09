@@ -10,7 +10,10 @@ export type HoldCountdown = {
     isExpired: boolean;
 };
 
-export function useHoldCountdown(expiresAt: string | null): HoldCountdown {
+export function useHoldCountdown(
+    expiresAt: string | null,
+    startedAt: string | null = null,
+): HoldCountdown {
     const [now, setNow] = useState<number | null>(null);
 
     useEffect(() => {
@@ -21,6 +24,24 @@ export function useHoldCountdown(expiresAt: string | null): HoldCountdown {
 
         return () => window.clearInterval(interval);
     }, [expiresAt]);
+
+    const totalMs = useMemo(() => {
+        const expirationTimestamp = expiresAt
+            ? new Date(expiresAt).getTime()
+            : NaN;
+        const startedTimestamp = startedAt
+            ? new Date(startedAt).getTime()
+            : NaN;
+
+        if (
+            Number.isNaN(expirationTimestamp) ||
+            Number.isNaN(startedTimestamp)
+        ) {
+            return HOLD_DURATION_MS;
+        }
+
+        return Math.max(1, expirationTimestamp - startedTimestamp);
+    }, [expiresAt, startedAt]);
 
     return useMemo(() => {
         if (!expiresAt || now === null) {
@@ -51,10 +72,10 @@ export function useHoldCountdown(expiresAt: string | null): HoldCountdown {
             label: `${remainingMinutes}:${remainingSeconds.toString().padStart(2, '0')}`,
             percentage: Math.min(
                 100,
-                Math.max(0, (remainingMs / HOLD_DURATION_MS) * 100),
+                Math.max(0, (remainingMs / totalMs) * 100),
             ),
             isUrgent: remainingMs > 0 && remainingMs <= URGENCY_THRESHOLD_MS,
             isExpired: remainingMs === 0,
         };
-    }, [expiresAt, now]);
+    }, [expiresAt, now, totalMs]);
 }

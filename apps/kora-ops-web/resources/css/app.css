@@ -6169,6 +6169,11 @@
         background: color-mix(in srgb, var(--gold) 12%, transparent);
     }
 
+    .summary-callout.danger {
+        color: var(--destructive);
+        background: color-mix(in srgb, var(--destructive) 12%, transparent);
+    }
+
     .hold-countdown {
         position: relative;
         overflow: hidden;
