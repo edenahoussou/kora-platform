@@ -20,10 +20,28 @@ class DepartureOccupancyService
     {
         $seatCount ??= $departure->bus->seat_count ?? 0;
 
-        $stops = $departure->line?->stops;
-        $orders = $stops?->pluck('stop_order')->map(fn ($order) => (int) $order)->values()->all() ?? [];
-        $legCount = max(0, count($orders) - 1);
-        $positionOf = array_flip($orders);
+        $tripStops = $departure->tripStops()->values();
+        $stopTimes = $departure->stop_times ?? [];
+
+        // Les *_stop_order des segments sont des positions dans
+        // stop_times quand le départ en a une, sinon des stop_order
+        // canoniques — les deux bases sont mappées vers la position
+        // dans l'ordre de circulation réel.
+        $positionOf = [];
+        if ($stopTimes !== []) {
+            foreach (array_keys($stopTimes) as $index) {
+                $position = $tripStops->search(
+                    fn ($stop): bool => $stop->uuid === ($stopTimes[$index]['stop_uuid'] ?? null)
+                );
+                if ($position !== false) {
+                    $positionOf[$index] = $position;
+                }
+            }
+        } else {
+            $positionOf = array_flip($tripStops->pluck('stop_order')->map(fn ($order) => (int) $order)->all());
+        }
+
+        $legCount = max(0, $tripStops->count() - 1);
 
         $segments = $departure->reservationSegments()
             ->whereIn('status', ReservationSegmentStatus::occupyingValues())
@@ -47,10 +65,10 @@ class DepartureOccupancyService
         $peakIndex = $legLoads === [] ? false : array_search($peakLoad, $legLoads, true);
         $peakLegLabel = null;
 
-        if ($stops !== null && $peakIndex !== false && $peakLoad > 0) {
-            $peakLegLabel = $stops[$peakIndex]->physicalStop->name
+        if (is_int($peakIndex) && $peakLoad > 0 && isset($tripStops[$peakIndex], $tripStops[$peakIndex + 1])) {
+            $peakLegLabel = $tripStops[$peakIndex]->physicalStop->name
                 .' → '
-                .$stops[$peakIndex + 1]->physicalStop->name;
+                .$tripStops[$peakIndex + 1]->physicalStop->name;
         }
 
         $passengerLegs = array_sum($legLoads);
