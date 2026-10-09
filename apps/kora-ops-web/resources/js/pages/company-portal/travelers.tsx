@@ -235,8 +235,8 @@ export default function CompanyPortalTravelers({
         const name = `${traveler.firstName} ${traveler.lastName}`;
         const message =
             nextStatus === 'inactive'
-                ? `Retirer ${name} du roster ? Il ne pourra plus être sélectionné pour un achat.`
-                : `Réactiver ${name} dans le roster ?`;
+                ? `Retirer ${name} des voyageurs ? Il ne pourra plus être sélectionné pour un achat.`
+                : `Réactiver ${name} parmi vos voyageurs ?`;
 
         if (!window.confirm(message)) {
             return;
@@ -530,7 +530,7 @@ export default function CompanyPortalTravelers({
                                                         aria-label={
                                                             traveler.status ===
                                                             'active'
-                                                                ? `Retirer ${traveler.firstName} ${traveler.lastName} du roster`
+                                                                ? `Retirer ${traveler.firstName} ${traveler.lastName} des voyageurs`
                                                                 : `Réactiver ${traveler.firstName} ${traveler.lastName}`
                                                         }
                                                     >
