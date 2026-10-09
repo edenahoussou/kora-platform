@@ -5,6 +5,7 @@ import {
     Building2,
     CalendarDays,
     CreditCard,
+    Download,
     FileText,
     MapPin,
     MoveRight,
@@ -27,6 +28,7 @@ type SeatAssignment = {
 };
 
 type PassengerTicket = {
+    uuid: string;
     shortCode: string;
     status: string;
     issuedAt: string | null;
@@ -296,18 +298,41 @@ export default function CompanyPortalReservationDetail({
                                                     </p>
                                                 </div>
                                             </div>
-                                            {passenger.tickets.map((ticket) => (
-                                                <span
-                                                    key={ticket.shortCode}
-                                                    className="inline-flex items-center gap-1 rounded-lg bg-gold/12 px-2 py-1 text-[0.625rem] font-black text-[var(--kora)]"
-                                                >
-                                                    <Ticket className="size-3" />
-                                                    {ticket.shortCode} ·{' '}
-                                                    {ticketStatusLabels[
-                                                        ticket.status
-                                                    ] ?? ticket.status}
-                                                </span>
-                                            ))}
+                                            {passenger.tickets.map((ticket) =>
+                                                ['issued', 'used'].includes(
+                                                    ticket.status,
+                                                ) ? (
+                                                    <a
+                                                        key={ticket.uuid}
+                                                        href={companyPortal.reservations.tickets.pdf.url(
+                                                            {
+                                                                reservation:
+                                                                    reservation.uuid,
+                                                                ticket: ticket.uuid,
+                                                            },
+                                                        )}
+                                                        className="inline-flex items-center gap-1 rounded-lg bg-gold/12 px-2 py-1 text-[0.625rem] font-black text-[var(--kora)] transition hover:bg-gold/25"
+                                                        title="Télécharger le billet PDF"
+                                                    >
+                                                        <Download className="size-3" />
+                                                        {ticket.shortCode} ·{' '}
+                                                        {ticketStatusLabels[
+                                                            ticket.status
+                                                        ] ?? ticket.status}
+                                                    </a>
+                                                ) : (
+                                                    <span
+                                                        key={ticket.uuid}
+                                                        className="inline-flex items-center gap-1 rounded-lg bg-gold/12 px-2 py-1 text-[0.625rem] font-black text-[var(--kora)]"
+                                                    >
+                                                        <Ticket className="size-3" />
+                                                        {ticket.shortCode} ·{' '}
+                                                        {ticketStatusLabels[
+                                                            ticket.status
+                                                        ] ?? ticket.status}
+                                                    </span>
+                                                ),
+                                            )}
                                         </div>
                                         {passenger.seats.length > 0 && (
                                             <div className="mt-2.5 flex flex-wrap gap-1.5">

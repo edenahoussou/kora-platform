@@ -121,6 +121,7 @@ class CompanyPurchaseHistoryReadService
                 'documentNumber' => $passenger->document_number,
                 'seats' => $seats,
                 'tickets' => $tickets->map(fn (Ticket $ticket): array => [
+                    'uuid' => $ticket->uuid,
                     'shortCode' => $ticket->short_code,
                     'status' => $ticket->status->value,
                     'issuedAt' => $ticket->issued_at?->toISOString(),
