@@ -552,7 +552,6 @@ export default function CompanyPortalSalePage(props: Props) {
                                             )}
                                         </div>
                                     )}
-
                                 </>
                             )}
 

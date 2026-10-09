@@ -1,8 +1,15 @@
 import { Head } from '@inertiajs/react';
-import { Activity, Globe2, Server, TriangleAlert } from 'lucide-react';
+import {
+    Activity,
+    Globe2,
+    ListChecks,
+    Server,
+    TriangleAlert,
+} from 'lucide-react';
 import { HealthCheckCard } from '@/components/monitoring/health-check-card';
 import { LogBrowser } from '@/components/monitoring/log-browser';
 import type { HealthCheckItem } from '@/components/monitoring/monitoring-types';
+import { index as horizonIndex } from '@/routes/horizon';
 
 type PageProps = {
     app: {
@@ -69,6 +76,13 @@ export default function MonitoringPage({
                                 Debug activé
                             </span>
                         )}
+                        <a
+                            href={horizonIndex.url()}
+                            className="inline-flex items-center gap-2 rounded-full bg-kora px-4 py-2 text-xs font-bold text-white ring-1 ring-kora/20 transition-colors hover:bg-kora/90"
+                        >
+                            <ListChecks className="size-3.5" />
+                            Queues (Horizon)
+                        </a>
                     </div>
                 </header>
 

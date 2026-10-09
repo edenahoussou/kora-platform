@@ -12,7 +12,7 @@ services:
       DB_DATABASE: kora
       DB_USERNAME: kora
       DB_PASSWORD: secret
-      REDIS_CLIENT: predis
+      REDIS_CLIENT: phpredis
       REDIS_HOST: redis
       REDIS_PORT: 6379
       MAIL_MAILER: smtp
