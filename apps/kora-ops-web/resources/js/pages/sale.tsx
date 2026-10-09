@@ -79,7 +79,9 @@ export default function SalePage(props: SaleProps) {
     const [payerType, setPayerType] = useState<SalePayerType>(
         (reservation?.payerType as SalePayerType) ?? 'personal',
     );
-    const [promoCode, setPromoCode] = useState('');
+    const [promoCode, setPromoCode] = useState(
+        reservation?.promotionDiscount?.code ?? '',
+    );
     const [selectedCompanyAccountUuid, setSelectedCompanyAccountUuid] =
         useState<string | null>(reservation?.companyAccount?.uuid ?? null);
     const [isSeatPickerOpen, setIsSeatPickerOpen] = useState(false);
@@ -109,6 +111,7 @@ export default function SalePage(props: SaleProps) {
         passengersForm,
         draftForm,
         releaseForm,
+        promoForm,
         paymentForm,
         search: submitSearch,
         fetchSeats,
@@ -116,6 +119,7 @@ export default function SalePage(props: SaleProps) {
         savePassengers,
         saveDraft,
         releaseHold,
+        updatePromoCode,
         recordPayment,
     } = useCounterSale({ ...props, search });
 
@@ -157,6 +161,18 @@ export default function SalePage(props: SaleProps) {
         : selectedOutbound
           ? 'seats'
           : 'search';
+
+    const applyPromoCode = (code: string | null) => {
+        if (!reservation) {
+            return;
+        }
+
+        updatePromoCode(reservation.uuid, code, () => {
+            if (code === null) {
+                setPromoCode('');
+            }
+        });
+    };
 
     const onSearch = (event: SyntheticEvent<HTMLFormElement>) => {
         submitSearch(event);
@@ -479,7 +495,8 @@ export default function SalePage(props: SaleProps) {
                                     processing={
                                         quoteForm.processing ||
                                         holdForm.processing ||
-                                        confirmForm.processing
+                                        confirmForm.processing ||
+                                        promoForm.processing
                                     }
                                     onOpenSeatPicker={handleOpenSeatPicker}
                                     companyAccounts={companyAccounts}
@@ -489,6 +506,7 @@ export default function SalePage(props: SaleProps) {
                                     }
                                     promoCode={promoCode}
                                     onPromoCodeChange={setPromoCode}
+                                    onApplyPromoCode={applyPromoCode}
                                 />
                             )}
                         </div>

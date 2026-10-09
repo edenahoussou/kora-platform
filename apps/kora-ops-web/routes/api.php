@@ -27,6 +27,7 @@ use App\Modules\Notifications\Http\Controllers\OpsNotificationPreferenceControll
 use App\Modules\Notifications\Http\Controllers\OpsWebPushPreferenceController;
 use App\Modules\Notifications\Http\Controllers\PassengerFirebaseConfigurationController;
 use App\Modules\Notifications\Http\Controllers\PassengerNotificationController;
+use App\Modules\Notifications\Http\Controllers\PassengerSupportChatConfigurationController;
 use App\Modules\Payments\Http\Controllers\PaymentController;
 use App\Modules\Support\Http\Controllers\HealthController;
 use App\Modules\Sync\Http\Controllers\OpsSyncController;
@@ -75,6 +76,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                 Route::post('{notification}/read', [PassengerNotificationController::class, 'markRead'])->name('read');
             });
             Route::get('passenger/firebase-configuration', [PassengerFirebaseConfigurationController::class, 'show'])->name('passenger.firebase-configuration');
+            Route::get('passenger/support-chat-configuration', [PassengerSupportChatConfigurationController::class, 'show'])->name('passenger.support-chat-configuration');
             Route::post('logout', [AuthSessionController::class, 'logout'])->name('logout');
         });
     });

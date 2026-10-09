@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\Line;
+use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Data\DepartureStatus;
 use App\Modules\FleetLite\Models\Incident;
 use App\Modules\Notifications\Observers\DepartureOpsNotificationObserver;
@@ -14,6 +15,7 @@ use App\Modules\Support\Models\KoraModel;
 use App\Modules\Tracking\Observers\TrackingSessionObserver;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -149,6 +151,43 @@ class Departure extends KoraModel
             $this->departure_date?->toDateString().' '.substr((string) $this->departure_time, 0, 8),
             $this->departure_timezone ?? config('app.timezone'),
         );
+    }
+
+    /**
+     * Stops in actual circulation order — `stop_times` when present (return
+     * departures store the reversed order), else the line's canonical order.
+     *
+     * @return EloquentCollection<int, Stop>
+     */
+    public function tripStops(): EloquentCollection
+    {
+        $lineStops = $this->line->stops;
+        $stopTimes = $this->stop_times ?? [];
+
+        if ($stopTimes === []) {
+            return $lineStops;
+        }
+
+        $byUuid = $lineStops->keyBy('uuid');
+        /** @var EloquentCollection<int, Stop> $ordered */
+        $ordered = new EloquentCollection;
+        foreach ($stopTimes as $stopTime) {
+            $stop = $byUuid->get($stopTime['stop_uuid'] ?? '');
+            if ($stop !== null) {
+                $ordered->push($stop);
+            }
+        }
+
+        return $ordered->isNotEmpty() ? $ordered : $lineStops;
+    }
+
+    /** Whether this departure runs the line in reverse direction (return leg). */
+    public function isReturnTrip(): bool
+    {
+        $tripStops = $this->tripStops();
+
+        return $tripStops->count() > 1
+            && $tripStops->first()->stop_order > $tripStops->last()->stop_order;
     }
 
     /**

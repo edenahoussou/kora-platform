@@ -5,8 +5,10 @@ namespace App\Modules\Booking\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Modules\AssistedBooking\Services\AssistedBookingWorkflow;
+use App\Modules\Booking\Actions\ApplyReservationPromoCodeAction;
 use App\Modules\Booking\Actions\CalculateItineraryQuoteAction;
 use App\Modules\Booking\Actions\CreateItineraryHoldAction;
+use App\Modules\Booking\Actions\DescribeReservationDiscountAction;
 use App\Modules\Booking\Actions\ItineraryLegQuoteRequest;
 use App\Modules\Booking\Actions\ReleaseSeatHoldAction;
 use App\Modules\Booking\Actions\ResolvePayerContextAction;
@@ -24,6 +26,7 @@ use App\Modules\Booking\Http\Requests\StoreCounterSaleDraftRequest;
 use App\Modules\Booking\Http\Requests\StoreCounterSalePassengersRequest;
 use App\Modules\Booking\Http\Requests\StoreCounterSalePaymentRequest;
 use App\Modules\Booking\Http\Requests\StoreCounterSaleQuoteRequest;
+use App\Modules\Booking\Http\Requests\UpdateCounterSalePromoCodeRequest;
 use App\Modules\Booking\Models\GroupBookingSetting;
 use App\Modules\Booking\Models\ItineraryQuote;
 use App\Modules\Booking\Models\ItineraryQuoteLeg;
@@ -171,13 +174,18 @@ class CounterSaleController extends Controller
             ...$buildLegs($data['outbound_legs'], 'outbound'),
             ...$buildLegs($data['inbound_legs'], 'inbound'),
         ]);
-        $result = $calculateItineraryQuote->handle(
-            $legs,
-            $data['passenger_count'],
-            $request->user(),
-            $data['promo_code'],
-            ReservationChannel::Counter,
-        );
+
+        try {
+            $result = $calculateItineraryQuote->handle(
+                $legs,
+                $data['passenger_count'],
+                $request->user(),
+                $data['promo_code'],
+                ReservationChannel::Counter,
+            );
+        } catch (ValidationException $exception) {
+            throw $exception->redirectTo(route('sale', $request->saleQuery()));
+        }
 
         return to_route('sale', $request->saleQuery(null, $result->itineraryQuote->uuid));
     }
@@ -201,7 +209,9 @@ class CounterSaleController extends Controller
         } catch (SeatUnavailableException $exception) {
             throw ValidationException::withMessages([
                 'seats' => $exception->getMessage(),
-            ]);
+            ])->redirectTo(route('sale', $request->saleQuery()));
+        } catch (ValidationException $exception) {
+            throw $exception->redirectTo(route('sale', $request->saleQuery()));
         }
 
         return to_route('sale', $request->saleQuery($reservation->uuid));
@@ -236,16 +246,16 @@ class CounterSaleController extends Controller
             ? $resolvePayer->handle($request->user(), $data['payer'])
             : null;
 
-        $quoteResult = $calculateItineraryQuote->handle(
-            $legs,
-            $data['passenger_count'],
-            $request->user(),
-            $data['promo_code'],
-            ReservationChannel::Counter,
-            $payer?->companyAccount,
-        );
-
         try {
+            $quoteResult = $calculateItineraryQuote->handle(
+                $legs,
+                $data['passenger_count'],
+                $request->user(),
+                $data['promo_code'],
+                ReservationChannel::Counter,
+                $payer?->companyAccount,
+            );
+
             $reservation = $createItineraryHold->handle(
                 user: $request->user(),
                 itineraryQuote: $quoteResult->itineraryQuote,
@@ -257,7 +267,9 @@ class CounterSaleController extends Controller
         } catch (SeatUnavailableException $exception) {
             throw ValidationException::withMessages([
                 'seats' => $exception->getMessage(),
-            ]);
+            ])->redirectTo(route('sale', $request->saleQuery()));
+        } catch (ValidationException $exception) {
+            throw $exception->redirectTo(route('sale', $request->saleQuery()));
         }
 
         session()->forget('counter_sale_pending_legs');
@@ -400,6 +412,23 @@ class CounterSaleController extends Controller
         }
 
         return to_route('sale', $request->saleQuery());
+    }
+
+    /** Applique ou retire un code promo sur un blocage encore actif. */
+    public function updatePromoCode(
+        UpdateCounterSalePromoCodeRequest $request,
+        Reservation $reservation,
+        ApplyReservationPromoCodeAction $applyPromoCode,
+    ): RedirectResponse {
+        Gate::authorize('manageCounterSale', $reservation);
+
+        try {
+            $applyPromoCode->handle($reservation, $request->promoCode());
+        } catch (ValidationException $exception) {
+            throw $exception->redirectTo(route('sale', $request->saleQuery($reservation->uuid)));
+        }
+
+        return to_route('sale', $request->saleQuery($reservation->uuid));
     }
 
     public function saveDraft(
@@ -893,11 +922,17 @@ class CounterSaleController extends Controller
             'uuid' => $reservation->uuid,
             'status' => (string) $reservation->getRawOriginal('status'),
             'expiresAt' => $expiresAt ? CarbonImmutable::parse((string) $expiresAt)->toISOString() : null,
+            'heldAt' => $reservation->created_at?->toISOString(),
             'totalAmount' => (int) $reservation->total_amount,
             'currency' => $reservation->currency,
             'channel' => $reservation->getRawOriginal('channel'),
             'purchaseType' => $reservation->getRawOriginal('purchase_type'),
             'groupSize' => $reservation->group_size,
+            'promotionDiscount' => [
+                'amount' => (int) $reservation->promotion_discount_amount,
+                'code' => $reservation->total_snapshot['promotion']['code'] ?? null,
+                'name' => $reservation->total_snapshot['promotion']['name'] ?? null,
+            ],
             'payerType' => $reservation->getRawOriginal('payer_type'),
             'payerSnapshot' => $reservation->payer_snapshot,
             'ticketIssuance' => [
@@ -912,6 +947,7 @@ class CounterSaleController extends Controller
                 'type' => $reservation->companyAccount->getRawOriginal('type'),
                 'reference' => $reservation->companyAccount->reference,
             ] : null,
+            'discounts' => $this->serializeDiscounts($reservation),
             'passengerAllocations' => is_array($reservation->total_snapshot['passenger_allocations'] ?? null)
                 ? $reservation->total_snapshot['passenger_allocations']
                 : [],
@@ -1029,6 +1065,34 @@ class CounterSaleController extends Controller
                         'seatCode' => $segments->pluck('seat.code')->filter()->implode(' · '),
                     ];
                 })->values()->all(),
+        ];
+    }
+
+    /**
+     * @return array{subtotalAmount: int, totalDiscount: int, label: string|null, promotionCode: string|null, companyDiscountAmount: int, groupDiscountAmount: int, promotionDiscountAmount: int}|null
+     */
+    private function serializeDiscounts(Reservation $reservation): ?array
+    {
+        $snapshot = is_array($reservation->total_snapshot) ? $reservation->total_snapshot : [];
+        $promotionDiscount = (int) $reservation->promotion_discount_amount;
+        $groupDiscount = (int) ($snapshot['group_discount']['amount'] ?? 0);
+        $companyDiscount = (int) ($snapshot['company_discount']['amount'] ?? 0);
+        $totalDiscount = $promotionDiscount + $groupDiscount + $companyDiscount;
+
+        if ($totalDiscount <= 0) {
+            return null;
+        }
+
+        $discounts = app(DescribeReservationDiscountAction::class);
+
+        return [
+            'subtotalAmount' => $discounts->originalTotal($reservation),
+            'totalDiscount' => $totalDiscount,
+            'label' => $discounts->execute($reservation),
+            'promotionCode' => $snapshot['promotion']['code'] ?? null,
+            'promotionDiscountAmount' => $promotionDiscount,
+            'groupDiscountAmount' => $groupDiscount,
+            'companyDiscountAmount' => $companyDiscount,
         ];
     }
 

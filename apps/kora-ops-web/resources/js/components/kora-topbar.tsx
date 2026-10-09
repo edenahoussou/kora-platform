@@ -1,6 +1,7 @@
 import { router } from '@inertiajs/react';
 import { Menu, Moon, Search, Sun } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { HelpMenu } from '@/components/help-menu';
 import { KoraCorridorFlagPicker } from '@/components/kora-corridor-flag-picker';
 import { KoraUserMenuContent } from '@/components/kora-user-menu';
 import { OpsNotificationDrawer } from '@/components/ops-notification-drawer';
@@ -216,6 +217,8 @@ export function KoraTopbar({ user, onMenuClick }: Props) {
                 unreadCount={unreadCount}
                 onUnreadCountChange={setUnreadCount}
             />
+
+            <HelpMenu />
 
             {/* Theme toggle */}
             <button

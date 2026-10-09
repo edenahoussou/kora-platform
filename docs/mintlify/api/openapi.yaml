@@ -38,9 +38,6 @@ tags:
     name: 'OPS Mobile — Incidents'
     description: "\nSignalement d'un incident par le convoyeur (panne, retard, accident,\nsécurité, autre). Un incident déclenche une alerte : notification à\nl'équipage du départ et aux directeurs des opérations de l'agence, e-mail\naux directeurs (destinataires) et super-administrateurs (copie).\n\nIdempotent : le mobile génère `incident_uuid` ; un rejeu (coupure réseau)\nrenvoie l'incident existant (200) sans doublon ni nouvelle alerte.\nChaque convoyeur ne voit que SES incidents. Aucun identifiant numérique,\naucune donnée financière.\n\nErreurs : `{ error: { code, message } }` — `departure_not_assigned` (403),\n`incident_uuid_conflict` (409), plus les codes de session OPS."
   -
-    name: 'OPS Mobile — Manifest'
-    description: "\nCorrection par le convoyeur des informations d'un passager."
-  -
     name: 'OPS Mobile — Progression du départ'
     description: "\nLe convoyeur fait avancer SON départ : embarquement commencé, bus parti,\narrivé, et enregistre un retard. C'est le même statut que sur OPS Web\n(`departures.status`) : un « bus parti » déclaré ici est visible côté web,\nbloque la vente du départ et débloque la clôture des no-show.\n\nRéservé à l'équipage affecté (permission `departures.progress`). Annuler\nou modifier un départ reste réservé à OPS Web."
   -
@@ -3088,12 +3085,12 @@ paths:
                 birth_date:
                   type: string
                   description: 'Date de naissance. Le champ value doit être une date valide. Le champ value doit être une date antérieure à <code>today</code>.'
-                  example: '2022-11-02'
+                  example: '1990-05-15'
                   nullable: true
                 device_name:
                   type: string
                   description: 'Nom de l’appareil à enregistrer. Le champ value ne doit pas dépasser 120 caractères.'
-                  example: 'n'
+                  example: v
                 platform:
                   type: string
                   description: 'Plateforme de l’appareil ou du client.'
@@ -3106,11 +3103,11 @@ paths:
                 device_fingerprint:
                   type: string
                   description: 'Valeur de « device fingerprint ». Le champ value doit contenir au moins 16 caractères. Le champ value ne doit pas dépasser 255 caractères.'
-                  example: g
+                  example: q
                 push_token:
                   type: string
                   description: 'Jeton de notification push de l’appareil. Le champ value ne doit pas dépasser 512 caractères.'
-                  example: z
+                  example: w
                   nullable: true
               required:
                 - otp_challenge_uuid
@@ -7328,173 +7325,6 @@ paths:
         required: true
         schema:
           type: string
-  '/api/v1/ops/departures/{departure_uuid}/tickets/{ticket_uuid}/passenger':
-    patch:
-      summary: "Corrige les informations d'un passager du départ."
-      operationId: corrigeLesInformationsDunPassagerDuDpart
-      description: "Possible avant comme après l'embarquement. Réservé au personnel\naffecté au départ avec la permission d'embarquement. Chaque\ncorrection effective est journalisée (auteur, motif, anciennes et\nnouvelles valeurs, données sensibles masquées)."
-      parameters:
-        -
-          in: header
-          name: X-Terminal-Serial
-          description: ''
-          example: 'Numéro de série du terminal. Example: P501-000123'
-          schema:
-            type: string
-      responses:
-        200:
-          description: 'Passager corrigé'
-          content:
-            application/json:
-              schema:
-                type: object
-                example:
-                  data:
-                    ticketUuid: 3a1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e41
-                    name: 'Awa Traoré'
-                    firstName: Awa
-                    lastName: Traoré
-                    phone: '+22990000000'
-                    email: null
-                properties:
-                  data:
-                    type: object
-                    properties:
-                      ticketUuid:
-                        type: string
-                        example: 00000000-0000-4000-8000-000000000000
-                      name:
-                        type: string
-                        example: 'Awa Traoré'
-                      firstName:
-                        type: string
-                        example: Awa
-                      lastName:
-                        type: string
-                        example: Traoré
-                      phone:
-                        type: string
-                        example: '+22990000000'
-                      email:
-                        type: string
-                        example: null
-                        nullable: true
-        422:
-          description: 'Billet hors périmètre de ce départ'
-          content:
-            application/json:
-              schema:
-                type: object
-                example:
-                  error:
-                    code: ticket_not_for_departure
-                    message: 'Ce billet ne correspond pas à ce départ.'
-                properties:
-                  error:
-                    type: object
-                    properties:
-                      code:
-                        type: string
-                        example: ticket_not_for_departure
-                      message:
-                        type: string
-                        example: 'Ce billet ne correspond pas à ce départ.'
-      tags:
-        - 'OPS Mobile — Manifest'
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                first_name:
-                  type: string
-                  description: 'Prénom corrigé. Le champ value ne doit pas dépasser 120 caractères.'
-                  example: b
-                last_name:
-                  type: string
-                  description: 'Nom de famille corrigé. Le champ value ne doit pas dépasser 120 caractères.'
-                  example: 'n'
-                phone:
-                  type: string
-                  description: 'Téléphone (normalisé en E.164 par le serveur). Le champ value ne doit pas dépasser 32 caractères.'
-                  example: g
-                  nullable: true
-                email:
-                  type: string
-                  description: 'Adresse email. Le champ value doit être une adresse e-mail valide. Le champ value ne doit pas dépasser 255 caractères.'
-                  example: rowan.gulgowski@example.com
-                  nullable: true
-                document_type:
-                  type: string
-                  description: 'Type de pièce : national_id, biometric_card, passport, consular_card, cip.'
-                  example: national_id
-                  enum:
-                    - national_id
-                    - biometric_card
-                    - passport
-                    - consular_card
-                    - cip
-                  nullable: true
-                document_number:
-                  type: string
-                  description: 'Numéro de la pièce (numéro de passeport si le type est passport). Le champ value ne doit pas dépasser 64 caractères.'
-                  example: d
-                  nullable: true
-                nationality:
-                  type: string
-                  description: 'Nationalité, code ISO 3166-1 alpha-2. Must contain only letters. Le champ value doit contenir 2 caractères.'
-                  example: lj
-                  nullable: true
-                birth_date:
-                  type: string
-                  description: 'Date de naissance (Y-m-d). Must be a valid date in the format <code>Y-m-d</code>. Le champ value doit être une date antérieure ou égale à <code>today</code>.'
-                  example: '2022-11-02'
-                  nullable: true
-                yellow_fever_vaccinated:
-                  type: boolean
-                  description: 'Vacciné contre la fièvre jaune ? null = non renseigné.'
-                  example: false
-                  nullable: true
-                reason:
-                  type: string
-                  description: 'Motif de la correction (facultatif, pour l’audit). Le champ value ne doit pas dépasser 500 caractères.'
-                  example: 'n'
-                  nullable: true
-    parameters:
-      -
-        in: path
-        name: departure_uuid
-        description: ''
-        example: 00000000-0000-4000-8000-000000000000
-        required: true
-        schema:
-          type: string
-      -
-        in: path
-        name: ticket_uuid
-        description: ''
-        example: 00000000-0000-4000-8000-000000000000
-        required: true
-        schema:
-          type: string
-      -
-        in: path
-        name: departure
-        description: 'UUID public du départ.'
-        example: 00000000-0000-4000-8000-000000000000
-        required: true
-        schema:
-          type: string
-      -
-        in: path
-        name: ticket
-        description: 'UUID public du billet du passager.'
-        example: 00000000-0000-4000-8000-000000000000
-        required: true
-        schema:
-          type: string
   '/api/v1/ops/departures/{departure_uuid}/status':
     post:
       summary: 'Change le statut du départ (embarquement → parti → arrivé).'
@@ -10489,6 +10319,105 @@ paths:
                           - 'The selected platform is invalid.'
                         items:
                           type: string
+      tags:
+        - 'Passager — Notifications'
+  /api/v1/auth/passenger/support-chat-configuration:
+    get:
+      summary: "Retourne la configuration tawk.to publique pour l'app mobile."
+      operationId: retourneLaConfigurationTawktoPubliquePourLappMobile
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  -
+                    description: 'Configuration disponible'
+                    type: object
+                    example:
+                      data:
+                        enabled: true
+                        property_id: abc123def456
+                        widget_id: default
+                        direct_chat_url: 'https://tawk.to/chat/abc123def456/default'
+                        secure_hash: hmac-sha256
+                        visitor:
+                          name: 'Awa Kora'
+                          email: awa@kora.test
+                          phone: '+22997000000'
+                          jobTitle: null
+                          agency: null
+                          role: Passager
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          enabled:
+                            type: boolean
+                            example: false
+                          property_id:
+                            type: string
+                            example: abc123def456
+                          widget_id:
+                            type: string
+                            example: default
+                          direct_chat_url:
+                            type: string
+                            example: 'https://tawk.to/chat/abc123def456/default'
+                          secure_hash:
+                            type: string
+                            example: hmac-sha256
+                          visitor:
+                            type: object
+                            properties:
+                              name:
+                                type: string
+                                example: 'Awa Kora'
+                              email:
+                                type: string
+                                example: awa@kora.test
+                              phone:
+                                type: string
+                                example: '+22997000000'
+                              jobTitle:
+                                type: string
+                                example: null
+                                nullable: true
+                              agency:
+                                type: string
+                                example: null
+                                nullable: true
+                              role:
+                                type: string
+                                example: Passager
+                  -
+                    description: 'Configuration indisponible'
+                    type: object
+                    example:
+                      data:
+                        enabled: false
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          enabled:
+                            type: boolean
+                            example: false
+        401:
+          description: 'Non authentifié'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
       tags:
         - 'Passager — Notifications'
   /api/v1/payments/methods:

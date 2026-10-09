@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { KoraSidebar } from '@/components/kora-sidebar';
 import { KoraTopbar } from '@/components/kora-topbar';
+import { SupportChatWidget } from '@/components/support-chat-widget';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -56,6 +57,7 @@ export function KoraShell({ children }: Props) {
                     {children}
                 </main>
             </div>
+            <SupportChatWidget />
         </div>
     );
 }

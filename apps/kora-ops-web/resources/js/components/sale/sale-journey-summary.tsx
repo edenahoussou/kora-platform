@@ -172,7 +172,10 @@ export function SaleJourneySummary({
     selectedNetwork,
     selectedAccount,
 }: Props) {
-    const holdCountdown = useHoldCountdown(reservation.expiresAt);
+    const holdCountdown = useHoldCountdown(
+        reservation.expiresAt,
+        reservation.heldAt,
+    );
 
     const directionGroups = useMemo(
         () => buildDirectionGroups(reservation, itineraryQuote),
@@ -403,6 +406,32 @@ export function SaleJourneySummary({
                         </p>
                     </div>
                 )}
+
+            {reservation.discounts ? (
+                <div className="summary-discounts">
+                    <div className="summary-row">
+                        <span>Sous-total</span>
+                        <span>
+                            {formatMoney(
+                                reservation.discounts.subtotalAmount,
+                                reservation.currency,
+                            )}
+                        </span>
+                    </div>
+                    <div className="summary-row summary-discount-row">
+                        <span className="discount-label">
+                            {reservation.discounts.label ?? 'Remise'}
+                        </span>
+                        <strong className="is-discount">
+                            −
+                            {formatMoney(
+                                reservation.discounts.totalDiscount,
+                                reservation.currency,
+                            )}
+                        </strong>
+                    </div>
+                </div>
+            ) : null}
 
             <div className="summary-total">
                 <span>Total à encaisser</span>

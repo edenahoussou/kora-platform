@@ -24,6 +24,20 @@ declare module '@inertiajs/core' {
                 osm: { tileUrl: string; attribution: string };
                 google: { apiKey: string | null };
             };
+            supportChat: {
+                enabled: boolean;
+                propertyId: string | null;
+                widgetId: string | null;
+                visitorHash: string | null;
+                visitor: {
+                    name: string | null;
+                    email: string | null;
+                    phone: string | null;
+                    jobTitle: string | null;
+                    agency: string | null;
+                    role: string | null;
+                } | null;
+            };
             [key: string]: unknown;
         };
     }

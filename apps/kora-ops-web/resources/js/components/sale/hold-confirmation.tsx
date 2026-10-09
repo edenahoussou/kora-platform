@@ -1,12 +1,18 @@
 import { CheckCircle2, Clock3, ShieldCheck } from 'lucide-react';
 import type { SaleReservation } from './sale-types';
-import { formatMoney, formatRemainingTime } from './sale-utils';
+import { formatMoney } from './sale-utils';
+import { useHoldCountdown } from './use-hold-countdown';
 
 export function HoldConfirmation({
     reservation,
 }: {
     reservation: SaleReservation;
 }) {
+    const holdCountdown = useHoldCountdown(
+        reservation.expiresAt,
+        reservation.heldAt,
+    );
+
     return (
         <section className="overflow-hidden rounded-[1.25rem] border border-digital/20 bg-card shadow-[0_18px_45px_rgba(0,29,78,0.08)]">
             <div className="flex items-start gap-4 bg-digital p-5 text-white sm:p-6">
@@ -45,6 +51,15 @@ export function HoldConfirmation({
                             reservation.currency,
                         )}
                     </strong>
+                    {reservation.discounts ? (
+                        <span className="mt-0.5 block text-[0.625rem] font-semibold text-emerald-600">
+                            {reservation.discounts.label ?? 'Remise'} : −
+                            {formatMoney(
+                                reservation.discounts.totalDiscount,
+                                reservation.currency,
+                            )}
+                        </span>
+                    ) : null}
                 </div>
                 <div>
                     <span className="block text-[0.625rem] text-muted-foreground">
@@ -52,7 +67,7 @@ export function HoldConfirmation({
                     </span>
                     <strong className="mt-1 flex items-center gap-1.5 text-[0.9rem] font-black text-gold">
                         <Clock3 className="size-4" />
-                        {formatRemainingTime(reservation.expiresAt)}
+                        {holdCountdown.label}
                     </strong>
                 </div>
             </div>

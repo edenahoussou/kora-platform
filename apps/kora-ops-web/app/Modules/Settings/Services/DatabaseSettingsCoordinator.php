@@ -167,6 +167,7 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
         if ($group === SettingsGroup::Operations) {
             return [
                 'quoteTtlMinutes' => ['required', 'integer', 'min:1', 'max:10080'],
+                'seatHoldMinutes' => ['required', 'integer', 'min:1', 'max:1440'],
                 'saleCutoffMinutes' => ['required', 'integer', 'min:0', 'max:1440'],
                 // An empty override map is a valid, intentional state. The
                 // coordinator merges partial updates with the persisted
@@ -295,6 +296,10 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
             'tiktokOauthClientId' => ['nullable', 'string', 'max:500'],
             'tiktokOauthClientSecret' => ['nullable', 'string', 'max:500'],
             'tiktokOauthRedirect' => ['required', 'string', 'max:500'],
+            'tawktoEnabled' => ['required', 'boolean'],
+            'tawktoPropertyId' => ['nullable', 'string', 'max:100'],
+            'tawktoWidgetId' => ['required', 'string', 'max:100'],
+            'tawktoApiKey' => ['nullable', 'string', 'max:500'],
         ];
     }
 
@@ -309,6 +314,10 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
 
             if ((int) $values['opsSessionTtlMinutes'] > (int) $values['opsSessionMaxLifetimeMinutes']) {
                 $errors['opsSessionTtlMinutes'] = 'The session TTL cannot exceed the maximum lifetime.';
+            }
+
+            if ((int) $values['seatHoldMinutes'] > (int) $values['quoteTtlMinutes']) {
+                $errors['seatHoldMinutes'] = 'Le blocage des sièges ne peut pas excéder la validité d’un devis.';
             }
 
             $overrides = $values['saleCutoffOverrides'] ?? [];
@@ -372,6 +381,10 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
 
         if ((bool) $values['fedapayEnabled'] && blank($values['fedapaySecretKey'])) {
             $errors['fedapaySecretKey'] = 'A FedaPay secret key is required when the provider is enabled.';
+        }
+
+        if ((bool) $values['tawktoEnabled'] && (blank($values['tawktoPropertyId']) || blank($values['tawktoWidgetId']))) {
+            $errors['tawktoPropertyId'] = 'Le Property ID et le Widget ID tawk.to sont requis pour activer le chat.';
         }
 
         if ((bool) $values['mtnMomoEnabled'] && (blank($values['mtnMomoSubscriptionKey']) || blank($values['mtnMomoUserId']) || blank($values['mtnMomoApiKey']))) {

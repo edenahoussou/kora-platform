@@ -9,7 +9,11 @@ use App\Modules\CompanyAccounts\Models\CompanyAccount;
 use App\Modules\CompanyAccounts\Models\CompanyCreditTransaction;
 use App\Modules\CompanyAccounts\Services\CompanyPurchaseHistoryReadService;
 use App\Modules\Finance\Services\FinanceExportService;
+use App\Modules\Ticketing\Actions\GenerateTicketPdfAction;
+use App\Modules\Ticketing\Data\TicketStatus;
+use App\Modules\Ticketing\Models\Ticket;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -81,6 +85,31 @@ class CompanyPortalReservationController extends Controller
                 'reference' => $account->reference,
             ],
             'reservation' => $this->history->serializeDetail($reservation, $transactions),
+        ]);
+    }
+
+    /** PDF d'un billet émis sur une réservation du compte du référent. */
+    public function ticketPdf(
+        Request $request,
+        Reservation $reservation,
+        Ticket $ticket,
+        GenerateTicketPdfAction $generatePdf,
+    ): HttpResponse {
+        $account = $this->account($request);
+
+        abort_unless($reservation->company_account_id === $account->id, 404);
+        abort_unless($ticket->reservation_id === $reservation->id, 404);
+        abort_unless(
+            $ticket->issued_at !== null
+                && in_array($ticket->status, [TicketStatus::Issued, TicketStatus::Used], true),
+            404,
+        );
+
+        $pdf = $generatePdf->execute($ticket);
+
+        return response($pdf['content'], 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$pdf['filename'].'"',
         ]);
     }
 

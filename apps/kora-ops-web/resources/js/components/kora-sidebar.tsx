@@ -272,6 +272,7 @@ const navItems: NavEntry[] = [
             'settings.general.view',
             'settings.operations.view',
             'settings.integrations.view',
+            'monitoring.view',
         ],
         children: [
             {
@@ -288,6 +289,11 @@ const navItems: NavEntry[] = [
                 title: 'Terminaux P501',
                 href: '/terminals',
                 permission: 'terminals.view',
+            },
+            {
+                title: 'Monitoring',
+                href: '/administration/monitoring',
+                permission: 'monitoring.view',
             },
             {
                 title: 'Paramètres',

@@ -166,7 +166,10 @@ export function PassengerFinalization({
     );
     const [activeIndex, setActiveIndex] = useState(0);
     const [confirmingBack, setConfirmingBack] = useState(false);
-    const holdCountdown = useHoldCountdown(reservation.expiresAt);
+    const holdCountdown = useHoldCountdown(
+        reservation.expiresAt,
+        reservation.heldAt,
+    );
     const expirationHandled = useRef(false);
     const latestPassengers = useRef(passengers);
     const flushOnUnmount = useRef(true);
@@ -699,7 +702,8 @@ export function PassengerFinalization({
                     />
                     <span>
                         L’acheteur confirme les informations fournies pour
-                        chaque voyageur.
+                        chaque voyageur.{' '}
+                        <span className="required-asterisk">*</span>
                     </span>
                 </label>
 

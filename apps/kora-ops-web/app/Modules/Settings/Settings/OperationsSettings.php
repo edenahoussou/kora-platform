@@ -8,6 +8,8 @@ final class OperationsSettings extends Settings
 {
     public int $quoteTtlMinutes = 10;
 
+    public int $seatHoldMinutes = 10;
+
     public int $saleCutoffMinutes = 30;
 
     /** @var array<string, int> */

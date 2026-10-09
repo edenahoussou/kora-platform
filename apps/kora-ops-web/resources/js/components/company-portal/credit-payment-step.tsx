@@ -1,9 +1,17 @@
-import { ArrowLeft, Building2, CircleCheck, CreditCard } from 'lucide-react';
+import {
+    ArrowLeft,
+    Building2,
+    CircleCheck,
+    Clock3,
+    CreditCard,
+} from 'lucide-react';
 import type {
     SaleItineraryQuote,
     SaleReservation,
 } from '@/components/sale/sale-types';
 import { formatMoney } from '@/components/sale/sale-utils';
+import { useHoldCountdown } from '@/components/sale/use-hold-countdown';
+import { cn } from '@/lib/utils';
 
 type Props = {
     quote: SaleItineraryQuote | null;
@@ -25,9 +33,26 @@ export function CreditPaymentStep({
     const amount = reservation.totalAmount;
     const creditBeforeHold = creditAvailable + amount;
     const negotiatedDiscount = quote?.companyDiscount?.amount ?? 0;
+    const holdCountdown = useHoldCountdown(
+        reservation.expiresAt,
+        reservation.heldAt,
+    );
 
     return (
         <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_20rem]">
+            <div
+                className={cn(
+                    'flex items-center gap-2 rounded-xl px-4 py-3 text-xs font-bold xl:col-span-2',
+                    holdCountdown.isExpired || holdCountdown.isUrgent
+                        ? 'bg-destructive/10 text-destructive'
+                        : 'bg-gold/10 text-foreground',
+                )}
+            >
+                <Clock3 className="size-4 shrink-0" />
+                {holdCountdown.isExpired
+                    ? 'Le blocage des sièges a expiré. Revenez à la recherche pour recommencer.'
+                    : `Sièges bloqués — expirent dans ${holdCountdown.label}.`}
+            </div>
             <div className="grid gap-4">
                 <div className="rounded-2xl border border-border bg-card p-5">
                     <div className="flex items-start gap-3">
@@ -43,15 +68,11 @@ export function CreditPaymentStep({
                             </h2>
                             <p className="mt-1 text-sm leading-6 text-muted-foreground">
                                 Le payeur et le moyen de paiement sont imposés
-                                par le compte. Aucun montant saisi par le
-                                navigateur ne sera utilisé.
+                                par le compte.
                             </p>
                         </div>
                     </div>
-                </div>
-
-                <div className="rounded-2xl border border-border bg-card p-5">
-                    <h3 className="text-sm font-extrabold text-foreground">
+                    <h3 className="mt-5 text-sm font-extrabold text-foreground">
                         Détail du montant
                     </h3>
                     <div className="mt-4 grid gap-3 text-sm">
@@ -105,12 +126,14 @@ export function CreditPaymentStep({
                         type="button"
                         className="btn btn-primary justify-center"
                         onClick={onConfirm}
-                        disabled={processing}
+                        disabled={processing || holdCountdown.isExpired}
                     >
                         <CreditCard className="size-4" />
                         {processing
                             ? 'Débit en cours…'
-                            : 'Confirmer et débiter le crédit'}
+                            : holdCountdown.isExpired
+                              ? 'Blocage expiré'
+                              : 'Confirmer et débiter le crédit'}
                     </button>
                     <button
                         type="button"

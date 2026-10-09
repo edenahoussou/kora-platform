@@ -21,9 +21,9 @@ import {
     formatIsoDate,
     formatIsoTime,
     formatMoney,
-    formatRemainingTime,
     formatShortDate,
 } from './sale-utils';
+import { useHoldCountdown } from './use-hold-countdown';
 
 type Props = {
     className?: string;
@@ -44,6 +44,7 @@ type Props = {
     onCompanyAccountChange?: (uuid: string | null) => void;
     promoCode?: string;
     onPromoCodeChange?: (code: string) => void;
+    onApplyPromoCode?: (code: string | null) => void;
     companyPortal?: boolean;
     companyName?: string;
     creditAvailable?: number;
@@ -64,10 +65,17 @@ export function SaleSummaryCard({
     selectedCompanyAccountUuid = null,
     promoCode = '',
     onPromoCodeChange,
+    onApplyPromoCode,
     companyPortal = false,
     companyName,
     creditAvailable,
 }: Props) {
+    const holdCountdown = useHoldCountdown(
+        reservation?.expiresAt ?? null,
+        reservation?.heldAt ?? null,
+    );
+    const quoteCountdown = useHoldCountdown(itineraryQuote?.expiresAt ?? null);
+
     if (!selectedItinerary) {
         return (
             <aside className={cn('summary empty-summary', className)}>
@@ -89,16 +97,38 @@ export function SaleSummaryCard({
             (selectedItinerary.totalAmount +
                 (selectedInbound?.totalAmount ?? 0)) *
             passengerCount;
-        const amount = itineraryQuote?.totalAmount ?? fallbackAmount;
-        const currency = itineraryQuote?.currency ?? selectedItinerary.currency;
+        const amount =
+            reservation?.totalAmount ??
+            itineraryQuote?.totalAmount ??
+            fallbackAmount;
+        const currency =
+            reservation?.currency ??
+            itineraryQuote?.currency ??
+            selectedItinerary.currency;
         const canQuote = selectedItinerary !== null;
         const isGroup = itineraryQuote?.isGroup ?? passengerCount >= 5;
+        const reservationPromotion = reservation?.promotionDiscount;
+        const promotionAmount = reservation
+            ? (reservationPromotion?.amount ?? 0)
+            : (itineraryQuote?.promotionDiscountAmount ?? 0);
+        const promotionCode = reservation
+            ? (reservationPromotion?.code ?? '')
+            : (itineraryQuote?.promotion?.code ?? '');
+        const promoEditable =
+            onApplyPromoCode !== undefined &&
+            (!reservation ||
+                ['held', 'confirmed'].includes(reservation.status));
         const companyDiscountAmount =
             itineraryQuote?.companyDiscount?.amount ?? 0;
         const discountAmount = companyPortal
             ? companyDiscountAmount
             : (itineraryQuote?.groupDiscountAmount ?? 0);
         const hasDiscount = discountAmount > 0;
+        const heldDiscounts = reservation?.discounts ?? null;
+        const hasHeldPromo = (heldDiscounts?.promotionDiscountAmount ?? 0) > 0;
+        const hasHeldOtherDiscount =
+            heldDiscounts !== null &&
+            heldDiscounts.totalDiscount > heldDiscounts.promotionDiscountAmount;
 
         const renderLegGroup = (
             legs: SaleItinerary['legs'],
@@ -188,21 +218,61 @@ export function SaleSummaryCard({
                     </div>
                 )}
 
-                {itineraryQuote &&
-                    (itineraryQuote.promotionDiscountAmount ?? 0) > 0 && (
-                        <div className="summary-row summary-discount-row">
-                            <span>
-                                Promotion {itineraryQuote.promotion?.code ?? ''}
-                            </span>
-                            <strong className="is-discount">
-                                −
-                                {formatMoney(
-                                    itineraryQuote.promotionDiscountAmount,
-                                    currency,
-                                )}
-                            </strong>
+                {reservation && promoEditable && onPromoCodeChange && (
+                    <div className="summary-promo-row summary-promo-edit">
+                        <span className="field-label">
+                            <Tag className="size-3.5" />
+                            Code promo
+                        </span>
+                        <input
+                            type="text"
+                            className="summary-promo-input"
+                            value={promoCode}
+                            onChange={(event) =>
+                                onPromoCodeChange(
+                                    event.target.value.toUpperCase(),
+                                )
+                            }
+                            placeholder="Optionnel"
+                            maxLength={32}
+                        />
+                        <div className="summary-promo-actions">
+                            <button
+                                type="button"
+                                className="btn btn-ghost btn-sm"
+                                disabled={processing}
+                                onClick={() =>
+                                    onApplyPromoCode?.(
+                                        promoCode.trim() === ''
+                                            ? null
+                                            : promoCode,
+                                    )
+                                }
+                            >
+                                Appliquer
+                            </button>
+                            {promotionAmount > 0 && (
+                                <button
+                                    type="button"
+                                    className="btn btn-ghost btn-sm"
+                                    disabled={processing}
+                                    onClick={() => onApplyPromoCode?.(null)}
+                                >
+                                    Retirer
+                                </button>
+                            )}
                         </div>
-                    )}
+                    </div>
+                )}
+
+                {promotionAmount > 0 && (
+                    <div className="summary-row summary-discount-row">
+                        <span>Promotion {promotionCode}</span>
+                        <strong className="is-discount">
+                            −{formatMoney(promotionAmount, currency)}
+                        </strong>
+                    </div>
+                )}
 
                 {itineraryQuote && hasDiscount && (
                     <div className="summary-row summary-discount-row">
@@ -213,6 +283,42 @@ export function SaleSummaryCard({
                         </span>
                         <strong className="is-discount">
                             −{formatMoney(discountAmount, currency)}
+                        </strong>
+                    </div>
+                )}
+
+                {heldDiscounts && hasHeldPromo && (
+                    <div className="summary-row summary-discount-row">
+                        <span>
+                            Code promo{' '}
+                            {heldDiscounts.promotionCode ??
+                                heldDiscounts.label ??
+                                ''}
+                        </span>
+                        <strong className="is-discount">
+                            −
+                            {formatMoney(
+                                heldDiscounts.promotionDiscountAmount,
+                                reservation?.currency ?? currency,
+                            )}
+                        </strong>
+                    </div>
+                )}
+
+                {heldDiscounts && hasHeldOtherDiscount && (
+                    <div className="summary-row summary-discount-row">
+                        <span>
+                            {(heldDiscounts.companyDiscountAmount ?? 0) > 0
+                                ? 'Remise entreprise'
+                                : 'Remise groupe'}
+                        </span>
+                        <strong className="is-discount">
+                            −
+                            {formatMoney(
+                                heldDiscounts.totalDiscount -
+                                    heldDiscounts.promotionDiscountAmount,
+                                reservation?.currency ?? currency,
+                            )}
                         </strong>
                     </div>
                 )}
@@ -270,23 +376,39 @@ export function SaleSummaryCard({
                 </div>
 
                 {reservation ? (
-                    <div className="summary-callout success">
+                    <div
+                        className={cn(
+                            'summary-callout',
+                            holdCountdown.isExpired || holdCountdown.isUrgent
+                                ? 'danger'
+                                : 'success',
+                        )}
+                    >
                         <div>
                             <CheckCircle2 className="size-4" />
                             Places bloquées
                         </div>
                         <p>
-                            Expiration dans{' '}
-                            {formatRemainingTime(reservation.expiresAt)}.
+                            {holdCountdown.isExpired
+                                ? 'Blocage expiré.'
+                                : `Expiration dans ${holdCountdown.label}.`}
                         </p>
                     </div>
                 ) : (
                     <>
                         {itineraryQuote && (
-                            <div className="summary-callout warning">
+                            <div
+                                className={cn(
+                                    'summary-callout warning',
+                                    (quoteCountdown.isExpired ||
+                                        quoteCountdown.isUrgent) &&
+                                        'danger',
+                                )}
+                            >
                                 <Clock3 className="size-3.5" />
-                                Devis valable encore{' '}
-                                {formatRemainingTime(itineraryQuote.expiresAt)}
+                                {quoteCountdown.isExpired
+                                    ? 'Devis expiré'
+                                    : `Devis valable encore ${quoteCountdown.label}`}
                             </div>
                         )}
                         {onOpenSeatPicker && (
