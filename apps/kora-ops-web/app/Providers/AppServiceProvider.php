@@ -81,7 +81,10 @@ use SocialiteProviders\TikTok\TikTokExtendSocialite;
 use Spatie\Health\Checks\Checks\CacheCheck;
 use Spatie\Health\Checks\Checks\DatabaseCheck;
 use Spatie\Health\Checks\Checks\DebugModeCheck;
+use Spatie\Health\Checks\Checks\HorizonCheck;
+use Spatie\Health\Checks\Checks\QueueCheck;
 use Spatie\Health\Checks\Checks\RedisCheck;
+use Spatie\Health\Checks\Checks\ScheduleCheck;
 use Spatie\Health\Checks\Checks\UsedDiskSpaceCheck;
 use Spatie\Health\Facades\Health;
 
@@ -170,6 +173,9 @@ class AppServiceProvider extends ServiceProvider
             RedisCheck::new(),
             UsedDiskSpaceCheck::new(),
             DebugModeCheck::new(),
+            ScheduleCheck::new()->heartbeatMaxAgeInMinutes(5),
+            QueueCheck::new(),
+            HorizonCheck::new(),
         ]);
 
         LogViewer::auth(
