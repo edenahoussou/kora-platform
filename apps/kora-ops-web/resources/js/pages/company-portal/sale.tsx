@@ -476,69 +476,6 @@ export default function CompanyPortalSalePage(props: Props) {
                                             direction="inbound"
                                         />
                                     )}
-
-                                    {activeOutbound && roster.length > 0 && (
-                                        <div className="flex flex-wrap items-end gap-4 rounded-2xl border border-border bg-card p-4">
-                                            <label className="field w-40">
-                                                <span>Voyageurs</span>
-                                                <select
-                                                    className="control"
-                                                    value={passengerCount}
-                                                    onChange={(event) => {
-                                                        const nextCount =
-                                                            Number(
-                                                                event.target
-                                                                    .value,
-                                                            );
-                                                        setPassengerCount(
-                                                            nextCount,
-                                                        );
-                                                        setPassengerSelections(
-                                                            blankSelections(
-                                                                nextCount,
-                                                            ),
-                                                        );
-                                                        setIgnoreQuote(true);
-                                                    }}
-                                                >
-                                                    {Array.from(
-                                                        {
-                                                            length: maxPassengers,
-                                                        },
-                                                        (_, index) => index + 1,
-                                                    ).map((count) => (
-                                                        <option
-                                                            key={count}
-                                                            value={count}
-                                                        >
-                                                            {count}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </label>
-                                            <Button
-                                                type="button"
-                                                variant="kora"
-                                                size="kora"
-                                                onClick={calculateQuote}
-                                                disabled={
-                                                    processing ||
-                                                    (search.tripType ===
-                                                        'round_trip' &&
-                                                        !activeInbound)
-                                                }
-                                            >
-                                                Calculer le devis
-                                            </Button>
-                                            {roster.length === 0 && (
-                                                <p className="text-xs text-destructive">
-                                                    Ajoutez d’abord des
-                                                    voyageurs actifs à votre
-                                                    roster.
-                                                </p>
-                                            )}
-                                        </div>
-                                    )}
                                 </>
                             )}
 
@@ -612,7 +549,74 @@ export default function CompanyPortalSalePage(props: Props) {
                                 )}
                         </main>
 
-                        <aside className="grid content-start gap-4">
+                        <aside className="grid content-start gap-4 xl:sticky xl:top-24">
+                            {!reservation && activeOutbound && (
+                                <div className="rounded-2xl border border-border bg-card p-4">
+                                    {roster.length > 0 ? (
+                                        <div className="grid gap-3">
+                                            <label className="field">
+                                                <span>Nombre de voyageurs</span>
+                                                <select
+                                                    className="control"
+                                                    value={passengerCount}
+                                                    onChange={(event) => {
+                                                        const nextCount =
+                                                            Number(
+                                                                event.target
+                                                                    .value,
+                                                            );
+                                                        setPassengerCount(
+                                                            nextCount,
+                                                        );
+                                                        setPassengerSelections(
+                                                            blankSelections(
+                                                                nextCount,
+                                                            ),
+                                                        );
+                                                        setIgnoreQuote(true);
+                                                    }}
+                                                >
+                                                    {Array.from(
+                                                        {
+                                                            length: maxPassengers,
+                                                        },
+                                                        (_, index) => index + 1,
+                                                    ).map((count) => (
+                                                        <option
+                                                            key={count}
+                                                            value={count}
+                                                        >
+                                                            {count}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </label>
+                                            <Button
+                                                type="button"
+                                                variant="kora"
+                                                size="kora"
+                                                className="w-full justify-center"
+                                                onClick={calculateQuote}
+                                                disabled={
+                                                    processing ||
+                                                    (search.tripType ===
+                                                        'round_trip' &&
+                                                        !activeInbound)
+                                                }
+                                            >
+                                                {activeQuote
+                                                    ? 'Recalculer le devis'
+                                                    : 'Calculer le devis'}
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <p className="text-xs text-destructive">
+                                            Ajoutez d’abord des voyageurs actifs
+                                            à votre roster.
+                                        </p>
+                                    )}
+                                </div>
+                            )}
                             <SaleSummaryCard
                                 passengerCount={passengerCountForReservation}
                                 selectedSeatCodes={selectedSeatCodes}
