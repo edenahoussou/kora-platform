@@ -16,6 +16,7 @@ use App\Modules\DynamicPricing\Models\PromotionRedemption;
 use App\Modules\Fiscalization\Services\FiscalInvoicePayloadBuilder;
 use App\Modules\Payments\Models\Payment;
 use Carbon\CarbonImmutable;
+use Database\Seeders\KoraBusRolePermissionSeeder;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -364,3 +365,66 @@ function promoBookingScenario(): array
 
     return compact('user', 'line', 'origin', 'destination', 'bus', 'seat', 'departure', 'departureDate');
 }
+
+it('lets the counter agent apply a promo code on an active hold via the web route', function (): void {
+    $this->seed(KoraBusRolePermissionSeeder::class);
+    $scenario = promoBookingScenario();
+    $scenario['user']->assignRole('agency_agent');
+    bookingPromotion(['code' => 'TEST10', 'benefit_value' => 10]);
+    $reservationUuid = heldPromoBooking($this, $scenario);
+
+    $this->actingAs($scenario['user'])
+        ->put("/sale/{$reservationUuid}/promo-code", [
+            'promo_code' => 'TEST10',
+        ])
+        ->assertRedirect();
+
+    $reservation = Reservation::query()->where('uuid', $reservationUuid)->firstOrFail();
+    expect($reservation->promotion_discount_amount)->toBe(1000)
+        ->and($reservation->total_amount)->toBe(9000)
+        ->and($reservation->total_snapshot['promotion']['code'])->toBe('TEST10');
+});
+
+it('lets the counter agent remove the promo code via the web route', function (): void {
+    $this->seed(KoraBusRolePermissionSeeder::class);
+    $scenario = promoBookingScenario();
+    $scenario['user']->assignRole('agency_agent');
+    bookingPromotion(['code' => 'TEST10', 'benefit_value' => 10]);
+    $reservationUuid = heldPromoBooking($this, $scenario);
+
+    $this->actingAs($scenario['user'])
+        ->put("/sale/{$reservationUuid}/promo-code", ['promo_code' => 'TEST10'])
+        ->assertRedirect();
+    $this->actingAs($scenario['user'])
+        ->put("/sale/{$reservationUuid}/promo-code", ['promo_code' => null])
+        ->assertRedirect();
+
+    $reservation = Reservation::query()->where('uuid', $reservationUuid)->firstOrFail();
+    expect($reservation->promotion_discount_amount)->toBe(0)
+        ->and($reservation->total_amount)->toBe(10000)
+        ->and($reservation->promotion_id)->toBeNull();
+});
+
+it('rejects an unknown promo code via the web route without touching the total', function (): void {
+    $this->seed(KoraBusRolePermissionSeeder::class);
+    $scenario = promoBookingScenario();
+    $scenario['user']->assignRole('agency_agent');
+    $reservationUuid = heldPromoBooking($this, $scenario);
+
+    $response = $this->actingAs($scenario['user'])
+        ->put("/sale/{$reservationUuid}/promo-code", ['promo_code' => 'INCONNU']);
+
+    $response->assertSessionHasErrors('promo_code');
+    expect(Reservation::query()->where('uuid', $reservationUuid)->firstOrFail()->total_amount)->toBe(10000);
+});
+
+it('forbids the web promo route to a user without counter-sale rights', function (): void {
+    $this->seed(KoraBusRolePermissionSeeder::class);
+    $scenario = promoBookingScenario();
+    bookingPromotion(['code' => 'TEST10', 'benefit_value' => 10]);
+    $reservationUuid = heldPromoBooking($this, $scenario);
+
+    $this->actingAs(User::factory()->create())
+        ->put("/sale/{$reservationUuid}/promo-code", ['promo_code' => 'TEST10'])
+        ->assertForbidden();
+});

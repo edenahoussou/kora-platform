@@ -395,6 +395,11 @@ export type SaleReservation = {
     channel: string | null;
     purchaseType: string | null;
     groupSize: number | null;
+    promotionDiscount: {
+        amount: number;
+        code: string | null;
+        name: string | null;
+    } | null;
     payerType: string | null;
     payerSnapshot: {
         type: string;
