@@ -26,6 +26,7 @@ import '../../../seat_release/domain/entities/seat_release_outcome_status.dart';
 import '../../../seat_release/domain/repositories/seat_release_repository.dart';
 import '../../../synchro/presentation/widgets/sync_status_banner.dart';
 import '../cubit/manifeste_cubit.dart';
+import '../manifest_pdf_download.dart';
 
 /// Manifeste de la course sélectionnée depuis l'onglet Tournée (voir
 /// échange du 17/08/2026 : le Manifeste n'est plus un onglet, on y accède
@@ -218,6 +219,17 @@ class ManifestePage extends StatelessWidget {
           icon: Icons.schedule,
           label: 'Signaler un retard',
           onPressed: () => recordDepartureDelay(context, depart),
+        ));
+      }
+      // Téléchargement du manifeste en PDF sur le téléphone : tous modes
+      // (P501 comme téléphone) et toutes lignes. Le serveur reste seul
+      // arbitre (422 si identités obligatoires manquantes en international).
+      if (state.status == ManifesteStatus.success &&
+          state.passengers.isNotEmpty) {
+        speedDialActions.add(SpeedDialAction(
+          icon: Icons.download_outlined,
+          label: 'Télécharger le manifeste (PDF)',
+          onPressed: () => downloadManifestPdf(context, depart),
         ));
       }
       if (canPrintBorder) {

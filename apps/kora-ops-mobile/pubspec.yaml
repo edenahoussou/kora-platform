@@ -96,6 +96,11 @@ dependencies:
   # même ticket que ci-dessus).
   printing: ^5.13.4
 
+  # Enregistrement du manifeste PDF dans les Téléchargements du téléphone
+  # (bouton « Télécharger le manifeste (PDF) » du Manifeste) — sans
+  # permission de stockage sur Android récent.
+  file_saver: ^0.2.14
+
   # Rendu du QR code sur le billet affiché en app — voir document.md § Ticket
   qr_flutter: ^4.1.0
 

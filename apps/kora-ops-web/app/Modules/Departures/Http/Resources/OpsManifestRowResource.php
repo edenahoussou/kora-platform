@@ -54,6 +54,14 @@ class OpsManifestRowResource extends JsonResource
             'ticketUuid' => $this->ticket?->uuid,
             'shortCode' => $this->ticket?->short_code,
             'name' => $passenger === null ? null : trim($passenger->first_name.' '.$passenger->last_name),
+            // Identité de base, éditable par le convoyeur à l'embarquement
+            // (correction d'une saisie erronée — voir
+            // CorrectManifestPassengerAction). Hors champs frontière : ces
+            // quatre-là sont utiles sur toutes les lignes.
+            'firstName' => $passenger?->first_name,
+            'lastName' => $passenger?->last_name,
+            'phone' => $passenger?->phone,
+            'email' => $passenger?->email,
             'seatCode' => $this->seat?->code,
             'originStop' => $this->originStop === null ? null : [
                 'uuid' => $this->originStop->uuid,

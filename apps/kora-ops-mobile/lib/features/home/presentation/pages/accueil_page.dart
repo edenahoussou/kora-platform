@@ -11,6 +11,7 @@ import '../../../../app/theme/app_text_styles.dart';
 import '../../../../app/theme/kora_colors.dart';
 import '../../../../core/services/kora_dialogs.dart';
 import '../../../../core/widgets/kora_button.dart';
+import '../../../../core/widgets/kora_icon_button.dart';
 import '../../../../core/widgets/notification_button.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../manifeste/presentation/cubit/manifeste_cubit.dart';
@@ -94,14 +95,44 @@ class AccueilPage extends StatelessWidget {
                       160), // Ajusté pour compenser le nouveau bottom (-140)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                child: KoraButton(
-                  label: depart == null
-                      ? 'Choisir une course'
-                      : 'Voir le manifeste',
-                  onPressed: () => depart == null
-                      ? context.go(AppRoutes.tournee)
-                      : context.push(AppRoutes.manifeste),
-                ),
+                child: depart == null
+                    ? KoraButton(
+                        label: 'Choisir une course',
+                        onPressed: () => context.go(AppRoutes.tournee),
+                      )
+                    // Course choisie : le bouton principal fait exactement
+                    // comme la 2ᵉ tuile des Accès rapides (étape de
+                    // progression du départ, sinon Scan) — libellé tronqué
+                    // pour ne jamais déborder — et un petit œil mène au
+                    // détail du manifeste.
+                    : Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: progressStep != null
+                                ? KoraButton(
+                                    label: progressStep.label,
+                                    icon: progressStep.icon,
+                                    onPressed: () => progressDeparture(
+                                        context, depart, progressStep),
+                                  )
+                                : KoraButton(
+                                    label: 'Scan',
+                                    icon: Icons.qr_code_scanner_rounded,
+                                    onPressed: () =>
+                                        context.go(AppRoutes.scanBoarding),
+                                  ),
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          Tooltip(
+                            message: 'Voir le manifeste',
+                            child: KoraIconButton(
+                              icon: Icons.arrow_right_alt_rounded,
+                              size: 48,
+                              onTap: () => context.push(AppRoutes.manifeste),
+                            ),
+                          ),
+                        ],
+                      ),
               ),
               const SizedBox(height: AppSpacing.md),
               // Accès rapide à la progression du départ / signalement
@@ -133,7 +164,9 @@ class AccueilPage extends StatelessWidget {
                       child: depart != null && progressStep != null
                           ? _QuickTile(
                               icon: progressStep.icon,
-                              label: progressStep.label,
+                              label: progressStep.label.length > 5
+                                  ? '${progressStep.label.substring(0, 5)}...'
+                                  : progressStep.label,
                               highlighted: true,
                               onTap: () => progressDeparture(
                                   context, depart, progressStep),

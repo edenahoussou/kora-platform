@@ -13,7 +13,8 @@ class ComputeManifestVersionAction
      * Hash court et stable détectant toute mise à jour du manifeste — pas
      * de colonne dédiée : recalculé à la volée à partir de ce qui peut
      * réellement changer un manifeste déjà téléchargé (statut du départ,
-     * et pour chaque segment retenu : son statut et celui de son billet).
+     * et pour chaque segment retenu : son statut, celui de son billet et la
+     * dernière mise à jour de son passager).
      * Le mobile compare ce hash à celui qu'il a en cache pour savoir s'il
      * doit retélécharger.
      *
@@ -34,6 +35,9 @@ class ComputeManifestVersionAction
                 $segment->status->value,
                 $ticket !== null ? $ticket->id : '-',
                 $ticket !== null ? $ticket->status->value : '-',
+                // Une correction d'identité par le convoyeur (nom, pièce,
+                // vaccin...) doit invalider les manifestes déjà en cache.
+                $segment->reservationPassenger?->updated_at?->getTimestamp() ?? '-',
             ]);
         }
 

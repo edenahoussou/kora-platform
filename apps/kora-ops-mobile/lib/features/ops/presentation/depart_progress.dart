@@ -5,6 +5,7 @@ import 'package:kora_ops_mobile/features/ops/domain/repositories/departure_repos
 import 'package:permission_handler/permission_handler.dart' as ph;
 
 import '../../../core/services/kora_dialogs.dart';
+import '../../../core/widgets/delay_sheet.dart';
 import '../../../injection/injection.dart';
 import '../../tracking/domain/entities/tracking_availability.dart';
 import '../../tracking/presentation/cubit/tracking_cubit.dart';
@@ -131,7 +132,9 @@ Future<void> _offerLocationSettingsIfBlocked(BuildContext context) async {
 /// programmé ou en embarquement uniquement (le serveur tranche, 422
 /// `invalid_delay` sinon).
 Future<void> recordDepartureDelay(BuildContext context, Depart depart) async {
-  final result = await KoraDialogs.promptDelay(
+  // Bottom sheet (et non plus un dialogue modal) : s'intègre au design
+  // de l'app et gère proprement le clavier.
+  final result = await showDelaySheet(
     context,
     title: 'Signaler un retard',
     description: 'Retard en minutes et motif — 0 minute annule un retard '

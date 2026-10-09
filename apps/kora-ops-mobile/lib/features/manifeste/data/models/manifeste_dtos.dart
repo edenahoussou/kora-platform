@@ -32,6 +32,17 @@ abstract final class ManifesteDtos {
       // national, `null` si non renseignés côté réservation.
       nationalite: _nonBlank(row['nationality']),
       documentNumero: document is Map ? _nonBlank(document['number']) : null,
+      // Identité de base (toutes lignes) et champs frontière
+      // complémentaires (lignes internationales) — correction convoyeur.
+      telephone: _nonBlank(row['phone']),
+      prenom: _nonBlank(row['firstName']),
+      nom: _nonBlank(row['lastName']),
+      email: _nonBlank(row['email']),
+      documentType: document is Map ? _nonBlank(document['type']) : null,
+      dateNaissance: _nonBlank(row['birthDate']),
+      fievreJauneVaccine: row['yellowFeverVaccinated'] is bool
+          ? row['yellowFeverVaccinated'] as bool
+          : null,
     );
   }
 

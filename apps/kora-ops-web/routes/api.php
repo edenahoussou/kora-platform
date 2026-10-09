@@ -11,6 +11,7 @@ use App\Modules\CompanyAccounts\Http\Controllers\CompanyAccountController;
 use App\Modules\Departures\Http\Controllers\BusDepartureController;
 use App\Modules\Departures\Http\Controllers\OpsDepartureController;
 use App\Modules\Departures\Http\Controllers\OpsDepartureProgressController;
+use App\Modules\Departures\Http\Controllers\OpsPassengerCorrectionController;
 use App\Modules\DynamicPricing\Http\Controllers\GroupDiscountRuleController;
 use App\Modules\FleetLite\Http\Controllers\OpsIncidentController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthDeviceController;
@@ -126,6 +127,14 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::get('{departure:uuid}/manifest', [OpsDepartureController::class, 'manifest'])->name('manifest');
             // Manifeste frontière PDF (A4) — mode téléphone, MEZ-94.
             Route::get('{departure:uuid}/manifest/pdf', [OpsDepartureController::class, 'manifestPdf'])->name('manifest-pdf');
+
+            // Correction des informations d'un passager par le convoyeur
+            // (saisie erronée constatée à l'embarquement). Même contrainte
+            // de binding que le PDF de confirmation : `{ticket:uuid}` sans
+            // scoping implicite, le contrôleur vérifie l'appartenance.
+            Route::patch('{departure:uuid}/tickets/{ticket:uuid}/passenger', [OpsPassengerCorrectionController::class, 'update'])
+                ->withoutScopedBindings()
+                ->name('passenger-correction');
 
             // Progression du départ par le convoyeur (MEZ-98) : embarquement
             // commencé, bus parti, arrivé, retard. Même statut que OPS Web.

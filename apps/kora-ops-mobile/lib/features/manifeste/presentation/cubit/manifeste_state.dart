@@ -13,6 +13,7 @@ class ManifesteState extends Equatable {
     this.isFromCache = false,
     this.pendingReleaseTicketUuids = const <String>{},
     this.isInternational,
+    this.pendingCorrectionTicketUuids = const <String>{},
   });
 
   final ManifesteStatus status;
@@ -52,6 +53,11 @@ class ManifesteState extends Equatable {
   /// frontière (MEZ-94).
   final bool? isInternational;
 
+  /// UUID de billet dont une **correction d'informations passager** faite
+  /// hors ligne attend encore son envoi au serveur — badge « en attente de
+  /// sync » sur la fiche passager.
+  final Set<String> pendingCorrectionTicketUuids;
+
   int get embarques => passengers
       .where((Passenger p) => p.statut == BoardingStatus.embarque)
       .length;
@@ -66,6 +72,7 @@ class ManifesteState extends Equatable {
     bool? isFromCache,
     Set<String>? pendingReleaseTicketUuids,
     Object? isInternational = _unset,
+    Set<String>? pendingCorrectionTicketUuids,
   }) {
     return ManifesteState(
       status: status ?? this.status,
@@ -83,6 +90,8 @@ class ManifesteState extends Equatable {
       isInternational: identical(isInternational, _unset)
           ? this.isInternational
           : isInternational as bool?,
+      pendingCorrectionTicketUuids:
+          pendingCorrectionTicketUuids ?? this.pendingCorrectionTicketUuids,
     );
   }
 
@@ -99,5 +108,6 @@ class ManifesteState extends Equatable {
         isFromCache,
         pendingReleaseTicketUuids,
         isInternational,
+        pendingCorrectionTicketUuids,
       ];
 }

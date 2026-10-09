@@ -39,7 +39,7 @@
     <uses-feature android:name="android.hardware.location.gps" android:required="false"/>
 
     <application
-        android:label="kora_ops_mobile"
+        android:label="KORA OPS"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

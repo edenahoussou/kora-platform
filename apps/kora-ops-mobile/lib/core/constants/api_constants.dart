@@ -51,6 +51,12 @@ abstract final class ApiConstants {
   /// remplace l'impression thermique 58 mm du P501.
   static String opsDepartureManifestPdf(String departureUuid) =>
       '$_v1/ops/departures/$departureUuid/manifest/pdf';
+
+  /// Correction par le convoyeur des informations d'un passager
+  /// (`PATCH`, voir `OpsPassengerCorrectionController`).
+  static String opsPassengerCorrection(
+          String departureUuid, String ticketUuid) =>
+      '$_v1/ops/departures/$departureUuid/tickets/$ticketUuid/passenger';
   static const String opsBoarding = '$_v1/ops/boarding';
   static String opsBoardingReverse(String boardingEventUuid) =>
       '$_v1/ops/boarding/$boardingEventUuid/reverse';

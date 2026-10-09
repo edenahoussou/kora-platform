@@ -1,12 +1,17 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
 import '../../../../core/errors/failures.dart';
+import '../../../../core/result/result.dart';
 import '../../../ops/domain/entities/depart.dart';
 import '../../../ops/domain/entities/passenger.dart';
 import '../../../ops/presentation/cubit/selected_depart_cubit.dart';
 import '../../../synchro/domain/entities/pending_operation.dart';
 import '../../../synchro/presentation/cubit/sync_cubit.dart';
+import '../../domain/entities/manifest_snapshot.dart';
+import '../../domain/entities/passenger_correction.dart';
 import '../../domain/repositories/manifeste_repository.dart';
+import '../../domain/repositories/passenger_correction_repository.dart';
 
 part 'manifeste_state.dart';
 
@@ -23,10 +28,20 @@ class ManifesteCubit extends Cubit<ManifesteState> {
     required SelectedDepartCubit selectedDepartCubit,
     required SyncCubit syncCubit,
     required ManifesteRepository repository,
+    PassengerCorrectionRepository? passengerCorrectionRepository,
   })  : _syncCubit = syncCubit,
         _repository = repository,
+        _corrections = passengerCorrectionRepository,
         super(const ManifesteState()) {
     _subscription = selectedDepartCubit.stream.listen(_onDepartChanged);
+    if (_corrections != null) {
+      // Retour de la connexion : renvoie les corrections passager faites
+      // hors ligne, puis rafraîchit le manifeste si au moins une est passée.
+      _onlineSubscription = syncCubit.stream
+          .map((SyncState s) => s.isOnline)
+          .distinct()
+          .listen(_onConnectivityChanged);
+    }
     if (selectedDepartCubit.state != null) {
       _onDepartChanged(selectedDepartCubit.state);
     }
@@ -34,7 +49,9 @@ class ManifesteCubit extends Cubit<ManifesteState> {
 
   final SyncCubit _syncCubit;
   final ManifesteRepository _repository;
+  final PassengerCorrectionRepository? _corrections;
   late final dynamic _subscription;
+  dynamic _onlineSubscription;
 
   Depart? _depart;
 
@@ -55,11 +72,34 @@ class ManifesteCubit extends Cubit<ManifesteState> {
     }
     emit(state.copyWith(status: ManifesteStatus.loading));
 
+    // Corrections passager faites hors ligne : envoyées avant de lire le
+    // manifeste (la version serveur change alors, donc rechargement complet).
+    final PassengerCorrectionRepository? corrections = _corrections;
+    if (corrections != null) {
+      try {
+        await corrections.flushPending(depart.id);
+      } on Object {
+        // Best-effort : le manifeste doit se charger même si l'envoi échoue.
+      }
+    }
+
     final result = await _repository.load(depart.id);
+    List<Passenger>? overlaid;
+    Set<String> pendingCorrections = const <String>{};
+    if (corrections != null && result is Success<ManifestSnapshot>) {
+      try {
+        overlaid = await corrections.overlayPending(
+            depart.id, result.value.passengers);
+        pendingCorrections = await corrections.pendingTicketUuids(depart.id);
+      } on Object {
+        overlaid = null;
+      }
+    }
     result.when(
       onSuccess: (snapshot) => emit(state.copyWith(
         status: ManifesteStatus.success,
-        passengers: snapshot.passengers,
+        passengers: overlaid ?? snapshot.passengers,
+        pendingCorrectionTicketUuids: pendingCorrections,
         manifestVersion: snapshot.version,
         fetchedAt: snapshot.fetchedAt,
         isStale: snapshot.isStale,
@@ -207,6 +247,63 @@ class ManifesteCubit extends Cubit<ManifesteState> {
     }
   }
 
+  Future<void> _onConnectivityChanged(bool isOnline) async {
+    final Depart? depart = _depart;
+    final PassengerCorrectionRepository? corrections = _corrections;
+    if (!isOnline || depart == null || corrections == null) return;
+    if (state.pendingCorrectionTicketUuids.isEmpty) return;
+
+    try {
+      final int sent = await corrections.flushPending(depart.id);
+      if (sent > 0) await load();
+    } on Object {
+      // Réessai au prochain retour de connexion / chargement.
+    }
+  }
+
+  /// Correction par le convoyeur des informations d'un passager (nom,
+  /// téléphone, passeport, vaccin...), avant comme après l'embarquement.
+  /// Met à jour l'écran immédiatement en cas de succès — y compris
+  /// enregistrée hors ligne, auquel cas la fiche porte le badge « en
+  /// attente de sync ». Un refus du serveur n'altère rien et est renvoyé
+  /// tel quel pour affichage.
+  Future<Result<PassengerCorrectionOutcome>> correctPassenger({
+    required String ticketUuid,
+    required PassengerCorrection correction,
+    String? reason,
+  }) async {
+    final Depart? depart = _depart;
+    final PassengerCorrectionRepository? corrections = _corrections;
+    if (depart == null || corrections == null) {
+      return const Result<PassengerCorrectionOutcome>.failure(
+        ServerFailure('Correction indisponible : aucun départ sélectionné.'),
+      );
+    }
+
+    final Result<PassengerCorrectionOutcome> result = await corrections.correct(
+      departureUuid: depart.id,
+      ticketUuid: ticketUuid,
+      correction: correction,
+      reason: reason,
+    );
+
+    if (result is Success<PassengerCorrectionOutcome>) {
+      final Set<String> pending =
+          Set<String>.of(state.pendingCorrectionTicketUuids);
+      if (result.value == PassengerCorrectionOutcome.pendingSync) {
+        pending.add(ticketUuid);
+      }
+      emit(state.copyWith(
+        passengers: state.passengers
+            .map((Passenger p) =>
+                p.id == ticketUuid ? p.withCorrection(correction) : p)
+            .toList(),
+        pendingCorrectionTicketUuids: pending,
+      ));
+    }
+    return result;
+  }
+
   Passenger? byId(String id) {
     for (final Passenger passenger in state.passengers) {
       if (passenger.id == id) return passenger;
@@ -231,6 +328,8 @@ class ManifesteCubit extends Cubit<ManifesteState> {
   Future<void> close() {
     // ignore: avoid_dynamic_calls
     _subscription.cancel();
+    // ignore: avoid_dynamic_calls
+    _onlineSubscription?.cancel();
     return super.close();
   }
 }
