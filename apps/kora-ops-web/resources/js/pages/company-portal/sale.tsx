@@ -414,6 +414,19 @@ export default function CompanyPortalSalePage(props: Props) {
                             }
                         />
                     </div>
+                ) : reservation && stage === 'payment' ? (
+                    <div className="mt-6">
+                        <CreditPaymentStep
+                            quote={activeQuote}
+                            reservation={reservation}
+                            creditAvailable={credit.available}
+                            processing={processing}
+                            onConfirm={() =>
+                                sale.recordPayment(reservation.uuid)
+                            }
+                            onBack={() => setEditingPassengers(true)}
+                        />
+                    </div>
                 ) : (
                     <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
                         <main className="grid min-w-0 gap-5">
@@ -592,23 +605,6 @@ export default function CompanyPortalSalePage(props: Props) {
                                             </Button>
                                         </div>
                                     </section>
-                                )}
-
-                            {reservation &&
-                                stage === 'payment' &&
-                                reservation.payment === null && (
-                                    <CreditPaymentStep
-                                        quote={activeQuote}
-                                        reservation={reservation}
-                                        creditAvailable={credit.available}
-                                        processing={processing}
-                                        onConfirm={() =>
-                                            sale.recordPayment(reservation.uuid)
-                                        }
-                                        onBack={() =>
-                                            setEditingPassengers(true)
-                                        }
-                                    />
                                 )}
                         </main>
 
