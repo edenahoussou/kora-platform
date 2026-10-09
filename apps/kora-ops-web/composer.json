@@ -25,6 +25,7 @@
         "opcodesio/log-viewer": "^3.24",
         "phpoffice/phpspreadsheet": "^2.2",
         "predis/predis": "^3.5",
+        "sentry/sentry-laravel": "^4.29",
         "socialiteproviders/tiktok": "^5.2",
         "spatie/browsershot": "^5.4",
         "spatie/laravel-activitylog": "^5.1",
