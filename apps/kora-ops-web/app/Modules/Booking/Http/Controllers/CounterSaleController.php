@@ -5,6 +5,7 @@ namespace App\Modules\Booking\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Modules\AssistedBooking\Services\AssistedBookingWorkflow;
+use App\Modules\Booking\Actions\ApplyReservationPromoCodeAction;
 use App\Modules\Booking\Actions\CalculateItineraryQuoteAction;
 use App\Modules\Booking\Actions\CreateItineraryHoldAction;
 use App\Modules\Booking\Actions\DescribeReservationDiscountAction;
@@ -25,6 +26,7 @@ use App\Modules\Booking\Http\Requests\StoreCounterSaleDraftRequest;
 use App\Modules\Booking\Http\Requests\StoreCounterSalePassengersRequest;
 use App\Modules\Booking\Http\Requests\StoreCounterSalePaymentRequest;
 use App\Modules\Booking\Http\Requests\StoreCounterSaleQuoteRequest;
+use App\Modules\Booking\Http\Requests\UpdateCounterSalePromoCodeRequest;
 use App\Modules\Booking\Models\GroupBookingSetting;
 use App\Modules\Booking\Models\ItineraryQuote;
 use App\Modules\Booking\Models\ItineraryQuoteLeg;
@@ -410,6 +412,23 @@ class CounterSaleController extends Controller
         }
 
         return to_route('sale', $request->saleQuery());
+    }
+
+    /** Applique ou retire un code promo sur un blocage encore actif. */
+    public function updatePromoCode(
+        UpdateCounterSalePromoCodeRequest $request,
+        Reservation $reservation,
+        ApplyReservationPromoCodeAction $applyPromoCode,
+    ): RedirectResponse {
+        Gate::authorize('manageCounterSale', $reservation);
+
+        try {
+            $applyPromoCode->handle($reservation, $request->promoCode());
+        } catch (ValidationException $exception) {
+            throw $exception->redirectTo(route('sale', $request->saleQuery($reservation->uuid)));
+        }
+
+        return to_route('sale', $request->saleQuery($reservation->uuid));
     }
 
     public function saveDraft(
@@ -909,6 +928,11 @@ class CounterSaleController extends Controller
             'channel' => $reservation->getRawOriginal('channel'),
             'purchaseType' => $reservation->getRawOriginal('purchase_type'),
             'groupSize' => $reservation->group_size,
+            'promotionDiscount' => [
+                'amount' => (int) $reservation->promotion_discount_amount,
+                'code' => $reservation->total_snapshot['promotion']['code'] ?? null,
+                'name' => $reservation->total_snapshot['promotion']['name'] ?? null,
+            ],
             'payerType' => $reservation->getRawOriginal('payer_type'),
             'payerSnapshot' => $reservation->payer_snapshot,
             'ticketIssuance' => [

@@ -65,6 +65,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('sale/seats', [CounterSaleController::class, 'seats'])->name('sale.seats');
     Route::post('sale/confirm', [CounterSaleController::class, 'confirm'])->name('sale.confirm');
     Route::post('sale/{reservation:uuid}/release', [CounterSaleController::class, 'releaseHold'])->name('sale.release');
+    Route::put('sale/{reservation:uuid}/promo-code', [CounterSaleController::class, 'updatePromoCode'])->name('sale.promo-code');
     Route::patch('sale/{reservation:uuid}/draft', [CounterSaleController::class, 'saveDraft'])->name('sale.draft');
     Route::post('sale/{reservation:uuid}/passengers', [CounterSaleController::class, 'storePassengers'])->name('sale.passengers');
     Route::post('sale/{reservation:uuid}/payment', [CounterSaleController::class, 'storePayment'])->name('sale.payment');

@@ -9,6 +9,7 @@ import {
     hold,
     passengers,
     payment,
+    promoCode as salePromoCode,
     quote,
     release,
     seats as saleSeats,
@@ -144,6 +145,9 @@ export function useCounterSale(props: SaleProps) {
         from: searchForm.data.from ?? undefined,
         to: searchForm.data.to ?? undefined,
         itinerary_quote_uuid: props.itineraryQuote?.uuid ?? undefined,
+    });
+    const promoForm = useForm({
+        promo_code: null as string | null,
     });
     const paymentForm = useForm<CounterSalePaymentPayload>({
         method: 'cash',
@@ -424,6 +428,36 @@ export function useCounterSale(props: SaleProps) {
             onError: options.onError,
         });
     };
+    const updatePromoCode = (
+        reservationUuid: string,
+        code: string | null,
+        onSuccess?: () => void,
+    ) => {
+        promoForm.transform(() => ({
+            promo_code: code?.trim() ? code.trim() : null,
+            date: searchForm.data.date ?? null,
+            from: searchForm.data.from ?? undefined,
+            to: searchForm.data.to ?? undefined,
+            trip_type: searchForm.data.tripType,
+            return_date:
+                searchForm.data.tripType === 'round_trip'
+                    ? (searchForm.data.returnDate ?? null)
+                    : null,
+            itinerary_quote_uuid: props.itineraryQuote?.uuid ?? undefined,
+        }));
+        promoForm.put(salePromoCode.url(reservationUuid), {
+            preserveScroll: true,
+            onSuccess,
+            onError: (errors) => {
+                toast.error(
+                    firstErrorMessage(
+                        errors as Record<string, string>,
+                        'Le code promo n’a pas pu être appliqué. Vérifiez le code et réessayez.',
+                    ),
+                );
+            },
+        });
+    };
     const recordPayment = (
         reservationUuid: string,
         paymentData: CounterSalePaymentPayload,
@@ -461,6 +495,7 @@ export function useCounterSale(props: SaleProps) {
         passengersForm,
         draftForm,
         releaseForm,
+        promoForm,
         paymentForm,
         search,
         calculateItineraryQuote,
@@ -470,6 +505,7 @@ export function useCounterSale(props: SaleProps) {
         savePassengers,
         saveDraft,
         releaseHold,
+        updatePromoCode,
         recordPayment,
     };
 }
