@@ -25,6 +25,7 @@ type DepartureListItem = {
     originCity: string | null;
     destinationCity: string | null;
     originPoint: string | null;
+    isReturn: boolean;
     busUuid: string | null;
     busRegistration: string;
     busSeatCount: number;
@@ -564,6 +565,12 @@ export default function DeparturesPage({
                                                     ? `${departure.originCity} → ${departure.destinationCity}`
                                                     : departure.lineName}
                                             </strong>
+                                            {departure.isReturn && (
+                                                <KoraStatusBadge
+                                                    label="Sens retour"
+                                                    tone="muted"
+                                                />
+                                            )}
                                         </div>
                                         <small className="ops-route-meta">
                                             <span>

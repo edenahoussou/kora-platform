@@ -60,7 +60,7 @@ class ProcessIndividualNoShowAction
             }
 
             $fallbackSeatId = $ticket->reservationPassenger?->segments()->orderBy('leg_order')->value('seat_id');
-            $fallbackStopId = $departure->line->stops()->orderBy('stop_order')->value('id');
+            $fallbackStopId = $departure->tripStops()->first()?->id;
 
             if (! in_array($departure->status, [DepartureStatus::Departed, DepartureStatus::Arrived], true)) {
                 return $this->reject($ticket, $departure, $terminal, $agent, $fallbackSeatId, $fallbackStopId, $operationUuid, $localRecordedAt, SeatReleaseFunctionalCode::DepartureNotYetClosable);

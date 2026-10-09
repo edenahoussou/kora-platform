@@ -48,8 +48,9 @@ class FleetTrackingResource extends JsonResource
         $line = $departure->line;
         $agency = $this->terminal->agency;
 
-        // Stops actifs triés : le filtre se fait à l'eager load (FleetTrackingQuery).
-        $stops = $line->stops;
+        // Ordre de circulation réel du départ — un retour circule dans
+        // le sens inverse de la définition canonique de la ligne.
+        $stops = $departure->tripStops();
         $geolocatedStops = $stops
             ->filter(fn (Stop $stop): bool => $stop->latitude !== null && $stop->longitude !== null)
             ->values();

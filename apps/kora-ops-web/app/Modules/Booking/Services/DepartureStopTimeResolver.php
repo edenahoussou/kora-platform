@@ -24,11 +24,7 @@ final class DepartureStopTimeResolver
             return $resolved;
         }
 
-        $stops = $departure->line->relationLoaded('stops')
-            ? $departure->line->stops
-            : $departure->line->stops()->orderBy('stop_order')->get();
-
-        if ($stops->last()?->id === $stop->id && $departure->estimated_arrival_at !== null) {
+        if ($departure->tripStops()->last()?->id === $stop->id && $departure->estimated_arrival_at !== null) {
             return CarbonImmutable::instance($departure->estimated_arrival_at)->utc();
         }
 
