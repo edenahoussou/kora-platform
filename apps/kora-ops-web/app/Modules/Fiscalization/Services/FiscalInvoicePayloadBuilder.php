@@ -2,8 +2,9 @@
 
 namespace App\Modules\Fiscalization\Services;
 
+use App\Modules\Booking\Actions\DescribeReservationDiscountAction;
 use App\Modules\Booking\Models\Reservation;
-use App\Modules\DynamicPricing\Models\Promotion;
+use App\Modules\Booking\Models\ReservationPassenger;
 use App\Modules\Payments\Data\PaymentMethod;
 use App\Modules\Settings\Settings\IntegrationsSettings;
 use Illuminate\Support\Str;
@@ -13,7 +14,16 @@ class FiscalInvoicePayloadBuilder
     /** @return array<string, mixed> */
     public function build(Reservation $reservation): array
     {
-        $reservation->loadMissing(['passengers', 'payments', 'payer', 'companyAccount', 'creator.agency', 'promotion']);
+        $reservation->loadMissing([
+            'passengers.segments.originStop.physicalStop',
+            'passengers.segments.destinationStop.physicalStop',
+            'passengers.segments.seat',
+            'payments',
+            'payer',
+            'companyAccount',
+            'creator.agency',
+            'promotion',
+        ]);
         $payment = $reservation->payments->firstWhere('status', 'confirmed') ?? $reservation->payments->first();
         $passengers = $reservation->passengers->where('status', 'active')->values();
         $passengerCount = max(1, $passengers->count());
@@ -22,16 +32,11 @@ class FiscalInvoicePayloadBuilder
         $remainder = $total - ($unitPrice * $passengerCount);
 
         // e-MECeF needs the pre-discount price and the applied discount reason.
-        $originalTotal = (int) ($reservation->total_snapshot['subtotal_amount']
-            ?? (
-                $total
-                + (int) $reservation->promotion_discount_amount
-                + (int) ($reservation->total_snapshot['group_discount']['amount'] ?? 0)
-                + (int) ($reservation->total_snapshot['company_discount']['amount'] ?? 0)
-            ));
+        $discounts = app(DescribeReservationDiscountAction::class);
+        $originalTotal = $discounts->originalTotal($reservation);
         $originalUnitPrice = intdiv($originalTotal, $passengerCount);
         $originalRemainder = $originalTotal - ($originalUnitPrice * $passengerCount);
-        $priceModification = $this->priceModification($reservation);
+        $priceModification = $discounts->execute($reservation);
 
         $creator = $reservation->creator;
         $payerSnapshot = is_array($reservation->payer_snapshot) ? $reservation->payer_snapshot : [];
@@ -50,7 +55,7 @@ class FiscalInvoicePayloadBuilder
 
             $item = [
                 'code' => $passenger->uuid,
-                'name' => 'Billet de transport KORA BUS - '.Str::limit(trim($passenger->first_name.' '.$passenger->last_name), 70, ''),
+                'name' => $this->itemName($passenger),
                 'price' => $price,
                 'quantity' => 1,
                 'taxGroup' => 'A',
@@ -86,26 +91,23 @@ class FiscalInvoicePayloadBuilder
         ];
     }
 
-    /** Fiscal reason for a promotional, group, or negotiated discount. */
-    private function priceModification(Reservation $reservation): ?string
+    /** "Réservation billet COT→PAR · siège 1A · Jean Dupont" — one line per leg. */
+    private function itemName(ReservationPassenger $passenger): string
     {
-        $reasons = [];
+        $name = Str::limit(trim($passenger->first_name.' '.$passenger->last_name), 40, '');
+        $legs = $passenger->segments->sortBy('leg_order')->map(function ($segment): string {
+            $origin = $segment->originStop->physicalStop->code ?? $segment->originStop->city;
+            $destination = $segment->destinationStop->physicalStop->code ?? $segment->destinationStop->city;
+            $seat = $segment->seat->code;
 
-        if ((int) $reservation->promotion_discount_amount > 0) {
-            $promoCode = $reservation->total_snapshot['promotion']['code']
-                ?? Promotion::query()->whereKey($reservation->promotion_id)->value('code');
-            $reasons[] = 'Code promo '.(string) $promoCode;
-        }
+            return "{$origin}→{$destination} siège {$seat}";
+        });
 
-        if ((int) ($reservation->total_snapshot['group_discount']['amount'] ?? 0) > 0) {
-            $reasons[] = 'Remise groupe';
-        }
-
-        if ((int) ($reservation->total_snapshot['company_discount']['amount'] ?? 0) > 0) {
-            $reasons[] = 'Remise entreprise';
-        }
-
-        return $reasons === [] ? null : implode(' · ', $reasons);
+        return Str::limit(
+            'Réservation billet '.$legs->implode(' / ').' · '.$name,
+            100,
+            '',
+        );
     }
 
     private function paymentType(?PaymentMethod $method): string

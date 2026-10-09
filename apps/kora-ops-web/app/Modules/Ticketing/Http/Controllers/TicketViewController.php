@@ -4,6 +4,8 @@ namespace App\Modules\Ticketing\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\SendReservationWhatsAppNotificationJob;
+use App\Modules\Booking\Actions\DescribeReservationDiscountAction;
+use App\Modules\Booking\Models\Reservation;
 use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\Booking\Services\DepartureStopTimeResolver;
 use App\Modules\Fiscalization\Models\FiscalInvoice;
@@ -29,6 +31,7 @@ class TicketViewController extends Controller
         private readonly GenerateTicketQrCodeAction $generateQr,
         private readonly ResolveTicketAmountAction $resolveTicketAmount,
         private readonly GenerateTicketPdfAction $generatePdf,
+        private readonly DescribeReservationDiscountAction $describeDiscount,
     ) {}
 
     public function show(Ticket $ticket, Request $request): Response
@@ -99,6 +102,7 @@ class TicketViewController extends Controller
             'reservationPassenger.segments.seat',
             'reservationPassenger.segments.originStop',
             'reservationPassenger.segments.destinationStop',
+            'reservation.passengers',
         ]);
     }
 
@@ -135,6 +139,12 @@ class TicketViewController extends Controller
         $amount = $this->resolveTicketAmount->execute($ticket);
         $currency = $reservation->currency ?? 'XOF';
 
+        $discountLabel = $this->describeDiscount->execute($reservation);
+        $originalAmount = $discountLabel !== null
+            ? $this->passengerOriginalShare($reservation, $passenger?->getKey())
+            : null;
+        $discountAmount = $originalAmount !== null ? max(0, $originalAmount - $amount) : null;
+
         return [
             'isPdf' => $isPdf,
             'ticketUuid' => $ticket->uuid,
@@ -149,12 +159,38 @@ class TicketViewController extends Controller
             'legsCount' => count($legs),
             'mecefUid' => $fiscalInvoice?->mecef_uid,
             'amountLabel' => $this->formatMoney($amount, $currency),
+            'discountLabel' => $discountLabel,
+            'discountAmountLabel' => $discountAmount !== null && $discountAmount > 0
+                ? '-'.$this->formatMoney($discountAmount, $currency)
+                : null,
+            'originalAmountLabel' => $originalAmount !== null && $originalAmount > $amount
+                ? $this->formatMoney($originalAmount, $currency)
+                : null,
             'issuedAtLabel' => $this->formatDate($ticket->issued_at),
             'agencyName' => $agency?->name,
             'channelLabel' => $this->channelLabel($reservation?->getRawOriginal('channel')),
             'qrSvg' => $qrSvg,
             'pdfUrl' => route('tickets.pdf', $ticket),
         ];
+    }
+
+    /** Pre-discount share for this passenger, distributed like the invoice lines. */
+    private function passengerOriginalShare(Reservation $reservation, ?int $passengerId): ?int
+    {
+        if ($passengerId === null) {
+            return null;
+        }
+
+        $actives = $reservation->passengers->where('status', 'active')->values();
+        $count = max(1, $actives->count());
+        $position = $actives->search(fn ($p): bool => $p->getKey() === $passengerId);
+        if ($position === false) {
+            return null;
+        }
+
+        $total = $this->describeDiscount->originalTotal($reservation);
+
+        return intdiv($total, $count) + ($position < $total % $count ? 1 : 0);
     }
 
     /**

@@ -386,6 +386,16 @@ export type SaleSelectedItineraryLeg = {
     departureUuid: string;
 };
 
+export type SaleReservationDiscounts = {
+    subtotalAmount: number;
+    totalDiscount: number;
+    label: string | null;
+    promotionCode: string | null;
+    promotionDiscountAmount: number;
+    groupDiscountAmount: number;
+    companyDiscountAmount: number;
+};
+
 export type SaleReservation = {
     uuid: string;
     status: string;
@@ -402,6 +412,7 @@ export type SaleReservation = {
         name: string | null;
     } | null;
     payerType: string | null;
+    discounts?: SaleReservationDiscounts | null;
     payerSnapshot: {
         type: string;
         display_name: string;

@@ -43,7 +43,8 @@ it('builds a valid e-MECeF payload with correct operator and client separation',
         ->and($payload['operator']['id'])->toBe($user->id)
         ->and($payload['client']['name'])->toBe('Client FISC TEST')
         ->and($payload['items'])->toHaveCount(3)
-        ->and($payload['items'][0]['taxGroup'])->toBe('A');
+        ->and($payload['items'][0]['taxGroup'])->toBe('A')
+        ->and($payload['items'][0]['name'])->toBe('Réservation billet COT→PAR siège 1A · Passager 0 TEST');
 });
 
 it('distributes the unit price without rounding loss across passengers', function (): void {
@@ -135,7 +136,7 @@ function createFiscalizationReservation(User $user, PayerType $payerType = Payer
 
     $originPhysical = PhysicalStop::query()->firstOrCreate(
         ['name' => 'FISC Origin Physical'],
-        ['city' => 'Cotonou', 'country' => 'BJ', 'status' => 'active'],
+        ['code' => 'COT', 'city' => 'Cotonou', 'country' => 'BJ', 'status' => 'active'],
     );
     $origin = Stop::query()->firstOrCreate(
         ['line_id' => $line->id, 'stop_order' => 1],
@@ -143,7 +144,7 @@ function createFiscalizationReservation(User $user, PayerType $payerType = Payer
     );
     $destinationPhysical = PhysicalStop::query()->firstOrCreate(
         ['name' => 'FISC Dest Physical'],
-        ['city' => 'Parakou', 'country' => 'BJ', 'status' => 'active'],
+        ['code' => 'PAR', 'city' => 'Parakou', 'country' => 'BJ', 'status' => 'active'],
     );
     $destination = Stop::query()->firstOrCreate(
         ['line_id' => $line->id, 'stop_order' => 2],
