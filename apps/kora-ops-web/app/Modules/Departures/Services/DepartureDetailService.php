@@ -72,12 +72,28 @@ class DepartureDetailService
     /** @return array<string, mixed> */
     private function serializeDeparture(Departure $departure): array
     {
+        // Arrêts dans l'ordre réel de circulation du départ (stop_times) —
+        // un départ retour circule dans le sens inverse de la définition
+        // de la ligne.
+        $tripStops = $departure->tripStops();
+        $stopTimes = $departure->stop_times ?? [];
+        $circulationOrder = [];
+        foreach ($stopTimes as $index => $stopTime) {
+            $circulationOrder[$stopTime['stop_uuid'] ?? ''] = $index;
+        }
+
         $stops = [];
-        foreach ($departure->line->stops ?? [] as $stop) {
+        foreach ($tripStops as $index => $stop) {
             $stops[] = [
                 'uuid' => $stop->uuid,
                 'name' => $stop->name,
                 'stopOrder' => $stop->stop_order,
+                // Même base que origin_stop_order/destination_stop_order des
+                // segments (circulationIndexOf) : index stop_times, sinon
+                // stop_order canonique.
+                'circulationOrder' => $stopTimes === []
+                    ? (int) $stop->stop_order
+                    : ($circulationOrder[$stop->uuid] ?? $index),
                 'city' => $stop->city,
                 'physicalStopName' => $stop->physicalStop?->name,
             ];
@@ -111,8 +127,8 @@ class DepartureDetailService
             ];
         }
 
-        $originStop = $departure->line?->stops?->first();
-        $destinationStop = $departure->line?->stops?->last();
+        $originStop = $tripStops->first();
+        $destinationStop = $tripStops->last();
 
         return [
             'uuid' => $departure->uuid,
@@ -123,6 +139,7 @@ class DepartureDetailService
             'originCity' => $originStop?->physicalStop->city ?? $originStop?->city,
             'destinationCity' => $destinationStop?->physicalStop->city ?? $destinationStop?->city,
             'originPoint' => $originStop?->physicalStop->name ?? $originStop?->name,
+            'isReturn' => $departure->isReturnTrip(),
             'stops' => $stops,
             'busUuid' => $departure->bus?->uuid,
             'busRegistration' => $departure->bus->registration_number ?? 'À affecter',

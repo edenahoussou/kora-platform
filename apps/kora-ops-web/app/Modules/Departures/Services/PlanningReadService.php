@@ -237,7 +237,7 @@ class PlanningReadService
         $stops = $departure->line->stops->values();
 
         return [
-            'key' => $departure->uuid, 'direction' => 'outbound',
+            'key' => $departure->uuid, 'direction' => $departure->isReturnTrip() ? 'return' : 'outbound',
             'line_uuid' => $departure->line->uuid,
             'bus_uuid' => $departure->bus?->uuid, 'driver_uuid' => $departure->driver?->uuid, 'conductor_uuid' => $departure->conductor?->uuid,
             'secondary_driver_uuid' => $departure->secondary_driver_id === null ? null : User::query()->find($departure->secondary_driver_id)?->uuid,

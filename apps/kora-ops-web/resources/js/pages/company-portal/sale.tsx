@@ -313,7 +313,7 @@ export default function CompanyPortalSalePage(props: Props) {
             !reservation ||
             passengerSelections.some((passenger) => !passenger.travelerUuid)
         ) {
-            toast.error('Sélectionnez un membre différent pour chaque siège.');
+            toast.error('Sélectionnez un voyageur pour chaque siège.');
 
             return;
         }
@@ -368,7 +368,7 @@ export default function CompanyPortalSalePage(props: Props) {
                 <SalePageHeading
                     eyebrow="KORA OPS / Espace entreprise / Achat"
                     title="Acheter des billets"
-                    description="Réservez pour les voyageurs actifs de votre roster. Le compte entreprise paie par crédit mensuel."
+                    description="Réservez pour les voyageurs de votre entreprise. Le compte entreprise paie par crédit mensuel."
                     action={
                         <Link
                             href={companyPortal.index.url()}
@@ -412,6 +412,19 @@ export default function CompanyPortalSalePage(props: Props) {
                                     { preserveScroll: true },
                                 )
                             }
+                        />
+                    </div>
+                ) : reservation && stage === 'payment' ? (
+                    <div className="mt-6">
+                        <CreditPaymentStep
+                            quote={activeQuote}
+                            reservation={reservation}
+                            creditAvailable={credit.available}
+                            processing={processing}
+                            onConfirm={() =>
+                                sale.recordPayment(reservation.uuid)
+                            }
+                            onBack={() => setEditingPassengers(true)}
                         />
                     </div>
                 ) : (
@@ -533,12 +546,13 @@ export default function CompanyPortalSalePage(props: Props) {
                                             {roster.length === 0 && (
                                                 <p className="text-xs text-destructive">
                                                     Ajoutez d’abord des
-                                                    voyageurs actifs à votre
-                                                    roster.
+                                                    voyageurs à votre
+                                                    entreprise.
                                                 </p>
                                             )}
                                         </div>
                                     )}
+
                                 </>
                             )}
 
@@ -554,10 +568,10 @@ export default function CompanyPortalSalePage(props: Props) {
                                                 Associer les voyageurs
                                             </h2>
                                             <p className="mt-1 text-sm text-muted-foreground">
-                                                L’identité est reprise du
-                                                roster. Les informations de
-                                                pièce manquantes peuvent être
-                                                complétées.
+                                                L’identité est reprise de vos
+                                                voyageurs enregistrés. Les
+                                                informations de pièce manquantes
+                                                peuvent être complétées.
                                             </p>
                                         </div>
                                         <RosterPassengerPicker
@@ -593,26 +607,76 @@ export default function CompanyPortalSalePage(props: Props) {
                                         </div>
                                     </section>
                                 )}
-
-                            {reservation &&
-                                stage === 'payment' &&
-                                reservation.payment === null && (
-                                    <CreditPaymentStep
-                                        quote={activeQuote}
-                                        reservation={reservation}
-                                        creditAvailable={credit.available}
-                                        processing={processing}
-                                        onConfirm={() =>
-                                            sale.recordPayment(reservation.uuid)
-                                        }
-                                        onBack={() =>
-                                            setEditingPassengers(true)
-                                        }
-                                    />
-                                )}
                         </main>
 
-                        <aside className="grid content-start gap-4">
+                        <aside className="grid content-start gap-4 xl:sticky xl:top-24">
+                            {!reservation && activeOutbound && (
+                                <div className="rounded-2xl border border-border bg-card p-4">
+                                    {roster.length > 0 ? (
+                                        <div className="grid gap-3">
+                                            <label className="field">
+                                                <span>Nombre de voyageurs</span>
+                                                <select
+                                                    className="control"
+                                                    value={passengerCount}
+                                                    onChange={(event) => {
+                                                        const nextCount =
+                                                            Number(
+                                                                event.target
+                                                                    .value,
+                                                            );
+                                                        setPassengerCount(
+                                                            nextCount,
+                                                        );
+                                                        setPassengerSelections(
+                                                            blankSelections(
+                                                                nextCount,
+                                                            ),
+                                                        );
+                                                        setIgnoreQuote(true);
+                                                    }}
+                                                >
+                                                    {Array.from(
+                                                        {
+                                                            length: maxPassengers,
+                                                        },
+                                                        (_, index) => index + 1,
+                                                    ).map((count) => (
+                                                        <option
+                                                            key={count}
+                                                            value={count}
+                                                        >
+                                                            {count}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </label>
+                                            <Button
+                                                type="button"
+                                                variant="kora"
+                                                size="kora"
+                                                className="w-full justify-center"
+                                                onClick={calculateQuote}
+                                                disabled={
+                                                    processing ||
+                                                    (search.tripType ===
+                                                        'round_trip' &&
+                                                        !activeInbound)
+                                                }
+                                            >
+                                                {activeQuote
+                                                    ? 'Recalculer le devis'
+                                                    : 'Calculer le devis'}
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <p className="text-xs text-destructive">
+                                            Ajoutez d’abord des voyageurs actifs
+                                            à votre roster.
+                                        </p>
+                                    )}
+                                </div>
+                            )}
                             <SaleSummaryCard
                                 passengerCount={passengerCountForReservation}
                                 selectedSeatCodes={selectedSeatCodes}
