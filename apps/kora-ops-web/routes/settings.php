@@ -5,10 +5,13 @@ use App\Http\Controllers\Settings\ProfilePreferenceController;
 use App\Http\Controllers\Settings\ProfileSessionController;
 use App\Http\Controllers\Settings\SecurityController;
 use App\Modules\Notifications\Http\Controllers\OpsWebPushPreferenceController;
+use Illuminate\Routing\RedirectController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth'])->group(function () {
-    Route::redirect('settings', '/settings/profile');
+    Route::get('settings', RedirectController::class)
+        ->defaults('destination', '/settings/profile')
+        ->defaults('status', 302);
 
     Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -22,14 +25,23 @@ Route::middleware(['auth'])->group(function () {
 
     Route::post('settings/notifications/push', [OpsWebPushPreferenceController::class, 'update'])->name('settings.notifications.push.update');
 
-    Route::redirect('settings/notifications', '/settings/profile')->name('settings.notifications');
-    Route::redirect('settings/appearance', '/settings/profile')->name('appearance.edit');
+    Route::get('settings/notifications', RedirectController::class)
+        ->defaults('destination', '/settings/profile')
+        ->defaults('status', 302)
+        ->name('settings.notifications');
+    Route::get('settings/appearance', RedirectController::class)
+        ->defaults('destination', '/settings/profile')
+        ->defaults('status', 302)
+        ->name('appearance.edit');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('settings/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    Route::redirect('settings/security', '/settings/profile')->name('security.edit');
+    Route::get('settings/security', RedirectController::class)
+        ->defaults('destination', '/settings/profile')
+        ->defaults('status', 302)
+        ->name('security.edit');
 
     Route::put('settings/password', [SecurityController::class, 'update'])
         ->middleware('throttle:6,1')

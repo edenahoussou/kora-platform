@@ -326,6 +326,7 @@ enum SystemRole: string
             'settings.operations.manage',
             'settings.integrations.view',
             'settings.integrations.manage',
+            'monitoring.view',
         ];
     }
 
