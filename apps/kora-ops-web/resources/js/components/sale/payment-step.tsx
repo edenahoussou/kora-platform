@@ -145,7 +145,10 @@ export function PaymentStep({
     const [verified, setVerified] = useState(false);
     const [key] = useState(uuid);
     const [cashModalOpen, setCashModalOpen] = useState(false);
-    const holdCountdown = useHoldCountdown(reservation.expiresAt);
+    const holdCountdown = useHoldCountdown(
+        reservation.expiresAt,
+        reservation.heldAt,
+    );
     const expirationHandled = useRef(false);
 
     useEffect(() => {

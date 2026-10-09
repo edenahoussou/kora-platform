@@ -902,6 +902,7 @@ class CounterSaleController extends Controller
             'uuid' => $reservation->uuid,
             'status' => (string) $reservation->getRawOriginal('status'),
             'expiresAt' => $expiresAt ? CarbonImmutable::parse((string) $expiresAt)->toISOString() : null,
+            'heldAt' => $reservation->created_at?->toISOString(),
             'totalAmount' => (int) $reservation->total_amount,
             'currency' => $reservation->currency,
             'channel' => $reservation->getRawOriginal('channel'),

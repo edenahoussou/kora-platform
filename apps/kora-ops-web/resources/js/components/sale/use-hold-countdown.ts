@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 
-const HOLD_DURATION_MS = 15 * 60 * 1000;
 const URGENCY_THRESHOLD_MS = 5 * 60 * 1000;
 
 export type HoldCountdown = {
@@ -10,8 +9,12 @@ export type HoldCountdown = {
     isExpired: boolean;
 };
 
-export function useHoldCountdown(expiresAt: string | null): HoldCountdown {
+export function useHoldCountdown(
+    expiresAt: string | null,
+    startedAt: string | null = null,
+): HoldCountdown {
     const [now, setNow] = useState<number | null>(null);
+    const [totalMs, setTotalMs] = useState(0);
 
     useEffect(() => {
         const update = () => setNow(Date.now());
@@ -22,25 +25,48 @@ export function useHoldCountdown(expiresAt: string | null): HoldCountdown {
         return () => window.clearInterval(interval);
     }, [expiresAt]);
 
-    return useMemo(() => {
-        if (!expiresAt || now === null) {
-            return {
-                label: '—',
-                percentage: 0,
-                isUrgent: false,
-                isExpired: false,
-            };
+    useEffect(() => {
+        if (!expiresAt) {
+            setTotalMs(0);
+
+            return;
         }
 
         const expirationTimestamp = new Date(expiresAt).getTime();
 
         if (Number.isNaN(expirationTimestamp)) {
-            return {
-                label: '—',
-                percentage: 0,
-                isUrgent: false,
-                isExpired: false,
-            };
+            setTotalMs(0);
+
+            return;
+        }
+
+        const startedTimestamp = startedAt
+            ? new Date(startedAt).getTime()
+            : NaN;
+
+        setTotalMs(
+            Number.isNaN(startedTimestamp)
+                ? Math.max(1, expirationTimestamp - Date.now())
+                : Math.max(1, expirationTimestamp - startedTimestamp),
+        );
+    }, [expiresAt, startedAt]);
+
+    return useMemo(() => {
+        const empty = {
+            label: '—',
+            percentage: 0,
+            isUrgent: false,
+            isExpired: false,
+        };
+
+        if (!expiresAt || now === null) {
+            return empty;
+        }
+
+        const expirationTimestamp = new Date(expiresAt).getTime();
+
+        if (Number.isNaN(expirationTimestamp)) {
+            return empty;
         }
 
         const remainingMs = Math.max(0, expirationTimestamp - now);
@@ -51,10 +77,10 @@ export function useHoldCountdown(expiresAt: string | null): HoldCountdown {
             label: `${remainingMinutes}:${remainingSeconds.toString().padStart(2, '0')}`,
             percentage: Math.min(
                 100,
-                Math.max(0, (remainingMs / HOLD_DURATION_MS) * 100),
+                Math.max(0, (remainingMs / totalMs) * 100),
             ),
             isUrgent: remainingMs > 0 && remainingMs <= URGENCY_THRESHOLD_MS,
             isExpired: remainingMs === 0,
         };
-    }, [expiresAt, now]);
+    }, [expiresAt, now, totalMs]);
 }

@@ -6169,6 +6169,11 @@
         background: color-mix(in srgb, var(--gold) 12%, transparent);
     }
 
+    .summary-callout.danger {
+        color: var(--destructive);
+        background: color-mix(in srgb, var(--destructive) 12%, transparent);
+    }
+
     .hold-countdown {
         position: relative;
         overflow: hidden;
@@ -8917,9 +8922,10 @@
     .ops-trip {
         position: relative;
         display: grid;
-        grid-template-columns:
-            95px minmax(310px, 1.3fr) minmax(180px, 0.7fr)
-            180px 38px;
+        grid-template-columns: 95px minmax(310px, 1.3fr) minmax(
+                180px,
+                0.7fr
+            ) 180px 38px;
         align-items: center;
         gap: 18px;
         padding: 18px 20px;
