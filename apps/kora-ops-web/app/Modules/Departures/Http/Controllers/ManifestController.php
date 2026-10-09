@@ -44,9 +44,9 @@ class ManifestController
         $ticketsByPassengerId = $this->manifestSerializer->ticketsByPassengerId($segments);
         $canViewTickets = $request->user()?->can('tickets.view') ?? false;
 
-        $lineStops = $departure->line->stops;
-        $originStop = $lineStops->first();
-        $destinationStop = $lineStops->last();
+        $tripStops = $departure->tripStops();
+        $originStop = $tripStops->first();
+        $destinationStop = $tripStops->last();
 
         return inertia('manifest/detail', [
             'departure' => [
@@ -57,6 +57,7 @@ class ManifestController
                 'lineTypeLabel' => $departure->line->type->translatedLabel(),
                 'originCity' => $originStop?->physicalStop->city ?? $originStop->city ?? $originStop->name,
                 'destinationCity' => $destinationStop?->physicalStop->city ?? $destinationStop->city ?? $destinationStop->name,
+                'isReturn' => $departure->isReturnTrip(),
                 'busRegistration' => $departure->bus->registration_number,
                 'seatCount' => $departure->bus->seat_count,
                 'departureDate' => $departure->departure_date?->toDateString(),

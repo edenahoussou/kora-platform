@@ -751,6 +751,9 @@
                         <div class="departure-sub">{{ $departure['lineName'] }}</div>
                     </div>
                     <div class="departure-badge">
+                        @if ($departure['isReturn'] ?? false)
+                            <span class="pill">Sens retour</span>
+                        @endif
                         <span class="pill pill-gold">{{ $departure['lineTypeLabel'] }}</span>
                     </div>
                 </div>

@@ -11,8 +11,11 @@ RUN apt-get update \
     && docker-php-ext-install \
         bcmath \
         intl \
+        pcntl \
         pdo_pgsql \
         zip \
+    && pecl install redis-6.2.0 \
+    && docker-php-ext-enable redis \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer

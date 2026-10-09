@@ -17,7 +17,7 @@ services:
       DB_DATABASE: kora_prod
       DB_USERNAME: kora
       DB_PASSWORD: ${DB_PASSWORD_PROD}
-      REDIS_CLIENT: predis
+      REDIS_CLIENT: phpredis
       REDIS_HOST: redis
       REDIS_PORT: 6379
       LOG_STACK: docker

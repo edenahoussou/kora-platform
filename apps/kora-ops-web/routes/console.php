@@ -14,3 +14,5 @@ Schedule::command('bus:flag-stale-departures')->dailyAt('02:00')->withoutOverlap
 Schedule::command('bus:maintain-programmes')->hourly()->withoutOverlapping();
 Schedule::command('companies:billing-statements')->monthlyOn(1, '03:15')->withoutOverlapping();
 Schedule::command('whatsapp:retry-skipped --hours=2 --limit=50')->hourly()->withoutOverlapping();
+Schedule::command('health:check')->everyMinute()->withoutOverlapping();
+Schedule::command('horizon:snapshot')->everyFiveMinutes();
