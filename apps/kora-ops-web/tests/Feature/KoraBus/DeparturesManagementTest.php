@@ -880,3 +880,95 @@ it('closes no-shows in bulk and reverses a boarding from the departure detail', 
         ])
         ->assertForbidden();
 });
+
+it('displays the real circulation direction for return departures', function (): void {
+    [$agency, $line, $bus, $model, $composition] = departuresReferences();
+    [$cotonou, $portoNovo, $abidjan] = $line->stops()->orderBy('stop_order')->get()->all();
+
+    // Départ aller sans stop_times : l'ordre canonique de la ligne prévaut.
+    Departure::query()->create([
+        'uuid' => (string) Str::uuid(),
+        'line_id' => $line->id,
+        'bus_id' => $bus->id,
+        'departure_date' => Carbon::today(RevenuePeriod::TIMEZONE)->format('Y-m-d'),
+        'departure_time' => '07:30',
+        'status' => DepartureStatus::Scheduled->value,
+    ]);
+
+    // Départ retour publié : stop_times stocke l'ordre de circulation réel,
+    // inversé par rapport à la définition de la ligne.
+    $return = Departure::query()->create([
+        'uuid' => (string) Str::uuid(),
+        'line_id' => $line->id,
+        'bus_id' => $bus->id,
+        'departure_date' => Carbon::today(RevenuePeriod::TIMEZONE)->format('Y-m-d'),
+        'departure_time' => '16:30',
+        'status' => DepartureStatus::Scheduled->value,
+        'stop_times' => [
+            ['stop_uuid' => $abidjan->uuid, 'timezone' => 'Africa/Porto-Novo', 'departure_minutes' => 0, 'arrival_minutes' => null],
+            ['stop_uuid' => $portoNovo->uuid, 'timezone' => 'Africa/Porto-Novo', 'departure_minutes' => 1245, 'arrival_minutes' => 1235],
+            ['stop_uuid' => $cotonou->uuid, 'timezone' => 'Africa/Porto-Novo', 'departure_minutes' => null, 'arrival_minutes' => 1260],
+        ],
+    ]);
+
+    $seat = Seat::query()->create([
+        'uuid' => (string) Str::uuid(),
+        'bus_id' => $bus->id,
+        'code' => '1A',
+        'type' => 'standard',
+        'sellable' => true,
+        'status' => 'active',
+    ]);
+
+    $reservation = Reservation::query()->create([
+        'status' => 'ticketed',
+        'total_amount' => 5000,
+        'currency' => 'XOF',
+        'channel' => ReservationChannel::Counter,
+    ]);
+
+    // Les *_stop_order des segments sont des positions dans stop_times.
+    ReservationSegment::query()->create([
+        'reservation_id' => $reservation->id,
+        'departure_id' => $return->id,
+        'seat_id' => $seat->id,
+        'origin_stop_id' => $abidjan->id,
+        'destination_stop_id' => $portoNovo->id,
+        'origin_stop_order' => 0,
+        'destination_stop_order' => 1,
+        'status' => 'ticketed',
+    ]);
+
+    $manager = departuresManager();
+
+    $this->actingAs($manager)
+        ->get(route('departures.index'))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('departures.data.0.originCity', 'Cotonou')
+            ->where('departures.data.0.destinationCity', 'Abidjan')
+            ->where('departures.data.0.isReturn', false)
+            ->where('departures.data.1.uuid', $return->uuid)
+            ->where('departures.data.1.originCity', 'Abidjan')
+            ->where('departures.data.1.destinationCity', 'Cotonou')
+            ->where('departures.data.1.originPoint', 'Abidjan DM')
+            ->where('departures.data.1.isReturn', true)
+            ->where('departures.data.1.peakLegLabel', 'Abidjan DM → Porto-Novo DM'),
+        );
+
+    $this->actingAs($manager)
+        ->get(route('departures.show', $return))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('departure.originCity', 'Abidjan')
+            ->where('departure.destinationCity', 'Cotonou')
+            ->where('departure.originPoint', 'Abidjan DM')
+            ->where('departure.isReturn', true)
+            ->where('departure.stops.0.uuid', $abidjan->uuid)
+            ->where('departure.stops.0.circulationOrder', 0)
+            ->where('departure.stops.1.uuid', $portoNovo->uuid)
+            ->where('departure.stops.1.circulationOrder', 1)
+            ->where('departure.stops.2.uuid', $cotonou->uuid)
+            ->where('departure.stops.2.circulationOrder', 2),
+        );
+});

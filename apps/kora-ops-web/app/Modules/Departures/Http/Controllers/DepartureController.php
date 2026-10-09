@@ -186,9 +186,13 @@ class DepartureController extends Controller
         $reservationsCount = $occupancy['passengers'];
         $fillRate = $occupancy['peakFillRate'];
 
-        $activeStops = $departure->line?->stops;
-        $originStop = $activeStops?->first();
-        $destinationStop = $activeStops?->last();
+        // Origine/destination réelles : l'ordre de circulation du départ
+        // (stop_times) prime sur l'ordre de définition de la ligne — un
+        // départ retour circule Abidjan → Cotonou sur une ligne définie
+        // Cotonou → Abidjan.
+        $tripStops = $departure->tripStops();
+        $originStop = $tripStops->first();
+        $destinationStop = $tripStops->last();
 
         return [
             'uuid' => $departure->uuid,
@@ -198,6 +202,7 @@ class DepartureController extends Controller
             'originCity' => $originStop?->physicalStop->city ?? $originStop?->city,
             'destinationCity' => $destinationStop?->physicalStop->city ?? $destinationStop?->city,
             'originPoint' => $originStop?->physicalStop->name ?? $originStop?->name,
+            'isReturn' => $departure->isReturnTrip(),
             'busUuid' => $departure->bus?->uuid,
             'busRegistration' => $departure->bus->registration_number ?? 'À affecter',
             'busSeatCount' => $seatCount,
