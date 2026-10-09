@@ -400,6 +400,7 @@ export type SaleReservation = {
     uuid: string;
     status: string;
     expiresAt: string | null;
+    heldAt: string | null;
     totalAmount: number;
     currency: string;
     channel: string | null;

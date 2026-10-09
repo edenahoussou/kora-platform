@@ -650,6 +650,7 @@ class CompanyPortalSaleController extends Controller
             'uuid' => $reservation->uuid,
             'status' => $reservation->getRawOriginal('status'),
             'expiresAt' => $reservation->expires_at?->toISOString(),
+            'heldAt' => $reservation->created_at?->toISOString(),
             'totalAmount' => (int) $reservation->total_amount,
             'currency' => $reservation->currency,
             'channel' => $reservation->getRawOriginal('channel'),
