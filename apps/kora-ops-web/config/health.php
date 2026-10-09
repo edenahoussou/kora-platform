@@ -1,8 +1,8 @@
 <?php
 
+use App\Modules\Monitoring\Notifications\HealthCheckFailedNotification;
+use App\Modules\Monitoring\Notifications\MonitoringNotifiable;
 use Spatie\Health\Models\HealthCheckResultHistoryItem;
-use Spatie\Health\Notifications\CheckFailedNotification;
-use Spatie\Health\Notifications\Notifiable;
 use Spatie\Health\ResultStores\EloquentHealthResultStore;
 
 return [
@@ -40,17 +40,17 @@ return [
         /*
          * Notifications will only get sent if this option is set to `true`.
          */
-        'enabled' => env('HEALTH_NOTIFICATIONS_ENABLED', false),
+        'enabled' => env('HEALTH_NOTIFICATIONS_ENABLED', true),
 
         'notifications' => [
-            CheckFailedNotification::class => ['mail'],
+            HealthCheckFailedNotification::class => ['mail'],
         ],
 
         /*
          * Here you can specify the notifiable to which the notifications should be sent. The default
          * notifiable will use the variables specified in this config file.
          */
-        'notifiable' => Notifiable::class,
+        'notifiable' => MonitoringNotifiable::class,
 
         /*
          * When checks start failing, you could potentially end up getting
