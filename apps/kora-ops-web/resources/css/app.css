@@ -9345,6 +9345,69 @@
         background: #454d5c;
     }
 
+    .seat.selected {
+        border-color: var(--gold);
+        color: var(--kora);
+        background: var(--gold);
+        box-shadow: 0 7px 17px rgba(246, 176, 0, 0.28);
+    }
+
+    .seat.selected::before {
+        background: rgba(0, 29, 78, 0.13);
+    }
+
+    .seat.paid {
+        border-color: var(--digital);
+        color: white;
+        background: var(--digital);
+    }
+
+    .seat.taken {
+        border-color: var(--graphite);
+        color: var(--graphite);
+        background: repeating-linear-gradient(
+            135deg,
+            rgba(60, 72, 88, 0.16),
+            rgba(60, 72, 88, 0.16) 6px,
+            rgba(60, 72, 88, 0.06) 6px,
+            rgba(60, 72, 88, 0.06) 12px
+        );
+    }
+
+    .seat:hover:not(:disabled) {
+        border-color: var(--gold);
+        transform: translateY(-2px);
+    }
+
+    .seat:disabled {
+        cursor: not-allowed;
+    }
+
+    .seat small {
+        position: absolute;
+        right: 1px;
+        bottom: -7px;
+        left: 1px;
+        color: var(--brand-ink);
+        font-size: 6px;
+    }
+
+    .dark .seat.taken {
+        border-color: #7c8ba4;
+        color: var(--foreground);
+        background: repeating-linear-gradient(
+            135deg,
+            rgba(124, 139, 164, 0.22),
+            rgba(124, 139, 164, 0.22) 6px,
+            rgba(124, 139, 164, 0.08) 6px,
+            rgba(124, 139, 164, 0.08) 12px
+        );
+    }
+
+    .dark .seat small {
+        color: var(--muted-foreground);
+    }
+
     .seat-row .seat {
         width: auto;
     }

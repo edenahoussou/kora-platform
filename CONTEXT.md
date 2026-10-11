@@ -81,6 +81,10 @@ _Avoid_: Ligne complete
 Reservation temporaire empechant une vente concurrente pendant le paiement, avec expiration serveur.
 _Avoid_: Siege reserve definitif
 
+**Gabarit de sieges**:
+Modele reutilisable de plan de cabine d'un bus (grille de cellules types : siege, allee, vide, porte, conducteur) qui definit la position, le type et la vendabilite structurelle de chaque siege. Un gabarit est rattache a un bus et sert de source unique pour tous les rendus du plan (vente, detail depart, fiche vehicule, editeur). Le statut operationnel d'un siege (maintenance, blocage temporaire) reste propre au bus, pas au gabarit.
+_Avoid_: Composition, plan HTML statique par ecran
+
 **Devis tarifaire**:
 Prix final calcule cote serveur pour une demande de reservation, fige pendant la duree du blocage de siege.
 _Avoid_: Prix indicatif
