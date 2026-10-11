@@ -1,6 +1,12 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { ArrowLeft, CreditCard, Search, ShieldCheck } from 'lucide-react';
-import { useState } from 'react';
+import {
+    ArrowLeft,
+    CheckCircle2,
+    CreditCard,
+    Search,
+    ShieldCheck,
+} from 'lucide-react';
+import { useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { toast } from 'sonner';
 import { CreditPaymentStep } from '@/components/company-portal/credit-payment-step';
@@ -27,6 +33,7 @@ import type {
 import { formatMoney } from '@/components/sale/sale-utils';
 import { SeatPicker } from '@/components/sale/seat-picker';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import companyPortal from '@/routes/company-portal';
 
 type Props = Pick<
@@ -153,7 +160,6 @@ export default function CompanyPortalSalePage(props: Props) {
         useState<SaleItinerary | null>(null);
     const [selectedInbound, setSelectedInbound] =
         useState<SaleItinerary | null>(null);
-    const [ignoreQuote, setIgnoreQuote] = useState(false);
     const [passengerCount, setPassengerCount] = useState(
         reservation?.groupSize ??
             itineraryQuote?.passengerCount ??
@@ -175,7 +181,6 @@ export default function CompanyPortalSalePage(props: Props) {
     const activeOutbound = selectedOutbound ?? quotedOutbound;
     const activeInbound = selectedInbound ?? quotedInbound;
     const quoteMatchesSelection =
-        !ignoreQuote &&
         itineraryQuote != null &&
         itineraryQuote.passengerCount === passengerCount &&
         (selectedOutbound === null ||
@@ -187,6 +192,10 @@ export default function CompanyPortalSalePage(props: Props) {
     const activeQuote: SaleItineraryQuote | null = quoteMatchesSelection
         ? (itineraryQuote ?? null)
         : null;
+    // Quote whose legs are guaranteed to match the picker once it is open —
+    // during a re-quote the raw prop still carries the same legs.
+    const pickerQuote: SaleItineraryQuote | null =
+        activeQuote ?? itineraryQuote ?? null;
     const maxPassengers = Math.min(
         roster.length,
         groupBookingSettings.maximumPassengers,
@@ -208,6 +217,42 @@ export default function CompanyPortalSalePage(props: Props) {
         reservation?.segments
             .map((segment) => segment.seatCode)
             .filter((code): code is string => Boolean(code)) ?? [];
+    const seatsByPassenger = useMemo(() => {
+        const map = new Map<
+            number,
+            Array<{ code: string; direction?: 'outbound' | 'inbound' }>
+        >();
+
+        if (!reservation?.segments) {
+            return map;
+        }
+
+        const sortedSegments = [...reservation.segments].sort(
+            (a, b) => (a.legOrder ?? 0) - (b.legOrder ?? 0),
+        );
+
+        for (const segment of sortedSegments) {
+            const index = segment.passengerIndex;
+
+            if (index === null || index === undefined || !segment.seatCode) {
+                continue;
+            }
+
+            const list = map.get(index) ?? [];
+
+            list.push({
+                code: segment.seatCode,
+                direction: segment.direction,
+            });
+            map.set(index, list);
+        }
+
+        return map;
+    }, [reservation]);
+
+    const assignedTravelersCount = passengerSelections.filter((passenger) =>
+        Boolean(passenger.travelerUuid),
+    ).length;
     const stage = paid
         ? 'tickets'
         : reservation
@@ -222,7 +267,6 @@ export default function CompanyPortalSalePage(props: Props) {
         event.preventDefault();
         setSelectedOutbound(null);
         setSelectedInbound(null);
-        setIgnoreQuote(true);
         router.get(
             companyPortal.sale.index.url(),
             {
@@ -240,23 +284,34 @@ export default function CompanyPortalSalePage(props: Props) {
         );
     };
 
-    const calculateQuote = () => {
-        if (!activeOutbound || passengerCount < 1) {
+    const requestQuote = (
+        outbound: SaleItinerary,
+        inbound: SaleItinerary | null,
+        count: number,
+    ) => {
+        if (count < 1 || roster.length === 0) {
             return;
         }
 
-        const date = search.date ?? activeOutbound.legs[0]?.departureDate ?? '';
-        setIgnoreQuote(false);
         sale.calculateQuote({
-            outbound_legs: legPayload(activeOutbound.legs),
-            inbound_legs: activeInbound ? legPayload(activeInbound.legs) : [],
-            passenger_count: passengerCount,
-            date,
+            outbound_legs: legPayload(outbound.legs),
+            inbound_legs: inbound ? legPayload(inbound.legs) : [],
+            passenger_count: count,
+            date: search.date ?? outbound.legs[0]?.departureDate ?? '',
             from: search.from,
             to: search.to,
             tripType: search.tripType,
             returnDate: search.returnDate,
         });
+    };
+
+    const handlePassengerCountChange = (nextCount: number) => {
+        setPassengerCount(nextCount);
+        setPassengerSelections(blankSelections(nextCount));
+
+        if (activeOutbound) {
+            requestQuote(activeOutbound, activeInbound, nextCount);
+        }
     };
 
     const openSeatPicker = () => {
@@ -284,6 +339,8 @@ export default function CompanyPortalSalePage(props: Props) {
         assignments: Record<number, Record<number, string>>,
     ) => {
         if (!activeQuote) {
+            toast.error('Devis en cours de calcul, réessayez dans un instant.');
+
             return;
         }
 
@@ -414,22 +471,9 @@ export default function CompanyPortalSalePage(props: Props) {
                             }
                         />
                     </div>
-                ) : reservation && stage === 'payment' ? (
-                    <div className="mt-6">
-                        <CreditPaymentStep
-                            quote={activeQuote}
-                            reservation={reservation}
-                            creditAvailable={credit.available}
-                            processing={processing}
-                            onConfirm={() =>
-                                sale.recordPayment(reservation.uuid)
-                            }
-                            onBack={() => setEditingPassengers(true)}
-                        />
-                    </div>
                 ) : (
-                    <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-                        <main className="grid min-w-0 gap-5">
+                    <div className="mt-6 grid items-start gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(310px,0.55fr)]">
+                        <main className="grid min-w-0 content-start gap-5">
                             {!reservation && (
                                 <>
                                     <RouteSearch
@@ -453,7 +497,17 @@ export default function CompanyPortalSalePage(props: Props) {
                                             onSelect={(itinerary) => {
                                                 setSelectedOutbound(itinerary);
                                                 setSelectedInbound(null);
-                                                setIgnoreQuote(true);
+
+                                                if (
+                                                    search.tripType !==
+                                                    'round_trip'
+                                                ) {
+                                                    requestQuote(
+                                                        itinerary,
+                                                        null,
+                                                        passengerCount,
+                                                    );
+                                                }
                                             }}
                                             hasDate={search.hasDate}
                                         />
@@ -483,74 +537,18 @@ export default function CompanyPortalSalePage(props: Props) {
                                             }
                                             onSelect={(itinerary) => {
                                                 setSelectedInbound(itinerary);
-                                                setIgnoreQuote(true);
+
+                                                if (activeOutbound) {
+                                                    requestQuote(
+                                                        activeOutbound,
+                                                        itinerary,
+                                                        passengerCount,
+                                                    );
+                                                }
                                             }}
                                             hasDate={Boolean(search.returnDate)}
                                             direction="inbound"
                                         />
-                                    )}
-
-                                    {activeOutbound && roster.length > 0 && (
-                                        <div className="flex flex-wrap items-end gap-4 rounded-2xl border border-border bg-card p-4">
-                                            <label className="field w-40">
-                                                <span>Voyageurs</span>
-                                                <select
-                                                    className="control"
-                                                    value={passengerCount}
-                                                    onChange={(event) => {
-                                                        const nextCount =
-                                                            Number(
-                                                                event.target
-                                                                    .value,
-                                                            );
-                                                        setPassengerCount(
-                                                            nextCount,
-                                                        );
-                                                        setPassengerSelections(
-                                                            blankSelections(
-                                                                nextCount,
-                                                            ),
-                                                        );
-                                                        setIgnoreQuote(true);
-                                                    }}
-                                                >
-                                                    {Array.from(
-                                                        {
-                                                            length: maxPassengers,
-                                                        },
-                                                        (_, index) => index + 1,
-                                                    ).map((count) => (
-                                                        <option
-                                                            key={count}
-                                                            value={count}
-                                                        >
-                                                            {count}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </label>
-                                            <Button
-                                                type="button"
-                                                variant="kora"
-                                                size="kora"
-                                                onClick={calculateQuote}
-                                                disabled={
-                                                    processing ||
-                                                    (search.tripType ===
-                                                        'round_trip' &&
-                                                        !activeInbound)
-                                                }
-                                            >
-                                                Calculer le devis
-                                            </Button>
-                                            {roster.length === 0 && (
-                                                <p className="text-xs text-destructive">
-                                                    Ajoutez d’abord des
-                                                    voyageurs à votre
-                                                    entreprise.
-                                                </p>
-                                            )}
-                                        </div>
                                     )}
                                 </>
                             )}
@@ -558,24 +556,83 @@ export default function CompanyPortalSalePage(props: Props) {
                             {reservation &&
                                 stage === 'passengers' &&
                                 reservation.payment === null && (
-                                    <section className="grid gap-4">
-                                        <div className="rounded-2xl border border-border bg-card p-5">
-                                            <span className="section-kicker">
-                                                Sièges réservés
-                                            </span>
-                                            <h2 className="mt-1 text-lg font-black text-foreground">
-                                                Associer les voyageurs
-                                            </h2>
-                                            <p className="mt-1 text-sm text-muted-foreground">
-                                                L’identité est reprise de vos
-                                                voyageurs enregistrés. Les
-                                                informations de pièce manquantes
-                                                peuvent être complétées.
-                                            </p>
+                                    <section className="grid content-start gap-4">
+                                        <div>
+                                            <div className="finalization-heading">
+                                                <div>
+                                                    <span className="section-kicker">
+                                                        Groupe ·{' '}
+                                                        {
+                                                            passengerSelections.length
+                                                        }{' '}
+                                                        siège
+                                                        {passengerSelections.length >
+                                                        1
+                                                            ? 's'
+                                                            : ''}
+                                                    </span>
+                                                    <h2 className="mt-1 text-2xl font-black text-foreground">
+                                                        Voyageurs
+                                                    </h2>
+                                                    <p className="mt-1 text-xs text-muted-foreground">
+                                                        L’identité est reprise
+                                                        de vos voyageurs
+                                                        enregistrés. Les
+                                                        informations de pièce
+                                                        manquantes peuvent être
+                                                        complétées.
+                                                    </p>
+                                                </div>
+                                                <div
+                                                    className={cn(
+                                                        'finalization-status',
+                                                        assignedTravelersCount ===
+                                                            passengerSelections.length &&
+                                                            'is-complete',
+                                                    )}
+                                                    aria-live="polite"
+                                                >
+                                                    {assignedTravelersCount ===
+                                                    passengerSelections.length ? (
+                                                        <CheckCircle2 className="size-4" />
+                                                    ) : (
+                                                        <span>
+                                                            {
+                                                                assignedTravelersCount
+                                                            }
+                                                        </span>
+                                                    )}
+                                                    <strong>
+                                                        {assignedTravelersCount ===
+                                                        passengerSelections.length
+                                                            ? `${assignedTravelersCount}/${passengerSelections.length} assignés`
+                                                            : `${assignedTravelersCount}/${passengerSelections.length} assigné${assignedTravelersCount > 1 ? 's' : ''}`}
+                                                    </strong>
+                                                </div>
+                                            </div>
+                                            <div
+                                                className="finalization-progress"
+                                                role="progressbar"
+                                                aria-label="Progression de l’assignation des voyageurs"
+                                                aria-valuemin={0}
+                                                aria-valuemax={
+                                                    passengerSelections.length
+                                                }
+                                                aria-valuenow={
+                                                    assignedTravelersCount
+                                                }
+                                            >
+                                                <span
+                                                    style={{
+                                                        width: `${(assignedTravelersCount / Math.max(passengerSelections.length, 1)) * 100}%`,
+                                                    }}
+                                                />
+                                            </div>
                                         </div>
                                         <RosterPassengerPicker
                                             roster={roster}
                                             selections={passengerSelections}
+                                            seats={seatsByPassenger}
                                             onChange={setPassengerSelections}
                                         />
                                         <div className="flex flex-wrap justify-between gap-3">
@@ -606,76 +663,38 @@ export default function CompanyPortalSalePage(props: Props) {
                                         </div>
                                     </section>
                                 )}
+
+                            {reservation &&
+                                stage === 'payment' &&
+                                reservation.payment === null && (
+                                    <CreditPaymentStep
+                                        account={account}
+                                        credit={credit}
+                                        quote={activeQuote}
+                                        reservation={reservation}
+                                        seatsByPassenger={seatsByPassenger}
+                                        processing={processing}
+                                        onConfirm={() =>
+                                            sale.recordPayment(reservation.uuid)
+                                        }
+                                        onBack={() =>
+                                            setEditingPassengers(true)
+                                        }
+                                    />
+                                )}
                         </main>
 
                         <aside className="grid content-start gap-4 xl:sticky xl:top-24">
-                            {!reservation && activeOutbound && (
-                                <div className="rounded-2xl border border-border bg-card p-4">
-                                    {roster.length > 0 ? (
-                                        <div className="grid gap-3">
-                                            <label className="field">
-                                                <span>Nombre de voyageurs</span>
-                                                <select
-                                                    className="control"
-                                                    value={passengerCount}
-                                                    onChange={(event) => {
-                                                        const nextCount =
-                                                            Number(
-                                                                event.target
-                                                                    .value,
-                                                            );
-                                                        setPassengerCount(
-                                                            nextCount,
-                                                        );
-                                                        setPassengerSelections(
-                                                            blankSelections(
-                                                                nextCount,
-                                                            ),
-                                                        );
-                                                        setIgnoreQuote(true);
-                                                    }}
-                                                >
-                                                    {Array.from(
-                                                        {
-                                                            length: maxPassengers,
-                                                        },
-                                                        (_, index) => index + 1,
-                                                    ).map((count) => (
-                                                        <option
-                                                            key={count}
-                                                            value={count}
-                                                        >
-                                                            {count}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </label>
-                                            <Button
-                                                type="button"
-                                                variant="kora"
-                                                size="kora"
-                                                className="w-full justify-center"
-                                                onClick={calculateQuote}
-                                                disabled={
-                                                    processing ||
-                                                    (search.tripType ===
-                                                        'round_trip' &&
-                                                        !activeInbound)
-                                                }
-                                            >
-                                                {activeQuote
-                                                    ? 'Recalculer le devis'
-                                                    : 'Calculer le devis'}
-                                            </Button>
-                                        </div>
-                                    ) : (
+                            {!reservation &&
+                                activeOutbound &&
+                                roster.length === 0 && (
+                                    <div className="rounded-2xl border border-border bg-card p-4">
                                         <p className="text-xs text-destructive">
                                             Ajoutez d’abord des voyageurs actifs
                                             à votre roster.
                                         </p>
-                                    )}
-                                </div>
-                            )}
+                                    </div>
+                                )}
                             <SaleSummaryCard
                                 passengerCount={passengerCountForReservation}
                                 selectedSeatCodes={selectedSeatCodes}
@@ -722,21 +741,23 @@ export default function CompanyPortalSalePage(props: Props) {
                 )}
             </div>
 
-            {seatPickerOpen && activeQuote && reservation === null && (
+            {seatPickerOpen && pickerQuote && reservation === null && (
                 <SeatPicker
-                    legs={activeQuote.legs}
+                    legs={pickerQuote.legs}
                     legSeats={itineraryLegSeats}
                     passengerCount={passengerCount}
-                    maxPassengers={passengerCount}
-                    minPassengers={passengerCount}
+                    maxPassengers={maxPassengers}
+                    minPassengers={1}
                     processing={
-                        sale.holdForm.processing || sale.seatsForm.processing
+                        sale.quoteForm.processing ||
+                        sale.holdForm.processing ||
+                        sale.seatsForm.processing
                     }
-                    onPassengerCountChange={() => undefined}
+                    onPassengerCountChange={handlePassengerCountChange}
                     onClose={() => setSeatPickerOpen(false)}
                     onConfirm={holdSelectedSeats}
-                    amount={activeQuote.totalAmount}
-                    currency={activeQuote.currency}
+                    amount={pickerQuote.totalAmount}
+                    currency={pickerQuote.currency}
                 />
             )}
         </>
