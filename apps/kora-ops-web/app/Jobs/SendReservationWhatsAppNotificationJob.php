@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\Notifications\Data\WhatsAppDeliveryStatus;
 use App\Modules\Notifications\Models\WhatsAppDelivery;
+use App\Modules\Notifications\Services\WhatsApp\InvalidWhatsAppNumberException;
 use App\Modules\Notifications\Services\WhatsApp\WahaReachoutBlockedException;
 use App\Modules\Notifications\Services\WhatsApp\WhatsAppMessageDispatcher;
 use App\Modules\Settings\Settings\IntegrationsSettings;
@@ -108,6 +109,12 @@ class SendReservationWhatsAppNotificationJob implements ShouldQueue
         try {
             $result = $whatsapp->send($phone, $text, $documentData, $documentFilename);
             $delivery->update(['provider' => $result['provider'], 'status' => WhatsAppDeliveryStatus::Sent, 'provider_message_id' => $result['message_id'], 'sent_at' => now(), 'last_error' => $result['fallback_error']]);
+        } catch (InvalidWhatsAppNumberException $invalidNumberException) {
+            $delivery->update([
+                'provider' => 'waha',
+                'status' => WhatsAppDeliveryStatus::InvalidNumber,
+                'last_error' => $invalidNumberException->getMessage(),
+            ]);
         } catch (WahaReachoutBlockedException $blockedException) {
             $delivery->update([
                 'provider' => 'waha',

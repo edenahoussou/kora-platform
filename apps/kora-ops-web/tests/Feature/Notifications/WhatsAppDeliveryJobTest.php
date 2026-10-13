@@ -16,6 +16,7 @@ use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\Notifications\Data\WhatsAppDeliveryStatus;
 use App\Modules\Notifications\Models\WhatsAppDelivery;
+use App\Modules\Notifications\Services\WhatsApp\InvalidWhatsAppNumberException;
 use App\Modules\Notifications\Services\WhatsApp\WahaWhatsAppSender;
 use App\Modules\Notifications\Services\WhatsApp\WhatsAppMessageDispatcher;
 use App\Modules\Payments\Data\PaymentStatus;
@@ -285,6 +286,65 @@ it('marks delivery as Skipped (not Failed) when WAHA returns error 475 (Message 
     expect($delivery)->not->toBeNull()
         ->and($delivery->status)->toBe(WhatsAppDeliveryStatus::Skipped)
         ->and($delivery->last_error)->toContain('475');
+});
+
+it('marks delivery as InvalidNumber (not retried) when WAHA returns "no LID found"', function (): void {
+    config([
+        'services.genuka.token' => null,
+        'services.genuka.connection_id' => null,
+    ]);
+    app(IntegrationsSettings::class)->genukaToken = null;
+    app(IntegrationsSettings::class)->genukaConnectionId = null;
+    Http::fake([
+        config('services.waha.url').'/api/sendFile' => Http::response([
+            'statusCode' => 500,
+            'exception' => ['message' => '2 UNKNOWN: no LID found for 22966000001'],
+        ], 500),
+    ]);
+
+    $scenario = createWhatsAppScenario(phone: '+22966000001');
+    $job = new SendReservationWhatsAppNotificationJob($scenario['reservation']->id, $scenario['ticket']->id);
+    $job->handle(app(WhatsAppMessageDispatcher::class), app(GenerateTicketPdfAction::class));
+
+    $delivery = WhatsAppDelivery::query()->where('ticket_id', $scenario['ticket']->id)->first();
+    expect($delivery)->not->toBeNull()
+        ->and($delivery->status)->toBe(WhatsAppDeliveryStatus::InvalidNumber)
+        ->and($delivery->provider)->toBe('waha')
+        ->and($delivery->last_error)->toContain('n\'est pas un numéro WhatsApp valide');
+});
+
+it('throws InvalidWhatsAppNumberException when WAHA returns "no LID found"', function (): void {
+    Http::fake([
+        config('services.waha.url').'/api/sendText' => Http::response([
+            'statusCode' => 500,
+            'exception' => ['message' => '2 UNKNOWN: no LID found for 22966000001'],
+        ], 500),
+    ]);
+
+    app(WahaWhatsAppSender::class)->send('+22966000001', 'Billet KORA', null, null);
+})->throws(InvalidWhatsAppNumberException::class);
+
+it('does not re-dispatch InvalidNumber deliveries via whatsapp:retry-skipped', function (): void {
+    $scenario = createWhatsAppScenario(phone: '+22966000001');
+    $delivery = WhatsAppDelivery::query()->create([
+        'uuid' => (string) Str::uuid(),
+        'ticket_id' => $scenario['ticket']->id,
+        'reservation_id' => $scenario['reservation']->id,
+        'provider' => 'waha',
+        'recipient_phone' => '+22966000001',
+        'status' => WhatsAppDeliveryStatus::InvalidNumber,
+        'last_error' => 'Le numéro +22966000001 n\'est pas un numéro WhatsApp valide.',
+    ]);
+    $delivery->forceFill(['updated_at' => now()->subHours(3)])->saveQuietly();
+
+    Queue::fake();
+    $this->artisan('whatsapp:retry-skipped', ['--hours' => 2])
+        ->assertSuccessful()
+        ->expectsOutput('Aucune livraison WhatsApp Skipped à relancer.');
+
+    $delivery->refresh();
+    expect($delivery->status)->toBe(WhatsAppDeliveryStatus::InvalidNumber);
+    Queue::assertNotPushed(SendReservationWhatsAppNotificationJob::class);
 });
 
 it('re-dispatches Skipped WhatsApp deliveries older than the threshold via whatsapp:retry-skipped', function (): void {

@@ -38,21 +38,24 @@ class WahaWhatsAppSender implements WhatsAppSender
                 ],
                 'caption' => $text,
             ]);
-            $this->throwIfBlocked($response);
+            $this->throwIfBlocked($response, $phone);
 
             return ['message_id' => $response->json('id') ?? $response->json('key.id')];
         }
 
         $response = $http->post('/api/sendText', ['session' => $settings->wahaSession, 'chatId' => $chatId, 'text' => $text]);
-        $this->throwIfBlocked($response);
+        $this->throwIfBlocked($response, $phone);
 
         return ['message_id' => $response->json('id') ?? $response->json('key.id')];
     }
 
-    private function throwIfBlocked(Response $response): void
+    private function throwIfBlocked(Response $response, string $phone): void
     {
         $code = $response->status();
         $body = $response->body();
+        if (str_contains($body, 'no LID found')) {
+            throw new InvalidWhatsAppNumberException($phone);
+        }
         if (in_array($code, [463, 475], true) || preg_match('/\b(463|475)\b/', $body, $match)) {
             $wahaCode = (int) ($match[1] ?? $code);
             throw new WahaReachoutBlockedException($wahaCode, "WhatsApp a temporairement restreint l'envoi (code {$wahaCode}).");
