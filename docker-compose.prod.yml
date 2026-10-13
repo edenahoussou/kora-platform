@@ -21,6 +21,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       LOG_STACK: docker
+    command: [ "sh", "-c", "chown -R www-data:www-data /app/storage /app/bootstrap/cache && exec supervisord -c /etc/supervisor/conf.d/supervisord.conf" ]
     volumes:
       - prod-storage:/app/storage
     depends_on:
