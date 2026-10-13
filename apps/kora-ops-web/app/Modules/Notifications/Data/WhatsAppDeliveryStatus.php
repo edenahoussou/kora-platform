@@ -12,11 +12,13 @@ enum WhatsAppDeliveryStatus: string
     case Sent = 'sent';
     case Failed = 'failed';
     case Skipped = 'skipped';
+    case InvalidNumber = 'invalid_number';
 
     public function label(): string
     {
         return match ($this) {
             self::Pending => 'En attente', self::Sent => 'Envoyé', self::Failed => 'Échec', self::Skipped => 'Ignoré',
+            self::InvalidNumber => 'Numéro invalide',
         };
     }
 }
