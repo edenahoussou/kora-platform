@@ -1,99 +1,197 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 
+import '../../../../core/di/injector.dart';
 import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/utils/date_formats.dart';
 import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/screen_header.dart';
-import '../../data/datasources/notification_mock_data.dart';
+import '../../../booking/presentation/widgets/state_view.dart';
 import '../../domain/entities/app_notification.dart';
+import '../../domain/repositories/notification_repository.dart';
+import '../bloc/notifications_cubit.dart';
 
 /// Centre de notifications — écran `notifications` (HOME-02).
 ///
-/// Aucune route de l'API ne les expose encore : la liste vient d'un jeu
-/// de données figé, comme les billets et le Wallet. « Tout lire » retire
-/// donc les pastilles à l'écran sans rien envoyer, et l'ouverture d'une
-/// ligne annonce l'écran de détail plutôt que de mener à une page vide.
-class NotificationsPage extends StatefulWidget {
-  const NotificationsPage({super.key, this.today});
+/// La liste vient du serveur : c'est la même file que celle qui part en
+/// notification push, relue plutôt que reconstituée. Un message arrivé
+/// téléphone éteint, ou déjà lu sur un autre appareil, se retrouve donc
+/// ici dans le bon état.
+class NotificationsPage extends StatelessWidget {
+  const NotificationsPage({super.key, this.today, this.cubit});
 
   /// Horloge de référence, figée par les tests : les libellés « Il y a
   /// 2 min » dépendent du moment où l'écran s'ouvre.
   final DateTime? today;
 
+  /// Cubit déjà construit, pour les tests. En vrai, l'écran le crée
+  /// lui-même et le ferme en partant.
+  final NotificationsCubit? cubit;
+
   @override
-  State<NotificationsPage> createState() => _NotificationsPageState();
+  Widget build(BuildContext context) {
+    final existing = cubit;
+
+    return BlocProvider<NotificationsCubit>(
+      create: (_) =>
+          (existing ?? NotificationsCubit(getIt<NotificationRepository>()))
+            ..load(),
+      child: _NotificationsView(today: today),
+    );
+  }
 }
 
-class _NotificationsPageState extends State<NotificationsPage> {
-  late List<AppNotification> _notifications = mockNotifications(
-    widget.today ?? DateTime.now(),
-  );
+class _NotificationsView extends StatelessWidget {
+  const _NotificationsView({this.today});
 
-  void _markAllRead() {
-    setState(() {
-      _notifications = [
-        for (final notification in _notifications) notification.markRead(),
-      ];
-    });
-
-    KoraToaster.show(context, context.l10n.notificationsMarked);
-  }
+  final DateTime? today;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final koraColors = context.koraColors;
-    final hasUnread = _notifications.any((n) => n.isUnread);
+    final cubit = context.read<NotificationsCubit>();
 
     return Scaffold(
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              ScreenHeader(
-                eyebrow: l10n.notificationsEyebrow,
-                title: l10n.notificationsTitle,
-                // `options.action` de la maquette : le lien ne s'affiche
-                // que s'il a quelque chose à faire.
-                action: hasUnread
-                    ? TextButton(
-                        onPressed: _markAllRead,
-                        child: Text(
-                          l10n.notificationsMarkAll,
-                          style: TextStyle(
-                            color: koraColors.textMuted,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      )
-                    : null,
-              ),
-              Expanded(
-                child: _notifications.isEmpty
-                    ? Text(
-                        l10n.notificationsEmpty,
-                        style: AppTextStyles.lead(koraColors.textMuted),
-                      )
-                    : ListView.separated(
-                        padding: EdgeInsets.zero,
-                        itemCount: _notifications.length,
-                        separatorBuilder: (_, _) =>
-                            const SizedBox(height: AppSpacing.md),
-                        itemBuilder: (context, index) => _NotificationCard(
-                          notification: _notifications[index],
-                          today: widget.today ?? DateTime.now(),
-                          onTap: () =>
-                              KoraToaster.show(context, l10n.notificationsSoon),
-                        ),
-                      ),
-              ),
-            ],
+          child: BlocBuilder<NotificationsCubit, NotificationsState>(
+            builder: (context, state) {
+              final notifications = state.feed.notifications;
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ScreenHeader(
+                    eyebrow: l10n.notificationsEyebrow,
+                    title: l10n.notificationsTitle,
+                    // `options.action` de la maquette : le lien ne
+                    // s'affiche que s'il a quelque chose à faire.
+                    action: state.feed.unreadCount > 0
+                        ? TextButton(
+                            onPressed: () async {
+                              await cubit.markAllRead();
+                              if (context.mounted) {
+                                KoraToaster.show(
+                                  context,
+                                  l10n.notificationsMarked,
+                                );
+                              }
+                            },
+                            child: Text(
+                              l10n.notificationsMarkAll,
+                              style: TextStyle(
+                                color: koraColors.textMuted,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          )
+                        : null,
+                  ),
+                  Expanded(
+                    child: _Body(
+                      state: state,
+                      today: today ?? DateTime.now(),
+                      notifications: notifications,
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _Body extends StatelessWidget {
+  const _Body({
+    required this.state,
+    required this.today,
+    required this.notifications,
+  });
+
+  final NotificationsState state;
+  final DateTime today;
+  final List<AppNotification> notifications;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final koraColors = context.koraColors;
+    final cubit = context.read<NotificationsCubit>();
+
+    if (state.isEmptyAndLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    // Une panne ne cache ce qui est déjà lu que s'il n'y a rien à cacher :
+    // perdre une liste affichée parce que la page suivante a échoué serait
+    // pire que l'échec lui-même.
+    if (state.failure != null && notifications.isEmpty) {
+      return StateView(
+        icon: Icons.wifi_off_rounded,
+        title: l10n.notificationsErrorTitle,
+        message: l10n.notificationsErrorText,
+        primaryLabel: l10n.actionRetry,
+        onPrimary: cubit.load,
+        isPrimaryLoading: state.isLoading,
+      );
+    }
+
+    if (state.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: cubit.load,
+        child: ListView(
+          children: [
+            const SizedBox(height: AppSpacing.xl),
+            Text(
+              l10n.notificationsEmpty,
+              style: AppTextStyles.lead(koraColors.textMuted),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: cubit.load,
+      child: ListView.separated(
+        padding: EdgeInsets.zero,
+        itemCount: notifications.length + (state.feed.hasMore ? 1 : 0),
+        separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
+        itemBuilder: (context, index) {
+          if (index == notifications.length) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+              child: TextButton(
+                onPressed: state.isLoadingMore ? null : cubit.loadMore,
+                child: Text(
+                  state.isLoadingMore ? '…' : l10n.notificationsMore,
+                  style: TextStyle(
+                    color: koraColors.textMuted,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            );
+          }
+
+          final notification = notifications[index];
+
+          return _NotificationCard(
+            notification: notification,
+            today: today,
+            onTap: () {
+              cubit.markRead(notification);
+              KoraToaster.show(context, l10n.notificationsSoon);
+            },
+          );
+        },
       ),
     );
   }

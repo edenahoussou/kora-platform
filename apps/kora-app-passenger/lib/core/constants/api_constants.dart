@@ -77,6 +77,25 @@ class ApiConstants {
   static String devicePushToken(String deviceUuid) =>
       '$_v1/auth/devices/$deviceUuid/push-token';
 
+  // --- Centre de notifications ---
+
+  /// Les notifications du voyageur, de la plus récente à la plus ancienne.
+  ///
+  /// Authentifié, paginé : `per_page` plafonne à 50, et `meta.unread_count`
+  /// donne le compteur de non-lues sans second appel. C'est la même file
+  /// que celle qui part en push — l'écran la relit, il ne la reconstitue
+  /// pas à partir des notifications reçues.
+  static String passengerNotifications({int page = 1, int perPage = 20}) =>
+      '$_v1/auth/passenger/notifications?page=$page&per_page=$perPage';
+
+  /// Marque une notification lue. `POST`, authentifié.
+  static String passengerNotificationRead(String uuid) =>
+      '$_v1/auth/passenger/notifications/$uuid/read';
+
+  /// Marque toutes les notifications lues. `POST`, authentifié.
+  static const String passengerNotificationsReadAll =
+      '$_v1/auth/passenger/notifications/read-all';
+
   /// Déverrouillage après trop d'erreurs de PIN (OTP `account_unlock`).
   static const String unlock = '$_v1/auth/unlock';
 

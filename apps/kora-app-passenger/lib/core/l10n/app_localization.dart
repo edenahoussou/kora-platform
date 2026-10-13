@@ -1181,6 +1181,9 @@ class AppLocalization {
   String get notificationsMarked => translate('notifications_marked');
   String get notificationsEmpty => translate('notifications_empty');
   String get notificationsSoon => translate('notifications_soon');
+  String get notificationsErrorTitle => translate('notifications_error_title');
+  String get notificationsErrorText => translate('notifications_error_text');
+  String get notificationsMore => translate('notifications_more');
   String notificationsMinutesAgo(int count) =>
       _withArgs('notifications_minutes_ago', {'count': count});
   String get notificationsToday => translate('notifications_today');

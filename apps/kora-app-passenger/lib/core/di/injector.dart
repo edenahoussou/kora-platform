@@ -54,6 +54,9 @@ import '../../features/language/data/datasources/language_local_data_source.dart
 import '../../features/language/data/repositories/language_repository_impl.dart';
 import '../../features/language/domain/repositories/language_repository.dart';
 import '../../features/language/presentation/bloc/language_bloc.dart';
+import '../../features/notifications/data/datasources/notification_remote_data_source.dart';
+import '../../features/notifications/data/repositories/notification_repository_impl.dart';
+import '../../features/notifications/domain/repositories/notification_repository.dart';
 import '../../features/payment/data/datasources/payment_remote_data_source.dart';
 import '../../features/payment/data/repositories/payment_repository_impl.dart';
 import '../../features/payment/domain/repositories/payment_repository.dart';
@@ -179,6 +182,17 @@ void _registerCore() {
   getIt.registerLazySingleton<UpdateGateway>(PlayStoreUpdateGateway.new);
   getIt.registerLazySingleton<AppUpdate>(
     () => AppUpdate(getIt<UpdateGateway>()),
+  );
+
+  // --- Centre de notifications ---
+  //
+  // La même file que celle qui part en push, mais relue : une notification
+  // arrivée téléphone éteint n'existe que là.
+  getIt.registerLazySingleton<NotificationRemoteDataSource>(
+    () => NotificationRemoteDataSource(getIt<Dio>()),
+  );
+  getIt.registerLazySingleton<NotificationRepository>(
+    () => NotificationRepositoryImpl(getIt<NotificationRemoteDataSource>()),
   );
 
   // --- Notifications push ---
