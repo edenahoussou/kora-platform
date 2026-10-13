@@ -41,6 +41,7 @@ use App\Modules\Payments\Providers\MtnMomoAdapter;
 use App\Modules\Settings\Contracts\SettingsCoordinator;
 use App\Modules\Settings\Services\DatabaseSettingsCoordinator;
 use App\Modules\Settings\Settings\IntegrationsSettings;
+use App\Modules\Support\Queue\IdempotentFailedJobProvider;
 use App\Modules\Ticketing\Models\Ticket;
 use App\Policies\AgencyPolicy;
 use App\Policies\AssistedBookingPolicy;
@@ -63,6 +64,7 @@ use App\Policies\UserPolicy;
 use Carbon\CarbonImmutable;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Queue\Failed\DatabaseUuidFailedJobProvider;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -100,6 +102,24 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(FiscalSyncAttemptRecorder::class, DatabaseFiscalSyncAttemptRecorder::class);
         $this->app->bind(FiscalTestInvoiceGateway::class, DgiFiscalTestInvoiceGateway::class);
         $this->app->bind(SettingsCoordinator::class, DatabaseSettingsCoordinator::class);
+        $this->registerIdempotentFailedJobProvider();
+    }
+
+    /**
+     * failed_jobs.uuid est unique mais keyé sur l'uuid du payload : une
+     * double livraison Redis du même job faisait échouer l'insert.
+     */
+    protected function registerIdempotentFailedJobProvider(): void
+    {
+        $this->app->extend('queue.failer', function ($failer, $app) {
+            if (! $failer instanceof DatabaseUuidFailedJobProvider) {
+                return $failer;
+            }
+
+            $config = $app['config']['queue.failed'];
+
+            return new IdempotentFailedJobProvider($app['db'], $config['database'] ?? null, $config['table'] ?? 'failed_jobs');
+        });
     }
 
     /**
