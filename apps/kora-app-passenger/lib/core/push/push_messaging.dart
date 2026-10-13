@@ -158,6 +158,10 @@ class PushMessaging {
     } on Exception {
       // Firebase non initialisé : il n'y avait alors aucun jeton.
     }
+
+    // Même raison que pour l'inscription : sans cette trace, vérifier que
+    // le serveur a bien oublié l'appareil oblige à aller lire la base.
+    if (logs) debugPrint('[push] désinscription : $deviceUuid');
   }
 
   /// Firebase renouvelle le jeton sans prévenir — réinstallation,
