@@ -70,4 +70,16 @@ class StorageKeys {
   /// Empreinte de l'appareil envoyée à l'API. Générée une fois puis
   /// relue : c'est sa stabilité qui évite un OTP à chaque connexion.
   static const String deviceFingerprint = 'kora_secure_device_fingerprint';
+
+  /// Configuration Firebase mise en cache, **en préférences simples et
+  /// non dans le stockage sécurisé**.
+  ///
+  /// Deux raisons. D'abord, elle est publique : clé d'API web,
+  /// identifiant de projet, numéro d'expéditeur, identifiant d'app — rien
+  /// qu'un décompilateur ne lirait dans n'importe quelle app Firebase.
+  /// Ensuite et surtout, c'est l'isolat de fond qui la relit : réveillé
+  /// par une notification alors que l'app est tuée, il n'a ni session ni
+  /// réseau, et doit initialiser Firebase avec ce qu'il trouve sur
+  /// l'appareil.
+  static const String firebaseConfiguration = 'kora_firebase_configuration';
 }

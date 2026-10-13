@@ -37,6 +37,12 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        // `flutter_local_notifications` s'appuie sur les API de date de
+        // Java 8, absentes des Android les plus anciens que l'app
+        // supporte. Le « desugaring » les y rapatrie à la compilation :
+        // sans lui, le greffon ne se lie pas, et la notification affichée
+        // quand l'application est à l'écran n'existerait pas.
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -114,4 +120,10 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Fournit les API de date de Java 8 aux Android antérieurs. Exigé par
+    // `flutter_local_notifications` (voir `isCoreLibraryDesugaringEnabled`).
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

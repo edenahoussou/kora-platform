@@ -179,6 +179,10 @@ class AppRouter {
 
   /// Détail d'un billet. Le billet lui-même passe en `extra` : il vient
   /// de la liste déjà chargée, inutile de le redemander.
+  /// L'onglet « Mes voyages ». Les notifications y mènent faute de mieux :
+  /// billet émis, départ modifié, paiement confirmé s'y retrouvent tous.
+  static const String tripsPath = '/voyages';
+
   static const String ticketDetailPath = '/ticket-detail';
 
   /// Le billet numérique, celui qu'on présente à l'embarquement.
@@ -781,7 +785,7 @@ class AppRouter {
             StatefulShellBranch(
               routes: [
                 GoRoute(
-                  path: '/voyages',
+                  path: tripsPath,
                   builder: (context, state) => TicketsPage(
                     onBookTrip: () => context.push(busSearchPath),
                     onOpenTicket: (ticket, today) => context.push(

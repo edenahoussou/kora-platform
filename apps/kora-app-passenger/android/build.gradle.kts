@@ -35,6 +35,22 @@ subprojects {
         }
     }
 
+    // `in_app_update` fixe son propre Java 8 pendant sa propre
+    // évaluation, donc après le bloc ci-dessus : il faut repasser
+    // derrière lui. On ne le fait que pour ce module — la plupart des
+    // autres figent leur valeur tôt (`connectivity_plus` lève alors
+    // « sourceCompatibility has been finalized »), et un `afterEvaluate`
+    // général casserait le build pour réparer un seul greffon.
+    if (name == "in_app_update") {
+        afterEvaluate {
+            extensions.findByType<com.android.build.gradle.LibraryExtension>()
+                ?.compileOptions {
+                    sourceCompatibility = JavaVersion.VERSION_17
+                    targetCompatibility = JavaVersion.VERSION_17
+                }
+        }
+    }
+
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
         compilerOptions {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)

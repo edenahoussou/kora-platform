@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Nom du canal de notifications, tel qu'il apparaît dans les
+         réglages du téléphone. C'est ce que le voyageur lit s'il veut
+         couper ou rétablir les alertes KORA. -->
+    <string name="notification_channel_name">Voyages KORA</string>
+    <string name="notification_channel_description">Billets, rappels de départ et alertes de trajet.</string>
+</resources>

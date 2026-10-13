@@ -32,6 +32,15 @@
         android:label="KORA Passenger"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <!-- Canal par défaut des notifications push.
+             Sans cette méta-donnée, Firebase retombe sur son canal de
+             secours, qui s'affiche sans nom dans les réglages du
+             téléphone et arrive en silence sur certains appareils.
+             L'identifiant doit correspondre à celui que MainActivity
+             crée au démarrage. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="kora_voyages" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

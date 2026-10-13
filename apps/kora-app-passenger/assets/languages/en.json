@@ -815,5 +815,6 @@
   "passengers_accuracy": "I confirm the details entered are accurate.",
   "passengers_accuracy_required": "Tick the confirmation box to continue.",
   "passengers_incomplete_detail": "Check these fields before continuing: {details}.",
-  "passengers_incomplete_passenger": "Passenger {index}: {fields}"
+  "passengers_incomplete_passenger": "Passenger {index}: {fields}",
+  "push_preference_disabled": "Turn notifications on in your preferences to receive them on this phone."
 }
