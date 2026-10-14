@@ -96,6 +96,20 @@ class ApiConstants {
   static const String passengerNotificationsReadAll =
       '$_v1/auth/passenger/notifications/read-all';
 
+  // --- Chat support (tawk.to) ---
+
+  /// La configuration du chat support pour le passager connecté.
+  ///
+  /// Authentifié. Rend `{enabled: false}` seul quand l'intégration est
+  /// éteinte ou jamais configurée : il n'y a alors pas de chat, et
+  /// l'entrée disparaît de l'application sans message d'erreur.
+  ///
+  /// Les identifiants rendus sont publics. La clé d'API tawk.to, elle,
+  /// ne transite jamais : le serveur s'en sert pour signer l'identité du
+  /// passager et n'envoie que la signature.
+  static const String passengerSupportChatConfiguration =
+      '$_v1/auth/passenger/support-chat-configuration';
+
   /// Déverrouillage après trop d'erreurs de PIN (OTP `account_unlock`).
   static const String unlock = '$_v1/auth/unlock';
 

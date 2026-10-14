@@ -457,6 +457,10 @@ class AppLocalization {
   String get contactWhatsappStart => translate('contact_whatsapp_start');
   String get contactOthers => translate('contact_others');
   String get contactPhone => translate('contact_phone');
+  String get contactChat => translate('contact_chat');
+  String get contactChatSubtitle => translate('contact_chat_subtitle');
+  String get supportChatEyebrow => translate('support_chat_eyebrow');
+  String get supportChatTitle => translate('support_chat_title');
   String get contactEmail => translate('contact_email');
   String get contactNote => translate('contact_note');
   String contactUnavailable(String target) =>
