@@ -1,12 +1,39 @@
 // Tests du centre d'aide et de l'écran de contact.
 
+import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kora_app_passenger/core/error/failures.dart';
 import 'package:kora_app_passenger/core/l10n/app_localization.dart';
+import 'package:kora_app_passenger/features/support/domain/entities/support_chat_configuration.dart';
+import 'package:kora_app_passenger/features/support/domain/repositories/support_chat_repository.dart';
+import 'package:kora_app_passenger/features/support/presentation/bloc/support_chat_cubit.dart';
 import 'package:kora_app_passenger/features/support/presentation/pages/contact_page.dart';
 import 'package:kora_app_passenger/features/support/presentation/pages/help_page.dart';
+
+/// Un serveur de pacotille : il rend la configuration qu'on lui donne, ou
+/// la panne qu'on lui demande de simuler.
+class FakeSupportChatRepository implements SupportChatRepository {
+  FakeSupportChatRepository({this.rendered, this.failure});
+
+  SupportChatConfiguration? rendered;
+  Failure? failure;
+  var calls = 0;
+
+  @override
+  Future<Either<Failure, SupportChatConfiguration>> configuration() async {
+    calls++;
+    final error = failure;
+    if (error != null) return Left(error);
+
+    return Right(rendered ?? const SupportChatConfiguration());
+  }
+}
+
+/// Le chat coupé : l'état par défaut des écrans qui ne le testent pas.
+SupportChatCubit _noChat() => SupportChatCubit(FakeSupportChatRepository());
 
 void main() {
   Future<void> pump(
@@ -124,7 +151,7 @@ void main() {
 
   group('Contacter KORA', () {
     testWidgets('propose WhatsApp, le téléphone et l’e-mail', (tester) async {
-      await pump(tester, const ContactPage());
+      await pump(tester, ContactPage(cubit: _noChat()));
 
       expect(find.text('Parlons sur WhatsApp'), findsOneWidget);
       expect(find.text('+229 90 10 96 48'), findsOneWidget);
@@ -137,6 +164,7 @@ void main() {
       await pump(
         tester,
         ContactPage(
+          cubit: _noChat(),
           launcher: (uri) async {
             opened.add(uri);
             return true;
@@ -159,7 +187,10 @@ void main() {
     });
 
     testWidgets('le dit quand aucune application ne répond', (tester) async {
-      await pump(tester, ContactPage(launcher: (_) async => false));
+      await pump(
+        tester,
+        ContactPage(cubit: _noChat(), launcher: (_) async => false),
+      );
 
       await tester.tap(find.text('Démarrer la conversation'));
       await tester.pumpAndSettle();
@@ -174,6 +205,80 @@ void main() {
       // On laisse le minuteur du toast finir.
       await tester.pump(const Duration(seconds: 3));
       await tester.pumpAndSettle();
+    });
+  });
+
+  group('Le chat avec un agent', () {
+    const live = SupportChatConfiguration(
+      enabled: true,
+      propertyId: 'abc123def456',
+      widgetId: 'default',
+      directChatUrl: 'https://tawk.to/chat/abc123def456/default',
+      secureHash: 'hmac-de-l-email',
+    );
+
+    testWidgets('n’apparaît que si le serveur le donne', (tester) async {
+      final repository = FakeSupportChatRepository(rendered: live);
+
+      await pump(tester, ContactPage(cubit: SupportChatCubit(repository)));
+
+      expect(find.text('Discuter avec un agent'), findsOneWidget);
+      // La configuration est demandée à l'ouverture : elle peut avoir
+      // changé dans OPS depuis la dernière fois.
+      expect(repository.calls, 1);
+    });
+
+    testWidgets('reste caché quand l’intégration est éteinte', (tester) async {
+      await pump(tester, ContactPage(cubit: _noChat()));
+
+      expect(find.text('Discuter avec un agent'), findsNothing);
+      // Les autres canaux, eux, ne dépendent de rien.
+      expect(find.text('Téléphone'), findsOneWidget);
+    });
+
+    testWidgets('reste caché si l’adresse manque', (tester) async {
+      // Intégration allumée mais incomplète : ouvrir une page blanche
+      // serait pire qu'une entrée absente.
+      final repository = FakeSupportChatRepository(
+        rendered: const SupportChatConfiguration(enabled: true),
+      );
+
+      await pump(tester, ContactPage(cubit: SupportChatCubit(repository)));
+
+      expect(find.text('Discuter avec un agent'), findsNothing);
+    });
+
+    testWidgets('une panne ne montre rien, et ne dit rien', (tester) async {
+      final repository = FakeSupportChatRepository(
+        failure: const NetworkFailure('réseau indisponible'),
+      );
+
+      await pump(tester, ContactPage(cubit: SupportChatCubit(repository)));
+
+      expect(find.text('Discuter avec un agent'), findsNothing);
+      expect(find.textContaining('indisponible'), findsNothing);
+      expect(find.text('Parlons sur WhatsApp'), findsOneWidget);
+    });
+
+    testWidgets('transmet la configuration à l’écran de chat', (tester) async {
+      SupportChatConfiguration? opened;
+      final repository = FakeSupportChatRepository(rendered: live);
+
+      await pump(
+        tester,
+        ContactPage(
+          cubit: SupportChatCubit(repository),
+          onOpenChat: (configuration) => opened = configuration,
+        ),
+      );
+
+      await tester.tap(find.text('Discuter avec un agent'));
+      await tester.pumpAndSettle();
+
+      expect(opened, live);
+      // L'empreinte vient du serveur et voyage telle quelle : c'est elle
+      // qui prouve à tawk.to l'identité du passager.
+      expect(opened?.secureHash, 'hmac-de-l-email');
     });
   });
 }

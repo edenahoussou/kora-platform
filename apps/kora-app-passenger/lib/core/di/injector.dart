@@ -62,6 +62,9 @@ import '../../features/payment/data/repositories/payment_repository_impl.dart';
 import '../../features/payment/domain/repositories/payment_repository.dart';
 import '../../features/payment/presentation/bloc/payment_catalog_bloc.dart';
 import '../../features/payment/presentation/bloc/payment_flow_bloc.dart';
+import '../../features/support/data/datasources/support_chat_remote_data_source.dart';
+import '../../features/support/data/repositories/support_chat_repository_impl.dart';
+import '../../features/support/domain/repositories/support_chat_repository.dart';
 import '../../features/theme/data/datasources/theme_local_data_source.dart';
 import '../../features/theme/data/repositories/theme_repository_impl.dart';
 import '../../features/theme/domain/repositories/theme_repository.dart';
@@ -220,6 +223,17 @@ void _registerCore() {
       platform: Platform.isIOS ? 'ios' : 'android',
       logs: AppEnv.current.enableNetworkLogs,
     ),
+  );
+
+  // --- Chat support (tawk.to) ---
+  //
+  // La configuration vient du serveur à chaque ouverture de l'écran de
+  // contact : elle se règle depuis OPS, et l'app ne garde rien en dur.
+  getIt.registerLazySingleton<SupportChatRemoteDataSource>(
+    () => SupportChatRemoteDataSource(getIt<Dio>()),
+  );
+  getIt.registerLazySingleton<SupportChatRepository>(
+    () => SupportChatRepositoryImpl(getIt<SupportChatRemoteDataSource>()),
   );
 
   // On expose directement `Dio` aussi : la plupart des data sources n'ont

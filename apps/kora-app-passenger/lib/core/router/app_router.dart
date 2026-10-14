@@ -58,8 +58,10 @@ import '../../features/profil/presentation/pages/preferences_page.dart';
 import '../../features/profil/presentation/pages/profil_page.dart';
 import '../../features/profil/presentation/pages/profile_edit_page.dart';
 import '../../features/profil/presentation/pages/security_page.dart';
+import '../../features/support/domain/entities/support_chat_configuration.dart';
 import '../../features/support/presentation/pages/contact_page.dart';
 import '../../features/support/presentation/pages/help_page.dart';
+import '../../features/support/presentation/pages/support_chat_page.dart';
 import '../../features/welcome/data/onboarding_store.dart';
 import '../../features/welcome/presentation/pages/onboarding_page.dart';
 import '../../features/welcome/presentation/pages/splash_page.dart';
@@ -128,6 +130,11 @@ class AppRouter {
   static const String notificationsPath = '/notifications';
   static const String helpPath = '/aide';
   static const String contactPath = '/aide/contact';
+
+  /// La conversation avec un agent. La configuration tawk.to voyage
+  /// dans `extra` : c'est l'écran de contact qui vient de l'obtenir du
+  /// serveur, inutile de la redemander.
+  static const String supportChatPath = '/aide/chat';
   static const String permissionsPath = '/permissions';
 
   /// Liste des départs, puis détail d'un départ.
@@ -479,7 +486,30 @@ class AppRouter {
         ),
         GoRoute(
           path: contactPath,
-          builder: (context, state) => const ContactPage(),
+          builder: (context, state) => ContactPage(
+            onOpenChat: (configuration) =>
+                context.push(supportChatPath, extra: configuration),
+          ),
+        ),
+        GoRoute(
+          path: supportChatPath,
+          builder: (context, state) {
+            final configuration = state.extra;
+            if (configuration is! SupportChatConfiguration) {
+              // On n'arrive ici que par l'écran de contact, qui porte la
+              // configuration. Un lien direct — restauration d'état,
+              // notification — n'a rien à ouvrir.
+              return const ContactPage();
+            }
+
+            final user = context.read<AuthBloc>().state.session?.user;
+
+            return SupportChatPage(
+              configuration: configuration,
+              visitorName: user?.name,
+              visitorEmail: user?.email,
+            );
+          },
         ),
         GoRoute(
           path: permissionsPath,

@@ -98,6 +98,18 @@ dependencies:
   open_filex: ^4.7.0
   flutter_local_notifications: ^22.3.2
 
+  # --- Chat support tawk.to ---
+  #
+  # Le chat est une page web : tawk.to n'a pas de SDK mobile, et son
+  # « direct chat link » est fait pour être affiché tel quel. Une WebView
+  # suffit donc, avec l'identité du passager injectée au chargement.
+  #
+  # `flutter_tawkto` enveloppe exactement ça, mais en 0.0.5 et au prix de
+  # huit paquets (`flutter_inappwebview`) : le greffon officiel de
+  # l'équipe Flutter en demande quatre, et laisse le contrôle de ce qu'on
+  # injecte.
+  webview_flutter: ^4.14.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

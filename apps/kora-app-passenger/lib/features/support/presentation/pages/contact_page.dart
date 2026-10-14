@@ -1,21 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/di/injector.dart';
 import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/screen_header.dart';
+import '../../domain/entities/support_chat_configuration.dart';
+import '../../domain/repositories/support_chat_repository.dart';
+import '../bloc/support_chat_cubit.dart';
 
 /// Contacter KORA — écran `contact` (PROFILE-06).
 ///
 /// La maquette simule les trois actions par un toast ; ici elles ouvrent
 /// vraiment WhatsApp, le composeur et l'application e-mail. Un bouton
 /// « Démarrer la conversation » qui ne démarre rien n'aiderait personne.
+///
+/// Le chat avec un agent s'ajoute à ces canaux **quand le serveur le dit**
+/// : il se coupe depuis OPS, et l'entrée disparaît alors d'elle-même.
 class ContactPage extends StatelessWidget {
-  const ContactPage({super.key, this.launcher});
+  const ContactPage({super.key, this.launcher, this.onOpenChat, this.cubit});
 
   /// Injectable pour les tests, qui n'ont pas d'application à ouvrir.
   final Future<bool> Function(Uri)? launcher;
+
+  /// Ouvre la conversation. Reçoit la configuration rendue par le
+  /// serveur, que l'écran de chat consomme telle quelle.
+  final void Function(SupportChatConfiguration configuration)? onOpenChat;
+
+  /// Cubit déjà construit, pour les tests.
+  final SupportChatCubit? cubit;
 
   /// Numéro de l'assistance, au format international sans séparateur
   /// pour les liens `tel:` et `wa.me`.
@@ -40,6 +55,17 @@ class ContactPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final existing = cubit;
+
+    return BlocProvider<SupportChatCubit>(
+      create: (_) =>
+          (existing ?? SupportChatCubit(getIt<SupportChatRepository>()))
+            ..load(),
+      child: Builder(builder: _build),
+    );
+  }
+
+  Widget _build(BuildContext context) {
     final l10n = context.l10n;
     final koraColors = context.koraColors;
 
@@ -116,6 +142,21 @@ class ContactPage extends StatelessWidget {
                     const SizedBox(height: AppSpacing.md),
                     KoraMenuList(
                       items: [
+                        // Le chat n'apparaît que si le serveur le donne.
+                        // Éteindre l'intégration dans OPS le retire d'ici
+                        // au prochain affichage, sans republier l'app.
+                        if (context.watch<SupportChatCubit>().state.isAvailable)
+                          KoraMenuItem(
+                            icon: Icons.support_agent_rounded,
+                            title: l10n.contactChat,
+                            subtitle: l10n.contactChatSubtitle,
+                            onTap: () => onOpenChat?.call(
+                              context
+                                  .read<SupportChatCubit>()
+                                  .state
+                                  .configuration,
+                            ),
+                          ),
                         KoraMenuItem(
                           icon: Icons.call_rounded,
                           title: l10n.contactPhone,
