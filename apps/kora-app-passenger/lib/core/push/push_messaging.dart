@@ -161,7 +161,13 @@ class PushMessaging {
 
     // Même raison que pour l'inscription : sans cette trace, vérifier que
     // le serveur a bien oublié l'appareil oblige à aller lire la base.
-    if (logs) debugPrint('[push] désinscription : $deviceUuid');
+    //
+    // **Sans l'identifiant de l'appareil.** La trace répond à une seule
+    // question — le serveur a-t-il oublié cet appareil ? —, et cette
+    // question ne demande pas de savoir lequel : celui qu'on a sous la
+    // main au moment du diagnostic. L'écrire, même tronqué, poserait un
+    // identifiant durable dans `logcat` pour rien.
+    if (logs) debugPrint('[push] désinscription');
   }
 
   /// Firebase renouvelle le jeton sans prévenir — réinstallation,
