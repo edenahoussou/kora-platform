@@ -358,6 +358,7 @@ class DashboardReadService
         $notifications = OpsNotification::query()
             ->with('event.departure:id,uuid')
             ->where('user_id', $user->id)
+            ->where('audience', 'ops')
             ->unread()
             ->orderByDesc('created_at')
             ->limit(4)
@@ -421,7 +422,7 @@ class DashboardReadService
         return [
             'punctuality' => $punctuality,
             'tracked' => (string) $departures->count(),
-            'toWatch' => (string) OpsNotification::query()->where('user_id', $user->id)->unread()->count(),
+            'toWatch' => (string) OpsNotification::query()->where('user_id', $user->id)->where('audience', 'ops')->unread()->count(),
         ];
     }
 

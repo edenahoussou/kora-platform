@@ -337,3 +337,22 @@ it('feeds the priority panel from the data payload when the notification has no 
             ->where('priorities.0.href', null)
             ->where('network.toWatch', '1'));
 });
+
+it('ignores passenger notifications in the priority panel', function (): void {
+    $user = commercialDirector();
+
+    $user->notifications()->create([
+        'id' => (string) Str::uuid(),
+        'type' => OpsNotification::class,
+        'data' => ['type' => 'passenger_booking'],
+        'audience' => 'passenger',
+        'user_id' => $user->id,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('priorities', 0)
+            ->where('network.toWatch', '0'));
+});
