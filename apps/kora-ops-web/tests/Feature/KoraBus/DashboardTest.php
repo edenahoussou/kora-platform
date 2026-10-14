@@ -309,3 +309,31 @@ it('feeds the priority panel with unread ops notifications', function (): void {
             ->where('priorities.0.tone', 'urgent')
             ->where('network.toWatch', '1'));
 });
+
+it('feeds the priority panel from the data payload when the notification has no event', function (): void {
+    $user = commercialDirector();
+
+    $user->notifications()->create([
+        'id' => (string) Str::uuid(),
+        'type' => OpsNotification::class,
+        'data' => [
+            'type' => 'fiscal_credit_note',
+            'severity' => 'warning',
+            'title' => 'Avoir émis',
+            'message' => 'Un avoir a été généré sur la facture.',
+        ],
+        'audience' => 'ops',
+        'user_id' => $user->id,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('priorities', 1)
+            ->where('priorities.0.title', 'Avoir émis')
+            ->where('priorities.0.category', 'Attention')
+            ->where('priorities.0.tone', 'control')
+            ->where('priorities.0.href', null)
+            ->where('network.toWatch', '1'));
+});

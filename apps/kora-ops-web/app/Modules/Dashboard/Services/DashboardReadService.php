@@ -366,15 +366,19 @@ class DashboardReadService
         $priorities = [];
         foreach ($notifications as $notification) {
             $event = $notification->event;
-            $departureUuid = $event->departure?->uuid;
+            $payload = is_array($notification->data) ? $notification->data : [];
+            $departureUuid = $event?->departure?->uuid;
+            $severity = $event?->severity
+                ?? OpsNotificationSeverity::tryFrom((string) ($payload['severity'] ?? ''))
+                ?? OpsNotificationSeverity::Info;
 
             $priorities[] = [
                 'uuid' => $notification->uuid,
-                'category' => $this->severityLabel($event->severity),
-                'title' => $event->title,
-                'detail' => $event->message,
+                'category' => $this->severityLabel($severity),
+                'title' => $event?->title ?? (string) ($payload['title'] ?? 'Mise à jour'),
+                'detail' => $event?->message ?? (string) ($payload['message'] ?? ''),
                 'time' => $notification->created_at->setTimezone(RevenuePeriod::TIMEZONE)->format('H:i'),
-                'tone' => match ($event->severity) {
+                'tone' => match ($severity) {
                     OpsNotificationSeverity::Critical => 'urgent',
                     OpsNotificationSeverity::Warning => 'control',
                     default => 'success',
