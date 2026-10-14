@@ -68,10 +68,10 @@ class _SupportChatPageState extends State<SupportChatPage> {
       )
       ..loadRequest(Uri.parse(widget.configuration.directChatUrl));
 
-    // L'adresse est publique — elle s'ouvre dans n'importe quel
-    // navigateur —, et la voir en clair évite de deviner quelle
-    // configuration OPS a réellement rendue.
-    _log('conversation ouverte sur ${widget.configuration.directChatUrl}');
+    // On note qu'une conversation s'ouvre, pas laquelle : l'adresse
+    // désigne le compte tawk.to de KORA, et la trace n'a pas besoin de
+    // l'écrire pour répondre à « le chat s'est-il ouvert ? ».
+    _log('conversation ouverte');
   }
 
   /// Rend la page aux couleurs de KORA.
@@ -128,7 +128,7 @@ class _SupportChatPageState extends State<SupportChatPage> {
   function apply() {
     if (!window.Tawk_API || !window.Tawk_API.setAttributes) { return false; }
     window.Tawk_API.setAttributes(${jsonEncode(attributes)}, function (error) {
-      report(error ? 'refusé : ' + error : 'transmise');
+      report(error ? 'identité refusée : ' + error : 'identité transmise');
     });
     return true;
   }
@@ -136,7 +136,7 @@ class _SupportChatPageState extends State<SupportChatPage> {
   var timer = setInterval(function () {
     if (apply() || ++attempts > 40) {
       clearInterval(timer);
-      if (attempts > 40) { report('widget absent après 10 s'); }
+      if (attempts > 40) { report('identité : widget absent après 10 s'); }
     }
   }, 250);
 })();
@@ -147,7 +147,7 @@ class _SupportChatPageState extends State<SupportChatPage> {
     } on Exception {
       // La page a changé sous nos pieds : la conversation reste ouverte,
       // et l'agent demandera le nom lui-même.
-      _log('injection impossible');
+      _log('identité : injection impossible');
     }
   }
 
@@ -159,7 +159,7 @@ class _SupportChatPageState extends State<SupportChatPage> {
   /// revient à deviner.
   void _log(String outcome) {
     if (AppEnv.current.enableNetworkLogs) {
-      debugPrint('[support] identité : $outcome');
+      debugPrint('[support] $outcome');
     }
   }
 
