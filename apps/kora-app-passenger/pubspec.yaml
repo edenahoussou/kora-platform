@@ -54,6 +54,24 @@ dependencies:
   # n'ouvriraient aucune boîte de dialogue système.
   permission_handler: ^11.3.1
 
+  # --- Mise à jour de l'application ---
+  #
+  # `package_info_plus` donne à l'app sa propre version ; sans elle, elle
+  # ne peut pas savoir si elle est en retard. `in_app_update` ouvre la
+  # fenêtre native de Google Play — Apple n'offre aucun équivalent, d'où
+  # le renvoi vers l'App Store sur iOS.
+  package_info_plus: ^8.1.1
+  in_app_update: ^4.2.3
+
+  # --- Notifications push (FCM) ---
+  #
+  # La configuration Firebase n'est PAS livrée en dur : elle vient de
+  # `auth/passenger/firebase-configuration`, et `Firebase.initializeApp`
+  # la reçoit à l'exécution. Pas de `google-services.json` dans le dépôt,
+  # donc aucun identifiant de projet figé dans le binaire.
+  firebase_core: ^3.8.0
+  firebase_messaging: ^15.1.5
+
   # --- Gestion d'erreurs fonctionnelle (Either<Failure, T>) ---
   dartz: ^0.10.1
 
@@ -78,6 +96,7 @@ dependencies:
   file_saver: ^0.4.0
   path_provider: ^2.1.6
   open_filex: ^4.7.0
+  flutter_local_notifications: ^22.3.2
 
 dev_dependencies:
   flutter_test:

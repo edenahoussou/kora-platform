@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
@@ -52,6 +54,9 @@ import '../../features/language/data/datasources/language_local_data_source.dart
 import '../../features/language/data/repositories/language_repository_impl.dart';
 import '../../features/language/domain/repositories/language_repository.dart';
 import '../../features/language/presentation/bloc/language_bloc.dart';
+import '../../features/notifications/data/datasources/notification_remote_data_source.dart';
+import '../../features/notifications/data/repositories/notification_repository_impl.dart';
+import '../../features/notifications/domain/repositories/notification_repository.dart';
 import '../../features/payment/data/datasources/payment_remote_data_source.dart';
 import '../../features/payment/data/repositories/payment_repository_impl.dart';
 import '../../features/payment/domain/repositories/payment_repository.dart';
@@ -66,8 +71,17 @@ import '../constants/api_constants.dart';
 import '../constants/storage_keys.dart';
 import '../env/app_env.dart';
 import '../network/session_expiry.dart';
+import '../push/firebase_push_gateway.dart';
+import '../push/local_notification_presenter.dart';
+import '../push/notification_presenter.dart';
+import '../push/push_configuration_store.dart';
+import '../push/push_gateway.dart';
+import '../push/push_messaging.dart';
+import '../push/push_remote_data_source.dart';
 import '../services/app_permissions.dart';
 import '../services/oauth_sign_in.dart';
+import '../update/app_update.dart';
+import '../update/update_gateway.dart';
 
 /// [GetIt] est notre "service locator" : un registre central qui sait
 /// comment construire chaque objet de l'application (data sources,
@@ -161,6 +175,52 @@ void _registerCore() {
   // signale, `AuthBloc` la traduit en déconnexion, et le garde de
   // navigation ramène à la connexion.
   getIt.registerLazySingleton<SessionExpiry>(SessionExpiry.new);
+
+  // --- Mise à jour de l'application ---
+  //
+  // Entièrement remise à Google Play : ni endpoint, ni réglage serveur.
+  getIt.registerLazySingleton<UpdateGateway>(PlayStoreUpdateGateway.new);
+  getIt.registerLazySingleton<AppUpdate>(
+    () => AppUpdate(getIt<UpdateGateway>()),
+  );
+
+  // --- Centre de notifications ---
+  //
+  // La même file que celle qui part en push, mais relue : une notification
+  // arrivée téléphone éteint n'existe que là.
+  getIt.registerLazySingleton<NotificationRemoteDataSource>(
+    () => NotificationRemoteDataSource(getIt<Dio>()),
+  );
+  getIt.registerLazySingleton<NotificationRepository>(
+    () => NotificationRepositoryImpl(getIt<NotificationRemoteDataSource>()),
+  );
+
+  // --- Notifications push ---
+  //
+  // Enregistré au démarrage mais inerte : rien ne part tant que
+  // `PushMessaging.register` n'est pas appelé, c'est-à-dire tant qu'une
+  // session n'est pas ouverte. Les deux endpoints exigent un token.
+  getIt.registerLazySingleton<PushConfigurationStore>(
+    PushConfigurationStore.new,
+  );
+  getIt.registerLazySingleton<PushGateway>(FirebasePushGateway.new);
+  // Sert au seul cas que le système ne couvre pas : l'application à
+  // l'écran, où Firebase remet le message sans rien afficher.
+  getIt.registerLazySingleton<NotificationPresenter>(
+    LocalNotificationPresenter.new,
+  );
+  getIt.registerLazySingleton<PushRemoteDataSource>(
+    () => PushRemoteDataSource(getIt<Dio>()),
+  );
+  getIt.registerLazySingleton<PushMessaging>(
+    () => PushMessaging(
+      getIt<PushGateway>(),
+      getIt<PushRemoteDataSource>(),
+      getIt<PushConfigurationStore>(),
+      platform: Platform.isIOS ? 'ios' : 'android',
+      logs: AppEnv.current.enableNetworkLogs,
+    ),
+  );
 
   // On expose directement `Dio` aussi : la plupart des data sources n'ont
   // besoin que de `Dio`, pas de tout `DioClient`.

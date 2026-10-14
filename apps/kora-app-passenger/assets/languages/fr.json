@@ -290,6 +290,9 @@
   "notifications_marked": "Toutes les notifications sont marquées comme lues.",
   "notifications_empty": "Rien de neuf pour le moment.",
   "notifications_soon": "Le détail de cette notification arrive bientôt.",
+  "notifications_error_title": "Notifications indisponibles",
+  "notifications_error_text": "La liste n'a pas pu être chargée. Vérifiez votre connexion, puis réessayez.",
+  "notifications_more": "Voir les plus anciennes",
   "notifications_minutes_ago": "Il y a {count} min",
   "notifications_today": "Aujourd’hui",
   "notifications_yesterday": "Hier",
@@ -815,5 +818,6 @@
   "passengers_accuracy": "Je confirme l’exactitude des informations saisies.",
   "passengers_accuracy_required": "Cochez la case de confirmation pour continuer.",
   "passengers_incomplete_detail": "Vérifiez ces champs avant de continuer : {details}.",
-  "passengers_incomplete_passenger": "Passager {index} : {fields}"
+  "passengers_incomplete_passenger": "Passager {index} : {fields}",
+  "push_preference_disabled": "Activez les notifications dans vos préférences pour les recevoir sur ce téléphone."
 }

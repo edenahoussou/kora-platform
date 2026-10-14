@@ -4,10 +4,12 @@ import 'package:flutter_design_system/flutter_design_system.dart';
 
 import '../../../../core/di/injector.dart';
 import '../../../../core/l10n/app_localization.dart';
+import '../../../../core/push/push_messaging.dart';
 import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../auth/domain/entities/user_preferences.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../language/domain/entities/app_language.dart';
 import '../../../language/presentation/bloc/language_bloc.dart';
 import '../../../theme/domain/entities/app_theme_mode.dart';
@@ -64,12 +66,42 @@ class _PreferencesPageState extends State<PreferencesPage> {
     final result = await getIt<AuthRepository>().savePreferences(next);
     if (!mounted) return;
 
-    result.fold((failure) {
-      setState(() {
-        _preferences = previous;
-        _error = failure.message;
-      });
-    }, (saved) => setState(() => _preferences = saved));
+    result.fold(
+      (failure) {
+        setState(() {
+          _preferences = previous;
+          _error = failure.message;
+        });
+      },
+      (saved) {
+        setState(() => _preferences = saved);
+
+        // Allumer les notifications ici est souvent le second geste : à
+        // l'inscription, beaucoup passent l'écran des autorisations et y
+        // reviennent plus tard. Le serveur refuse d'inscrire l'appareil
+        // tant que cette préférence est à faux — il faut donc réessayer
+        // maintenant, sans quoi rien n'arriverait avant le prochain
+        // démarrage de l'application.
+        if (saved.pushNotifications && previous?.pushNotifications != true) {
+          _enablePush();
+        }
+      },
+    );
+  }
+
+  /// Inscrit l'appareil aux notifications, maintenant que le compte les
+  /// accepte. Silencieux : l'échec éventuel ne doit pas transformer un
+  /// réglage en message d'erreur.
+  Future<void> _enablePush() async {
+    final deviceUuid = context.read<AuthBloc>().state.session?.device?.uuid;
+    if (deviceUuid == null) return;
+
+    try {
+      await getIt<PushMessaging>().register(deviceUuid);
+    } on Exception {
+      // Rien à dire : le voyageur vient d'exprimer un souhait, pas de
+      // lancer une opération dont il attendrait le résultat.
+    }
   }
 
   void _setLanguage(AppLanguage language) {

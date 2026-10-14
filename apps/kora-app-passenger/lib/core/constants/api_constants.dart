@@ -56,6 +56,46 @@ class ApiConstants {
   /// Changement de PIN par un utilisateur connecté.
   static const String pinChange = '$_v1/auth/pin/change';
 
+  // --- Notifications push ---
+
+  /// Configuration Firebase **publique** de l'app, par plateforme.
+  ///
+  /// Authentifié. `?platform=android|ios`. Répond `{enabled: false}` seul
+  /// quand l'intégration n'est pas configurée côté OPS : il n'y a alors
+  /// rien à initialiser, et l'app se tait plutôt que d'échouer.
+  ///
+  /// La clé privée du compte de service ne transite jamais par ici —
+  /// elle reste au serveur, qui est seul à envoyer les notifications.
+  static String passengerFirebaseConfiguration(String platform) =>
+      '$_v1/auth/passenger/firebase-configuration?platform=$platform';
+
+  /// Jeton FCM de l'appareil courant.
+  ///
+  /// `PUT`, authentifié. Corps `{enabled: true, push_token: "…"}` pour
+  /// l'inscrire, `{enabled: false}` pour l'effacer — c'est ce second
+  /// appel qui sert à la déconnexion.
+  static String devicePushToken(String deviceUuid) =>
+      '$_v1/auth/devices/$deviceUuid/push-token';
+
+  // --- Centre de notifications ---
+
+  /// Les notifications du voyageur, de la plus récente à la plus ancienne.
+  ///
+  /// Authentifié, paginé : `per_page` plafonne à 50, et `meta.unread_count`
+  /// donne le compteur de non-lues sans second appel. C'est la même file
+  /// que celle qui part en push — l'écran la relit, il ne la reconstitue
+  /// pas à partir des notifications reçues.
+  static String passengerNotifications({int page = 1, int perPage = 20}) =>
+      '$_v1/auth/passenger/notifications?page=$page&per_page=$perPage';
+
+  /// Marque une notification lue. `POST`, authentifié.
+  static String passengerNotificationRead(String uuid) =>
+      '$_v1/auth/passenger/notifications/$uuid/read';
+
+  /// Marque toutes les notifications lues. `POST`, authentifié.
+  static const String passengerNotificationsReadAll =
+      '$_v1/auth/passenger/notifications/read-all';
+
   /// Déverrouillage après trop d'erreurs de PIN (OTP `account_unlock`).
   static const String unlock = '$_v1/auth/unlock';
 

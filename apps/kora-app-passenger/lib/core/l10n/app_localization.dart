@@ -186,6 +186,12 @@ class AppLocalization {
 
   // ------------------------------------------------------ écran Mes voyages
   String get ticketsEyebrow => translate('tickets_eyebrow');
+
+  /// Affiché quand le serveur refuse d'inscrire l'appareil parce que les
+  /// notifications sont coupées dans les préférences du compte — le seul
+  /// refus que le voyageur peut lever lui-même.
+  String get pushPreferenceDisabled => translate('push_preference_disabled');
+
   String get ticketsTitle => translate('tickets_title');
   String get ticketsNotifications => translate('tickets_notifications');
 
@@ -1175,6 +1181,9 @@ class AppLocalization {
   String get notificationsMarked => translate('notifications_marked');
   String get notificationsEmpty => translate('notifications_empty');
   String get notificationsSoon => translate('notifications_soon');
+  String get notificationsErrorTitle => translate('notifications_error_title');
+  String get notificationsErrorText => translate('notifications_error_text');
+  String get notificationsMore => translate('notifications_more');
   String notificationsMinutesAgo(int count) =>
       _withArgs('notifications_minutes_ago', {'count': count});
   String get notificationsToday => translate('notifications_today');

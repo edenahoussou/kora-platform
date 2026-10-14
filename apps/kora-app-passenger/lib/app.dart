@@ -7,7 +7,9 @@ import 'core/di/injector.dart';
 import 'core/env/app_env.dart';
 import 'core/l10n/app_localization.dart';
 import 'core/network/session_expiry.dart';
+import 'core/push/push_listener.dart';
 import 'core/router/app_router.dart';
+import 'core/update/update_gate.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/language/domain/entities/app_language.dart';
 import 'features/language/presentation/bloc/language_bloc.dart';
@@ -79,6 +81,12 @@ class KoraApp extends StatelessWidget {
                   GlobalCupertinoLocalizations.delegate,
                 ],
                 routerConfig: AppRouter.router,
+                // Les notifications s'écoutent ici, sous `MaterialApp` :
+                // il faut un `ScaffoldMessenger` au-dessus pour afficher
+                // un message reçu alors que l'app est à l'écran.
+                builder: (context, child) => PushListener(
+                  child: UpdateGate(child: child ?? const SizedBox.shrink()),
+                ),
               );
             },
           );

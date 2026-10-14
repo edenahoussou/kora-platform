@@ -290,6 +290,9 @@
   "notifications_marked": "All notifications marked as read.",
   "notifications_empty": "Nothing new for now.",
   "notifications_soon": "The detail of this notification is coming soon.",
+  "notifications_error_title": "Notifications unavailable",
+  "notifications_error_text": "The list could not be loaded. Check your connection, then try again.",
+  "notifications_more": "Show older ones",
   "notifications_minutes_ago": "{count} min ago",
   "notifications_today": "Today",
   "notifications_yesterday": "Yesterday",
@@ -815,5 +818,6 @@
   "passengers_accuracy": "I confirm the details entered are accurate.",
   "passengers_accuracy_required": "Tick the confirmation box to continue.",
   "passengers_incomplete_detail": "Check these fields before continuing: {details}.",
-  "passengers_incomplete_passenger": "Passenger {index}: {fields}"
+  "passengers_incomplete_passenger": "Passenger {index}: {fields}",
+  "push_preference_disabled": "Turn notifications on in your preferences to receive them on this phone."
 }
