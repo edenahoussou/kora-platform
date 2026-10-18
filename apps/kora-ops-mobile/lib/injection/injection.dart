@@ -78,6 +78,7 @@ import '../features/seat_release/data/datasources/seat_release_local_datasource.
 import '../features/seat_release/data/datasources/seat_release_remote_datasource.dart';
 import '../features/seat_release/data/repositories/seat_release_repository_impl.dart';
 import '../features/seat_release/domain/repositories/seat_release_repository.dart';
+import '../features/support_chat/data/support_chat_remote_datasource.dart';
 import '../features/synchro/data/datasources/sync_remote_datasource.dart';
 import '../features/synchro/data/repositories/sync_repository_impl.dart';
 import '../features/synchro/domain/repositories/sync_repository.dart';
@@ -547,6 +548,9 @@ Future<void> configureDependencies() async {
   );
   getIt.registerSingleton<NotificationCubit>(
     NotificationCubit(getIt<NotificationRepository>(), getIt<AuthCubit>()),
+  );
+  getIt.registerLazySingleton<SupportChatRemoteDataSource>(
+    () => SupportChatRemoteDataSourceImpl(opsDioClient.dio),
   );
   getIt.registerLazySingleton<PushNotificationService>(
     () => PushNotificationService(

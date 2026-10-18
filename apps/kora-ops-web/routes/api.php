@@ -24,6 +24,7 @@ use App\Modules\IdentityAccess\Http\Controllers\TerminalOpsMobileController;
 use App\Modules\IdentityAccess\Http\Controllers\UserPreferenceController;
 use App\Modules\Notifications\Http\Controllers\OpsNotificationController;
 use App\Modules\Notifications\Http\Controllers\OpsNotificationPreferenceController;
+use App\Modules\Notifications\Http\Controllers\OpsSupportChatConfigurationController;
 use App\Modules\Notifications\Http\Controllers\OpsWebPushPreferenceController;
 use App\Modules\Notifications\Http\Controllers\PassengerFirebaseConfigurationController;
 use App\Modules\Notifications\Http\Controllers\PassengerNotificationController;
@@ -194,6 +195,13 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::post('manifest-versions', [OpsSyncController::class, 'manifestVersions'])->name('manifest-versions');
             Route::post('batches', [OpsSyncController::class, 'submitBatch'])->name('batches');
         });
+
+    // Chat support tawk.to de l'app convoyeur : session authentifiée seule
+    // (pas `ops.session`) — l'aide doit rester joignable même si le terminal
+    // n'est pas (encore) lié ou actif.
+    Route::get('ops/support-chat-configuration', [OpsSupportChatConfigurationController::class, 'show'])
+        ->middleware('auth:sanctum')
+        ->name('ops.support-chat-configuration');
 
     Route::prefix('ops/tracking')
         ->name('ops.tracking.')

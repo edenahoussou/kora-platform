@@ -38,6 +38,8 @@ import '../../features/profil/presentation/pages/securite_page.dart';
 import '../../features/scan/presentation/pages/scan_boarding_page.dart';
 import '../../features/splash/domain/resolve_auth_destination.dart';
 import '../../features/splash/presentation/pages/splash_page.dart';
+import '../../features/support_chat/domain/support_chat_config.dart';
+import '../../features/support_chat/presentation/pages/support_chat_page.dart';
 import '../../features/synchro/presentation/pages/synchro_page.dart';
 import '../../features/terminal/presentation/pages/terminal_setup_page.dart';
 import '../../features/tournee/presentation/pages/tournee_page.dart';
@@ -155,6 +157,11 @@ class AppRouter {
       GoRoute(
         path: AppRoutes.changePin,
         builder: (context, state) => const ChangePinPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.supportChat,
+        builder: (context, state) =>
+            SupportChatPage(config: state.extra! as SupportChatConfig),
       ),
       GoRoute(
         path: AppRoutes.preferences,
