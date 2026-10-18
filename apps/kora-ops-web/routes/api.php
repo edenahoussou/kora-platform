@@ -179,9 +179,6 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                 ->name('ticket-pdf');
         });
 
-    // OPS Mobile — descente anticipée et clôture no-show (MEZ-84 suite).
-    // Les deux exigent un terminal actif : ce sont des actions faites
-    // depuis le P501, contrairement à l'annulation d'embarquement.
     Route::prefix('ops/seat-releases')
         ->name('ops.seat-releases.')
         ->middleware(['auth:sanctum', 'ops.session'])
@@ -190,10 +187,6 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::post('no-show-closure', [OpsSeatReleaseController::class, 'closeNoShows'])->name('no-show-closure');
         });
 
-    // OPS Mobile — synchronisation hors ligne (MEZ-84 suite). Enveloppe
-    // sync_batches/sync_operations autour des actions de traitement déjà
-    // construites (embarquement, no-show, libération) — même garde que
-    // les autres actions terrain.
     Route::prefix('ops/sync')
         ->name('ops.sync.')
         ->middleware(['auth:sanctum', 'ops.session'])
@@ -202,9 +195,6 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::post('batches', [OpsSyncController::class, 'submitBatch'])->name('batches');
         });
 
-    // OPS Mobile — ingestion des positions GPS du convoyeur (MEZ-100). Même
-    // garde que les autres routes terrain ; débit limité (fréquence GPS
-    // attendue, pas un flux illimité).
     Route::prefix('ops/tracking')
         ->name('ops.tracking.')
         ->middleware(['auth:sanctum', 'ops.session'])
@@ -214,8 +204,6 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                 ->name('positions.batch');
         });
 
-    // OPS Web — lecture des positions de la flotte en circulation (MEZ-100).
-    // Permission ET périmètre (agence ou réseau) — voir FleetTrackingQuery.
     Route::prefix('fleet/tracking')
         ->name('fleet.tracking.')
         ->middleware('auth:sanctum')
@@ -223,12 +211,6 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::get('/', [FleetTrackingController::class, 'index'])->name('index');
         });
 
-    // Notifications opérationnelles (MEZ-96/97) — même contrat OPS Web /
-    // OPS Mobile. `EnsureNotificationsAccess` (pas `ops.session`) : compte
-    // actif + permission `notifications.view`, et une session liée à un
-    // terminal (P501) doit être valide, mais SANS exiger X-Terminal-Serial
-    // — la récupération d'une alerte critique doit rester possible juste
-    // après une reconnexion, avant que le terminal ne soit re-présenté.
     Route::prefix('notifications')
         ->name('notifications.')
         ->middleware(['auth:sanctum', 'notifications.access'])
