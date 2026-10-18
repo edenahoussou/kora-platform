@@ -79,6 +79,10 @@ abstract final class ApiConstants {
 
   // Notifications opérationnelles (MEZ-96/MEZ-97) — même contrat OPS
   // Mobile / OPS Web (voir OpsNotificationController).
+  /// Config publique du chat support tawk.to pour l'app convoyeur.
+  static const String supportChatConfiguration =
+      '$_v1/ops/support-chat-configuration';
+
   static const String notificationsIndex = '$_v1/notifications';
   static const String notificationsSentIndex = '$_v1/notifications/sent';
   static const String notificationsUnreadCount =

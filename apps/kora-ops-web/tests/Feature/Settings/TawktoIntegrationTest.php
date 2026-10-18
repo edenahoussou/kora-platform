@@ -120,3 +120,44 @@ it('exposes the public tawk.to configuration to the passenger app', function ():
         ->assertJsonPath('data.visitor.email', 'passager@kora.test')
         ->assertJsonPath('data.visitor.phone', '+22997000000');
 });
+
+it('requires authentication for the OPS support chat configuration', function (): void {
+    $this->getJson('/api/v1/ops/support-chat-configuration')->assertUnauthorized();
+});
+
+it('reports the OPS chat as disabled until tawk.to is configured', function (): void {
+    Sanctum::actingAs(User::factory()->create());
+
+    $this->getJson('/api/v1/ops/support-chat-configuration')
+        ->assertOk()
+        ->assertJsonPath('data.enabled', false)
+        ->assertJsonMissingPath('data.property_id');
+});
+
+it('exposes the public tawk.to configuration to the OPS mobile app', function (): void {
+    $settings = app(IntegrationsSettings::class);
+    $settings->tawktoEnabled = true;
+    $settings->tawktoPropertyId = '64f0a1b2c3d4e5f6';
+    $settings->tawktoWidgetId = 'default';
+    $settings->tawktoApiKey = 'test-api-key';
+    $settings->save();
+
+    $agency = Agency::factory()->create(['name' => 'Agence Étoile']);
+    $driver = User::factory()->create([
+        'name' => 'Marc Convoyeur',
+        'email' => 'conductor.marc@kora.demo',
+        'agency_id' => $agency->id,
+    ]);
+    Sanctum::actingAs($driver);
+
+    $this->getJson('/api/v1/ops/support-chat-configuration')
+        ->assertOk()
+        ->assertJsonPath('data.enabled', true)
+        ->assertJsonPath('data.property_id', '64f0a1b2c3d4e5f6')
+        ->assertJsonPath('data.widget_id', 'default')
+        ->assertJsonPath('data.direct_chat_url', 'https://tawk.to/chat/64f0a1b2c3d4e5f6/default')
+        ->assertJsonPath('data.secure_hash', hash_hmac('sha256', 'conductor.marc@kora.demo', 'test-api-key'))
+        ->assertJsonPath('data.visitor.name', 'Marc Convoyeur')
+        ->assertJsonPath('data.visitor.agency', 'Agence Étoile')
+        ->assertJsonMissingPath('data.api_key');
+});

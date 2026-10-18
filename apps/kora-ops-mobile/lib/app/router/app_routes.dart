@@ -51,6 +51,7 @@ abstract final class AppRoutes {
   static const String securite = '/profil/securite';
   static const String changePin = '/profil/securite/pin';
   static const String preferences = '/profil/preferences';
+  static const String supportChat = '/profil/support-chat';
 
   static const String printerTest = '/printer-test';
 
