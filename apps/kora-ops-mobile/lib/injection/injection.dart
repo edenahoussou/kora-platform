@@ -13,6 +13,7 @@ import '../core/database/app_database.dart';
 import '../core/network/network_client.dart';
 import '../core/network/session_expiry_interceptor.dart';
 import '../core/network/terminal_header_interceptor.dart';
+import '../core/services/push_notification_service.dart';
 import '../features/auth/data/datasources/auth_local_datasource.dart';
 import '../features/auth/data/datasources/auth_remote_datasource.dart';
 import '../features/auth/data/datasources/device_info_datasource.dart';
@@ -546,6 +547,14 @@ Future<void> configureDependencies() async {
   );
   getIt.registerSingleton<NotificationCubit>(
     NotificationCubit(getIt<NotificationRepository>(), getIt<AuthCubit>()),
+  );
+  getIt.registerLazySingleton<PushNotificationService>(
+    () => PushNotificationService(
+      opsDioClient.dio,
+      getIt<AuthLocalDataSource>(),
+      getIt<AuthCubit>(),
+      getIt<NotificationCubit>(),
+    ),
   );
   getIt.registerSingleton<SentNotificationCubit>(
     SentNotificationCubit(getIt<NotificationRepository>()),

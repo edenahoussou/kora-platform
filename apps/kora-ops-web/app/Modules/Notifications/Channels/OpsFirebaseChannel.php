@@ -30,7 +30,11 @@ class OpsFirebaseChannel
 
         UserDevice::query()
             ->where('user_id', $notifiable->id)
-            ->where('platform', DevicePlatform::Web->value)
+            ->whereIn('platform', [
+                DevicePlatform::Web->value,
+                DevicePlatform::Android->value,
+                DevicePlatform::Ios->value,
+            ])
             ->where('status', UserDeviceStatus::Active->value)
             ->whereNotNull('push_token')
             ->each(function (UserDevice $device) use ($notification, $notifiable): void {

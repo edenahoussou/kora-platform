@@ -11,6 +11,7 @@ use App\Modules\Finance\Data\RevenuePeriod;
 use App\Modules\IdentityAccess\Data\SystemRole;
 use App\Modules\Notifications\Data\OpsNotificationSeverity;
 use App\Modules\Notifications\Models\OpsNotification;
+use App\Modules\Notifications\Models\OpsNotificationEvent;
 use App\Modules\Payments\Data\PaymentStatus;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\Models\PaymentRefund;
@@ -366,18 +367,27 @@ class DashboardReadService
 
         $priorities = [];
         foreach ($notifications as $notification) {
+            // `event_id` est nullable en base (nullOnDelete).
+            // On utilise instanceof pour aider PHPStan à comprendre le typage nullable
+            // sans déclencher l'erreur "nullsafe.neverNull".
             $event = $notification->event;
-            $payload = is_array($notification->data) ? $notification->data : [];
-            $departureUuid = $event?->departure?->uuid;
-            $severity = $event?->severity
+
+            /** @var array<string, mixed> $payload */
+            $payload = (array) $notification->data;
+
+            $severity = ($event instanceof OpsNotificationEvent ? $event->severity : null)
                 ?? OpsNotificationSeverity::tryFrom((string) ($payload['severity'] ?? ''))
                 ?? OpsNotificationSeverity::Info;
+
+            $departureUuid = ($event instanceof OpsNotificationEvent && $event->departure !== null)
+                ? $event->departure->uuid
+                : null;
 
             $priorities[] = [
                 'uuid' => $notification->uuid,
                 'category' => $this->severityLabel($severity),
-                'title' => $event?->title ?? (string) ($payload['title'] ?? 'Mise à jour'),
-                'detail' => $event?->message ?? (string) ($payload['message'] ?? ''),
+                'title' => ($event instanceof OpsNotificationEvent ? $event->title : null) ?? (string) ($payload['title'] ?? 'Mise à jour'),
+                'detail' => ($event instanceof OpsNotificationEvent ? $event->message : null) ?? (string) ($payload['message'] ?? ''),
                 'time' => $notification->created_at->setTimezone(RevenuePeriod::TIMEZONE)->format('H:i'),
                 'tone' => match ($severity) {
                     OpsNotificationSeverity::Critical => 'urgent',

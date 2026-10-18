@@ -2,6 +2,7 @@
 
 namespace App\Modules\Notifications\Jobs;
 
+use App\Modules\IdentityAccess\Data\DevicePlatform;
 use App\Modules\IdentityAccess\Data\UserDeviceStatus;
 use App\Modules\IdentityAccess\Models\UserDevice;
 use App\Modules\Notifications\Data\OpsNotificationChannel;
@@ -57,11 +58,24 @@ class SendOpsPushJob implements ShouldQueue
 
         $body = $this->safeSummary($event->type->value);
         try {
-            $sent = $fcm->send($device->push_token, [
+            $message = [
                 'title' => $event->title,
                 'body' => $body,
-                'link' => route('dashboard'),
-            ]);
+                // Charge utile minimale pour le deep-link mobile (aucune donnée métier).
+                'data' => array_filter([
+                    'type' => $event->type->value,
+                    'event_id' => (string) $event->id,
+                    'notification_uuid' => $this->notificationUuid,
+                ]),
+            ];
+
+            if ($device->platform === DevicePlatform::Web) {
+                $message['link'] = route('dashboard');
+            } else {
+                $message['platform'] = $device->platform->value;
+            }
+
+            $sent = $fcm->send($device->push_token, $message);
 
             if (! $sent) {
                 $device->forceFill(['push_token' => null])->save();
