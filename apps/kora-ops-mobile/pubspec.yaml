@@ -117,6 +117,11 @@ dependencies:
   # Dialogues (succès/erreur/warning/info/confirmation/chargement)
   pro_dialog: ^1.0.9
 
+  # Notifications push FCM (alertes OPS) — voir PushNotificationService.
+  firebase_core: 
+  firebase_messaging: 
+  flutter_local_notifications: 
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -129,6 +134,9 @@ dev_dependencies:
   # Tests
   bloc_test: ^9.1.7
   mocktail: ^1.0.4
+
+  # Renommage du package : dart run change_app_package_name:main <id>
+  change_app_package_name: 
 
   # Widgetbook (module séparé, voir /widgetbook)
 

@@ -16,6 +16,8 @@ abstract final class ApiConstants {
   static const String logout = '$_v1/auth/logout';
   static const String devices = '$_v1/auth/devices';
   static String device(String uuid) => '$_v1/auth/devices/$uuid';
+  static String devicePushToken(String uuid) =>
+      '$_v1/auth/devices/$uuid/push-token';
 
   // OPS Mobile — terminal P501 (voir routes/api.php § ops-mobile/terminal,
   // MEZ-91). `sync` et `activity` exigent un terminal actif (middleware

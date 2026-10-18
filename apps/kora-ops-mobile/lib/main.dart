@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'app/app.dart';
 import 'app/config/app_config.dart';
+import 'core/services/push_notification_service.dart';
 import 'injection/injection.dart';
 
 Future<void> main() async {
@@ -20,6 +21,7 @@ Future<void> main() async {
 
   AppConfig.init();
   await configureDependencies();
+  await getIt<PushNotificationService>().init();
 
   runApp(const App());
 }

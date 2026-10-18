@@ -19,7 +19,7 @@ class FirebaseMessagingClient
             && $this->serviceAccount() !== null;
     }
 
-    /** @param array{title: string, body: string, link?: string} $message */
+    /** @param array{title: string, body: string, link?: string, data?: array<string, string>, platform?: string} $message */
     public function send(string $token, array $message): bool
     {
         if ($token === '') {
@@ -42,6 +42,33 @@ class FirebaseMessagingClient
                     'title' => $message['title'],
                     'body' => $message['body'],
                 ]);
+
+            /** @var array<non-empty-string, string> $filteredData */
+            $filteredData = [];
+            foreach ($message['data'] ?? [] as $key => $value) {
+                if ($key !== '') {
+                    /** @var non-empty-string $safeKey */
+                    $safeKey = $key;
+                    $filteredData[$safeKey] = (string) $value;
+                }
+            }
+
+            if ($filteredData !== []) {
+                $cloudMessage = $cloudMessage->withData($filteredData);
+            }
+
+            // Appareils mobiles : priorité haute + canal Android de l'app KORA OPS.
+            if (($message['platform'] ?? null) === 'android') {
+                $cloudMessage = $cloudMessage->withAndroidConfig([
+                    'priority' => 'high',
+                    'notification' => ['channel_id' => 'kora_ops_alerts'],
+                ]);
+            } elseif (($message['platform'] ?? null) === 'ios') {
+                $cloudMessage = $cloudMessage->withApnsConfig([
+                    'headers' => ['apns-priority' => '10'],
+                    'payload' => ['aps' => ['sound' => 'default']],
+                ]);
+            }
 
             if (isset($message['link'])) {
                 $cloudMessage = $cloudMessage->withWebPushConfig([
@@ -76,11 +103,13 @@ class FirebaseMessagingClient
 
         $serviceAccount = json_decode($this->settings->firebaseServiceAccountJson, true);
 
-        if (! is_array($serviceAccount)
+        if (
+            ! is_array($serviceAccount)
             || ($serviceAccount['type'] ?? null) !== 'service_account'
             || ($serviceAccount['project_id'] ?? null) !== $this->settings->firebaseProjectId
             || blank($serviceAccount['client_email'] ?? null)
-            || blank($serviceAccount['private_key'] ?? null)) {
+            || blank($serviceAccount['private_key'] ?? null)
+        ) {
             throw new RuntimeException('The Firebase service account settings are incomplete or inconsistent.');
         }
 

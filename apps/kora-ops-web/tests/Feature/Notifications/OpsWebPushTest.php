@@ -7,6 +7,7 @@ use App\Modules\IdentityAccess\Data\UserDeviceStatus;
 use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\IdentityAccess\Models\UserDevice;
 use App\Modules\Notifications\Actions\PublishOpsNotificationAction;
+use App\Modules\Notifications\Channels\OpsFirebaseChannel;
 use App\Modules\Notifications\Data\OpsNotificationChannel;
 use App\Modules\Notifications\Data\OpsNotificationDeliveryStatus;
 use App\Modules\Notifications\Data\OpsNotificationDraft;
@@ -15,6 +16,7 @@ use App\Modules\Notifications\Data\OpsNotificationType;
 use App\Modules\Notifications\Jobs\SendOpsPushJob;
 use App\Modules\Notifications\Models\OpsNotificationDelivery;
 use App\Modules\Notifications\Models\OpsNotificationEvent;
+use App\Modules\Notifications\Notifications\OpsPushNotification;
 use App\Modules\Notifications\Services\FirebaseMessagingClient;
 use App\Modules\Notifications\Services\OpsNotificationRecipientResolver;
 use App\Modules\Settings\Settings\IntegrationsSettings;
@@ -207,4 +209,67 @@ it('attempts web push for an inbox event independently of its email classificati
 
     expect(OpsNotificationType::DepartureAssigned->sendsMail())->toBeFalse();
     Queue::assertPushed(SendOpsPushJob::class);
+});
+
+it('sends the alert push to android devices with a data payload and no web link', function (): void {
+    $recipient = User::factory()->create();
+    $device = UserDevice::query()->create([
+        'user_id' => $recipient->id,
+        'name' => 'Samsung SM-S921B',
+        'platform' => DevicePlatform::Android,
+        'device_fingerprint_hash' => hash('sha256', Str::uuid()->toString()),
+        'push_token' => 'android-token',
+        'status' => UserDeviceStatus::Active,
+    ]);
+    $event = OpsNotificationEvent::query()->create([
+        'dedupe_key' => 'cash-variance:'.Str::uuid(),
+        'type' => OpsNotificationType::CashVarianceSubmitted,
+        'severity' => OpsNotificationSeverity::Warning,
+        'title' => 'Écart de caisse à approuver',
+        'message' => 'Détail interne',
+        'data' => [],
+        'occurred_at' => now(),
+    ]);
+
+    $fcm = Mockery::mock(FirebaseMessagingClient::class);
+    $fcm->shouldReceive('isServerConfigured')->once()->andReturn(true);
+    $fcm->shouldReceive('send')
+        ->once()
+        ->with('android-token', Mockery::on(fn (array $message): bool => $message['platform'] === 'android'
+            && ! isset($message['link'])
+            && $message['data']['type'] === OpsNotificationType::CashVarianceSubmitted->value
+            && $message['data']['notification_uuid'] === 'notif-uuid'))
+        ->andReturn(true);
+
+    (new SendOpsPushJob($event->id, $device->id, 'device:'.$device->uuid, 'notif-uuid'))->handle($fcm);
+
+    expect(OpsNotificationDelivery::query()->where('event_id', $event->id)->value('status'))
+        ->toBe(OpsNotificationDeliveryStatus::Sent);
+});
+
+it('dispatches the push job for android devices through the Firebase channel', function (): void {
+    Queue::fake();
+    $recipient = User::factory()->create();
+    UserDevice::query()->create([
+        'user_id' => $recipient->id,
+        'name' => 'Android',
+        'platform' => DevicePlatform::Android,
+        'device_fingerprint_hash' => hash('sha256', Str::uuid()->toString()),
+        'push_token' => 'android-token',
+        'status' => UserDeviceStatus::Active,
+    ]);
+    $event = OpsNotificationEvent::query()->create([
+        'dedupe_key' => 'cash-variance:'.Str::uuid(),
+        'type' => OpsNotificationType::CashVarianceSubmitted,
+        'severity' => OpsNotificationSeverity::Warning,
+        'title' => 'Écart',
+        'message' => 'x',
+        'data' => [],
+        'occurred_at' => now(),
+    ]);
+
+    app(OpsFirebaseChannel::class)
+        ->send($recipient, new OpsPushNotification($event->id));
+
+    Queue::assertPushed(SendOpsPushJob::class, 1);
 });

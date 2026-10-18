@@ -13,6 +13,7 @@ plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    id("com.google.gms.google-services")
 }
 
 
@@ -26,18 +27,19 @@ if (keystorePropertiesFile.exists()) {
 
 
 android {
-    namespace = "com.example.kora_ops_mobile"
+    namespace = "com.koraexpress.ops_mobile"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.kora_ops_mobile"
+        applicationId = "com.koraexpress.ops_mobile"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -77,6 +79,8 @@ dependencies {
     // Flutter apporte transitivement, pour être sûr que cette surcharge
     // (androidx.core 1.9.0+) est bien disponible.
     implementation("androidx.core:core-ktx:1.13.1")
+    // Requis par flutter_local_notifications.
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
 
 flutter {

@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "714264651339",
+    "project_id": "kora-express-10daf",
+    "storage_bucket": "kora-express-10daf.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:714264651339:android:30b9028319bf988752cfce",
+        "android_client_info": {
+          "package_name": "com.koraexpress.ops_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDFIlaNe78GaYjD54IDRRqeu0pAiINyfQI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:714264651339:android:4ec748c4735fc07252cfce",
+        "android_client_info": {
+          "package_name": "com.koraexpress.passenger"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDFIlaNe78GaYjD54IDRRqeu0pAiINyfQI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
