@@ -45,6 +45,8 @@ type Expense = {
     occurredAt: string | null;
     hasEvidence: boolean;
     isReconciled: boolean;
+    costCenterType: 'departure' | 'bus' | 'line' | 'agency';
+    costCenter: string | null;
 };
 type ExpenseDetail = Expense & {
     description: string | null;
@@ -54,6 +56,16 @@ type ExpenseDetail = Expense & {
     rejectionReason: string | null;
     reversalReason: string | null;
     media: { uuid: string; name: string; mimeType: string; url: string }[];
+    costCenterUuid: string | null;
+    maintenance: {
+        type: string;
+        typeLabel: string;
+        garageLabel: string | null;
+        partsAmount: number | null;
+        laborAmount: number | null;
+        immobilizedFrom: string | null;
+        immobilizedTo: string | null;
+    } | null;
     permissions: { canApprove: boolean; canReverse: boolean };
 };
 type Paginated<T> = {
@@ -77,10 +89,21 @@ type Props = {
     };
     statuses: Record<string, string>;
     channels: Record<string, string>;
-    categories: { uuid: string; label: string }[];
+    categories: { uuid: string; code: string; label: string }[];
     ledgers: { uuid: string; label: string }[];
+    costCenters: {
+        buses: { uuid: string; label: string }[];
+        lines: { uuid: string; label: string }[];
+        departures: { uuid: string; label: string }[];
+        agencies: { uuid: string; label: string }[];
+    };
     counters: Record<string, number>;
-    permissions: { canCreate: boolean; canExport: boolean };
+    permissions: {
+        canCreate: boolean;
+        canExport: boolean;
+        canAttachCostCenter: boolean;
+        canChooseAgency: boolean;
+    };
     expenseDetail?: ExpenseDetail | null;
 };
 
@@ -260,6 +283,7 @@ export default function ExpensesPage({
     channels,
     categories,
     ledgers,
+    costCenters,
     counters,
     permissions,
     expenseDetail,
@@ -274,6 +298,15 @@ export default function ExpensesPage({
     const form = useForm({
         category_uuid: categories[0]?.uuid ?? '',
         ledger_uuid: '',
+        agency_uuid: '',
+        center_type: 'none',
+        bus_uuid: '',
+        line_uuid: '',
+        departure_uuid: '',
+        maintenance_type: 'corrective',
+        garage_label: '',
+        parts_amount: '',
+        labor_amount: '',
         payment_channel: 'cash',
         amount: '',
         payee_label: '',
@@ -309,6 +342,16 @@ export default function ExpensesPage({
         ],
         [categories],
     );
+
+    const selectedCategory = categories.find(
+        (item) => item.uuid === form.data.category_uuid,
+    );
+    const isMaintenance = selectedCategory?.code === 'maintenance';
+    const centerOptions = {
+        bus: costCenters.buses,
+        line: costCenters.lines,
+        departure: costCenters.departures,
+    } as const;
 
     const buildParams = (extra: Record<string, string> = {}) => {
         const params: Record<string, string> = { ...extra };
@@ -380,6 +423,31 @@ export default function ExpensesPage({
 
     const submitExpense = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+        form.transform((data) => {
+            const payload: Record<string, unknown> = { ...data };
+            delete payload.center_type;
+            delete payload.maintenance_type;
+            delete payload.garage_label;
+            delete payload.parts_amount;
+            delete payload.labor_amount;
+
+            payload.bus_uuid = data.center_type === 'bus' ? data.bus_uuid : '';
+            payload.line_uuid =
+                data.center_type === 'line' ? data.line_uuid : '';
+            payload.departure_uuid =
+                data.center_type === 'departure' ? data.departure_uuid : '';
+
+            if (isMaintenance) {
+                payload.maintenance = {
+                    type: data.maintenance_type,
+                    garage_label: data.garage_label,
+                    parts_amount: data.parts_amount,
+                    labor_amount: data.labor_amount,
+                };
+            }
+
+            return payload;
+        });
         form.post(store.url(), {
             forceFormData: true,
             onSuccess: () => {
@@ -583,6 +651,192 @@ export default function ExpensesPage({
                                     aria-invalid={!!form.errors.occurred_at}
                                 />
                             </label>
+                            {permissions.canChooseAgency && (
+                                <label className="field">
+                                    <span>Agence support</span>
+                                    <select
+                                        value={form.data.agency_uuid}
+                                        onChange={(event) =>
+                                            form.setData(
+                                                'agency_uuid',
+                                                event.target.value,
+                                            )
+                                        }
+                                        className="control"
+                                        aria-invalid={!!form.errors.agency_uuid}
+                                    >
+                                        <option value="">
+                                            Sélectionner l’agence
+                                        </option>
+                                        {costCenters.agencies.map((agency) => (
+                                            <option
+                                                key={agency.uuid}
+                                                value={agency.uuid}
+                                            >
+                                                {agency.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+                            )}
+                            {permissions.canAttachCostCenter && (
+                                <>
+                                    <label className="field">
+                                        <span>Centre de coût</span>
+                                        <select
+                                            value={form.data.center_type}
+                                            onChange={(event) =>
+                                                form.setData(
+                                                    'center_type',
+                                                    event.target.value,
+                                                )
+                                            }
+                                            className="control"
+                                        >
+                                            <option value="none">
+                                                Aucun (coût non affecté)
+                                            </option>
+                                            <option value="bus">Bus</option>
+                                            <option value="line">Ligne</option>
+                                            <option value="departure">
+                                                Départ
+                                            </option>
+                                        </select>
+                                    </label>
+                                    {form.data.center_type !== 'none' && (
+                                        <label className="field md:col-span-2">
+                                            <span>
+                                                {form.data.center_type === 'bus'
+                                                    ? 'Bus'
+                                                    : form.data.center_type ===
+                                                        'line'
+                                                      ? 'Ligne'
+                                                      : 'Départ'}
+                                            </span>
+                                            <select
+                                                value={
+                                                    form.data.center_type ===
+                                                    'bus'
+                                                        ? form.data.bus_uuid
+                                                        : form.data
+                                                                .center_type ===
+                                                            'line'
+                                                          ? form.data.line_uuid
+                                                          : form.data
+                                                                .departure_uuid
+                                                }
+                                                onChange={(event) => {
+                                                    const key =
+                                                        form.data
+                                                            .center_type ===
+                                                        'bus'
+                                                            ? 'bus_uuid'
+                                                            : form.data
+                                                                    .center_type ===
+                                                                'line'
+                                                              ? 'line_uuid'
+                                                              : 'departure_uuid';
+                                                    form.setData(
+                                                        key,
+                                                        event.target.value,
+                                                    );
+                                                }}
+                                                className="control"
+                                                aria-invalid={
+                                                    !!form.errors.bus_uuid ||
+                                                    !!form.errors.line_uuid ||
+                                                    !!form.errors.departure_uuid
+                                                }
+                                            >
+                                                <option value="">
+                                                    Sélectionner
+                                                </option>
+                                                {centerOptions[
+                                                    form.data
+                                                        .center_type as keyof typeof centerOptions
+                                                ].map((center) => (
+                                                    <option
+                                                        key={center.uuid}
+                                                        value={center.uuid}
+                                                    >
+                                                        {center.label}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </label>
+                                    )}
+                                </>
+                            )}
+                            {isMaintenance && (
+                                <>
+                                    <label className="field">
+                                        <span>Type de maintenance</span>
+                                        <select
+                                            value={form.data.maintenance_type}
+                                            onChange={(event) =>
+                                                form.setData(
+                                                    'maintenance_type',
+                                                    event.target.value,
+                                                )
+                                            }
+                                            className="control"
+                                        >
+                                            <option value="preventive">
+                                                Préventive
+                                            </option>
+                                            <option value="corrective">
+                                                Corrective
+                                            </option>
+                                            <option value="diagnostic">
+                                                Diagnostic
+                                            </option>
+                                        </select>
+                                    </label>
+                                    <label className="field">
+                                        <span>Garage</span>
+                                        <input
+                                            value={form.data.garage_label}
+                                            onChange={(event) =>
+                                                form.setData(
+                                                    'garage_label',
+                                                    event.target.value,
+                                                )
+                                            }
+                                            className="control"
+                                        />
+                                    </label>
+                                    <label className="field">
+                                        <span>Pièces XOF</span>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            value={form.data.parts_amount}
+                                            onChange={(event) =>
+                                                form.setData(
+                                                    'parts_amount',
+                                                    event.target.value,
+                                                )
+                                            }
+                                            className="control"
+                                        />
+                                    </label>
+                                    <label className="field">
+                                        <span>Main-d’œuvre XOF</span>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            value={form.data.labor_amount}
+                                            onChange={(event) =>
+                                                form.setData(
+                                                    'labor_amount',
+                                                    event.target.value,
+                                                )
+                                            }
+                                            className="control"
+                                        />
+                                    </label>
+                                </>
+                            )}
                             <label className="field md:col-span-2">
                                 <span>Description</span>
                                 <textarea
@@ -617,7 +871,17 @@ export default function ExpensesPage({
                                 form.errors.evidence ??
                                 form.errors.category_uuid ??
                                 form.errors.payment_channel ??
-                                form.errors.occurred_at) && (
+                                form.errors.occurred_at ??
+                                form.errors.bus_uuid ??
+                                form.errors.line_uuid ??
+                                form.errors.departure_uuid ??
+                                form.errors.agency_uuid ??
+                                (
+                                    form.errors as Record<
+                                        string,
+                                        string | undefined
+                                    >
+                                ).maintenance) && (
                                 <div
                                     className="cash-form-error md:col-span-3"
                                     role="alert"
@@ -627,7 +891,17 @@ export default function ExpensesPage({
                                         form.errors.evidence ??
                                         form.errors.category_uuid ??
                                         form.errors.payment_channel ??
-                                        form.errors.occurred_at}
+                                        form.errors.occurred_at ??
+                                        form.errors.bus_uuid ??
+                                        form.errors.line_uuid ??
+                                        form.errors.departure_uuid ??
+                                        form.errors.agency_uuid ??
+                                        (
+                                            form.errors as Record<
+                                                string,
+                                                string | undefined
+                                            >
+                                        ).maintenance}
                                 </div>
                             )}
                             <div className="flex gap-2 md:col-span-3">
@@ -759,11 +1033,14 @@ export default function ExpensesPage({
                         </div>
                     ) : (
                         <div className="cash-table-scroll overflow-x-auto">
-                            <table className="w-full min-w-[900px] text-left">
+                            <table className="w-full min-w-[1020px] text-left">
                                 <thead className="bg-muted/45 text-[0.625rem] font-black tracking-[0.14em] text-muted-foreground uppercase">
                                     <tr>
                                         <th className="px-4 py-3">Dépense</th>
                                         <th className="px-4 py-3">Catégorie</th>
+                                        <th className="px-4 py-3">
+                                            Centre de coût
+                                        </th>
                                         <th className="px-4 py-3">Moyen</th>
                                         <th className="px-4 py-3 text-right">
                                             Montant
@@ -817,6 +1094,13 @@ export default function ExpensesPage({
                                             </td>
                                             <td className="px-4 py-3.5 text-xs font-medium text-foreground">
                                                 {expense.category ?? '—'}
+                                            </td>
+                                            <td className="px-4 py-3.5 text-xs text-muted-foreground">
+                                                {expense.costCenter ?? (
+                                                    <span className="text-[0.625rem] font-bold text-gold">
+                                                        Non affecté
+                                                    </span>
+                                                )}
                                             </td>
                                             <td className="px-4 py-3.5 text-xs text-muted-foreground">
                                                 {expense.paymentChannelLabel}
@@ -898,6 +1182,14 @@ export default function ExpensesPage({
                         </div>
                         <div className="flex justify-between gap-4">
                             <dt className="text-muted-foreground">
+                                Centre de coût
+                            </dt>
+                            <dd className="text-right font-bold">
+                                {expenseDetail.costCenter ?? 'Non affecté'}
+                            </dd>
+                        </div>
+                        <div className="flex justify-between gap-4">
+                            <dt className="text-muted-foreground">
                                 Bénéficiaire
                             </dt>
                             <dd className="font-bold">
@@ -918,6 +1210,46 @@ export default function ExpensesPage({
                                 {expenseDetail.description ?? '—'}
                             </dd>
                         </div>
+                        {expenseDetail.maintenance && (
+                            <div>
+                                <dt className="text-muted-foreground">
+                                    Maintenance
+                                </dt>
+                                <dd className="mt-1 space-y-1">
+                                    <p className="font-bold">
+                                        {expenseDetail.maintenance.typeLabel}
+                                        {expenseDetail.maintenance.garageLabel
+                                            ? ` · ${expenseDetail.maintenance.garageLabel}`
+                                            : ''}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                        Pièces{' '}
+                                        {formatMoney(
+                                            expenseDetail.maintenance
+                                                .partsAmount ?? 0,
+                                        )}{' '}
+                                        · Main-d’œuvre{' '}
+                                        {formatMoney(
+                                            expenseDetail.maintenance
+                                                .laborAmount ?? 0,
+                                        )}
+                                    </p>
+                                    {expenseDetail.maintenance
+                                        .immobilizedFrom && (
+                                        <p className="text-xs text-muted-foreground">
+                                            Immobilisé du{' '}
+                                            {
+                                                expenseDetail.maintenance
+                                                    .immobilizedFrom
+                                            }{' '}
+                                            au{' '}
+                                            {expenseDetail.maintenance
+                                                .immobilizedTo ?? '—'}
+                                        </p>
+                                    )}
+                                </dd>
+                            </div>
+                        )}
                     </dl>
                     {expenseDetail.permissions.canApprove &&
                         expenseDetail.status === 'pending' && (

@@ -24,7 +24,13 @@ class ExpensePolicy
 
     public function create(User $user): bool
     {
-        return $user->agency_id !== null && $this->allows($user, 'expenses.create');
+        return $this->allows($user, 'expenses.create')
+            && ($user->agency_id !== null || $this->allows($user, 'expenses.view-network'));
+    }
+
+    public function attachCostCenter(User $user): bool
+    {
+        return $this->allows($user, 'expenses.view-network');
     }
 
     public function approve(User $user, Expense $expense): bool

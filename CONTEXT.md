@@ -295,3 +295,47 @@ _Avoid_: Réduction automatique sans code (rôle de la règle de tarification dy
 **Rédemption de promotion**:
 Enregistrement de l’usage réel d’un code promo lorsque la réservation passe à l’état payée. Une seule rédemption existe par couple promotion/réservation ; elle porte le montant de remise gelé dans le devis et incrémente le compteur d’utilisations de façon atomique.
 _Avoid_: Comptage au devis ou au blocage de siège ; double comptage d’une même vente
+
+**Rentabilité**:
+Lecture de gestion de la contribution d'un axe opérationnel (bus, ligne, départ, agence) sur une période de service : recette nette de service diminuée des coûts affectés. Elle n'est ni une comptabilité générale ni un résultat fiscal.
+_Avoid_: Résultat comptable ; trésorerie ; marge brute de la maquette
+
+**Période de service**:
+Période bornée par la date de départ planifiée des départs (`scheduled_at`, fuseau `Africa/Porto-Novo`). Elle rattache une vente anticipée au voyage qu'elle finance, indépendamment de sa date d'encaissement.
+_Avoid_: Période d'encaissement ; période de caisse
+
+**Recette nette de service**:
+Paiements confirmés en XOF rattachés aux réservations des départs de la période, diminués des annulations reconnues sur ces paiements. Elle peut différer de la recette nette de trésorerie de l'écran Recettes.
+_Avoid_: Recette nette de caisse ; chiffre d'affaires fiscal
+
+**Contribution**:
+Recette nette de service d'un axe diminuée de ses coûts directs et répartis. Elle mesure ce que l'axe apporte après ses coûts d'exploitation affectés.
+_Avoid_: Marge nette réseau ; résultat opérationnel
+
+**Coût affecté**:
+Dépense approuvée rattachée à un départ, un bus ou une ligne, directement ou par une règle de répartition déterministe.
+_Avoid_: Charge imputée arbitrairement ; coût estimé sans source
+
+**Coût non affecté**:
+Dépense approuvée qui ne peut pas être rattachée à l'axe consulté, notamment une dépense d'agence pour un axe opérationnel. Il reste visible au niveau réseau et n'entre jamais dans la marge d'un axe.
+_Avoid_: Coût nul ; charge supprimée
+
+**TCO opérationnel**:
+Somme des dépenses approuvées affectées à un bus sur la période (carburant, maintenance, péages, assurance, leasing, pneus, autres). Il exclut acquisition, amortissement, financement et paie.
+_Avoid_: TCO comptable complet ; valeur du véhicule
+
+**Coût/km**:
+TCO opérationnel du bus divisé par ses kilomètres de la période. La distance vient du GPS quand sa couverture est suffisante, sinon de la distance planifiée marquée « estimé ».
+_Avoid_: Coût/km théorique sans badge ; distance odomètre
+
+**Seuil de rentabilité**:
+Nombre de sièges à vendre pour couvrir les coûts fixes, calculé à partir de la contribution par siège (recette nette moins coûts variables). Il est exprimé en sièges, jamais en recette.
+_Avoid_: Seuil en FCFA ; seuil marketing
+
+**Taux de couverture des coûts**:
+Part des coûts de la période effectivement affectée aux axes opérationnels. Il rend visible la dépendance à la saisie du centre de coût.
+_Avoid_: Taux de remplissage ; couverture GPS
+
+**Résultat opérationnel réseau**:
+Recette nette de service du réseau diminuée des coûts affectés et des coûts non affectés. C'est le seul résultat qui intègre les coûts hors axes.
+_Avoid_: Somme des contributions d'axes ; résultat net comptable

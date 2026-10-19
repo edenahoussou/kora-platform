@@ -31,6 +31,7 @@ use App\Modules\IdentityAccess\Http\Controllers\TerminalP501Controller;
 use App\Modules\Passengers\Http\Controllers\PassengerErasureController;
 use App\Modules\Passengers\Http\Controllers\PassengerIndexController;
 use App\Modules\Payments\Http\Controllers\AgencyPaymentAccountController;
+use App\Modules\Profitability\Http\Controllers\ProfitabilityController;
 use App\Modules\Ticketing\Http\Controllers\TicketIndexController;
 use App\Modules\Ticketing\Http\Controllers\TicketPreviewController;
 use App\Modules\Ticketing\Http\Controllers\TicketViewController;
@@ -105,6 +106,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('expenses/{expense:uuid}/media/{mediaUuid}', [ExpenseController::class, 'media'])->name('expenses.media');
     Route::get('revenue', [RevenueController::class, 'index'])->name('revenue');
     Route::get('revenue/export', [RevenueController::class, 'export'])->name('revenue.export');
+    Route::get('profitability', [ProfitabilityController::class, 'index'])->name('profitability');
+    Route::get('profitability/export', [ProfitabilityController::class, 'export'])->name('profitability.export');
     Route::get('cash', [CashSessionController::class, 'index'])->name('cash');
     Route::get('cash/export', [CashSessionController::class, 'export'])->name('cash.export');
     Route::post('cash/sessions/{cashSession:uuid}/force-close', [CashSessionController::class, 'forceClose'])->name('cash.sessions.force-close');
@@ -321,7 +324,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('payroll', $comingSoon('Paie et déclarations', 'Contrôlez les pointages, coûts employeur et exports CNSS et ITS.', 'Finance — V2'))->name('payroll');
 
     // Rentabilité — V2
-    Route::get('profitability', $comingSoon('Rentabilité', 'Analysez la contribution des lignes, départs et véhicules.', 'V2'))->name('profitability');
 
     // Rapports — V2
     Route::get('reports', $comingSoon('Rapports', 'Consultez et préparez les rapports de votre périmètre.', 'V2'))->name('reports');

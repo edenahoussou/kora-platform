@@ -54,8 +54,8 @@ describe('SystemRole enum', function (): void {
             ->and($all)->toContain('tracking.report', 'tracking.view-agency', 'tracking.view-network')
             ->and($all)->toContain('passengers.erase', 'sensitive-data.export')
             ->and($all)->toContain('monitoring.view')
-            ->and($all)->toHaveCount(89)
-            ->and(count(array_unique($all)))->toBe(89);
+            ->and($all)->toHaveCount(91)
+            ->and(count(array_unique($all)))->toBe(91);
     });
 
     it('separates internal, field and management roles', function (): void {

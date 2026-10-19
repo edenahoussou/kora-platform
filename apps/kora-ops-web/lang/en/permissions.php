@@ -13,4 +13,6 @@ return [
     'settings.integrations.manage' => 'Manage integration settings',
     'passengers.erase' => 'Permanently erase a passenger account',
     'sensitive-data.export' => 'Export sensitive data',
+    'profitability.view' => 'View profitability',
+    'profitability.export' => 'Export profitability',
 ];

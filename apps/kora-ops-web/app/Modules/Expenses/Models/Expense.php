@@ -3,9 +3,12 @@
 namespace App\Modules\Expenses\Models;
 
 use App\Models\User;
+use App\Modules\BusNetwork\Models\Bus;
+use App\Modules\BusNetwork\Models\Line;
 use App\Modules\Cash\Models\CashLedger;
 use App\Modules\Cash\Models\CashMovement;
 use App\Modules\Cash\Models\CashSession;
+use App\Modules\Departures\Models\Departure;
 use App\Modules\Expenses\Data\ExpensePaymentChannel;
 use App\Modules\Expenses\Data\ExpenseStatus;
 use App\Modules\IdentityAccess\Models\Agency;
@@ -55,6 +58,9 @@ class Expense extends KoraModel implements HasMedia
         'uuid',
         'reference',
         'agency_id',
+        'bus_id',
+        'line_id',
+        'departure_id',
         'expense_category_id',
         'cash_session_id',
         'cash_ledger_id',
@@ -99,6 +105,30 @@ class Expense extends KoraModel implements HasMedia
     public function category(): BelongsTo
     {
         return $this->belongsTo(ExpenseCategory::class, 'expense_category_id');
+    }
+
+    /** @return BelongsTo<Bus, $this> */
+    public function bus(): BelongsTo
+    {
+        return $this->belongsTo(Bus::class)->withTrashed();
+    }
+
+    /** @return BelongsTo<Line, $this> */
+    public function line(): BelongsTo
+    {
+        return $this->belongsTo(Line::class)->withTrashed();
+    }
+
+    /** @return BelongsTo<Departure, $this> */
+    public function departure(): BelongsTo
+    {
+        return $this->belongsTo(Departure::class)->withTrashed();
+    }
+
+    /** @return HasOne<ExpenseMaintenanceDetails, $this> */
+    public function maintenanceDetails(): HasOne
+    {
+        return $this->hasOne(ExpenseMaintenanceDetails::class);
     }
 
     /** @return BelongsTo<CashSession, $this> */

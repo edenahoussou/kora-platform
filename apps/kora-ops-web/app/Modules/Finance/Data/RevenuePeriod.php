@@ -10,7 +10,7 @@ final readonly class RevenuePeriod
     public const TIMEZONE = 'Africa/Porto-Novo';
 
     /** @var list<string> */
-    public const PRESETS = ['today', 'this_week', 'this_month', 'last_month', 'last_year', 'custom'];
+    public const PRESETS = ['today', 'this_week', 'this_month', 'last_month', 'this_quarter', 'last_quarter', 'last_year', 'custom'];
 
     public function __construct(
         public string $preset,
@@ -36,6 +36,8 @@ final readonly class RevenuePeriod
             'this_week' => [$today->startOfWeek(), $today],
             'this_month' => [$today->startOfMonth(), $today],
             'last_month' => [$today->subMonthNoOverflow()->startOfMonth(), $today->startOfMonth()->subDay()],
+            'this_quarter' => [$today->startOfQuarter(), $today],
+            'last_quarter' => [$today->subQuarter()->startOfQuarter(), $today->startOfQuarter()->subDay()],
             'last_year' => [$today->subYear()->startOfYear(), $today->subYear()->endOfYear()->startOfDay()],
             'custom' => self::customDates($filters),
         };
@@ -61,6 +63,23 @@ final readonly class RevenuePeriod
         }
 
         return [$from->startOfDay(), $to->startOfDay()];
+    }
+
+    /**
+     * Période de comparaison immédiatement précédente, de même durée.
+     */
+    public function comparisonPeriod(): self
+    {
+        $durationInDays = (int) $this->localStart->diffInDays($this->localEnd) + 1;
+        $comparisonEnd = $this->comparisonLocalStart->subDay();
+
+        return new self(
+            'custom',
+            $this->comparisonLocalStart,
+            $this->comparisonLocalEnd,
+            $comparisonEnd->subDays($durationInDays - 1),
+            $comparisonEnd,
+        );
     }
 
     public function startUtc(): CarbonImmutable
