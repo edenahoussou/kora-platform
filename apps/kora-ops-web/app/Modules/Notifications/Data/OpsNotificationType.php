@@ -30,6 +30,8 @@ enum OpsNotificationType: string
 
     case FiscalizationFailed = 'fiscalization_failed';
     case CashVarianceSubmitted = 'cash_variance_submitted';
+    case CashSessionLeftOpen = 'cash_session_left_open';
+    case CashSessionForceClosed = 'cash_session_force_closed';
     case AssistedBookingRequested = 'assisted_booking_requested';
     case AssistedBookingReassigned = 'assisted_booking_reassigned';
     case DepartureDelayed = 'departure_delayed';
@@ -38,7 +40,7 @@ enum OpsNotificationType: string
     {
         return match ($this) {
             self::TerminalRevoked, self::ScanConflict, self::IncidentCritical, self::FiscalizationFailed => OpsNotificationSeverity::Critical,
-            self::ManifestStale, self::OperationRejected, self::SyncFailed, self::PrintError, self::IncidentReported => OpsNotificationSeverity::Warning,
+            self::ManifestStale, self::OperationRejected, self::SyncFailed, self::PrintError, self::IncidentReported, self::CashSessionLeftOpen, self::CashSessionForceClosed => OpsNotificationSeverity::Warning,
             self::DepartureAssigned, self::DepartureModified, self::SyncCompleted, self::NoShowClosed, self::DepartureDeparted, self::CashVarianceSubmitted, self::AssistedBookingRequested, self::AssistedBookingReassigned, self::DepartureDelayed => OpsNotificationSeverity::Info,
         };
     }
@@ -61,6 +63,8 @@ enum OpsNotificationType: string
             self::IncidentCritical => 'Incident grave signalé',
             self::FiscalizationFailed => 'Échec de fiscalisation',
             self::CashVarianceSubmitted => 'Écart de caisse à approuver',
+            self::CashSessionLeftOpen => 'Caisse non clôturée',
+            self::CashSessionForceClosed => 'Caisse clôturée de force',
             self::AssistedBookingRequested => 'Nouvelle demande d’assistance',
             self::AssistedBookingReassigned => 'Demande réaffectée',
             self::DepartureDelayed => 'Départ retardé',
@@ -78,7 +82,7 @@ enum OpsNotificationType: string
             self::SyncFailed => OpsNotificationAction::RetrySync,
             self::PrintError => OpsNotificationAction::CheckPrinter,
             self::SyncCompleted => OpsNotificationAction::None,
-            self::FiscalizationFailed, self::CashVarianceSubmitted, self::AssistedBookingRequested, self::AssistedBookingReassigned => OpsNotificationAction::None,
+            self::FiscalizationFailed, self::CashVarianceSubmitted, self::CashSessionLeftOpen, self::CashSessionForceClosed, self::AssistedBookingRequested, self::AssistedBookingReassigned => OpsNotificationAction::None,
         };
     }
 
@@ -91,7 +95,7 @@ enum OpsNotificationType: string
     public function sendsMail(): bool
     {
         return match ($this) {
-            self::TerminalRevoked, self::ScanConflict, self::OperationRejected, self::SyncFailed, self::PrintError, self::IncidentReported, self::IncidentCritical, self::FiscalizationFailed, self::CashVarianceSubmitted, self::AssistedBookingRequested, self::AssistedBookingReassigned, self::DepartureDelayed => true,
+            self::TerminalRevoked, self::ScanConflict, self::OperationRejected, self::SyncFailed, self::PrintError, self::IncidentReported, self::IncidentCritical, self::FiscalizationFailed, self::CashVarianceSubmitted, self::CashSessionLeftOpen, self::CashSessionForceClosed, self::AssistedBookingRequested, self::AssistedBookingReassigned, self::DepartureDelayed => true,
             default => false,
         };
     }

@@ -4,6 +4,7 @@ use App\Models\User;
 use App\Modules\Cash\Data\CashLedgerKind;
 use App\Modules\Cash\Models\CashLedger;
 use App\Modules\Cash\Models\CashMovement;
+use App\Modules\Cash\Models\CashRegister;
 use App\Modules\Cash\Models\CashSession;
 use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\Payments\Models\AgencyPaymentAccount;
@@ -50,6 +51,30 @@ it('opens one cash session with every active agency account and private evidence
             'ledgers' => [cashOpeningRow(1)],
         ])
         ->assertSessionHasErrors('cash_session');
+});
+
+it('refuses to open on another register while a session stays open from yesterday', function (): void {
+    $scenario = cashManagementScenario();
+    $registerOne = CashRegister::factory()->create(['agency_id' => $scenario['agency']->id]);
+    $registerTwo = CashRegister::factory()->create(['agency_id' => $scenario['agency']->id]);
+
+    $stale = createCashManagementSession($scenario);
+    $stale->cash_register_id = $registerOne->id;
+    $stale->business_date = '2026-08-18';
+    $stale->save();
+
+    $this->actingAs($scenario['agent'])
+        ->post(route('cash.open'), [
+            'cash_register_uuid' => $registerTwo->uuid,
+            'ledgers' => [
+                cashOpeningRow(125000),
+                cashOpeningRow(300000, $scenario['accounts'][0]->uuid),
+                cashOpeningRow(100000, $scenario['accounts'][1]->uuid),
+            ],
+        ])
+        ->assertSessionHasErrors('cash_session');
+
+    expect(CashSession::query()->count())->toBe(1);
 });
 
 it('keeps a pending reversement out of the expected balance until approval', function (): void {
@@ -293,7 +318,7 @@ it('requires an agency even for administrators on the journal and export', funct
 it('returns a real empty journal before opening a personal cash session', function (): void {
     $scenario = cashManagementScenario();
     $this->actingAs($scenario['agent'])->get(route('cash'))->assertInertia(fn ($page) => $page
-        ->component('cash')->where('cashSession', null)->where('movements.total', 0)
+        ->component('cash')->where('cashSession', null)->where('operations.total', 0)
         ->where('permissions.canOpen', true)->where('auth.user.canViewCash', true));
 });
 
@@ -314,19 +339,53 @@ it('paginates the entire personal journal while keeping totals independent of fi
     $colleagueLedger = CashLedger::factory()->create(['cash_session_id' => $colleagueSession->id]);
     CashMovement::factory()->create(['cash_ledger_id' => $colleagueLedger->id, 'reference' => 'COLLEGUE']);
 
-    $this->actingAs($scenario['agent'])->get(route('cash', ['page' => 5]))->assertInertia(fn ($page) => $page
-        ->has('movements.data', 5)->where('movements.total', 37)->where('movements.last_page', 5)
+    $this->actingAs($scenario['agent'])->get(route('cash', ['page' => 3]))->assertInertia(fn ($page) => $page
+        ->has('operations.data', 10)->where('operations.total', 40)->where('operations.last_page', 3)
         ->where('cashSession.ledgers.0.inflows', 35000)->where('cashSession.ledgers.0.outflows', 2000)
         ->where('cashSession.ledgers.0.expectedBalance', 158000)->where('cashSession.ledgers.0.movementCount', 37)
-        ->missing('cashSession.id')->missing('movements.data.0.id'));
+        ->missing('cashSession.id')->missing('operations.data.0.id'));
     $this->get(route('cash', ['q' => 'ANCIENNE-VENTE', 'channel' => 'cash', 'status' => 'posted', 'direction' => 'in']))
-        ->assertInertia(fn ($page) => $page->where('movements.total', 1)
-            ->where('movements.data.0.uuid', $oldMovement->uuid)->where('cashSession.ledgers.0.inflows', 35000));
+        ->assertInertia(fn ($page) => $page->where('operations.total', 1)
+            ->where('operations.data.0.uuid', $oldMovement->uuid)->where('cashSession.ledgers.0.inflows', 35000));
     $csv = $this->get(route('cash.export'))->assertOk()->streamedContent();
-    expect(substr_count(trim($csv), "\n"))->toBe(37)
-        ->and($csv)->toContain('ANCIENNE-VENTE')->not->toContain('COLLEGUE', 'AUTRE-AGENCE');
-    $csv = $this->get(route('cash.export', ['q' => 'ANCIENNE-VENTE', 'page' => 5]))->assertOk()->streamedContent();
+    expect(substr_count(trim($csv), "\n"))->toBe(38)
+        ->and($csv)->toContain('ANCIENNE-VENTE', 'COLLEGUE')->not->toContain('AUTRE-AGENCE');
+    $csv = $this->get(route('cash.export', ['q' => 'ANCIENNE-VENTE', 'page' => 3]))->assertOk()->streamedContent();
     expect(substr_count(trim($csv), "\n"))->toBe(1)->and($csv)->toContain('ANCIENNE-VENTE');
+});
+
+it('lets an agent review their past closed session operations even without an active session today', function (): void {
+    $scenario = cashManagementScenario();
+    $yesterday = now()->subDay()->toDateString();
+    $pastSession = CashSession::query()->create([
+        'agent_id' => $scenario['agent']->id,
+        'agency_id' => $scenario['agency']->id,
+        'business_date' => $yesterday,
+        'status' => 'closed',
+        'opened_at' => now()->subDay(),
+        'closed_at' => now()->subDay()->addHours(8),
+    ]);
+    $pastLedger = CashLedger::query()->create([
+        'cash_session_id' => $pastSession->id,
+        'ledger_key' => 'cash',
+        'kind' => 'cash',
+        'opening_balance' => 50000,
+        'expected_balance' => 50000,
+        'status' => 'closed',
+        'opened_by' => $scenario['agent']->id,
+        'opened_at' => now()->subDay(),
+    ]);
+    CashMovement::factory()->create([
+        'cash_ledger_id' => $pastLedger->id,
+        'reference' => 'VENTE-HIER',
+        'occurred_at' => now()->subDay()->addHours(4),
+    ]);
+
+    $this->actingAs($scenario['agent'])->get(route('cash'))
+        ->assertInertia(fn ($page) => $page
+            ->where('cashSession', null)
+            ->where('operations.total', 3) // ouverture + clôture + 1 vente hier
+            ->where('operations.data.1.reference', 'VENTE-HIER'));
 });
 
 it('filters the journal by network and escapes spreadsheet formulas in exports', function (): void {
@@ -335,8 +394,8 @@ it('filters the journal by network and escapes spreadsheet formulas in exports',
     $mtn = $session->ledgers->firstWhere('agency_payment_account_id', $scenario['accounts'][0]->id);
     CashMovement::factory()->create(['cash_ledger_id' => $mtn->id, 'reference' => '=1+1']);
     $this->actingAs($scenario['agent'])->get(route('cash', ['channel' => 'mtn_momo', 'q' => 'MTN']))
-        ->assertInertia(fn ($page) => $page->where('movements.total', 1));
-    $this->get(route('cash', ['channel' => 'moov_flooz']))->assertInertia(fn ($page) => $page->where('movements.total', 0));
+        ->assertInertia(fn ($page) => $page->where('operations.total', 1));
+    $this->get(route('cash', ['channel' => 'moov_flooz']))->assertInertia(fn ($page) => $page->where('operations.total', 0));
     expect($this->get(route('cash.export'))->streamedContent())->toContain("'=1+1");
     $this->getJson(route('cash', ['direction' => 'invalid']))->assertUnprocessable();
 });

@@ -57,6 +57,8 @@ export type SaleCashMedia = {
     size: number;
     createdAt: string | null;
     url: string;
+    thumbUrl?: string | null;
+    previewUrl?: string | null;
 };
 
 export type SaleCashSession = {

@@ -28,6 +28,14 @@ class CashMediaController extends Controller
             403,
         );
 
+        $conversion = $request->query('conversion');
+        if (in_array($conversion, ['thumb', 'preview'], true)) {
+            $path = $media->getPath($conversion);
+            abort_unless(is_file($path), 404);
+
+            return response()->file($path);
+        }
+
         return $media->toInlineResponse($request);
     }
 }

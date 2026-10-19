@@ -1,9 +1,7 @@
 import { Head, router, useForm, usePoll } from '@inertiajs/react';
 import {
-    ArrowDownLeft,
     ArrowUpRight,
     Banknote,
-    Check,
     ChevronRight,
     CircleAlert,
     Download,
@@ -12,15 +10,31 @@ import {
     Plus,
     Smartphone,
     SlidersHorizontal,
+    TriangleAlert,
     X,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { CameraCapture } from '@/components/cash/camera-capture';
 import { CashOpeningDialog } from '@/components/cash/cash-opening-dialog';
+import {
+    FilterSelect,
+    OperationsTable,
+    Pagination,
+    StatusPill,
+    formatDate,
+    formatTime,
+    networkBrands,
+    networkLabels,
+    statusLabels,
+} from '@/components/cash/cash-shared';
+import type {
+    CashOperationRow,
+    CashSessionLedger,
+} from '@/components/cash/cash-shared';
+import { OperationDetailDrawer } from '@/components/cash/operation-detail-drawer';
+import type { CashSessionDetail } from '@/components/cash/operation-detail-drawer';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import type {
-    SaleCashLedger,
-    SaleCashMedia,
     SaleCashSession,
     SaleMobileMoneyAccount,
 } from '@/components/sale/sale-types';
@@ -29,133 +43,104 @@ import { cn } from '@/lib/utils';
 import { cash } from '@/routes';
 import { exportMethod as exportCash } from '@/routes/cash';
 import { approveVariance, close as closeCash } from '@/routes/cash';
-import { approve, reject, store } from '@/routes/cash/movements';
+import { store } from '@/routes/cash/movements';
 
-type CashMovement = {
-    uuid: string;
-    ledgerUuid: string | null;
-    type: string;
-    direction: 'in' | 'out';
-    status: 'posted' | 'pending' | 'approved' | 'rejected' | 'reversed';
-    amount: number;
-    reference: string | null;
-    destinationLabel: string | null;
-    occurredAt: string | null;
-    media: SaleCashMedia[];
-};
-type CashSessionPage = SaleCashSession & {
+type CashSessionPage = Omit<SaleCashSession, 'ledgers'> & {
     status: string;
-    ledgers: CashLedgerPage[];
+    ledgers: CashSessionLedger[];
     openedAt?: string | null;
+    submittedAt?: string | null;
+    closedAt?: string | null;
+    approvedAt?: string | null;
+    approvedByName?: string | null;
+    forceClosedAt?: string | null;
+    forceClosedByName?: string | null;
+    closingComment?: string | null;
     agentName?: string | null;
     agencyName?: string | null;
-};
-type CashLedgerPage = SaleCashLedger & {
-    inflows: number;
-    outflows: number;
-    movementCount: number;
+    cashRegister?: { uuid: string; code: string; label: string } | null;
+    isStale?: boolean;
+    isLateClosing?: boolean;
+    isForced?: boolean;
 };
 type CashFilters = {
     q: string;
     channel: string;
     status: string;
     direction: string;
+    nature: string;
+    from: string;
+    to: string;
+    agent: string;
+    session_uuid: string;
+};
+type AgencyBalances = {
+    cash: number;
+    mobileMoney: number;
+    global: number;
+    registers: {
+        uuid: string;
+        code: string;
+        label: string;
+        kind: string;
+        published: number;
+        reserved: number;
+        available: number;
+    }[];
+    accounts: {
+        uuid: string;
+        network: string;
+        label: string;
+        status: string;
+        accountIdentifier: string;
+        balance: number;
+    }[];
 };
 type Props = {
-    movements: {
-        data: CashMovement[];
+    operations: {
+        data: CashOperationRow[];
         current_page: number;
         last_page: number;
         total: number;
         per_page: number;
     };
     filters: CashFilters;
+    filterOptions?: {
+        agents: { uuid: string; name: string }[];
+    };
     cashSession: CashSessionPage | null;
+    sessionDetail?: CashSessionDetail | null;
     mobileMoneyAccounts: SaleMobileMoneyAccount[];
     cashRegisters: { uuid: string; code: string; label: string }[];
+    agencyBalances: AgencyBalances | null;
     permissions: {
         canOpen: boolean;
         canClose: boolean;
         canApproveVariance: boolean;
         canCreateMovement: boolean;
         canApproveMovement: boolean;
+        canViewAgency: boolean;
     };
 };
 
-const networkLabels: Record<string, string> = {
-    mtn_momo: 'MTN MoMo',
-    moov_flooz: 'Moov Money / Flooz',
-    celtiis_cash: 'Celtiis Cash',
-};
-const networkBrands: Record<string, { key: string; mark: string }> = {
-    mtn_momo: { key: 'mtn', mark: 'MTN' },
-    moov_flooz: { key: 'moov', mark: 'moov' },
-    celtiis_cash: { key: 'celtiis', mark: 'celtiis' },
-};
-const statusLabels: Record<string, string> = {
-    open: 'Ouverte',
-    pending_approval: 'En attente d’approbation',
-    closed: 'Clôturée',
-    posted: 'Publié',
-    pending: 'En attente',
-    approved: 'Approuvé',
-    rejected: 'Rejeté',
-    reversed: 'Contrepassé',
-};
-
-const movementTypeLabels: Record<string, string> = {
-    counter_sale: 'Vente guichet',
-    counter_sale_cash: 'Vente guichet espèces',
-    counter_sale_mobile_money: 'Vente guichet Mobile Money',
-    mobile_money_payment: 'Paiement Mobile Money',
-    cash_payment: 'Paiement espèces',
-    reversement: 'Reversement',
-    adjustment: 'Ajustement',
-};
-
-function formatMovementType(type: string): string {
-    return movementTypeLabels[type] ?? type.replaceAll('_', ' ');
-}
-
-function formatDateTime(value: string | null): string {
-    if (!value) {
-        return '—';
-    }
-
-    return new Intl.DateTimeFormat('fr-FR', {
-        day: '2-digit',
-        month: 'short',
-        hour: '2-digit',
-        minute: '2-digit',
-    }).format(new Date(value));
-}
-
-function getMovementChannel(
-    movement: CashMovement,
-    session: CashSessionPage,
-): string {
-    const ledger = session.ledgers.find(
-        (item) => item.uuid === movement.ledgerUuid,
-    );
-
-    if (ledger?.kind === 'cash') {
-        return 'Espèces';
-    }
-
-    return networkLabels[ledger?.account?.network ?? ''] ?? 'Mobile Money';
-}
-
 export default function CashPage({
     cashSession,
-    movements,
+    sessionDetail,
+    operations,
     filters,
+    filterOptions,
     mobileMoneyAccounts,
     cashRegisters,
+    agencyBalances,
     permissions,
 }: Props) {
     const [openingOpen, setOpeningOpen] = useState(false);
     const [closingOpen, setClosingOpen] = useState(false);
     const [movementOpen, setMovementOpen] = useState(false);
+    const [selectedOperation, setSelectedOperation] =
+        useState<CashOperationRow | null>(null);
+    const [drawerOpen, setDrawerOpen] = useState(false);
+    const [isLoadingSession, setIsLoadingSession] = useState(false);
     const [query, setQuery] = useState(filters.q);
     const channel = filters.channel;
     const status = filters.status;
@@ -165,9 +150,11 @@ export default function CashPage({
         {
             only: [
                 'cashSession',
-                'movements',
+                'operations',
+                'sessionDetail',
                 'permissions',
                 'mobileMoneyAccounts',
+                'agencyBalances',
             ],
         },
         { autoStart: false },
@@ -197,8 +184,48 @@ export default function CashPage({
     };
     const resetFilters = () => {
         setQuery('');
-        visit({ q: '', channel: 'all', status: 'all', direction: 'all' });
+        visit({
+            q: '',
+            channel: 'all',
+            status: 'all',
+            direction: 'all',
+            nature: 'all',
+            from: '',
+            to: '',
+            agent: '',
+            session_uuid: '',
+        });
     };
+
+    const handleSelectOperation = (op: CashOperationRow) => {
+        setSelectedOperation(op);
+        setDrawerOpen(true);
+
+        if (!sessionDetail || sessionDetail.uuid !== op.sessionUuid) {
+            router.get(
+                cash.url(),
+                {
+                    ...filters,
+                    q: query,
+                    session_detail: op.sessionUuid,
+                },
+                {
+                    only: ['sessionDetail'],
+                    preserveState: true,
+                    preserveScroll: true,
+                    replace: true,
+                    onStart: () => setIsLoadingSession(true),
+                    onFinish: () => setIsLoadingSession(false),
+                },
+            );
+        }
+    };
+
+    // Rafraîchit la ligne ouverte dans le drawer quand le journal se recharge.
+    const liveOperation =
+        operations.data.find((op) => op.key === selectedOperation?.key) ??
+        selectedOperation;
+
     const session = cashSession;
     const ledgerCards = [...(session?.ledgers ?? [])].sort((first, second) =>
         first.kind === 'cash' ? -1 : second.kind === 'cash' ? 1 : 0,
@@ -207,6 +234,8 @@ export default function CashPage({
         (total, ledger) => total + ledger.expectedBalance,
         0,
     );
+
+    const unifiedCards = buildUnifiedCards(session, agencyBalances);
 
     return (
         <>
@@ -221,8 +250,8 @@ export default function CashPage({
                             Caisse journalière
                         </h1>
                         <p className="mt-1.5 text-[0.8125rem] leading-6 text-muted-foreground">
-                            Suivez les encaissements et préparez la clôture de
-                            la journée.
+                            Suivez les encaissements, consultez le journal
+                            d’opérations et préparez la clôture.
                         </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2.5">
@@ -248,45 +277,83 @@ export default function CashPage({
                     </div>
                 </div>
 
+                {session?.isStale && (
+                    <div className="cash-reveal mb-5 flex items-start gap-3 rounded-[var(--kora-radius)] border border-amber-500/30 bg-amber-500/10 p-4">
+                        <TriangleAlert className="mt-0.5 size-4 shrink-0 text-amber-600" />
+                        <div className="text-xs leading-5 text-foreground">
+                            <strong>
+                                Session du {formatDate(session.businessDate)}{' '}
+                                non clôturée.
+                            </strong>
+                            <br />
+                            Clôturez cette session pour débloquer la caisse
+                            avant d'ouvrir la journée en cours.
+                        </div>
+                    </div>
+                )}
+
                 <section className="cash-reveal cash-reveal-delay-1 cash-hero">
                     <div>
                         <span className="section-kicker text-gold">
-                            Ma caisse journalière
+                            {session
+                                ? 'Ma caisse journalière'
+                                : 'Trésorerie de l’agence'}
                         </span>
                         <h2>
                             {!session
-                                ? 'Aucune caisse ouverte'
-                                : session.status === 'open'
-                                  ? `Caisse ouverte depuis ${formatTime(session.openedAt)}`
-                                  : `Caisse ${statusLabels[session.status]?.toLowerCase() ?? session.status}`}
+                                ? agencyBalances
+                                    ? 'Situation financière permanente'
+                                    : 'Aucune caisse ouverte'
+                                : session.isStale
+                                  ? `Session du ${formatDate(session.businessDate)} encore ouverte`
+                                  : session.status === 'open'
+                                    ? `Caisse ouverte depuis ${formatTime(session.openedAt)}`
+                                    : `Caisse ${statusLabels[session.status]?.toLowerCase() ?? session.status}`}
                         </h2>
                         <p>
                             {!session
-                                ? 'Ouvrez votre caisse pour enregistrer les opérations de la journée.'
-                                : `${session.agentName ?? ''} · ${session.agencyName ?? ''}. Le total additionne les soldes théoriques de chaque compte suivi.`}
+                                ? agencyBalances
+                                    ? `Total permanent consolidé : ${agencyBalances.registers.length} caisse(s) et ${agencyBalances.accounts.length} compte(s) Mobile Money.`
+                                    : 'Ouvrez votre caisse pour enregistrer les opérations de la journée.'
+                                : `${session.agentName ?? ''} · ${session.agencyName ?? ''}. Total attendu calculé à partir des sous-journaux du shift.`}
                         </p>
                     </div>
                     <div className="cash-hero-current">
-                        <span>Solde théorique actuel</span>
+                        <span>
+                            {session
+                                ? 'Solde session attendu'
+                                : 'Trésorerie globale agence'}
+                        </span>
                         <strong>
-                            {session ? formatMoney(totalExpected, 'XOF') : '—'}
+                            {session
+                                ? formatMoney(totalExpected, 'XOF')
+                                : agencyBalances
+                                  ? formatMoney(agencyBalances.global, 'XOF')
+                                  : '—'}
                         </strong>
                     </div>
-                    {session && <StatusPill status={session.status} />}
+                    {session ? (
+                        <StatusPill status={session.status} />
+                    ) : (
+                        <KoraStatusBadge
+                            label="Trésorerie agence"
+                            tone="navy"
+                        />
+                    )}
                 </section>
 
                 <section className="cash-ledger-grid cash-reveal cash-reveal-delay-2">
-                    {ledgerCards.map((ledger) => (
-                        <LedgerBalanceCard key={ledger.uuid} ledger={ledger} />
+                    {unifiedCards.map((card) => (
+                        <UnifiedBalanceCard key={card.key} card={card} />
                     ))}
                 </section>
 
                 <div className="cash-reveal cash-reveal-delay-3 cash-section-intro">
                     <div>
                         <span className="section-kicker">
-                            Journal automatique
+                            Journal des opérations
                         </span>
-                        <h2>Opérations du jour</h2>
+                        <h2>Historique & mouvements</h2>
                     </div>
                     <div className="actions">
                         {permissions.canCreateMovement &&
@@ -301,14 +368,12 @@ export default function CashPage({
                                     Reversement
                                 </button>
                             )}
-                        {session && (
-                            <a
-                                className="btn btn-ghost"
-                                href={exportCash.url({ query: filters })}
-                            >
-                                <Download className="size-4" /> Exporter
-                            </a>
-                        )}
+                        <a
+                            className="btn btn-ghost"
+                            href={exportCash.url({ query: filters })}
+                        >
+                            <Download className="size-4" /> Exporter
+                        </a>
                     </div>
                 </div>
 
@@ -328,6 +393,44 @@ export default function CashPage({
                         placeholder="Rechercher une opération, une référence…"
                         className="cash-filter-search"
                     />
+                    <label className="cash-filter-field relative block">
+                        <span className="sr-only">Du</span>
+                        <input
+                            type="date"
+                            value={filters.from}
+                            onChange={(event) =>
+                                visit({ from: event.target.value })
+                            }
+                            aria-label="Date de début"
+                            className="cash-filter-select h-11 w-full rounded-xl bg-muted/55 px-3 text-xs font-bold text-foreground ring-1 ring-black/[0.045] outline-none focus:bg-card focus:ring-2 focus:ring-gold/35"
+                        />
+                    </label>
+                    <label className="cash-filter-field relative block">
+                        <span className="sr-only">Au</span>
+                        <input
+                            type="date"
+                            value={filters.to}
+                            onChange={(event) =>
+                                visit({ to: event.target.value })
+                            }
+                            aria-label="Date de fin"
+                            className="cash-filter-select h-11 w-full rounded-xl bg-muted/55 px-3 text-xs font-bold text-foreground ring-1 ring-black/[0.045] outline-none focus:bg-card focus:ring-2 focus:ring-gold/35"
+                        />
+                    </label>
+                    {permissions.canViewAgency &&
+                        Boolean(filterOptions?.agents?.length) && (
+                            <FilterSelect
+                                label="Agent"
+                                value={filters.agent}
+                                onChange={(value) => visit({ agent: value })}
+                                options={[
+                                    ['', 'Tous les agents'],
+                                    ...(filterOptions?.agents ?? []).map(
+                                        (agent) => [agent.uuid, agent.name],
+                                    ),
+                                ]}
+                            />
+                        )}
                     <FilterSelect
                         label="Canal"
                         value={channel}
@@ -369,6 +472,18 @@ export default function CashPage({
                             ['out', 'Sorties'],
                         ]}
                     />
+                    <FilterSelect
+                        label="Nature"
+                        value={filters.nature}
+                        onChange={(value) => {
+                            visit({ nature: value });
+                        }}
+                        options={[
+                            ['all', 'Toutes les lignes'],
+                            ['movements', 'Mouvements'],
+                            ['lifecycle', 'Ouvertures & clôtures'],
+                        ]}
+                    />
                     <button
                         type="button"
                         className="btn btn-navy cash-filter-submit"
@@ -386,23 +501,16 @@ export default function CashPage({
                 </div>
 
                 <section className="cash-table-card cash-reveal cash-reveal-delay-4">
-                    {session ? (
-                        <MovementTable
-                            movements={movements.data}
-                            session={session}
-                            canApprove={permissions.canApproveMovement}
-                        />
-                    ) : (
-                        <p className="px-6 py-16 text-center text-sm text-muted-foreground">
-                            Aucune opération : votre caisse n’est pas encore
-                            ouverte.
-                        </p>
-                    )}
+                    <OperationsTable
+                        operations={operations.data}
+                        showAgent={permissions.canViewAgency}
+                        onSelect={handleSelectOperation}
+                    />
                     <Pagination
-                        currentPage={movements.current_page}
-                        totalPages={movements.last_page}
-                        total={movements.total}
-                        pageSize={movements.per_page}
+                        currentPage={operations.current_page}
+                        totalPages={operations.last_page}
+                        total={operations.total}
+                        pageSize={operations.per_page}
                         onPageChange={(page) => visit(filters, page)}
                     />
                 </section>
@@ -435,37 +543,143 @@ export default function CashPage({
                     onClose={() => setMovementOpen(false)}
                 />
             )}
+            <OperationDetailDrawer
+                open={drawerOpen}
+                onOpenChange={setDrawerOpen}
+                operation={liveOperation}
+                sessionDetail={sessionDetail ?? null}
+                isLoadingSession={isLoadingSession}
+                canApproveMovement={permissions.canApproveMovement}
+                filters={filters}
+            />
         </>
     );
 }
 
-function formatTime(value: string | null | undefined): string {
-    if (!value) {
-        return '—';
+type UnifiedCardData = {
+    key: string;
+    kind: 'cash' | 'mobile_money';
+    title: string;
+    subtitle: string;
+    brand: { key: string; mark: string };
+    balance: number;
+    balanceLabel: string;
+    sessionLedger?: CashSessionLedger | null;
+    registerData?: {
+        kind: string;
+        available: number;
+        published: number;
+        reserved: number;
+    } | null;
+};
+
+function buildUnifiedCards(
+    session: CashSessionPage | null,
+    balances: AgencyBalances | null,
+): UnifiedCardData[] {
+    const cards: UnifiedCardData[] = [];
+
+    if (balances) {
+        // 1. Physical registers
+        for (const register of balances.registers) {
+            const isSessionRegister =
+                session?.cashRegister?.uuid === register.uuid ||
+                (!session?.cashRegister && register.kind === 'counter');
+            const matchingLedger = isSessionRegister
+                ? (session?.ledgers.find((ledger) => ledger.kind === 'cash') ??
+                  null)
+                : null;
+
+            cards.push({
+                key: `reg-${register.uuid}`,
+                kind: 'cash',
+                title:
+                    register.kind === 'vault'
+                        ? 'Coffre-fort'
+                        : 'Caisse Espèces',
+                subtitle: `${register.code} · ${register.label}`,
+                brand: { key: 'cash', mark: '₣' },
+                balance: matchingLedger
+                    ? matchingLedger.expectedBalance
+                    : register.available,
+                balanceLabel: matchingLedger
+                    ? 'Solde session attendu'
+                    : 'Disponible en caisse',
+                sessionLedger: matchingLedger,
+                registerData: register,
+            });
+        }
+
+        // 2. Mobile Money accounts
+        for (const account of balances.accounts) {
+            const matchingLedger =
+                session?.ledgers.find(
+                    (ledger) => ledger.account?.uuid === account.uuid,
+                ) ?? null;
+
+            cards.push({
+                key: `acc-${account.uuid}`,
+                kind: 'mobile_money',
+                title: networkLabels[account.network] ?? 'Mobile Money',
+                subtitle: `${account.label} · ${account.accountIdentifier}`,
+                brand: networkBrands[account.network] ?? {
+                    key: 'default',
+                    mark: 'MM',
+                },
+                balance: matchingLedger
+                    ? matchingLedger.expectedBalance
+                    : account.balance,
+                balanceLabel: matchingLedger
+                    ? 'Solde session attendu'
+                    : 'Solde disponible',
+                sessionLedger: matchingLedger,
+                registerData: null,
+            });
+        }
+    } else if (session) {
+        for (const ledger of session.ledgers) {
+            const isCash = ledger.kind === 'cash';
+            cards.push({
+                key: `led-${ledger.uuid}`,
+                kind: isCash ? 'cash' : 'mobile_money',
+                title: isCash
+                    ? 'Espèces'
+                    : (networkLabels[ledger.account?.network ?? ''] ??
+                      'Mobile Money'),
+                subtitle: isCash
+                    ? 'Caisse physique'
+                    : (ledger.account?.accountIdentifier ??
+                      ledger.account?.label ??
+                      ''),
+                brand: isCash
+                    ? { key: 'cash', mark: '₣' }
+                    : (networkBrands[ledger.account?.network ?? ''] ?? {
+                          key: 'default',
+                          mark: 'MM',
+                      }),
+                balance: ledger.expectedBalance,
+                balanceLabel: 'Solde session attendu',
+                sessionLedger: ledger,
+                registerData: null,
+            });
+        }
     }
 
-    return new Intl.DateTimeFormat('fr-FR', {
-        hour: '2-digit',
-        minute: '2-digit',
-    }).format(new Date(value));
+    return cards;
 }
 
-function LedgerBalanceCard({ ledger }: { ledger: CashLedgerPage }) {
-    const { inflows, outflows, movementCount } = ledger;
-    const isCash = ledger.kind === 'cash';
-    const network = isCash
-        ? 'Espèces'
-        : (networkLabels[ledger.account?.network ?? ''] ?? 'Mobile Money');
-    const brand = isCash
-        ? { key: 'cash', mark: '₣' }
-        : (networkBrands[ledger.account?.network ?? ''] ?? {
-              key: 'default',
-              mark: 'MM',
-          });
-    const accountLabel = isCash
-        ? 'Caisse physique'
-        : (ledger.account?.label ?? 'Compte Mobile Money');
-    const balance = ledger.expectedBalance;
+function UnifiedBalanceCard({ card }: { card: UnifiedCardData }) {
+    const {
+        kind,
+        title,
+        subtitle,
+        brand,
+        balance,
+        balanceLabel,
+        sessionLedger,
+        registerData,
+    } = card;
+    const isCash = kind === 'cash';
 
     return (
         <article
@@ -475,38 +689,80 @@ function LedgerBalanceCard({ ledger }: { ledger: CashLedgerPage }) {
                 <div className="cash-ledger-identity">
                     <span className="cash-ledger-brand">{brand.mark}</span>
                     <div>
-                        <span className="cash-ledger-title">{network}</span>
-                        <small>
-                            {ledger.account?.accountIdentifier ?? accountLabel}
-                        </small>
+                        <span className="cash-ledger-title">{title}</span>
+                        <small>{subtitle}</small>
                     </div>
                 </div>
-                <StatusPill status={ledger.status} />
+                {sessionLedger ? (
+                    <StatusPill status={sessionLedger.status} />
+                ) : (
+                    <KoraStatusBadge label="Trésorerie" tone="navy" />
+                )}
             </div>
 
             <div className="cash-ledger-balance">
-                <span>Solde théorique</span>
+                <span>{balanceLabel}</span>
                 <strong>{formatMoney(balance, 'XOF')}</strong>
             </div>
 
-            <div className="cash-ledger-breakdown">
-                <div>
-                    <span>Ouverture</span>
-                    <strong>{formatMoney(ledger.openingBalance, 'XOF')}</strong>
+            {sessionLedger ? (
+                <div className="cash-ledger-breakdown">
+                    <div>
+                        <span>Ouverture</span>
+                        <strong>
+                            {formatMoney(sessionLedger.openingBalance, 'XOF')}
+                        </strong>
+                    </div>
+                    <div>
+                        <span>Entrées</span>
+                        <strong className="is-positive">
+                            +{formatMoney(sessionLedger.inflows, 'XOF')}
+                        </strong>
+                    </div>
+                    <div>
+                        <span>Sorties</span>
+                        <strong className="is-negative">
+                            −{formatMoney(sessionLedger.outflows, 'XOF')}
+                        </strong>
+                    </div>
                 </div>
-                <div>
-                    <span>Entrées</span>
-                    <strong className="is-positive">
-                        +{formatMoney(inflows, 'XOF')}
-                    </strong>
+            ) : registerData ? (
+                <div className="cash-ledger-breakdown">
+                    <div>
+                        <span>Théorique</span>
+                        <strong>
+                            {formatMoney(registerData.published, 'XOF')}
+                        </strong>
+                    </div>
+                    <div>
+                        <span>Réservé</span>
+                        <strong>
+                            {formatMoney(registerData.reserved, 'XOF')}
+                        </strong>
+                    </div>
+                    <div>
+                        <span>Disponible</span>
+                        <strong>
+                            {formatMoney(registerData.available, 'XOF')}
+                        </strong>
+                    </div>
                 </div>
-                <div>
-                    <span>Sorties</span>
-                    <strong className="is-negative">
-                        −{formatMoney(outflows, 'XOF')}
-                    </strong>
+            ) : (
+                <div className="cash-ledger-breakdown">
+                    <div>
+                        <span>Type</span>
+                        <strong>Compte MoMo</strong>
+                    </div>
+                    <div>
+                        <span>Solde réel</span>
+                        <strong>{formatMoney(balance, 'XOF')}</strong>
+                    </div>
+                    <div>
+                        <span>Statut</span>
+                        <strong className="is-positive">Actif</strong>
+                    </div>
                 </div>
-            </div>
+            )}
 
             <div className="cash-ledger-foot">
                 {isCash ? (
@@ -515,287 +771,25 @@ function LedgerBalanceCard({ ledger }: { ledger: CashLedgerPage }) {
                     <Smartphone className="size-3.5" strokeWidth={1.7} />
                 )}
                 <span>
-                    {movementCount === 0
-                        ? 'Aucun mouvement enregistré'
-                        : `${movementCount} mouvement${movementCount > 1 ? 's' : ''} enregistré${movementCount > 1 ? 's' : ''}`}
+                    {sessionLedger
+                        ? sessionLedger.movementCount === 0
+                            ? 'Aucun mouvement sur ce shift'
+                            : `${sessionLedger.movementCount} mouvement${sessionLedger.movementCount > 1 ? 's' : ''} enregistré${sessionLedger.movementCount > 1 ? 's' : ''}`
+                        : registerData
+                          ? registerData.kind === 'vault'
+                              ? 'Coffre-fort agence'
+                              : 'Guichet opérationnel'
+                          : 'Compte actif permanent'}
                 </span>
-                {ledger.actualBalance !== null && (
-                    <b>Constaté {formatMoney(ledger.actualBalance, 'XOF')}</b>
-                )}
+                {sessionLedger?.actualBalance !== null &&
+                    sessionLedger?.actualBalance !== undefined && (
+                        <b>
+                            Constaté{' '}
+                            {formatMoney(sessionLedger.actualBalance, 'XOF')}
+                        </b>
+                    )}
             </div>
         </article>
-    );
-}
-
-function MovementTable({
-    movements,
-    session,
-    canApprove,
-}: {
-    movements: CashMovement[];
-    session: CashSessionPage;
-    canApprove: boolean;
-}) {
-    if (movements.length === 0) {
-        return (
-            <p className="px-6 py-16 text-center text-sm text-muted-foreground">
-                Aucun mouvement ne correspond à ces filtres.
-            </p>
-        );
-    }
-
-    return (
-        <div className="cash-table-scroll overflow-x-auto">
-            <table className="w-full min-w-[850px] text-left">
-                <thead className="bg-muted/45 text-[0.625rem] font-black tracking-[0.14em] text-muted-foreground uppercase">
-                    <tr>
-                        <th className="px-4 py-3">Date & heure</th>
-                        <th className="px-4 py-3">Opération</th>
-                        <th className="px-4 py-3">Canal</th>
-                        <th className="px-4 py-3">Référence</th>
-                        <th className="px-4 py-3">Statut</th>
-                        <th className="px-4 py-3 text-right">Montant</th>
-                        <th className="px-4 py-3 text-right">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {movements.map((movement) => (
-                        <MovementRow
-                            key={movement.uuid}
-                            movement={movement}
-                            session={session}
-                            canApprove={canApprove}
-                        />
-                    ))}
-                </tbody>
-            </table>
-        </div>
-    );
-}
-
-function MovementRow({
-    movement,
-    session,
-    canApprove,
-}: {
-    movement: CashMovement;
-    session: CashSessionPage;
-    canApprove: boolean;
-}) {
-    return (
-        <tr className="group border-b border-black/[0.045] transition-[background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-muted/30">
-            <td className="px-4 py-3.5 text-xs font-bold text-foreground">
-                {formatDateTime(movement.occurredAt)}
-            </td>
-            <td className="px-4 py-3.5">
-                <div className="flex items-center gap-3">
-                    <span
-                        className={cn(
-                            'grid size-9 shrink-0 place-items-center rounded-xl',
-                            movement.direction === 'in'
-                                ? 'bg-emerald-500/10 text-emerald-600'
-                                : 'bg-orange-500/10 text-orange-600',
-                        )}
-                    >
-                        {movement.direction === 'in' ? (
-                            <ArrowDownLeft
-                                className="size-4"
-                                strokeWidth={1.6}
-                            />
-                        ) : (
-                            <ArrowUpRight
-                                className="size-4"
-                                strokeWidth={1.6}
-                            />
-                        )}
-                    </span>
-                    <div>
-                        <p className="text-xs font-black text-foreground">
-                            {formatMovementType(movement.type)}
-                        </p>
-                        <p className="mt-0.5 text-[0.625rem] text-muted-foreground">
-                            {movement.direction === 'in'
-                                ? 'Encaissement'
-                                : 'Sortie de caisse'}
-                        </p>
-                    </div>
-                </div>
-            </td>
-            <td className="px-4 py-3.5 text-xs font-bold text-foreground">
-                {getMovementChannel(movement, session)}
-            </td>
-            <td className="px-4 py-3.5 font-mono text-[0.6875rem] text-muted-foreground">
-                {movement.reference ?? 'Sans référence'}
-            </td>
-            <td className="px-4 py-3.5">
-                <StatusPill status={movement.status} />
-            </td>
-            <td
-                className={cn(
-                    'px-4 py-3.5 text-right text-xs font-black',
-                    movement.direction === 'in'
-                        ? 'text-emerald-600'
-                        : 'text-orange-600',
-                )}
-            >
-                {movement.direction === 'in' ? '+' : '-'}
-                {formatMoney(movement.amount, 'XOF')}
-            </td>
-            <td className="px-4 py-3.5">
-                <div className="flex justify-end gap-1.5">
-                    {canApprove && movement.status === 'pending' ? (
-                        <>
-                            <button
-                                className="grid size-8 place-items-center rounded-full bg-emerald-500/10 text-emerald-600 transition-[transform,background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:scale-105 hover:bg-emerald-500/20"
-                                onClick={() =>
-                                    router.post(approve.url(movement.uuid))
-                                }
-                                aria-label="Approuver"
-                            >
-                                <Check className="size-3.5" strokeWidth={1.7} />
-                            </button>
-                            <button
-                                className="grid size-8 place-items-center rounded-full bg-destructive/10 text-destructive transition-[transform,background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:scale-105 hover:bg-destructive/20"
-                                onClick={() =>
-                                    router.post(reject.url(movement.uuid), {
-                                        reason: 'Rejeté depuis la caisse',
-                                    })
-                                }
-                                aria-label="Rejeter"
-                            >
-                                <X className="size-3.5" strokeWidth={1.7} />
-                            </button>
-                        </>
-                    ) : (
-                        <span className="grid size-8 place-items-center rounded-full text-muted-foreground/45">
-                            <ChevronRight
-                                className="size-4"
-                                strokeWidth={1.5}
-                            />
-                        </span>
-                    )}
-                </div>
-            </td>
-        </tr>
-    );
-}
-
-function FilterSelect({
-    label,
-    value,
-    onChange,
-    options,
-}: {
-    label: string;
-    value: string;
-    onChange: (value: string) => void;
-    options: string[][];
-}) {
-    return (
-        <label className="cash-filter-field relative block">
-            <span className="sr-only">{label}</span>
-            <select
-                value={value}
-                onChange={(event) => onChange(event.target.value)}
-                className="cash-filter-select h-11 w-full appearance-none rounded-xl bg-muted/55 px-3 pr-8 text-xs font-bold text-foreground ring-1 ring-black/[0.045] transition-[box-shadow,background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] outline-none focus:bg-card focus:ring-2 focus:ring-gold/35"
-            >
-                {options.map(([optionValue, optionLabel]) => (
-                    <option key={optionValue} value={optionValue}>
-                        {optionLabel}
-                    </option>
-                ))}
-            </select>
-            <ChevronRight
-                className="pointer-events-none absolute top-1/2 right-3 size-3.5 -translate-y-1/2 rotate-90 text-muted-foreground"
-                strokeWidth={1.7}
-            />
-        </label>
-    );
-}
-
-function Pagination({
-    currentPage,
-    totalPages,
-    total,
-    pageSize,
-    onPageChange,
-}: {
-    currentPage: number;
-    totalPages: number;
-    total: number;
-    pageSize: number;
-    onPageChange: (page: number) => void;
-}) {
-    const pages: (number | 'ellipsis')[] = [];
-
-    for (let index = 1; index <= totalPages; index += 1) {
-        if (
-            index === 1 ||
-            index === totalPages ||
-            Math.abs(index - currentPage) <= 1
-        ) {
-            pages.push(index);
-        } else if (pages[pages.length - 1] !== 'ellipsis') {
-            pages.push('ellipsis');
-        }
-    }
-
-    const from = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
-    const to = Math.min(currentPage * pageSize, total);
-
-    return (
-        <div className="flex flex-col gap-4 px-4 py-3 text-[0.6875rem] text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-            <span>
-                {from}–{to} sur {total} opérations
-            </span>
-            <div className="flex items-center gap-[5px]">
-                <button
-                    type="button"
-                    onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-                    disabled={currentPage === 1}
-                    className="grid size-[31px] place-items-center rounded-[8px] bg-muted text-foreground transition-[transform,opacity,background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-x-0.5 hover:bg-gold/15 disabled:pointer-events-none disabled:opacity-35"
-                >
-                    <ChevronRight
-                        className="size-3.5 rotate-180"
-                        strokeWidth={1.7}
-                    />
-                </button>
-                {pages.map((page, index) =>
-                    page === 'ellipsis' ? (
-                        <span
-                            key={`ellipsis-${index}`}
-                            className="grid size-[31px] place-items-center"
-                        >
-                            …
-                        </span>
-                    ) : (
-                        <button
-                            key={page}
-                            type="button"
-                            onClick={() => onPageChange(page)}
-                            className={cn(
-                                'grid size-[31px] place-items-center rounded-[8px] text-xs font-black transition-[transform,background-color,color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5',
-                                page === currentPage
-                                    ? 'bg-[var(--kora)] text-white'
-                                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                            )}
-                        >
-                            {page}
-                        </button>
-                    ),
-                )}
-                <button
-                    type="button"
-                    onClick={() =>
-                        onPageChange(Math.min(totalPages, currentPage + 1))
-                    }
-                    disabled={currentPage === totalPages}
-                    className="grid size-[31px] place-items-center rounded-[8px] bg-muted text-foreground transition-[transform,opacity,background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:translate-x-0.5 hover:bg-gold/15 disabled:pointer-events-none disabled:opacity-35"
-                >
-                    <ChevronRight className="size-3.5" strokeWidth={1.7} />
-                </button>
-            </div>
-        </div>
     );
 }
 
@@ -849,21 +843,6 @@ function PendingActions({
                 )}
             </div>
         </section>
-    );
-}
-
-function StatusPill({ status }: { status: string }) {
-    const tone =
-        status === 'pending' || status === 'pending_approval'
-            ? 'gold'
-            : status === 'rejected'
-              ? 'destructive'
-              : status === 'closed' || status === 'reversed'
-                ? 'muted'
-                : 'navy';
-
-    return (
-        <KoraStatusBadge label={statusLabels[status] ?? status} tone={tone} />
     );
 }
 

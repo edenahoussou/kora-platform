@@ -36,14 +36,17 @@ class OpenCashSessionAction
             $existingForAgent = CashSession::query()
                 ->where('agent_id', $agent->getKey())
                 ->where('agency_id', $agent->agency_id)
-                ->whereDate('business_date', now()->toDateString())
                 ->where('status', CashSessionStatus::Open->value)
                 ->lockForUpdate()
                 ->first();
 
             if ($existingForAgent !== null) {
+                $message = $existingForAgent->business_date->isToday()
+                    ? 'Cet agent possède déjà une session de caisse ouverte.'
+                    : 'Une session de caisse du '.$existingForAgent->business_date->format('d/m/Y').' est encore ouverte. Clôturez-la avant d’en ouvrir une nouvelle.';
+
                 throw ValidationException::withMessages([
-                    'cash_session' => 'Cet agent possède déjà une session de caisse ouverte.',
+                    'cash_session' => $message,
                 ]);
             }
 

@@ -107,6 +107,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('revenue/export', [RevenueController::class, 'export'])->name('revenue.export');
     Route::get('cash', [CashSessionController::class, 'index'])->name('cash');
     Route::get('cash/export', [CashSessionController::class, 'export'])->name('cash.export');
+    Route::post('cash/sessions/{cashSession:uuid}/force-close', [CashSessionController::class, 'forceClose'])->name('cash.sessions.force-close');
     Route::post('cash/open', [CashSessionController::class, 'store'])->name('cash.open');
     Route::post('cash/{cashSession:uuid}/close', [CashSessionController::class, 'close'])->name('cash.close');
     Route::post('cash/{cashSession:uuid}/approve-variance', [CashSessionController::class, 'approveVariance'])->name('cash.approve-variance');
