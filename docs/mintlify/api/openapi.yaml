@@ -65,6 +65,9 @@ tags:
     name: 'OPS — Notifications'
     description: "\nAlertes opérationnelles boarding pour le convoyeur (OPS Mobile) et les\nopérateurs (OPS Web) : même contrat, mêmes autorisations. Chaque\nutilisateur ne voit que SES notifications ; aucune ne contient de donnée\nfinancière ni d'identifiant numérique.\n\nTypes (`type`) : departure_assigned, departure_modified, manifest_stale,\nterminal_revoked (critique), scan_conflict (critique), operation_rejected,\nsync_completed, sync_failed, no_show_closed, print_error.\n\n`action` dit au client quoi proposer : none, open_departure, refresh_manifest,\nreauthenticate, review_scan_conflict, review_rejected_operations, retry_sync,\ncheck_printer.\n\nRécupération fiable : les notifications sont persistées AVANT toute\ndiffusion temps réel. Après une coupure ou un redémarrage, le client\nappelle `GET /notifications?since=<created_at de la dernière reçue>` et\ndéduplique par `uuid`. Le temps réel (canal privé\n`ops-notifications.{user_uuid}`, événement `ops.notification.published`)\nn'est qu'un accélérateur : sans lui, rien n'est perdu.\n\nErreurs : `{ error: { code, message, action } }` — mêmes codes que les\nsessions OPS (session_expired, session_revoked, permission_denied…)."
   -
+    name: 'OPS — Support'
+    description: "\nExpose la configuration publique tawk.to du chat support pour l'app convoyeur."
+  -
     name: 'Passager — Notifications'
     description: "\nInbox BUS du passager authentifié. Les notifications sont isolées par compte."
   -
@@ -7450,7 +7453,7 @@ paths:
                 birth_date:
                   type: string
                   description: 'Date de naissance (Y-m-d). Must be a valid date in the format <code>Y-m-d</code>. Le champ value doit être une date antérieure ou égale à <code>today</code>.'
-                  example: '2022-11-11'
+                  example: '2022-11-12'
                   nullable: true
                 yellow_fever_vaccinated:
                   type: boolean
@@ -10105,6 +10108,104 @@ paths:
                     example: Unauthenticated.
       tags:
         - 'OPS — Notifications'
+  /api/v1/ops/support-chat-configuration:
+    get:
+      summary: "Retourne la configuration tawk.to publique pour l'app mobile OPS."
+      operationId: retourneLaConfigurationTawktoPubliquePourLappMobileOPS
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  -
+                    description: 'Configuration disponible'
+                    type: object
+                    example:
+                      data:
+                        enabled: true
+                        property_id: abc123def456
+                        widget_id: default
+                        direct_chat_url: 'https://tawk.to/chat/abc123def456/default'
+                        secure_hash: hmac-sha256
+                        visitor:
+                          name: 'Marc Convoyeur'
+                          email: conductor.marc@kora.demo
+                          phone: '+22997000000'
+                          jobTitle: null
+                          agency: 'Agence Cotonou'
+                          role: Convoyeur
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          enabled:
+                            type: boolean
+                            example: false
+                          property_id:
+                            type: string
+                            example: abc123def456
+                          widget_id:
+                            type: string
+                            example: default
+                          direct_chat_url:
+                            type: string
+                            example: 'https://tawk.to/chat/abc123def456/default'
+                          secure_hash:
+                            type: string
+                            example: hmac-sha256
+                          visitor:
+                            type: object
+                            properties:
+                              name:
+                                type: string
+                                example: 'Marc Convoyeur'
+                              email:
+                                type: string
+                                example: conductor.marc@kora.demo
+                              phone:
+                                type: string
+                                example: '+22997000000'
+                              jobTitle:
+                                type: string
+                                example: null
+                                nullable: true
+                              agency:
+                                type: string
+                                example: 'Agence Cotonou'
+                              role:
+                                type: string
+                                example: Convoyeur
+                  -
+                    description: 'Configuration indisponible'
+                    type: object
+                    example:
+                      data:
+                        enabled: false
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          enabled:
+                            type: boolean
+                            example: false
+        401:
+          description: 'Non authentifié'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'OPS — Support'
   /api/v1/auth/passenger/notifications:
     get:
       summary: 'Liste l’inbox passager, de la plus récente à la plus ancienne.'
