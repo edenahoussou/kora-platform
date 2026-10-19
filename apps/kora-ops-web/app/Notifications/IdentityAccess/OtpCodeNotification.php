@@ -40,6 +40,11 @@ class OtpCodeNotification extends Notification implements ShouldBeEncrypted, Sho
         return "Votre code KORA est {$this->code}. Il expire dans {$this->expiresInMinutes} minutes. Ne le partagez jamais.";
     }
 
+    public function toSms(object $notifiable): string
+    {
+        return "Votre code KORA est {$this->code}. Il expire dans {$this->expiresInMinutes} minutes.";
+    }
+
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)

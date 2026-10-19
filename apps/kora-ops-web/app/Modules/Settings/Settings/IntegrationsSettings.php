@@ -154,6 +154,14 @@ final class IntegrationsSettings extends Settings
 
     public int $wahaNewContactDelaySeconds = 30;
 
+    public bool $conexteoEnabled = false;
+
+    public ?string $conexteoAppId = null;
+
+    public ?string $conexteoApiKey = null;
+
+    public string $conexteoSender = 'KoraExpress';
+
     public ?string $googleOauthClientId = null;
 
     public ?string $googleOauthClientSecret = null;
@@ -201,6 +209,7 @@ final class IntegrationsSettings extends Settings
             'genukaToken',
             'genukaConnectionId',
             'wahaToken',
+            'conexteoApiKey',
             'googleOauthClientSecret',
             'facebookOauthClientSecret',
             'tiktokOauthClientSecret',

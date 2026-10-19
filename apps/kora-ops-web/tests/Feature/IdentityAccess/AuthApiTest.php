@@ -556,7 +556,19 @@ it('stores and retrieves user preferences', function (): void {
         ->getJson('/api/v1/auth/preferences')
         ->assertOk()
         ->assertJsonPath('data.push_notifications', false)
+        ->assertJsonPath('data.sms_notifications', true)
         ->assertJsonPath('data.locale', 'fr');
+});
+
+it('updates the sms notification preference', function (): void {
+    $user = pinUser('prefs-sms@example.com');
+    $device = trustedDevice($user, 'prefs-sms-device');
+    $token = $user->createToken("device:{$device->uuid}", ['*'], now()->addDays(7))->plainTextToken;
+
+    $this->withToken($token)
+        ->putJson('/api/v1/auth/preferences', ['sms_notifications' => false])
+        ->assertOk()
+        ->assertJsonPath('data.sms_notifications', false);
 });
 
 it('updates user preferences', function (): void {

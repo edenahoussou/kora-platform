@@ -34,6 +34,7 @@ use App\Modules\Notifications\Channels\OpsFirebaseChannel;
 use App\Modules\Notifications\Channels\OpsMailChannel;
 use App\Modules\Notifications\Channels\PassengerDatabaseChannel;
 use App\Modules\Notifications\Channels\PassengerFcmChannel;
+use App\Modules\Notifications\Channels\SmsChannel;
 use App\Modules\Notifications\Observers\PaymentRefundNotificationObserver;
 use App\Modules\Payments\Models\PaymentRefund;
 use App\Modules\Payments\Providers\FedaPayAdapter;
@@ -171,6 +172,7 @@ class AppServiceProvider extends ServiceProvider
         Notification::extend('passengerDatabase', fn (): PassengerDatabaseChannel => app(PassengerDatabaseChannel::class));
         Notification::extend('passengerFcm', fn (): PassengerFcmChannel => app(PassengerFcmChannel::class));
         Notification::extend('opsDatabase', fn (): OpsDatabaseChannel => app(OpsDatabaseChannel::class));
+        Notification::extend('sms', fn (): SmsChannel => app(SmsChannel::class));
         FiscalInvoice::observe(FiscalInvoiceObserver::class);
         PaymentRefund::observe(PaymentRefundNotificationObserver::class);
         $this->registerPolicies();

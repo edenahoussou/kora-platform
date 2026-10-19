@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $user_id
  * @property bool $push_notifications
  * @property bool $whatsapp_notifications
+ * @property bool $sms_notifications
  * @property bool $email_notifications
  * @property string $locale
  * @property string $theme
@@ -26,6 +27,7 @@ class UserPreference extends Model
         'user_id',
         'push_notifications',
         'whatsapp_notifications',
+        'sms_notifications',
         'email_notifications',
         'locale',
         'theme',
@@ -48,6 +50,7 @@ class UserPreference extends Model
         return [
             'push_notifications' => 'boolean',
             'whatsapp_notifications' => 'boolean',
+            'sms_notifications' => 'boolean',
             'email_notifications' => 'boolean',
             'dispatch_alerts' => 'boolean',
             'cashier_alerts' => 'boolean',
