@@ -1241,6 +1241,8 @@ class AppLocalization {
   String get preferencesPushSub => translate('preferences_push_sub');
   String get preferencesWhatsapp => translate('preferences_whatsapp');
   String get preferencesWhatsappSub => translate('preferences_whatsapp_sub');
+  String get preferencesSms => translate('preferences_sms');
+  String get preferencesSmsSub => translate('preferences_sms_sub');
   String get preferencesEmail => translate('preferences_email');
   String get preferencesEmailSub => translate('preferences_email_sub');
   String get preferencesDisplay => translate('preferences_display');

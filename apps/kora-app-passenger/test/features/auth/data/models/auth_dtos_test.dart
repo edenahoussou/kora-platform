@@ -56,4 +56,20 @@ void main() {
       expect(user.permissions, isEmpty);
     },
   );
+
+  test('lit la préférence SMS et retombe sur true quand elle manque', () {
+    final preferences = AuthDtos.preferences({
+      'data': {
+        'push_notifications': false,
+        'whatsapp_notifications': true,
+        'sms_notifications': false,
+        'email_notifications': true,
+        'locale': 'fr',
+        'theme': 'light',
+      },
+    });
+
+    expect(preferences.smsNotifications, isFalse);
+    expect(AuthDtos.preferences(const {}).smsNotifications, isTrue);
+  });
 }

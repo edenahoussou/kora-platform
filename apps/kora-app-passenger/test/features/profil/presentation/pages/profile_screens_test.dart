@@ -278,12 +278,14 @@ void main() {
       repository.storedPreferences = const UserPreferences(
         pushNotifications: true,
         whatsappNotifications: false,
+        smsNotifications: false,
         emailNotifications: true,
       );
       await pump(tester, const PreferencesPage());
 
       expect(find.text('Notifications push'), findsOneWidget);
       expect(find.text('Messages WhatsApp'), findsOneWidget);
+      expect(find.text('Messages SMS'), findsOneWidget);
       expect(find.text('Emails'), findsOneWidget);
 
       final toggles = tester
@@ -291,7 +293,8 @@ void main() {
           .toList();
       expect(toggles[0].value, isTrue);
       expect(toggles[1].value, isFalse);
-      expect(toggles[2].value, isTrue);
+      expect(toggles[2].value, isFalse);
+      expect(toggles[3].value, isTrue);
     });
 
     testWidgets('enregistre un interrupteur basculé', (tester) async {

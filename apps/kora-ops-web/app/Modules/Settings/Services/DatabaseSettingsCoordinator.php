@@ -287,6 +287,10 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
             'wahaToken' => ['nullable', 'string', 'max:500'],
             'wahaSession' => ['required', 'string', 'max:120'],
             'wahaNewContactDelaySeconds' => ['required', 'integer', 'min:0', 'max:3600'],
+            'conexteoEnabled' => ['required', 'boolean'],
+            'conexteoAppId' => ['nullable', 'string', 'max:200'],
+            'conexteoApiKey' => ['nullable', 'string', 'max:500'],
+            'conexteoSender' => ['required', 'string', 'max:11', 'regex:/^[A-Za-z0-9 .-]+$/'],
             'googleOauthClientId' => ['nullable', 'string', 'max:500'],
             'googleOauthClientSecret' => ['nullable', 'string', 'max:500'],
             'googleOauthRedirect' => ['required', 'string', 'max:500'],
@@ -385,6 +389,10 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
 
         if ((bool) $values['tawktoEnabled'] && (blank($values['tawktoPropertyId']) || blank($values['tawktoWidgetId']))) {
             $errors['tawktoPropertyId'] = 'Le Property ID et le Widget ID tawk.to sont requis pour activer le chat.';
+        }
+
+        if ((bool) $values['conexteoEnabled'] && (blank($values['conexteoAppId']) || blank($values['conexteoApiKey']) || blank($values['conexteoSender']))) {
+            $errors['conexteoAppId'] = 'L’App ID, la clé API et l’expéditeur Conexteo sont requis pour activer les SMS.';
         }
 
         if ((bool) $values['mtnMomoEnabled'] && (blank($values['mtnMomoSubscriptionKey']) || blank($values['mtnMomoUserId']) || blank($values['mtnMomoApiKey']))) {

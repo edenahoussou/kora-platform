@@ -4,6 +4,8 @@ namespace App\Modules\Notifications\Channels;
 
 use App\Models\User;
 use App\Modules\IdentityAccess\Exceptions\OtpDeliveryException;
+use App\Modules\Notifications\Services\NotificationLogRecorder;
+use App\Modules\Notifications\Services\Sms\ConexteoSmsClient;
 use App\Modules\Notifications\Services\WhatsApp\WhatsAppMessageDispatcher;
 use App\Notifications\IdentityAccess\OtpCodeNotification;
 use Illuminate\Notifications\Channels\MailChannel;
@@ -23,6 +25,8 @@ class OtpCodeChannel
     public function __construct(
         private readonly WhatsAppMessageDispatcher $whatsapp,
         private readonly MailChannel $mail,
+        private readonly ConexteoSmsClient $sms,
+        private readonly NotificationLogRecorder $recorder,
     ) {}
 
     public function send(object $notifiable, OtpCodeNotification $notification): void
@@ -46,10 +50,30 @@ class OtpCodeChannel
             }
         }
 
+        $smsError = null;
+
+        if ($this->sms->isConfigured() && is_string($phone) && trim($phone) !== '') {
+            try {
+                $result = $this->sms->send($phone, $notification->toSms($notifiable));
+                $this->recorder->recordSms($phone, 'otp', 'sent', payload: [
+                    'message_id' => $result['message_id'],
+                    'credits_used' => $result['credits_used'],
+                    'duplicate' => $result['duplicate'],
+                ]);
+
+                return;
+            } catch (Throwable $exception) {
+                $smsError = $exception;
+                $this->recorder->recordSms($phone, 'otp', 'failed', payload: [
+                    'error' => $exception->getMessage(),
+                ]);
+            }
+        }
+
         if (self::isContactableEmail($this->routeNotificationTarget($notifiable, 'mail'))) {
-            if ($whatsappError !== null) {
-                Log::warning('OTP WhatsApp delivery failed; falling back to email.', [
-                    'exception' => $whatsappError::class,
+            if ($whatsappError !== null || $smsError !== null) {
+                Log::warning('OTP WhatsApp/SMS delivery failed; falling back to email.', [
+                    'exception' => ($smsError ?? $whatsappError)::class,
                     'user_id' => $notifiable instanceof User ? $notifiable->getKey() : null,
                 ]);
             }
@@ -59,7 +83,7 @@ class OtpCodeChannel
             return;
         }
 
-        throw new OtpDeliveryException(previous: $whatsappError);
+        throw new OtpDeliveryException(previous: $smsError ?? $whatsappError);
     }
 
     /**

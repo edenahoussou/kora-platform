@@ -4,6 +4,7 @@ namespace App\Modules\Settings\Services;
 
 use App\Modules\Settings\Contracts\IntegrationConnectionProbe;
 use App\Modules\Settings\Data\ConnectionProbeResult;
+use App\Modules\Settings\Services\Probes\ConexteoConnectionProbe;
 use App\Modules\Settings\Services\Probes\EmecfConnectionProbe;
 use App\Modules\Settings\Services\Probes\FedaPayConnectionProbe;
 use App\Modules\Settings\Services\Probes\MtnMomoConnectionProbe;
@@ -19,11 +20,13 @@ final class IntegrationConnectionProbeManager
         EmecfConnectionProbe $emecf,
         FedaPayConnectionProbe $fedapay,
         MtnMomoConnectionProbe $mtnMomo,
+        ConexteoConnectionProbe $conexteo,
     ) {
         $this->probes = [
             $emecf->provider() => $emecf,
             $fedapay->provider() => $fedapay,
             $mtnMomo->provider() => $mtnMomo,
+            $conexteo->provider() => $conexteo,
         ];
     }
 

@@ -115,6 +115,7 @@ class OpsProfileService
         $preference = $user->preference()->first() ?? new UserPreference([
             'push_notifications' => false,
             'whatsapp_notifications' => true,
+            'sms_notifications' => true,
             'email_notifications' => true,
             'locale' => 'fr',
             'theme' => 'light',

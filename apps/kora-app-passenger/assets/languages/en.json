@@ -274,6 +274,8 @@
   "preferences_push_sub": "Trip alerts and tickets",
   "preferences_whatsapp": "WhatsApp messages",
   "preferences_whatsapp_sub": "Tickets and critical alerts",
+  "preferences_sms": "SMS messages",
+  "preferences_sms_sub": "Trip confirmation, cancellation and delay",
   "preferences_email": "Emails",
   "preferences_email_sub": "Receipts and news",
   "preferences_display": "Display",

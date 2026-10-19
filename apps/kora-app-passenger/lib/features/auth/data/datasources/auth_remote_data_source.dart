@@ -279,6 +279,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         data: {
           'push_notifications': preferences.pushNotifications,
           'whatsapp_notifications': preferences.whatsappNotifications,
+          'sms_notifications': preferences.smsNotifications,
           'email_notifications': preferences.emailNotifications,
           'locale': preferences.locale,
           'theme': preferences.theme,

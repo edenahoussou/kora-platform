@@ -20,6 +20,7 @@ class UpdatePreferencesRequest extends FormRequest
         return [
             'push_notifications' => ['nullable', 'boolean'],
             'whatsapp_notifications' => ['nullable', 'boolean'],
+            'sms_notifications' => ['nullable', 'boolean'],
             'email_notifications' => ['nullable', 'boolean'],
             'locale' => ['nullable', 'string', Rule::in(['fr', 'en'])],
             'theme' => ['nullable', 'string', Rule::in(['light', 'dark', 'system'])],
@@ -37,6 +38,7 @@ class UpdatePreferencesRequest extends FormRequest
         return [
             'push_notifications.boolean' => 'La valeur des notifications push doit être vraie ou fausse.',
             'whatsapp_notifications.boolean' => 'La valeur des notifications WhatsApp doit être vraie ou fausse.',
+            'sms_notifications.boolean' => 'La valeur des notifications SMS doit être vraie ou fausse.',
             'email_notifications.boolean' => 'La valeur des notifications email doit être vraie ou fausse.',
             'locale.in' => 'La langue doit être « fr » ou « en ».',
             'theme.in' => 'Le thème doit être « light », « dark » ou « system ».',
@@ -57,7 +59,7 @@ class UpdatePreferencesRequest extends FormRequest
         return [
             'push_notifications' => ['description' => 'Valeur de « push notifications ».'],
             'whatsapp_notifications' => ['description' => 'Valeur de « whatsapp notifications ».'],
-            'email_notifications' => ['description' => 'Valeur de « email notifications ».'],
+            'sms_notifications' => ['description' => 'Valeur de « sms notifications ».'],            'email_notifications' => ['description' => 'Valeur de « email notifications ».'],
             'locale' => ['description' => 'Langue préférée.'],
             'theme' => ['description' => 'Thème d’affichage préféré.'],
         ];

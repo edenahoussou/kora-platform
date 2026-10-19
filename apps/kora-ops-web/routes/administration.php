@@ -5,6 +5,7 @@ use App\Modules\IdentityAccess\Http\Controllers\TerminalManagementController;
 use App\Modules\IdentityAccess\Http\Controllers\UserController;
 use App\Modules\Monitoring\Http\Controllers\MonitoringController;
 use App\Modules\Settings\Http\Controllers\IntegrationConnectionTestController;
+use App\Modules\Settings\Http\Controllers\IntegrationTestSmsController;
 use App\Modules\Settings\Http\Controllers\SettingsController;
 use Illuminate\Support\Facades\Route;
 
@@ -37,6 +38,9 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::post('administration/settings/integrations/{provider}/test', IntegrationConnectionTestController::class)
         ->middleware('throttle:settings-probes')
         ->name('administration.settings.integrations.test');
+    Route::post('administration/settings/integrations/test-sms', IntegrationTestSmsController::class)
+        ->middleware('throttle:settings-probes')
+        ->name('administration.settings.integrations.test-sms');
 
     Route::get('users', [UserController::class, 'index'])->name('users');
     Route::get('users/{user:uuid}', [UserController::class, 'show'])->name('users.show');

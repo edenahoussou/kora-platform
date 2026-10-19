@@ -98,6 +98,7 @@ const sensitiveKeys = new Set([
     'facebookOauthClientSecret',
     'tiktokOauthClientSecret',
     'tawktoApiKey',
+    'conexteoApiKey',
 ]);
 
 const integrationFields: Record<string, IntegrationFieldDefinition[]> = {
@@ -563,6 +564,33 @@ const integrationFields: Record<string, IntegrationFieldDefinition[]> = {
             suffix: 's',
         },
     ],
+    conexteo: [
+        {
+            key: 'conexteoAppId',
+            label: 'App ID Conexteo',
+            hint: 'Identifiant de l’application Conexteo, transmis en en-tête X-APP-ID.',
+            icon: Fingerprint,
+            required: true,
+            showConfigured: true,
+            source: 'Conexteo → Espace développeur → votre application → App ID.',
+        },
+        {
+            key: 'conexteoApiKey',
+            label: 'Clé API Conexteo',
+            hint: 'Clé secrète transmise en en-tête X-API-KEY. Elle reste chiffrée et masquée après enregistrement.',
+            secret: true,
+            icon: KeyRound,
+            required: true,
+            source: 'Conexteo → Espace développeur → votre application → Clé API. À conserver côté serveur.',
+        },
+        {
+            key: 'conexteoSender',
+            label: 'Expéditeur SMS',
+            hint: 'Nom affiché sur le téléphone du destinataire, 11 caractères alphanumériques maximum.',
+            icon: AtSign,
+            required: true,
+        },
+    ],
     googleOauth: [
         {
             key: 'googleOauthClientId',
@@ -733,6 +761,13 @@ export default function SettingsPage({
         clearSecrets: [],
         confirmed: false,
     });
+    const testSmsForm = useForm<{ phone: string }>({ phone: '' });
+    const sendTestSms = () => {
+        testSmsForm.post(administration.settings.integrations.testSms.url(), {
+            preserveScroll: true,
+            onSuccess: () => testSmsForm.reset('phone'),
+        });
+    };
 
     useEffect(() => {
         const handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -1810,13 +1845,76 @@ export default function SettingsPage({
         <div className="cash-reveal cash-reveal-delay-2 grid gap-4 xl:grid-cols-2">
             {renderIntegrationGroup(
                 'Notifications',
-                'Configuration du service Firebase pour les notifications push Web.',
-                renderIntegrationCard(
-                    'firebase',
-                    'Firebase Cloud Messaging',
-                    'Les champs requis le sont lorsque le push est activé. La clé privée reste côté serveur.',
-                    { enabledKey: 'firebasePushEnabled', icon: BellRing },
-                ),
+                'Firebase pour le push Web et Conexteo pour les SMS transactionnels.',
+                <div className="grid gap-3 xl:grid-cols-2">
+                    {renderIntegrationCard(
+                        'firebase',
+                        'Firebase Cloud Messaging',
+                        'Les champs requis le sont lorsque le push est activé. La clé privée reste côté serveur.',
+                        { enabledKey: 'firebasePushEnabled', icon: BellRing },
+                    )}
+                    {renderIntegrationCard(
+                        'conexteo',
+                        'Conexteo SMS',
+                        'SMS transactionnels vers le payeur et repli des codes OTP.',
+                        {
+                            enabledKey: 'conexteoEnabled',
+                            probeProvider: 'conexteo',
+                            result: probeResults.conexteo,
+                            icon: Smartphone,
+                            children: (
+                                <section className="mt-5 rounded-xl border border-slate-300/70 bg-slate-100/70 p-4 dark:border-slate-700/70 dark:bg-slate-800/40">
+                                    <div className="flex items-start gap-2.5">
+                                        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-200">
+                                            <Smartphone className="size-3.5" />
+                                        </span>
+                                        <div>
+                                            <h4 className="text-xs font-extrabold text-foreground">
+                                                Envoyer un SMS de test
+                                            </h4>
+                                            <p className="mt-1 text-[11px] leading-4 text-muted-foreground">
+                                                Envoi réel et facturé en crédits
+                                                Conexteo, journalisé dans les
+                                                logs de notification.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+                                        <SettingsPhoneField
+                                            label="Numéro de test"
+                                            hint="Format international, ex. +22997000000."
+                                            icon={Phone}
+                                            value={
+                                                testSmsForm.data.phone || null
+                                            }
+                                            disabled={!permissions.canManage}
+                                            error={testSmsForm.errors.phone}
+                                            onChange={(nextValue) =>
+                                                testSmsForm.setData(
+                                                    'phone',
+                                                    nextValue ?? '',
+                                                )
+                                            }
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="kora-secondary"
+                                            size="kora"
+                                            disabled={
+                                                !permissions.canManage ||
+                                                testSmsForm.processing
+                                            }
+                                            onClick={sendTestSms}
+                                        >
+                                            <Smartphone className="size-3.5" />{' '}
+                                            Envoyer un SMS de test
+                                        </Button>
+                                    </div>
+                                </section>
+                            ),
+                        },
+                    )}
+                </div>,
                 '',
                 BellRing,
             )}
