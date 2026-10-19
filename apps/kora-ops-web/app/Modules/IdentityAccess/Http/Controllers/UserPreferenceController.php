@@ -25,6 +25,7 @@ class UserPreferenceController extends Controller
      *   "data": {
      *     "push_notifications": true,
      *     "whatsapp_notifications": true,
+     *     "sms_notifications": true,
      *     "email_notifications": true,
      *     "locale": "fr",
      *     "theme": "light"
@@ -50,6 +51,7 @@ class UserPreferenceController extends Controller
      *   "data": {
      *     "push_notifications": false,
      *     "whatsapp_notifications": true,
+     *     "sms_notifications": false,
      *     "email_notifications": true,
      *     "locale": "en",
      *     "theme": "dark"
@@ -81,6 +83,7 @@ class UserPreferenceController extends Controller
             [
                 'push_notifications' => false,
                 'whatsapp_notifications' => true,
+                'sms_notifications' => true,
                 'email_notifications' => true,
                 'locale' => 'fr',
                 'theme' => 'light',

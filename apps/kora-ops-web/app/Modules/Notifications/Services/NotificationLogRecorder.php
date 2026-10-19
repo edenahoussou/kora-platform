@@ -25,6 +25,8 @@ class NotificationLogRecorder
 {
     public const string MAIL_TEMPLATE = 'ops_alert';
 
+    public const string SMS_CHANNEL = 'sms';
+
     public function recordMail(OpsNotificationDelivery $delivery): void
     {
         try {
@@ -55,6 +57,46 @@ class NotificationLogRecorder
                     ], static fn (mixed $value): bool => $value !== null),
                 ],
             );
+        } catch (Throwable $exception) {
+            report($exception);
+        }
+    }
+
+    /**
+     * Journalise un SMS transactionnel ; ne lève jamais.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    public function recordSms(
+        string $recipient,
+        string $template,
+        string $status,
+        ?string $referenceType = null,
+        ?int $referenceId = null,
+        array $payload = [],
+    ): void {
+        try {
+            $values = [
+                'status' => $status,
+                'sent_at' => $status === 'sent' ? now() : null,
+                'payload' => array_filter($payload, static fn (mixed $value): bool => $value !== null),
+            ];
+            $key = [
+                'channel' => self::SMS_CHANNEL,
+                'recipient' => $recipient,
+                'template' => $template,
+            ];
+
+            if ($referenceType !== null && $referenceId !== null) {
+                NotificationLog::query()->updateOrCreate(
+                    [...$key, 'reference_type' => $referenceType, 'reference_id' => $referenceId],
+                    $values,
+                );
+
+                return;
+            }
+
+            NotificationLog::query()->create([...$key, ...$values]);
         } catch (Throwable $exception) {
             report($exception);
         }

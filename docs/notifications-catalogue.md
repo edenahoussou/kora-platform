@@ -22,7 +22,7 @@ Inventaire et cible d’implémentation de MEZ-98. Le catalogue sépare l’audi
 | Temps réel OPS | Événement privé `ops-notifications.{userUuid}` pour accélérer l’affichage Web. | Actif si un driver de broadcast est configuré; l’API reste la source fiable. |
 | E-mail OPS | Canal additionnel pour les événements dont `sendsMail()` est vrai. Directeurs des opérations en destinataires, administrateurs système en copie; préférences e-mail appliquées. | Actif si le courriel OPS est activé, le destinataire a une adresse et le canal est configuré. La règle e-mail est indépendante du push. |
 | WhatsApp transactionnel | OTP et billet PDF envoyé au numéro joignable du payeur. | Actif selon disponibilité Genuka/WAHA et livraison. Ces messages ne sont pas l’inbox. |
-| SMS | Aucun fournisseur ni format transactionnel défini dans ce ticket. | Non disponible; recensé comme canal futur. |
+| SMS transactionnel | Confirmation, annulation et retard de départ vers le téléphone du payeur; repli des codes OTP. | Actif via Conexteo lorsque le fournisseur est activé et configuré. Ces messages ne sont pas l’inbox; le suivi vit dans `notification_logs` (`channel='sms'`). |
 
 ## Notifications OPS
 
@@ -62,11 +62,11 @@ Déclencheurs backend : actions de réservation, jobs de billetterie, observer d
 
 | Type | Déclencheur et contenu | Destinataires | Inbox / push mobile / autre canal |
 | --- | --- | --- | --- |
-| `reservation_confirmed` | Émission réussie du billet après paiement confirmé. Message de confirmation et billet consultable dans l’app. | Payeur si réservation personnelle; sinon utilisateurs rattachés aux passagers. Sans compte correspondant, pas d’inbox. | Oui / Oui si appareil opt-in / le WhatsApp du billet continue d’être envoyé au payeur. |
+| `reservation_confirmed` | Émission réussie du billet après paiement confirmé. Message de confirmation et billet consultable dans l’app. | Payeur si réservation personnelle; sinon utilisateurs rattachés aux passagers. Sans compte correspondant, pas d’inbox. | Oui / Oui si appareil opt-in / le WhatsApp du billet continue d’être envoyé au payeur; SMS au payeur si `sms_notifications` est actif. |
 | `ticket_issuance_failed` | Échec définitif d’émission après les tentatives du job; n’est pas émis pour une erreur qui sera encore réessayée. | Même règle payeur/passagers liés; aucun utilisateur associé signifie pas d’inbox. | Oui / Oui si appareil opt-in / aucun email Passager ajouté. |
 | `departure_modified` | Date, heure, bus ou ligne modifiés pour un départ lié à un billet émis. | Payeur; sinon comptes des passagers associés. | Oui / Oui si opt-in. |
-| `departure_cancelled` | Départ annulé pour un billet émis. | Payeur; sinon comptes des passagers associés. | Oui / Oui si opt-in. |
-| `departure_delayed` | ETA calculé dépasse le seuil configuré (1 minute par défaut); une même ETA n’est notifiée qu’une fois. | Payeur; sinon comptes des passagers associés pour les réservations émises sur ce départ. | Oui / Oui si opt-in. |
+| `departure_cancelled` | Départ annulé pour un billet émis. | Payeur; sinon comptes des passagers associés. | Oui / Oui si opt-in; SMS au payeur si `sms_notifications` est actif. |
+| `departure_delayed` | ETA calculé dépasse le seuil configuré (1 minute par défaut); une même ETA n’est notifiée qu’une fois. | Payeur; sinon comptes des passagers associés pour les réservations émises sur ce départ. | Oui / Oui si opt-in; SMS au payeur si `sms_notifications` est actif. |
 | `departure_reminder` | Rappel différé avant le départ, initialisé à 24 h et 2 h. Les jobs sont vérifiés à l’envoi contre le départ actuel et l’état du billet. | Payeur; sinon comptes des passagers associés. | Oui / Oui si opt-in. |
 | `refund_pending`, `refund_completed`, `refund_failed` | Création ou changement d’état d’un remboursement lié à une réservation BUS. | Payeur; sinon comptes des passagers liés. | Oui / Oui si opt-in; aucune donnée de montant dans le push. |
 
@@ -74,17 +74,19 @@ L’API Passager est authentifiée et ne renvoie que les entrées de son audienc
 
 Le ticket WhatsApp existant et l’inbox sont deux livraisons du même parcours métier, mais ils ne sont pas interchangeables : WhatsApp livre un document au payeur joignable; l’inbox est attachée aux comptes KORA des bénéficiaires. Le présent ticket n’ajoute pas d’email Passager.
 
+Le SMS transactionnel suit la préférence `sms_notifications` (active par défaut, exposée dans l’app Passager) lorsque le numéro du payeur correspond à un compte connu. Il ne remplace ni l’inbox ni le push : c’est une troisième livraison, tracée dans `notification_logs` avec l’identifiant Conexteo pour l’idempotence.
+
 ## Messages transactionnels hors inbox
 
 | Message | Émetteur et destinataire | Canaux actifs |
 | --- | --- | --- |
-| OTP | `IssueOtpChallengeAction`, au compte qui demande l’authentification ou la vérification. | WhatsApp Genuka puis WAHA; repli e-mail lorsque configuré et joignable. |
+| OTP | `IssueOtpChallengeAction`, au compte qui demande l’authentification ou la vérification. | WhatsApp Genuka puis WAHA; repli SMS via Conexteo; repli e-mail lorsque configuré et joignable. La préférence SMS ne s’applique pas à l’OTP. |
 | Billet PDF | `IssueReservationTicketsJob` après émission, un message par ticket, envoyé au payeur joignable; renvoi possible depuis le billet. | WhatsApp Genuka puis WAHA; suivi dans `whatsapp_deliveries`. |
 | Réinitialisation du mot de passe | Notification Laravel `ResetPassword` vers l’adresse du compte. | E-mail. |
 
 ## Hors périmètre
 
 - Console globale de configuration des alertes, santé des canaux, journal multicanal, tests et renvois.
-- SMS tant qu’aucun fournisseur, modèle, consentement ou coût n’a été défini.
+- DND, opt-out réglementaire SMS et réconciliation détaillée des coûts Conexteo.
 - Inbox Passager pour KORA Wallet, Colis ou RIDE; notifications Wallet, Colis et RIDE de la maquette ne sont pas des événements KORA BUS.
 - Nouveaux emails transactionnels Passager.

@@ -19,6 +19,7 @@ class UserPreferenceResource extends JsonResource
         return [
             'push_notifications' => $this->push_notifications,
             'whatsapp_notifications' => $this->whatsapp_notifications,
+            'sms_notifications' => $this->sms_notifications,
             'email_notifications' => $this->email_notifications,
             'locale' => $this->locale,
             'theme' => $this->theme,

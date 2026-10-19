@@ -4069,6 +4069,7 @@ paths:
                   data:
                     push_notifications: true
                     whatsapp_notifications: true
+                    sms_notifications: true
                     email_notifications: true
                     locale: fr
                     theme: light
@@ -4080,6 +4081,9 @@ paths:
                         type: boolean
                         example: false
                       whatsapp_notifications:
+                        type: boolean
+                        example: false
+                      sms_notifications:
                         type: boolean
                         example: false
                       email_notifications:
@@ -4121,6 +4125,7 @@ paths:
                   data:
                     push_notifications: false
                     whatsapp_notifications: true
+                    sms_notifications: false
                     email_notifications: true
                     locale: en
                     theme: dark
@@ -4132,6 +4137,9 @@ paths:
                         type: boolean
                         example: false
                       whatsapp_notifications:
+                        type: boolean
+                        example: false
+                      sms_notifications:
                         type: boolean
                         example: false
                       email_notifications:
@@ -4196,6 +4204,11 @@ paths:
                 whatsapp_notifications:
                   type: boolean
                   description: 'Valeur de « whatsapp notifications ».'
+                  example: false
+                  nullable: true
+                sms_notifications:
+                  type: boolean
+                  description: 'Valeur de « sms notifications ».'
                   example: false
                   nullable: true
                 email_notifications:

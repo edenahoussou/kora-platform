@@ -10,6 +10,7 @@ use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\Notifications\Jobs\SendPassengerDepartureReminderJob;
 use App\Modules\Notifications\Notifications\PassengerInboxNotification;
+use App\Modules\Notifications\Services\Sms\PassengerSmsDispatcher;
 use App\Modules\Payments\Data\PaymentRefundStatus;
 use App\Modules\Payments\Models\PaymentRefund;
 use App\Modules\Settings\Settings\OperationsSettings;
@@ -25,7 +26,12 @@ class PassengerNotificationPublisher
         $message = $journey === null
             ? 'Votre réservation est confirmée. Votre billet est disponible dans l’application.'
             : "Votre trajet {$journey} est confirmé. Votre billet est disponible dans l’application.";
-        $this->publishReservation($reservation, 'reservation_confirmed', 'Réservation confirmée', $message, 'tickets');
+        $reservation->loadMissing('tickets');
+        $this->publishReservation($reservation, 'reservation_confirmed', 'Réservation confirmée', $message, 'tickets', null, [
+            'route' => $journey,
+            'short_code' => $reservation->tickets->first()?->short_code,
+            'tickets' => $reservation->tickets->count(),
+        ]);
         $reservation->loadMissing('segments.departure');
         foreach ($reservation->segments as $segment) {
             foreach (app(OperationsSettings::class)->passengerDepartureReminderHours as $hours) {
@@ -63,7 +69,13 @@ class PassengerNotificationPublisher
             $message = $change === 'cancelled'
                 ? 'Votre départ a été annulé. Consultez votre réservation pour connaître les suites.'
                 : $this->changedDepartureMessage($reservation, $departure);
-            $this->publishReservation($reservation, 'departure_'.$change, $title, $message, 'tickets', $departure->uuid.':'.$change.':'.$departure->updated_at?->getTimestamp());
+            $smsContext = $change === 'cancelled' ? [
+                'route' => $this->reservationSegmentRoute($reservation, $departure),
+                'scheduled_at' => $departure->scheduledDepartureAt()
+                    ->setTimezone($departure->departure_timezone ?? config('app.timezone'))
+                    ->format('d/m \\à H\\hi'),
+            ] : [];
+            $this->publishReservation($reservation, 'departure_'.$change, $title, $message, 'tickets', $departure->uuid.':'.$change.':'.$departure->updated_at?->getTimestamp(), $smsContext);
         }
     }
 
@@ -80,7 +92,10 @@ class PassengerNotificationPublisher
             $route = $this->reservationSegmentRoute($reservation, $departure);
             $routeText = $route === null ? 'votre départ' : "votre départ {$route}";
             $message = "Un retard est annoncé pour {$routeText}. Le nouvel horaire estimé est {$estimatedTime}. Consultez votre billet pour les informations à jour.";
-            $this->publishReservation($reservation, 'departure_delayed', 'Départ retardé', $message, 'tickets', $departure->uuid.':'.$etaKey);
+            $this->publishReservation($reservation, 'departure_delayed', 'Départ retardé', $message, 'tickets', $departure->uuid.':'.$etaKey, [
+                'route' => $route,
+                'eta' => $estimatedTime,
+            ]);
         }
     }
 
@@ -205,6 +220,7 @@ class PassengerNotificationPublisher
         return $origin !== null && $destination !== null ? "{$origin} → {$destination}" : null;
     }
 
+    /** @param array<string, mixed> $smsContext */
     private function publishReservation(
         Reservation $reservation,
         string $type,
@@ -212,6 +228,7 @@ class PassengerNotificationPublisher
         string $message,
         string $resource,
         ?string $suffix = null,
+        array $smsContext = [],
     ): void {
         $recipients = $this->recipients($reservation);
         $dedupeSuffix = $suffix ?? (string) $reservation->ticket_issued_at?->getTimestamp();
@@ -225,6 +242,8 @@ class PassengerNotificationPublisher
                 data: ['resource' => $resource, 'reservation_uuid' => $reservation->uuid],
             ));
         }
+
+        app(PassengerSmsDispatcher::class)->dispatch($reservation, $type, [...$smsContext, 'dedupe_suffix' => $dedupeSuffix]);
     }
 
     /** @return Collection<int, User> */
