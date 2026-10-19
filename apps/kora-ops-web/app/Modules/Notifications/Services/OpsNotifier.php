@@ -417,6 +417,50 @@ class OpsNotifier
         );
     }
 
+    /** Alerte matinale : une session de caisse n'a pas été clôturée à sa date. */
+    public function cashSessionLeftOpen(CashSession $session): void
+    {
+        $session->loadMissing(['agency', 'agent']);
+        $recipients = $this->resolver->usersWithPermission('cash.approve-variance', $session->agency_id);
+
+        $this->publish(
+            OpsNotificationType::CashSessionLeftOpen,
+            'cash_session_left_open:'.$session->uuid.':'.now()->toDateString(),
+            sprintf(
+                'La caisse de %s du %s n’a pas été clôturée.',
+                $session->agent->name,
+                $session->business_date->format('d/m/Y'),
+            ),
+            ['cash_session_uuid' => $session->uuid, 'agency_uuid' => $session->agency?->uuid],
+            $recipients,
+            $session->agent,
+        );
+    }
+
+    /** Clôture d'office par un responsable : l'agent et le contrôle sont informés. */
+    public function cashSessionForceClosed(CashSession $session, User $manager): void
+    {
+        $session->loadMissing(['agency', 'agent']);
+        $recipients = $this->resolver->usersWithPermission('cash.approve-variance', $session->agency_id);
+        if ($session->agent instanceof User && $session->agent->isNot($manager)) {
+            $recipients->push($session->agent);
+        }
+
+        $this->publish(
+            OpsNotificationType::CashSessionForceClosed,
+            'cash_session_force_closed:'.$session->uuid,
+            sprintf(
+                'La session de caisse de %s du %s a été clôturée de force par %s.',
+                $session->agent->name,
+                $session->business_date->format('d/m/Y'),
+                $manager->name,
+            ),
+            ['cash_session_uuid' => $session->uuid, 'agency_uuid' => $session->agency?->uuid],
+            $recipients,
+            $session->agent,
+        );
+    }
+
     public function assistedBookingRequested(AssistedBooking $assistance): void
     {
         $recipients = $this->resolver->usersWithPermission('assisted-bookings.view-network')

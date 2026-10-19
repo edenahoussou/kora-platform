@@ -136,6 +136,30 @@ _Avoid_: CashMovement historique reclassé automatiquement, montant décimal ou 
 Mouvement financier sortant d'un ledger de caisse. Une dépense approuvée peut en créer une, mais les sorties historiques restent distinctes et ne sont jamais comptées deux fois dans les vues Finance.
 _Avoid_: Dépense métier, écriture publiée modifiable
 
+**Session de caisse**:
+Session journalière d'un agent sur une caisse, portant un sous-journal par compte suivi (espèces + comptes Mobile Money actifs). Ouverture et clôture exigent un comptage déclaré avec photo prise en live ; un écart non nul soumet la session à l'approbation d'un responsable.
+_Avoid_: Caisse permanente sans cycle journalier ; solde d'ouverture pré-rempli depuis la veille
+
+**Session non clôturée**:
+Session de caisse encore ouverte après sa journée comptable. Elle bloque sa caisse et reste visible pour son agent et la supervision ; le système l'alerte chaque matin sans jamais la clôturer automatiquement, car un comptage réel est exigé.
+_Avoid_: Clôture automatique silencieuse ; session oubliée invisible ; écart masqué par un solde fictif
+
+**Clôture forcée**:
+Clôture d'office d'une session non clôturée par un responsable d'agence, avec motif obligatoire, sans comptage ni preuve : les soldes constatés restent « non contrôlés » et les mouvements en attente sont rejetés. Tracée par `force_closed_by`/`force_closed_at` et le journal d'audit.
+_Avoid_: Clôture ordinaire fabriquée ; suppression de la session ; reprise sans trace
+
+**Clôture tardive**:
+Clôture ordinaire réalisée par l'agent après la `business_date` de sa session. Elle conserve la photo prise au moment du comptage et reste signalée « clôture tardive » dans l'historique.
+_Avoid_: Clôture re-datée à la journée comptable ; blocage définitif de la caisse
+
+**Solde théorique**:
+Solde calculé d'une caisse ou d'un compte — dernière ouverture déclarée plus mouvements publiés — affiché en permanence dans la supervision. Il n'est ni un solde bancaire ni un comptage physique.
+_Avoid_: Solde réel opérateur Mobile Money ; solde pré-rempli à l'ouverture
+
+**Supervision de caisse**:
+Consultation des sessions de caisse selon le périmètre de l'utilisateur — personnel, agence (`cash.view-agency`) ou réseau (`cash.view-network`) — avec historique complet, preuves privées, écarts et actions de contrôle.
+_Avoid_: Visibilité liée au seul pouvoir d'approbation ; consultation limitée à la journée courante
+
 **Contrepassation**:
 Écriture inverse auditée d'une dépense publiée. Elle conserve la dépense d'origine, exige un motif et ne supprime ni ne modifie l'écriture historique.
 _Avoid_: Suppression de dépense, correction silencieuse d'un ledger

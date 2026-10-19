@@ -17,6 +17,11 @@ use Illuminate\Support\Carbon;
  * @property Carbon $business_date
  * @property CashSessionStatus $status
  * @property Carbon|null $opened_at
+ * @property Carbon|null $submitted_at
+ * @property Carbon|null $closed_at
+ * @property Carbon|null $approved_at
+ * @property Carbon|null $force_closed_at
+ * @property string|null $closing_comment
  * @property int $opening_float
  * @property int $total_cash
  * @property int $total_mobile_money
@@ -51,6 +56,8 @@ class CashSession extends KoraModel
         'closed_at',
         'approved_by',
         'approved_at',
+        'force_closed_by',
+        'force_closed_at',
     ];
 
     protected function casts(): array
@@ -62,6 +69,7 @@ class CashSession extends KoraModel
             'submitted_at' => 'datetime',
             'closed_at' => 'datetime',
             'approved_at' => 'datetime',
+            'force_closed_at' => 'datetime',
         ];
     }
 
@@ -93,6 +101,12 @@ class CashSession extends KoraModel
     public function approvedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function forceClosedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'force_closed_by');
     }
 
     /**
