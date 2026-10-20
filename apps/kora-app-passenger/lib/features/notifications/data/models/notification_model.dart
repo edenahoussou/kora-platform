@@ -3,9 +3,14 @@ import '../../domain/entities/app_notification.dart';
 
 /// Couche DATA : une notification telle que le serveur la rend.
 ///
-/// Le domaine ne connaît ni `resource_uuid` ni les identifiants de type du
-/// backend (`departure_delayed`, `refund_succeeded`...) : ils s'arrêtent
-/// ici, comme les autres noms de champs de l'API.
+/// Les identifiants de type du backend (`departure_delayed`,
+/// `refund_succeeded`...) s'arrêtent ici : le domaine n'en connaît que le
+/// pictogramme qu'ils désignent.
+///
+/// `resource_uuid`, lui, **traverse** : ce n'est pas un nom de champ de
+/// l'API mais une donnée métier — la réservation dont on parle. Sans
+/// elle, toucher une notification ne peut mener nulle part en
+/// particulier.
 abstract final class NotificationModel {
   static AppNotification fromJson(Map<String, dynamic> json) {
     final type = ApiJson.string(json['type'], 'bus_update');
@@ -19,6 +24,7 @@ abstract final class NotificationModel {
           DateTime.tryParse(ApiJson.string(json['created_at']))?.toLocal() ??
           DateTime.now(),
       isUnread: json['is_read'] != true,
+      resourceUuid: ApiJson.stringOrNull(json['resource_uuid']),
     );
   }
 

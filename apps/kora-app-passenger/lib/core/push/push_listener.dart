@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_design_system/flutter_design_system.dart';
 
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../di/injector.dart';
@@ -156,12 +157,11 @@ class _PushListenerState extends State<PushListener> {
   /// est d'une autre nature — « vos notifications sont désactivées dans vos
   /// préférences » parle de l'application, pas d'un voyage, et n'a rien à
   /// faire dans le volet du téléphone.
-  void _tell(String text) {
-    final messenger = ScaffoldMessenger.maybeOf(context);
-    messenger?.showSnackBar(
-      SnackBar(content: Text(text), behavior: SnackBarBehavior.floating),
-    );
-  }
+  ///
+  /// Passe par [KoraToaster], comme tous les autres messages de l'app : un
+  /// `SnackBar` Material au milieu d'une interface KORA se voyait, et pas
+  /// pour les bonnes raisons.
+  void _tell(String text) => KoraToaster.show(context, text);
 
   @override
   Widget build(BuildContext context) {

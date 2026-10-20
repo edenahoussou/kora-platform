@@ -1188,6 +1188,10 @@ class AppLocalization {
   String get notificationsErrorTitle => translate('notifications_error_title');
   String get notificationsErrorText => translate('notifications_error_text');
   String get notificationsMore => translate('notifications_more');
+  String get ticketGoneTitle => translate('ticket_gone_title');
+  String get ticketGoneText => translate('ticket_gone_text');
+  String get ticketUnavailableTitle => translate('ticket_unavailable_title');
+  String get ticketUnavailableText => translate('ticket_unavailable_text');
   String notificationsMinutesAgo(int count) =>
       _withArgs('notifications_minutes_ago', {'count': count});
   String get notificationsToday => translate('notifications_today');
