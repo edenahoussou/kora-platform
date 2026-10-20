@@ -81,5 +81,12 @@
 	     l'avertissement ITMS-90683 à chaque envoi. -->
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>KORA utilise votre position pour suivre votre bus et vous montrer les points KORA les plus proches.</string>
+	<!-- Push FCM : réveille l'app pour les messages reçus en arrière-plan
+	     (voir lib/core/push/push_background.dart). L'autorisation APNs,
+	     elle, vient de `aps-environment` dans Runner.entitlements. -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 </dict>
 </plist>
