@@ -81,6 +81,9 @@ void main() {
             onSubmit: (identifier) => submitted = identifier,
             onSignIn: () => signedIn = true,
             oauth: oauth,
+            // L'écran les masque en production ; le code, lui, reste et
+            // doit continuer d'être éprouvé.
+            showSocialSignIn: true,
           ),
           repository,
         ),

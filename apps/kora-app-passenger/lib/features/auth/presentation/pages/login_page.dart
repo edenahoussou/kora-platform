@@ -59,10 +59,13 @@ class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
 
-  /// L'e-mail par défaut : c'est avec lui que les comptes ont été créés,
-  /// et l'inscription continue de le réclamer. Le téléphone se prend par
-  /// le lien du bas.
-  _AccountMode _mode = _AccountMode.email;
+  /// Le téléphone par défaut : c'est ce que les voyageurs ont sur eux et
+  /// ce qu'ils retiennent. L'adresse se prend par le lien du bas, pour
+  /// ceux qui ont créé leur compte avec.
+  ///
+  /// Un compte mémorisé sur ce téléphone l'emporte sur ce choix : s'il
+  /// porte une adresse, l'écran s'ouvre sur l'adresse (voir plus bas).
+  _AccountMode _mode = _AccountMode.phone;
 
   /// L'utilisateur a choisi de désigner le compte lui-même, alors même
   /// qu'un compte est mémorisé. Sans ce drapeau, le lien « Connexion avec

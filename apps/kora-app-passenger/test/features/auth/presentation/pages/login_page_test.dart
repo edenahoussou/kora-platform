@@ -198,8 +198,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // L'écran s'ouvre sur l'adresse : c'est avec elle que les comptes
-    // ont été créés.
+    // L'écran s'ouvre sur le numéro : on passe à l'adresse par le lien.
+    await tester.tap(find.text('Connexion avec votre adresse e-mail ?'));
+    await tester.pumpAndSettle();
+
     await tester.enterText(find.byType(TextField).first, 'kevine@example.com');
     for (final key in ['1', '2', '3', '4']) {
       await tester.tap(find.text(key));
@@ -210,7 +212,7 @@ void main() {
     expect(repository.calls, contains('login:kevine@example.com'));
   });
 
-  testWidgets('le lien bascule la saisie vers le téléphone', (tester) async {
+  testWidgets('l’écran s’ouvre sur le numéro de téléphone', (tester) async {
     // Les deux façons de se nommer vivent sur le même champ `identifier`
     // côté API : le choix est celui de l'écran, et il tient dans ce lien.
     repository = StubAuthRepository();
@@ -237,10 +239,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Connexion avec votre numéro de téléphone ?'));
-    await tester.pumpAndSettle();
-
-    // L'indicatif apparaît, et le lien propose le chemin inverse.
+    // L'écran s'ouvre sur le numéro : l'indicatif est là, et le lien
+    // propose le chemin inverse.
     expect(find.text('🇧🇯  +229'), findsOneWidget);
     expect(find.text('Connexion avec votre adresse e-mail ?'), findsOneWidget);
 
@@ -284,9 +284,6 @@ void main() {
         home: _withFlow(flow, const LoginPage(identifier: '')),
       ),
     );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('Connexion avec votre numéro de téléphone ?'));
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField).last, '01 97 42');

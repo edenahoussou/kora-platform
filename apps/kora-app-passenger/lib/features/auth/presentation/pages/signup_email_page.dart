@@ -26,7 +26,13 @@ import '../bloc/auth_flow_bloc.dart';
 /// code à l'API et décide de la suite. Le message affiché sous le champ
 /// vient donc soit d'ici, soit du serveur.
 class SignupEmailPage extends StatefulWidget {
-  const SignupEmailPage({super.key, this.onSubmit, this.onSignIn, this.oauth});
+  const SignupEmailPage({
+    super.key,
+    this.onSubmit,
+    this.onSignIn,
+    this.oauth,
+    this.showSocialSignIn = false,
+  });
 
   /// Notifié après une adresse valide, en plus de l'événement envoyé au
   /// parcours. Sert aux tests, qui montent l'écran sans routeur.
@@ -40,6 +46,16 @@ class SignupEmailPage extends StatefulWidget {
   /// Injectable pour les tests, qui n'ont ni Google ni Facebook à
   /// interroger.
   final OAuthSignIn? oauth;
+
+  /// Montre les inscriptions par réseau social.
+  ///
+  /// Retirées de l'écran, mais pas du code : les trois fournisseurs
+  /// fonctionnent, et les rebrancher ne demande que de passer ce drapeau
+  /// à `true`. Les supprimer aurait coûté le travail d'intégration —
+  /// jetons, écrans de consentement, identifiants de console — pour une
+  /// décision qui peut se reprendre. Les tests, eux, continuent de les
+  /// éprouver.
+  final bool showSocialSignIn;
 
   @override
   State<SignupEmailPage> createState() => _SignupEmailPageState();
@@ -414,37 +430,40 @@ class _SignupEmailPageState extends State<SignupEmailPage> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 24),
-                    KoraOrDivider(label: l10n.signupOr),
-                    const SizedBox(height: 18),
-                    // Les trois fournisseurs, dans l'ordre de leur usage
-                    // attendu au Bénin.
-                    KoraSocialButton(
-                      provider: KoraSocialProvider.google,
-                      label: l10n.signupWithGoogle,
-                      isLoading: _pending == OAuthSignInImpl.google,
-                      onPressed: _pending != null
-                          ? null
-                          : () => _social(OAuthSignInImpl.google, 'Google'),
-                    ),
-                    const SizedBox(height: 10),
-                    KoraSocialButton(
-                      provider: KoraSocialProvider.facebook,
-                      label: l10n.signupWithFacebook,
-                      isLoading: _pending == OAuthSignInImpl.facebook,
-                      onPressed: _pending != null
-                          ? null
-                          : () => _social(OAuthSignInImpl.facebook, 'Facebook'),
-                    ),
-                    const SizedBox(height: 10),
-                    KoraSocialButton(
-                      provider: KoraSocialProvider.tiktok,
-                      label: l10n.signupWithTiktok,
-                      isLoading: _pending == OAuthSignInImpl.tiktok,
-                      onPressed: _pending != null
-                          ? null
-                          : () => _social(OAuthSignInImpl.tiktok, 'TikTok'),
-                    ),
+                    if (widget.showSocialSignIn) ...[
+                      const SizedBox(height: 24),
+                      KoraOrDivider(label: l10n.signupOr),
+                      const SizedBox(height: 18),
+                      // Les trois fournisseurs, dans l'ordre de leur usage
+                      // attendu au Bénin.
+                      KoraSocialButton(
+                        provider: KoraSocialProvider.google,
+                        label: l10n.signupWithGoogle,
+                        isLoading: _pending == OAuthSignInImpl.google,
+                        onPressed: _pending != null
+                            ? null
+                            : () => _social(OAuthSignInImpl.google, 'Google'),
+                      ),
+                      const SizedBox(height: 10),
+                      KoraSocialButton(
+                        provider: KoraSocialProvider.facebook,
+                        label: l10n.signupWithFacebook,
+                        isLoading: _pending == OAuthSignInImpl.facebook,
+                        onPressed: _pending != null
+                            ? null
+                            : () =>
+                                  _social(OAuthSignInImpl.facebook, 'Facebook'),
+                      ),
+                      const SizedBox(height: 10),
+                      KoraSocialButton(
+                        provider: KoraSocialProvider.tiktok,
+                        label: l10n.signupWithTiktok,
+                        isLoading: _pending == OAuthSignInImpl.tiktok,
+                        onPressed: _pending != null
+                            ? null
+                            : () => _social(OAuthSignInImpl.tiktok, 'TikTok'),
+                      ),
+                    ],
                     if (_oauthError != null) ...[
                       const SizedBox(height: 12),
                       Text(
