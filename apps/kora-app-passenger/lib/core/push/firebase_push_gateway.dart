@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 
 import 'firebase_configuration.dart';
 import 'push_gateway.dart';
@@ -34,7 +35,21 @@ class FirebasePushGateway implements PushGateway {
     if (Firebase.apps.isEmpty) {
       await Firebase.initializeApp(options: configuration.toOptions());
     }
+
+    // Sur iOS, c'est le système qui affiche la notification quand l'app
+    // est à l'écran : firebase_messaging 16 avale les notifications
+    // locales qu'on poserait nous-mêmes (corrigé en 17, que la connexion
+    // Google empêche encore d'adopter). Voir [messages].
+    if (_isIos) {
+      await _instance.setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+    }
   }
+
+  bool get _isIos => defaultTargetPlatform == TargetPlatform.iOS;
 
   @override
   Future<PushPermission> requestPermission() async {
@@ -49,15 +64,27 @@ class FirebasePushGateway implements PushGateway {
     };
   }
 
+  // `getToken`, `onTokenRefresh` et `deleteToken` sont dépréciés depuis
+  // firebase_messaging 17 au profit de `register`/`onRegistered`. Ceux-là
+  // rendent un Firebase Installation ID, cible de l'envoi « direct-send »,
+  // alors que le serveur KORA envoie au jeton d'inscription FCM. Migrer
+  // suppose de changer l'envoi côté serveur en même temps ; d'ici là, on
+  // garde l'API à jeton.
+
   @override
+  // ignore: deprecated_member_use
   Future<String?> token() async => _ready ? _instance.getToken() : null;
 
   @override
   Stream<String> get tokenRefreshes =>
+      // ignore: deprecated_member_use
       _ready ? _instance.onTokenRefresh : const Stream.empty();
 
+  /// Vide sur iOS : le système y affiche déjà la notification au premier
+  /// plan (voir [initialize]). L'afficher une seconde fois donnerait deux
+  /// bandeaux pour un seul message.
   @override
-  Stream<PushMessage> get messages => _ready
+  Stream<PushMessage> get messages => _ready && !_isIos
       ? FirebaseMessaging.onMessage.map(_toMessage)
       : const Stream.empty();
 
@@ -77,6 +104,7 @@ class FirebasePushGateway implements PushGateway {
 
   @override
   Future<void> deleteToken() async {
+    // ignore: deprecated_member_use
     if (_ready) await _instance.deleteToken();
   }
 }
