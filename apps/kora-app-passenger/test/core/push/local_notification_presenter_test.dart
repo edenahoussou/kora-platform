@@ -153,4 +153,31 @@ void main() {
 
     expect((await opened).route, '/voyages');
   });
+
+  test('une initialisation ratée ne condamne pas la session', () async {
+    // Le greffon refuse une fois, puis accepte. Mémoriser le futur raté
+    // priverait le voyageur de toutes ses notifications jusqu'à ce qu'il
+    // relance l'application.
+    var initializations = 0;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(_channel, (call) async {
+          calls.add(call);
+          if (call.method != 'initialize') return null;
+          if (++initializations == 1) {
+            throw PlatformException(code: 'error', message: 'greffon absent');
+          }
+          return true;
+        });
+
+    final presenter = LocalNotificationPresenter();
+
+    await presenter.show(const PushMessage(title: 'Billet émis'));
+    expect(calls.where((call) => call.method == 'show'), isEmpty);
+
+    // Le message suivant retente, et aboutit.
+    await presenter.show(const PushMessage(title: 'Départ retardé'));
+
+    expect(initializations, 2);
+    expect(calls.where((call) => call.method == 'show'), hasLength(1));
+  });
 }

@@ -110,10 +110,14 @@ void main() {
     );
   });
 
+  /// Ce que la page a demandé d'ouvrir.
+  late List<AppNotification> opened;
+
   Future<void> pumpPage(
     WidgetTester tester, {
     Locale locale = const Locale('fr'),
   }) async {
+    opened = [];
     tester.view.physicalSize = const Size(390 * 3, 1600 * 3);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -132,6 +136,7 @@ void main() {
         home: NotificationsPage(
           today: today,
           cubit: NotificationsCubit(repository),
+          onOpen: opened.add,
         ),
       ),
     );
@@ -187,7 +192,7 @@ void main() {
     await settleToast(tester);
   });
 
-  testWidgets('ouvrir une notification la marque lue au serveur', (
+  testWidgets('ouvrir une notification la marque lue et l’ouvre', (
     tester,
   ) async {
     await pumpPage(tester);
@@ -197,12 +202,8 @@ void main() {
 
     expect(repository.readIds, ['un']);
     expect(_goldDots(tester), 1);
-    expect(
-      find.text('Le détail de cette notification arrive bientôt.'),
-      findsOneWidget,
-    );
-
-    await settleToast(tester);
+    // L'écran ne navigue pas lui-même : il dit ce qui a été touché.
+    expect(opened.single.id, 'un');
   });
 
   testWidgets('une notification déjà lue n’est pas renvoyée au serveur', (
@@ -214,8 +215,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repository.readIds, isEmpty);
-
-    await settleToast(tester);
+    // Elle s'ouvre quand même : seule l'écriture au serveur est évitée.
+    expect(opened.single.id, 'trois');
   });
 
   testWidgets('une panne propose de réessayer', (tester) async {

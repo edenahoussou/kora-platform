@@ -14,6 +14,7 @@ import '../../features/auth/presentation/pages/otp_page.dart';
 import '../../features/auth/presentation/pages/permissions_page.dart';
 import '../../features/auth/presentation/pages/signup_email_page.dart';
 import '../../features/booking/domain/entities/search_criteria.dart';
+import '../../features/booking/domain/usecases/get_tickets_usecase.dart';
 import '../../features/booking/presentation/bloc/cancel_ticket_cubit.dart';
 import '../../features/booking/presentation/bloc/group_payer_cubit.dart';
 import '../../features/booking/presentation/bloc/group_quote_cubit.dart';
@@ -32,6 +33,7 @@ import '../../features/booking/presentation/pages/passenger_form_page.dart';
 import '../../features/booking/presentation/pages/return_departures_page.dart';
 import '../../features/booking/presentation/pages/seats_page.dart';
 import '../../features/booking/presentation/pages/summary_page.dart';
+import '../../features/booking/presentation/pages/ticket_by_reservation_page.dart';
 import '../../features/booking/presentation/pages/ticket_detail_page.dart';
 import '../../features/booking/presentation/pages/ticket_page.dart';
 import '../../features/booking/presentation/pages/tickets_page.dart';
@@ -191,6 +193,16 @@ class AppRouter {
   static const String tripsPath = '/voyages';
 
   static const String ticketDetailPath = '/ticket-detail';
+
+  /// Le billet d'une réservation, désigné par son identifiant.
+  ///
+  /// La seule route que peut viser un lien profond : les autres attendent
+  /// un objet déjà chargé, qu'une notification ne peut pas transporter.
+  static const String ticketByReservationPath = '/voyages/:reservationUuid';
+
+  /// Le chemin concret de [ticketByReservationPath] pour [reservationUuid].
+  static String ticketByReservation(String reservationUuid) =>
+      '/voyages/$reservationUuid';
 
   /// Le billet numérique, celui qu'on présente à l'embarquement.
   static const String ticketPath = '/billet';
@@ -477,7 +489,20 @@ class AppRouter {
         ),
         GoRoute(
           path: notificationsPath,
-          builder: (context, state) => const NotificationsPage(),
+          builder: (context, state) => NotificationsPage(
+            // Une notification qui nomme une réservation mène à son
+            // billet ; les autres ramènent à la liste des voyages, qui
+            // est le sujet de toutes aujourd'hui.
+            onOpen: (notification) {
+              final uuid = notification.resourceUuid;
+
+              context.push(
+                uuid == null || uuid.isEmpty
+                    ? tripsPath
+                    : ticketByReservation(uuid),
+              );
+            },
+          ),
         ),
         GoRoute(
           path: helpPath,
@@ -531,6 +556,22 @@ class AppRouter {
           path: ticketPath,
           builder: (context, state) =>
               TicketPage(args: state.extra as TicketArgs?),
+        ),
+        GoRoute(
+          path: ticketByReservationPath,
+          builder: (context, state) {
+            final uuid = state.pathParameters['reservationUuid'] ?? '';
+
+            return TicketByReservationPage(
+              reservationUuid: uuid,
+              getTickets: getIt<GetTicketsUseCase>(),
+              onOpenTicket: (ticket, today) => context.pushReplacement(
+                ticketDetailPath,
+                extra: TicketDetailArgs(ticket: ticket, today: today),
+              ),
+              onFallback: () => context.go(tripsPath),
+            );
+          },
         ),
         GoRoute(
           path: ticketDetailPath,
