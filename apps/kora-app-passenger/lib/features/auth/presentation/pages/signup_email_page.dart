@@ -10,6 +10,7 @@ import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../domain/entities/phone_country.dart';
 import '../bloc/auth_flow_bloc.dart';
+import '../widgets/phone_country_picker.dart';
 
 /// Première étape de la création de compte — écran `phone` de la
 /// maquette : l'identifiant KORA, celui qui reçoit le code de
@@ -296,27 +297,9 @@ class _SignupEmailPageState extends State<SignupEmailPage> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SizedBox(
-                            width: 124,
-                            child: DropdownButtonFormField<PhoneCountry>(
-                              initialValue: _country,
-                              isExpanded: true,
-                              onChanged: (value) => _onCountryChanged(
-                                value ?? PhoneCountry.benin,
-                              ),
-                              items: [
-                                for (final item in PhoneCountry.all)
-                                  DropdownMenuItem(
-                                    value: item,
-                                    child: Text(
-                                      '${item.flag}  ${item.code}',
-                                      style: AppTextStyles.body(
-                                        koraColors.textPrimary,
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
+                          _CountryButton(
+                            country: _country,
+                            onCountry: _onCountryChanged,
                           ),
                           const SizedBox(width: AppSpacing.sm),
                           Expanded(
@@ -481,6 +464,65 @@ class _SignupEmailPageState extends State<SignupEmailPage> {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// L'indicatif, ouvert sur la liste complète des pays.
+///
+/// Le menu déroulant d'origine ne listait que les onze corridors : on ne
+/// pouvait pas créer de compte avec un numéro d'ailleurs. Deux cents
+/// entrées ne se parcourent pas dans un menu déroulant, d'où ce champ
+/// qui ouvre une feuille avec une recherche.
+class _CountryButton extends StatelessWidget {
+  const _CountryButton({required this.country, required this.onCountry});
+
+  final PhoneCountry country;
+  final ValueChanged<PhoneCountry> onCountry;
+
+  Future<void> _pick(BuildContext context) async {
+    final picked = await pickPhoneCountry(context);
+    if (picked != null) onCountry(picked);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final koraColors = context.koraColors;
+
+    return SizedBox(
+      width: 124,
+      height: 56,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _pick(context),
+          borderRadius: BorderRadius.circular(AppRadius.base),
+          child: Ink(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppRadius.base),
+              border: Border.all(color: koraColors.line),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${country.flag}  ${country.code}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.body(koraColors.textPrimary),
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_drop_down,
+                  color: koraColors.textMuted,
+                  size: 20,
+                ),
+              ],
+            ),
           ),
         ),
       ),

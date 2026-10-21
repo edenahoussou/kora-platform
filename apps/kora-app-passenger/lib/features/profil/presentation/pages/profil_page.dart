@@ -18,7 +18,15 @@ import '../../../booking/domain/entities/price.dart';
 /// zéro : la feature `wallet` n'existe pas, et afficher un montant
 /// inventé sur l'écran du compte serait pire que de n'en afficher aucun.
 class ProfilPage extends StatelessWidget {
-  const ProfilPage({super.key});
+  const ProfilPage({super.key, this.showBalances = false});
+
+  /// Montre la bande « Solde wallet / Points fidélité ».
+  ///
+  /// Retirée de l'écran : `wallet` n'est pas branché, et la bande
+  /// annonçait donc à tout le monde un solde de 0 FCFA et 0 point. Mieux
+  /// vaut ne rien promettre que promettre zéro. Le dessin reste, prêt à
+  /// revenir le jour où les deux chiffres voudront dire quelque chose.
+  final bool showBalances;
 
   /// Rien à afficher tant que `wallet` n'est pas branché.
   static const _balance = Price(0);
@@ -48,17 +56,18 @@ class ProfilPage extends StatelessWidget {
           ),
           // `.profile-balance-strip { margin-top: -16px }` : la bande des
           // soldes chevauche l'en-tête.
-          Transform.translate(
-            offset: const Offset(0, -16),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 30),
-              child: _BalanceStrip(
-                balance: _balance,
-                points: _points,
-                onTap: () => _soon(context),
+          if (showBalances)
+            Transform.translate(
+              offset: const Offset(0, -16),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 30),
+                child: _BalanceStrip(
+                  balance: _balance,
+                  points: _points,
+                  onTap: () => _soon(context),
+                ),
               ),
             ),
-          ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 18),
             child: Column(
@@ -746,8 +755,29 @@ class _AssistanceAction extends StatelessWidget {
 
 /// `.profile-logout` : un lien discret, pas un bouton de danger — se
 /// déconnecter ne détruit rien.
+///
+/// Mais le lien est au bas d'une liste qu'on fait défiler, et le geste
+/// coûte cher à refaire : il faut son numéro, son PIN, et sur un appareil
+/// que le serveur ne reconnaît plus, un code reçu par message. D'où la
+/// question avant, qui n'enlève rien à la discrétion du lien.
 class _LogoutButton extends StatelessWidget {
   const _LogoutButton();
+
+  Future<void> _confirm(BuildContext context) async {
+    final l10n = context.l10n;
+    final bloc = context.read<AuthBloc>();
+
+    final confirmed = await KoraDialogs.confirm(
+      context,
+      title: l10n.profileLogoutConfirmTitle,
+      description: l10n.profileLogoutConfirmText,
+      confirmLabel: l10n.profileLogoutConfirmAction,
+      cancelLabel: l10n.actionCancel,
+      buttonsAxis: Axis.vertical,
+    );
+
+    if (confirmed) bloc.add(const AuthLogoutRequested());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -755,9 +785,7 @@ class _LogoutButton extends StatelessWidget {
       buildWhen: (previous, current) =>
           previous.isLoggingOut != current.isLoggingOut,
       builder: (context, auth) => TextButton(
-        onPressed: auth.isLoggingOut
-            ? null
-            : () => context.read<AuthBloc>().add(const AuthLogoutRequested()),
+        onPressed: auth.isLoggingOut ? null : () => _confirm(context),
         style: TextButton.styleFrom(
           minimumSize: const Size.fromHeight(42),
           foregroundColor: context.koraColors.textMuted,

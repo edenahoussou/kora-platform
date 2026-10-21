@@ -11,6 +11,7 @@ import 'package:kora_app_passenger/core/l10n/app_localization.dart';
 import 'package:kora_app_passenger/core/services/oauth_sign_in.dart';
 import 'package:kora_app_passenger/features/auth/presentation/bloc/auth_flow_bloc.dart';
 import 'package:kora_app_passenger/features/auth/presentation/pages/signup_email_page.dart';
+import 'package:kora_app_passenger/features/auth/presentation/widgets/phone_country_picker.dart';
 
 import '../../../../support/stub_auth_repository.dart';
 
@@ -72,6 +73,7 @@ void main() {
         supportedLocales: const [Locale('fr'), Locale('en')],
         localizationsDelegates: const [
           AppLocalization.delegate,
+          SyncCountryLocalizationsDelegate(),
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,

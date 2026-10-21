@@ -10,6 +10,7 @@ import 'package:kora_app_passenger/core/l10n/app_localization.dart';
 import 'package:kora_app_passenger/features/auth/domain/entities/otp_purpose.dart';
 import 'package:kora_app_passenger/features/auth/presentation/bloc/auth_flow_bloc.dart';
 import 'package:kora_app_passenger/features/auth/presentation/pages/login_page.dart';
+import 'package:kora_app_passenger/features/auth/presentation/widgets/phone_country_picker.dart';
 import 'package:kora_app_passenger/features/auth/presentation/widgets/pin_pad.dart';
 
 import '../../../../support/stub_auth_repository.dart';
@@ -36,6 +37,7 @@ void main() {
         supportedLocales: const [Locale('fr'), Locale('en')],
         localizationsDelegates: const [
           AppLocalization.delegate,
+          SyncCountryLocalizationsDelegate(),
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
@@ -189,6 +191,7 @@ void main() {
         supportedLocales: const [Locale('fr'), Locale('en')],
         localizationsDelegates: const [
           AppLocalization.delegate,
+          SyncCountryLocalizationsDelegate(),
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
@@ -230,6 +233,7 @@ void main() {
         supportedLocales: const [Locale('fr'), Locale('en')],
         localizationsDelegates: const [
           AppLocalization.delegate,
+          SyncCountryLocalizationsDelegate(),
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
@@ -258,6 +262,64 @@ void main() {
     expect(repository.calls, contains('login:+2290197421860'));
   });
 
+  testWidgets('l’indicatif s’ouvre sur la liste complète des pays', (
+    tester,
+  ) async {
+    // Onze corridors suffisent pour choisir un trajet, pas pour
+    // s'identifier : un passager joignable sur un numéro étranger
+    // n'avait aucun moyen de se connecter.
+    repository = StubAuthRepository();
+    flow = AuthFlowBloc(repository);
+    addTearDown(flow.close);
+
+    tester.view.physicalSize = const Size(390 * 3, 900 * 3);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        locale: const Locale('fr'),
+        supportedLocales: const [Locale('fr'), Locale('en')],
+        localizationsDelegates: const [
+          AppLocalization.delegate,
+          SyncCountryLocalizationsDelegate(),
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        home: _withFlow(flow, const LoginPage(identifier: '')),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('🇧🇯  +229'));
+    await tester.pumpAndSettle();
+
+    // Le Canada ne fait pas partie des corridors : c'est bien toute la
+    // liste qui s'ouvre, et la recherche qui la rend praticable. Le
+    // champ de recherche est le dernier du tableau : la feuille est
+    // posée par-dessus l'écran.
+    await tester.enterText(find.byType(TextField).last, 'Canada');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Canada').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('🇨🇦  +1'), findsOneWidget);
+    expect(find.text('🇧🇯  +229'), findsNothing);
+
+    // Et le numéro part sous le nouvel indicatif, sans se faire refuser
+    // sur une longueur que KORA ne connaît pas pour ce pays.
+    await tester.enterText(find.byType(TextField).last, '201 555 0123');
+    for (final key in ['1', '2', '3', '4']) {
+      await tester.tap(find.text(key));
+    }
+    await tester.tap(find.text('✓'));
+    await tester.pumpAndSettle();
+
+    expect(repository.calls, contains('login:+12015550123'));
+  });
+
   testWidgets('un numéro incomplet ne part pas au serveur', (tester) async {
     // Sans ce garde, quatre chiffres de PIN sur un numéro à moitié tapé
     // partaient quand même, pour revenir en « identifiants invalides » —
@@ -277,6 +339,7 @@ void main() {
         supportedLocales: const [Locale('fr'), Locale('en')],
         localizationsDelegates: const [
           AppLocalization.delegate,
+          SyncCountryLocalizationsDelegate(),
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
