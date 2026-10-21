@@ -51,6 +51,32 @@ void main() {
     return (arguments['platformSpecifics'] as Map).cast<String, Object?>();
   }
 
+  test('la notification se déplie pour montrer tout le texte', () async {
+    // Sans style, Android coupe le message à une ligne et n'affiche
+    // aucune flèche : « Votre trajet Cotonou → Parakou est confirmé.
+    // Votre… », et il faut ouvrir l'app pour connaître sa place. Le
+    // style « grand texte » (2) ajoute la flèche, et le voyageur lit
+    // tout sans toucher la notification.
+    //
+    // C'est le cas **application à l'écran** : quand Firebase dessine
+    // lui-même, il pose déjà ce style.
+    const body =
+        'Votre trajet Cotonou → Parakou est confirmé. Votre place est '
+        'la 12A, départ à 06:30 depuis la gare de Dantokpa.';
+
+    await LocalNotificationPresenter().show(
+      const PushMessage(title: 'Réservation confirmée', body: body),
+    );
+
+    final android = androidOf(shown());
+    expect(android['style'], 2, reason: 'AndroidNotificationStyle.bigText');
+
+    final style = (android['styleInformation'] as Map).cast<String, Object?>();
+    // Le texte entier, et non celui que la ligne repliée laisse voir.
+    expect(style['bigText'], body);
+    expect(style['contentTitle'], 'Réservation confirmée');
+  });
+
   test('un message reçu à l’écran devient une vraie notification', () async {
     await LocalNotificationPresenter().show(
       const PushMessage(

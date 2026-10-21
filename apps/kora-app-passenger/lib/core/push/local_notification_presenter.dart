@@ -79,15 +79,26 @@ class LocalNotificationPresenter implements NotificationPresenter {
       title: message.title.isEmpty ? null : message.title,
       body: message.body.isEmpty ? null : message.body,
       payload: jsonEncode(message.data),
-      notificationDetails: const NotificationDetails(
+      notificationDetails: NotificationDetails(
         android: AndroidNotificationDetails(
           koraNotificationChannelId,
           _channelFallbackName,
           importance: Importance.high,
           priority: Priority.high,
           enableVibration: true,
+          // Déplié, le texte entier tient à l'écran.
+          //
+          // Sans ce style, Android coupe le message à une ligne et
+          // n'affiche aucune flèche : « Votre trajet Cotonou → Parakou
+          // est confirmé. Votre… » — il faut ouvrir l'app pour savoir
+          // quelle place, à quelle heure. Le voyageur déroule la
+          // notification et lit tout, sans la toucher.
+          styleInformation: BigTextStyleInformation(
+            message.body,
+            contentTitle: message.title.isEmpty ? null : message.title,
+          ),
         ),
-        iOS: DarwinNotificationDetails(),
+        iOS: const DarwinNotificationDetails(),
       ),
     );
   }

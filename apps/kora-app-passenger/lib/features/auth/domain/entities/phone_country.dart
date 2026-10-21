@@ -116,6 +116,37 @@ class PhoneCountry extends Equatable {
     ),
   ];
 
+  /// Un indicatif choisi hors des corridors KORA.
+  ///
+  /// Les écrans de connexion et d'inscription ouvrent désormais la liste
+  /// complète des pays : un passager joignable sur un numéro canadien ou
+  /// marocain ne pouvait pas s'inscrire, faute de trouver son indicatif.
+  ///
+  /// Quand le pays choisi est déjà l'un des onze, on rend l'entrée du
+  /// catalogue — le Bénin garde ainsi son préfixe `01` et ses dix
+  /// chiffres attendus. Ailleurs, on ignore la longueur du numéro
+  /// national, donc [digits] vaut `0` : l'écran ne juge plus la saisie
+  /// trop courte et laisse le serveur trancher, plutôt que de refuser un
+  /// numéro parfaitement valide sur la foi d'une règle inventée.
+  factory PhoneCountry.beyond({
+    required String code,
+    required String flag,
+    required String name,
+    String example = '',
+  }) {
+    for (final country in all) {
+      if (country.code == code) return country;
+    }
+
+    return PhoneCountry(
+      code: code,
+      flag: flag,
+      name: name,
+      digits: 0,
+      example: example,
+    );
+  }
+
   /// Retrouve un indicatif à partir d'un `country_code` déjà enregistré,
   /// pour repositionner le sélecteur sur le bon pays.
   static PhoneCountry fromCode(String? code) =>

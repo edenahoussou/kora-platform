@@ -8,6 +8,7 @@ import '../../../../core/utils/phone_number.dart';
 import '../../domain/entities/otp_purpose.dart';
 import '../../domain/entities/phone_country.dart';
 import '../bloc/auth_flow_bloc.dart';
+import '../widgets/phone_country_picker.dart';
 import '../widgets/pin_pad.dart';
 
 /// Connexion par code PIN — écran `login` de la maquette : écran navy,
@@ -59,10 +60,13 @@ class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
 
-  /// L'e-mail par défaut : c'est avec lui que les comptes ont été créés,
-  /// et l'inscription continue de le réclamer. Le téléphone se prend par
-  /// le lien du bas.
-  _AccountMode _mode = _AccountMode.email;
+  /// Le téléphone par défaut : c'est ce que les voyageurs ont sur eux et
+  /// ce qu'ils retiennent. L'adresse se prend par le lien du bas, pour
+  /// ceux qui ont créé leur compte avec.
+  ///
+  /// Un compte mémorisé sur ce téléphone l'emporte sur ce choix : s'il
+  /// porte une adresse, l'écran s'ouvre sur l'adresse (voir plus bas).
+  _AccountMode _mode = _AccountMode.phone;
 
   /// L'utilisateur a choisi de désigner le compte lui-même, alors même
   /// qu'un compte est mémorisé. Sans ce drapeau, le lien « Connexion avec
@@ -594,31 +598,7 @@ class _PhoneField extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        SizedBox(
-          width: 118,
-          child: DropdownButtonFormField<PhoneCountry>(
-            initialValue: country,
-            isExpanded: true,
-            dropdownColor: AppColors.kora,
-            iconEnabledColor: AppColors.white,
-            style: const TextStyle(color: AppColors.white, fontSize: 14),
-            decoration: _navyDecoration(),
-            onChanged: (value) => onCountry(value ?? PhoneCountry.benin),
-            items: [
-              for (final item in PhoneCountry.all)
-                DropdownMenuItem(
-                  value: item,
-                  child: Text(
-                    '${item.flag}  ${item.code}',
-                    style: const TextStyle(
-                      color: AppColors.white,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
+        _NavyCountryButton(country: country, onCountry: onCountry),
         const SizedBox(width: AppSpacing.sm),
         Expanded(
           child: TextField(
@@ -626,10 +606,73 @@ class _PhoneField extends StatelessWidget {
             keyboardType: TextInputType.phone,
             autocorrect: false,
             style: const TextStyle(color: AppColors.white, fontSize: 14),
-            decoration: _navyDecoration(hint: country.example),
+            decoration: _navyDecoration(
+              hint: country.example.isEmpty ? null : country.example,
+            ),
           ),
         ),
       ],
+    );
+  }
+}
+
+/// L'indicatif, ouvert sur la liste complète des pays.
+///
+/// Dessiné à la main plutôt qu'avec un `DropdownButtonFormField` : la
+/// liste compte désormais deux cents entrées, qui ne se parcourent pas
+/// dans un menu déroulant. Le champ garde l'habillage sombre de l'écran,
+/// seul le choix se fait ailleurs.
+class _NavyCountryButton extends StatelessWidget {
+  const _NavyCountryButton({required this.country, required this.onCountry});
+
+  final PhoneCountry country;
+  final ValueChanged<PhoneCountry> onCountry;
+
+  Future<void> _pick(BuildContext context) async {
+    final picked = await pickPhoneCountry(context);
+    if (picked != null) onCountry(picked);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 118,
+      height: 56,
+      child: Material(
+        color: AppColors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppRadius.base),
+        child: InkWell(
+          onTap: () => _pick(context),
+          borderRadius: BorderRadius.circular(AppRadius.base),
+          child: Ink(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppRadius.base),
+              border: Border.all(color: AppColors.white.withValues(alpha: 0.2)),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${country.flag}  ${country.code}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.white,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+                const Icon(
+                  Icons.arrow_drop_down,
+                  color: AppColors.white,
+                  size: 20,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

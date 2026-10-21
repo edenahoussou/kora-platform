@@ -52,7 +52,27 @@ class _SecurityPageState extends State<SecurityPage> {
     });
   }
 
+  /// Révoque un appareil, après confirmation.
+  ///
+  /// Le geste est irréversible et se joue sur un autre téléphone que
+  /// celui qu'on a en main : son propriétaire perdra sa session sans
+  /// comprendre pourquoi, et devra repasser par un code pour revenir. La
+  /// question nomme donc l'appareil visé, parce que la liste en montre
+  /// plusieurs et qu'ils se ressemblent.
   Future<void> _revoke(AuthDevice device) async {
+    final l10n = context.l10n;
+
+    final confirmed = await KoraDialogs.confirm(
+      context,
+      title: l10n.securityDeviceRevokeConfirmTitle,
+      description: l10n.securityDeviceRevokeConfirmText(device.name),
+      confirmLabel: l10n.securityDeviceRevoke,
+      cancelLabel: l10n.actionCancel,
+      buttonsAxis: Axis.vertical,
+    );
+
+    if (!confirmed || !mounted) return;
+
     setState(() => _revoking = device.uuid);
 
     final result = await getIt<AuthRepository>().revokeDevice(device.uuid);

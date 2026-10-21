@@ -222,7 +222,15 @@ void main() {
 
       await pump(tester, ContactPage(cubit: SupportChatCubit(repository)));
 
-      expect(find.text('Discuter avec un agent'), findsOneWidget);
+      // La carte du haut devient l'entrée du chat, et l'entrée répétée
+      // de la liste disparaît : un même canal, deux fois sur le même
+      // écran, n'aide personne.
+      expect(find.text('Discutons maintenant'), findsOneWidget);
+      expect(find.text('Parlons sur WhatsApp'), findsNothing);
+      expect(find.text('Discuter avec un agent'), findsNothing);
+      // WhatsApp garde sa place parmi les autres moyens : le canal ne
+      // doit pas disparaître de l'écran.
+      expect(find.text('WhatsApp'), findsOneWidget);
       // La configuration est demandée à l'ouverture : elle peut avoir
       // changé dans OPS depuis la dernière fois.
       expect(repository.calls, 1);
@@ -231,6 +239,9 @@ void main() {
     testWidgets('reste caché quand l’intégration est éteinte', (tester) async {
       await pump(tester, ContactPage(cubit: _noChat()));
 
+      // Intégration éteinte : WhatsApp reprend la carte du haut, pour
+      // que l'écran garde un canal principal.
+      expect(find.text('Parlons sur WhatsApp'), findsOneWidget);
       expect(find.text('Discuter avec un agent'), findsNothing);
       // Les autres canaux, eux, ne dépendent de rien.
       expect(find.text('Téléphone'), findsOneWidget);
@@ -272,7 +283,7 @@ void main() {
         ),
       );
 
-      await tester.tap(find.text('Discuter avec un agent'));
+      await tester.tap(find.text('Démarrer la conversation'));
       await tester.pumpAndSettle();
 
       expect(opened, live);

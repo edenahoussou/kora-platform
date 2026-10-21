@@ -109,6 +109,7 @@ dependencies:
   # l'équipe Flutter en demande quatre, et laisse le contrôle de ce qu'on
   # injecte.
   webview_flutter: ^4.14.1
+  country_picker: ^2.0.28
 
 dev_dependencies:
   flutter_test:

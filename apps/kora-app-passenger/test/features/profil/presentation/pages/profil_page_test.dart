@@ -65,12 +65,28 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// Touche « Se déconnecter » et confirme.
+  ///
+  /// Le lien pose désormais une question : revenir en arrière coûte un
+  /// numéro, un PIN, et parfois un code reçu par message.
+  Future<void> tapLogout(WidgetTester tester) async {
+    await tester.tap(find.text('Se déconnecter'));
+
+    // Pas de `pumpAndSettle` : le dialog anime son pictogramme en
+    // continu, et une animation sans fin ne se stabilise jamais.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    await tester.tap(find.text('Déconnexion'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+  }
+
   testWidgets('la déconnexion révoque la session', (tester) async {
     repository = StubAuthRepository();
     await pumpProfil(tester);
 
-    await tester.tap(find.text('Se déconnecter'));
-    await tester.pumpAndSettle();
+    await tapLogout(tester);
 
     // Le token est révoqué côté serveur, et l'app n'a plus de session :
     // c'est ce que lit le garde de navigation pour revenir à l'accueil.
@@ -87,8 +103,7 @@ void main() {
     );
     await pumpProfil(tester);
 
-    await tester.tap(find.text('Se déconnecter'));
-    await tester.pumpAndSettle();
+    await tapLogout(tester);
 
     expect(auth.state.status, AuthStatus.unauthenticated);
     expect(auth.state.errorMessage, 'Serveur injoignable');
@@ -101,6 +116,10 @@ void main() {
 
     await tester.tap(find.text('Se déconnecter'));
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.tap(find.text('Déconnexion'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
 
     // Pendant l'appel, le lien annonce ce qu'il fait et ne répond plus.
     expect(find.text('Déconnexion…'), findsOneWidget);
@@ -113,5 +132,49 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(slow.calls, ['logout']);
+  });
+
+  testWidgets('la bande des soldes est retirée de l’écran', (tester) async {
+    // `wallet` n'est pas branché : la bande annonçait 0 FCFA et 0 point
+    // à tout le monde. Mieux vaut ne rien promettre que promettre zéro.
+    repository = StubAuthRepository();
+    await pumpProfil(tester);
+
+    expect(find.text('SOLDE WALLET'), findsNothing);
+    expect(find.text('POINTS FIDÉLITÉ'), findsNothing);
+  });
+
+  testWidgets('la déconnexion demande confirmation avant d’agir', (
+    tester,
+  ) async {
+    repository = StubAuthRepository();
+    await pumpProfil(tester);
+
+    await tester.tap(find.text('Se déconnecter'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.text('Se déconnecter ?'), findsOneWidget);
+    // Rien n'est encore parti au serveur.
+    expect(repository.calls, isEmpty);
+    expect(auth.state.status, AuthStatus.authenticated);
+  });
+
+  testWidgets('annuler la déconnexion laisse la session ouverte', (
+    tester,
+  ) async {
+    repository = StubAuthRepository();
+    await pumpProfil(tester);
+
+    await tester.tap(find.text('Se déconnecter'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    await tester.tap(find.text('Annuler'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(repository.calls, isEmpty);
+    expect(auth.state.status, AuthStatus.authenticated);
   });
 }

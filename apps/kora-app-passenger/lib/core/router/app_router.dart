@@ -64,6 +64,7 @@ import '../../features/support/domain/entities/support_chat_configuration.dart';
 import '../../features/support/presentation/pages/contact_page.dart';
 import '../../features/support/presentation/pages/help_page.dart';
 import '../../features/support/presentation/pages/support_chat_page.dart';
+import '../../features/support/presentation/widgets/support_chat_fab.dart';
 import '../../features/welcome/data/onboarding_store.dart';
 import '../../features/welcome/presentation/pages/onboarding_page.dart';
 import '../../features/welcome/presentation/pages/splash_page.dart';
@@ -937,6 +938,12 @@ class _ScaffoldWithNavBar extends StatelessWidget {
     return Scaffold(
       extendBody: true,
       body: navigationShell,
+      // Au-dessus de la barre de navigation, que le `Scaffold` prend en
+      // compte tout seul : le bouton ne recouvre aucun onglet.
+      floatingActionButton: SupportChatFab(
+        onOpen: (configuration) =>
+            context.push(AppRouter.supportChatPath, extra: configuration),
+      ),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.fromLTRB(11, 0, 11, 11),
         child: KoraBottomNav(
