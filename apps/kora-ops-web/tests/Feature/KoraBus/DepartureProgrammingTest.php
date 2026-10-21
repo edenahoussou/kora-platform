@@ -353,3 +353,64 @@ it('assesses a month without repeating reference queries for every occurrence', 
     DB::disableQueryLog();
     expect(count($workspace['items']))->toBeGreaterThan(15)->and(count($queries))->toBeLessThan(75);
 });
+
+it('checks segment protection for every workspace occurrence in a bounded number of queries', function (): void {
+    $this->slot['bus_uuid'] = $this->bus->uuid;
+    $programme = programmingProgramme($this, ['ends_on' => '2026-10-01']);
+    $planning = app(PlanningService::class);
+    $planning->generate($programme, $programme->starts_on, $programme->ends_on, $this->actor);
+    $first = $programme->occurrences()->orderBy('service_date')->first();
+    $planning->mutate([['uuid' => $first->uuid, 'revision' => 1]], 'publish', [], $this->actor);
+    $reservation = Reservation::create(['status' => 'confirmed', 'total_amount' => 5000, 'currency' => 'XOF', 'channel' => 'online']);
+    ReservationSegment::create([
+        'reservation_id' => $reservation->id, 'leg_order' => 1,
+        'departure_id' => $first->refresh()->departure->id,
+        'seat_id' => Seat::query()->where('bus_id', $this->bus->id)->first()->id,
+        'origin_stop_id' => Stop::query()->where('line_id', $this->line->id)->orderBy('stop_order')->first()->id,
+        'destination_stop_id' => Stop::query()->where('line_id', $this->line->id)->orderBy('stop_order', 'desc')->first()->id,
+        'origin_stop_order' => 1, 'destination_stop_order' => 2, 'status' => 'confirmed',
+    ]);
+    DB::enableQueryLog();
+    DB::flushQueryLog();
+    $workspace = app(PlanningReadService::class)->workspace(['date' => '2026-09-07', 'view' => 'month']);
+    $segmentQueries = collect(DB::getQueryLog())->filter(fn (array $entry): bool => str_contains($entry['query'], 'reservation_segments'));
+    DB::disableQueryLog();
+    $items = collect($workspace['items']);
+    expect($items->count())->toBeGreaterThan(15)
+        ->and($items->firstWhere('uuid', $first->uuid)['protected'])->toBeTrue()
+        ->and($items->where('protected', true)->count())->toBe(1)
+        ->and($segmentQueries->count())->toBeLessThanOrEqual(4);
+});
+
+it('loads manual departure crew and seat occupancy without per-departure queries', function (): void {
+    $secondaryDriver = User::factory()->create();
+    $secondaryDriver->assignRole('bus_driver');
+    $mechanic = User::factory()->create();
+    $mechanic->assignRole('mechanic');
+    $first = Departure::query()->create(['line_id' => $this->line->id, 'bus_id' => $this->bus->id, 'secondary_driver_id' => $secondaryDriver->id, 'mechanic_id' => $mechanic->id, 'departure_date' => '2026-09-08', 'departure_time' => '14:00', 'status' => 'scheduled']);
+    $second = Departure::query()->create(['line_id' => $this->line->id, 'bus_id' => $this->bus->id, 'departure_date' => '2026-09-09', 'departure_time' => '14:00', 'status' => 'scheduled']);
+    $reservation = Reservation::create(['status' => 'confirmed', 'total_amount' => 5000, 'currency' => 'XOF', 'channel' => 'online']);
+    ReservationSegment::create([
+        'reservation_id' => $reservation->id, 'leg_order' => 1, 'departure_id' => $first->id,
+        'seat_id' => Seat::query()->where('bus_id', $this->bus->id)->first()->id,
+        'origin_stop_id' => Stop::query()->where('line_id', $this->line->id)->orderBy('stop_order')->first()->id,
+        'destination_stop_id' => Stop::query()->where('line_id', $this->line->id)->orderBy('stop_order', 'desc')->first()->id,
+        'origin_stop_order' => 1, 'destination_stop_order' => 2, 'status' => 'confirmed',
+    ]);
+    DB::enableQueryLog();
+    DB::flushQueryLog();
+    $workspace = app(PlanningReadService::class)->workspace(['date' => '2026-09-07', 'view' => 'week']);
+    $queries = collect(DB::getQueryLog());
+    DB::disableQueryLog();
+    $segmentQueries = $queries->filter(fn (array $entry): bool => str_contains($entry['query'], 'reservation_segments'));
+    $perUserLookups = $queries->filter(fn (array $entry): bool => str_contains($entry['query'], '"users"."id" = ?'));
+    $items = collect($workspace['items'])->where('manual', true);
+    $firstItem = $items->firstWhere('uuid', $first->uuid);
+    expect($items)->toHaveCount(2)
+        ->and($firstItem['snapshot']['secondary_driver_uuid'])->toBe($secondaryDriver->uuid)
+        ->and($firstItem['snapshot']['mechanic_uuid'])->toBe($mechanic->uuid)
+        ->and($firstItem['occupancy']['booked'])->toBe(1)
+        ->and($items->firstWhere('uuid', $second->uuid)['occupancy']['booked'])->toBe(0)
+        ->and($segmentQueries)->toHaveCount(1)
+        ->and($perUserLookups)->toHaveCount(0);
+});

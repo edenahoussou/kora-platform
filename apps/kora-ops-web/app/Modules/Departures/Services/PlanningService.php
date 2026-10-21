@@ -3,6 +3,7 @@
 namespace App\Modules\Departures\Services;
 
 use App\Models\User;
+use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\Departures\Models\DepartureProgramme;
 use App\Modules\Departures\Models\DepartureTemplateVersion;
@@ -11,6 +12,7 @@ use App\Modules\Departures\Models\ProgrammingRun;
 use App\Modules\DynamicPricing\Models\PriceQuote;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -116,38 +118,72 @@ class PlanningService
 
     public function protected(PlannedDeparture $item): bool
     {
-        if ($item->scheduled_at->lte(now())) {
-            return true;
+        return $this->protectedBatch([$item])[0];
+    }
+
+    /**
+     * Règle « protégé » évaluée en lot : 4 requêtes quelle que soit la taille.
+     *
+     * @param  list<PlannedDeparture>  $items
+     * @return list<bool>
+     */
+    public function protectedBatch(array $items): array
+    {
+        if ($items === []) {
+            return [];
         }
-        if ($item->departure_id === null) {
-            return false;
+
+        $departureIds = array_values(array_unique(array_filter(array_map(
+            fn (PlannedDeparture $item) => $item->departure_id,
+            $items,
+        ))));
+
+        /** @var EloquentCollection<int|string, Departure> $departures */
+        $departures = new EloquentCollection;
+        $activeSegments = [];
+        $segmentsWithTickets = [];
+        $segmentsWithPayments = [];
+        if ($departureIds !== []) {
+            $departures = Departure::query()->whereIn('id', $departureIds)->get()->keyBy('id');
+            $activeSegments = array_flip(ReservationSegment::query()
+                ->whereIn('departure_id', $departureIds)
+                ->whereNotIn('status', ['expired', 'cancelled'])
+                ->distinct()
+                ->pluck('departure_id')
+                ->all());
+            $segmentsWithTickets = array_flip(ReservationSegment::query()
+                ->whereIn('departure_id', $departureIds)
+                ->whereHas('reservation.tickets')
+                ->distinct()
+                ->pluck('departure_id')
+                ->all());
+            $segmentsWithPayments = array_flip(ReservationSegment::query()
+                ->whereIn('departure_id', $departureIds)
+                ->whereHas('reservation', function (Builder $query): void {
+                    $query->whereHas('payments', function (Builder $q): void {
+                        $q->whereIn('status', ['pending', 'confirmed', 'refunded']);
+                    });
+                })
+                ->distinct()
+                ->pluck('departure_id')
+                ->all());
         }
-        $departure = $item->departure;
 
-        // ✅ REFACTORISATION : Séparation des conditions pour aider PHPStan à résoudre les types des closures
-        $hasActiveSegments = $departure->reservationSegments()
-            ->whereNotIn('status', ['expired', 'cancelled'])
-            ->exists();
+        return array_map(function (PlannedDeparture $item) use ($departures, $activeSegments, $segmentsWithTickets, $segmentsWithPayments): bool {
+            if ($item->scheduled_at->lte(now())) {
+                return true;
+            }
+            if ($item->departure_id === null) {
+                return false;
+            }
+            $departure = $departures->get($item->departure_id);
 
-        $hasSegmentsWithTickets = $departure->reservationSegments()
-            ->whereHas('reservation', function (Builder $query): void {
-                $query->whereHas('tickets');
-            })
-            ->exists();
-
-        $hasSegmentsWithPayments = $departure->reservationSegments()
-            ->whereHas('reservation', function (Builder $query): void {
-                $query->whereHas('payments', function (Builder $q): void {
-                    $q->whereIn('status', ['pending', 'confirmed', 'refunded']);
-                });
-            })
-            ->exists();
-
-        return $departure === null
-            || $departure->getRawOriginal('status') !== 'scheduled'
-            || $hasActiveSegments
-            || $hasSegmentsWithTickets
-            || $hasSegmentsWithPayments;
+            return $departure === null
+                || $departure->getRawOriginal('status') !== 'scheduled'
+                || isset($activeSegments[$item->departure_id])
+                || isset($segmentsWithTickets[$item->departure_id])
+                || isset($segmentsWithPayments[$item->departure_id]);
+        }, $items);
     }
 
     /**
@@ -258,6 +294,11 @@ class PlanningService
             abort_unless($version->template_id === $programme->version->template_id, 422, 'Choisissez une version du même modèle.');
             abort_if($from->isBefore(today()) || $from->gt($programme->ends_on), 422, 'Choisissez une date future dans la période.');
             $items = $programme->occurrences()->whereDate('service_date', '>=', $from)->orderBy('id')->lockForUpdate()->get();
+            $departureIds = $items->pluck('departure_id')->filter()->unique()->all();
+            if ($departureIds !== []) {
+                Departure::query()->whereIn('id', $departureIds)->lockForUpdate()->get();
+            }
+            $protections = $this->protectedBatch(array_values($items->all()));
             $targets = [];
             $until = $items->max('service_date') ?? $from;
             for ($chunk = $from; $chunk->lte($until); $chunk = $chunk->addDays(90)) {
@@ -267,13 +308,10 @@ class PlanningService
             }
             $rows = [];
             $synchronize = [];
-            foreach ($items as $item) {
-                if ($item->departure_id !== null) {
-                    Departure::query()->whereKey($item->departure_id)->lockForUpdate()->first();
-                }
+            foreach ($items as $index => $item) {
                 $key = $item->slot_key.'/'.$item->service_date->toDateString();
                 $target = $targets[$key] ?? null;
-                $kind = $this->protected($item) ? 'protected' : ($item->is_exception ? 'exception' : ($target === null ? 'remove' : 'update'));
+                $kind = $protections[$index] ? 'protected' : ($item->is_exception ? 'exception' : ($target === null ? 'remove' : 'update'));
                 $rows[] = ['uuid' => $item->uuid, 'date' => $item->service_date->toDateString(), 'before' => $item->snapshot['time'], 'after' => $target['snapshot']['time'] ?? null, 'kind' => $kind, 'revision' => $item->revision];
                 if ($apply && in_array($kind, ['remove', 'update'], true)) {
                     if ($target === null) {

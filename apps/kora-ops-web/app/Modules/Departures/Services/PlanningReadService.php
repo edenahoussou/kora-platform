@@ -14,6 +14,7 @@ use App\Modules\Departures\Models\DepartureTemplate;
 use App\Modules\Departures\Models\PlannedDeparture;
 use App\Modules\Departures\Models\ProgrammingRun;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Collection;
 use Spatie\Activitylog\Models\Activity;
 
 class PlanningReadService
@@ -100,7 +101,7 @@ class PlanningReadService
      * @param  array{booked: int, capacity: int|null, ratio: float|null}|null  $occupancy
      * @return array<string, mixed>
      */
-    public function item(PlannedDeparture $item, bool $history = false, ?array $assessment = null, ?array $occupancy = null): array
+    public function item(PlannedDeparture $item, bool $history = false, ?array $assessment = null, ?array $occupancy = null, ?bool $protected = null): array
     {
         $item->loadMissing(['programme', 'departure', 'version']);
         $result = [
@@ -110,7 +111,7 @@ class PlanningReadService
             'exceptionKind' => $this->exceptionKind($item),
             'programmeUuid' => $item->programme->uuid, 'programmeName' => $item->programme->name,
             'departureUuid' => $item->departure?->uuid, 'departureStatus' => $item->departure?->getRawOriginal('status'),
-            'protected' => $this->planning->protected($item), 'manual' => false,
+            'protected' => $protected ?? $this->planning->protected($item), 'manual' => false,
             'editable' => ! $this->planning->resourcesLocked($item),
             'occupancy' => $occupancy ?? $this->occupancyFor($item->departure?->id, $item->snapshot['bus_uuid'] ?? null),
         ] + ($assessment ?? $this->publication->assess($item));
@@ -230,7 +231,7 @@ class PlanningReadService
     /** @return array<string, mixed> */
     public function departureSlot(Departure $departure): array
     {
-        $departure->loadMissing(['line.stops', 'bus', 'driver', 'conductor']);
+        $departure->loadMissing(['line.stops', 'bus', 'driver', 'conductor', 'secondaryDriver', 'mechanic']);
         $start = $departure->scheduledDepartureAt();
         $timezone = $departure->departure_timezone ?? config('app.timezone');
         $duration = $departure->estimated_arrival_at === null ? ($departure->line->estimated_duration_minutes ?? 180) : (int) $start->diffInMinutes($departure->estimated_arrival_at);
@@ -240,8 +241,8 @@ class PlanningReadService
             'key' => $departure->uuid, 'direction' => $departure->isReturnTrip() ? 'return' : 'outbound',
             'line_uuid' => $departure->line->uuid,
             'bus_uuid' => $departure->bus?->uuid, 'driver_uuid' => $departure->driver?->uuid, 'conductor_uuid' => $departure->conductor?->uuid,
-            'secondary_driver_uuid' => $departure->secondary_driver_id === null ? null : User::query()->find($departure->secondary_driver_id)?->uuid,
-            'mechanic_uuid' => $departure->mechanic_id === null ? null : User::query()->find($departure->mechanic_id)?->uuid,
+            'secondary_driver_uuid' => $departure->secondaryDriver?->uuid,
+            'mechanic_uuid' => $departure->mechanic?->uuid,
             'time' => $start->setTimezone($timezone)->format('H:i'), 'timezone' => $timezone,
             'days' => [$start->setTimezone($timezone)->isoWeekday()], 'interval_weeks' => 1,
             'duration_minutes' => max(1, $duration), 'preparation_minutes' => 0,
@@ -254,8 +255,37 @@ class PlanningReadService
         ];
     }
 
-    /** @return array<string, mixed> */
-    private function manualItem(Departure $departure): array
+    /**
+     * Occupation des sièges des départs ponctuels en une requête groupée.
+     *
+     * @param  Collection<int, Departure>  $departures
+     * @return array<int, array{booked: int, capacity: int|null, ratio: float|null}>
+     */
+    private function batchDepartureOccupancy(Collection $departures): array
+    {
+        $departureIds = $departures->pluck('id')->all();
+        $bookedMap = $departureIds === [] ? [] : ReservationSegment::query()
+            ->whereIn('departure_id', $departureIds)
+            ->whereIn('status', ReservationSegmentStatus::occupyingValues())
+            ->selectRaw('departure_id, count(distinct seat_id) as booked')
+            ->groupBy('departure_id')
+            ->pluck('booked', 'departure_id')
+            ->all();
+
+        return $departures->map(function (Departure $departure) use ($bookedMap): array {
+            $booked = (int) ($bookedMap[$departure->id] ?? 0);
+            $capacity = $departure->bus?->seat_count;
+            $ratio = $capacity !== null && $capacity > 0 ? round($booked / $capacity, 2) : null;
+
+            return ['booked' => $booked, 'capacity' => $capacity !== null ? (int) $capacity : null, 'ratio' => $ratio];
+        })->all();
+    }
+
+    /**
+     * @param  array{booked: int, capacity: int|null, ratio: float|null}  $occupancy
+     * @return array<string, mixed>
+     */
+    private function manualItem(Departure $departure, array $occupancy): array
     {
         $slot = $this->departureSlot($departure);
 
@@ -267,7 +297,7 @@ class PlanningReadService
             'departureUuid' => $departure->uuid, 'departureStatus' => $departure->getRawOriginal('status'),
             'protected' => true, 'editable' => false, 'manual' => true, 'state' => $departure->getRawOriginal('status') === 'cancelled' ? 'excluded' : 'published',
             'blockers' => [], 'warnings' => [],
-            'occupancy' => $this->occupancyFor($departure->id, $slot['bus_uuid'] ?? null),
+            'occupancy' => $occupancy,
         ];
     }
 
@@ -293,11 +323,14 @@ class PlanningReadService
         $occurrences = $query->get();
         $assessments = $this->publication->assessBatch(array_values($occurrences->all()));
         $occupancies = $this->batchOccupancy(array_values($occurrences->all()));
-        $items = $occurrences->map(fn (PlannedDeparture $item, int $index): array => $this->item($item, false, $assessments[$index], $occupancies[$index]));
+        $protections = $this->planning->protectedBatch(array_values($occurrences->all()));
+        $items = $occurrences->map(fn (PlannedDeparture $item, int $index): array => $this->item($item, false, $assessments[$index], $occupancies[$index], $protections[$index]));
         if (empty($filters['programme'])) {
-            $manual = Departure::query()->with(['line.stops', 'bus', 'driver', 'conductor'])->whereNotIn('id', PlannedDeparture::query()->whereNotNull('departure_id')->select('departure_id'))
-                ->whereDate('departure_date', '>=', $from->subDay()->toDateString())->whereDate('departure_date', '<=', $until->addDay()->toDateString())->get()
-                ->map(fn (Departure $departure): array => $this->manualItem($departure))
+            $manualDepartures = Departure::query()->with(['line.stops', 'bus', 'driver', 'conductor', 'secondaryDriver', 'mechanic'])
+                ->whereNotIn('id', PlannedDeparture::query()->whereNotNull('departure_id')->select('departure_id'))
+                ->whereDate('departure_date', '>=', $from->subDay()->toDateString())->whereDate('departure_date', '<=', $until->addDay()->toDateString())->get();
+            $manualOccupancies = $this->batchDepartureOccupancy($manualDepartures);
+            $manual = $manualDepartures->map(fn (Departure $departure, int $index): array => $this->manualItem($departure, $manualOccupancies[$index]))
                 ->filter(fn (array $item): bool => $item['date'] >= $from->toDateString() && $item['date'] <= $until->toDateString());
             $items = $items->concat($manual)->sortBy('scheduledAt');
         }
