@@ -4,8 +4,24 @@ export type DistanceSource = 'gps' | 'estimated' | 'mixed';
 
 export type CostSourceStatus = 'available' | 'pending' | 'out_of_scope';
 
+export type ProfitabilityCardAxis =
+    | 'bus'
+    | 'line'
+    | 'departure'
+    | 'agency'
+    | 'period';
+
+export type ProfitabilityEntityType = 'bus' | 'line' | 'agency';
+
+export type ProfitabilityEntity = {
+    type: ProfitabilityEntityType;
+    uuid: string;
+    label: string;
+};
+
 export type ProfitabilityCard = {
     key: string;
+    axisType: ProfitabilityCardAxis;
     label: string;
     subtitle: string;
     revenueNet: number;
@@ -118,10 +134,12 @@ export type ProfitabilityProps = {
     currency: string;
     axis: string;
     generatedAt: string;
+    entity: ProfitabilityEntity | null;
     hero: {
         revenueNet: number;
         costAssigned: number;
         costUnassigned: number;
+        networkUnassigned: number;
         result: number;
         marginPercent: number | null;
         coveragePercent: number;
@@ -146,7 +164,7 @@ export type ProfitabilityProps = {
         serviceNet: number;
         timingGap: number;
         label: string;
-    };
+    } | null;
     controls: ProfitabilityControl[];
     empty: boolean;
     period: ProfitabilityPeriod;

@@ -17,46 +17,50 @@ export function ProfitabilityReconciliation({
 }: Props) {
     return (
         <section className="profit-reconciliation">
-            <div className="profit-reconciliation-flow">
-                <span className="section-kicker">Rapprochement</span>
-                <h2>Caisse de la période et service rattaché</h2>
-                <div className="profit-reconciliation-values">
-                    <div>
-                        <small>Recettes cash</small>
-                        <strong>{formatMoney(reconciliation.cashNet)}</strong>
-                        <em>{reconciliation.label}</em>
-                    </div>
-                    <span aria-hidden="true">→</span>
-                    <div>
-                        <small>Recettes de service</small>
-                        <strong>
-                            {formatMoney(reconciliation.serviceNet)}
-                        </strong>
-                        <em>Rattachées aux départs</em>
-                    </div>
-                    <span aria-hidden="true">=</span>
-                    <div>
-                        <small>Écart de timing</small>
-                        <strong
-                            className={cn(
-                                reconciliation.timingGap !== 0 &&
+            {reconciliation !== null && (
+                <div className="profit-reconciliation-flow">
+                    <span className="section-kicker">Rapprochement</span>
+                    <h2>Caisse de la période et service rattaché</h2>
+                    <div className="profit-reconciliation-values">
+                        <div>
+                            <small>Recettes cash</small>
+                            <strong>
+                                {formatMoney(reconciliation.cashNet)}
+                            </strong>
+                            <em>{reconciliation.label}</em>
+                        </div>
+                        <span aria-hidden="true">→</span>
+                        <div>
+                            <small>Recettes de service</small>
+                            <strong>
+                                {formatMoney(reconciliation.serviceNet)}
+                            </strong>
+                            <em>Rattachées aux départs</em>
+                        </div>
+                        <span aria-hidden="true">=</span>
+                        <div>
+                            <small>Écart de timing</small>
+                            <strong
+                                className={cn(
+                                    reconciliation.timingGap !== 0 &&
                                     'text-amber-600 dark:text-gold',
-                            )}
-                        >
-                            {formatMoney(reconciliation.timingGap)}
-                        </strong>
-                        <em>Ventes anticipées ou décalées</em>
+                                )}
+                            >
+                                {formatMoney(reconciliation.timingGap)}
+                            </strong>
+                            <em>Ventes anticipées ou décalées</em>
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
             <div className="profit-controls">
                 {controls.map((control) => {
                     const Icon =
                         control.status === 'ok'
                             ? CheckCircle2
                             : control.status === 'warning'
-                              ? TriangleAlert
-                              : Info;
+                                ? TriangleAlert
+                                : Info;
 
                     return (
                         <article

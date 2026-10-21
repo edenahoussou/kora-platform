@@ -12,6 +12,7 @@ import {
     ShieldCheck,
     Store,
     Ticket,
+    TrendingUp,
     Users,
     Wallet,
 } from 'lucide-react';
@@ -134,18 +135,12 @@ const navItems: NavEntry[] = [
             'expenses.view-agency',
             'expenses.view-network',
             'revenue.view',
-            'profitability.view',
         ],
         children: [
             {
                 title: 'Recettes',
                 href: revenue().url,
                 permission: 'revenue.view',
-            },
-            {
-                title: 'Rentabilité',
-                href: profitability().url,
-                permission: 'profitability.view',
             },
             {
                 title: 'Facturation',
@@ -168,6 +163,12 @@ const navItems: NavEntry[] = [
                 ],
             },
         ],
+    },
+    {
+        title: 'Rentabilité',
+        href: profitability().url,
+        icon: TrendingUp,
+        permission: 'profitability.view',
     },
     {
         title: 'Exploitation',

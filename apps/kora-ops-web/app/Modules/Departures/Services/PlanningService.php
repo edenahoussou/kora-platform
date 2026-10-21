@@ -10,7 +10,7 @@ use App\Modules\Departures\Models\PlannedDeparture;
 use App\Modules\Departures\Models\ProgrammingRun;
 use App\Modules\DynamicPricing\Models\PriceQuote;
 use Carbon\CarbonImmutable;
-use Illuminate\Database\Eloquent\Builder; // ✅ AJOUTÉ : Nécessaire pour le type hint
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;

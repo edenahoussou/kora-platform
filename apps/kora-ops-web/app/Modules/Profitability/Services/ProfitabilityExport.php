@@ -5,7 +5,9 @@ namespace App\Modules\Profitability\Services;
 use App\Modules\Finance\Data\RevenuePeriod;
 use App\Modules\Finance\Services\FinanceExportService;
 use App\Modules\Profitability\Data\CostSourceStatus;
+use App\Modules\Profitability\Data\EntityScope;
 use App\Modules\Profitability\Data\ProfitabilityAxis;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -27,11 +29,13 @@ class ProfitabilityExport
     /**
      * @param  array<string, mixed>  $data
      */
-    public function download(RevenuePeriod $period, ProfitabilityAxis $axis, array $data): StreamedResponse
+    public function download(RevenuePeriod $period, ProfitabilityAxis $axis, array $data, ?EntityScope $scope = null): StreamedResponse
     {
+        $entitySuffix = $scope === null ? '' : '-'.$scope->type->value.'-'.Str::slug($scope->label);
+
         return $this->exporter->workbook(
-            'rentabilite-'.$axis->value.'-'.$period->localStart->format('Ymd').'-'.$period->localEnd->format('Ymd').'.xlsx',
-            $this->sheets($period, $axis, $data),
+            'rentabilite-'.$axis->value.$entitySuffix.'-'.$period->localStart->format('Ymd').'-'.$period->localEnd->format('Ymd').'.xlsx',
+            $this->sheets($period, $axis, $data, $scope),
         );
     }
 
@@ -39,17 +43,26 @@ class ProfitabilityExport
      * @param  array<string, mixed>  $data
      * @return list<array{title: string, headers: list<string>, rows: iterable<array<int, string|int|float|null>>}>
      */
-    public function sheets(RevenuePeriod $period, ProfitabilityAxis $axis, array $data): array
+    public function sheets(RevenuePeriod $period, ProfitabilityAxis $axis, array $data, ?EntityScope $scope = null): array
     {
         $hero = $data['hero'];
+        $entity = is_array($data['entity'] ?? null) ? $data['entity'] : null;
+
+        $summaryRows = [
+            ['Période', $period->label()],
+            ['Axe', $axis->label()],
+        ];
+
+        if ($entity !== null) {
+            $summaryRows[] = ['Filtre', ProfitabilityAxis::from((string) $entity['type'])->label().' : '.$entity['label']];
+        }
 
         return [
             [
                 'title' => 'Synthèse',
                 'headers' => ['Indicateur', 'Valeur'],
                 'rows' => [
-                    ['Période', $period->label()],
-                    ['Axe', $axis->label()],
+                    ...$summaryRows,
                     ['Généré le', (string) $data['generatedAt']],
                     ['Fuseau', RevenuePeriod::TIMEZONE],
                     ['Recettes nettes de service XOF', (int) $hero['revenueNet']],
@@ -117,9 +130,11 @@ class ProfitabilityExport
                 'title' => 'Contrôles',
                 'headers' => ['Contrôle', 'Valeur', 'Détail', 'Statut'],
                 'rows' => [
-                    ['Recettes cash période XOF', (int) $data['reconciliation']['cashNet'], 'Encaissements confirmés moins annulations reconnues de la période.', 'info'],
-                    ['Recettes de service XOF', (int) $data['reconciliation']['serviceNet'], 'Recettes rattachées aux départs de la période.', 'info'],
-                    ['Écart de timing XOF', (int) $data['reconciliation']['timingGap'], 'Écart caisse/service expliqué par les ventes anticipées.', 'info'],
+                    ...($data['reconciliation'] === null ? [] : [
+                        ['Recettes cash période XOF', (int) $data['reconciliation']['cashNet'], 'Encaissements confirmés moins annulations reconnues de la période.', 'info'],
+                        ['Recettes de service XOF', (int) $data['reconciliation']['serviceNet'], 'Recettes rattachées aux départs de la période.', 'info'],
+                        ['Écart de timing XOF', (int) $data['reconciliation']['timingGap'], 'Écart caisse/service expliqué par les ventes anticipées.', 'info'],
+                    ]),
                     ...array_map(fn (array $control): array => [
                         (string) $control['label'],
                         (string) $control['value'],
@@ -149,7 +164,7 @@ class ProfitabilityExport
                     (float) $row['km'],
                     (string) $row['distanceSource'],
                     (float) $row['gpsCoverage'],
-                ], $this->report->departureRows($period)),
+                ], $this->report->departureRows($period, $scope)),
             ],
         ];
     }

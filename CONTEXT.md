@@ -339,3 +339,7 @@ _Avoid_: Taux de remplissage ; couverture GPS
 **Résultat opérationnel réseau**:
 Recette nette de service du réseau diminuée des coûts affectés et des coûts non affectés. C'est le seul résultat qui intègre les coûts hors axes.
 _Avoid_: Somme des contributions d'axes ; résultat net comptable
+
+**Vue filtrée par entité**:
+Périmètre du rapport de rentabilité restreint à un bus, une ligne ou une agence de vente, activé en cliquant une carte de contribution et matérialisé par une pastille escamotable. Il reste orthogonal à l'axe de regroupement : filtré sur un bus, l'axe Ligne liste les lignes parcourues par ce bus. Un seul filtre à la fois : une nouvelle carte remplace le filtre actif. Sous ce périmètre, le rapprochement caisse réseau et le TCO (hors filtre bus) sont masqués, et les coûts réseau non affectés restent hors de la vue avec une note explicative.
+_Avoid_: Filtre par axe ; cumul de plusieurs entités ; rapprochement caisse d'une entité

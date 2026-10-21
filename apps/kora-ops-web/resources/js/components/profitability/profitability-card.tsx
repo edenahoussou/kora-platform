@@ -1,7 +1,18 @@
-import { MapPin, Satellite } from 'lucide-react';
+import {
+    Banknote,
+    MapPin,
+    Maximize2,
+    ReceiptText,
+    Satellite,
+    Scale,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { formatMoney } from '@/components/sale/sale-utils';
 import { cn } from '@/lib/utils';
-import type { ProfitabilityCard } from './profitability-types';
+import type {
+    ProfitabilityCard,
+    ProfitabilityEntity,
+} from './profitability-types';
 
 const statusLabels: Record<ProfitabilityCard['breakEvenStatus'], string> = {
     atteint: 'Rentable',
@@ -9,47 +20,130 @@ const statusLabels: Record<ProfitabilityCard['breakEvenStatus'], string> = {
     non_calculable: 'Non calculable',
 };
 
-type Props = {
-    card: ProfitabilityCard;
-    onOpen: (key: string) => void;
+const statusTones: Record<ProfitabilityCard['breakEvenStatus'], string> = {
+    atteint: 'profit-tone-ok',
+    sous_seuil: 'profit-tone-risk',
+    non_calculable: 'profit-tone-neutral',
 };
 
-export function ProfitabilityCardView({ card, onOpen }: Props) {
+const FILTERABLE_AXES = ['bus', 'line', 'agency'];
+const UUID_PATTERN =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+type Props = {
+    card: ProfitabilityCard;
+    axisIcon: LucideIcon;
+    entity: ProfitabilityEntity | null;
+    onOpen: (key: string) => void;
+    onFilter: (card: ProfitabilityCard) => void;
+};
+
+export function ProfitabilityCardView({
+    card,
+    axisIcon: AxisIcon,
+    entity,
+    onOpen,
+    onFilter,
+}: Props) {
     const risky = card.breakEvenStatus === 'sous_seuil';
+    const fill = card.fillRate === null ? 0 : Math.min(100, card.fillRate);
+    const threshold =
+        card.capacity && card.breakEvenSeats !== null
+            ? Math.min(100, (card.breakEvenSeats / card.capacity) * 100)
+            : 0;
+    const filterable =
+        FILTERABLE_AXES.includes(card.axisType) && UUID_PATTERN.test(card.key);
+    const isActiveFilter =
+        entity !== null &&
+        entity.type === card.axisType &&
+        entity.uuid === card.key;
+
+    const handleClick = () => {
+        if (filterable && !isActiveFilter) {
+            onFilter(card);
+        } else {
+            onOpen(card.key);
+        }
+    };
 
     return (
-        <button
-            type="button"
-            className={cn('profit-card', risky && 'profit-card-risk')}
-            onClick={() => onOpen(card.key)}
+        <div
+            role="button"
+            tabIndex={0}
+            className={cn(
+                'profit-card',
+                statusTones[card.breakEvenStatus],
+                risky && 'profit-card-risk',
+                filterable && 'profit-card-filterable',
+                isActiveFilter && 'profit-card-active',
+            )}
+            onClick={handleClick}
+            onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    handleClick();
+                }
+            }}
+            aria-label={
+                filterable
+                    ? `Filtrer le rapport sur ${card.label}`
+                    : `Détail de ${card.label}`
+            }
         >
             <header>
-                <div>
-                    <span className="section-kicker">{card.subtitle}</span>
-                    <h3>{card.label}</h3>
+                <div className="profit-card-heading">
+                    <span className="profit-card-axis-icon" aria-hidden="true">
+                        <AxisIcon className="size-3.5" />
+                    </span>
+                    <div>
+                        <span className="section-kicker">{card.subtitle}</span>
+                        <h3>{card.label}</h3>
+                    </div>
                 </div>
-                <span
-                    className={cn(
-                        'profit-status',
-                        card.breakEvenStatus === 'atteint' &&
+                <div className="profit-card-actions">
+                    <span
+                        className={cn(
+                            'profit-status',
+                            card.breakEvenStatus === 'atteint' &&
                             'profit-status-ok',
-                        risky && 'profit-status-risk',
-                    )}
-                >
-                    {statusLabels[card.breakEvenStatus]}
-                </span>
+                            risky && 'profit-status-risk',
+                        )}
+                    >
+                        {statusLabels[card.breakEvenStatus]}
+                    </span>
+                    <button
+                        type="button"
+                        className="profit-card-detail"
+                        aria-label={`Détail de ${card.label}`}
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            onOpen(card.key);
+                        }}
+                    >
+                        <Maximize2 className="size-3.5" aria-hidden="true" />
+                    </button>
+                </div>
             </header>
             <dl>
                 <div>
-                    <dt>Recettes</dt>
+                    <dt>
+                        <Banknote className="size-3" aria-hidden="true" />
+                        Recettes
+                    </dt>
                     <dd>{formatMoney(card.revenueNet)}</dd>
                 </div>
                 <div>
-                    <dt>Coûts</dt>
+                    <dt>
+                        <ReceiptText className="size-3" aria-hidden="true" />
+                        Coûts
+                    </dt>
                     <dd>{formatMoney(card.costTotal)}</dd>
                 </div>
                 <div>
-                    <dt>Contribution</dt>
+                    <dt>
+                        <Scale className="size-3" aria-hidden="true" />
+                        Contribution
+                    </dt>
                     <dd
                         className={cn(
                             card.contribution < 0 && 'text-destructive',
@@ -59,6 +153,10 @@ export function ProfitabilityCardView({ card, onOpen }: Props) {
                     </dd>
                 </div>
             </dl>
+            <div className="profit-break-even-bar" aria-hidden="true">
+                <i style={{ width: `${fill}%` }} />
+                <b style={{ left: `${threshold}%` }} />
+            </div>
             <footer>
                 <span>
                     {card.marginPercent === null
@@ -96,10 +194,10 @@ export function ProfitabilityCardView({ card, onOpen }: Props) {
                     {card.distanceSource === 'gps'
                         ? 'GPS'
                         : card.distanceSource === 'mixed'
-                          ? 'Mixte'
-                          : 'Estimé'}
+                            ? 'Mixte'
+                            : 'Estimé'}
                 </span>
             </div>
-        </button>
+        </div>
     );
 }

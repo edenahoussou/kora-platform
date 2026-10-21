@@ -13,6 +13,8 @@ type Props = {
     result: number;
     marginPercent: number | null;
     costUnassigned: number;
+    networkUnassigned: number;
+    filtered: boolean;
     coveragePercent: number;
     breakEven: ProfitabilityBreakEven;
 };
@@ -28,6 +30,8 @@ export function ProfitabilityHero({
     result,
     marginPercent,
     costUnassigned,
+    networkUnassigned,
+    filtered,
     coveragePercent,
     breakEven,
 }: Props) {
@@ -35,8 +39,8 @@ export function ProfitabilityHero({
     const Icon = !positive
         ? ArrowDownRight
         : marginPercent !== null && marginPercent > 0
-          ? ArrowUpRight
-          : Minus;
+            ? ArrowUpRight
+            : Minus;
 
     return (
         <section className="profit-hero">
@@ -110,8 +114,19 @@ export function ProfitabilityHero({
                             className="size-3.5"
                             aria-hidden="true"
                         />
-                        Les coûts non affectés restent visibles au niveau réseau
-                        : ils ne sont jamais poussés dans la marge d’un axe.
+                        {filtered
+                            ? 'Ces coûts entrent dans le total de la vue sans rattachement à un axe opérationnel.'
+                            : 'Les coûts non affectés restent visibles au niveau réseau : ils ne sont jamais poussés dans la marge d’un axe.'}
+                    </p>
+                )}
+                {filtered && networkUnassigned > 0 && (
+                    <p className="profit-hero-warning">
+                        <AlertTriangle
+                            className="size-3.5"
+                            aria-hidden="true"
+                        />
+                        {formatMoney(networkUnassigned)} de coûts réseau sans
+                        rattachement restent hors de cette vue filtrée.
                     </p>
                 )}
             </div>
