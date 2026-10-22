@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\PaymentManager;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Validation\ValidationException;
 
 class VerifyPaymentAction
 {
@@ -14,7 +15,7 @@ class VerifyPaymentAction
         private readonly ConfirmPaymentAction $confirmPayment,
     ) {}
 
-    public function handle(Payment $payment, User $user): Payment
+    public function handle(Payment $payment, User $user, ?string $providerTransactionId = null): Payment
     {
         $payment->loadMissing('reservation');
 
@@ -26,6 +27,16 @@ class VerifyPaymentAction
 
         if ($payment->status->isTerminal()) {
             return $payment->fresh(['reservation.segments.departure']);
+        }
+
+        if ($providerTransactionId !== null && $payment->provider === 'kkiapay') {
+            if ($payment->provider_transaction_id === null) {
+                $payment->update(['provider_transaction_id' => $providerTransactionId]);
+            } elseif ($payment->provider_transaction_id !== $providerTransactionId) {
+                throw ValidationException::withMessages([
+                    'transaction_id' => 'Cette transaction ne correspond pas au paiement en cours.',
+                ]);
+            }
         }
 
         $response = $this->manager->resolve($payment->provider)->verify($payment);

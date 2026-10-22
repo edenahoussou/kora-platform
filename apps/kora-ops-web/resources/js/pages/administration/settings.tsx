@@ -61,7 +61,10 @@ import type {
 type FormScalar = string | number | boolean | null;
 
 type FormValues = {
-    values: Record<string, FormScalar | number[] | Record<string, number>>;
+    values: Record<
+        string,
+        FormScalar | string[] | number[] | Record<string, number>
+    >;
     clearSecrets: string[];
     confirmed: boolean;
 };
@@ -90,6 +93,9 @@ const sensitiveKeys = new Set([
     'mtnMomoUserId',
     'mtnMomoApiKey',
     'mtnMomoWebhookSecret',
+    'kkiapayPrivateKey',
+    'kkiapaySecretKey',
+    'kkiapayWebhookSecret',
     'mapGoogleApiKey',
     'genukaToken',
     'genukaConnectionId',
@@ -446,6 +452,67 @@ const integrationFields: Record<string, IntegrationFieldDefinition[]> = {
             label: 'Mode Celtiis Cash',
             hint: 'Identifiant du canal FedaPay.',
         },
+        {
+            key: 'fedapayMtnMomoCiMode',
+            label: 'Mode MTN MoMo CI',
+            hint: 'Identifiant du canal FedaPay Côte d’Ivoire.',
+        },
+        {
+            key: 'fedapayMoovFloozCiMode',
+            label: 'Mode Moov CI',
+            hint: 'Identifiant du canal FedaPay Côte d’Ivoire.',
+        },
+        {
+            key: 'fedapayWaveCiMode',
+            label: 'Mode Wave CI',
+            hint: 'Identifiant du canal FedaPay Côte d’Ivoire.',
+        },
+        {
+            key: 'fedapayOrangeMoneyCiMode',
+            label: 'Mode Orange Money CI',
+            hint: 'Identifiant du canal FedaPay Côte d’Ivoire.',
+        },
+        {
+            key: 'fedapayMoovFloozTgMode',
+            label: 'Mode Moov TG',
+            hint: 'Identifiant du canal FedaPay Togo.',
+        },
+        {
+            key: 'fedapayTmoneyTgMode',
+            label: 'Mode TMoney TG',
+            hint: 'Identifiant du canal FedaPay Togo.',
+        },
+    ],
+    kkiapay: [
+        {
+            key: 'kkiapayPublicKey',
+            label: 'Clé publique',
+            hint: 'Clé API publique exposée au widget KKiaPay.',
+        },
+        {
+            key: 'kkiapayPrivateKey',
+            label: 'Clé privée',
+            hint: 'Clé privée de vérification des transactions.',
+            secret: true,
+        },
+        {
+            key: 'kkiapaySecretKey',
+            label: 'Clé secrète',
+            hint: 'Secret API KKiaPay, jamais affiché en clair.',
+            secret: true,
+        },
+        {
+            key: 'kkiapayCallbackUrl',
+            label: 'URL de callback',
+            hint: 'URL de retour après paiement widget.',
+            type: 'url',
+        },
+        {
+            key: 'kkiapayWebhookSecret',
+            label: 'Secret webhook',
+            hint: 'Hash secret configuré sur le webhook du tableau de bord.',
+            secret: true,
+        },
     ],
     mtnMomo: [
         {
@@ -787,7 +854,7 @@ export default function SettingsPage({
 
     const value = (
         key: string,
-    ): FormScalar | number[] | Record<string, number> | undefined =>
+    ): FormScalar | string[] | number[] | Record<string, number> | undefined =>
         form.data.values[key];
     const error = (key: string): string | undefined => {
         const errors = form.errors as Record<string, string | undefined>;
@@ -796,7 +863,7 @@ export default function SettingsPage({
     };
     const setValue = (
         key: string,
-        nextValue: FormScalar | number[] | Record<string, number>,
+        nextValue: FormScalar | string[] | number[] | Record<string, number>,
     ) => {
         form.setData('values', { ...form.data.values, [key]: nextValue });
 
@@ -834,7 +901,7 @@ export default function SettingsPage({
     }[group];
     const initialValue = (
         key: string,
-    ): FormScalar | number[] | Record<string, number> | undefined =>
+    ): FormScalar | string[] | number[] | Record<string, number> | undefined =>
         initialValues[key];
     const needsConfirmation =
         group === 'operations' &&
@@ -1766,7 +1833,11 @@ export default function SettingsPage({
             environmentKey?: string;
             environmentLabel?: (
                 value:
-                    FormScalar | number[] | Record<string, number> | undefined,
+                    | FormScalar
+                    | string[]
+                    | number[]
+                    | Record<string, number>
+                    | undefined,
             ) => string;
             probeProvider?: string;
             result?: ConnectionProbeResult;
@@ -2107,6 +2178,95 @@ export default function SettingsPage({
                             probeProvider: 'mtn_momo',
                             result: probeResults.mtn_momo,
                             icon: Phone,
+                        },
+                    )}
+                    {renderIntegrationCard(
+                        'kkiapay',
+                        'KKiaPay',
+                        'Agrégateur widget : Mobile Money, carte et wallet multi-pays.',
+                        {
+                            enabledKey: 'kkiapayEnabled',
+                            environmentKey: 'kkiapayEnvironment',
+                            probeProvider: 'kkiapay',
+                            result: probeResults.kkiapay,
+                            icon: Smartphone,
+                            children: (
+                                <div className="mt-5 space-y-5">
+                                    <div className="max-w-xl">
+                                        {selectField(
+                                            'kkiapayEnvironment',
+                                            'Environnement',
+                                            'Sandbox pour les tests, production pour l’encaissement réel.',
+                                            [
+                                                {
+                                                    value: 'sandbox',
+                                                    label: 'Sandbox',
+                                                },
+                                                {
+                                                    value: 'production',
+                                                    label: 'Production',
+                                                },
+                                            ],
+                                        )}
+                                    </div>
+                                    <div>
+                                        <p className="mb-2 text-xs font-bold text-foreground">
+                                            Pays acceptés
+                                        </p>
+                                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                                            {[
+                                                ['BJ', 'Bénin'],
+                                                ['TG', 'Togo'],
+                                                ['CI', 'Côte d’Ivoire'],
+                                                ['SN', 'Sénégal'],
+                                                ['NE', 'Niger'],
+                                            ].map(([code, countryLabel]) => {
+                                                const countries =
+                                                    (value(
+                                                        'kkiapayCountries',
+                                                    ) as
+                                                        string[] | undefined) ??
+                                                    [];
+
+                                                return (
+                                                    <SettingsToggle
+                                                        key={code}
+                                                        label={`${code} · ${countryLabel}`}
+                                                        checked={countries.includes(
+                                                            code,
+                                                        )}
+                                                        disabled={
+                                                            !permissions.canManage
+                                                        }
+                                                        onChange={(checked) =>
+                                                            setValue(
+                                                                'kkiapayCountries',
+                                                                checked
+                                                                    ? [
+                                                                          ...countries,
+                                                                          code,
+                                                                      ]
+                                                                    : countries.filter(
+                                                                          (
+                                                                              country,
+                                                                          ) =>
+                                                                              country !==
+                                                                              code,
+                                                                      ),
+                                                            )
+                                                        }
+                                                    />
+                                                );
+                                            })}
+                                        </div>
+                                        {error('kkiapayCountries') && (
+                                            <p className="mt-2 text-[11px] font-semibold text-destructive">
+                                                {error('kkiapayCountries')}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            ),
                         },
                     )}
                 </div>,

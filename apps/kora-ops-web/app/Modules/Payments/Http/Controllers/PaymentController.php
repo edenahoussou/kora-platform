@@ -180,7 +180,11 @@ class PaymentController extends Controller
      */
     public function verify(Payment $payment, Request $request, VerifyPaymentAction $verifyPayment): JsonResponse
     {
-        $updatedPayment = $verifyPayment->handle($payment, $request->user());
+        $validated = $request->validate([
+            'transaction_id' => ['nullable', 'string', 'max:64'],
+        ]);
+
+        $updatedPayment = $verifyPayment->handle($payment, $request->user(), $validated['transaction_id'] ?? null);
 
         return (new PaymentResource($updatedPayment))
             ->response()
@@ -413,6 +417,39 @@ class PaymentController extends Controller
     }
 
     /**
+     * KKiaPay webhook endpoint.
+     *
+     * Receives transaction notifications from KKiaPay. The x-kkiapay-secret
+     * header is checked against the hash configured on the merchant dashboard,
+     * then the real status is verified server-side via the KKiaPay API.
+     *
+     * @unauthenticated
+     *
+     * @response 200 scenario="Webhook processed" {
+     *   "status": "confirmed",
+     *   "payment_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80",
+     *   "reservation_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+     *   "reservation_status": "paid"
+     * }
+     * @response 400 scenario="Payment reference not found" {
+     *   "error": "Payment reference not found in webhook."
+     * }
+     * @response 403 scenario="Invalid webhook signature" {
+     *   "error": "Invalid webhook signature."
+     * }
+     * @response 404 scenario="Payment not found" {
+     *   "error": "Payment not found."
+     * }
+     */
+    public function webhookKkiapay(
+        Request $request,
+        PaymentManager $manager,
+        ConfirmPaymentAction $confirmPayment,
+    ): JsonResponse {
+        return $this->processProviderWebhook($request, $manager, $confirmPayment, 'kkiapay');
+    }
+
+    /**
      * Process a provider webhook by verifying the signature and confirming the payment.
      */
     private function processProviderWebhook(
@@ -431,6 +468,7 @@ class PaymentController extends Controller
         // Extract the payment reference from the webhook payload.
         $paymentUuid = $verifiedPayload['custom_metadata']['kora_payment_uuid']
             ?? $verifiedPayload['externalId']
+            ?? $verifiedPayload['partnerId']
             ?? null;
 
         if ($paymentUuid === null) {
@@ -441,6 +479,11 @@ class PaymentController extends Controller
 
         if ($payment === null) {
             return response()->json(['error' => 'Payment not found.'], 404);
+        }
+
+        // KKiaPay webhooks carry the transactionId needed for status polling.
+        if ($payment->provider_transaction_id === null && isset($verifiedPayload['transactionId'])) {
+            $payment->update(['provider_transaction_id' => (string) $verifiedPayload['transactionId']]);
         }
 
         $providerResponse = $adapter->verify($payment);

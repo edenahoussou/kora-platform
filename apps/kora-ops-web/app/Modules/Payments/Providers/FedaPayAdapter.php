@@ -4,6 +4,7 @@ namespace App\Modules\Payments\Providers;
 
 use App\Modules\Payments\Contracts\PaymentProvider;
 use App\Modules\Payments\Contracts\ProviderResponse;
+use App\Modules\Payments\Data\MobileMoneyNetwork;
 use App\Modules\Payments\Data\PaymentStatus;
 use App\Modules\Payments\Models\Payment;
 use FedaPay\FedaPay;
@@ -63,7 +64,8 @@ final class FedaPayAdapter implements PaymentProvider
     private function extractPhone(array $payload): array
     {
         $phone = (string) ($payload['phone'] ?? '');
-        $country = (string) ($payload['phone_country'] ?? $this->defaultPhoneCountry);
+        $network = MobileMoneyNetwork::tryFrom((string) ($payload['mobile_money_network'] ?? ''));
+        $country = (string) ($payload['phone_country'] ?? $network?->country() ?? $this->defaultPhoneCountry);
 
         return ['number' => $phone, 'country' => $country];
     }

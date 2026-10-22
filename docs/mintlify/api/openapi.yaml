@@ -7466,7 +7466,7 @@ paths:
                 birth_date:
                   type: string
                   description: 'Date de naissance (Y-m-d). Must be a valid date in the format <code>Y-m-d</code>. Le champ value doit être une date antérieure ou égale à <code>today</code>.'
-                  example: '2022-11-13'
+                  example: '2022-11-16'
                   nullable: true
                 yellow_fever_vaccinated:
                   type: boolean
@@ -11202,6 +11202,18 @@ paths:
                     example: 'Too many requests. Please try again later.'
       tags:
         - Payments
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                transaction_id:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 64 caractères.'
+                  example: b
+                  nullable: true
     parameters:
       -
         in: path
@@ -11508,6 +11520,76 @@ paths:
       summary: 'MTN MoMo webhook endpoint.'
       operationId: mTNMoMoWebhookEndpoint
       description: "Receives payment status notifications from MTN Mobile Money. Verifies the\nwebhook signature and confirms or fails the corresponding payment."
+      parameters: []
+      responses:
+        200:
+          description: 'Webhook processed'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: confirmed
+                  payment_uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80
+                  reservation_uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
+                  reservation_status: paid
+                properties:
+                  status:
+                    type: string
+                    example: confirmed
+                  payment_uuid:
+                    type: string
+                    example: 00000000-0000-4000-8000-000000000000
+                  reservation_uuid:
+                    type: string
+                    example: 00000000-0000-4000-8000-000000000000
+                  reservation_status:
+                    type: string
+                    example: paid
+        400:
+          description: 'Payment reference not found'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error: 'Payment reference not found in webhook.'
+                properties:
+                  error:
+                    type: string
+                    example: 'Payment reference not found in webhook.'
+        403:
+          description: 'Invalid webhook signature'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error: 'Invalid webhook signature.'
+                properties:
+                  error:
+                    type: string
+                    example: 'Invalid webhook signature.'
+        404:
+          description: 'Payment not found'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error: 'Payment not found.'
+                properties:
+                  error:
+                    type: string
+                    example: 'Payment not found.'
+      tags:
+        - Payments
+      security: []
+  /api/v1/payments/webhook/kkiapay:
+    post:
+      summary: 'KKiaPay webhook endpoint.'
+      operationId: kKiaPayWebhookEndpoint
+      description: "Receives transaction notifications from KKiaPay. The x-kkiapay-secret\nheader is checked against the hash configured on the merchant dashboard,\nthen the real status is verified server-side via the KKiaPay API."
       parameters: []
       responses:
         200:

@@ -35,6 +35,7 @@ class PaymentResource extends JsonResource
             'confirmed_at' => $this->confirmed_at?->toIso8601String(),
             'last_verified_at' => $this->last_verified_at?->toIso8601String(),
             'next_action' => $this->nextAction(),
+            'widget' => $this->when($this->provider === 'kkiapay', fn () => $this->provider_payload['widget'] ?? null),
             'failure' => $this->when($this->failure_code !== null || $this->failure_message !== null, [
                 'code' => $this->failure_code,
                 'message' => $this->failure_message,

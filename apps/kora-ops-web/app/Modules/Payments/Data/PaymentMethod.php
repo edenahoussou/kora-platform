@@ -10,6 +10,7 @@ enum PaymentMethod: string
 
     case Cash = 'cash';
     case MobileMoney = 'mobile_money';
+    case Card = 'card';
     case Wallet = 'wallet';
     case CompanyCredit = 'company_credit';
 }
