@@ -210,7 +210,7 @@ void _registerCore() {
   // Sert au seul cas que le système ne couvre pas : l'application à
   // l'écran, où Firebase remet le message sans rien afficher.
   getIt.registerLazySingleton<NotificationPresenter>(
-    LocalNotificationPresenter.new,
+    () => LocalNotificationPresenter(logs: AppEnv.current.enableNetworkLogs),
   );
   getIt.registerLazySingleton<PushRemoteDataSource>(
     () => PushRemoteDataSource(getIt<Dio>()),

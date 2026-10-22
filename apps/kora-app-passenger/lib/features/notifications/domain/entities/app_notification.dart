@@ -38,6 +38,7 @@ class AppNotification extends Equatable {
     required this.text,
     required this.receivedAt,
     this.isUnread = false,
+    this.resourceUuid,
   });
 
   final String id;
@@ -52,14 +53,31 @@ class AppNotification extends Equatable {
   /// Pastille dorée à droite du titre, tant qu'elle n'est pas lue.
   final bool isUnread;
 
+  /// La réservation dont parle la notification, quand elle en désigne une.
+  ///
+  /// C'est elle qui rend le toucher utile : sans cet identifiant, ouvrir
+  /// une notification ne peut mener qu'à la liste des voyages, puisque
+  /// rien ne dit duquel il s'agit. `null` pour les messages qui ne visent
+  /// aucune réservation en particulier.
+  final String? resourceUuid;
+
   AppNotification markRead() => AppNotification(
     id: id,
     kind: kind,
     title: title,
     text: text,
     receivedAt: receivedAt,
+    resourceUuid: resourceUuid,
   );
 
   @override
-  List<Object?> get props => [id, kind, title, text, receivedAt, isUnread];
+  List<Object?> get props => [
+    id,
+    kind,
+    title,
+    text,
+    receivedAt,
+    isUnread,
+    resourceUuid,
+  ];
 }

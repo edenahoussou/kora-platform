@@ -40,6 +40,14 @@ class ContactPage extends StatelessWidget {
   /// Affiché tel quel dans la liste, groupé comme au Bénin.
   static const String supportPhoneLabel = '+229 90 10 96 48';
 
+  /// `wa.me` ouvre l'application quand elle est installée, et le web
+  /// sinon.
+  Future<void> _openWhatsapp(BuildContext context) => _open(
+    context,
+    Uri.parse('https://wa.me/${supportPhone.replaceAll('+', '')}'),
+    'WhatsApp',
+  );
+
   Future<void> _open(BuildContext context, Uri uri, String target) async {
     final l10n = context.l10n;
     final launch =
@@ -68,6 +76,11 @@ class ContactPage extends StatelessWidget {
   Widget _build(BuildContext context) {
     final l10n = context.l10n;
     final koraColors = context.koraColors;
+    // Le chat en direct l'emporte sur WhatsApp quand le serveur le donne
+    // : c'est le canal que KORA maîtrise, et il garde le passager dans
+    // l'app. WhatsApp reprend la carte quand l'intégration est éteinte,
+    // plutôt que de laisser un écran sans canal principal.
+    final chat = context.watch<SupportChatCubit>().state;
 
     return Scaffold(
       body: SafeArea(
@@ -106,13 +119,17 @@ class ContactPage extends StatelessWidget {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            l10n.contactWhatsappTitle,
+                            chat.isAvailable
+                                ? l10n.contactLiveTitle
+                                : l10n.contactWhatsappTitle,
                             textAlign: TextAlign.center,
                             style: AppTextStyles.heading2(AppColors.white),
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            l10n.contactWhatsappText,
+                            chat.isAvailable
+                                ? l10n.contactLiveText
+                                : l10n.contactWhatsappText,
                             textAlign: TextAlign.center,
                             style: AppTextStyles.body(
                               AppColors.white.withValues(alpha: 0.72),
@@ -121,15 +138,9 @@ class ContactPage extends StatelessWidget {
                           const SizedBox(height: 18),
                           KoraButton(
                             label: l10n.contactWhatsappStart,
-                            onPressed: () => _open(
-                              context,
-                              // `wa.me` ouvre l'app quand elle est
-                              // installée, et le web sinon.
-                              Uri.parse(
-                                'https://wa.me/${supportPhone.replaceAll('+', '')}',
-                              ),
-                              'WhatsApp',
-                            ),
+                            onPressed: () => chat.isAvailable
+                                ? onOpenChat?.call(chat.configuration)
+                                : _openWhatsapp(context),
                           ),
                         ],
                       ),
@@ -142,20 +153,16 @@ class ContactPage extends StatelessWidget {
                     const SizedBox(height: AppSpacing.md),
                     KoraMenuList(
                       items: [
-                        // Le chat n'apparaît que si le serveur le donne.
-                        // Éteindre l'intégration dans OPS le retire d'ici
-                        // au prochain affichage, sans republier l'app.
-                        if (context.watch<SupportChatCubit>().state.isAvailable)
+                        // Le chat ne se répète pas ici : la carte du
+                        // haut est devenue son bouton. WhatsApp y prend
+                        // sa place, pour que le canal ne disparaisse pas
+                        // de l'écran.
+                        if (chat.isAvailable)
                           KoraMenuItem(
-                            icon: Icons.support_agent_rounded,
-                            title: l10n.contactChat,
-                            subtitle: l10n.contactChatSubtitle,
-                            onTap: () => onOpenChat?.call(
-                              context
-                                  .read<SupportChatCubit>()
-                                  .state
-                                  .configuration,
-                            ),
+                            icon: Icons.chat_rounded,
+                            title: l10n.contactWhatsappItem,
+                            subtitle: supportPhoneLabel,
+                            onTap: () => _openWhatsapp(context),
                           ),
                         KoraMenuItem(
                           icon: Icons.call_rounded,

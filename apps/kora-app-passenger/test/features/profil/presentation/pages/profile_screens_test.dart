@@ -247,6 +247,16 @@ void main() {
       await pump(tester, const SecurityPage());
 
       await tester.tap(find.text('Révoquer'));
+
+      // Le dialog anime son pictogramme en continu : `pumpAndSettle`
+      // n'aurait jamais la main.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      // Le second « Révoquer » est celui du dialog.
+      await tester.tap(find.text('Révoquer').last);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
       await tester.pumpAndSettle();
       await settleToast(tester);
 
@@ -257,6 +267,29 @@ void main() {
       ]);
       expect(find.text('Tecno Spark 20'), findsNothing);
       expect(find.text('Infinix HOT 12i'), findsOneWidget);
+    });
+
+    testWidgets('annuler la révocation ne touche à rien', (tester) async {
+      // Le geste est irréversible et vise un autre téléphone que celui
+      // qu'on tient : son propriétaire perdrait sa session sans
+      // comprendre pourquoi.
+      final devices = _DevicesRepository();
+      repository = devices;
+      await pump(tester, const SecurityPage());
+
+      await tester.tap(find.text('Révoquer'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(find.text('Révoquer cet appareil ?'), findsOneWidget);
+
+      await tester.tap(find.text('Annuler'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      // La liste a été lue au démarrage, et rien de plus.
+      expect(devices.calls, ['devices']);
+      expect(find.text('Tecno Spark 20'), findsOneWidget);
     });
 
     testWidgets('propose de réessayer quand la liste échoue', (tester) async {

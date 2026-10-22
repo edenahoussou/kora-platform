@@ -71,7 +71,8 @@ abstract class PushGateway {
   Stream<String> get tokenRefreshes;
 
   /// Messages reçus pendant que l'app est au premier plan. Android ne les
-  /// affiche pas tout seul dans ce cas : c'est à l'app de le faire.
+  /// affiche pas tout seul dans ce cas : c'est à l'app de le faire. Sur
+  /// iOS, le système s'en charge et ce flux reste vide.
   Stream<PushMessage> get messages;
 
   /// Le voyageur a touché une notification alors que l'app vivait en

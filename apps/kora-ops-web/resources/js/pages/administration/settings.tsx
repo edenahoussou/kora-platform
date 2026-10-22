@@ -1975,7 +1975,7 @@ export default function SettingsPage({
                         },
                     )}
                 </div>,
-                '',
+                'xl:col-span-2',
                 BellRing,
             )}
             {renderIntegrationGroup(

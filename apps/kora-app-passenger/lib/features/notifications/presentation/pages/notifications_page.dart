@@ -19,7 +19,7 @@ import '../bloc/notifications_cubit.dart';
 /// téléphone éteint, ou déjà lu sur un autre appareil, se retrouve donc
 /// ici dans le bon état.
 class NotificationsPage extends StatelessWidget {
-  const NotificationsPage({super.key, this.today, this.cubit});
+  const NotificationsPage({super.key, this.today, this.cubit, this.onOpen});
 
   /// Horloge de référence, figée par les tests : les libellés « Il y a
   /// 2 min » dépendent du moment où l'écran s'ouvre.
@@ -29,6 +29,13 @@ class NotificationsPage extends StatelessWidget {
   /// lui-même et le ferme en partant.
   final NotificationsCubit? cubit;
 
+  /// Ouvre ce que désigne la notification touchée.
+  ///
+  /// L'écran ne navigue pas lui-même : il dit ce qui a été touché, la
+  /// route décide où cela mène. C'est ce qui permet de l'éprouver sans
+  /// monter tout l'arbre de navigation.
+  final void Function(AppNotification notification)? onOpen;
+
   @override
   Widget build(BuildContext context) {
     final existing = cubit;
@@ -37,15 +44,16 @@ class NotificationsPage extends StatelessWidget {
       create: (_) =>
           (existing ?? NotificationsCubit(getIt<NotificationRepository>()))
             ..load(),
-      child: _NotificationsView(today: today),
+      child: _NotificationsView(today: today, onOpen: onOpen),
     );
   }
 }
 
 class _NotificationsView extends StatelessWidget {
-  const _NotificationsView({this.today});
+  const _NotificationsView({this.today, this.onOpen});
 
   final DateTime? today;
+  final void Function(AppNotification notification)? onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -96,6 +104,7 @@ class _NotificationsView extends StatelessWidget {
                       state: state,
                       today: today ?? DateTime.now(),
                       notifications: notifications,
+                      onOpen: onOpen,
                     ),
                   ),
                 ],
@@ -113,11 +122,13 @@ class _Body extends StatelessWidget {
     required this.state,
     required this.today,
     required this.notifications,
+    this.onOpen,
   });
 
   final NotificationsState state;
   final DateTime today;
   final List<AppNotification> notifications;
+  final void Function(AppNotification notification)? onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -188,7 +199,7 @@ class _Body extends StatelessWidget {
             today: today,
             onTap: () {
               cubit.markRead(notification);
-              KoraToaster.show(context, l10n.notificationsSoon);
+              onOpen?.call(notification);
             },
           );
         },
