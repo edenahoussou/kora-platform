@@ -22,12 +22,27 @@ import '../domain/entities/ops_notification.dart';
 Future<void> runNotificationAction(
   BuildContext context,
   OpsNotification notification,
-) async {
-  switch (notification.action) {
+) =>
+    runOpsNotificationAction(
+      context,
+      notification.action,
+      departureUuid: notification.departure?.uuid,
+    );
+
+/// Cœur de [runNotificationAction], sans dépendre d'une [OpsNotification]
+/// complète — réutilisé par `PushNotificationService` au tap d'un push
+/// FCM, dont la charge utile ne porte que l'action et l'UUID du départ
+/// (voir `OpsPushPayload`).
+Future<void> runOpsNotificationAction(
+  BuildContext context,
+  OpsNotificationAction action, {
+  String? departureUuid,
+}) async {
+  switch (action) {
     case OpsNotificationAction.openDeparture:
     case OpsNotificationAction.refreshManifest:
     case OpsNotificationAction.reviewScanConflict:
-      await _openDeparture(context, notification);
+      await _openDeparture(context, departureUuid);
     case OpsNotificationAction.reauthenticate:
       await context.read<AuthCubit>().sessionExpired();
     case OpsNotificationAction.reviewRejectedOperations:
@@ -64,9 +79,8 @@ String? notificationActionLabel(OpsNotificationAction action) =>
 /// sélection manuelle plutôt que de bloquer le convoyeur.
 Future<void> _openDeparture(
   BuildContext context,
-  OpsNotification notification,
+  String? uuid,
 ) async {
-  final String? uuid = notification.departure?.uuid;
   if (uuid == null) {
     context.go(AppRoutes.tournee);
     return;
@@ -81,7 +95,14 @@ Future<void> _openDeparture(
       if (context.mounted) await context.push(AppRoutes.manifeste);
     },
     onFailure: (_) async {
-      context.go(AppRoutes.tournee);
+      // Hors ligne (cas fréquent sur P501) : si c'est déjà le départ géré,
+      // son manifeste est en cache local — on l'ouvre sans réseau.
+      final Depart? current = context.read<SelectedDepartCubit>().state;
+      if (current?.id == uuid) {
+        await context.push(AppRoutes.manifeste);
+      } else {
+        context.go(AppRoutes.tournee);
+      }
     },
   );
 }

@@ -113,7 +113,7 @@ class OpsProfileService
     private function preferences(User $user): array
     {
         $preference = $user->preference()->first() ?? new UserPreference([
-            'push_notifications' => false,
+            'push_notifications' => UserPreference::defaultPushNotificationsFor($user),
             'whatsapp_notifications' => true,
             'sms_notifications' => true,
             'email_notifications' => true,

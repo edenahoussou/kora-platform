@@ -20,7 +20,7 @@ class UpdateOpsPreferencesAction
         $preference = UserPreference::query()->firstOrCreate(
             ['user_id' => $user->id],
             [
-                'push_notifications' => false,
+                'push_notifications' => UserPreference::defaultPushNotificationsFor($user),
                 'whatsapp_notifications' => true,
                 'sms_notifications' => true,
                 'email_notifications' => true,

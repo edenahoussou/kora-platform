@@ -61,11 +61,14 @@ class SendOpsPushJob implements ShouldQueue
             $message = [
                 'title' => $event->title,
                 'body' => $body,
-                // Charge utile minimale pour le deep-link mobile (aucune donnée métier).
+                // Charge utile minimale pour le deep-link mobile : codes et UUID uniquement.
                 'data' => array_filter([
                     'type' => $event->type->value,
                     'event_id' => (string) $event->id,
                     'notification_uuid' => $this->notificationUuid,
+                    'action' => $event->type->action()->value,
+                    'severity' => $event->type->severity()->value,
+                    'departure_uuid' => $event->departure?->uuid,
                 ]),
             ];
 

@@ -15,6 +15,10 @@ abstract final class ApiConstants {
   static const String me = '$_v1/auth/me';
   static const String logout = '$_v1/auth/logout';
   static const String devices = '$_v1/auth/devices';
+
+  /// Préférences du compte (`push_notifications`...) — voir
+  /// `UserPreferenceController`. Couper le push purge les tokens côté back.
+  static const String preferences = '$_v1/auth/preferences';
   static String device(String uuid) => '$_v1/auth/devices/$uuid';
   static String devicePushToken(String uuid) =>
       '$_v1/auth/devices/$uuid/push-token';

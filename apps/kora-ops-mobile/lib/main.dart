@@ -21,7 +21,11 @@ Future<void> main() async {
 
   AppConfig.init();
   await configureDependencies();
-  await getIt<PushNotificationService>().init();
+  // Push = bonus (P501 souvent hors ligne) : jamais plus de quelques
+  // secondes avant runApp, l'init se poursuit en tâche de fond au besoin.
+  await getIt<PushNotificationService>()
+      .init()
+      .timeout(const Duration(seconds: 5), onTimeout: () {});
 
   runApp(const App());
 }

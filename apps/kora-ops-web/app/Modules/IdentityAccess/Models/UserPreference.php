@@ -38,6 +38,15 @@ class UserPreference extends Model
     ];
 
     /**
+     * Valeur par défaut du push : activé pour un compte OPS (alertes terrain),
+     * désactivé pour un passager tant qu'il n'a pas donné son accord.
+     */
+    public static function defaultPushNotificationsFor(User $user): bool
+    {
+        return $user->can('notifications.view');
+    }
+
+    /**
      * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
