@@ -14,8 +14,8 @@ export function ProfitabilityControls({ controls }: Props) {
                     control.status === 'ok'
                         ? CheckCircle2
                         : control.status === 'warning'
-                            ? TriangleAlert
-                            : Info;
+                          ? TriangleAlert
+                          : Info;
 
                 return (
                     <article
