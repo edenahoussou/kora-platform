@@ -15,9 +15,10 @@ use App\Modules\Payments\Data\PaymentStatus;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Settings\Settings\IntegrationsSettings;
 use Carbon\CarbonImmutable;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Kkiapay\Kkiapay;
 use Laravel\Sanctum\Sanctum;
+use Mockery\MockInterface;
 
 beforeEach(function (): void {
     $settings = app(IntegrationsSettings::class);
@@ -112,16 +113,16 @@ it('stays pending while the widget transactionId is unknown', function (): void 
 });
 
 it('confirms the payment when KKiaPay reports SUCCESS', function (): void {
-    Http::fake([
-        'api-sandbox.kkiapay.me/*' => Http::response([
+    $this->instance(Kkiapay::class, Mockery::mock(Kkiapay::class, function (MockInterface $mock): void {
+        $mock->shouldReceive('verifyTransaction')->once()->with('kkp-tx-1')->andReturn((object) [
             'status' => 'SUCCESS',
             'source' => 'MOBILE_MONEY',
             'source_common_name' => 'mtn-benin',
             'amount' => 15000,
             'transactionId' => 'kkp-tx-1',
             'partnerId' => null,
-        ]),
-    ]);
+        ]);
+    }));
 
     $scenario = kkiapayScenario();
     Sanctum::actingAs($scenario['user']);
@@ -134,20 +135,17 @@ it('confirms the payment when KKiaPay reports SUCCESS', function (): void {
 
     expect($payment->fresh()->provider_transaction_id)->toBe('kkp-tx-1')
         ->and($scenario['reservation']->fresh()->status)->toBe(ReservationStatus::Paid);
-
-    Http::assertSent(fn ($request): bool => $request->hasHeader('X-PRIVATE-KEY')
-        && str_contains($request->url(), '/api/v1/transactions/status'));
 });
 
 it('fails the payment when KKiaPay reports FAILED', function (): void {
-    Http::fake([
-        'api-sandbox.kkiapay.me/*' => Http::response([
+    $this->instance(Kkiapay::class, Mockery::mock(Kkiapay::class, function (MockInterface $mock): void {
+        $mock->shouldReceive('verifyTransaction')->once()->with('kkp-tx-2')->andReturn((object) [
             'status' => 'FAILED',
             'failureCode' => 'insufficient_funds',
             'transactionId' => 'kkp-tx-2',
             'partnerId' => null,
-        ]),
-    ]);
+        ]);
+    }));
 
     $scenario = kkiapayScenario();
     Sanctum::actingAs($scenario['user']);
@@ -160,18 +158,18 @@ it('fails the payment when KKiaPay reports FAILED', function (): void {
 });
 
 it('does not confirm a transaction bound to another payment', function (): void {
+    $this->instance(Kkiapay::class, Mockery::mock(Kkiapay::class, function (MockInterface $mock): void {
+        $mock->shouldReceive('verifyTransaction')->once()->with('kkp-tx-3')->andReturn((object) [
+            'status' => 'SUCCESS',
+            'transactionId' => 'kkp-tx-3',
+            'partnerId' => (string) Str::uuid(),
+        ]);
+    }));
+
     $scenario = kkiapayScenario();
     Sanctum::actingAs($scenario['user']);
 
     $payment = kkiapayPayment($scenario['reservation']);
-
-    Http::fake([
-        'api-sandbox.kkiapay.me/*' => Http::response([
-            'status' => 'SUCCESS',
-            'transactionId' => 'kkp-tx-3',
-            'partnerId' => (string) Str::uuid(),
-        ]),
-    ]);
 
     $this->postJson("/api/v1/payments/{$payment->uuid}/verify", [
         'transaction_id' => 'kkp-tx-3',
@@ -206,14 +204,14 @@ it('confirms via webhook and stays idempotent on duplicates', function (): void 
     $scenario = kkiapayScenario();
     $payment = kkiapayPayment($scenario['reservation']);
 
-    Http::fake([
-        'api-sandbox.kkiapay.me/*' => Http::response([
+    $this->instance(Kkiapay::class, Mockery::mock(Kkiapay::class, function (MockInterface $mock) use ($payment): void {
+        $mock->shouldReceive('verifyTransaction')->with('kkp-tx-5')->andReturn((object) [
             'status' => 'SUCCESS',
             'transactionId' => 'kkp-tx-5',
             'partnerId' => $payment->uuid,
             'amount' => 15000,
-        ]),
-    ]);
+        ]);
+    }));
 
     $payload = [
         'transactionId' => 'kkp-tx-5',

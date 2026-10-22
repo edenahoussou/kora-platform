@@ -75,6 +75,7 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Kkiapay\Kkiapay;
 use Laravel\Fortify\Events\PasswordUpdatedViaController;
 use Laravel\Fortify\Events\RecoveryCodesGenerated;
 use Laravel\Fortify\Events\TwoFactorAuthenticationConfirmed;
@@ -152,14 +153,25 @@ class AppServiceProvider extends ServiceProvider
             );
         });
 
-        $this->app->bind(KKiaPayAdapter::class, function (): KKiaPayAdapter {
+        $this->app->bind(Kkiapay::class, function (): Kkiapay {
             $settings = app(IntegrationsSettings::class);
 
+            return new Kkiapay(
+                (string) ($settings->kkiapayPublicKey ?? ''),
+                (string) ($settings->kkiapayPrivateKey ?? ''),
+                (string) ($settings->kkiapaySecretKey ?? ''),
+                $settings->kkiapayEnvironment !== 'production',
+            );
+        });
+
+        $this->app->bind(KKiaPayAdapter::class, function (): KKiaPayAdapter {
+            $settings = app(IntegrationsSettings::class);
+            $environment = $settings->kkiapayEnvironment;
+
             return new KKiaPayAdapter(
+                sdk: $this->app->make(Kkiapay::class),
                 publicKey: (string) ($settings->kkiapayPublicKey ?? ''),
-                privateKey: (string) ($settings->kkiapayPrivateKey ?? ''),
-                secretKey: (string) ($settings->kkiapaySecretKey ?? ''),
-                environment: $settings->kkiapayEnvironment,
+                environment: $environment,
                 callbackUrl: $settings->kkiapayCallbackUrl,
                 webhookSecret: $settings->kkiapayWebhookSecret,
                 countries: $settings->kkiapayCountries,

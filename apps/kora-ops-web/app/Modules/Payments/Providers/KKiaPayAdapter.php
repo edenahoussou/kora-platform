@@ -7,8 +7,8 @@ use App\Modules\Payments\Contracts\ProviderResponse;
 use App\Modules\Payments\Data\PaymentStatus;
 use App\Modules\Payments\Models\Payment;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Kkiapay\Kkiapay;
 use Throwable;
 
 /**
@@ -16,33 +16,21 @@ use Throwable;
  *
  * KKiaPay has no server-side push: initiate() returns the client widget
  * configuration, the client submits the resulting transactionId, and
- * verify() confirms it against the KKiaPay status API.
+ * verify() confirms it through the official KKiaPay PHP SDK.
  *
  * @see https://docs.kkiapay.me/v1/plugin-et-sdk/sdk-javascript
  */
 final class KKiaPayAdapter implements PaymentProvider
 {
-    private const PRODUCTION_URL = 'https://api.kkiapay.me';
-
-    private const SANDBOX_URL = 'https://api-sandbox.kkiapay.me';
-
     public function __construct(
+        private readonly Kkiapay $sdk,
         private readonly string $publicKey,
-        private readonly string $privateKey,
-        private readonly string $secretKey,
         private readonly string $environment,
         private readonly ?string $callbackUrl = null,
         private readonly ?string $webhookSecret = null,
         /** @var list<string> */
         private readonly array $countries = ['BJ'],
     ) {}
-
-    private function baseUrl(): string
-    {
-        return $this->environment === 'production'
-            ? self::PRODUCTION_URL
-            : self::SANDBOX_URL;
-    }
 
     private function mapStatus(string $status): PaymentStatus
     {
@@ -86,34 +74,25 @@ final class KKiaPayAdapter implements PaymentProvider
         }
 
         try {
-            $response = Http::withHeaders([
-                'Accept' => 'application/json',
-                'X-API-KEY' => $this->publicKey,
-                'X-PRIVATE-KEY' => $this->privateKey,
-                'X-SECRET-KEY' => $this->secretKey,
-            ])
-                ->timeout(15)
-                ->connectTimeout(5)
-                ->post("{$this->baseUrl()}/api/v1/transactions/status", [
-                    'transactionId' => $transactionId,
-                ]);
+            // The SDK returns a decoded transaction object, or the HTTP
+            // status code as int after three failed attempts.
+            $result = $this->sdk->verifyTransaction($transactionId);
 
-            if (! $response->ok()) {
+            if (! is_object($result)) {
                 Log::error('KKiaPay status check failed', [
                     'payment_uuid' => $payment->uuid,
-                    'status' => $response->status(),
-                    'body' => $response->body(),
+                    'result' => $result,
                 ]);
 
                 return new ProviderResponse(
                     status: PaymentStatus::Pending,
-                    payload: ['error' => $response->body()],
+                    payload: ['error' => $result],
                     message: 'Transaction KKiaPay introuvable ou indisponible.',
                 );
             }
 
             /** @var array<string, mixed> $data */
-            $data = $response->json() ?? [];
+            $data = (array) $result;
 
             $partnerId = (string) ($data['partnerId'] ?? '');
             if ($partnerId !== '' && $partnerId !== $payment->uuid) {
