@@ -176,6 +176,7 @@ class AppLocalization {
   String get actionRetry => translate('action_retry');
   String get actionContinue => translate('action_continue');
   String get actionSeeAll => translate('action_see_all');
+  String get actionCancel => translate('action_cancel');
 
   // -------------------------------------------------- navigation principale
   String get navHome => translate('nav_home');
@@ -405,6 +406,12 @@ class AppLocalization {
   String get profileHelpCenter => translate('profile_help_center');
   String get profileHelpWhatsapp => translate('profile_help_whatsapp');
   String get profileLogout => translate('profile_logout');
+  String get profileLogoutConfirmTitle =>
+      translate('profile_logout_confirm_title');
+  String get profileLogoutConfirmText =>
+      translate('profile_logout_confirm_text');
+  String get profileLogoutConfirmAction =>
+      translate('profile_logout_confirm_action');
   String get profileLogoutPending => translate('profile_logout_pending');
   String get profileSoon => translate('profile_soon');
 
@@ -455,6 +462,9 @@ class AppLocalization {
   String get contactWhatsappTitle => translate('contact_whatsapp_title');
   String get contactWhatsappText => translate('contact_whatsapp_text');
   String get contactWhatsappStart => translate('contact_whatsapp_start');
+  String get contactLiveTitle => translate('contact_live_title');
+  String get contactLiveText => translate('contact_live_text');
+  String get contactWhatsappItem => translate('contact_whatsapp_item');
   String get contactOthers => translate('contact_others');
   String get contactPhone => translate('contact_phone');
   String get contactChat => translate('contact_chat');
@@ -1188,6 +1198,10 @@ class AppLocalization {
   String get notificationsErrorTitle => translate('notifications_error_title');
   String get notificationsErrorText => translate('notifications_error_text');
   String get notificationsMore => translate('notifications_more');
+  String get ticketGoneTitle => translate('ticket_gone_title');
+  String get ticketGoneText => translate('ticket_gone_text');
+  String get ticketUnavailableTitle => translate('ticket_unavailable_title');
+  String get ticketUnavailableText => translate('ticket_unavailable_text');
   String notificationsMinutesAgo(int count) =>
       _withArgs('notifications_minutes_ago', {'count': count});
   String get notificationsToday => translate('notifications_today');
@@ -1219,6 +1233,10 @@ class AppLocalization {
   String get securityDeviceCurrent => translate('security_device_current');
   String get securityDeviceActive => translate('security_device_active');
   String get securityDeviceRevoke => translate('security_device_revoke');
+  String get securityDeviceRevokeConfirmTitle =>
+      translate('security_device_revoke_confirm_title');
+  String securityDeviceRevokeConfirmText(String device) =>
+      _withArgs('security_device_revoke_confirm_text', {'device': device});
   String get securityDeviceRevoked => translate('security_device_revoked');
   String securityDeviceLastSeen(String when) =>
       _withArgs('security_device_last_seen', {'when': when});

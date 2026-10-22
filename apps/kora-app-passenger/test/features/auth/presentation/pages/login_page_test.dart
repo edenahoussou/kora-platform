@@ -10,6 +10,7 @@ import 'package:kora_app_passenger/core/l10n/app_localization.dart';
 import 'package:kora_app_passenger/features/auth/domain/entities/otp_purpose.dart';
 import 'package:kora_app_passenger/features/auth/presentation/bloc/auth_flow_bloc.dart';
 import 'package:kora_app_passenger/features/auth/presentation/pages/login_page.dart';
+import 'package:kora_app_passenger/features/auth/presentation/widgets/phone_country_picker.dart';
 import 'package:kora_app_passenger/features/auth/presentation/widgets/pin_pad.dart';
 
 import '../../../../support/stub_auth_repository.dart';
@@ -36,6 +37,7 @@ void main() {
         supportedLocales: const [Locale('fr'), Locale('en')],
         localizationsDelegates: const [
           AppLocalization.delegate,
+          SyncCountryLocalizationsDelegate(),
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
@@ -189,6 +191,7 @@ void main() {
         supportedLocales: const [Locale('fr'), Locale('en')],
         localizationsDelegates: const [
           AppLocalization.delegate,
+          SyncCountryLocalizationsDelegate(),
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
@@ -198,8 +201,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // L'écran s'ouvre sur l'adresse : c'est avec elle que les comptes
-    // ont été créés.
+    // L'écran s'ouvre sur le numéro : on passe à l'adresse par le lien.
+    await tester.tap(find.text('Connexion avec votre adresse e-mail ?'));
+    await tester.pumpAndSettle();
+
     await tester.enterText(find.byType(TextField).first, 'kevine@example.com');
     for (final key in ['1', '2', '3', '4']) {
       await tester.tap(find.text(key));
@@ -210,7 +215,7 @@ void main() {
     expect(repository.calls, contains('login:kevine@example.com'));
   });
 
-  testWidgets('le lien bascule la saisie vers le téléphone', (tester) async {
+  testWidgets('l’écran s’ouvre sur le numéro de téléphone', (tester) async {
     // Les deux façons de se nommer vivent sur le même champ `identifier`
     // côté API : le choix est celui de l'écran, et il tient dans ce lien.
     repository = StubAuthRepository();
@@ -228,6 +233,7 @@ void main() {
         supportedLocales: const [Locale('fr'), Locale('en')],
         localizationsDelegates: const [
           AppLocalization.delegate,
+          SyncCountryLocalizationsDelegate(),
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
@@ -237,10 +243,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Connexion avec votre numéro de téléphone ?'));
-    await tester.pumpAndSettle();
-
-    // L'indicatif apparaît, et le lien propose le chemin inverse.
+    // L'écran s'ouvre sur le numéro : l'indicatif est là, et le lien
+    // propose le chemin inverse.
     expect(find.text('🇧🇯  +229'), findsOneWidget);
     expect(find.text('Connexion avec votre adresse e-mail ?'), findsOneWidget);
 
@@ -256,6 +260,64 @@ void main() {
     // Le serveur reçoit le numéro au format international, indicatif
     // recollé et séparateurs retirés.
     expect(repository.calls, contains('login:+2290197421860'));
+  });
+
+  testWidgets('l’indicatif s’ouvre sur la liste complète des pays', (
+    tester,
+  ) async {
+    // Onze corridors suffisent pour choisir un trajet, pas pour
+    // s'identifier : un passager joignable sur un numéro étranger
+    // n'avait aucun moyen de se connecter.
+    repository = StubAuthRepository();
+    flow = AuthFlowBloc(repository);
+    addTearDown(flow.close);
+
+    tester.view.physicalSize = const Size(390 * 3, 900 * 3);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        locale: const Locale('fr'),
+        supportedLocales: const [Locale('fr'), Locale('en')],
+        localizationsDelegates: const [
+          AppLocalization.delegate,
+          SyncCountryLocalizationsDelegate(),
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        home: _withFlow(flow, const LoginPage(identifier: '')),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('🇧🇯  +229'));
+    await tester.pumpAndSettle();
+
+    // Le Canada ne fait pas partie des corridors : c'est bien toute la
+    // liste qui s'ouvre, et la recherche qui la rend praticable. Le
+    // champ de recherche est le dernier du tableau : la feuille est
+    // posée par-dessus l'écran.
+    await tester.enterText(find.byType(TextField).last, 'Canada');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Canada').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('🇨🇦  +1'), findsOneWidget);
+    expect(find.text('🇧🇯  +229'), findsNothing);
+
+    // Et le numéro part sous le nouvel indicatif, sans se faire refuser
+    // sur une longueur que KORA ne connaît pas pour ce pays.
+    await tester.enterText(find.byType(TextField).last, '201 555 0123');
+    for (final key in ['1', '2', '3', '4']) {
+      await tester.tap(find.text(key));
+    }
+    await tester.tap(find.text('✓'));
+    await tester.pumpAndSettle();
+
+    expect(repository.calls, contains('login:+12015550123'));
   });
 
   testWidgets('un numéro incomplet ne part pas au serveur', (tester) async {
@@ -277,6 +339,7 @@ void main() {
         supportedLocales: const [Locale('fr'), Locale('en')],
         localizationsDelegates: const [
           AppLocalization.delegate,
+          SyncCountryLocalizationsDelegate(),
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
@@ -284,9 +347,6 @@ void main() {
         home: _withFlow(flow, const LoginPage(identifier: '')),
       ),
     );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('Connexion avec votre numéro de téléphone ?'));
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField).last, '01 97 42');

@@ -36,14 +36,22 @@ class FirebaseConfiguration {
   final String messagingSenderId;
   final String appId;
 
-  /// Vrai quand les quatre valeurs sont là. Une configuration incomplète
-  /// ferait échouer `Firebase.initializeApp` avec une erreur native
-  /// illisible : mieux vaut la traiter comme absente.
-  bool get isUsable =>
+  /// Vrai quand les quatre valeurs sont là et que l'App ID est bien celui
+  /// de [platform] (`android` ou `ios`).
+  ///
+  /// Une configuration incomplète ferait échouer `Firebase.initializeApp`
+  /// avec une erreur native illisible : mieux vaut la traiter comme
+  /// absente. Sur iOS c'est pire qu'une erreur : le SDK lève une
+  /// `NSException` — l'application **plante au démarrage** — dès que
+  /// l'App ID ne suit pas `1:<numéro de projet>:ios:<hexadécimal>`.
+  /// Un App ID Android ou Web collé par erreur dans le champ iOS d'OPS
+  /// suffit. On applique donc la même règle ici, avant Firebase.
+  bool isUsableOn(String platform) =>
       apiKey.isNotEmpty &&
       projectId.isNotEmpty &&
       messagingSenderId.isNotEmpty &&
-      appId.isNotEmpty;
+      RegExp('^1:[0-9]+:${RegExp.escape(platform)}:[0-9a-fA-F]+\$')
+          .hasMatch(appId);
 
   FirebaseOptions toOptions() => FirebaseOptions(
     apiKey: apiKey,
@@ -65,7 +73,7 @@ class FirebaseConfiguration {
   /// clés, ce qui évite un second format à maintenir.
   ///
   /// `enabled: false` — ou n'importe quelle valeur manquante — rend
-  /// [disabled], que [isUsable] écarte ensuite.
+  /// [disabled], que [isUsableOn] écarte ensuite.
   static FirebaseConfiguration fromJson(Map<String, dynamic> json) {
     if (json['enabled'] == false) return disabled;
 

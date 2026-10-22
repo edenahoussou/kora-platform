@@ -30,7 +30,7 @@ it('sends an SMS with the Conexteo headers and payload', function (): void {
         'api.conexteo.com/*' => Http::response([
             'success' => true,
             'message_id' => 'msg-001',
-            'credits_used' => 1,
+            'credits_used' => 1.875,
         ]),
     ]);
 
@@ -38,7 +38,7 @@ it('sends an SMS with the Conexteo headers and payload', function (): void {
 
     expect($result)->toBe([
         'message_id' => 'msg-001',
-        'credits_used' => 1,
+        'credits_used' => 1.875,
         'duplicate' => false,
     ]);
 
@@ -49,6 +49,21 @@ it('sends an SMS with the Conexteo headers and payload', function (): void {
         && $request['recipients'] === ['+22997000000']
         && $request['sender'] === 'KoraExpress'
         && $request['external_id'] === 'external-1');
+});
+
+it('converts the new Benin format to the legacy format for delivery', function (): void {
+    app()->instance(IntegrationsSettings::class, conexteoTestSettings());
+    Http::fake([
+        'api.conexteo.com/*' => Http::response([
+            'success' => true,
+            'message_id' => 'msg-002',
+            'credits_used' => 1,
+        ]),
+    ]);
+
+    app(ConexteoSmsClient::class)->send('+2290166877345', 'Bonjour');
+
+    Http::assertSent(fn (Request $request): bool => $request['recipients'] === ['+22966877345']);
 });
 
 it('treats a 409 as an already delivered duplicate', function (): void {

@@ -24,7 +24,7 @@ final class ConexteoSmsClient
     /**
      * Envoie un SMS ; `duplicate` signale un `external_id` déjà traité (HTTP 409).
      *
-     * @return array{message_id: string|null, credits_used: int|null, duplicate: bool}
+     * @return array{message_id: string|null, credits_used: float|null, duplicate: bool}
      */
     public function send(string $recipient, string $content, ?string $externalId = null): array
     {
@@ -40,7 +40,7 @@ final class ConexteoSmsClient
 
         return [
             'message_id' => $this->stringOrNull($response->json('message_id')),
-            'credits_used' => $this->intOrNull($response->json('credits_used')),
+            'credits_used' => $this->floatOrNull($response->json('credits_used')),
             'duplicate' => false,
         ];
     }
@@ -68,7 +68,7 @@ final class ConexteoSmsClient
     {
         $payload = [
             'content' => $content,
-            'recipients' => [$recipient],
+            'recipients' => [$this->normalizeRecipient($recipient)],
             'sender' => (string) $this->settings->conexteoSender,
         ];
 
@@ -90,6 +90,12 @@ final class ConexteoSmsClient
         }
     }
 
+    /** Conexteo route les numéros béninois à l'ancien format à 8 chiffres. */
+    private function normalizeRecipient(string $phone): string
+    {
+        return preg_replace('/^\+?22901(\d{8})$/', '+229$1', trim($phone)) ?? $phone;
+    }
+
     private function stringOrNull(mixed $value): ?string
     {
         return $value === null || $value === '' ? null : (string) $value;
@@ -98,5 +104,10 @@ final class ConexteoSmsClient
     private function intOrNull(mixed $value): ?int
     {
         return is_numeric($value) ? (int) $value : null;
+    }
+
+    private function floatOrNull(mixed $value): ?float
+    {
+        return is_numeric($value) ? (float) $value : null;
     }
 }

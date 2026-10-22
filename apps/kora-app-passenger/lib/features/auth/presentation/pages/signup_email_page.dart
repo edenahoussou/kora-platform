@@ -10,6 +10,7 @@ import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../domain/entities/phone_country.dart';
 import '../bloc/auth_flow_bloc.dart';
+import '../widgets/phone_country_picker.dart';
 
 /// Première étape de la création de compte — écran `phone` de la
 /// maquette : l'identifiant KORA, celui qui reçoit le code de
@@ -26,7 +27,13 @@ import '../bloc/auth_flow_bloc.dart';
 /// code à l'API et décide de la suite. Le message affiché sous le champ
 /// vient donc soit d'ici, soit du serveur.
 class SignupEmailPage extends StatefulWidget {
-  const SignupEmailPage({super.key, this.onSubmit, this.onSignIn, this.oauth});
+  const SignupEmailPage({
+    super.key,
+    this.onSubmit,
+    this.onSignIn,
+    this.oauth,
+    this.showSocialSignIn = false,
+  });
 
   /// Notifié après une adresse valide, en plus de l'événement envoyé au
   /// parcours. Sert aux tests, qui montent l'écran sans routeur.
@@ -40,6 +47,16 @@ class SignupEmailPage extends StatefulWidget {
   /// Injectable pour les tests, qui n'ont ni Google ni Facebook à
   /// interroger.
   final OAuthSignIn? oauth;
+
+  /// Montre les inscriptions par réseau social.
+  ///
+  /// Retirées de l'écran, mais pas du code : les trois fournisseurs
+  /// fonctionnent, et les rebrancher ne demande que de passer ce drapeau
+  /// à `true`. Les supprimer aurait coûté le travail d'intégration —
+  /// jetons, écrans de consentement, identifiants de console — pour une
+  /// décision qui peut se reprendre. Les tests, eux, continuent de les
+  /// éprouver.
+  final bool showSocialSignIn;
 
   @override
   State<SignupEmailPage> createState() => _SignupEmailPageState();
@@ -280,27 +297,9 @@ class _SignupEmailPageState extends State<SignupEmailPage> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SizedBox(
-                            width: 124,
-                            child: DropdownButtonFormField<PhoneCountry>(
-                              initialValue: _country,
-                              isExpanded: true,
-                              onChanged: (value) => _onCountryChanged(
-                                value ?? PhoneCountry.benin,
-                              ),
-                              items: [
-                                for (final item in PhoneCountry.all)
-                                  DropdownMenuItem(
-                                    value: item,
-                                    child: Text(
-                                      '${item.flag}  ${item.code}',
-                                      style: AppTextStyles.body(
-                                        koraColors.textPrimary,
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
+                          _CountryButton(
+                            country: _country,
+                            onCountry: _onCountryChanged,
                           ),
                           const SizedBox(width: AppSpacing.sm),
                           Expanded(
@@ -414,37 +413,40 @@ class _SignupEmailPageState extends State<SignupEmailPage> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 24),
-                    KoraOrDivider(label: l10n.signupOr),
-                    const SizedBox(height: 18),
-                    // Les trois fournisseurs, dans l'ordre de leur usage
-                    // attendu au Bénin.
-                    KoraSocialButton(
-                      provider: KoraSocialProvider.google,
-                      label: l10n.signupWithGoogle,
-                      isLoading: _pending == OAuthSignInImpl.google,
-                      onPressed: _pending != null
-                          ? null
-                          : () => _social(OAuthSignInImpl.google, 'Google'),
-                    ),
-                    const SizedBox(height: 10),
-                    KoraSocialButton(
-                      provider: KoraSocialProvider.facebook,
-                      label: l10n.signupWithFacebook,
-                      isLoading: _pending == OAuthSignInImpl.facebook,
-                      onPressed: _pending != null
-                          ? null
-                          : () => _social(OAuthSignInImpl.facebook, 'Facebook'),
-                    ),
-                    const SizedBox(height: 10),
-                    KoraSocialButton(
-                      provider: KoraSocialProvider.tiktok,
-                      label: l10n.signupWithTiktok,
-                      isLoading: _pending == OAuthSignInImpl.tiktok,
-                      onPressed: _pending != null
-                          ? null
-                          : () => _social(OAuthSignInImpl.tiktok, 'TikTok'),
-                    ),
+                    if (widget.showSocialSignIn) ...[
+                      const SizedBox(height: 24),
+                      KoraOrDivider(label: l10n.signupOr),
+                      const SizedBox(height: 18),
+                      // Les trois fournisseurs, dans l'ordre de leur usage
+                      // attendu au Bénin.
+                      KoraSocialButton(
+                        provider: KoraSocialProvider.google,
+                        label: l10n.signupWithGoogle,
+                        isLoading: _pending == OAuthSignInImpl.google,
+                        onPressed: _pending != null
+                            ? null
+                            : () => _social(OAuthSignInImpl.google, 'Google'),
+                      ),
+                      const SizedBox(height: 10),
+                      KoraSocialButton(
+                        provider: KoraSocialProvider.facebook,
+                        label: l10n.signupWithFacebook,
+                        isLoading: _pending == OAuthSignInImpl.facebook,
+                        onPressed: _pending != null
+                            ? null
+                            : () =>
+                                  _social(OAuthSignInImpl.facebook, 'Facebook'),
+                      ),
+                      const SizedBox(height: 10),
+                      KoraSocialButton(
+                        provider: KoraSocialProvider.tiktok,
+                        label: l10n.signupWithTiktok,
+                        isLoading: _pending == OAuthSignInImpl.tiktok,
+                        onPressed: _pending != null
+                            ? null
+                            : () => _social(OAuthSignInImpl.tiktok, 'TikTok'),
+                      ),
+                    ],
                     if (_oauthError != null) ...[
                       const SizedBox(height: 12),
                       Text(
@@ -462,6 +464,65 @@ class _SignupEmailPageState extends State<SignupEmailPage> {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// L'indicatif, ouvert sur la liste complète des pays.
+///
+/// Le menu déroulant d'origine ne listait que les onze corridors : on ne
+/// pouvait pas créer de compte avec un numéro d'ailleurs. Deux cents
+/// entrées ne se parcourent pas dans un menu déroulant, d'où ce champ
+/// qui ouvre une feuille avec une recherche.
+class _CountryButton extends StatelessWidget {
+  const _CountryButton({required this.country, required this.onCountry});
+
+  final PhoneCountry country;
+  final ValueChanged<PhoneCountry> onCountry;
+
+  Future<void> _pick(BuildContext context) async {
+    final picked = await pickPhoneCountry(context);
+    if (picked != null) onCountry(picked);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final koraColors = context.koraColors;
+
+    return SizedBox(
+      width: 124,
+      height: 56,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _pick(context),
+          borderRadius: BorderRadius.circular(AppRadius.base),
+          child: Ink(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppRadius.base),
+              border: Border.all(color: koraColors.line),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${country.flag}  ${country.code}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.body(koraColors.textPrimary),
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_drop_down,
+                  color: koraColors.textMuted,
+                  size: 20,
+                ),
+              ],
+            ),
           ),
         ),
       ),

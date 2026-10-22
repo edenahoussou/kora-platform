@@ -154,6 +154,47 @@ void main() {
     );
   });
 
+  test('un App ID d’une autre plateforme ne démarre pas Firebase', () async {
+    // Le cas qui plantait l'app iOS au démarrage : l'App ID Android collé
+    // dans le champ iOS d'OPS. Firebase iOS lève une NSException sur un
+    // App ID qui ne suit pas `1:<projet>:ios:<hex>` ; il ne doit jamais
+    // le recevoir.
+    push = PushMessaging(
+      gateway,
+      remote,
+      const PushConfigurationStore(),
+      platform: 'ios',
+    );
+    serverAnswers();
+
+    final outcome = await push.register('appareil-1');
+
+    expect(outcome, PushRegistration.notConfigured);
+    expect(gateway.initialized, 0);
+    expect(gateway.permissionsAsked, 0);
+    expect(await const PushConfigurationStore().read(), isNull);
+  });
+
+  test('l’App ID doit suivre le format que Firebase exige', () {
+    FirebaseConfiguration withAppId(String appId) => FirebaseConfiguration(
+      apiKey: 'cle',
+      projectId: 'kora',
+      messagingSenderId: '1234',
+      appId: appId,
+    );
+
+    expect(
+      withAppId('1:714264651339:ios:3772b9b0d4725b4f52cfce').isUsableOn('ios'),
+      isTrue,
+    );
+    expect(withAppId('1:1234:android:abcd').isUsableOn('android'), isTrue);
+    expect(withAppId('1:1234:web:abcd').isUsableOn('ios'), isFalse);
+    expect(withAppId(' 1:1234:ios:abcd').isUsableOn('ios'), isFalse);
+    expect(withAppId('1:1234:ios:abcd ').isUsableOn('ios'), isFalse);
+    expect(withAppId('1:1234:ios:').isUsableOn('ios'), isFalse);
+    expect(withAppId('com.koraexpress.passenger').isUsableOn('ios'), isFalse);
+  });
+
   test('une configuration retirée efface le cache précédent', () async {
     serverAnswers();
     await push.register('appareil-1');
