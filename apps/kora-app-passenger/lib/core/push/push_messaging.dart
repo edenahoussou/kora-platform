@@ -108,9 +108,11 @@ class PushMessaging {
       return PushRegistration.failed;
     }
 
-    if (!configuration.isUsable) {
+    if (!configuration.isUsableOn(platform)) {
       // L'intégration a pu être coupée depuis la dernière fois : un cache
       // périmé ferait démarrer l'isolat de fond sur un projet abandonné.
+      // Même traitement pour un App ID qui n'est pas celui de cette
+      // plateforme : sur iOS, Firebase planterait l'app au démarrage.
       await _store.clear();
       return PushRegistration.notConfigured;
     }

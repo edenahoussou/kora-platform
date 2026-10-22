@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 
 import 'push_configuration_store.dart';
 
@@ -20,7 +21,8 @@ import 'push_configuration_store.dart';
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   final configuration = await const PushConfigurationStore().read();
-  if (configuration == null || !configuration.isUsable) return;
+  final platform = defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android';
+  if (configuration == null || !configuration.isUsableOn(platform)) return;
 
   // Firebase n'existe pas encore dans cet isolat : on le démarre avec la
   // configuration posée sur l'appareil lors d'une session précédente.
