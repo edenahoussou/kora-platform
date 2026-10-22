@@ -21,7 +21,9 @@ import 'push_configuration_store.dart';
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   final configuration = await const PushConfigurationStore().read();
-  final platform = defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android';
+  final platform = defaultTargetPlatform == TargetPlatform.iOS
+      ? 'ios'
+      : 'android';
   if (configuration == null || !configuration.isUsableOn(platform)) return;
 
   // Firebase n'existe pas encore dans cet isolat : on le démarre avec la
