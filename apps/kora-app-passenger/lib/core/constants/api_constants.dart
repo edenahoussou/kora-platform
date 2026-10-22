@@ -113,10 +113,6 @@ class ApiConstants {
   /// Déverrouillage après trop d'erreurs de PIN (OTP `account_unlock`).
   static const String unlock = '$_v1/auth/unlock';
 
-  /// Échange d'un jeton fournisseur (Google, Facebook, TikTok) contre un
-  /// token KORA.
-  static const String oauthToken = '$_v1/auth/oauth/token';
-
   static const String devices = '$_v1/auth/devices';
   static String device(String uuid) => '$devices/$uuid';
 

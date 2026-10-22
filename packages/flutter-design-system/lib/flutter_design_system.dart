@@ -31,7 +31,14 @@ export 'src/widgets/kora_input.dart';
 export 'src/widgets/kora_loading_indicator.dart';
 export 'src/widgets/kora_menu_list.dart';
 export 'src/widgets/kora_skeleton.dart';
-export 'src/widgets/kora_social_button.dart';
+// Le bouton des inscriptions par réseau social n'est plus exporté.
+//
+// L'inscription par Google, Facebook ou TikTok n'allait pas jusqu'au
+// bout côté serveur : elle a été retirée de l'app passager, et ce
+// bouton n'a plus personne à servir. Le fichier reste au dépôt — le
+// dessin, les logos et les états ont coûté du travail, et l'inscription
+// sociale reviendra. Le jour venu, il suffira de rétablir cette ligne.
+// export 'src/widgets/kora_social_button.dart';
 export 'src/widgets/kora_tag.dart';
 export 'src/widgets/kora_toast.dart';
 export 'src/widgets/kora_toggle.dart';

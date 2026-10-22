@@ -138,8 +138,12 @@ class PaymentMethodPage extends StatelessWidget {
           logos:
               method.code == PaymentCatalog.mobileMoneyCode && method.isUsable,
           // Un moyen annoncé actif mais sans provider utilisable ne mène
-          // nulle part : `isUsable` exige les deux.
-          onTap: method.isUsable ? () => _open(context, method, args) : null,
+          // nulle part : `isUsable` exige les deux. Un moyen dont l'app
+          // n'a pas encore l'écran non plus : un pavé qui s'enfonce sans
+          // rien ouvrir est pire qu'un pavé grisé.
+          onTap: method.isUsable && _pathOf(method) != null
+              ? () => _open(context, method, args)
+              : null,
         ),
         const SizedBox(height: 10),
       ],
@@ -181,17 +185,20 @@ class PaymentMethodPage extends StatelessWidget {
       PaymentCatalog.walletCode => l10n.paymentMethodWalletLead(
         _walletBalance.formatted,
       ),
+      // Sans libellé à nous, la ligne répétait le titre du serveur.
       _ => method.label,
     };
   }
 
-  void _open(BuildContext context, PaymentMethod method, PaymentArgs args) {
-    final path = switch (method.code) {
-      PaymentCatalog.mobileMoneyCode => AppRouter.paymentMobileMoneyPath,
-      PaymentCatalog.walletCode => AppRouter.paymentWalletPath,
-      _ => null,
-    };
+  /// L'écran qui encaisse ce moyen, ou `null` si l'app n'en a pas encore.
+  String? _pathOf(PaymentMethod method) => switch (method.code) {
+    PaymentCatalog.mobileMoneyCode => AppRouter.paymentMobileMoneyPath,
+    PaymentCatalog.walletCode => AppRouter.paymentWalletPath,
+    _ => null,
+  };
 
+  void _open(BuildContext context, PaymentMethod method, PaymentArgs args) {
+    final path = _pathOf(method);
     if (path != null) context.push(path, extra: args);
   }
 

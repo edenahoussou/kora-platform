@@ -50,53 +50,6 @@ Dans GitHub > edenahoussou/kora-platform > Settings > Secrets and variables > Ac
 | `KEY_ALIAS` | L'alias choisi à la génération (celui du keystore local est `korapassager`) |
 | `KEY_PASSWORD` | Mot de passe de la clé (keyPassword) |
 
-### 3 bis. Secrets des connexions sociales
-
-Sans eux, le build réussit mais `OAuthSignInImpl.isConfigured()` renvoie `false` et les
-boutons Google/Facebook restent désactivés dans l'APK publié. Ces identifiants ne sont
-pas des secrets au sens strict (ils finissent dans l'APK), mais ils ne sont pas versionnés :
-chaque équipe a sa propre console.
-
-| Secret | Valeur |
-|--------|--------|
-| `GOOGLE_SERVER_CLIENT_ID` | Le client OAuth de type **Web** du projet Google Cloud — surtout pas le client Android, qui ne sert qu'à valider la signature de l'APK |
-| `FACEBOOK_APP_ID` | L'App ID Facebook (Paramètres > Général). Sert deux fois : le `--dart-define` qui active le bouton, et `android/facebook.properties` que le workflow écrit pour le SDK natif |
-| `FACEBOOK_CLIENT_TOKEN` | Le jeton client Facebook (Paramètres > Avancé > Sécurité). Exigé par le SDK Android depuis la v13 : sans lui la connexion échoue, même avec un App ID correct |
-
-Les deux doivent être renseignés ensemble. Un `FACEBOOK_APP_ID` seul activerait le bouton
-côté Dart alors que le SDK natif n'a pas de jeton : le bouton deviendrait cliquable et
-échouerait.
-
-### 3 ter. Enregistrer les empreintes de signature
-
-Google lie le client OAuth Android au couple *(package name, empreinte SHA-1)*. Une
-empreinte inconnue fait échouer la connexion Google avec un code opaque — c'est le
-symptôme classique du « ça marche en debug, pas en release ». Tout se fait en ligne de
-commande, sans passer par la console :
-
-```bash
-firebase apps:list ANDROID --project <projet>
-firebase apps:android:sha:create <appId> <SHA-1 release> --project <projet>
-firebase apps:android:sha:create <appId> <SHA-1 debug>   --project <projet>
-```
-
-Pour lire les empreintes d'un keystore :
-
-```bash
-keytool -list -v -keystore <keystore.jks> -alias <alias>
-```
-
-Une seule étape reste manuelle : activer le fournisseur **Google** dans Firebase Console >
-Authentication > Sign-in method. C'est elle qui provisionne les clients OAuth à partir des
-empreintes ; Google n'expose aucune API publique de création de clients OAuth 2.0, donc ni
-`firebase`, ni `gcloud`, ni `flutterfire` ne savent le faire.
-
-Une fois activé, le client Web se relit en ligne de commande :
-
-```bash
-firebase apps:sdkconfig ANDROID <appId> --project <projet>
-```
-
 ### 4. Vérifier
 
 Créer un tag de test et vérifier que le workflow build bien un APK signé :
@@ -108,37 +61,6 @@ git push origin v0.0.1-test
 
 L'APK doit apparaître dans GitHub > Releases. Supprimer le tag de test après vérification.
 
-### 3 quater. Connexion Facebook (natif)
-
-Le SDK Facebook lit ses identifiants dans le manifest Android, au démarrage, via son
-propre `FacebookInitProvider`. Un `--dart-define` ne peut donc pas les lui porter : il
-n'atteint que le code Dart, où il ne sert qu'à décider si le bouton est actif.
-
-Ils passent par `android/facebook.properties`, non versionné comme `key.properties`.
-Copier le modèle et le remplir :
-
-```bash
-cp android/facebook.properties.example android/facebook.properties
-```
-
-`android/app/build.gradle.kts` le lit et injecte les deux valeurs en ressources string
-(`resValue`), que le manifest référence par `@string/facebook_app_id` et
-`@string/facebook_client_token`. Le passage par une ressource n'est pas cosmétique : un
-App ID purement numérique placé directement dans `android:value` serait lu comme un
-entier, et le SDK refuserait de démarrer.
-
-Rien d'autre n'est à déclarer. `FacebookActivity`, `CustomTabActivity` (avec son
-intent-filter `fbconnect://cct.<applicationId>`, généré automatiquement) et la visibilité
-de paquets Android 11+ (`<package android:name="com.facebook.katana" />`) sont fournis par
-le manifest du SDK et arrivent par fusion.
-
-Côté console Facebook, l'app Android doit connaître le **key hash** de chaque clé de
-signature (format base64, distinct de la SHA-1 hexadécimale que veut Google) :
-
-```bash
-keytool -exportcert -alias <alias> -keystore <keystore.jks> | openssl sha1 -binary | openssl base64
-```
-
 ## Produire un APK de test interne
 
 Sans poser de tag : GitHub > Actions > **Release Mobile** > *Run workflow*, choisir
@@ -148,7 +70,7 @@ l'environnement (`staging` par défaut). L'APK sort en artefact du job, nommé
 En local, l'équivalent :
 
 ```bash
-flutter build apk --release   -t lib/main_staging.dart   --dart-define=GOOGLE_SERVER_CLIENT_ID=<client Web>.apps.googleusercontent.com
+flutter build apk --release -t lib/main_staging.dart
 ```
 
 ## Produire une release

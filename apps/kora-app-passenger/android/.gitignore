@@ -13,7 +13,3 @@ key.properties
 **/*.keystore
 **/*.jks
 
-# Identifiants de la console Facebook (App ID + client token). Ils
-# partent dans l'APK, mais le dépôt ne porte pas les identifiants d'une
-# console tierce. Voir facebook.properties.example.
-facebook.properties

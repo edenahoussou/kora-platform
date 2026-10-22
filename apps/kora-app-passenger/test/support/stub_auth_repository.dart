@@ -115,12 +115,6 @@ class StubAuthRepository implements AuthRepository {
   }) async => _answer('login:$identifier', LoginSucceeded(session));
 
   @override
-  Future<Either<Failure, AuthSession>> loginWithProvider({
-    required String provider,
-    required String providerToken,
-  }) async => _answer('loginWithProvider:$provider', session);
-
-  @override
   Future<Either<Failure, AuthSession?>> currentSession() async =>
       _answer('currentSession', null);
 

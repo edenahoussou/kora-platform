@@ -106,21 +106,6 @@ class AuthRepositoryImpl implements AuthRepository {
   });
 
   @override
-  Future<Either<Failure, AuthSession>> loginWithProvider({
-    required String provider,
-    required String providerToken,
-  }) => _attempt(() async {
-    final session = await _remote.loginWithProvider(
-      provider: provider,
-      providerToken: providerToken,
-      device: await _deviceInfo.currentDevice(),
-    );
-
-    await _local.saveSession(session);
-    return session;
-  });
-
-  @override
   Future<Either<Failure, AuthSession?>> currentSession() => _attempt(() async {
     final session = await _local.readSession();
     if (session == null) return null;
@@ -276,7 +261,6 @@ class AuthRepositoryImpl implements AuthRepository {
   Failure _failureOfCode(AuthApiException error) => switch (error.code) {
     AuthApiException.accountLocked => AccountLockedFailure(error.message),
     AuthApiException.emailRequired ||
-    AuthApiException.invalidOAuthToken ||
     // Ce que l'écran doit corriger avant de réessayer : un nom manquant,
     // une adresse ou un numéro déjà pris ailleurs.
     AuthApiException.nameRequired ||

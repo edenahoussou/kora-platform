@@ -85,20 +85,6 @@ class AuthFlowPinSubmitted extends AuthFlowEvent {
 }
 
 /// Boutons Google / Facebook / TikTok, une fois le jeton du fournisseur
-/// obtenu par son SDK.
-class AuthFlowProviderSubmitted extends AuthFlowEvent {
-  const AuthFlowProviderSubmitted({
-    required this.provider,
-    required this.providerToken,
-  });
-
-  final String provider;
-  final String providerToken;
-
-  @override
-  List<Object?> get props => [provider, providerToken];
-}
-
 /// Remet le parcours à zéro (retour arrière, abandon).
 class AuthFlowReset extends AuthFlowEvent {
   const AuthFlowReset();

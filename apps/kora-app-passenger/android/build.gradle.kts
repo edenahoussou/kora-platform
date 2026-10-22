@@ -19,8 +19,8 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
-// Certains plugins (flutter_facebook_auth) déclarent encore Java 11 dans
-// leur propre bloc `android`, alors que Kotlin suit le JDK de la machine
+// Certains plugins déclarent encore Java 11 dans leur propre bloc
+// `android`, alors que Kotlin suit le JDK de la machine
 // — le build échoue sur « Inconsistent JVM-target compatibility ». On
 // aligne les deux sur la version que l'app utilise déjà, en passant par
 // l'extension Android : régler les tâches ne suffit pas, AGP les
@@ -35,18 +35,31 @@ subprojects {
         }
     }
 
-    // `in_app_update` fixe son propre Java 8 pendant sa propre
-    // évaluation, donc après le bloc ci-dessus : il faut repasser
-    // derrière lui. On ne le fait que pour ce module — la plupart des
-    // autres figent leur valeur tôt (`connectivity_plus` lève alors
-    // « sourceCompatibility has been finalized »), et un `afterEvaluate`
-    // général casserait le build pour réparer un seul greffon.
-    if (name == "in_app_update") {
+    // `in_app_update` et `kkiapay_flutter_sdk` fixent leur propre Java 8
+    // pendant leur propre évaluation, donc après le bloc ci-dessus : il
+    // faut repasser derrière eux. On ne le fait que pour ces modules —
+    // la plupart des autres figent leur valeur tôt (`connectivity_plus`
+    // lève alors « sourceCompatibility has been finalized »), et un
+    // `afterEvaluate` général casserait le build pour réparer deux
+    // greffons.
+    if (name in setOf("in_app_update", "kkiapay_flutter_sdk")) {
         afterEvaluate {
             extensions.findByType<com.android.build.gradle.LibraryExtension>()
-                ?.compileOptions {
-                    sourceCompatibility = JavaVersion.VERSION_17
-                    targetCompatibility = JavaVersion.VERSION_17
+                ?.let { android ->
+                    android.compileOptions {
+                        sourceCompatibility = JavaVersion.VERSION_17
+                        targetCompatibility = JavaVersion.VERSION_17
+                    }
+
+                    // `kkiapay_flutter_sdk` compile contre l'API 34, mais
+                    // dépend de `webview_flutter_android`, qui en exige 36
+                    // au moins. Son AAR est donc refusé tel quel. On le
+                    // remonte au niveau de l'app, qui compile déjà contre
+                    // cette API — c'est précisément ce que recommande le
+                    // message d'erreur d'AGP.
+                    if (name == "kkiapay_flutter_sdk") {
+                        android.compileSdk = 36
+                    }
                 }
         }
     }

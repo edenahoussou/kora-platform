@@ -47,29 +47,6 @@ class AppEnv {
   /// `packages/flutter-networking`). Toujours `false` en prod.
   final bool enableNetworkLogs;
 
-  /// Identifiant client Google **côté serveur** (type « Web »), attendu
-  /// par `google_sign_in` pour délivrer un jeton que le back peut
-  /// valider.
-  ///
-  /// Contrairement à l'URL de l'API, il ne peut pas être une constante
-  /// versionnée : chaque équipe a son projet Google Cloud, et le
-  /// référentiel n'a pas à porter les identifiants d'une console tierce.
-  /// Il arrive donc par `--dart-define`, et son absence désactive
-  /// proprement le bouton plutôt que de faire échouer le SDK :
-  ///
-  /// ```bash
-  /// flutter run --dart-define=GOOGLE_SERVER_CLIENT_ID=1234.apps.googleusercontent.com
-  /// ```
-  static const String googleServerClientId = String.fromEnvironment(
-    'GOOGLE_SERVER_CLIENT_ID',
-  );
-
-  /// Identifiant de l'app Facebook. Il vit aussi dans les ressources
-  /// natives (`android/app/src/main/res/values/strings.xml`, `Info.plist`)
-  /// que lit le SDK ; celui-ci ne sert qu'à savoir si le bouton est
-  /// utilisable.
-  static const String facebookAppId = String.fromEnvironment('FACEBOOK_APP_ID');
-
   bool get isDev => environment == Environment.dev;
   bool get isStaging => environment == Environment.staging;
   bool get isProd => environment == Environment.prod;

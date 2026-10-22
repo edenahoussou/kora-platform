@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 
-import '../../../../core/di/injector.dart';
 import '../../../../core/l10n/app_localization.dart';
-import '../../../../core/services/oauth_sign_in.dart';
 import '../../../../core/utils/phone_number.dart';
 import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/screen_header.dart';
@@ -27,13 +25,7 @@ import '../widgets/phone_country_picker.dart';
 /// code à l'API et décide de la suite. Le message affiché sous le champ
 /// vient donc soit d'ici, soit du serveur.
 class SignupEmailPage extends StatefulWidget {
-  const SignupEmailPage({
-    super.key,
-    this.onSubmit,
-    this.onSignIn,
-    this.oauth,
-    this.showSocialSignIn = false,
-  });
+  const SignupEmailPage({super.key, this.onSubmit, this.onSignIn});
 
   /// Notifié après une adresse valide, en plus de l'événement envoyé au
   /// parcours. Sert aux tests, qui montent l'écran sans routeur.
@@ -43,20 +35,6 @@ class SignupEmailPage extends StatefulWidget {
   /// Le routeur le renseigne ; un écran monté sans lui retombe sur un
   /// simple retour en arrière.
   final VoidCallback? onSignIn;
-
-  /// Injectable pour les tests, qui n'ont ni Google ni Facebook à
-  /// interroger.
-  final OAuthSignIn? oauth;
-
-  /// Montre les inscriptions par réseau social.
-  ///
-  /// Retirées de l'écran, mais pas du code : les trois fournisseurs
-  /// fonctionnent, et les rebrancher ne demande que de passer ce drapeau
-  /// à `true`. Les supprimer aurait coûté le travail d'intégration —
-  /// jetons, écrans de consentement, identifiants de console — pour une
-  /// décision qui peut se reprendre. Les tests, eux, continuent de les
-  /// éprouver.
-  final bool showSocialSignIn;
 
   @override
   State<SignupEmailPage> createState() => _SignupEmailPageState();
@@ -80,17 +58,7 @@ class _SignupEmailPageState extends State<SignupEmailPage> {
   /// L'erreur du champ « Nom complet », propre au mode téléphone.
   String? _nameError;
 
-  late final OAuthSignIn _oauth = widget.oauth ?? getIt<OAuthSignIn>();
-
   String? _error;
-
-  /// Fournisseur dont la feuille est ouverte : les trois boutons se
-  /// neutralisent le temps de l'aller-retour.
-  String? _pending;
-
-  /// Message d'un échec côté fournisseur — avant même que l'API soit
-  /// appelée, donc sans rapport avec `flow.errorMessage`.
-  String? _oauthError;
 
   @override
   void dispose() {
@@ -185,43 +153,6 @@ class _SignupEmailPageState extends State<SignupEmailPage> {
         ),
         PhoneIssue.tooShort => l10n.signupPhoneIncomplete,
       };
-
-  /// « Continuer avec … » : le SDK du fournisseur authentifie
-  /// l'utilisateur, et c'est son **jeton d'accès** que l'API échange
-  /// contre une session KORA (`POST auth/oauth/token`, validé côté
-  /// serveur par `Socialite::userFromToken()`).
-  Future<void> _social(String provider, String label) async {
-    final l10n = context.l10n;
-
-    setState(() {
-      _pending = provider;
-      _oauthError = null;
-    });
-
-    try {
-      final token = await _oauth.signIn(provider);
-      if (!mounted) return;
-
-      setState(() => _pending = null);
-      context.read<AuthFlowBloc>().add(
-        AuthFlowProviderSubmitted(provider: provider, providerToken: token),
-      );
-    } on OAuthSignInException catch (error) {
-      if (!mounted) return;
-
-      setState(() {
-        _pending = null;
-        // Une annulation n'est pas une erreur : l'utilisateur a fermé la
-        // feuille, il n'a pas besoin qu'on le lui rappelle.
-        _oauthError = switch (error.reason) {
-          OAuthFailure.cancelled => null,
-          OAuthFailure.notConfigured => l10n.oauthNotConfigured(label),
-          OAuthFailure.unsupported => l10n.oauthUnsupported,
-          OAuthFailure.failed => l10n.oauthFailed(label),
-        };
-      });
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -413,52 +344,6 @@ class _SignupEmailPageState extends State<SignupEmailPage> {
                         ],
                       ),
                     ),
-                    if (widget.showSocialSignIn) ...[
-                      const SizedBox(height: 24),
-                      KoraOrDivider(label: l10n.signupOr),
-                      const SizedBox(height: 18),
-                      // Les trois fournisseurs, dans l'ordre de leur usage
-                      // attendu au Bénin.
-                      KoraSocialButton(
-                        provider: KoraSocialProvider.google,
-                        label: l10n.signupWithGoogle,
-                        isLoading: _pending == OAuthSignInImpl.google,
-                        onPressed: _pending != null
-                            ? null
-                            : () => _social(OAuthSignInImpl.google, 'Google'),
-                      ),
-                      const SizedBox(height: 10),
-                      KoraSocialButton(
-                        provider: KoraSocialProvider.facebook,
-                        label: l10n.signupWithFacebook,
-                        isLoading: _pending == OAuthSignInImpl.facebook,
-                        onPressed: _pending != null
-                            ? null
-                            : () =>
-                                  _social(OAuthSignInImpl.facebook, 'Facebook'),
-                      ),
-                      const SizedBox(height: 10),
-                      KoraSocialButton(
-                        provider: KoraSocialProvider.tiktok,
-                        label: l10n.signupWithTiktok,
-                        isLoading: _pending == OAuthSignInImpl.tiktok,
-                        onPressed: _pending != null
-                            ? null
-                            : () => _social(OAuthSignInImpl.tiktok, 'TikTok'),
-                      ),
-                    ],
-                    if (_oauthError != null) ...[
-                      const SizedBox(height: 12),
-                      Text(
-                        _oauthError!,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: AppColors.danger,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ],
                     const SizedBox(height: AppSpacing.lg),
                   ],
                 ),

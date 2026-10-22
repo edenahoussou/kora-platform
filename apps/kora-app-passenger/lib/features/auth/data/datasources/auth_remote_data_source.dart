@@ -23,7 +23,6 @@ class AuthApiException implements Exception {
   static const String accountLocked = 'account_locked';
   static const String accountSuspended = 'account_suspended';
   static const String emailRequired = 'email_required';
-  static const String invalidOAuthToken = 'invalid_oauth_token';
 
   /// Inscription par téléphone d'un compte neuf : le serveur n'a pas
   /// d'adresse d'où tirer un nom, il le réclame.
@@ -78,12 +77,6 @@ abstract class AuthRemoteDataSource {
     required String pin,
     required DeviceRegistration device,
     OtpVerification? verification,
-  });
-
-  Future<AuthSession> loginWithProvider({
-    required String provider,
-    required String providerToken,
-    required DeviceRegistration device,
   });
 
   Future<AuthUser> me();
@@ -211,21 +204,6 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     }
 
     return LoginSucceeded(AuthDtos.session(response.data));
-  }
-
-  @override
-  Future<AuthSession> loginWithProvider({
-    required String provider,
-    required String providerToken,
-    required DeviceRegistration device,
-  }) async {
-    final response = await _post(ApiConstants.oauthToken, {
-      'provider': provider,
-      'provider_token': providerToken,
-      ...device.toJson(),
-    });
-
-    return AuthDtos.session(response.data);
   }
 
   @override

@@ -42,6 +42,9 @@ class SupportChatOverlay extends StatefulWidget {
   /// - **les cinq onglets**, dont la coquille s'occupe déjà — son
   ///   `Scaffold` sait placer le bouton au-dessus de la barre de
   ///   navigation, ce qu'une surcouche ne peut pas deviner.
+  ///
+  /// Ailleurs, un écran peut garder le bouton tout en finissant par une
+  /// action pleine largeur : voir [_lifted].
   static bool _hiddenOn(String location) {
     const screens = {
       AppRouter.splashPath,
@@ -79,6 +82,23 @@ class SupportChatOverlay extends StatefulWidget {
 
     return tabs.contains(location);
   }
+
+  /// Les écrans qui gardent le bouton mais dont le bas est occupé.
+  ///
+  /// Le détail d'un départ se termine par « Choisir mon siège », sur
+  /// toute la largeur : posé dans le coin, le bouton d'assistance en
+  /// recouvrait le bord droit. On le remonte au-dessus plutôt que de le
+  /// retirer — c'est l'écran où l'on hésite encore, donc celui où une
+  /// question se pose.
+  static const Set<String> _lifted = {AppRouter.departureDetailPath};
+
+  /// La marge basse du bouton : juste au-dessus de l'action de l'écran
+  /// quand il y en a une, dans le coin sinon.
+  ///
+  /// 84 px : la hauteur d'un `KoraButton` et sa marge, plus l'espace qui
+  /// sépare les deux.
+  static double _bottom(String location) =>
+      _lifted.contains(location) ? 84 : 16;
 
   @override
   State<SupportChatOverlay> createState() => _SupportChatOverlayState();
@@ -136,7 +156,12 @@ class _SupportChatOverlayState extends State<SupportChatOverlay> {
               child: Align(
                 alignment: Alignment.bottomRight,
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.fromLTRB(
+                    16,
+                    16,
+                    16,
+                    SupportChatOverlay._bottom(router.state.matchedLocation),
+                  ),
                   child: SupportChatFab(
                     cubit: _ensureCubit(),
                     onOpen: (configuration) => router.push(

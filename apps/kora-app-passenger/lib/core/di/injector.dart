@@ -82,7 +82,6 @@ import '../push/push_gateway.dart';
 import '../push/push_messaging.dart';
 import '../push/push_remote_data_source.dart';
 import '../services/app_permissions.dart';
-import '../services/oauth_sign_in.dart';
 import '../update/app_update.dart';
 import '../update/update_gateway.dart';
 
@@ -138,10 +137,6 @@ Future<void> _registerExternalDependencies() async {
   // Autorisations système (position, notifications), demandées par
   // l'écran de fin d'inscription.
   getIt.registerLazySingleton<AppPermissions>(() => const AppPermissionsImpl());
-
-  // SDK Google et Facebook, derrière notre propre interface : les écrans
-  // ne dépendent pas des paquets, et les tests s'en passent.
-  getIt.registerLazySingleton<OAuthSignIn>(() => OAuthSignInImpl());
 }
 
 /// Briques partagées par toutes les features (réseau, connectivité...).

@@ -27,8 +27,8 @@ class PushMessage extends Equatable {
   ///
   /// On accepte `route` comme `link` : la première est la clé qu'on
   /// proposera au back, la seconde celle qu'il emploie déjà côté web.
-  /// `null` quand rien n'est dit — le parcours retombe alors sur l'écran
-  /// des voyages, qui est le sujet de la quasi-totalité des messages.
+  /// `null` quand rien n'est dit — l'écran se déduit alors de
+  /// [resourceUuid], et à défaut de la liste des voyages.
   String? get route {
     for (final key in const ['route', 'link']) {
       final value = data[key];
@@ -36,6 +36,26 @@ class PushMessage extends Equatable {
     }
 
     return null;
+  }
+
+  /// Ce dont parle la notification : l'identifiant de la réservation.
+  ///
+  /// C'est la clé que la boîte de réception lit déjà pour ouvrir le bon
+  /// billet (`resource_uuid`). Une notification poussée porte le même
+  /// sujet : la lire ici évite de demander au serveur une seconde clé,
+  /// un chemin tout fait, qui dirait la même chose dans un autre
+  /// vocabulaire — et qu'il faudrait refaire à chaque écran déplacé.
+  ///
+  /// `null` tant que le bloc `data` ne la porte pas.
+  String? get resourceUuid {
+    final value = data['resource_uuid'];
+    return value == null || value.isEmpty ? null : value;
+  }
+
+  /// Ce qu'annonce la notification : `ticket.issued`, `payment.confirmed`…
+  String? get type {
+    final value = data['type'];
+    return value == null || value.isEmpty ? null : value;
   }
 
   @override

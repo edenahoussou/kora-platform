@@ -8,46 +8,16 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kora_app_passenger/core/error/failures.dart';
 import 'package:kora_app_passenger/core/l10n/app_localization.dart';
-import 'package:kora_app_passenger/core/services/oauth_sign_in.dart';
 import 'package:kora_app_passenger/features/auth/presentation/bloc/auth_flow_bloc.dart';
 import 'package:kora_app_passenger/features/auth/presentation/pages/signup_email_page.dart';
 import 'package:kora_app_passenger/features/auth/presentation/widgets/phone_country_picker.dart';
 
 import '../../../../support/stub_auth_repository.dart';
 
-/// SDK bouchonné : un test n'ouvre pas la feuille de Google.
-class _StubOAuth implements OAuthSignIn {
-  _StubOAuth({this.failure});
-
-  /// Ce que le SDK remettrait : un jeton d'accès, que l'app échange
-  /// ensuite contre une session KORA.
-  static const String token = 'jeton-du-fournisseur';
-
-  final OAuthFailure? failure;
-
-  final List<String> asked = [];
-
-  @override
-  bool isConfigured(String provider) => true;
-
-  @override
-  Future<String> signIn(String provider) async {
-    asked.add(provider);
-    final reason = failure;
-    if (reason != null) throw OAuthSignInException(reason);
-
-    return token;
-  }
-
-  @override
-  Future<void> signOut() async {}
-}
-
 void main() {
   late String? submitted;
   late bool signedIn;
   late StubAuthRepository repository;
-  late _StubOAuth oauth;
 
   // Les bouchons se posent avant chaque test, et non dans `pumpPage` :
   // plusieurs cas en remplacent un pour jouer un refus.
@@ -55,7 +25,6 @@ void main() {
     submitted = null;
     signedIn = false;
     repository = StubAuthRepository();
-    oauth = _StubOAuth();
   });
 
   Future<void> pumpPage(
@@ -82,10 +51,8 @@ void main() {
           SignupEmailPage(
             onSubmit: (identifier) => submitted = identifier,
             onSignIn: () => signedIn = true,
-            oauth: oauth,
             // L'écran les masque en production ; le code, lui, reste et
             // doit continuer d'être éprouvé.
-            showSocialSignIn: true,
           ),
           repository,
         ),
@@ -283,75 +250,6 @@ void main() {
     expect(find.text('Adresse e-mail requise'), findsNothing);
   });
 
-  testWidgets('propose les trois fournisseurs d’identité', (tester) async {
-    await pumpPage(tester);
-
-    expect(find.text('ou'), findsOneWidget);
-    expect(find.text('Continuer avec Google'), findsOneWidget);
-    expect(find.text('Continuer avec Facebook'), findsOneWidget);
-    expect(find.text('Continuer avec TikTok'), findsOneWidget);
-  });
-
-  testWidgets('échange le jeton Google contre une session KORA', (
-    tester,
-  ) async {
-    await pumpPage(tester);
-
-    await tester.tap(find.text('Continuer avec Google'));
-    await tester.pumpAndSettle();
-
-    // Le SDK authentifie, l'API échange : c'est `auth/oauth/token` qui
-    // ouvre la session, pas un code par e-mail.
-    expect(oauth.asked, ['google']);
-    expect(repository.calls, ['loginWithProvider:google']);
-    expect(submitted, isNull);
-  });
-
-  testWidgets('reste silencieux quand l’utilisateur ferme la feuille', (
-    tester,
-  ) async {
-    oauth = _StubOAuth(failure: OAuthFailure.cancelled);
-    await pumpPage(tester);
-
-    await tester.tap(find.text('Continuer avec Facebook'));
-    await tester.pumpAndSettle();
-
-    // Une annulation n'est pas un échec : rien à afficher, rien à
-    // envoyer.
-    expect(repository.calls, isEmpty);
-    expect(find.textContaining('n’a pas abouti'), findsNothing);
-  });
-
-  testWidgets('dit ce qui manque quand le fournisseur n’est pas configuré', (
-    tester,
-  ) async {
-    oauth = _StubOAuth(failure: OAuthFailure.notConfigured);
-    await pumpPage(tester);
-
-    await tester.tap(find.text('Continuer avec Google'));
-    await tester.pumpAndSettle();
-
-    expect(
-      find.text(
-        'Google n’est pas encore configuré sur cette version de '
-        'l’app.',
-      ),
-      findsOneWidget,
-    );
-    expect(repository.calls, isEmpty);
-  });
-
-  testWidgets('explique le cas TikTok', (tester) async {
-    oauth = _StubOAuth(failure: OAuthFailure.unsupported);
-    await pumpPage(tester);
-
-    await tester.tap(find.text('Continuer avec TikTok'));
-    await tester.pumpAndSettle();
-
-    expect(find.textContaining('TikTok ne remet pas'), findsOneWidget);
-    expect(repository.calls, isEmpty);
-  });
-
   testWidgets('demande le code à l’API pour une adresse valide', (
     tester,
   ) async {
@@ -376,8 +274,6 @@ void main() {
 
     expect(find.text('Your phone number'), findsOneWidget);
     expect(find.text('Full name'), findsOneWidget);
-    expect(find.text('Continue with Google'), findsOneWidget);
-    expect(find.text('or'), findsOneWidget);
 
     await tester.tap(find.text('Sign up with your email address?'));
     await tester.pumpAndSettle();

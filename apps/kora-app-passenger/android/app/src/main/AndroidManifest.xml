@@ -14,7 +14,10 @@
          dans un build release : l'APK s'installe et s'ouvre, mais ne
          joint jamais l'API. -->
     <uses-permission android:name="android.permission.INTERNET"/>
-    <!-- Facebook SDK : l'application n'utilise pas l'Advertising ID -->
+    <!-- L'application ne se sert pas de l'identifiant publicitaire.
+         Une dépendance peut le déclarer sans qu'on le lui demande, et le
+         Play Store exige alors d'en justifier l'usage : on le retire du
+         manifest fusionné plutôt que d'avoir à s'en expliquer. -->
     <uses-permission
         android:name="com.google.android.gms.permission.AD_ID"
         tools:node="remove"/>
@@ -68,28 +71,6 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
-
-        <!-- Connexion Facebook. Seules ces valeurs manquent au SDK : il
-             déclare lui-même FacebookActivity, CustomTabActivity (avec
-             son intent-filter fbconnect://cct.<applicationId>) et le
-             provider qui l'initialise au démarrage. Elles viennent de
-             android/facebook.properties via resValue (build.gradle.kts). -->
-        <meta-data
-            android:name="com.facebook.sdk.ApplicationId"
-            android:value="@string/facebook_app_id" />
-        <meta-data
-            android:name="com.facebook.sdk.ClientToken"
-            android:value="@string/facebook_client_token" />
-        <!-- Facebook ne sert ici qu'à la connexion : on coupe la
-             télémétrie automatique, qui partirait sinon à chaque
-             ouverture de l'app, et la collecte de l'identifiant
-             publicitaire, dont on n'a aucun usage. -->
-        <meta-data
-            android:name="com.facebook.sdk.AutoLogAppEventsEnabled"
-            android:value="false" />
-        <meta-data
-            android:name="com.facebook.sdk.AdvertiserIDCollectionEnabled"
-            android:value="false" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

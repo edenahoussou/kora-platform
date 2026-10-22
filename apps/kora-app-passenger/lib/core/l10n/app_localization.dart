@@ -1271,11 +1271,6 @@ class AppLocalization {
   String get preferencesError => translate('preferences_error');
 
   // --- Connexion sociale (Google, Facebook, TikTok) ---
-  String oauthNotConfigured(String provider) =>
-      _withArgs('oauth_not_configured', {'provider': provider});
-  String get oauthUnsupported => translate('oauth_unsupported');
-  String oauthFailed(String provider) =>
-      _withArgs('oauth_failed', {'provider': provider});
 
   // --- Nouvel appareil (AUTH-10) et connexion ---
   String get newDeviceEyebrow => translate('new_device_eyebrow');
@@ -1340,11 +1335,6 @@ class AppLocalization {
   String get permissionsDenied => translate('permissions_denied');
   String get permissionsContinue => translate('permissions_continue');
   String get permissionsLater => translate('permissions_later');
-
-  String get signupOr => translate('signup_or');
-  String get signupWithGoogle => translate('signup_with_google');
-  String get signupWithFacebook => translate('signup_with_facebook');
-  String get signupWithTiktok => translate('signup_with_tiktok');
 
   // ---------------------------------------------------------------- langues
   String get languageTitle => translate('language_title');
