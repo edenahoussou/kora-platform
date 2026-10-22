@@ -65,6 +65,6 @@ class AuthPushTokenController extends Controller
      */
     private function pushAllowed(User $user): bool
     {
-        return $user->preference?->push_notifications ?? UserPreference::defaultPushNotificationsFor($user);
+        return $user->preference->push_notifications ?? UserPreference::defaultPushNotificationsFor($user);
     }
 }

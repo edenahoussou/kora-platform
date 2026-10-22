@@ -7466,7 +7466,7 @@ paths:
                 birth_date:
                   type: string
                   description: 'Date de naissance (Y-m-d). Must be a valid date in the format <code>Y-m-d</code>. Le champ value doit être une date antérieure ou égale à <code>today</code>.'
-                  example: '2022-11-12'
+                  example: '2022-11-16'
                   nullable: true
                 yellow_fever_vaccinated:
                   type: boolean
