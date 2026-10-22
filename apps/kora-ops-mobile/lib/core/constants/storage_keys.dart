@@ -32,4 +32,8 @@ abstract final class StorageKeys {
 
   /// Dernier départ sélectionné par l'agent (JSON de `Depart`).
   static const String selectedDepartureSnapshot = 'selected_departure_snapshot';
+
+  /// Dernier couple `deviceUuid|tokenFCM` confirmé par
+  /// `PUT auth/devices/{uuid}/push-token` — voir `PushTokenStore`.
+  static const String pushTokenRegistration = 'push_token_registration';
 }

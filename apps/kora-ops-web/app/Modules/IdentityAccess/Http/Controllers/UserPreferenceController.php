@@ -81,7 +81,7 @@ class UserPreferenceController extends Controller
         return UserPreference::query()->firstOrCreate(
             ['user_id' => $request->user()->id],
             [
-                'push_notifications' => false,
+                'push_notifications' => UserPreference::defaultPushNotificationsFor($request->user()),
                 'whatsapp_notifications' => true,
                 'sms_notifications' => true,
                 'email_notifications' => true,

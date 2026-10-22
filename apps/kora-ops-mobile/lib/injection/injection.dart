@@ -14,6 +14,7 @@ import '../core/network/network_client.dart';
 import '../core/network/session_expiry_interceptor.dart';
 import '../core/network/terminal_header_interceptor.dart';
 import '../core/services/push_notification_service.dart';
+import '../core/services/push/push_token_store.dart';
 import '../features/auth/data/datasources/auth_local_datasource.dart';
 import '../features/auth/data/datasources/auth_remote_datasource.dart';
 import '../features/auth/data/datasources/device_info_datasource.dart';
@@ -558,6 +559,7 @@ Future<void> configureDependencies() async {
       getIt<AuthLocalDataSource>(),
       getIt<AuthCubit>(),
       getIt<NotificationCubit>(),
+      PushTokenStore(getIt<SharedPreferences>()),
     ),
   );
   getIt.registerSingleton<SentNotificationCubit>(

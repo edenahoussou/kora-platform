@@ -5,6 +5,7 @@ namespace App\Modules\IdentityAccess\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Modules\IdentityAccess\Models\UserDevice;
+use App\Modules\IdentityAccess\Models\UserPreference;
 use App\Modules\Notifications\Services\FirebaseMessagingClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -46,7 +47,7 @@ class AuthPushTokenController extends Controller
             'push_token' => ['required_if:enabled,true', 'nullable', 'string', 'max:4096'],
         ]);
 
-        if ($validated['enabled'] && ! $user->preference?->push_notifications) {
+        if ($validated['enabled'] && ! $this->pushAllowed($user)) {
             throw ValidationException::withMessages(['enabled' => 'Activez les notifications push dans vos préférences avant d’inscrire cet appareil.']);
         }
         if ($validated['enabled'] && ! $firebase->isServerConfigured()) {
@@ -56,5 +57,14 @@ class AuthPushTokenController extends Controller
         $device->forceFill(['push_token' => $validated['enabled'] ? $validated['push_token'] : null])->save();
 
         return response()->json(['data' => ['enabled' => $device->push_token !== null]]);
+    }
+
+    /**
+     * Sans préférence enregistrée, un compte OPS reçoit le push par défaut ;
+     * un passager doit l'avoir activé explicitement.
+     */
+    private function pushAllowed(User $user): bool
+    {
+        return $user->preference?->push_notifications ?? UserPreference::defaultPushNotificationsFor($user);
     }
 }
