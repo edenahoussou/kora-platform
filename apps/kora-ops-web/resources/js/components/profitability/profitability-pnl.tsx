@@ -35,7 +35,7 @@ export function ProfitabilityPnl({ rows }: { rows: ProfitabilityPnlRow[] }) {
     return (
         <section className="profit-panel">
             <div className="profit-panel-heading">
-                <span className="section-kicker">Structure P&amp;L</span>
+                <span className="section-kicker">Compte de résultat</span>
                 <h2>Décomposition du résultat</h2>
                 <p>
                     Les postes sans source sont marqués « en suspens » ou « hors

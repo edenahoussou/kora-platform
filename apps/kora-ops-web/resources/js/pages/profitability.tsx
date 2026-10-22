@@ -1,17 +1,20 @@
 import { Head, router } from '@inertiajs/react';
-import { CalendarDays, ChevronDown, Download } from 'lucide-react';
-import { useState } from 'react';
+import { CalendarDays, ChevronDown, Download, X } from 'lucide-react';
+import { createElement, useState } from 'react';
+import { profitabilityAxisIcon } from '@/components/profitability/profitability-axis-icons';
 import { ProfitabilityAxisTabs } from '@/components/profitability/profitability-axis-tabs';
 import { ProfitabilityBreakEven } from '@/components/profitability/profitability-break-even';
-import { ProfitabilityCardView } from '@/components/profitability/profitability-card';
+import { ProfitabilityCarousel } from '@/components/profitability/profitability-carousel';
+import { ProfitabilityControls } from '@/components/profitability/profitability-controls';
 import { ProfitabilityDrawer } from '@/components/profitability/profitability-drawer';
 import { ProfitabilityEmpty } from '@/components/profitability/profitability-empty';
 import { ProfitabilityHero } from '@/components/profitability/profitability-hero';
 import { ProfitabilityKpis } from '@/components/profitability/profitability-kpis';
 import { ProfitabilityPnl } from '@/components/profitability/profitability-pnl';
-import { ProfitabilityReconciliation } from '@/components/profitability/profitability-reconciliation';
 import { ProfitabilityTco } from '@/components/profitability/profitability-tco';
+import { ProfitabilityTrend } from '@/components/profitability/profitability-trend';
 import type {
+    ProfitabilityCard,
     ProfitabilityDetail,
     ProfitabilityProps,
 } from '@/components/profitability/profitability-types';
@@ -32,13 +35,14 @@ export default function ProfitabilityPage(props: ProfitabilityProps) {
     const {
         axis,
         axisOptions,
+        entity,
         hero,
         kpis,
         cards,
         breakEvenCards,
         pnl,
         tco,
-        reconciliation,
+        timeline,
         controls,
         empty,
         period,
@@ -70,6 +74,11 @@ export default function ProfitabilityPage(props: ProfitabilityProps) {
             ? { period: 'custom', from: period.from, to: period.to }
             : { period: period.preset };
 
+    const entityQuery = (): Record<string, string> =>
+        entity === null
+            ? {}
+            : { entity_type: entity.type, entity: entity.uuid };
+
     const changePeriod = (value: string) => {
         if (value === 'custom') {
             setCustomOpen(true);
@@ -77,7 +86,20 @@ export default function ProfitabilityPage(props: ProfitabilityProps) {
             return;
         }
 
-        navigate({ ...periodQuery(), period: value, axis });
+        navigate({ ...periodQuery(), period: value, axis, ...entityQuery() });
+    };
+
+    const applyEntity = (card: ProfitabilityCard) => {
+        navigate({
+            ...periodQuery(),
+            axis,
+            entity_type: card.axisType,
+            entity: card.key,
+        });
+    };
+
+    const clearEntity = () => {
+        navigate({ ...periodQuery(), axis });
     };
 
     const openDetail = (key: string) => {
@@ -86,7 +108,7 @@ export default function ProfitabilityPage(props: ProfitabilityProps) {
         setIsLoading(true);
         router.get(
             profitability().url,
-            { ...periodQuery(), axis, detail: key },
+            { ...periodQuery(), axis, detail: key, ...entityQuery() },
             {
                 only: ['detail'],
                 preserveState: true,
@@ -106,7 +128,7 @@ export default function ProfitabilityPage(props: ProfitabilityProps) {
         setDetailState(null);
         router.get(
             profitability().url,
-            { ...periodQuery(), axis },
+            { ...periodQuery(), axis, ...entityQuery() },
             {
                 only: ['detail'],
                 preserveState: true,
@@ -117,8 +139,16 @@ export default function ProfitabilityPage(props: ProfitabilityProps) {
     };
 
     const exportUrl = exportMethod.url({
-        query: { ...periodQuery(), axis },
+        query: { ...periodQuery(), axis, ...entityQuery() },
     });
+
+    const entityIcon =
+        entity === null
+            ? null
+            : createElement(profitabilityAxisIcon(entity.type), {
+                  className: 'size-3.5',
+                  'aria-hidden': true,
+              });
 
     return (
         <>
@@ -171,6 +201,24 @@ export default function ProfitabilityPage(props: ProfitabilityProps) {
                     </div>
                 </div>
 
+                {entity !== null && entityIcon !== null && (
+                    <div className="profit-scope-chip">
+                        {entityIcon}
+                        <span>
+                            {axisOptions[entity.type] ?? entity.type}
+                            {' · '}
+                            {entity.label}
+                        </span>
+                        <button
+                            type="button"
+                            aria-label="Retirer le filtre"
+                            onClick={clearEntity}
+                        >
+                            <X className="size-3.5" aria-hidden="true" />
+                        </button>
+                    </div>
+                )}
+
                 {empty ? (
                     <ProfitabilityEmpty axisLabel={axisLabel} />
                 ) : (
@@ -180,37 +228,56 @@ export default function ProfitabilityPage(props: ProfitabilityProps) {
                             result={hero.result}
                             marginPercent={hero.marginPercent}
                             costUnassigned={hero.costUnassigned}
+                            networkUnassigned={hero.networkUnassigned}
+                            filtered={entity !== null}
                             coveragePercent={hero.coveragePercent}
                             breakEven={hero.breakEven}
                         />
                         <ProfitabilityKpis {...kpis} />
-                        <ProfitabilityReconciliation
-                            reconciliation={reconciliation}
-                            controls={controls}
-                        />
+                        <div
+                            className={cn(
+                                'profit-overview',
+                                timeline.points.length < 3 &&
+                                    'profit-overview--single',
+                            )}
+                        >
+                            <ProfitabilityTrend
+                                timeline={timeline}
+                                filtered={entity !== null}
+                            />
+                            <ProfitabilityControls controls={controls} />
+                        </div>
                         <ProfitabilityAxisTabs
                             axis={axis}
                             axisOptions={axisOptions}
                             onChange={(value) =>
-                                navigate({ ...periodQuery(), axis: value })
+                                navigate({
+                                    ...periodQuery(),
+                                    axis: value,
+                                    ...entityQuery(),
+                                })
                             }
                         />
                         <ProfitabilityBreakEven
                             cards={breakEvenCards}
+                            axisLabel={axisLabel}
+                            entity={entity}
                             onOpen={openDetail}
+                            onFilter={applyEntity}
                         />
-                        <section className="profit-grid">
-                            {cards.map((card) => (
-                                <ProfitabilityCardView
-                                    key={card.key}
-                                    card={card}
-                                    onOpen={openDetail}
-                                />
-                            ))}
-                        </section>
+                        <ProfitabilityCarousel
+                            key={`${axis}:${period.preset}:${period.from}:${period.to}:${entity?.uuid ?? 'all'}`}
+                            cards={cards}
+                            axisLabel={axisLabel}
+                            axisIcon={profitabilityAxisIcon(axis)}
+                            suspended={drawerOpen}
+                            entity={entity}
+                            onOpen={openDetail}
+                            onFilter={applyEntity}
+                        />
                         <div className="profit-panels">
                             <ProfitabilityPnl rows={pnl} />
-                            <ProfitabilityTco rows={tco} />
+                            {tco.length > 0 && <ProfitabilityTco rows={tco} />}
                         </div>
                     </>
                 )}
@@ -279,6 +346,7 @@ export default function ProfitabilityPage(props: ProfitabilityProps) {
                                     from: customFrom,
                                     to: customTo,
                                     axis,
+                                    ...entityQuery(),
                                 });
                             }}
                         >

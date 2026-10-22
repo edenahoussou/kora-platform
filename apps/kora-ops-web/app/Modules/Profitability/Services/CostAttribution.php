@@ -8,7 +8,10 @@ use App\Modules\Finance\Data\RevenuePeriod;
 use App\Modules\Profitability\Data\CostAllocationRule;
 use App\Modules\Profitability\Data\CostBehavior;
 use App\Modules\Profitability\Data\CostCategory;
+use App\Modules\Profitability\Data\EntityScope;
+use App\Modules\Profitability\Data\ProfitabilityAxis;
 use App\Modules\Profitability\Support\IntegerAllocator;
+use Illuminate\Database\Eloquent\Builder;
 
 /**
  * Dépenses approuvées → coûts directs, répartis et non affectés par axe,
@@ -22,19 +25,24 @@ class CostAttribution
      * @param  array<int, array<string, mixed>>  $departureMeta
      * @return array<string, mixed>
      */
-    public function build(RevenuePeriod $period, array $departureMeta): array
+    public function build(RevenuePeriod $period, array $departureMeta, ?EntityScope $scope = null): array
     {
-        $expenses = Expense::query()
-            ->with([
-                'category:id,code,label',
-                'maintenanceDetails:id,expense_id,maintenance_type',
-                'agency:id,uuid,name',
-            ])
-            ->where('status', ExpenseStatus::Approved->value)
-            ->where('currency', self::CURRENCY)
-            ->where('occurred_at', '>=', $period->startUtc())
-            ->where('occurred_at', '<', $period->endExclusiveUtc())
-            ->get(['id', 'uuid', 'reference', 'agency_id', 'bus_id', 'line_id', 'departure_id', 'expense_category_id', 'amount', 'occurred_at']);
+        $departureIds = array_map('intval', array_keys($departureMeta));
+
+        $expenses = $this->applyScope(
+            Expense::query()
+                ->with([
+                    'category:id,code,label',
+                    'maintenanceDetails:id,expense_id,maintenance_type',
+                    'agency:id,uuid,name',
+                ])
+                ->where('status', ExpenseStatus::Approved->value)
+                ->where('currency', self::CURRENCY)
+                ->where('occurred_at', '>=', $period->startUtc())
+                ->where('occurred_at', '<', $period->endExclusiveUtc()),
+            $scope,
+            $departureIds,
+        )->get(['id', 'uuid', 'reference', 'agency_id', 'bus_id', 'line_id', 'departure_id', 'expense_category_id', 'amount', 'occurred_at']);
 
         $departuresByBus = [];
         $departuresByLine = [];
@@ -51,6 +59,7 @@ class CostAttribution
         $byBus = [];
         $byLine = [];
         $byAgency = [];
+        $byDate = [];
         $categoryTotals = [];
         $total = 0;
         $assigned = 0;
@@ -64,6 +73,8 @@ class CostAttribution
             $rule = CostCategory::rule($expense);
             $total += $amount;
             $categoryTotals[$code] = ($categoryTotals[$code] ?? 0) + $amount;
+            $costDate = $expense->occurred_at->setTimezone(RevenuePeriod::TIMEZONE)->toDateString();
+            $byDate[$costDate] = ($byDate[$costDate] ?? 0) + $amount;
 
             if ($behavior === CostBehavior::Fixed) {
                 $fixedTotal += $amount;
@@ -130,23 +141,67 @@ class CostAttribution
             'byBus' => $byBus,
             'byLine' => $byLine,
             'byAgency' => $byAgency,
+            'byDate' => $byDate,
             'categoryTotals' => $categoryTotals,
             'missingCenterCount' => $expenses->filter(fn (Expense $expense): bool => $expense->bus_id === null
                 && $expense->line_id === null
                 && $expense->departure_id === null)->count(),
-            'pendingCount' => Expense::query()
-                ->where('status', ExpenseStatus::Pending->value)
-                ->where('currency', self::CURRENCY)
-                ->where('occurred_at', '>=', $period->startUtc())
-                ->where('occurred_at', '<', $period->endExclusiveUtc())
-                ->count(),
-            'nonXofCount' => Expense::query()
-                ->where('status', ExpenseStatus::Approved->value)
-                ->where('currency', '!=', self::CURRENCY)
-                ->where('occurred_at', '>=', $period->startUtc())
-                ->where('occurred_at', '<', $period->endExclusiveUtc())
-                ->count(),
+            'pendingCount' => $this->applyScope(
+                Expense::query()
+                    ->where('status', ExpenseStatus::Pending->value)
+                    ->where('currency', self::CURRENCY)
+                    ->where('occurred_at', '>=', $period->startUtc())
+                    ->where('occurred_at', '<', $period->endExclusiveUtc()),
+                $scope,
+                $departureIds,
+            )->count(),
+            'nonXofCount' => $this->applyScope(
+                Expense::query()
+                    ->where('status', ExpenseStatus::Approved->value)
+                    ->where('currency', '!=', self::CURRENCY)
+                    ->where('occurred_at', '>=', $period->startUtc())
+                    ->where('occurred_at', '<', $period->endExclusiveUtc()),
+                $scope,
+                $departureIds,
+            )->count(),
+            'networkUnassigned' => $scope === null
+                ? $total - $assigned
+                : (int) Expense::query()
+                    ->where('status', ExpenseStatus::Approved->value)
+                    ->where('currency', self::CURRENCY)
+                    ->where('occurred_at', '>=', $period->startUtc())
+                    ->where('occurred_at', '<', $period->endExclusiveUtc())
+                    ->whereNull('bus_id')
+                    ->whereNull('line_id')
+                    ->whereNull('departure_id')
+                    ->sum('amount'),
         ];
+    }
+
+    /**
+     * Restreint les dépenses au périmètre d'une entité : bus/ligne via leur
+     * centre de coût ou un départ du périmètre, agence via agency_id.
+     *
+     * @param  Builder<Expense>  $query
+     * @param  list<int>  $departureIds
+     * @return Builder<Expense>
+     */
+    private function applyScope(Builder $query, ?EntityScope $scope, array $departureIds): Builder
+    {
+        if ($scope === null) {
+            return $query;
+        }
+
+        return match ($scope->type) {
+            ProfitabilityAxis::Bus => $query->where(fn (Builder $inner) => $inner
+                ->where('bus_id', $scope->id)
+                ->orWhereIn('departure_id', $departureIds)),
+            ProfitabilityAxis::Line => $query->where(fn (Builder $inner) => $inner
+                ->where('line_id', $scope->id)
+                ->orWhereIn('departure_id', $departureIds)),
+            ProfitabilityAxis::Agency => $query->where('agency_id', $scope->id),
+            default => $query,
+        };
     }
 
     /**

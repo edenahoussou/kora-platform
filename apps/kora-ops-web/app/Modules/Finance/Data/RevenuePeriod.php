@@ -123,6 +123,18 @@ final readonly class RevenuePeriod
         };
     }
 
+    /**
+     * Clé de regroupement d'une date selon la granularité de la période.
+     */
+    public function bucketKey(CarbonImmutable $date): string
+    {
+        return match ($this->bucket()) {
+            'week' => $date->startOfWeek()->max($this->localStart)->toDateString(),
+            'month' => $date->startOfMonth()->max($this->localStart)->toDateString(),
+            default => $date->toDateString(),
+        };
+    }
+
     public function label(): string
     {
         if ($this->localStart->isSameDay($this->localEnd)) {

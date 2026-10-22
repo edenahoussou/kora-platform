@@ -7,6 +7,7 @@ use App\Modules\BusNetwork\Models\Line;
 use App\Modules\Finance\Data\RevenuePeriod;
 use App\Modules\Profitability\Data\CostCategory;
 use App\Modules\Profitability\Data\CostSourceStatus;
+use App\Modules\Profitability\Data\EntityScope;
 use App\Modules\Profitability\Data\ProfitabilityAxis;
 use Carbon\CarbonImmutable;
 
@@ -22,22 +23,23 @@ class ProfitabilityReport
         private readonly GpsDistanceCalculator $gpsDistance,
         private readonly BreakEvenCalculator $breakEven,
         private readonly ProfitabilityControls $controls,
+        private readonly ProfitabilityTimeline $timeline,
     ) {}
 
     /**
      * @return array<string, mixed>
      */
-    public function build(RevenuePeriod $period, ProfitabilityAxis $axis): array
+    public function build(RevenuePeriod $period, ProfitabilityAxis $axis, ?EntityScope $scope = null): array
     {
-        return $this->analyze($period, $axis)['report'];
+        return $this->analyze($period, $axis, $scope)['report'];
     }
 
     /**
      * @return array<string, mixed>
      */
-    public function detail(RevenuePeriod $period, ProfitabilityAxis $axis, string $key): array
+    public function detail(RevenuePeriod $period, ProfitabilityAxis $axis, string $key, ?EntityScope $scope = null): array
     {
-        $analysis = $this->analyze($period, $axis);
+        $analysis = $this->analyze($period, $axis, $scope);
         /** @var list<array<string, mixed>> $cards */
         $cards = $analysis['report']['cards'];
         $card = collect($cards)->firstWhere('key', $key);
@@ -95,9 +97,9 @@ class ProfitabilityReport
      *
      * @return list<array<string, mixed>>
      */
-    public function departureRows(RevenuePeriod $period): array
+    public function departureRows(RevenuePeriod $period, ?EntityScope $scope = null): array
     {
-        $financials = $this->financials($period);
+        $financials = $this->financials($period, $scope);
         $rows = [];
 
         foreach ($financials['departureMeta'] as $departureId => $meta) {
@@ -133,10 +135,10 @@ class ProfitabilityReport
     /**
      * @return array{report: array<string, mixed>, financials: array<string, mixed>}
      */
-    private function analyze(RevenuePeriod $period, ProfitabilityAxis $axis): array
+    private function analyze(RevenuePeriod $period, ProfitabilityAxis $axis, ?EntityScope $scope = null): array
     {
-        $financials = $this->financials($period);
-        $previous = $this->financials($period->comparisonPeriod());
+        $financials = $this->financials($period, $scope);
+        $previous = $this->financials($period->comparisonPeriod(), $scope);
         $cards = $this->cards($axis, $financials, $previous, $period);
 
         $revenueNet = (int) $financials['revenue']['total']['net'];
@@ -162,16 +164,19 @@ class ProfitabilityReport
             $financials['costs'],
             $financials['distances'],
             $financials['departureMeta'],
+            $scope,
         );
 
         $report = [
             'currency' => 'XOF',
             'axis' => $axis->value,
             'generatedAt' => CarbonImmutable::now('UTC')->toIso8601String(),
+            'entity' => $scope?->toArray(),
             'hero' => [
                 'revenueNet' => $revenueNet,
                 'costAssigned' => (int) $financials['costs']['assigned'],
                 'costUnassigned' => (int) $financials['costs']['unassigned'],
+                'networkUnassigned' => (int) $financials['costs']['networkUnassigned'],
                 'result' => $result,
                 'marginPercent' => $revenueNet > 0 ? round($result / $revenueNet * 100, 1) : null,
                 'coveragePercent' => (float) $financials['costs']['coveragePercent'],
@@ -191,7 +196,10 @@ class ProfitabilityReport
             'cards' => $cards,
             'breakEvenCards' => array_slice($cards, 0, 3),
             'pnl' => $this->pnl($financials, $previous),
-            'tco' => $this->tco($financials),
+            'tco' => $scope === null || $scope->type === ProfitabilityAxis::Bus
+                ? $this->tco($financials)
+                : [],
+            'timeline' => $this->timeline->build($period, $financials['revenue'], $financials['costs'], $previous['revenue']),
             'reconciliation' => $controls['reconciliation'],
             'controls' => $controls['controls'],
             'empty' => $revenueNet === 0 && $costTotal === 0 && $financials['departureMeta'] === [],
@@ -203,9 +211,9 @@ class ProfitabilityReport
     /**
      * @return array<string, mixed>
      */
-    private function financials(RevenuePeriod $period): array
+    private function financials(RevenuePeriod $period, ?EntityScope $scope = null): array
     {
-        $revenue = $this->revenueAttribution->build($period);
+        $revenue = $this->revenueAttribution->build($period, $scope);
         /** @var array<int, array<string, mixed>> $departureMeta */
         $departureMeta = $revenue['departureMeta'];
         $distances = $this->gpsDistance->forDepartures(array_keys($departureMeta));
@@ -249,7 +257,7 @@ class ProfitabilityReport
             $departureMeta[$departureId]['capacity'] = $bus === null ? 0 : (int) $bus->seat_count;
         }
 
-        $costs = $this->costAttribution->build($period, $departureMeta);
+        $costs = $this->costAttribution->build($period, $departureMeta, $scope);
 
         return [
             'period' => $period,
@@ -277,7 +285,10 @@ class ProfitabilityReport
             ProfitabilityAxis::Period => $this->periodCards($financials, $previous, $period),
         };
 
-        return $this->sortByRisk($cards);
+        return array_map(
+            static fn (array $card): array => $card + ['axisType' => $axis->value],
+            $this->sortByRisk($cards),
+        );
     }
 
     /**

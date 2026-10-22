@@ -28,7 +28,8 @@ class ProfitabilityController extends Controller
     {
         $period = $request->reportPeriod();
         $axis = $request->axis();
-        $data = $report->build($period, $axis);
+        $scope = $request->entityScope();
+        $data = $report->build($period, $axis, $scope);
         $detailKey = $request->detailKey();
 
         return Inertia::render('profitability', array_merge($data, [
@@ -37,7 +38,7 @@ class ProfitabilityController extends Controller
             'axisOptions' => collect(ProfitabilityAxis::cases())
                 ->mapWithKeys(fn (ProfitabilityAxis $option): array => [$option->value => $option->label()])
                 ->all(),
-            'detail' => $detailKey === null ? null : $report->detail($period, $axis, $detailKey),
+            'detail' => $detailKey === null ? null : $report->detail($period, $axis, $detailKey, $scope),
         ]));
     }
 
@@ -48,7 +49,8 @@ class ProfitabilityController extends Controller
     ): StreamedResponse {
         $period = $request->reportPeriod();
         $axis = $request->axis();
-        $data = $report->build($period, $axis);
+        $scope = $request->entityScope();
+        $data = $report->build($period, $axis, $scope);
 
         activity('finance')
             ->causedBy($request->user())
@@ -60,10 +62,12 @@ class ProfitabilityController extends Controller
                 'from' => $period->localStart->toDateString(),
                 'to' => $period->localEnd->toDateString(),
                 'timezone' => RevenuePeriod::TIMEZONE,
+                'entity_type' => $scope?->type->value,
+                'entity' => $scope?->uuid,
                 'card_count' => count($data['cards']),
             ])
             ->log('finance_profitability_exported');
 
-        return $exporter->download($period, $axis, $data);
+        return $exporter->download($period, $axis, $data, $scope);
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Modules\Profitability\Http\Requests;
 
 use App\Modules\Finance\Data\RevenuePeriod;
+use App\Modules\Profitability\Data\EntityScope;
 use App\Modules\Profitability\Data\ProfitabilityAxis;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -25,6 +26,16 @@ class ProfitabilityReportRequest extends FormRequest
             'to' => ['nullable', 'required_if:period,custom', 'date_format:Y-m-d', 'after_or_equal:from'],
             'axis' => ['required', 'string', Rule::in(ProfitabilityAxis::values())],
             'detail' => ['nullable', 'string', 'max:100'],
+            'entity_type' => ['nullable', 'string', Rule::in(array_map(
+                static fn (ProfitabilityAxis $type): string => $type->value,
+                EntityScope::types(),
+            ))],
+            'entity' => [
+                'nullable',
+                'required_with:entity_type',
+                'uuid',
+                ...(($table = $this->entityTable()) !== null ? [Rule::exists($table, 'uuid')] : []),
+            ],
         ];
     }
 
@@ -68,5 +79,27 @@ class ProfitabilityReportRequest extends FormRequest
         $detail = $this->validated('detail');
 
         return is_string($detail) && $detail !== '' ? $detail : null;
+    }
+
+    public function entityScope(): ?EntityScope
+    {
+        $type = ProfitabilityAxis::tryFrom((string) $this->validated('entity_type'));
+        $uuid = $this->validated('entity');
+
+        if ($type === null || ! is_string($uuid) || ! in_array($type, EntityScope::types(), true)) {
+            return null;
+        }
+
+        return EntityScope::resolve($type, $uuid);
+    }
+
+    private function entityTable(): ?string
+    {
+        return match ($this->input('entity_type')) {
+            'bus' => 'buses',
+            'line' => 'lines',
+            'agency' => 'agencies',
+            default => null,
+        };
     }
 }

@@ -13,6 +13,7 @@ use App\Modules\Finance\Data\RevenuePeriod;
 use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\Models\PaymentRefund;
+use App\Modules\Profitability\Data\EntityScope;
 use App\Modules\Profitability\Data\ProfitabilityAxis;
 use App\Modules\Profitability\Services\ProfitabilityReport;
 use Carbon\CarbonImmutable;
@@ -280,6 +281,7 @@ it('renders the profitability page with the selected axis and drawer detail', fu
             ->where('cards.0.costTotal', 8_000)
             ->where('hero.result', 8_000)
             ->where('period.preset', 'this_month')
+            ->has('timeline.points', 15)
             ->where('detail', null));
 
     $departureUuid = Departure::query()->firstOrFail()->uuid;
@@ -357,6 +359,122 @@ it('aggregates agency revenue and unassigned agency costs with a drawer detail',
         ->and($detail['departures'])->toHaveCount(1);
 });
 
+it('restricts the whole report to a bus entity filter', function (): void {
+    $scenario = profitabilityScenario();
+    $scope = EntityScope::resolve(ProfitabilityAxis::Bus, (string) $scenario['bus']->uuid);
+    $period = RevenuePeriod::fromFilters(['period' => 'this_month']);
+    $report = app(ProfitabilityReport::class)->build($period, ProfitabilityAxis::Bus, $scope);
+
+    expect($report['entity']['type'])->toBe('bus')
+        ->and($report['entity']['label'])->toBe('BJ 9254 RB')
+        ->and($report['hero']['revenueNet'])->toBe(18_000)
+        ->and($report['hero']['costAssigned'])->toBe(8_000)
+        ->and($report['hero']['costUnassigned'])->toBe(0)
+        ->and($report['hero']['networkUnassigned'])->toBe(2_000)
+        ->and($report['hero']['result'])->toBe(10_000)
+        ->and($report['reconciliation'])->toBeNull()
+        ->and($report['cards'])->toHaveCount(1)
+        ->and($report['cards'][0]['axisType'])->toBe('bus')
+        ->and($report['tco'])->toHaveCount(1);
+
+    $controlKeys = array_column($report['controls'], 'key');
+    expect($controlKeys)->not->toContain('timing')
+        ->toContain('coverage');
+
+    $detail = app(ProfitabilityReport::class)->detail(
+        $period,
+        ProfitabilityAxis::Bus,
+        (string) $scenario['bus']->uuid,
+        $scope,
+    );
+    expect($detail['card']['key'])->toBe((string) $scenario['bus']->uuid)
+        ->and($detail['departures'])->toHaveCount(1);
+});
+
+it('restricts the report to an agency as a sales channel filter', function (): void {
+    $scenario = profitabilityScenario();
+    $scope = EntityScope::resolve(ProfitabilityAxis::Agency, (string) $scenario['agency']->uuid);
+    $report = app(ProfitabilityReport::class)->build(
+        RevenuePeriod::fromFilters(['period' => 'this_month']),
+        ProfitabilityAxis::Agency,
+        $scope,
+    );
+
+    expect($report['entity']['type'])->toBe('agency')
+        ->and($report['entity']['label'])->toBe('Agence Étoile')
+        ->and($report['hero']['revenueNet'])->toBe(18_000)
+        ->and($report['hero']['costAssigned'])->toBe(8_000)
+        ->and($report['hero']['costUnassigned'])->toBe(2_000)
+        ->and($report['hero']['result'])->toBe(8_000)
+        ->and($report['tco'])->toBe([])
+        ->and($report['reconciliation'])->toBeNull();
+
+    $card = collect($report['cards'])->firstWhere('label', 'Agence Étoile');
+    expect($card)->not->toBeNull()
+        ->and($card['axisType'])->toBe('agency')
+        ->and($card['revenueNet'])->toBe(18_000);
+});
+
+it('serves a filtered page and exportable filtered workbook', function (): void {
+    $scenario = profitabilityScenario();
+    $daf = User::factory()->create();
+    $daf->assignRole('daf');
+    $busUuid = (string) $scenario['bus']->uuid;
+
+    $this->actingAs($daf)
+        ->get(route('profitability', [
+            'period' => 'this_month',
+            'axis' => 'bus',
+            'entity_type' => 'bus',
+            'entity' => $busUuid,
+        ]))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('entity.type', 'bus')
+            ->where('entity.uuid', $busUuid)
+            ->where('hero.result', 10_000)
+            ->where('reconciliation', null));
+
+    $response = $this->actingAs($daf)->get(route('profitability.export', [
+        'period' => 'this_month',
+        'axis' => 'bus',
+        'entity_type' => 'bus',
+        'entity' => $busUuid,
+    ]));
+
+    $content = $response->assertSuccessful()->streamedContent();
+    $path = tempnam(sys_get_temp_dir(), 'profitability-xlsx-');
+    expect($path)->not->toBeFalse();
+    file_put_contents($path, $content);
+    $workbook = IOFactory::load($path);
+
+    expect($workbook->getSheetByName('Synthèse')?->getCell('A4')->getValue())->toBe('Filtre')
+        ->and($workbook->getSheetByName('Synthèse')?->getCell('B4')->getValue())->toContain('BJ 9254 RB')
+        ->and(Activity::query()->where('event', 'profitability_exported')
+            ->where('properties->entity', $busUuid)->exists())->toBeTrue();
+
+    $workbook->disconnectWorksheets();
+    unlink($path);
+});
+
+it('rejects invalid or unknown entity filters', function (): void {
+    profitabilityScenario();
+    $daf = User::factory()->create();
+    $daf->assignRole('daf');
+
+    $this->actingAs($daf)
+        ->get(route('profitability', ['entity_type' => 'departure', 'entity' => (string) Str::uuid()]))
+        ->assertSessionHasErrors('entity_type');
+
+    $this->actingAs($daf)
+        ->get(route('profitability', ['entity_type' => 'bus', 'entity' => (string) Str::uuid()]))
+        ->assertSessionHasErrors('entity');
+
+    $this->actingAs($daf)
+        ->get(route('profitability', ['entity_type' => 'bus', 'entity' => 'not-a-uuid']))
+        ->assertSessionHasErrors('entity');
+});
+
 it('aggregates line and period axes without losing attributed costs', function (): void {
     $scenario = profitabilityScenario();
     $service = app(ProfitabilityReport::class);
@@ -375,4 +493,50 @@ it('aggregates line and period axes without losing attributed costs', function (
         ->and($periodCards['current']['revenueNet'])->toBe(18_000)
         ->and($periodCards['current']['costTotal'])->toBe(10_000)
         ->and($periodCards['previous']['revenueNet'])->toBe(0);
+});
+
+it('builds a cumulative revenue and cost timeline with a break-even day', function (): void {
+    profitabilityScenario();
+    $report = app(ProfitabilityReport::class)->build(
+        RevenuePeriod::fromFilters(['period' => 'this_month']),
+        ProfitabilityAxis::Bus,
+    );
+
+    $timeline = $report['timeline'];
+    expect($timeline['bucket'])->toBe('day')
+        ->and($timeline['points'])->toHaveCount(15)
+        ->and($timeline['breakEvenDay'])->toBe('05/10');
+
+    $points = collect($timeline['points'])->keyBy('key');
+    expect($points['2026-10-05']['revenue'])->toBe(18_000)
+        ->and($points['2026-10-06']['cost'])->toBe(5_000)
+        ->and($points['2026-10-08']['cost'])->toBe(2_000)
+        ->and($points['2026-10-15']['revenueCum'])->toBe(18_000)
+        ->and($points['2026-10-15']['costCum'])->toBe(10_000)
+        ->and($points['2026-10-15']['prevRevenueCum'])->toBe(0);
+});
+
+it('scopes the timeline to the entity filter', function (): void {
+    $scenario = profitabilityScenario();
+    $scope = EntityScope::resolve(ProfitabilityAxis::Bus, (string) $scenario['bus']->uuid);
+    $report = app(ProfitabilityReport::class)->build(
+        RevenuePeriod::fromFilters(['period' => 'this_month']),
+        ProfitabilityAxis::Bus,
+        $scope,
+    );
+
+    $points = collect($report['timeline']['points'])->keyBy('key');
+    expect($points['2026-10-15']['revenueCum'])->toBe(18_000)
+        ->and($points['2026-10-15']['costCum'])->toBe(8_000);
+});
+
+it('returns an empty timeline when the period has fewer than three buckets', function (): void {
+    profitabilityScenario();
+    $report = app(ProfitabilityReport::class)->build(
+        RevenuePeriod::fromFilters(['period' => 'today']),
+        ProfitabilityAxis::Bus,
+    );
+
+    expect($report['timeline']['points'])->toBe([])
+        ->and($report['timeline']['breakEvenDay'])->toBeNull();
 });

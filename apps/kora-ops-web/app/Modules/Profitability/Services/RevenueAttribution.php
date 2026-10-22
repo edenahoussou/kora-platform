@@ -13,6 +13,8 @@ use App\Modules\Finance\Services\PaymentRefundRecognizer;
 use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\Payments\Data\PaymentStatus;
 use App\Modules\Payments\Models\Payment;
+use App\Modules\Profitability\Data\EntityScope;
+use App\Modules\Profitability\Data\ProfitabilityAxis;
 use App\Modules\Profitability\Support\IntegerAllocator;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -35,9 +37,9 @@ class RevenueAttribution
     /**
      * @return array<string, mixed>
      */
-    public function build(RevenuePeriod $period): array
+    public function build(RevenuePeriod $period, ?EntityScope $scope = null): array
     {
-        $departures = $this->departures($period);
+        $departures = $this->departures($period, $scope);
         $departureMeta = $departures->mapWithKeys(fn (Departure $departure): array => [
             $departure->getKey() => [
                 'id' => (int) $departure->getKey(),
@@ -66,7 +68,46 @@ class RevenueAttribution
                 ->get(['id', 'uuid', 'reference', 'channel', 'selling_agency_id', 'total_amount', 'total_snapshot']);
 
         $reservationsById = $reservations->keyBy('id');
+
+        if ($scope?->type === ProfitabilityAxis::Agency) {
+            $reservationIds = $reservations
+                ->filter(fn (Reservation $reservation): bool => (int) $reservation->selling_agency_id === $scope->id)
+                ->map(fn (Reservation $reservation): int => (int) $reservation->getKey())
+                ->values()
+                ->all();
+        }
+
+        // Sous filtre, recharger tous les segments des réservations retenues pour
+        // ventiler les paiements multi-jambes sur leurs départs réels.
+        if ($scope !== null && $reservationIds !== []) {
+            $segments = ReservationSegment::query()
+                ->whereIn('reservation_id', $reservationIds)
+                ->get(['id', 'reservation_id', 'leg_order', 'passenger_index', 'reservation_passenger_id', 'departure_id', 'seat_id', 'status']);
+        }
+
         $segmentsByReservation = $segments->groupBy('reservation_id');
+
+        $departureUuids = [];
+        foreach ($departureMeta as $departureId => $meta) {
+            $departureUuids[$departureId] = (string) $meta['uuid'];
+        }
+
+        // Sous filtre, résoudre aussi les uuid des départs hors périmètre pour
+        // pondérer correctement les jambes multi-départs d'une réservation.
+        if ($scope !== null) {
+            $extraDepartureIds = $segments->pluck('departure_id')
+                ->map(static fn (mixed $id): int => (int) $id)
+                ->diff(array_map('intval', array_keys($departureMeta)))
+                ->unique()
+                ->values()
+                ->all();
+
+            if ($extraDepartureIds !== []) {
+                foreach (Departure::query()->withTrashed()->whereIn('id', $extraDepartureIds)->pluck('uuid', 'id') as $id => $uuid) {
+                    $departureUuids[(int) $id] = (string) $uuid;
+                }
+            }
+        }
 
         $payments = $reservationIds === []
             ? collect()
@@ -74,7 +115,7 @@ class RevenueAttribution
                 ->whereIn('reservation_id', $reservationIds)
                 ->where('status', PaymentStatus::Confirmed->value)
                 ->where('currency', self::CURRENCY)
-                ->get(['id', 'uuid', 'reservation_id', 'amount']);
+                ->get(['id', 'uuid', 'reservation_id', 'amount', 'confirmed_at']);
 
         $paymentUuids = array_values(array_map(
             static fn (mixed $uuid): string => (string) $uuid,
@@ -94,8 +135,13 @@ class RevenueAttribution
         $byAgency = [];
         $byAgencyDeparture = [];
         $unattributed = ['gross' => 0, 'deductions' => 0, 'net' => 0, 'paymentCount' => 0];
+        $unattributedByDate = [];
         $total = $this->metric();
-        $seatsByDeparture = $this->seatsByDeparture($segments);
+        $seatSegments = $segments->whereIn('departure_id', array_keys($departureMeta));
+        if ($scope?->type === ProfitabilityAxis::Agency) {
+            $seatSegments = $seatSegments->whereIn('reservation_id', $reservationIds);
+        }
+        $seatsByDeparture = $this->seatsByDeparture($seatSegments);
 
         foreach ($payments as $payment) {
             $reservation = $reservationsById->get($payment->reservation_id);
@@ -112,13 +158,26 @@ class RevenueAttribution
             $reservationSegments = $segmentsByReservation->get($reservation->getKey(), collect());
             $shares = $reservationSegments->isEmpty()
                 ? []
-                : $this->paymentShares((int) $payment->amount, $reservation, $reservationSegments, $departureMeta);
+                : $this->paymentShares((int) $payment->amount, $reservation, $reservationSegments, $departureMeta, $departureUuids);
+
+            $scopedGross = (int) $payment->amount;
+            $scopedDeductions = $recognized;
 
             if ($shares === []) {
                 $unattributed['gross'] += (int) $payment->amount;
                 $unattributed['deductions'] += $recognized;
                 $unattributed['paymentCount']++;
+
+                if ($payment->confirmed_at !== null) {
+                    $paymentDate = CarbonImmutable::instance($payment->confirmed_at)->setTimezone(RevenuePeriod::TIMEZONE)->toDateString();
+                    $unattributedByDate[$paymentDate] = ($unattributedByDate[$paymentDate] ?? 0) + (int) $payment->amount - $recognized;
+                }
             } else {
+                if ($scope !== null) {
+                    $scopedGross = array_sum($shares);
+                    $scopedDeductions = 0;
+                }
+
                 foreach ($shares as $departureId => $amount) {
                     if (! isset($byDeparture[$departureId])) {
                         $byDeparture[$departureId] = ['gross' => 0, 'deductions' => 0, 'net' => 0, 'seatsSold' => 0];
@@ -128,20 +187,24 @@ class RevenueAttribution
                 }
 
                 if ($recognized > 0) {
-                    $deductionShares = $this->paymentShares($recognized, $reservation, $reservationSegments, $departureMeta);
+                    $deductionShares = $this->paymentShares($recognized, $reservation, $reservationSegments, $departureMeta, $departureUuids);
                     foreach ($deductionShares as $departureId => $amount) {
                         if (! isset($byDeparture[$departureId])) {
                             $byDeparture[$departureId] = ['gross' => 0, 'deductions' => 0, 'net' => 0, 'seatsSold' => 0];
                         }
                         $byDeparture[$departureId]['deductions'] += $amount;
                     }
+
+                    if ($scope !== null) {
+                        $scopedDeductions = array_sum($deductionShares);
+                    }
                 }
             }
 
-            $byAgency[$agencyKey]['gross'] += (int) $payment->amount;
-            $byAgency[$agencyKey]['deductions'] += $recognized;
-            $total['gross'] += (int) $payment->amount;
-            $total['deductions'] += $recognized;
+            $byAgency[$agencyKey]['gross'] += $scopedGross;
+            $byAgency[$agencyKey]['deductions'] += $scopedDeductions;
+            $total['gross'] += $scopedGross;
+            $total['deductions'] += $scopedDeductions;
         }
 
         foreach ($byDeparture as $departureId => $metric) {
@@ -167,6 +230,7 @@ class RevenueAttribution
             'byAgency' => $byAgency,
             'byAgencyDeparture' => $byAgencyDeparture,
             'unattributed' => $unattributed,
+            'unattributedByDate' => $unattributedByDate,
             'postPeriodDeductions' => $postPeriodDeductions,
             'nonXofPaymentCount' => $this->nonXofPaymentCount($reservationIds),
         ];
@@ -175,11 +239,11 @@ class RevenueAttribution
     /**
      * @return Collection<int, Departure>
      */
-    private function departures(RevenuePeriod $period): Collection
+    private function departures(RevenuePeriod $period, ?EntityScope $scope): Collection
     {
         $model = new Departure;
 
-        return Departure::query()
+        $query = Departure::query()
             ->withTrashed()
             ->where(function (Builder $query) use ($period, $model): void {
                 $query->where(function (Builder $inner) use ($period, $model): void {
@@ -189,13 +253,28 @@ class RevenueAttribution
                     $inner->whereNull('scheduled_at')
                         ->whereBetween('departure_date', [$period->localStart->toDateString(), $period->localEnd->toDateString()]);
                 });
-            })
-            ->get(['id', 'uuid', 'bus_id', 'line_id', 'scheduled_at', 'departure_date', 'departure_time', 'departure_timezone', 'status']);
+            });
+
+        if ($scope !== null) {
+            match ($scope->type) {
+                ProfitabilityAxis::Bus => $query->where('bus_id', $scope->id),
+                ProfitabilityAxis::Line => $query->where('line_id', $scope->id),
+                ProfitabilityAxis::Agency => $query->whereIn('id',
+                    ReservationSegment::query()
+                        ->select('departure_id')
+                        ->whereHas('reservation', fn (Builder $inner) => $inner->where('selling_agency_id', $scope->id))
+                ),
+                default => null,
+            };
+        }
+
+        return $query->get(['id', 'uuid', 'bus_id', 'line_id', 'scheduled_at', 'departure_date', 'departure_time', 'departure_timezone', 'status']);
     }
 
     /**
      * @param  Collection<int, ReservationSegment>  $segments
      * @param  array<int, array<string, mixed>>  $departureMeta
+     * @param  array<int, string>  $departureUuids
      * @return array<int, int>
      */
     private function paymentShares(
@@ -203,6 +282,7 @@ class RevenueAttribution
         Reservation $reservation,
         Collection $segments,
         array $departureMeta,
+        array $departureUuids,
     ): array {
         if ($amount <= 0) {
             return [];
@@ -235,11 +315,7 @@ class RevenueAttribution
             $legWeights = [];
 
             foreach ($segmentsByPassenger->get($passengerKey) as $segment) {
-                if (! isset($departureMeta[$segment->departure_id])) {
-                    continue;
-                }
-
-                $legWeights[$segment->getKey()] = $this->legWeight($snapshot, $segment, $departureMeta);
+                $legWeights[$segment->getKey()] = $this->legWeight($snapshot, $segment, $departureUuids);
             }
 
             if ($legWeights === []) {
@@ -260,17 +336,20 @@ class RevenueAttribution
             }
         }
 
-        return array_filter($shares, static fn (int $share): bool => $share !== 0);
+        return array_filter(
+            array_intersect_key($shares, $departureMeta),
+            static fn (int $share): bool => $share !== 0,
+        );
     }
 
     /**
      * @param  array<string, mixed>  $snapshot
-     * @param  array<int, array<string, mixed>>  $departureMeta
+     * @param  array<int, string>  $departureUuids
      */
-    private function legWeight(array $snapshot, ReservationSegment $segment, array $departureMeta): int
+    private function legWeight(array $snapshot, ReservationSegment $segment, array $departureUuids): int
     {
         $legs = is_array($snapshot['legs'] ?? null) ? $snapshot['legs'] : [];
-        $departureUuid = $departureMeta[$segment->departure_id]['uuid'] ?? null;
+        $departureUuid = $departureUuids[$segment->departure_id] ?? null;
 
         foreach ($legs as $leg) {
             if (! is_array($leg)) {
