@@ -69,8 +69,8 @@ it('exposes the configured mobile payment catalog without credentials', function
         ->assertJsonPath('data.currency', 'XOF')
         ->assertJsonPath('data.methods.0.code', 'mobile_money')
         ->assertJsonPath('data.methods.0.providers.0.verification', 'server_verify')
-        ->assertJsonPath('data.methods.1.code', 'wallet')
-        ->assertJsonPath('data.methods.1.enabled', false)
+        ->assertJsonPath('data.methods.2.code', 'wallet')
+        ->assertJsonPath('data.methods.2.enabled', false)
         ->assertJsonMissingPath('data.methods.0.providers.0.api_key');
 });
 
@@ -255,9 +255,9 @@ it('keeps the wallet in the catalog while rejecting wallet initiation until acti
 
     $this->getJson('/api/v1/payments/methods')
         ->assertOk()
-        ->assertJsonPath('data.methods.1.code', 'wallet')
-        ->assertJsonPath('data.methods.1.enabled', false)
-        ->assertJsonPath('data.methods.1.availability', 'disabled_until_wallet_ledger');
+        ->assertJsonPath('data.methods.2.code', 'wallet')
+        ->assertJsonPath('data.methods.2.enabled', false)
+        ->assertJsonPath('data.methods.2.availability', 'disabled_until_wallet_ledger');
 
     $this->postJson('/api/v1/payments/initiate', [
         'reservation_uuid' => $scenario['reservation']->uuid,

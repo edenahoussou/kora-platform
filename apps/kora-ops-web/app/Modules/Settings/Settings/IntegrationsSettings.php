@@ -112,6 +112,18 @@ final class IntegrationsSettings extends Settings
 
     public string $fedapayCeltiisCashMode = 'celtiis';
 
+    public string $fedapayMtnMomoCiMode = 'mtn_ci';
+
+    public string $fedapayMoovFloozCiMode = 'moov_ci';
+
+    public string $fedapayWaveCiMode = 'wave_ci';
+
+    public string $fedapayOrangeMoneyCiMode = 'orange_ci';
+
+    public string $fedapayMoovFloozTgMode = 'moov_tg';
+
+    public string $fedapayTmoneyTgMode = 'tmoney';
+
     public bool $mtnMomoEnabled = false;
 
     public ?string $mtnMomoSubscriptionKey = null;
@@ -131,6 +143,23 @@ final class IntegrationsSettings extends Settings
     public string $mtnMomoProductionCurrency = 'XOF';
 
     public ?string $mtnMomoWebhookSecret = null;
+
+    public bool $kkiapayEnabled = false;
+
+    public ?string $kkiapayPublicKey = null;
+
+    public ?string $kkiapayPrivateKey = null;
+
+    public ?string $kkiapaySecretKey = null;
+
+    public string $kkiapayEnvironment = 'sandbox';
+
+    public ?string $kkiapayCallbackUrl = null;
+
+    public ?string $kkiapayWebhookSecret = null;
+
+    /** @var list<string> */
+    public array $kkiapayCountries = ['BJ', 'TG', 'CI'];
 
     public string $mapProvider = 'openstreetmap';
 
@@ -205,6 +234,9 @@ final class IntegrationsSettings extends Settings
             'mtnMomoUserId',
             'mtnMomoApiKey',
             'mtnMomoWebhookSecret',
+            'kkiapayPrivateKey',
+            'kkiapaySecretKey',
+            'kkiapayWebhookSecret',
             'mapGoogleApiKey',
             'genukaToken',
             'genukaConnectionId',

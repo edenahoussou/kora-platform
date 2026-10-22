@@ -188,6 +188,14 @@ _Avoid_: Classer une vente d'après le canal d'origine de la demande ; appeler u
 Moyen, fournisseur d'intégration et réseau ayant réellement porté le paiement. Le moyen et le fournisseur décrivent comment l'argent a été reçu ; ils ne constituent pas une seconde recette à additionner au canal de vente.
 _Avoid_: Déduire un fournisseur du seul canal ; afficher le réseau Mobile Money d'un guichet comme un fournisseur d'intégration
 
+**Passerelle widget (`sdk_widget`)**:
+Fournisseur dont la fenêtre de paiement s'ouvre côté client à partir d'une configuration renvoyée par `initiate` (clé publique, montant, `partnerId = payment.uuid`, méthodes et pays autorisés). Le `transactionId` rendu par le widget est lié au paiement puis vérifié côté serveur ; la réponse du widget seule ne confirme jamais.
+_Avoid_: Push serveur vers un numéro ; faire confiance au `transactionId` sans `transactions/status`
+
+**Réseau Mobile Money multi-pays**:
+Valeur de `MobileMoneyNetwork` suffixée par pays (`wave_ci`, `tmoney_tg`, …) lorsque le même opérateur existe sur plusieurs marchés. Le pays se déduit du réseau via `country()` ; les réseaux sans suffixe restent béninois.
+_Avoid_: Champ pays de paiement indépendant pouvant contredire le réseau ; réseau BJ réutilisé pour un autre pays
+
 **Vente via l'application passager**:
 Vente finalisée dans le parcours mobile, dont la source d'encaissement peut être détaillée par fournisseur d'intégration et réseau ou par un moyen mobile reconnu.
 _Avoid_: Fusionner l'application passager avec une ligne générique « En ligne » ; rattacher automatiquement une vente mobile à une agence

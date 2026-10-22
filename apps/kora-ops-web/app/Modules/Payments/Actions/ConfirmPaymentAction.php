@@ -44,6 +44,7 @@ class ConfirmPaymentAction
             }
 
             $isSuccess = in_array(strtolower($status), ['success', 'confirmed'], true);
+            $isPending = strtolower($status) === 'pending';
 
             $mergedPayload = array_merge($lockedPayment->provider_payload ?? [], $providerPayload);
 
@@ -72,6 +73,12 @@ class ConfirmPaymentAction
                     $this->recordPromotionRedemption->execute($reservation);
                     $reservationId = $reservation->id;
                 }
+            } elseif ($isPending) {
+                // A still-pending provider answer refreshes the audit payload
+                // without failing the payment.
+                $lockedPayment->update([
+                    'provider_payload' => $mergedPayload,
+                ]);
             } else {
                 $lockedPayment->update([
                     'status' => PaymentStatus::Failed,

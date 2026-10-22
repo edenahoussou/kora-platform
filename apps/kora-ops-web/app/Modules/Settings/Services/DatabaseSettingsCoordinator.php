@@ -16,6 +16,7 @@ use Illuminate\Database\DatabaseManager;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use ReflectionClass;
 use Spatie\LaravelSettings\Settings;
@@ -269,6 +270,12 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
             'fedapayMtnMomoMode' => ['required', 'string', 'max:32'],
             'fedapayMoovFloozMode' => ['required', 'string', 'max:32'],
             'fedapayCeltiisCashMode' => ['required', 'string', 'max:32'],
+            'fedapayMtnMomoCiMode' => ['required', 'string', 'max:32'],
+            'fedapayMoovFloozCiMode' => ['required', 'string', 'max:32'],
+            'fedapayWaveCiMode' => ['required', 'string', 'max:32'],
+            'fedapayOrangeMoneyCiMode' => ['required', 'string', 'max:32'],
+            'fedapayMoovFloozTgMode' => ['required', 'string', 'max:32'],
+            'fedapayTmoneyTgMode' => ['required', 'string', 'max:32'],
             'mtnMomoEnabled' => ['required', 'boolean'],
             'mtnMomoSubscriptionKey' => ['nullable', 'string', 'max:500'],
             'mtnMomoUserId' => ['nullable', 'string', 'max:500'],
@@ -279,6 +286,15 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
             'mtnMomoSandboxCurrency' => ['required', 'regex:/^[A-Z]{3}$/'],
             'mtnMomoProductionCurrency' => ['required', 'regex:/^[A-Z]{3}$/'],
             'mtnMomoWebhookSecret' => ['nullable', 'string', 'max:500'],
+            'kkiapayEnabled' => ['required', 'boolean'],
+            'kkiapayPublicKey' => ['nullable', 'string', 'max:500'],
+            'kkiapayPrivateKey' => ['nullable', 'string', 'max:500'],
+            'kkiapaySecretKey' => ['nullable', 'string', 'max:500'],
+            'kkiapayEnvironment' => ['required', 'in:sandbox,production'],
+            'kkiapayCallbackUrl' => ['nullable', 'url:http,https', 'max:500'],
+            'kkiapayWebhookSecret' => ['nullable', 'string', 'max:500'],
+            'kkiapayCountries' => ['required', 'array', 'min:1'],
+            'kkiapayCountries.*' => ['string', Rule::in(['BJ', 'TG', 'CI', 'SN', 'NE'])],
             'mapProvider' => ['required', 'in:openstreetmap,google'],
             'mapGoogleApiKey' => ['nullable', 'string', 'max:500'],
             'mapOsmTileUrl' => ['required', 'regex:/^https?:\\/\\/.+/', 'max:500'],
@@ -400,6 +416,11 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
 
         if ((bool) $values['mtnMomoEnabled'] && (blank($values['mtnMomoSubscriptionKey']) || blank($values['mtnMomoUserId']) || blank($values['mtnMomoApiKey']))) {
             $errors['mtnMomoSubscriptionKey'] = 'MTN MoMo credentials are required when the provider is enabled.';
+        }
+
+        if ((bool) $values['kkiapayEnabled']
+            && (blank($values['kkiapayPublicKey']) || blank($values['kkiapayPrivateKey']) || blank($values['kkiapaySecretKey']))) {
+            $errors['kkiapayPublicKey'] = 'Les trois clés API KKiaPay sont requises pour activer le provider.';
         }
 
         if ($values['mapProvider'] === 'google' && blank($values['mapGoogleApiKey'])) {

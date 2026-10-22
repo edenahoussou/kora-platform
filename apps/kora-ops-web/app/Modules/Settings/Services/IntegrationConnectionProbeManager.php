@@ -7,6 +7,7 @@ use App\Modules\Settings\Data\ConnectionProbeResult;
 use App\Modules\Settings\Services\Probes\ConexteoConnectionProbe;
 use App\Modules\Settings\Services\Probes\EmecfConnectionProbe;
 use App\Modules\Settings\Services\Probes\FedaPayConnectionProbe;
+use App\Modules\Settings\Services\Probes\KKiaPayConnectionProbe;
 use App\Modules\Settings\Services\Probes\MtnMomoConnectionProbe;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -20,12 +21,14 @@ final class IntegrationConnectionProbeManager
         EmecfConnectionProbe $emecf,
         FedaPayConnectionProbe $fedapay,
         MtnMomoConnectionProbe $mtnMomo,
+        KKiaPayConnectionProbe $kkiapay,
         ConexteoConnectionProbe $conexteo,
     ) {
         $this->probes = [
             $emecf->provider() => $emecf,
             $fedapay->provider() => $fedapay,
             $mtnMomo->provider() => $mtnMomo,
+            $kkiapay->provider() => $kkiapay,
             $conexteo->provider() => $conexteo,
         ];
     }

@@ -38,6 +38,7 @@ use App\Modules\Notifications\Channels\SmsChannel;
 use App\Modules\Notifications\Observers\PaymentRefundNotificationObserver;
 use App\Modules\Payments\Models\PaymentRefund;
 use App\Modules\Payments\Providers\FedaPayAdapter;
+use App\Modules\Payments\Providers\KKiaPayAdapter;
 use App\Modules\Payments\Providers\MtnMomoAdapter;
 use App\Modules\Settings\Contracts\SettingsCoordinator;
 use App\Modules\Settings\Services\DatabaseSettingsCoordinator;
@@ -141,7 +142,27 @@ class AppServiceProvider extends ServiceProvider
                     'mtn_momo' => $settings->fedapayMtnMomoMode,
                     'moov_flooz' => $settings->fedapayMoovFloozMode,
                     'celtiis_cash' => $settings->fedapayCeltiisCashMode,
+                    'mtn_momo_ci' => $settings->fedapayMtnMomoCiMode,
+                    'moov_flooz_ci' => $settings->fedapayMoovFloozCiMode,
+                    'wave_ci' => $settings->fedapayWaveCiMode,
+                    'orange_money_ci' => $settings->fedapayOrangeMoneyCiMode,
+                    'moov_flooz_tg' => $settings->fedapayMoovFloozTgMode,
+                    'tmoney_tg' => $settings->fedapayTmoneyTgMode,
                 ],
+            );
+        });
+
+        $this->app->bind(KKiaPayAdapter::class, function (): KKiaPayAdapter {
+            $settings = app(IntegrationsSettings::class);
+
+            return new KKiaPayAdapter(
+                publicKey: (string) ($settings->kkiapayPublicKey ?? ''),
+                privateKey: (string) ($settings->kkiapayPrivateKey ?? ''),
+                secretKey: (string) ($settings->kkiapaySecretKey ?? ''),
+                environment: $settings->kkiapayEnvironment,
+                callbackUrl: $settings->kkiapayCallbackUrl,
+                webhookSecret: $settings->kkiapayWebhookSecret,
+                countries: $settings->kkiapayCountries,
             );
         });
 

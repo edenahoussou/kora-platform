@@ -20,11 +20,21 @@ class InitiatePaymentRequest extends FormRequest
     {
         return [
             'reservation_uuid' => ['required', 'uuid', 'exists:reservations,uuid'],
-            'method' => ['required', 'string', Rule::in(['mobile_money', 'wallet'])],
-            'provider' => ['required_if:method,mobile_money', 'nullable', 'string', Rule::in(['fedapay', 'mtn_momo'])],
+            'method' => ['required', 'string', Rule::in(['mobile_money', 'card', 'wallet'])],
+            'provider' => ['required_if:method,mobile_money', 'required_if:method,card', 'nullable', 'string', Rule::in(['fedapay', 'mtn_momo', 'kkiapay'])],
             'idempotency_key' => ['required', 'string', 'max:255'],
-            'phone' => ['required_if:method,mobile_money', 'nullable', 'string', 'max:32'],
-            'mobile_money_network' => ['required_if:method,mobile_money', 'nullable', 'string', Rule::in(MobileMoneyNetwork::values())],
+            'phone' => [
+                Rule::requiredIf(fn (): bool => $this->input('method') === 'mobile_money' && $this->input('provider') !== 'kkiapay'),
+                'nullable',
+                'string',
+                'max:32',
+            ],
+            'mobile_money_network' => [
+                Rule::requiredIf(fn (): bool => $this->input('method') === 'mobile_money' && $this->input('provider') !== 'kkiapay'),
+                'nullable',
+                'string',
+                Rule::in(MobileMoneyNetwork::values()),
+            ],
             'wallet_amount' => ['required_if:method,wallet', 'nullable', 'integer', 'min:0'],
             'mobile_money_amount' => ['nullable', 'integer', 'min:0'],
         ];

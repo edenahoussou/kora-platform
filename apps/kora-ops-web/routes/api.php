@@ -324,6 +324,8 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         ->name('payments.webhook.fedapay');
     Route::post('payments/webhook/mtn-momo', [PaymentController::class, 'webhookMtnMomo'])
         ->name('payments.webhook.mtn-momo');
+    Route::post('payments/webhook/kkiapay', [PaymentController::class, 'webhookKkiapay'])
+        ->name('payments.webhook.kkiapay');
 
     // Provider callback endpoint (redirect or POST after payment processing).
     Route::match(['get', 'post'], 'payments/callback/fedapay', [PaymentController::class, 'callbackFedaPay'])
