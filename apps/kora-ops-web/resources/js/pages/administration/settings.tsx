@@ -1630,6 +1630,66 @@ export default function SettingsPage({
                         />
                     </div>
                 </SettingsSection>
+                <SettingsSection
+                    title="Rentabilité et GPS"
+                    description="Qualité GPS exigée pour calculer la distance réelle, le coût/km et le TCO opérationnel. Sous la couverture minimale, la distance planifiée est utilisée et marquée « estimé »."
+                >
+                    <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                        <SettingsField
+                            label="Couverture GPS minimale"
+                            hint="Part de la session couverte par des positions valides pour retenir la distance GPS."
+                            value={
+                                value(
+                                    'profitabilityGpsMinCoveragePercent',
+                                ) as number
+                            }
+                            type="number"
+                            suffix="%"
+                            disabled={!permissions.canManage}
+                            error={error('profitabilityGpsMinCoveragePercent')}
+                            onChange={(nextValue) =>
+                                setNumber(
+                                    'profitabilityGpsMinCoveragePercent',
+                                    nextValue,
+                                )
+                            }
+                        />
+                        <SettingsField
+                            label="Trou GPS maximal"
+                            hint="Au-delà, le segment est ignoré et n’entre pas dans la distance."
+                            value={
+                                value('profitabilityGpsMaxGapMinutes') as number
+                            }
+                            type="number"
+                            suffix="min"
+                            disabled={!permissions.canManage}
+                            error={error('profitabilityGpsMaxGapMinutes')}
+                            onChange={(nextValue) =>
+                                setNumber(
+                                    'profitabilityGpsMaxGapMinutes',
+                                    nextValue,
+                                )
+                            }
+                        />
+                        <SettingsField
+                            label="Vitesse implicite maximale"
+                            hint="Un segment plus rapide est considéré aberrant et ignoré."
+                            value={
+                                value('profitabilityGpsMaxSpeedKmh') as number
+                            }
+                            type="number"
+                            suffix="km/h"
+                            disabled={!permissions.canManage}
+                            error={error('profitabilityGpsMaxSpeedKmh')}
+                            onChange={(nextValue) =>
+                                setNumber(
+                                    'profitabilityGpsMaxSpeedKmh',
+                                    nextValue,
+                                )
+                            }
+                        />
+                    </div>
+                </SettingsSection>
                 <details
                     className="group rounded-2xl border border-border bg-card shadow-sm"
                     open={false}

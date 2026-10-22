@@ -254,6 +254,17 @@ class _Content extends StatelessWidget {
               ),
             ),
             KoraMenuItem(
+              icon: Icons.sms_rounded,
+              title: l10n.preferencesSms,
+              subtitle: l10n.preferencesSmsSub,
+              trailing: KoraToggle(
+                value: preferences.smsNotifications,
+                semanticLabel: l10n.preferencesSms,
+                onChanged: (value) =>
+                    onChanged(preferences.copyWith(smsNotifications: value)),
+              ),
+            ),
+            KoraMenuItem(
               icon: Icons.mail_rounded,
               title: l10n.preferencesEmail,
               subtitle: l10n.preferencesEmailSub,

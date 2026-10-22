@@ -68,6 +68,12 @@ final class OperationsSettings extends Settings
 
     public int $trackingCacheTtlSeconds = 600;
 
+    public int $profitabilityGpsMinCoveragePercent = 70;
+
+    public int $profitabilityGpsMaxGapMinutes = 15;
+
+    public int $profitabilityGpsMaxSpeedKmh = 140;
+
     public bool $groupDiscountEnabled = true;
 
     public int $groupDiscountPassengerThreshold = 10;

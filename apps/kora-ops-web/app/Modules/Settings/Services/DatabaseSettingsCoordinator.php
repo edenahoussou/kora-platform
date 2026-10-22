@@ -201,6 +201,9 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
                 'trackingMaxPositionAgeMinutes' => ['required', 'integer', 'min:1', 'max:1440'],
                 'trackingMaxPositionsPerBatch' => ['required', 'integer', 'min:1', 'max:1000'],
                 'trackingCacheTtlSeconds' => ['required', 'integer', 'min:0', 'max:86400'],
+                'profitabilityGpsMinCoveragePercent' => ['required', 'integer', 'min:0', 'max:100'],
+                'profitabilityGpsMaxGapMinutes' => ['required', 'integer', 'min:1', 'max:1440'],
+                'profitabilityGpsMaxSpeedKmh' => ['required', 'integer', 'min:1', 'max:400'],
                 'groupDiscountEnabled' => ['required', 'boolean'],
                 'groupDiscountPassengerThreshold' => [
                     'required',

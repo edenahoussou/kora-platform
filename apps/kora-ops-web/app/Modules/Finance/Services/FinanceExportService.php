@@ -11,7 +11,7 @@ class FinanceExportService
 {
     /**
      * @param  list<string>  $headers
-     * @param  iterable<array<int, string|int|null>>  $rows
+     * @param  iterable<array<int, string|int|float|null>>  $rows
      */
     public function csv(string $filename, array $headers, iterable $rows): StreamedResponse
     {
@@ -23,7 +23,7 @@ class FinanceExportService
             fwrite($stream, "\xEF\xBB\xBF");
             fputcsv($stream, $headers, ';', '"', '');
             foreach ($rows as $row) {
-                fputcsv($stream, array_map(fn (string|int|null $cell): string|int => $this->safeCell($cell), $row), ';', '"', '');
+                fputcsv($stream, array_map(fn (string|int|float|null $cell): string|int|float => $this->safeCell($cell), $row), ';', '"', '');
             }
             fclose($stream);
         }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
@@ -31,7 +31,7 @@ class FinanceExportService
 
     /**
      * @param  list<string>  $headers
-     * @param  iterable<array<int, string|int|null>>  $rows
+     * @param  iterable<array<int, string|int|float|null>>  $rows
      */
     public function xlsx(string $filename, array $headers, iterable $rows): StreamedResponse
     {
@@ -43,7 +43,7 @@ class FinanceExportService
     }
 
     /**
-     * @param  list<array{title: string, headers: list<string>, rows: iterable<array<int, string|int|null>>}>  $sheets
+     * @param  list<array{title: string, headers: list<string>, rows: iterable<array<int, string|int|float|null>>}>  $sheets
      */
     public function workbook(string $filename, array $sheets): StreamedResponse
     {
@@ -64,7 +64,7 @@ class FinanceExportService
 
             $line = 2;
             foreach ($definition['rows'] as $row) {
-                $sheet->fromArray(array_map(fn (string|int|null $cell): string|int => $this->safeCell($cell), $row), null, 'A'.$line);
+                $sheet->fromArray(array_map(fn (string|int|float|null $cell): string|int|float => $this->safeCell($cell), $row), null, 'A'.$line);
                 $line++;
             }
 
@@ -88,9 +88,9 @@ class FinanceExportService
         }, $filename, ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
     }
 
-    private function safeCell(string|int|null $value): string|int
+    private function safeCell(string|int|float|null $value): string|int|float
     {
-        if (is_int($value)) {
+        if (is_int($value) || is_float($value)) {
             return $value;
         }
 

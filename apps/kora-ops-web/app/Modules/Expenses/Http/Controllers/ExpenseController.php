@@ -30,7 +30,7 @@ class ExpenseController extends Controller
         $expenses = $expenseQuery->build($request->user(), $filters)->paginate(20)->withQueryString();
         $expenseDetail = null;
         if ($request->filled('expense')) {
-            $detail = Expense::query()->with(['category', 'agency', 'creator', 'approver', 'cashLedger.agencyPaymentAccount', 'cashMovement', 'media'])->where('uuid', $request->string('expense')->value())->firstOrFail();
+            $detail = Expense::query()->with(['category', 'agency', 'creator', 'approver', 'cashLedger.agencyPaymentAccount', 'cashMovement', 'media', 'bus', 'line', 'departure.line', 'maintenanceDetails'])->where('uuid', $request->string('expense')->value())->firstOrFail();
             Gate::authorize('view', $detail);
             $expenseDetail = $this->serializeDetail($detail, $request);
         }
@@ -41,6 +41,7 @@ class ExpenseController extends Controller
             'statuses' => $expenseQuery->statuses(),
             'channels' => $expenseQuery->channels(),
             'categories' => $expenseQuery->categories(),
+            'costCenters' => $expenseQuery->costCenters($request->user()),
             'ledgers' => CashLedger::query()->with('agencyPaymentAccount')->where('status', 'open')->whereHas('cashSession', fn ($query) => $query->where('agency_id', $request->user()->agency_id)->where('status', 'open'))->get()->map(fn (CashLedger $ledger): array => [
                 'uuid' => $ledger->uuid,
                 'label' => $ledger->kind->value === 'cash' ? 'Espèces' : ($ledger->agencyPaymentAccount->label ?? 'Mobile Money'),
@@ -49,6 +50,8 @@ class ExpenseController extends Controller
             'permissions' => [
                 'canCreate' => $request->user()->can('create', Expense::class),
                 'canExport' => $request->user()->can('export', Expense::class),
+                'canAttachCostCenter' => $request->user()->can('attachCostCenter', Expense::class),
+                'canChooseAgency' => $request->user()->agency_id === null,
             ],
             'expenseDetail' => $expenseDetail,
         ]);
@@ -57,7 +60,7 @@ class ExpenseController extends Controller
     public function show(Request $request, Expense $expense): RedirectResponse
     {
         Gate::authorize('view', $expense);
-        $expense->load(['category', 'agency', 'creator', 'approver', 'cashLedger.agencyPaymentAccount', 'cashMovement', 'media']);
+        $expense->load(['category', 'agency', 'creator', 'approver', 'cashLedger.agencyPaymentAccount', 'cashMovement', 'media', 'bus', 'line', 'departure.line', 'maintenanceDetails']);
 
         return to_route('expenses.index', ['expense' => $expense->uuid]);
     }
@@ -110,9 +113,10 @@ class ExpenseController extends Controller
             $expense->currency,
             $expense->status->label(),
             $expense->payee_label,
+            $this->costCenterLabel($expense),
             $expense->occurred_at->toIso8601String(),
         ]);
-        $headers = ['Référence', 'Agence', 'Catégorie', 'Moyen', 'Montant', 'Devise', 'Statut', 'Bénéficiaire', 'Date'];
+        $headers = ['Référence', 'Agence', 'Catégorie', 'Moyen', 'Montant', 'Devise', 'Statut', 'Bénéficiaire', 'Centre de coût', 'Date'];
         $format = $request->string('format')->value() === 'xlsx' ? 'xlsx' : 'csv';
         activity('finance')
             ->causedBy($request->user())
@@ -130,6 +134,28 @@ class ExpenseController extends Controller
         $media = Media::query()->where('uuid', $mediaUuid)->where('model_type', Expense::class)->where('model_id', $expense->getKey())->firstOrFail();
 
         return $media->toInlineResponse($request);
+    }
+
+    private function costCenterType(Expense $expense): string
+    {
+        return match (true) {
+            $expense->departure_id !== null => 'departure',
+            $expense->bus_id !== null => 'bus',
+            $expense->line_id !== null => 'line',
+            default => 'agency',
+        };
+    }
+
+    private function costCenterLabel(Expense $expense): ?string
+    {
+        return match (true) {
+            $expense->departure_id !== null => $expense->departure === null
+                ? 'Départ '.$expense->departure_id
+                : 'Départ '.$expense->departure->scheduledDepartureAt()->setTimezone('Africa/Porto-Novo')->format('d/m/Y H:i').' · '.($expense->departure->line->code ?? ''),
+            $expense->bus_id !== null => $expense->bus?->registration_number,
+            $expense->line_id !== null => $expense->line?->code,
+            default => null,
+        };
     }
 
     /** @return array<string, mixed> */
@@ -151,6 +177,8 @@ class ExpenseController extends Controller
             'occurredAt' => $expense->occurred_at->toIso8601String(),
             'hasEvidence' => $expense->hasMedia('evidence'),
             'isReconciled' => $expense->cash_ledger_id !== null,
+            'costCenterType' => $this->costCenterType($expense),
+            'costCenter' => $this->costCenterLabel($expense),
         ];
     }
 
@@ -164,6 +192,21 @@ class ExpenseController extends Controller
             'approvedBy' => $expense->approver?->name,
             'rejectionReason' => $expense->rejection_reason,
             'reversalReason' => $expense->reversal_reason,
+            'costCenterUuid' => match (true) {
+                $expense->departure_id !== null => $expense->departure?->uuid,
+                $expense->bus_id !== null => $expense->bus?->uuid,
+                $expense->line_id !== null => $expense->line?->uuid,
+                default => null,
+            },
+            'maintenance' => $expense->maintenanceDetails === null ? null : [
+                'type' => $expense->maintenanceDetails->maintenance_type->value,
+                'typeLabel' => $expense->maintenanceDetails->maintenance_type->label(),
+                'garageLabel' => $expense->maintenanceDetails->garage_label,
+                'partsAmount' => $expense->maintenanceDetails->parts_amount,
+                'laborAmount' => $expense->maintenanceDetails->labor_amount,
+                'immobilizedFrom' => $expense->maintenanceDetails->immobilized_from?->toDateString(),
+                'immobilizedTo' => $expense->maintenanceDetails->immobilized_to?->toDateString(),
+            ],
             'media' => $expense->getMedia('evidence')->map(fn (Media $media): array => [
                 'uuid' => $media->uuid,
                 'name' => $media->name,

@@ -338,3 +338,13 @@ function revenueRefund(Payment $payment, int $amount, string $status, string $lo
 
     return $refund;
 }
+
+it('supports current and previous quarter presets', function (): void {
+    $thisQuarter = RevenuePeriod::fromFilters(['period' => 'this_quarter']);
+    $lastQuarter = RevenuePeriod::fromFilters(['period' => 'last_quarter']);
+
+    expect($thisQuarter->localStart->toDateString())->toBe('2026-07-01')
+        ->and($thisQuarter->localEnd->toDateString())->toBe('2026-09-19')
+        ->and($lastQuarter->localStart->toDateString())->toBe('2026-04-01')
+        ->and($lastQuarter->localEnd->toDateString())->toBe('2026-06-30');
+});

@@ -34,6 +34,9 @@ export type OperationsSettingsValues = {
     groupDiscountEnabled: boolean;
     groupDiscountPassengerThreshold: number;
     groupDiscountPercentage: number;
+    profitabilityGpsMinCoveragePercent: number;
+    profitabilityGpsMaxGapMinutes: number;
+    profitabilityGpsMaxSpeedKmh: number;
 };
 
 export type IntegrationsSettingsValues = Record<

@@ -13,4 +13,6 @@ return [
     'settings.integrations.manage' => "Gérer les paramètres d'intégration",
     'passengers.erase' => 'Effacer définitivement un compte passager',
     'sensitive-data.export' => 'Exporter les données sensibles',
+    'profitability.view' => 'Consulter la rentabilité',
+    'profitability.export' => 'Exporter la rentabilité',
 ];

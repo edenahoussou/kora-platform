@@ -279,3 +279,40 @@ it('persists group discount settings within the configured passenger bounds', fu
         $admin,
     ))->toThrow(ValidationException::class);
 });
+
+it('exposes profitability GPS thresholds and validates their bounds', function (): void {
+    $admin = settingsAdmin();
+    $this->actingAs($admin);
+    $coordinator = app(SettingsCoordinator::class);
+    $defaults = $coordinator->snapshot(SettingsGroup::Operations)->values;
+
+    expect($defaults['profitabilityGpsMinCoveragePercent'])->toBe(70)
+        ->and($defaults['profitabilityGpsMaxGapMinutes'])->toBe(15)
+        ->and($defaults['profitabilityGpsMaxSpeedKmh'])->toBe(140);
+
+    $snapshot = $coordinator->update(
+        SettingsGroup::Operations,
+        new OperationsSettingsUpdate([
+            'profitabilityGpsMinCoveragePercent' => 85,
+            'profitabilityGpsMaxGapMinutes' => 20,
+            'profitabilityGpsMaxSpeedKmh' => 120,
+        ]),
+        $admin,
+    );
+
+    expect($snapshot->values['profitabilityGpsMinCoveragePercent'])->toBe(85)
+        ->and($snapshot->values['profitabilityGpsMaxGapMinutes'])->toBe(20)
+        ->and(app(OperationsSettings::class)->profitabilityGpsMaxSpeedKmh)->toBe(120);
+
+    expect(fn () => $coordinator->update(
+        SettingsGroup::Operations,
+        new OperationsSettingsUpdate(['profitabilityGpsMinCoveragePercent' => 101]),
+        $admin,
+    ))->toThrow(ValidationException::class);
+
+    expect(fn () => $coordinator->update(
+        SettingsGroup::Operations,
+        new OperationsSettingsUpdate(['profitabilityGpsMaxSpeedKmh' => 0]),
+        $admin,
+    ))->toThrow(ValidationException::class);
+});

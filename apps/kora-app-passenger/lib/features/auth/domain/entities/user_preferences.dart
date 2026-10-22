@@ -11,6 +11,7 @@ class UserPreferences extends Equatable {
   const UserPreferences({
     this.pushNotifications = true,
     this.whatsappNotifications = true,
+    this.smsNotifications = true,
     this.emailNotifications = false,
     this.locale = 'fr',
     this.theme = 'system',
@@ -18,6 +19,7 @@ class UserPreferences extends Equatable {
 
   final bool pushNotifications;
   final bool whatsappNotifications;
+  final bool smsNotifications;
   final bool emailNotifications;
 
   /// `fr` ou `en`, les deux seules valeurs acceptées par l'API.
@@ -29,6 +31,7 @@ class UserPreferences extends Equatable {
   UserPreferences copyWith({
     bool? pushNotifications,
     bool? whatsappNotifications,
+    bool? smsNotifications,
     bool? emailNotifications,
     String? locale,
     String? theme,
@@ -37,6 +40,7 @@ class UserPreferences extends Equatable {
       pushNotifications: pushNotifications ?? this.pushNotifications,
       whatsappNotifications:
           whatsappNotifications ?? this.whatsappNotifications,
+      smsNotifications: smsNotifications ?? this.smsNotifications,
       emailNotifications: emailNotifications ?? this.emailNotifications,
       locale: locale ?? this.locale,
       theme: theme ?? this.theme,
@@ -47,6 +51,7 @@ class UserPreferences extends Equatable {
   List<Object?> get props => [
     pushNotifications,
     whatsappNotifications,
+    smsNotifications,
     emailNotifications,
     locale,
     theme,

@@ -116,6 +116,8 @@ abstract final class AuthDtos {
       whatsappNotifications:
           data['whatsapp_notifications'] as bool? ??
           fallback.whatsappNotifications,
+      smsNotifications:
+          data['sms_notifications'] as bool? ?? fallback.smsNotifications,
       emailNotifications:
           data['email_notifications'] as bool? ?? fallback.emailNotifications,
       locale: data['locale'] as String? ?? fallback.locale,

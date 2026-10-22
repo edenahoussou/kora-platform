@@ -583,7 +583,7 @@ class DashboardReadService
                     'title' => 'Rentabilité',
                     'description' => 'Contribution des lignes et départs',
                     'icon' => 'chart',
-                    'href' => null,
+                    'href' => route('profitability'),
                     'accent' => 'green',
                 ],
                 [
@@ -599,7 +599,7 @@ class DashboardReadService
                     'title' => 'Rentabilité',
                     'description' => 'Contribution des lignes et départs',
                     'icon' => 'chart',
-                    'href' => null,
+                    'href' => route('profitability'),
                     'accent' => 'gold',
                 ],
                 [

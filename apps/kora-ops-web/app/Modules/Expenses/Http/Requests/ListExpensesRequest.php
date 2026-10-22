@@ -24,6 +24,7 @@ class ListExpensesRequest extends FormRequest
             'channel' => ['nullable', Rule::in(['all', ...ExpensePaymentChannel::values()])],
             'category' => ['nullable', 'uuid'],
             'agency' => ['nullable', 'uuid'],
+            'center' => ['nullable', Rule::in(['all', 'bus', 'line', 'departure', 'agency'])],
             'from' => ['nullable', 'date_format:Y-m-d'],
             'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
             'format' => ['nullable', Rule::in(['csv', 'xlsx'])],
@@ -31,7 +32,7 @@ class ListExpensesRequest extends FormRequest
         ];
     }
 
-    /** @return array{q: string, status: string, channel: string, category: string, agency: string, from: string, to: string} */
+    /** @return array{q: string, status: string, channel: string, category: string, agency: string, center: string, from: string, to: string} */
     public function filters(): array
     {
         return [
@@ -40,6 +41,7 @@ class ListExpensesRequest extends FormRequest
             'channel' => $this->validated('channel') ?: 'all',
             'category' => (string) ($this->validated('category') ?? ''),
             'agency' => (string) ($this->validated('agency') ?? ''),
+            'center' => $this->validated('center') ?: 'all',
             'from' => (string) ($this->validated('from') ?? ''),
             'to' => (string) ($this->validated('to') ?? ''),
         ];

@@ -12,6 +12,7 @@ import {
     ShieldCheck,
     Store,
     Ticket,
+    TrendingUp,
     Users,
     Wallet,
 } from 'lucide-react';
@@ -27,7 +28,7 @@ import { useCurrentUrl } from '@/hooks/use-current-url';
 import { useInitials } from '@/hooks/use-initials';
 import { usePermissions } from '@/hooks/use-permissions';
 import { cn } from '@/lib/utils';
-import { dashboard, logout, revenue } from '@/routes';
+import { dashboard, logout, profitability, revenue } from '@/routes';
 import companyPortalRoutes from '@/routes/company-portal';
 import programming from '@/routes/programming';
 import { update as updatePushPreference } from '@/routes/settings/notifications/push';
@@ -162,6 +163,12 @@ const navItems: NavEntry[] = [
                 ],
             },
         ],
+    },
+    {
+        title: 'Rentabilité',
+        href: profitability().url,
+        icon: TrendingUp,
+        permission: 'profitability.view',
     },
     {
         title: 'Exploitation',

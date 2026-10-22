@@ -237,7 +237,7 @@ it('lists finance shortcuts', function (): void {
             ->has('quickActions', 4)
             ->where('quickActions.0.href', route('revenue'))
             ->where('quickActions.1.href', route('fiscal-invoices.index'))
-            ->where('quickActions.2.href', null)
+            ->where('quickActions.2.href', route('profitability'))
             ->where('quickActions.3.href', route('expenses.index')));
 });
 

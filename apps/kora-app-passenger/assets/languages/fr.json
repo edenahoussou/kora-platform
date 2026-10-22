@@ -280,6 +280,8 @@
   "preferences_push_sub": "Alertes de voyage et billets",
   "preferences_whatsapp": "Messages WhatsApp",
   "preferences_whatsapp_sub": "Billets et alertes critiques",
+  "preferences_sms": "Messages SMS",
+  "preferences_sms_sub": "Confirmation, annulation et retard de votre trajet",
   "preferences_email": "Emails",
   "preferences_email_sub": "Reçus et actualités",
   "preferences_display": "Affichage",
