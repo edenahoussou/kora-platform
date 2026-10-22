@@ -1,5 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import { CalendarDays, ChevronDown, Download, X } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { profitabilityAxisIcon } from '@/components/profitability/profitability-axis-icons';
 import { ProfitabilityAxisTabs } from '@/components/profitability/profitability-axis-tabs';
@@ -141,9 +142,6 @@ export default function ProfitabilityPage(props: ProfitabilityProps) {
         query: { ...periodQuery(), axis, ...entityQuery() },
     });
 
-    const EntityIcon =
-        entity === null ? null : profitabilityAxisIcon(entity.type);
-
     return (
         <>
             <Head title="Rentabilité" />
@@ -195,25 +193,12 @@ export default function ProfitabilityPage(props: ProfitabilityProps) {
                     </div>
                 </div>
 
-                {entity !== null && EntityIcon !== null && (
-                    <div className="profit-scope-chip">
-                        <EntityIcon
-                            className="size-3.5"
-                            aria-hidden="true"
-                        />
-                        <span>
-                            {axisOptions[entity.type] ?? entity.type}
-                            {' · '}
-                            {entity.label}
-                        </span>
-                        <button
-                            type="button"
-                            aria-label="Retirer le filtre"
-                            onClick={clearEntity}
-                        >
-                            <X className="size-3.5" aria-hidden="true" />
-                        </button>
-                    </div>
+                {entity !== null && (
+                    <EntityScopeChip
+                        icon={profitabilityAxisIcon(entity.type)}
+                        label={`${axisOptions[entity.type] ?? entity.type} · ${entity.label}`}
+                        onClear={clearEntity}
+                    />
                 )}
 
                 {empty ? (
@@ -355,3 +340,27 @@ ProfitabilityPage.layout = {
         } satisfies BreadcrumbItem,
     ],
 };
+
+function EntityScopeChip({
+    icon: Icon,
+    label,
+    onClear,
+}: {
+    icon: LucideIcon;
+    label: string;
+    onClear: () => void;
+}) {
+    return (
+        <div className="profit-scope-chip">
+            <Icon className="size-3.5" aria-hidden="true" />
+            <span>{label}</span>
+            <button
+                type="button"
+                aria-label="Retirer le filtre"
+                onClick={onClear}
+            >
+                <X className="size-3.5" aria-hidden="true" />
+            </button>
+        </div>
+    );
+}

@@ -105,7 +105,7 @@ export function ProfitabilityCardView({
                         className={cn(
                             'profit-status',
                             card.breakEvenStatus === 'atteint' &&
-                            'profit-status-ok',
+                                'profit-status-ok',
                             risky && 'profit-status-risk',
                         )}
                     >
@@ -194,8 +194,8 @@ export function ProfitabilityCardView({
                     {card.distanceSource === 'gps'
                         ? 'GPS'
                         : card.distanceSource === 'mixed'
-                            ? 'Mixte'
-                            : 'Estimé'}
+                          ? 'Mixte'
+                          : 'Estimé'}
                 </span>
             </div>
         </div>

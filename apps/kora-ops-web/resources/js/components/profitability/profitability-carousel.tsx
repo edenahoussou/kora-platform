@@ -266,8 +266,8 @@ export function ProfitabilityCarousel({
                             les dépenses approuvées, affectées directement ou
                             réparties selon leur règle. Cartes triées du plus au
                             moins à risque. Cliquez une carte bus, ligne ou
-                            agence pour filtrer tout le rapport sur cette entité ;
-                            l’icône en haut à droite ouvre le détail.
+                            agence pour filtrer tout le rapport sur cette entité
+                            ; l’icône en haut à droite ouvre le détail.
                         </TooltipContent>
                     </Tooltip>
                     {!showAll && canScroll && (

@@ -43,7 +43,7 @@ export function ProfitabilityReconciliation({
                             <strong
                                 className={cn(
                                     reconciliation.timingGap !== 0 &&
-                                    'text-amber-600 dark:text-gold',
+                                        'text-amber-600 dark:text-gold',
                                 )}
                             >
                                 {formatMoney(reconciliation.timingGap)}
@@ -59,8 +59,8 @@ export function ProfitabilityReconciliation({
                         control.status === 'ok'
                             ? CheckCircle2
                             : control.status === 'warning'
-                                ? TriangleAlert
-                                : Info;
+                              ? TriangleAlert
+                              : Info;
 
                     return (
                         <article

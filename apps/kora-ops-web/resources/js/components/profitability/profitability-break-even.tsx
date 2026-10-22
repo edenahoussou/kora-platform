@@ -83,9 +83,9 @@ export function ProfitabilityBreakEven({
                     const progress =
                         card.capacity && card.breakEvenSeats !== null
                             ? Math.min(
-                                100,
-                                (card.breakEvenSeats / card.capacity) * 100,
-                            )
+                                  100,
+                                  (card.breakEvenSeats / card.capacity) * 100,
+                              )
                             : 0;
                     const fill =
                         card.fillRate === null
@@ -111,7 +111,7 @@ export function ProfitabilityBreakEven({
                                 'profit-break-even',
                                 statusTones[card.breakEvenStatus],
                                 card.breakEvenStatus === 'sous_seuil' &&
-                                'profit-break-even-risk',
+                                    'profit-break-even-risk',
                             )}
                         >
                             <button
@@ -166,8 +166,8 @@ export function ProfitabilityBreakEven({
                                     {card.breakEvenStatus === 'atteint'
                                         ? 'Seuil dépassé'
                                         : card.breakEvenStatus === 'sous_seuil'
-                                            ? 'Sous le seuil'
-                                            : 'Contribution insuffisante'}
+                                          ? 'Sous le seuil'
+                                          : 'Contribution insuffisante'}
                                 </small>
                             </footer>
                         </div>

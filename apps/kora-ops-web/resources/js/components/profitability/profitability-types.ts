@@ -5,11 +5,7 @@ export type DistanceSource = 'gps' | 'estimated' | 'mixed';
 export type CostSourceStatus = 'available' | 'pending' | 'out_of_scope';
 
 export type ProfitabilityCardAxis =
-    | 'bus'
-    | 'line'
-    | 'departure'
-    | 'agency'
-    | 'period';
+    'bus' | 'line' | 'departure' | 'agency' | 'period';
 
 export type ProfitabilityEntityType = 'bus' | 'line' | 'agency';
 

@@ -894,7 +894,7 @@ export default function SettingsPage({
                         value={String(value(definition.key) ?? '')}
                         configured={Boolean(
                             (snapshot.values as Record<string, unknown>)[
-                            definition.key
+                                definition.key
                             ],
                         )}
                         multiline={definition.multiline}
@@ -929,7 +929,7 @@ export default function SettingsPage({
                     showConfigured={definition.showConfigured}
                     value={
                         value(definition.key) as
-                        string | number | null | undefined
+                            string | number | null | undefined
                     }
                     type={definition.type}
                     suffix={definition.suffix}
@@ -1796,11 +1796,11 @@ export default function SettingsPage({
                                         Env ·{' '}
                                         {options.environmentLabel
                                             ? options.environmentLabel(
-                                                value(options.environmentKey),
-                                            )
+                                                  value(options.environmentKey),
+                                              )
                                             : String(
-                                                value(options.environmentKey),
-                                            )}
+                                                  value(options.environmentKey),
+                                              )}
                                     </span>
                                 )}
                             </span>
@@ -2225,17 +2225,17 @@ export default function SettingsPage({
                             tips={
                                 group === 'general'
                                     ? [
-                                        {
-                                            title: 'Nom et notifications',
-                                            text: 'Le nom d’affichage est repris dans les messages et les documents générés par KORA.',
-                                        },
-                                        {
-                                            title: 'Fuseau de référence',
-                                            text: 'Conservez Africa/Porto-Novo pour garder les départs et les journaux alignés sur l’exploitation béninoise.',
-                                        },
-                                    ]
+                                          {
+                                              title: 'Nom et notifications',
+                                              text: 'Le nom d’affichage est repris dans les messages et les documents générés par KORA.',
+                                          },
+                                          {
+                                              title: 'Fuseau de référence',
+                                              text: 'Conservez Africa/Porto-Novo pour garder les départs et les journaux alignés sur l’exploitation béninoise.',
+                                          },
+                                      ]
                                     : group === 'operations'
-                                        ? [
+                                      ? [
                                             {
                                                 title: 'Confirmez les impacts',
                                                 text: 'Les délais de vente et de session peuvent modifier immédiatement les parcours en cours.',
@@ -2245,7 +2245,7 @@ export default function SettingsPage({
                                                 text: 'Utilisez un override de ligne lorsque la règle globale ne décrit pas une exploitation particulière.',
                                             },
                                         ]
-                                        : [
+                                      : [
                                             {
                                                 title: 'Testez la configuration enregistrée',
                                                 text: 'Un probe utilise uniquement les valeurs déjà sauvegardées, jamais les champs encore en édition.',
