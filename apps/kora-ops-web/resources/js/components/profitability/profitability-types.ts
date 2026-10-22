@@ -5,7 +5,11 @@ export type DistanceSource = 'gps' | 'estimated' | 'mixed';
 export type CostSourceStatus = 'available' | 'pending' | 'out_of_scope';
 
 export type ProfitabilityCardAxis =
-    'bus' | 'line' | 'departure' | 'agency' | 'period';
+    | 'bus'
+    | 'line'
+    | 'departure'
+    | 'agency'
+    | 'period';
 
 export type ProfitabilityEntityType = 'bus' | 'line' | 'agency';
 
@@ -82,6 +86,22 @@ export type ProfitabilityControl = {
     status: 'ok' | 'warning' | 'info';
 };
 
+export type ProfitabilityTimelinePoint = {
+    key: string;
+    label: string;
+    revenue: number;
+    cost: number;
+    revenueCum: number;
+    costCum: number;
+    prevRevenueCum: number | null;
+};
+
+export type ProfitabilityTimeline = {
+    bucket: 'day' | 'week' | 'month';
+    points: ProfitabilityTimelinePoint[];
+    breakEvenDay: string | null;
+};
+
 export type ProfitabilityPeriod = {
     preset: string;
     from: string;
@@ -153,6 +173,7 @@ export type ProfitabilityProps = {
     breakEvenCards: ProfitabilityCard[];
     pnl: ProfitabilityPnlRow[];
     tco: ProfitabilityTcoRow[];
+    timeline: ProfitabilityTimeline;
     reconciliation: {
         cashGross: number;
         cashDeductions: number;

@@ -73,7 +73,8 @@ class CostAttribution
             $rule = CostCategory::rule($expense);
             $total += $amount;
             $categoryTotals[$code] = ($categoryTotals[$code] ?? 0) + $amount;
-            $byDate[$expense->occurred_at->setTimezone(RevenuePeriod::TIMEZONE)->toDateString()] = ($byDate[$expense->occurred_at->setTimezone(RevenuePeriod::TIMEZONE)->toDateString()] ?? 0) + $amount;
+            $costDate = $expense->occurred_at->setTimezone(RevenuePeriod::TIMEZONE)->toDateString();
+            $byDate[$costDate] = ($byDate[$costDate] ?? 0) + $amount;
 
             if ($behavior === CostBehavior::Fixed) {
                 $fixedTotal += $amount;
@@ -140,6 +141,7 @@ class CostAttribution
             'byBus' => $byBus,
             'byLine' => $byLine,
             'byAgency' => $byAgency,
+            'byDate' => $byDate,
             'categoryTotals' => $categoryTotals,
             'missingCenterCount' => $expenses->filter(fn (Expense $expense): bool => $expense->bus_id === null
                 && $expense->line_id === null

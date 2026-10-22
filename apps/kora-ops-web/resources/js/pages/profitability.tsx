@@ -1,18 +1,18 @@
 import { Head, router } from '@inertiajs/react';
 import { CalendarDays, ChevronDown, Download, X } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
-import { useState } from 'react';
+import { createElement, useState } from 'react';
 import { profitabilityAxisIcon } from '@/components/profitability/profitability-axis-icons';
 import { ProfitabilityAxisTabs } from '@/components/profitability/profitability-axis-tabs';
 import { ProfitabilityBreakEven } from '@/components/profitability/profitability-break-even';
 import { ProfitabilityCarousel } from '@/components/profitability/profitability-carousel';
+import { ProfitabilityControls } from '@/components/profitability/profitability-controls';
 import { ProfitabilityDrawer } from '@/components/profitability/profitability-drawer';
 import { ProfitabilityEmpty } from '@/components/profitability/profitability-empty';
 import { ProfitabilityHero } from '@/components/profitability/profitability-hero';
 import { ProfitabilityKpis } from '@/components/profitability/profitability-kpis';
 import { ProfitabilityPnl } from '@/components/profitability/profitability-pnl';
-import { ProfitabilityReconciliation } from '@/components/profitability/profitability-reconciliation';
 import { ProfitabilityTco } from '@/components/profitability/profitability-tco';
+import { ProfitabilityTrend } from '@/components/profitability/profitability-trend';
 import type {
     ProfitabilityCard,
     ProfitabilityDetail,
@@ -42,7 +42,7 @@ export default function ProfitabilityPage(props: ProfitabilityProps) {
         breakEvenCards,
         pnl,
         tco,
-        reconciliation,
+        timeline,
         controls,
         empty,
         period,
@@ -142,6 +142,14 @@ export default function ProfitabilityPage(props: ProfitabilityProps) {
         query: { ...periodQuery(), axis, ...entityQuery() },
     });
 
+    const entityIcon =
+        entity === null
+            ? null
+            : createElement(profitabilityAxisIcon(entity.type), {
+                  className: 'size-3.5',
+                  'aria-hidden': true,
+              });
+
     return (
         <>
             <Head title="Rentabilité" />
@@ -193,12 +201,22 @@ export default function ProfitabilityPage(props: ProfitabilityProps) {
                     </div>
                 </div>
 
-                {entity !== null && (
-                    <EntityScopeChip
-                        icon={profitabilityAxisIcon(entity.type)}
-                        label={`${axisOptions[entity.type] ?? entity.type} · ${entity.label}`}
-                        onClear={clearEntity}
-                    />
+                {entity !== null && entityIcon !== null && (
+                    <div className="profit-scope-chip">
+                        {entityIcon}
+                        <span>
+                            {axisOptions[entity.type] ?? entity.type}
+                            {' · '}
+                            {entity.label}
+                        </span>
+                        <button
+                            type="button"
+                            aria-label="Retirer le filtre"
+                            onClick={clearEntity}
+                        >
+                            <X className="size-3.5" aria-hidden="true" />
+                        </button>
+                    </div>
                 )}
 
                 {empty ? (
@@ -216,10 +234,19 @@ export default function ProfitabilityPage(props: ProfitabilityProps) {
                             breakEven={hero.breakEven}
                         />
                         <ProfitabilityKpis {...kpis} />
-                        <ProfitabilityReconciliation
-                            reconciliation={reconciliation}
-                            controls={controls}
-                        />
+                        <div
+                            className={cn(
+                                'profit-overview',
+                                timeline.points.length < 3 &&
+                                    'profit-overview--single',
+                            )}
+                        >
+                            <ProfitabilityTrend
+                                timeline={timeline}
+                                filtered={entity !== null}
+                            />
+                            <ProfitabilityControls controls={controls} />
+                        </div>
                         <ProfitabilityAxisTabs
                             axis={axis}
                             axisOptions={axisOptions}
@@ -340,27 +367,3 @@ ProfitabilityPage.layout = {
         } satisfies BreadcrumbItem,
     ],
 };
-
-function EntityScopeChip({
-    icon: Icon,
-    label,
-    onClear,
-}: {
-    icon: LucideIcon;
-    label: string;
-    onClear: () => void;
-}) {
-    return (
-        <div className="profit-scope-chip">
-            <Icon className="size-3.5" aria-hidden="true" />
-            <span>{label}</span>
-            <button
-                type="button"
-                aria-label="Retirer le filtre"
-                onClick={onClear}
-            >
-                <X className="size-3.5" aria-hidden="true" />
-            </button>
-        </div>
-    );
-}

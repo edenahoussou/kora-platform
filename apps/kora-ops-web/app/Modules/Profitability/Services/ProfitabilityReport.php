@@ -23,6 +23,7 @@ class ProfitabilityReport
         private readonly GpsDistanceCalculator $gpsDistance,
         private readonly BreakEvenCalculator $breakEven,
         private readonly ProfitabilityControls $controls,
+        private readonly ProfitabilityTimeline $timeline,
     ) {}
 
     /**
@@ -198,6 +199,7 @@ class ProfitabilityReport
             'tco' => $scope === null || $scope->type === ProfitabilityAxis::Bus
                 ? $this->tco($financials)
                 : [],
+            'timeline' => $this->timeline->build($period, $financials['revenue'], $financials['costs'], $previous['revenue']),
             'reconciliation' => $controls['reconciliation'],
             'controls' => $controls['controls'],
             'empty' => $revenueNet === 0 && $costTotal === 0 && $financials['departureMeta'] === [],

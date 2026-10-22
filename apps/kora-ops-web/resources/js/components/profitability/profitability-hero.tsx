@@ -39,8 +39,8 @@ export function ProfitabilityHero({
     const Icon = !positive
         ? ArrowDownRight
         : marginPercent !== null && marginPercent > 0
-          ? ArrowUpRight
-          : Minus;
+            ? ArrowUpRight
+            : Minus;
 
     return (
         <section className="profit-hero">

@@ -115,7 +115,7 @@ class RevenueAttribution
                 ->whereIn('reservation_id', $reservationIds)
                 ->where('status', PaymentStatus::Confirmed->value)
                 ->where('currency', self::CURRENCY)
-                ->get(['id', 'uuid', 'reservation_id', 'amount']);
+                ->get(['id', 'uuid', 'reservation_id', 'amount', 'confirmed_at']);
 
         $paymentUuids = array_values(array_map(
             static fn (mixed $uuid): string => (string) $uuid,
@@ -135,6 +135,7 @@ class RevenueAttribution
         $byAgency = [];
         $byAgencyDeparture = [];
         $unattributed = ['gross' => 0, 'deductions' => 0, 'net' => 0, 'paymentCount' => 0];
+        $unattributedByDate = [];
         $total = $this->metric();
         $seatSegments = $segments->whereIn('departure_id', array_keys($departureMeta));
         if ($scope?->type === ProfitabilityAxis::Agency) {
@@ -166,6 +167,11 @@ class RevenueAttribution
                 $unattributed['gross'] += (int) $payment->amount;
                 $unattributed['deductions'] += $recognized;
                 $unattributed['paymentCount']++;
+
+                if ($payment->confirmed_at !== null) {
+                    $paymentDate = CarbonImmutable::instance($payment->confirmed_at)->setTimezone(RevenuePeriod::TIMEZONE)->toDateString();
+                    $unattributedByDate[$paymentDate] = ($unattributedByDate[$paymentDate] ?? 0) + (int) $payment->amount - $recognized;
+                }
             } else {
                 if ($scope !== null) {
                     $scopedGross = array_sum($shares);
@@ -224,6 +230,7 @@ class RevenueAttribution
             'byAgency' => $byAgency,
             'byAgencyDeparture' => $byAgencyDeparture,
             'unattributed' => $unattributed,
+            'unattributedByDate' => $unattributedByDate,
             'postPeriodDeductions' => $postPeriodDeductions,
             'nonXofPaymentCount' => $this->nonXofPaymentCount($reservationIds),
         ];
