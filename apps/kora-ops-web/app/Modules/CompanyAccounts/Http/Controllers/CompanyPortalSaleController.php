@@ -449,6 +449,7 @@ class CompanyPortalSaleController extends Controller
             ->with([
                 'legs.departure.line',
                 'legs.departure.bus.amenities',
+                'legs.departure.bus.composition',
                 'legs.originStop',
                 'legs.destinationStop',
                 'legs.priceQuote',
@@ -575,7 +576,7 @@ class CompanyPortalSaleController extends Controller
         ];
     }
 
-    /** @return list<array{legOrder: int, direction: string, departureUuid: string, seats: list<array<string, mixed>>}> */
+    /** @return list<array{legOrder: int, direction: string, departureUuid: string, grid: array{rows: int, cols: int, cells: list<array<string, mixed>>}|null, seats: list<array<string, mixed>>}> */
     private function serializeQuoteSeats(?ItineraryQuote $quote): array
     {
         if ($quote === null) {
@@ -586,6 +587,7 @@ class CompanyPortalSaleController extends Controller
             'legOrder' => (int) $leg->leg_order,
             'direction' => $leg->direction,
             'departureUuid' => $leg->departure->uuid,
+            'grid' => $leg->departure->bus?->composition?->seatGrid()->toArray(),
             'seats' => $this->serializeSeats(
                 $this->seatAvailability->handle($leg->departure, $leg->originStop, $leg->destinationStop),
             ),

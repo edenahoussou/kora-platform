@@ -540,7 +540,7 @@ class CounterSaleController extends Controller
             return [];
         }
 
-        $quote->loadMissing(['legs.departure', 'legs.originStop', 'legs.destinationStop']);
+        $quote->loadMissing(['legs.departure.bus.composition', 'legs.originStop', 'legs.destinationStop']);
 
         $legs = $quote->legs->sortBy('leg_order')->values();
 
@@ -548,13 +548,14 @@ class CounterSaleController extends Controller
             'legOrder' => $leg->leg_order,
             'direction' => $leg->direction,
             'departureUuid' => $leg->departure->uuid,
+            'grid' => $leg->departure->bus?->composition?->seatGrid()->toArray(),
             'seats' => $this->serializeSeats($this->counterSaleSeatAvailability->handle($leg->departure, $leg->originStop, $leg->destinationStop)),
         ])->all());
     }
 
     /**
      * @param  array{outbound_legs: list<array{departure_uuid: string, origin_stop_uuid: string, destination_stop_uuid: string}>, inbound_legs: list<array{departure_uuid: string, origin_stop_uuid: string, destination_stop_uuid: string}>}  $legsData
-     * @return list<array{legOrder: int, direction: string, departureUuid: string, seats: list<array<string, mixed>>}>
+     * @return list<array{legOrder: int, direction: string, departureUuid: string, grid: array{rows: int, cols: int, cells: list<array<string, mixed>>}|null, seats: list<array<string, mixed>>}>
      */
     private function buildSeatAvailabilityFromLegs(array $legsData): array
     {
@@ -590,6 +591,7 @@ class CounterSaleController extends Controller
                 'legOrder' => $legOrder,
                 'direction' => $leg['direction'],
                 'departureUuid' => $departure->uuid,
+                'grid' => $departure->bus?->composition?->seatGrid()->toArray(),
                 'seats' => $this->serializeSeats(
                     $this->counterSaleSeatAvailability->handle($departure, $originStop, $destinationStop),
                 ),
@@ -648,7 +650,7 @@ class CounterSaleController extends Controller
     {
         return Departure::query()
             ->whereIn('uuid', $uuids)
-            ->with(['bus.seats', 'line.stops'])
+            ->with(['bus.seats', 'bus.composition', 'line.stops'])
             ->get()
             ->keyBy('uuid');
     }
