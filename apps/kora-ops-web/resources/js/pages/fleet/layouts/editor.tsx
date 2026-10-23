@@ -2,9 +2,11 @@ import { Head, router } from '@inertiajs/react';
 import {
     Armchair,
     ArrowLeft,
+    CircleHelp,
     Copy,
     DoorOpen,
     Eraser,
+    FileText,
     Footprints,
     HardHat,
     Hash,
@@ -14,6 +16,7 @@ import {
     Minus,
     Redo2,
     Square,
+    Tag,
     TriangleAlert,
     Undo2,
 } from 'lucide-react';
@@ -22,6 +25,8 @@ import { toast } from 'sonner';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { EditorGrid } from '@/components/layout-editor/editor-grid';
 import type { EditorTool } from '@/components/layout-editor/editor-grid';
+import { OnboardingTour } from '@/components/onboarding/onboarding-tour';
+import type { OnboardingStep } from '@/components/onboarding/onboarding-tour';
 import {
     cellAt,
     cloneGrid,
@@ -35,8 +40,7 @@ import type {
     LayoutGrid,
     SeatTemplate,
 } from '@/components/seat-map/types';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { useOnboarding } from '@/hooks/use-onboarding';
 import { cn } from '@/lib/utils';
 import layouts from '@/routes/layouts';
 import type { BreadcrumbItem } from '@/types';
@@ -59,6 +63,67 @@ const TOOLS: {
     { key: 'door', label: 'Porte', icon: DoorOpen },
     { key: 'driver', label: 'Conducteur', icon: LifeBuoy },
 ];
+
+const EDITOR_ONBOARDING_STEPS: OnboardingStep[] = [
+    {
+        target: '[data-onboarding="editor-meta"]',
+        title: 'Décrivez votre gabarit',
+        body: 'Le nom et le code sont requis : ils identifient le gabarit dans les listes et lors de son affectation aux bus. La description aide les équipes ops à choisir le bon modèle.',
+        side: 'bottom',
+    },
+    {
+        target: '[data-onboarding="editor-palette"]',
+        title: 'Choisissez un outil de peinture',
+        body: "Chaque outil peint un type d'emplacement : siège vendable, équipage, allée, porte, poste conducteur… ou la gomme pour effacer. L'indice sous la palette détaille l'outil actif.",
+        side: 'bottom',
+    },
+    {
+        target: '[data-onboarding="editor-grid"]',
+        title: 'Peignez la cabine',
+        body: "Cliquez ou glissez sur la grille pour appliquer l'outil. Cliquez sur un siège existant pour renommer son code — la numérotation est automatique et « Renuméroter » la recalcule.",
+        side: 'right',
+    },
+    {
+        target: '[data-onboarding="editor-cols"]',
+        title: 'Ajustez les colonnes',
+        body: 'Ajoutez ou retirez des colonnes depuis ce bord pour calquer la largeur réelle du véhicule.',
+        side: 'left',
+    },
+    {
+        target: '[data-onboarding="editor-rows"]',
+        title: 'Ajustez les rangées',
+        body: 'Même chose pour la profondeur : ajoutez ou retirez des rangées sous la grille.',
+        side: 'top',
+    },
+    {
+        target: '[data-onboarding="editor-preview"]',
+        title: 'Aperçu guichet en direct',
+        body: 'Le panneau de droite montre exactement ce que verra l’agent au guichet — mis à jour à chaque coup de pinceau.',
+        side: 'left',
+    },
+    {
+        target: '[data-onboarding="editor-validation"]',
+        title: 'Validation en continu',
+        body: 'Le gabarit est vérifié en direct : codes uniques, au moins un siège vendable, un seul conducteur. Tant qu’une erreur existe, l’enregistrement reste bloqué.',
+        side: 'left',
+    },
+    {
+        target: '[data-onboarding="editor-save"]',
+        title: 'Enregistrez votre gabarit',
+        body: 'Une fois la composition valide, enregistrez : le gabarit devient réutilisable sur tous les bus de la flotte.',
+        side: 'bottom',
+    },
+];
+
+const TOOL_HINTS: Record<EditorTool, string> = {
+    seat: 'Cliquez ou glissez sur la grille pour peindre des sièges. Cliquez sur un siège existant pour renommer son code.',
+    crew: 'Peignez les places réservées à l’équipage — elles ne sont jamais vendables.',
+    aisle: 'Peignez l’allée centrale ou les couloirs de circulation.',
+    empty: 'Marquez des emplacements vides : baies vitrées, espaces libres, zones hors sièges.',
+    door: 'Placez les portes d’embarquement sur le plan.',
+    driver: 'Placez le poste conducteur — un seul est autorisé par gabarit.',
+    eraser: 'Cliquez ou glissez sur des cellules pour les effacer.',
+};
 
 function emptyGrid(): LayoutGrid {
     return renumberSeats({
@@ -113,7 +178,21 @@ export default function LayoutEditorPage({
         y: number;
         value: string;
     } | null>(null);
+    const [touched, setTouched] = useState<Record<string, boolean>>({});
     const painting = useRef(false);
+
+    const onboarding = useOnboarding('layout-editor');
+    const { shouldAutoStart, start } = onboarding;
+
+    useEffect(() => {
+        if (!shouldAutoStart || locked) {
+            return;
+        }
+
+        const timer = window.setTimeout(() => start(), 450);
+
+        return () => window.clearTimeout(timer);
+    }, [shouldAutoStart, locked, start]);
 
     useEffect(() => {
         const stopPainting = () => {
@@ -371,6 +450,15 @@ export default function LayoutEditorPage({
                 <div className="flex flex-wrap items-center gap-2.5">
                     <button
                         type="button"
+                        onClick={onboarding.start}
+                        className="btn btn-ghost"
+                        title="Revoir le guide de l'éditeur"
+                    >
+                        <CircleHelp className="size-3.5" />
+                        Guide
+                    </button>
+                    <button
+                        type="button"
                         onClick={() => router.get(layouts.index.url())}
                         className="btn btn-ghost"
                     >
@@ -400,6 +488,7 @@ export default function LayoutEditorPage({
                             onClick={save}
                             disabled={errors.length > 0}
                             className="btn btn-primary"
+                            data-onboarding="editor-save"
                         >
                             Enregistrer
                         </button>
@@ -422,52 +511,107 @@ export default function LayoutEditorPage({
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
                 {/* Canvas éditeur */}
                 <section className="rounded-[var(--kora-radius)] border border-border/50 bg-card p-5 shadow-[0_16px_45px_rgba(0,29,78,0.07)]">
-                    <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-[1fr_160px]">
-                        <div>
-                            <Label htmlFor="layout-name">Nom du gabarit</Label>
-                            <Input
-                                id="layout-name"
+                    <div
+                        className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-[1fr_200px]"
+                        data-onboarding="editor-meta"
+                    >
+                        <label className="field">
+                            <span className="flex items-center gap-1.5">
+                                <Tag className="size-3 text-gold" />
+                                Nom du gabarit{' '}
+                                <b className="font-black text-destructive">*</b>
+                            </span>
+                            <input
+                                className="control"
                                 value={name}
                                 disabled={locked}
                                 onChange={(event) =>
                                     setName(event.target.value)
                                 }
+                                onBlur={() =>
+                                    setTouched((prev) => ({
+                                        ...prev,
+                                        name: true,
+                                    }))
+                                }
+                                required
+                                aria-invalid={touched.name && !name.trim()}
                                 placeholder="Standard 2+2"
-                                className="mt-1.5"
                             />
-                        </div>
-                        <div>
-                            <Label htmlFor="layout-code">Code</Label>
-                            <Input
-                                id="layout-code"
+                            {touched.name && !name.trim() ? (
+                                <small className="field-error-text">
+                                    Le nom du gabarit est requis.
+                                </small>
+                            ) : (
+                                <small>
+                                    Affiché dans les listes et lors de
+                                    l'affectation aux bus.
+                                </small>
+                            )}
+                        </label>
+                        <label className="field">
+                            <span className="flex items-center gap-1.5">
+                                <Hash className="size-3 text-gold" />
+                                Code{' '}
+                                <b className="font-black text-destructive">*</b>
+                            </span>
+                            <input
+                                className="control font-mono font-bold uppercase"
                                 value={code}
                                 disabled={locked}
                                 onChange={(event) =>
                                     setCode(event.target.value.toUpperCase())
                                 }
+                                onBlur={() =>
+                                    setTouched((prev) => ({
+                                        ...prev,
+                                        code: true,
+                                    }))
+                                }
+                                required
+                                aria-invalid={touched.code && !code.trim()}
                                 placeholder="STD-51"
-                                className="mt-1.5 font-mono"
                             />
-                        </div>
-                        <div className="sm:col-span-2">
-                            <Label htmlFor="layout-description">
-                                Description
-                            </Label>
-                            <Input
-                                id="layout-description"
+                            {touched.code && !code.trim() ? (
+                                <small className="field-error-text">
+                                    Le code est requis.
+                                </small>
+                            ) : (
+                                <small>
+                                    Code court unique, utilisé dans les
+                                    référentiels.
+                                </small>
+                            )}
+                        </label>
+                        <label className="field sm:col-span-2">
+                            <span className="flex items-center gap-1.5">
+                                <FileText className="size-3 text-gold" />
+                                Description{' '}
+                                <small className="font-medium text-muted-foreground/70">
+                                    (optionnel)
+                                </small>
+                            </span>
+                            <input
+                                className="control"
                                 value={description}
                                 disabled={locked}
                                 onChange={(event) =>
                                     setDescription(event.target.value)
                                 }
                                 placeholder="Usage prévu, densité, notes internes…"
-                                className="mt-1.5"
                             />
-                        </div>
+                            <small>
+                                Aide les équipes ops à choisir le bon gabarit
+                                lors de l'affectation.
+                            </small>
+                        </label>
                     </div>
 
                     {/* Palette d'outils */}
-                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-4">
+                    <div
+                        className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-4"
+                        data-onboarding="editor-palette"
+                    >
                         <div className="tool-palette">
                             {TOOLS.map(({ key, label, icon: Icon }) => (
                                 <button
@@ -529,10 +673,17 @@ export default function LayoutEditorPage({
                             </button>
                         </div>
                     </div>
+                    <p className="mb-4 flex items-center gap-2 rounded-[0.625rem] bg-muted/40 px-3 py-2 text-[0.6875rem] font-medium text-muted-foreground">
+                        <CircleHelp className="size-3.5 shrink-0 text-gold" />
+                        {TOOL_HINTS[tool]}
+                    </p>
 
                     {/* Grille + contrôles de bords */}
                     <div className="flex gap-3">
-                        <div className="min-w-0 flex-1 overflow-x-auto rounded-[1rem] border border-border/40 bg-muted/20 p-5">
+                        <div
+                            className="min-w-0 flex-1 overflow-x-auto rounded-[1rem] border border-border/40 bg-muted/20 p-5"
+                            data-onboarding="editor-grid"
+                        >
                             <EditorGrid
                                 grid={grid}
                                 locked={locked}
@@ -549,7 +700,10 @@ export default function LayoutEditorPage({
                                 onRenameCancel={() => setRenaming(null)}
                             />
                         </div>
-                        <div className="edge-control flex-col">
+                        <div
+                            className="edge-control flex-col"
+                            data-onboarding="editor-cols"
+                        >
                             <button
                                 type="button"
                                 disabled={locked}
@@ -571,7 +725,10 @@ export default function LayoutEditorPage({
                             </button>
                         </div>
                     </div>
-                    <div className="edge-control mt-3">
+                    <div
+                        className="edge-control mt-3"
+                        data-onboarding="editor-rows"
+                    >
                         <button
                             type="button"
                             disabled={locked || grid.rows <= 1}
@@ -610,7 +767,10 @@ export default function LayoutEditorPage({
 
                 {/* Panneau aperçu vendeur */}
                 <aside className="space-y-4">
-                    <section className="rounded-[var(--kora-radius)] border border-border/50 bg-card p-5 shadow-[0_16px_45px_rgba(0,29,78,0.07)]">
+                    <section
+                        className="rounded-[var(--kora-radius)] border border-border/50 bg-card p-5 shadow-[0_16px_45px_rgba(0,29,78,0.07)]"
+                        data-onboarding="editor-preview"
+                    >
                         <span className="mb-1 block text-[0.5625rem] font-black tracking-[0.13em] text-[var(--digital)] uppercase">
                             Aperçu temps réel
                         </span>
@@ -624,7 +784,10 @@ export default function LayoutEditorPage({
                         </p>
                     </section>
 
-                    <section className="rounded-[var(--kora-radius)] border border-border/50 bg-card p-5 shadow-[0_16px_45px_rgba(0,29,78,0.07)]">
+                    <section
+                        className="rounded-[var(--kora-radius)] border border-border/50 bg-card p-5 shadow-[0_16px_45px_rgba(0,29,78,0.07)]"
+                        data-onboarding="editor-validation"
+                    >
                         <h3 className="mb-3 text-[0.8125rem] font-bold tracking-tight text-foreground uppercase">
                             Composition
                         </h3>
@@ -693,6 +856,13 @@ export default function LayoutEditorPage({
                     </section>
                 </aside>
             </div>
+
+            <OnboardingTour
+                steps={EDITOR_ONBOARDING_STEPS}
+                isActive={onboarding.isActive}
+                onComplete={onboarding.complete}
+                onDismiss={onboarding.dismiss}
+            />
         </>
     );
 }

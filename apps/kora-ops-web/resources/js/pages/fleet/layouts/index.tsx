@@ -3,6 +3,7 @@ import {
     Archive,
     Armchair,
     BusFront,
+    CircleHelp,
     Copy,
     Edit3,
     Grid3X3,
@@ -12,9 +13,11 @@ import {
     Plus,
     RotateCcw,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
+import { OnboardingTour } from '@/components/onboarding/onboarding-tour';
+import type { OnboardingStep } from '@/components/onboarding/onboarding-tour';
 import { seatStats } from '@/components/seat-map/layout-utils';
 import { SeatMap } from '@/components/seat-map/seat-map';
 import type { SeatTemplate } from '@/components/seat-map/types';
@@ -25,10 +28,32 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useOnboarding } from '@/hooks/use-onboarding';
 import { cn } from '@/lib/utils';
 import layouts from '@/routes/layouts';
 import type { BreadcrumbItem } from '@/types';
 import { mockTemplates, templateStatusLabels } from './mock-data';
+
+const ONBOARDING_STEPS: OnboardingStep[] = [
+    {
+        target: '[data-onboarding="layouts-heading"]',
+        title: 'Le référentiel des cabines',
+        body: 'Chaque gabarit décrit la composition d’un bus : sièges vendables, allées, portes, poste conducteur. Une fois enregistré, il se réutilise sur tout le parc.',
+        side: 'bottom',
+    },
+    {
+        target: '[data-onboarding="layouts-new"]',
+        title: 'Créez votre premier gabarit',
+        body: 'Cliquez ici pour ouvrir l’éditeur de dessin — une visite guidée vous accompagne pas à pas jusqu’à l’enregistrement.',
+        side: 'bottom',
+    },
+    {
+        target: '[data-onboarding="layouts-cards"]',
+        title: 'Vos gabarits en un coup d’œil',
+        body: 'Chaque carte montre le plan, la capacité vendable et les bus équipés. Un gabarit déjà utilisé est verrouillé : dupliquez-le pour le faire évoluer.',
+        side: 'top',
+    },
+];
 
 const statusTones: Record<SeatTemplate['status'], 'navy' | 'gold' | 'muted'> = {
     active: 'navy',
@@ -79,6 +104,18 @@ function KpiCard({
 
 export default function LayoutsIndexPage() {
     const [templates, setTemplates] = useState<SeatTemplate[]>(mockTemplates);
+    const onboarding = useOnboarding('layouts');
+    const { shouldAutoStart, start } = onboarding;
+
+    useEffect(() => {
+        if (!shouldAutoStart) {
+            return;
+        }
+
+        const timer = window.setTimeout(() => start(), 450);
+
+        return () => window.clearTimeout(timer);
+    }, [shouldAutoStart, start]);
 
     const stats = useMemo(() => {
         const active = templates.filter((t) => t.status === 'active');
@@ -124,7 +161,7 @@ export default function LayoutsIndexPage() {
             <Head title="Gabarits de sièges" />
 
             <div className="kora-page-head mb-6 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-                <div>
+                <div data-onboarding="layouts-heading">
                     <div className="kora-breadcrumb mb-2 text-[0.6875rem] text-muted-foreground">
                         KORA OPS / Ressources / Gabarits
                     </div>
@@ -138,14 +175,26 @@ export default function LayoutsIndexPage() {
                     </p>
                 </div>
 
-                <button
-                    type="button"
-                    onClick={() => router.get(layouts.create.url())}
-                    className="btn btn-primary"
-                >
-                    <Plus className="size-3.5" />
-                    Nouveau gabarit
-                </button>
+                <div className="flex items-center gap-2.5">
+                    <button
+                        type="button"
+                        onClick={onboarding.start}
+                        className="btn btn-ghost"
+                        title="Revoir la visite guidée"
+                    >
+                        <CircleHelp className="size-3.5" />
+                        Guide
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => router.get(layouts.create.url())}
+                        className="btn btn-primary"
+                        data-onboarding="layouts-new"
+                    >
+                        <Plus className="size-3.5" />
+                        Nouveau gabarit
+                    </button>
+                </div>
             </div>
 
             <section className="mb-6 grid grid-cols-2 gap-3.5 sm:grid-cols-4">
@@ -179,7 +228,10 @@ export default function LayoutsIndexPage() {
                 />
             </section>
 
-            <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <section
+                className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+                data-onboarding="layouts-cards"
+            >
                 {templates.map((template) => {
                     const seats = seatStats(template.grid);
                     const locked = template.busesCount > 0;
@@ -330,6 +382,13 @@ export default function LayoutsIndexPage() {
                     </span>
                 </button>
             </section>
+
+            <OnboardingTour
+                steps={ONBOARDING_STEPS}
+                isActive={onboarding.isActive}
+                onComplete={onboarding.complete}
+                onDismiss={onboarding.dismiss}
+            />
         </>
     );
 }
