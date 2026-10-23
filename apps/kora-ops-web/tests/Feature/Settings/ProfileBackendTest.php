@@ -49,7 +49,11 @@ test('profile page exposes the unified hub props', function (): void {
 test('legacy settings urls redirect to the profile hub', function (): void {
     $user = User::factory()->create();
 
-    foreach (['/settings/security', '/settings/notifications', '/settings/appearance'] as $url) {
+    $this->actingAs($user)
+        ->get('/settings/security')
+        ->assertRedirect('/settings/profile?tab=security');
+
+    foreach (['/settings/notifications', '/settings/appearance'] as $url) {
         $this->actingAs($user)
             ->get($url)
             ->assertRedirect('/settings/profile');

@@ -1,0 +1,886 @@
+import { Head, router } from '@inertiajs/react';
+import {
+    Armchair,
+    ArrowLeft,
+    CircleHelp,
+    Copy,
+    DoorOpen,
+    Eraser,
+    FileText,
+    Footprints,
+    HardHat,
+    Hash,
+    LifeBuoy,
+    Lock,
+    Plus,
+    Minus,
+    Redo2,
+    Square,
+    Tag,
+    TriangleAlert,
+    Undo2,
+    Wrench,
+} from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'sonner';
+import { KoraStatusBadge } from '@/components/kora-status-badge';
+import { EditorGrid } from '@/components/layout-editor/editor-grid';
+import type { EditorTool } from '@/components/layout-editor/editor-grid';
+import { OnboardingTour } from '@/components/onboarding/onboarding-tour';
+import type { OnboardingStep } from '@/components/onboarding/onboarding-tour';
+import {
+    cellAt,
+    cloneGrid,
+    deleteColAt,
+    deleteRowAt,
+    insertColAt,
+    insertRowAt,
+    renumberSeats,
+    seatStats,
+} from '@/components/seat-map/layout-utils';
+import { SeatMap } from '@/components/seat-map/seat-map';
+import type {
+    LayoutCell,
+    LayoutGrid,
+    SeatTemplate,
+} from '@/components/seat-map/types';
+import { useOnboarding } from '@/hooks/use-onboarding';
+import { cn } from '@/lib/utils';
+import layouts from '@/routes/layouts';
+import type { BreadcrumbItem } from '@/types';
+import { templateStatusLabels } from './status-labels';
+
+type PageProps = {
+    template?: SeatTemplate | null;
+    duplicate?: SeatTemplate | null;
+    nextCode?: string | null;
+};
+
+const TOOLS: {
+    key: EditorTool;
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+}[] = [
+    { key: 'seat', label: 'Siège', icon: Armchair },
+    { key: 'crew', label: 'Équipage', icon: HardHat },
+    { key: 'maintenance', label: 'Hors service', icon: Wrench },
+    { key: 'aisle', label: 'Allée', icon: Footprints },
+    { key: 'empty', label: 'Vide', icon: Square },
+    { key: 'door', label: 'Porte', icon: DoorOpen },
+    { key: 'driver', label: 'Conducteur', icon: LifeBuoy },
+];
+
+const EDITOR_ONBOARDING_STEPS: OnboardingStep[] = [
+    {
+        target: '[data-onboarding="editor-meta"]',
+        title: 'Décrivez votre gabarit',
+        body: 'Le nom est requis ; le code unique est généré automatiquement à l’enregistrement. La description aide les équipes ops à choisir le bon modèle.',
+        side: 'bottom',
+    },
+    {
+        target: '[data-onboarding="editor-palette"]',
+        title: 'Choisissez un outil de peinture',
+        body: "Chaque outil peint un type d'emplacement : siège vendable, équipage, allée, porte, poste conducteur… ou la gomme pour effacer. L'indice sous la palette détaille l'outil actif.",
+        side: 'bottom',
+    },
+    {
+        target: '[data-onboarding="editor-grid"]',
+        title: 'Peignez la cabine',
+        body: "Cliquez ou glissez sur la grille pour appliquer l'outil. Cliquez sur un siège existant pour renommer son code — la numérotation est automatique et « Renuméroter » la recalcule.",
+        side: 'right',
+    },
+    {
+        target: '[data-onboarding="editor-cols"]',
+        title: 'Ajustez les colonnes',
+        body: 'Ajoutez ou retirez des colonnes depuis ce bord pour calquer la largeur réelle du véhicule.',
+        side: 'left',
+    },
+    {
+        target: '[data-onboarding="editor-rows"]',
+        title: 'Ajustez les rangées',
+        body: 'Même chose pour la profondeur : ajoutez ou retirez des rangées sous la grille.',
+        side: 'top',
+    },
+    {
+        target: '[data-onboarding="editor-preview"]',
+        title: 'Aperçu guichet en direct',
+        body: 'Le panneau de droite montre exactement ce que verra l’agent au guichet — mis à jour à chaque coup de pinceau.',
+        side: 'left',
+    },
+    {
+        target: '[data-onboarding="editor-validation"]',
+        title: 'Validation en continu',
+        body: 'Le gabarit est vérifié en direct : codes uniques, au moins un siège vendable, un seul conducteur. Tant qu’une erreur existe, l’enregistrement reste bloqué.',
+        side: 'left',
+    },
+    {
+        target: '[data-onboarding="editor-save"]',
+        title: 'Enregistrez votre gabarit',
+        body: 'Une fois la composition valide, enregistrez : le gabarit devient réutilisable sur tous les bus de la flotte.',
+        side: 'bottom',
+    },
+];
+
+const TOOL_HINTS: Record<EditorTool, string> = {
+    seat: 'Cliquez ou glissez sur la grille pour peindre des sièges. Cliquez sur un siège existant pour renommer son code.',
+    crew: 'Peignez les places réservées à l’équipage — elles ne sont jamais vendables.',
+    maintenance:
+        'Marquez les sièges hors service (maintenance, dégradés…) — jamais vendables sur les bus créés avec ce gabarit.',
+    aisle: 'Peignez l’allée centrale ou les couloirs de circulation.',
+    empty: 'Marquez des emplacements vides : baies vitrées, espaces libres, zones hors sièges.',
+    door: 'Placez les portes d’embarquement sur le plan.',
+    driver: 'Placez le poste conducteur — un seul est autorisé par gabarit.',
+    eraser: 'Cliquez ou glissez sur des cellules pour les effacer.',
+};
+
+function emptyGrid(): LayoutGrid {
+    return renumberSeats({
+        rows: 13,
+        cols: 5,
+        cells: [
+            { kind: 'driver', x: 0, y: 0 },
+            { kind: 'door', x: 4, y: 0 },
+        ],
+    });
+}
+
+export default function LayoutEditorPage({
+    template,
+    duplicate,
+    nextCode,
+}: PageProps) {
+    const locked = template?.locked ?? false;
+
+    const [name, setName] = useState(
+        template?.name ?? (duplicate ? `Copie de ${duplicate.name}` : ''),
+    );
+    const [description, setDescription] = useState(
+        template?.description ?? duplicate?.description ?? '',
+    );
+    const [grid, setGrid] = useState<LayoutGrid>(() => {
+        const source = template ?? duplicate;
+
+        return source ? cloneGrid(source.grid) : emptyGrid();
+    });
+    const [tool, setTool] = useState<EditorTool>('seat');
+    const [past, setPast] = useState<LayoutGrid[]>([]);
+    const [future, setFuture] = useState<LayoutGrid[]>([]);
+    const [renaming, setRenaming] = useState<{
+        x: number;
+        y: number;
+        value: string;
+    } | null>(null);
+    const [touched, setTouched] = useState<Record<string, boolean>>({});
+    const painting = useRef(false);
+
+    const onboarding = useOnboarding('layout-editor');
+    const { shouldAutoStart, start } = onboarding;
+
+    useEffect(() => {
+        if (!shouldAutoStart || locked) {
+            return;
+        }
+
+        const timer = window.setTimeout(() => start(), 450);
+
+        return () => window.clearTimeout(timer);
+    }, [shouldAutoStart, locked, start]);
+
+    useEffect(() => {
+        const stopPainting = () => {
+            if (painting.current) {
+                painting.current = false;
+                setGrid((prev) => renumberSeats(prev));
+            }
+        };
+
+        window.addEventListener('mouseup', stopPainting);
+
+        return () => window.removeEventListener('mouseup', stopPainting);
+    }, []);
+
+    const pushHistory = (snapshot: LayoutGrid) => {
+        setPast((prev) => [...prev.slice(-49), snapshot]);
+        setFuture([]);
+    };
+
+    const applyTool = (x: number, y: number) => {
+        setGrid((prev) => {
+            const rest = prev.cells.filter(
+                (cell) => !(cell.x === x && cell.y === y),
+            );
+            const cells: LayoutCell[] = [...rest];
+
+            if (tool !== 'eraser') {
+                const kind: LayoutCell['kind'] =
+                    tool === 'seat' || tool === 'crew' || tool === 'maintenance'
+                        ? 'seat'
+                        : tool;
+                cells.push({
+                    kind,
+                    x,
+                    y,
+                    seatKind:
+                        kind === 'seat'
+                            ? tool === 'crew'
+                                ? 'crew'
+                                : 'standard'
+                            : undefined,
+                    maintenance:
+                        kind === 'seat' && tool === 'maintenance'
+                            ? true
+                            : undefined,
+                });
+            }
+
+            return { ...prev, cells };
+        });
+    };
+
+    const handlePaintStart = (x: number, y: number) => {
+        if (locked) {
+            return;
+        }
+
+        const existing = cellAt(grid, x, y);
+
+        if (tool === 'seat' && existing?.kind === 'seat') {
+            return;
+        }
+
+        pushHistory(grid);
+        painting.current = true;
+        applyTool(x, y);
+    };
+
+    const handlePaintEnter = (x: number, y: number) => {
+        if (painting.current && !locked) {
+            applyTool(x, y);
+        }
+    };
+
+    const handleSeatClick = (cell: LayoutCell) => {
+        if (!locked && tool === 'seat' && cell.kind === 'seat') {
+            setRenaming({ x: cell.x, y: cell.y, value: cell.code ?? '' });
+        }
+    };
+
+    const commitRename = () => {
+        if (!renaming) {
+            return;
+        }
+
+        const value = renaming.value.trim().toUpperCase();
+        const target = renaming;
+        setRenaming(null);
+
+        if (!value) {
+            return;
+        }
+
+        pushHistory(grid);
+        setGrid((prev) => ({
+            ...prev,
+            cells: prev.cells.map((cell) =>
+                cell.x === target.x && cell.y === target.y
+                    ? { ...cell, code: value, codeLocked: true }
+                    : cell,
+            ),
+        }));
+    };
+
+    const undo = () => {
+        setPast((prev) => {
+            if (prev.length === 0) {
+                return prev;
+            }
+
+            const snapshot = prev[prev.length - 1];
+            setFuture((f) => [...f, grid]);
+            setGrid(snapshot);
+
+            return prev.slice(0, -1);
+        });
+    };
+
+    const redo = () => {
+        setFuture((prev) => {
+            if (prev.length === 0) {
+                return prev;
+            }
+
+            const snapshot = prev[prev.length - 1];
+            setPast((p) => [...p, grid]);
+            setGrid(snapshot);
+
+            return prev.slice(0, -1);
+        });
+    };
+
+    const resizeGrid = (axis: 'rows' | 'cols', delta: number) => {
+        if (locked) {
+            return;
+        }
+
+        pushHistory(grid);
+        setGrid((prev) => {
+            const size = Math.max(1, prev[axis] + delta);
+            const cells = prev.cells.filter((cell) =>
+                axis === 'rows' ? cell.y < size : cell.x < size,
+            );
+
+            return { ...prev, [axis]: size, cells };
+        });
+        setGrid((prev) => renumberSeats(prev));
+    };
+
+    const mutateGrid = (mutate: (grid: LayoutGrid) => LayoutGrid) => {
+        if (locked) {
+            return;
+        }
+
+        pushHistory(grid);
+        setGrid((prev) => renumberSeats(mutate(prev)));
+    };
+
+    const renumberAll = () => {
+        if (locked) {
+            return;
+        }
+
+        const next = renumberSeats(grid, true);
+        const changed = next.cells.some(
+            (cell, index) =>
+                cell.code !== grid.cells[index].code ||
+                cell.codeLocked !== grid.cells[index].codeLocked,
+        );
+
+        if (!changed) {
+            toast.info('La numérotation est déjà à jour.');
+
+            return;
+        }
+
+        pushHistory(grid);
+        setGrid(next);
+        toast.success('Numérotation recalculée.');
+    };
+
+    const errors = useMemo(() => {
+        const list: string[] = [];
+        const seats = grid.cells.filter((cell) => cell.kind === 'seat');
+        const codes = seats
+            .map((cell) => cell.code)
+            .filter((value): value is string => Boolean(value));
+        const duplicated = codes.filter(
+            (value, index) => codes.indexOf(value) !== index,
+        );
+
+        if (!name.trim()) {
+            list.push('Le nom du gabarit est requis.');
+        }
+
+        if (seatStats(grid).sellable < 1) {
+            list.push('Au moins un siège vendable est requis.');
+        }
+
+        if (duplicated.length > 0) {
+            list.push(
+                `Codes de sièges en double : ${[...new Set(duplicated)].join(', ')}.`,
+            );
+        }
+
+        if (grid.cells.filter((cell) => cell.kind === 'driver').length > 1) {
+            list.push('Un seul poste conducteur est autorisé.');
+        }
+
+        return list;
+    }, [grid, name]);
+
+    const stats = seatStats(grid);
+
+    const save = () => {
+        if (errors.length > 0) {
+            return;
+        }
+
+        const payload = { name: name.trim(), description, grid };
+        const options = {
+            preserveScroll: true,
+            onError: (formErrors: Record<string, string>) =>
+                toast.error(
+                    Object.values(formErrors)[0] ?? 'Le gabarit est invalide.',
+                ),
+        };
+
+        if (template) {
+            router.put(
+                layouts.update.url({ composition: template.uuid }),
+                payload,
+                options,
+            );
+        } else {
+            router.post(layouts.store.url(), payload, options);
+        }
+    };
+
+    return (
+        <>
+            <Head
+                title={
+                    template ? `Modifier ${template.name}` : 'Nouveau gabarit'
+                }
+            />
+
+            <div className="kora-page-head mb-6 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                    <div className="kora-breadcrumb mb-2 text-[0.6875rem] text-muted-foreground">
+                        KORA OPS / Ressources / Gabarits /{' '}
+                        {template ? template.name : 'Nouveau'}
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-[1.8125rem] font-extrabold tracking-[-0.035em] text-foreground">
+                            {template ? template.name : 'Nouveau gabarit'}
+                        </h1>
+                        {template ? (
+                            <>
+                                <span
+                                    className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 font-mono text-[0.6875rem] font-bold text-muted-foreground"
+                                    title="Identifiant unique du gabarit, attribué automatiquement"
+                                >
+                                    <Hash className="size-3" />
+                                    {template.code}
+                                </span>
+                                <KoraStatusBadge
+                                    label={
+                                        templateStatusLabels[template.status]
+                                    }
+                                    tone={
+                                        template.status === 'active'
+                                            ? 'navy'
+                                            : 'gold'
+                                    }
+                                />
+                            </>
+                        ) : nextCode ? (
+                            <span
+                                className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 font-mono text-[0.6875rem] font-bold text-muted-foreground"
+                                title="Code attribué automatiquement à l'enregistrement"
+                            >
+                                <Hash className="size-3" />
+                                {nextCode}
+                            </span>
+                        ) : null}
+                        {locked && (
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-gold/15 px-2.5 py-1 text-[0.6875rem] font-bold text-[var(--kora)]">
+                                <Lock className="size-3" />
+                                Lecture seule
+                            </span>
+                        )}
+                    </div>
+                    <p className="mt-1.5 text-[0.8125rem] text-muted-foreground">
+                        {locked
+                            ? 'Ce gabarit équipe des bus : dupliquez-le pour créer une version modifiable.'
+                            : 'Peignez la cabine cellule par cellule, puis vérifiez le rendu vendeur.'}
+                    </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2.5">
+                    <button
+                        type="button"
+                        onClick={onboarding.start}
+                        className="btn btn-ghost"
+                        title="Revoir le guide de l'éditeur"
+                    >
+                        <CircleHelp className="size-3.5" />
+                        Guide
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => router.get(layouts.index.url())}
+                        className="btn btn-ghost"
+                    >
+                        <ArrowLeft className="size-3.5" />
+                        {locked ? 'Retour' : 'Annuler'}
+                    </button>
+                    {locked && template ? (
+                        <button
+                            type="button"
+                            onClick={() =>
+                                router.post(
+                                    layouts.duplicate.url({
+                                        composition: template.uuid,
+                                    }),
+                                )
+                            }
+                            className="btn btn-primary"
+                        >
+                            <Copy className="size-3.5" />
+                            Dupliquer pour modifier
+                        </button>
+                    ) : (
+                        <button
+                            type="button"
+                            onClick={save}
+                            disabled={errors.length > 0}
+                            className="btn btn-primary"
+                            data-onboarding="editor-save"
+                        >
+                            Enregistrer
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            {locked && (
+                <div className="mb-5 flex items-center gap-3 rounded-[var(--kora-radius)] border border-gold/40 bg-gold/10 px-5 py-3.5 text-sm text-foreground">
+                    <Lock className="size-4 shrink-0 text-gold" />
+                    <span>
+                        Ce gabarit est utilisé par{' '}
+                        <strong>{template?.busesCount} bus</strong> : il ne peut
+                        plus être modifié directement. Dupliquez-le pour faire
+                        évoluer la composition, puis réaffectez les bus.
+                    </span>
+                </div>
+            )}
+
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+                {/* Canvas éditeur */}
+                <section className="rounded-[var(--kora-radius)] border border-border/50 bg-card p-5 shadow-[0_16px_45px_rgba(0,29,78,0.07)]">
+                    <div
+                        className="mb-5 grid grid-cols-1 gap-4"
+                        data-onboarding="editor-meta"
+                    >
+                        <label className="field">
+                            <span className="flex items-center gap-1.5">
+                                <Tag className="size-3 text-gold" />
+                                Nom du gabarit{' '}
+                                <b className="font-black text-destructive">*</b>
+                            </span>
+                            <input
+                                className="control"
+                                value={name}
+                                disabled={locked}
+                                onChange={(event) =>
+                                    setName(event.target.value)
+                                }
+                                onBlur={() =>
+                                    setTouched((prev) => ({
+                                        ...prev,
+                                        name: true,
+                                    }))
+                                }
+                                required
+                                aria-invalid={touched.name && !name.trim()}
+                                placeholder="Standard 2+2"
+                            />
+                            {touched.name && !name.trim() ? (
+                                <small className="field-error-text">
+                                    Le nom du gabarit est requis.
+                                </small>
+                            ) : (
+                                <small>
+                                    Affiché dans les listes et lors de
+                                    l'affectation aux bus.
+                                </small>
+                            )}
+                        </label>
+                        <label className="field sm:col-span-2">
+                            <span className="flex items-center gap-1.5">
+                                <FileText className="size-3 text-gold" />
+                                Description{' '}
+                                <small className="font-medium text-muted-foreground/70">
+                                    (optionnel)
+                                </small>
+                            </span>
+                            <input
+                                className="control"
+                                value={description}
+                                disabled={locked}
+                                onChange={(event) =>
+                                    setDescription(event.target.value)
+                                }
+                                placeholder="Usage prévu, densité, notes internes…"
+                            />
+                            <small>
+                                Aide les équipes ops à choisir le bon gabarit
+                                lors de l'affectation.
+                            </small>
+                        </label>
+                    </div>
+
+                    {/* Palette d'outils */}
+                    <div
+                        className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-4"
+                        data-onboarding="editor-palette"
+                    >
+                        <div className="tool-palette">
+                            {TOOLS.map(({ key, label, icon: Icon }) => (
+                                <button
+                                    key={key}
+                                    type="button"
+                                    disabled={locked}
+                                    onClick={() => setTool(key)}
+                                    className={cn(tool === key && 'is-active')}
+                                    title={
+                                        key === 'seat'
+                                            ? 'Peindre un siège — cliquez un siège existant pour le renommer'
+                                            : label
+                                    }
+                                >
+                                    <Icon className="size-3.5" />
+                                    {label}
+                                </button>
+                            ))}
+                            <button
+                                type="button"
+                                disabled={locked}
+                                onClick={() => setTool('eraser')}
+                                className={cn(tool === 'eraser' && 'is-active')}
+                            >
+                                <Eraser className="size-3.5" />
+                                Gomme
+                            </button>
+                        </div>
+                        <div className="tool-palette">
+                            <button
+                                type="button"
+                                disabled={locked || past.length === 0}
+                                onClick={undo}
+                                title="Annuler"
+                            >
+                                <Undo2 className="size-3.5" />
+                            </button>
+                            <button
+                                type="button"
+                                disabled={locked || future.length === 0}
+                                onClick={redo}
+                                title="Rétablir"
+                            >
+                                <Redo2 className="size-3.5" />
+                            </button>
+                            <button
+                                type="button"
+                                disabled={locked}
+                                onClick={renumberAll}
+                                title="Recalcule tous les codes (réinitialise les codes renommés à la main)"
+                            >
+                                <Hash className="size-3.5" />
+                                Renuméroter
+                            </button>
+                        </div>
+                    </div>
+                    <p className="mb-4 flex items-center gap-2 rounded-[0.625rem] bg-muted/40 px-3 py-2 text-[0.6875rem] font-medium text-muted-foreground">
+                        <CircleHelp className="size-3.5 shrink-0 text-gold" />
+                        {TOOL_HINTS[tool]}
+                    </p>
+
+                    {/* Grille + contrôles de bords */}
+                    <div className="flex gap-3">
+                        <div
+                            className="min-w-0 flex-1 overflow-x-auto rounded-[1rem] border border-border/40 bg-muted/20 p-5"
+                            data-onboarding="editor-grid"
+                        >
+                            <EditorGrid
+                                grid={grid}
+                                locked={locked}
+                                renaming={renaming}
+                                onPaintStart={handlePaintStart}
+                                onPaintEnter={handlePaintEnter}
+                                onSeatClick={handleSeatClick}
+                                onRenameChange={(value) =>
+                                    setRenaming((prev) =>
+                                        prev ? { ...prev, value } : prev,
+                                    )
+                                }
+                                onRenameCommit={commitRename}
+                                onRenameCancel={() => setRenaming(null)}
+                                onInsertRow={(y) =>
+                                    mutateGrid((prev) => insertRowAt(prev, y))
+                                }
+                                onDeleteRow={(y) =>
+                                    mutateGrid((prev) => deleteRowAt(prev, y))
+                                }
+                                onInsertCol={(x) =>
+                                    mutateGrid((prev) => insertColAt(prev, x))
+                                }
+                                onDeleteCol={(x) =>
+                                    mutateGrid((prev) => deleteColAt(prev, x))
+                                }
+                            />
+                        </div>
+                        <div
+                            className="edge-control flex-col"
+                            data-onboarding="editor-cols"
+                        >
+                            <button
+                                type="button"
+                                disabled={locked}
+                                onClick={() => resizeGrid('cols', 1)}
+                                title="Ajouter une colonne"
+                            >
+                                <Plus className="size-3.5" />
+                            </button>
+                            <span className="text-[0.625rem] font-bold text-muted-foreground [writing-mode:vertical-rl]">
+                                {grid.cols} col.
+                            </span>
+                            <button
+                                type="button"
+                                disabled={locked || grid.cols <= 1}
+                                onClick={() => resizeGrid('cols', -1)}
+                                title="Retirer la dernière colonne"
+                            >
+                                <Minus className="size-3.5" />
+                            </button>
+                        </div>
+                    </div>
+                    <div
+                        className="edge-control mt-3"
+                        data-onboarding="editor-rows"
+                    >
+                        <button
+                            type="button"
+                            disabled={locked || grid.rows <= 1}
+                            onClick={() => resizeGrid('rows', -1)}
+                            title="Retirer la dernière rangée"
+                        >
+                            <Minus className="size-3.5" />
+                        </button>
+                        <span className="text-[0.625rem] font-bold text-muted-foreground">
+                            {grid.rows} rangées
+                        </span>
+                        <button
+                            type="button"
+                            disabled={locked}
+                            onClick={() => resizeGrid('rows', 1)}
+                            title="Ajouter une rangée"
+                        >
+                            <Plus className="size-3.5" />
+                        </button>
+                    </div>
+
+                    {errors.length > 0 && (
+                        <div className="mt-4 space-y-1.5 rounded-[0.75rem] border border-destructive/30 bg-destructive/5 px-4 py-3">
+                            {errors.map((error) => (
+                                <p
+                                    key={error}
+                                    className="flex items-center gap-2 text-[0.75rem] font-medium text-destructive"
+                                >
+                                    <TriangleAlert className="size-3.5 shrink-0" />
+                                    {error}
+                                </p>
+                            ))}
+                        </div>
+                    )}
+                </section>
+
+                {/* Panneau aperçu vendeur */}
+                <aside className="space-y-4">
+                    <section
+                        className="rounded-[var(--kora-radius)] border border-border/50 bg-card p-5 shadow-[0_16px_45px_rgba(0,29,78,0.07)]"
+                        data-onboarding="editor-preview"
+                    >
+                        <span className="mb-1 block text-[0.5625rem] font-black tracking-[0.13em] text-[var(--digital)] uppercase">
+                            Aperçu temps réel
+                        </span>
+                        <h3 className="mb-4 text-[0.9375rem] font-bold text-foreground">
+                            Rendu au guichet
+                        </h3>
+                        <SeatMap grid={grid} cabin />
+                        <p className="mt-3 text-center text-[0.625rem] text-muted-foreground">
+                            Aperçu vendeur : seules les cellules utiles à la
+                            vente sont visibles.
+                        </p>
+                    </section>
+
+                    <section
+                        className="rounded-[var(--kora-radius)] border border-border/50 bg-card p-5 shadow-[0_16px_45px_rgba(0,29,78,0.07)]"
+                        data-onboarding="editor-validation"
+                    >
+                        <h3 className="mb-3 text-[0.8125rem] font-bold tracking-tight text-foreground uppercase">
+                            Composition
+                        </h3>
+                        <div className="space-y-2.5 text-xs">
+                            {(
+                                [
+                                    ['Sièges vendables', stats.sellable],
+                                    ['Sièges équipage', stats.crew],
+                                    ['Hors service', stats.maintenance],
+                                    [
+                                        'Cellules structure',
+                                        grid.cells.filter(
+                                            (cell) => cell.kind !== 'seat',
+                                        ).length,
+                                    ],
+                                    [
+                                        'Dimensions',
+                                        `${grid.rows} × ${grid.cols}`,
+                                    ],
+                                ] as [string, React.ReactNode][]
+                            ).map(([label, value]) => (
+                                <div
+                                    key={label}
+                                    className="flex items-center justify-between border-b border-border/40 pb-2 last:border-b-0 last:pb-0"
+                                >
+                                    <span className="text-muted-foreground">
+                                        {label}
+                                    </span>
+                                    <strong className="text-foreground">
+                                        {value}
+                                    </strong>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+
+                    <section className="rounded-[var(--kora-radius)] border border-border/50 bg-card p-5 shadow-[0_16px_45px_rgba(0,29,78,0.07)]">
+                        <h3 className="mb-3 text-[0.8125rem] font-bold tracking-tight text-foreground uppercase">
+                            Légende
+                        </h3>
+                        <div className="grid grid-cols-2 gap-2.5 text-[0.6875rem] text-muted-foreground">
+                            <span className="flex items-center gap-2">
+                                <i className="seat sm-seat inline-block" />
+                                Siège vendable
+                            </span>
+                            <span className="flex items-center gap-2">
+                                <i className="seat sm-seat sm-seat--crew inline-block" />
+                                Équipage
+                            </span>
+                            <span className="flex items-center gap-2">
+                                <i className="sm-cell sm-cell--driver inline-block" />
+                                Conducteur
+                            </span>
+                            <span className="flex items-center gap-2">
+                                <i className="sm-cell sm-cell--door inline-block" />
+                                Porte
+                            </span>
+                            <span className="flex items-center gap-2">
+                                <i className="sm-cell sm-cell--aisle inline-block" />
+                                Allée
+                            </span>
+                            <span className="flex items-center gap-2">
+                                <i className="sm-cell sm-cell--empty inline-block" />
+                                Vide
+                            </span>
+                        </div>
+                    </section>
+                </aside>
+            </div>
+
+            <OnboardingTour
+                steps={EDITOR_ONBOARDING_STEPS}
+                isActive={onboarding.isActive}
+                onComplete={onboarding.complete}
+                onDismiss={onboarding.dismiss}
+            />
+        </>
+    );
+}
+
+LayoutEditorPage.layout = {
+    breadcrumbs: [
+        { title: 'Ressources', href: '/resources' } satisfies BreadcrumbItem,
+        { title: 'Gabarits', href: '/layouts' } satisfies BreadcrumbItem,
+        { title: 'Éditeur', href: '' } satisfies BreadcrumbItem,
+    ],
+};

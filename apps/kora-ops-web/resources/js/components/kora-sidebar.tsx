@@ -257,6 +257,11 @@ const navItems: NavEntry[] = [
             },
             { title: 'Flotte', href: '/fleet', permission: 'fleet.view' },
             {
+                title: 'Gabarits',
+                href: '/layouts',
+                permission: 'fleet.view',
+            },
+            {
                 title: 'Modèles',
                 href: '/models',
                 permission: 'fleet.view',

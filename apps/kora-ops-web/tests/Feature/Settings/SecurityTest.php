@@ -19,7 +19,7 @@ class SecurityTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('security.edit'))
-            ->assertRedirect(route('profile.edit'));
+            ->assertRedirect(route('profile.edit').'?tab=security');
     }
 
     public function test_two_factor_endpoints_still_require_password_confirmation()

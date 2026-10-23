@@ -8,8 +8,10 @@ use App\Modules\Booking\Http\Controllers\CounterSaleController;
 use App\Modules\BusNetwork\Http\Controllers\BusAmenityController;
 use App\Modules\BusNetwork\Http\Controllers\BusController;
 use App\Modules\BusNetwork\Http\Controllers\BusModelController;
+use App\Modules\BusNetwork\Http\Controllers\BusSeatStatusController;
 use App\Modules\BusNetwork\Http\Controllers\LineController;
 use App\Modules\BusNetwork\Http\Controllers\MapSettingsController;
+use App\Modules\BusNetwork\Http\Controllers\SeatLayoutController;
 use App\Modules\Cash\Http\Controllers\CashMediaController;
 use App\Modules\Cash\Http\Controllers\CashSessionController;
 use App\Modules\Departures\Http\Controllers\DepartureController;
@@ -206,6 +208,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('fleet', [BusController::class, 'store'])->name('fleet.store');
     Route::put('fleet/{bus:uuid}', [BusController::class, 'update'])->name('fleet.update');
     Route::patch('fleet/{bus:uuid}/status', [BusController::class, 'changeStatus'])->name('fleet.status');
+    Route::patch('fleet/{bus:uuid}/seats/{seat:uuid}', [BusSeatStatusController::class, 'update'])->name('fleet.seats.status');
 
     // Commodités (référentiel réutilisable, table intermédiaire bus <-> commodité)
     // Route top-level (pas nichée sous /fleet) pour ne pas être capturée par le lien
@@ -220,6 +223,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('models', [BusModelController::class, 'store'])->name('models.store');
     Route::put('models/{model:uuid}', [BusModelController::class, 'update'])->name('models.update');
     Route::patch('models/{model:uuid}/status', [BusModelController::class, 'changeStatus'])->name('models.status');
+
+    // Gabarits de sièges — référentiel top-level (même règle que les commodités).
+    Route::get('layouts', [SeatLayoutController::class, 'index'])->name('layouts.index');
+    Route::get('layouts/create', [SeatLayoutController::class, 'create'])->name('layouts.create');
+    Route::post('layouts', [SeatLayoutController::class, 'store'])->name('layouts.store');
+    Route::get('layouts/{composition:uuid}/edit', [SeatLayoutController::class, 'edit'])->name('layouts.edit');
+    Route::put('layouts/{composition:uuid}', [SeatLayoutController::class, 'update'])->name('layouts.update');
+    Route::post('layouts/{composition:uuid}/duplicate', [SeatLayoutController::class, 'duplicate'])->name('layouts.duplicate');
+    Route::patch('layouts/{composition:uuid}/status', [SeatLayoutController::class, 'changeStatus'])->name('layouts.status');
 
     // V1 MVP — Agences (Ressources — référentiel parent de la flotte et des utilisateurs)
     Route::get('agencies', [AgencyController::class, 'index'])->name('agencies.index');

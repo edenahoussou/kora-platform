@@ -31,6 +31,7 @@ import {
 import { cn } from '@/lib/utils';
 import amenitiesRoutes from '@/routes/amenities';
 import fleet from '@/routes/fleet';
+import layoutsRoutes from '@/routes/layouts';
 import modelsRoutes from '@/routes/models';
 import type { BreadcrumbItem } from '@/types';
 
@@ -365,6 +366,14 @@ export default function FleetPage({
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2.5">
+                    <button
+                        type="button"
+                        onClick={() => router.get(layoutsRoutes.index.url())}
+                        className="btn btn-ghost"
+                    >
+                        <Armchair className="size-3.5 text-gold" />
+                        Gabarits
+                    </button>
                     <button
                         type="button"
                         onClick={() => router.get(modelsRoutes.index.url())}
