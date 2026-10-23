@@ -10,6 +10,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:kora_app_passenger/core/error/failures.dart';
 import 'package:kora_app_passenger/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:kora_app_passenger/features/booking/data/datasources/booking_mock_data.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/company_account.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/group_payer.dart';
@@ -18,6 +19,7 @@ import 'package:kora_app_passenger/features/booking/domain/entities/group_ticket
 import 'package:kora_app_passenger/features/booking/domain/entities/passenger.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/price.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/reservation_pricing.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/search_criteria.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/seat.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/seat_hold.dart';
 import 'package:kora_app_passenger/features/booking/domain/repositories/reservation_repository.dart';
@@ -31,6 +33,13 @@ import 'package:kora_app_passenger/features/payment/presentation/bloc/payment_ca
 import 'package:kora_app_passenger/features/payment/presentation/bloc/payment_flow_bloc.dart';
 
 import 'stub_auth_repository.dart';
+
+/// L'identifiant du blocage que rend [StubReservationRepository].
+///
+/// Nommé plutôt que recopié : un écran qui compare la réservation en
+/// cours à celle qu'un paiement règle a besoin des deux côtés de la
+/// comparaison, et deux littéraux finiraient par diverger.
+const kHeldReservationId = 'hold-groupe-1';
 
 /// Dépôt de blocage réglable : réussit par défaut, échoue sur demande.
 class StubReservationRepository implements ReservationRepository {
@@ -236,7 +245,7 @@ class StubReservationRepository implements ReservationRepository {
     heldTotal = quote.total;
     return Right(
       SeatHold(
-        id: 'hold-groupe-1',
+        id: kHeldReservationId,
         expiresAt: now.add(holdDuration),
         seatLabels: [for (final seat in seats) seat.label],
         total: quote.total,
@@ -309,6 +318,75 @@ const PaymentCatalog kStubPaymentCatalog = PaymentCatalog(
   ],
 );
 
+/// Le catalogue tel que le staging le sert depuis MEZ-146 : deux
+/// passerelles pour le Mobile Money, et la carte.
+///
+/// KKiaPay encaisse dans sa propre feuille (`sdk_widget`), FedaPay
+/// pousse la demande sur le téléphone — c'est cette différence que les
+/// écrans de paiement lisent pour savoir quoi demander.
+const PaymentCatalog kStubGatewayCatalog = PaymentCatalog(
+  country: 'BJ',
+  currency: 'XOF',
+  methods: [
+    PaymentMethod(
+      code: PaymentCatalog.mobileMoneyCode,
+      label: 'Mobile Money',
+      enabled: true,
+      providers: [
+        PaymentProvider(
+          code: 'fedapay',
+          label: 'FedaPay',
+          enabled: true,
+          // Les neuf réseaux du staging : trois pays, et des marques
+          // qui ne sont pas servies partout.
+          networks: [
+            'mtn_momo',
+            'moov_flooz',
+            'celtiis_cash',
+            'mtn_momo_ci',
+            'moov_flooz_ci',
+            'wave_ci',
+            'orange_money_ci',
+            'moov_flooz_tg',
+            'tmoney_tg',
+          ],
+          requires: ['phone', 'mobile_money_network'],
+          interaction: 'push_or_redirect',
+          verification: 'server_verify',
+        ),
+        PaymentProvider(
+          code: 'kkiapay',
+          label: 'KKiaPay',
+          enabled: true,
+          networks: ['mtn_momo', 'moov_flooz', 'celtiis_cash', 'wave_ci'],
+          interaction: 'sdk_widget',
+          verification: 'server_verify',
+        ),
+      ],
+    ),
+    PaymentMethod(
+      code: PaymentCatalog.cardCode,
+      label: 'Carte bancaire',
+      enabled: true,
+      providers: [
+        PaymentProvider(
+          code: 'kkiapay',
+          label: 'KKiaPay',
+          enabled: true,
+          interaction: 'sdk_widget',
+          verification: 'server_verify',
+        ),
+      ],
+    ),
+    PaymentMethod(
+      code: PaymentCatalog.walletCode,
+      label: 'Mini Wallet',
+      enabled: false,
+      availability: 'out_of_mvp',
+    ),
+  ],
+);
+
 /// Ce qu'un double de [PaymentRepository] doit fournir quand il ne teste
 /// que le catalogue.
 ///
@@ -319,10 +397,11 @@ mixin PaymentCatalogOnly implements PaymentRepository {
   @override
   Future<Either<Failure, PaymentAttempt>> initiate({
     required String reservationId,
+    required String method,
     required String provider,
-    required String network,
-    required String phone,
     required String idempotencyKey,
+    String? network,
+    String? phone,
   }) => throw UnimplementedError('Ce double ne sert que pour le catalogue.');
 
   @override
@@ -330,8 +409,10 @@ mixin PaymentCatalogOnly implements PaymentRepository {
       throw UnimplementedError('Ce double ne sert que pour le catalogue.');
 
   @override
-  Future<Either<Failure, PaymentAttempt>> verify(String paymentId) =>
-      throw UnimplementedError('Ce double ne sert que pour le catalogue.');
+  Future<Either<Failure, PaymentAttempt>> verify(
+    String paymentId, {
+    String? transactionId,
+  }) => throw UnimplementedError('Ce double ne sert que pour le catalogue.');
 }
 
 /// Dépôt de paiement réglable : rend le catalogue du staging par défaut,
@@ -376,12 +457,17 @@ class StubPaymentRepository implements PaymentRepository {
   @override
   Future<Either<Failure, PaymentAttempt>> initiate({
     required String reservationId,
+    required String method,
     required String provider,
-    required String network,
-    required String phone,
     required String idempotencyKey,
+    String? network,
+    String? phone,
   }) async {
-    calls.add('initiate:$provider/$network');
+    // Le réseau est absent d'un paiement par carte, et d'un Mobile Money
+    // encaissé par le widget : la trace garde alors le seul moyen.
+    calls.add(
+      network == null ? 'initiate:$provider' : 'initiate:$provider/$network',
+    );
     // La clé d'idempotence se relit dans les tests : c'est elle qui décide
     // si le serveur voit une demande neuve ou la relecture d'un refus.
     idempotencyKeys.add(idempotencyKey);
@@ -400,8 +486,13 @@ class StubPaymentRepository implements PaymentRepository {
   }
 
   @override
-  Future<Either<Failure, PaymentAttempt>> verify(String paymentId) async {
-    calls.add('verify');
+  Future<Either<Failure, PaymentAttempt>> verify(
+    String paymentId, {
+    String? transactionId,
+  }) async {
+    // L'identifiant du widget apparaît dans la trace : c'est lui que le
+    // serveur attend pour conclure un paiement KKiaPay.
+    calls.add(transactionId == null ? 'verify' : 'verify:$transactionId');
     final failure = this.failure;
     if (failure != null) return Left(failure);
 
@@ -454,6 +545,41 @@ Future<PaymentCatalogBloc> loadedCatalog({
     (state) => state.status != PaymentCatalogStatus.loading,
   );
   return bloc;
+}
+
+/// Pose un blocage réel sur [bloc], comme le ferait le récapitulatif.
+///
+/// Les écrans de paiement comparent la réservation qu'ils paient à celle
+/// que le tunnel retient : sans blocage posé, il n'y a rien à comparer
+/// et le test ne prouve rien.
+Future<void> holdOneSeat(SeatHoldBloc bloc) async {
+  final departure = mockDeparturesFor(
+    SearchCriteria(
+      origin: kMockCities.firstWhere((city) => city.id == 'ctn'),
+      destination: kMockCities.firstWhere((city) => city.id == 'mlv'),
+      date: DateTime(2026, 8, 14),
+    ),
+  ).first;
+
+  final seat = mockSeatsFor(
+    departure,
+  ).firstWhere((seat) => seat.status == SeatStatus.free);
+
+  bloc.add(
+    SeatHoldCheckoutRequested(
+      departure: departure,
+      passengers: [
+        Passenger(
+          firstName: 'Dolg',
+          lastName: 'Boss',
+          phone: '+2290197421800',
+          seat: seat,
+        ),
+      ],
+    ),
+  );
+
+  await bloc.stream.firstWhere((state) => state.isHeld && !state.isCheckingOut);
 }
 
 /// Enveloppe [child] des trois Blocs que l'app fournit au-dessus du

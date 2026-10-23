@@ -25,6 +25,11 @@ class StorageKeys {
   /// injoignable.
   static const String tickets = 'kora_tickets';
 
+  /// Le paiement laissé en cours, pour le reprendre au prochain
+  /// lancement. Le parcours vit dans un Bloc du tunnel : l'app fermée,
+  /// il disparaît avec tout ce qu'il savait.
+  static const String pendingPayment = 'kora_pending_payment';
+
   /// Les villes desservies, gardées pour que l'accueil s'ouvre sans
   /// réseau plutôt que d'annoncer une panne.
   static const String cities = 'kora_cities';

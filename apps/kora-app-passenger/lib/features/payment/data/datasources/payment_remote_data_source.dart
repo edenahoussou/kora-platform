@@ -35,21 +35,25 @@ class PaymentRemoteDataSource {
   /// (200) au lieu d'en ouvrir un second (201).
   Future<PaymentAttempt> initiate({
     required String reservationId,
+    required String method,
     required String provider,
-    required String network,
-    required String phone,
     required String idempotencyKey,
+    String? network,
+    String? phone,
   }) async {
     final response = await _dio.post<dynamic>(
       ApiConstants.paymentInitiate,
       data: {
         'reservation_uuid': reservationId,
-        // Seule valeur que le serveur accepte aujourd'hui.
-        'method': 'mobile_money',
+        'method': method,
         'provider': provider,
-        'mobile_money_network': network,
-        'phone': phone,
         'idempotency_key': idempotencyKey,
+        // Le réseau et le numéro ne valent que pour un encaisseur qui
+        // pousse la demande lui-même. KKiaPay les recueille dans son
+        // widget, et la carte n'en a pas : le serveur les refuse alors
+        // comme superflus plutôt que de les exiger.
+        'mobile_money_network': ?network,
+        'phone': ?phone,
       },
     );
 
@@ -72,9 +76,19 @@ class PaymentRemoteDataSource {
   /// Réservé au geste explicite du voyageur (« J'ai payé ») : la boucle
   /// automatique passe par [status], moins coûteuse pour le provider, qui
   /// impose ses propres limites d'appel.
-  Future<PaymentAttempt> verify(String paymentId) async {
+  ///
+  /// [transactionId] vient du widget KKiaPay, qui encaisse côté client et
+  /// rend cet identifiant. C'est **le serveur** qui conclut, en
+  /// l'interrogeant chez KKiaPay : la réponse du widget ne vaut rien par
+  /// elle-même. La liaison est définitive côté serveur — un identifiant
+  /// divergent sur un paiement déjà lié est rejeté (422).
+  Future<PaymentAttempt> verify(
+    String paymentId, {
+    String? transactionId,
+  }) async {
     final response = await _dio.post<dynamic>(
       ApiConstants.paymentVerify(paymentId),
+      data: transactionId == null ? null : {'transaction_id': transactionId},
     );
 
     return PaymentAttemptModel.fromJson(

@@ -67,6 +67,57 @@ void main() {
     },
   );
 
+  test('une autre réservation se paie malgré un paiement en attente', () async {
+    // Le bloc vit au niveau du parcours : à l'entrée, il reprend le
+    // paiement laissé en attente au lancement précédent. Celui-ci peut
+    // porter sur une réservation abandonnée — et son seul statut
+    // interdisait d'en payer une nouvelle : « Payer » n'envoyait plus
+    // rien, sans un mot au voyageur.
+    final repository = StubPaymentRepository();
+    final bloc = PaymentFlowBloc(repository);
+    addTearDown(bloc.close);
+
+    bloc.add(started);
+    await bloc.stream.firstWhere((state) => state.isPending);
+
+    bloc.add(
+      const PaymentFlowStarted(
+        reservationId: 'res-2',
+        provider: 'kkiapay',
+        network: 'wave_ci',
+        phone: '+2250708123456',
+      ),
+    );
+    await bloc.stream.firstWhere(
+      (state) => state.isPending && state.reservationId == 'res-2',
+    );
+
+    expect(
+      repository.calls.where((call) => call.startsWith('initiate')).length,
+      2,
+    );
+    expect(repository.calls, contains('initiate:kkiapay/wave_ci'));
+  });
+
+  test('la même réservation, elle, ne se relance pas', () async {
+    // L'autre moitié de la règle : le verrou du double débit tient
+    // toujours sur la réservation que le paiement règle.
+    final repository = StubPaymentRepository();
+    final bloc = PaymentFlowBloc(repository);
+    addTearDown(bloc.close);
+
+    bloc.add(started);
+    await bloc.stream.firstWhere((state) => state.isPending);
+
+    bloc.add(started);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(
+      repository.calls.where((call) => call.startsWith('initiate')).length,
+      1,
+    );
+  });
+
   test('un lancement refusé remonte le message du serveur', () async {
     final bloc = PaymentFlowBloc(
       StubPaymentRepository(

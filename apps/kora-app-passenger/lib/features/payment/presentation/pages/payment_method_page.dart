@@ -129,23 +129,58 @@ class PaymentMethodPage extends StatelessWidget {
 
     return [
       for (final method in methods) ...[
-        _MethodTile(
-          code: method.code,
-          title: _title(context, method),
-          lead: _lead(context, method),
-          // Les logos des opérateurs remplacent leur énumération : on
-          // reconnaît son réseau avant d'avoir lu la ligne.
-          logos:
-              method.code == PaymentCatalog.mobileMoneyCode && method.isUsable,
-          // Un moyen annoncé actif mais sans provider utilisable ne mène
-          // nulle part : `isUsable` exige les deux. Un moyen dont l'app
-          // n'a pas encore l'écran non plus : un pavé qui s'enfonce sans
-          // rien ouvrir est pire qu'un pavé grisé.
-          onTap: method.isUsable && _pathOf(method) != null
-              ? () => _open(context, method, args)
-              : null,
-        ),
-        const SizedBox(height: 10),
+        // Le Mobile Money se décline par passerelle : les deux
+        // n'encaissent pas de la même façon — FedaPay pousse la demande
+        // sur le téléphone, KKiaPay ouvre sa feuille dans l'app — et les
+        // confondre sous une seule carte promettrait au voyageur une
+        // expérience qu'il n'aura pas.
+        if (method.code == PaymentCatalog.mobileMoneyCode && method.isUsable)
+          for (final provider in method.enabledProviders) ...[
+            _MethodTile(
+              code: method.code,
+              // Le nom de la passerelle, et le moyen dessous : deux
+              // cartes voisines qui s'appelleraient toutes deux
+              // « Mobile Money » ne se distingueraient que par leur logo.
+              title: provider.label,
+              lead: l10n.paymentMethodMomo,
+              logoAsset: _logoOf(provider),
+              // Les logos des opérateurs remplacent leur énumération : on
+              // reconnaît son réseau avant d'avoir lu la ligne.
+              logos: true,
+              // Deux passerelles, deux écrans : KKiaPay encaisse dans sa
+              // propre fenêtre et y demande l'opérateur, tandis que
+              // FedaPay pousse la demande sur le téléphone et réclame
+              // donc l'opérateur et le numéro d'avance.
+              onTap: () => context.push(
+                provider.collectsInApp
+                    ? AppRouter.paymentGatewayMomoPath
+                    : AppRouter.paymentMobileMoneyPath,
+                extra: PaymentArgs(
+                  total: args.total,
+                  provider: provider.code,
+                  phone: args.phone,
+                  departure: args.departure,
+                  seatLabel: args.seatLabel,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+          ]
+        else ...[
+          _MethodTile(
+            code: method.code,
+            title: _title(context, method),
+            lead: _lead(context, method),
+            // Un moyen annoncé actif mais sans provider utilisable ne mène
+            // nulle part : `isUsable` exige les deux. Un moyen dont l'app
+            // n'a pas encore l'écran non plus : un pavé qui s'enfonce sans
+            // rien ouvrir est pire qu'un pavé grisé.
+            onTap: method.isUsable && _pathOf(method) != null
+                ? () => _open(context, method, args)
+                : null,
+          ),
+          const SizedBox(height: 10),
+        ],
       ],
       // Des pavés tous inertes, et rien d'autre : le voyageur reste devant
       // un écran qui refuse sans dire pourquoi. Le catalogue n'est pas vide
@@ -156,6 +191,13 @@ class PaymentMethodPage extends StatelessWidget {
     ];
   }
 
+  /// Le logo de la passerelle, quand il est au dépôt.
+  String? _logoOf(PaymentProvider provider) => switch (provider.code) {
+    'kkiapay' => 'assets/images/kkiapay.png',
+    'fedapay' => 'assets/images/fedapay.jpg',
+    _ => null,
+  };
+
   /// Le nom du moyen, dans la langue du voyageur quand l'app le connaît.
   ///
   /// Le libellé du serveur sert de repli : un moyen ajouté côté back après
@@ -164,6 +206,7 @@ class PaymentMethodPage extends StatelessWidget {
   String _title(BuildContext context, PaymentMethod method) {
     return switch (method.code) {
       PaymentCatalog.mobileMoneyCode => context.l10n.paymentMethodMomo,
+      PaymentCatalog.cardCode => context.l10n.paymentMethodCard,
       PaymentCatalog.walletCode => context.l10n.paymentMethodWallet,
       _ => method.label,
     };
@@ -182,6 +225,7 @@ class PaymentMethodPage extends StatelessWidget {
 
     return switch (method.code) {
       PaymentCatalog.mobileMoneyCode => l10n.paymentMethodMomoLead,
+      PaymentCatalog.cardCode => l10n.paymentMethodCardLead,
       PaymentCatalog.walletCode => l10n.paymentMethodWalletLead(
         _walletBalance.formatted,
       ),
@@ -193,6 +237,7 @@ class PaymentMethodPage extends StatelessWidget {
   /// L'écran qui encaisse ce moyen, ou `null` si l'app n'en a pas encore.
   String? _pathOf(PaymentMethod method) => switch (method.code) {
     PaymentCatalog.mobileMoneyCode => AppRouter.paymentMobileMoneyPath,
+    PaymentCatalog.cardCode => AppRouter.paymentCardPath,
     PaymentCatalog.walletCode => AppRouter.paymentWalletPath,
     _ => null,
   };
@@ -248,6 +293,7 @@ class _MethodTile extends StatelessWidget {
     required this.lead,
     required this.onTap,
     this.logos = false,
+    this.logoAsset,
   });
 
   /// Le code du moyen, qui décide du pictogramme.
@@ -257,6 +303,13 @@ class _MethodTile extends StatelessWidget {
 
   /// Montre les vignettes des réseaux sous la ligne de description.
   final bool logos;
+
+  /// Le logo de la passerelle, à la place du pictogramme doré.
+  ///
+  /// Deux cartes Mobile Money se suivent : c'est la marque de la
+  /// passerelle qui les distingue au premier coup d'œil, pas leur
+  /// libellé.
+  final String? logoAsset;
 
   /// `null` pour un moyen que le serveur annonce mais n'encaisse pas : la
   /// carte devient inerte et perd son chevron, au lieu d'ouvrir un écran
@@ -279,16 +332,35 @@ class _MethodTile extends StatelessWidget {
       onTap: onTap,
       child: Row(
         children: [
-          Container(
-            width: 38,
-            height: 38,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: AppColors.gold,
-              borderRadius: BorderRadius.circular(AppRadius.input),
+          if (logoAsset case final asset?)
+            Container(
+              width: 38,
+              height: 38,
+              alignment: Alignment.center,
+              // Le blanc derrière le logo, comme pour les opérateurs : la
+              // marque porte son propre fond.
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(AppRadius.input),
+                border: Border.all(color: koraColors.line),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Padding(
+                padding: const EdgeInsets.all(3),
+                child: Image.asset(asset, fit: BoxFit.contain),
+              ),
+            )
+          else
+            Container(
+              width: 38,
+              height: 38,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: AppColors.gold,
+                borderRadius: BorderRadius.circular(AppRadius.input),
+              ),
+              child: Icon(_icon, size: 20, color: AppColors.kora),
             ),
-            child: Icon(_icon, size: 20, color: AppColors.kora),
-          ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(

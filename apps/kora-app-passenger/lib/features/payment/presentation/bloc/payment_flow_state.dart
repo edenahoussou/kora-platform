@@ -23,6 +23,8 @@ class PaymentFlowState extends Equatable {
     this.failure,
     this.isVerifying = false,
     this.round = 0,
+    this.transactionId,
+    this.reservationId,
   });
 
   final PaymentFlowStatus status;
@@ -51,6 +53,23 @@ class PaymentFlowState extends Equatable {
   /// Une vérification demandée par le voyageur est en cours.
   final bool isVerifying;
 
+  /// L'identifiant rendu par le widget KKiaPay, une fois le payeur passé
+  /// par sa feuille.
+  ///
+  /// Retenu, et non simplement transmis une fois : la première
+  /// vérification peut échouer sur un réseau coupé, et la boucle doit
+  /// pouvoir le renvoyer. Le serveur le lie définitivement au paiement,
+  /// donc le renvoyer ensuite est sans effet — mais le perdre priverait
+  /// le serveur du seul identifiant que le widget ait produit.
+  final String? transactionId;
+
+  /// La réservation que ce paiement règle.
+  ///
+  /// Retenue pour la trace de reprise : au prochain lancement, le
+  /// paiement se relit par son propre identifiant, mais c'est la
+  /// réservation qui dit quel billet attendre.
+  final String? reservationId;
+
   bool get isStarting => status == PaymentFlowStatus.starting;
   bool get isPending => status == PaymentFlowStatus.pending;
   bool get isConfirmed => status == PaymentFlowStatus.confirmed;
@@ -67,6 +86,8 @@ class PaymentFlowState extends Equatable {
     bool clearFailure = false,
     bool? isVerifying,
     int? round,
+    String? transactionId,
+    String? reservationId,
   }) {
     return PaymentFlowState(
       status: status ?? this.status,
@@ -80,9 +101,19 @@ class PaymentFlowState extends Equatable {
       // demandes déjà parties pour cette réservation, et c'est lui qui
       // fait d'un nouvel essai une demande neuve aux yeux du serveur.
       round: round ?? this.round,
+      transactionId: transactionId ?? this.transactionId,
+      reservationId: reservationId ?? this.reservationId,
     );
   }
 
   @override
-  List<Object?> get props => [status, attempt, failure, isVerifying, round];
+  List<Object?> get props => [
+    status,
+    attempt,
+    failure,
+    isVerifying,
+    round,
+    transactionId,
+    reservationId,
+  ];
 }

@@ -26,25 +26,21 @@ class SupportChatOverlay extends StatefulWidget {
 
   /// Les écrans qui ne montrent pas le bouton.
   ///
-  /// Trois familles :
+  /// Deux familles :
   /// - **le parcours d'authentification** et les écrans d'accueil : sans
   ///   session il n'y a pas de configuration de chat à lire, et le
   ///   bouton recouvrirait les boutons pleine largeur de ces écrans ;
   /// - **la conversation elle-même** et l'écran Contacter KORA, qui
   ///   porte déjà son entrée : un bouton qui mène à la page où l'on se
   ///   trouve ne sert à rien ;
-  /// - **le tunnel de réservation**, dont chaque écran se termine par un
-  ///   bouton pleine largeur — « Choisir mon siège », « Continuer »,
-  ///   « Payer » : vérifié sur l'appareil, le bouton flottant en
-  ///   recouvrait le bord droit. Entre joindre un agent et payer son
-  ///   billet, c'est le paiement qui doit rester intact ; l'assistance
-  ///   reste à un retour en arrière ;
   /// - **les cinq onglets**, dont la coquille s'occupe déjà — son
   ///   `Scaffold` sait placer le bouton au-dessus de la barre de
   ///   navigation, ce qu'une surcouche ne peut pas deviner.
   ///
-  /// Ailleurs, un écran peut garder le bouton tout en finissant par une
-  /// action pleine largeur : voir [_lifted].
+  /// Le tunnel de réservation, lui, **garde** le bouton : c'est là qu'on
+  /// a le plus de questions. Il en recouvrait le bouton pleine largeur,
+  /// d'où son retrait un temps ; il y est maintenant remonté — voir
+  /// [_lifted].
   static bool _hiddenOn(String location) {
     const screens = {
       AppRouter.splashPath,
@@ -61,20 +57,12 @@ class SupportChatOverlay extends StatefulWidget {
     };
     if (screens.contains(location)) return true;
 
-    const funnel = {
-      AppRouter.busSearchPath,
-      AppRouter.departuresPath,
-      AppRouter.seatsPath,
-      AppRouter.passengerInfoPath,
-      AppRouter.summaryPath,
-      AppRouter.holdExpiredPath,
-      AppRouter.paymentMethodPath,
-      AppRouter.paymentMobileMoneyPath,
-      AppRouter.groupBookingPath,
-      AppRouter.groupTicketsPath,
-      AppRouter.groupDiscountPath,
-    };
-    if (funnel.contains(location)) return true;
+    // Le plan des sièges : son pied n'est pas un bouton mais une carte —
+    // le siège retenu, le total, puis « Continuer ». Remonter le bouton
+    // au-dessus d'un bouton suffit ; au-dessus d'une carte entière, il
+    // se retrouverait au milieu du plan. Vérifié sur l'appareil : posé
+    // à 84 px, il recouvrait le total.
+    if (location == AppRouter.seatsPath) return true;
 
     // Les onglets, et eux seuls : `/voyages/<uuid>` est un billet ouvert
     // par-dessus, pas l'onglet Voyages.
@@ -85,12 +73,35 @@ class SupportChatOverlay extends StatefulWidget {
 
   /// Les écrans qui gardent le bouton mais dont le bas est occupé.
   ///
-  /// Le détail d'un départ se termine par « Choisir mon siège », sur
-  /// toute la largeur : posé dans le coin, le bouton d'assistance en
-  /// recouvrait le bord droit. On le remonte au-dessus plutôt que de le
-  /// retirer — c'est l'écran où l'on hésite encore, donc celui où une
-  /// question se pose.
-  static const Set<String> _lifted = {AppRouter.departureDetailPath};
+  /// Tout le tunnel de réservation en est : chacun de ses écrans se
+  /// termine par une action pleine largeur — « Choisir mon siège »,
+  /// « Continuer », « Payer » — et le bouton flottant, posé dans le
+  /// coin, en recouvrait le bord droit. On le remonte au-dessus plutôt
+  /// que de le retirer : c'est le moment du parcours où une question se
+  /// pose le plus, et une question sans réponse coûte la réservation.
+  ///
+  /// Les deux écrans du tunnel qui n'ont pas d'action en bas — la liste
+  /// des départs et le choix du moyen de paiement — en font partie aussi :
+  /// le bouton y flotte 84 px plus haut, ce qui ne recouvre rien et lui
+  /// évite de sauter d'un écran à l'autre.
+  ///
+  /// Le plan des sièges, lui, n'y est pas : son pied est une carte, pas
+  /// un bouton, et 84 px n'auraient pas suffi — il s'efface là.
+  static const Set<String> _lifted = {
+    AppRouter.departureDetailPath,
+    AppRouter.busSearchPath,
+    AppRouter.departuresPath,
+    AppRouter.passengerInfoPath,
+    AppRouter.summaryPath,
+    AppRouter.holdExpiredPath,
+    AppRouter.paymentMethodPath,
+    AppRouter.paymentMobileMoneyPath,
+    AppRouter.paymentCardPath,
+    AppRouter.paymentGatewayMomoPath,
+    AppRouter.groupBookingPath,
+    AppRouter.groupTicketsPath,
+    AppRouter.groupDiscountPath,
+  };
 
   /// La marge basse du bouton : juste au-dessus de l'action de l'écran
   /// quand il y en a une, dans le coin sinon.
@@ -99,6 +110,18 @@ class SupportChatOverlay extends StatefulWidget {
   /// sépare les deux.
   static double _bottom(String location) =>
       _lifted.contains(location) ? 84 : 16;
+
+  /// Où le bouton se montre, et à quelle hauteur.
+  ///
+  /// Exposés parce que la règle a changé deux fois : le tunnel a eu le
+  /// bouton, l'a perdu parce qu'il recouvrait « Payer », et l'a repris
+  /// une fois remonté. Deux tests valent mieux qu'un troisième
+  /// aller-retour.
+  @visibleForTesting
+  static bool showsOn(String location) => !_hiddenOn(location);
+
+  @visibleForTesting
+  static double bottomOn(String location) => _bottom(location);
 
   @override
   State<SupportChatOverlay> createState() => _SupportChatOverlayState();

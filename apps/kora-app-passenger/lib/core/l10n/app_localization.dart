@@ -168,6 +168,7 @@ class AppLocalization {
   String get paymentMethodFailed => translate('payment_method_failed');
   String get paymentMethodRetry => translate('payment_method_retry');
   String get paymentMethodNone => translate('payment_method_none');
+  String get paymentWidgetFailed => translate('payment_widget_failed');
   String get paymentMethodOutOfMvp => translate('payment_method_out_of_mvp');
   String get paymentMethodUnavailable =>
       translate('payment_method_unavailable');
@@ -513,6 +514,8 @@ class AppLocalization {
   String paymentMethodHold(String time) =>
       _withArgs('payment_method_hold', {'time': time});
   String get paymentMethodTotal => translate('payment_method_total');
+  String paymentGatewayMomoLead(String gateway) =>
+      _withArgs('payment_gateway_momo_lead', {'gateway': gateway});
   String get paymentMomoTitle => translate('payment_momo_title');
   String paymentMomoEyebrow(String amount) =>
       _withArgs('payment_momo_eyebrow', {'amount': amount});
@@ -522,6 +525,10 @@ class AppLocalization {
   String get paymentMomoOperatorHint => translate('payment_momo_operator_hint');
   String get paymentMomoOperatorRequired =>
       translate('payment_momo_operator_required');
+  String paymentMomoNetworkCountry(String network, String country) => _withArgs(
+    'payment_momo_network_country',
+    {'network': network, 'country': country},
+  );
   String get paymentMomoOperatorsLoading =>
       translate('payment_momo_operators_loading');
   String get paymentMomoOperatorsFailed =>
@@ -531,7 +538,10 @@ class AppLocalization {
   String get paymentMomoPhone => translate('payment_momo_phone');
   String get paymentMomoPhoneRequired =>
       translate('payment_momo_phone_required');
-  String get paymentMomoPhoneShort => translate('payment_momo_phone_short');
+  String paymentMomoPhoneShort(String country, int digits) => _withArgs(
+    'payment_momo_phone_short',
+    {'country': country, 'digits': '$digits'},
+  );
   String get paymentMomoNoticeTitle => translate('payment_momo_notice_title');
   String get paymentMomoNotice => translate('payment_momo_notice');
   String get paymentMomoResume => translate('payment_momo_resume');
@@ -555,6 +565,7 @@ class AppLocalization {
   String get paymentWalletConfirm => translate('payment_wallet_confirm');
   String get paymentWalletNotice => translate('payment_wallet_notice');
   String get paymentCardTitle => translate('payment_card_title');
+  String get paymentCardLead => translate('payment_card_lead');
   String get paymentCardEyebrow => translate('payment_card_eyebrow');
   String get paymentCardSecure => translate('payment_card_secure');
   String get paymentCardHolder => translate('payment_card_holder');
@@ -587,6 +598,10 @@ class AppLocalization {
   String get paymentPendingText => translate('payment_pending_text');
 
   String get paymentPendingSlow => translate('payment_pending_slow');
+  String get paymentPendingTextWidget =>
+      translate('payment_pending_text_widget');
+  String get paymentPendingSlowWidget =>
+      translate('payment_pending_slow_widget');
 
   String get paymentPendingRefresh => translate('payment_pending_refresh');
 
