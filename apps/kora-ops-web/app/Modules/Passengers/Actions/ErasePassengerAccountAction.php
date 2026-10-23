@@ -302,6 +302,8 @@ class ErasePassengerAccountAction
             [
                 'requested_by_user_id' => $actor->getKey(),
                 'actor_name' => $actor->name,
+                'requester_phone' => null,
+                'requester_email' => null,
                 'status' => PassengerErasureStatus::Executed,
                 'scope' => $scope,
                 'executed_at' => now(),

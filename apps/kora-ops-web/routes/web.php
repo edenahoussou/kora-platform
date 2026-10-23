@@ -44,6 +44,9 @@ Route::get('privacy-policy', [PublicLegalController::class, 'privacyPolicy'])
     ->name('privacy-policy');
 Route::get('account-deletion', [PublicLegalController::class, 'accountDeletion'])
     ->name('account-deletion');
+Route::post('account-deletion', [PublicLegalController::class, 'storeDeletionRequest'])
+    ->middleware('throttle:5,1')
+    ->name('account-deletion.store');
 
 Route::get('tickets/{ticket:uuid}/pdf/signed', [TicketViewController::class, 'signedPdf'])
     ->middleware('signed')

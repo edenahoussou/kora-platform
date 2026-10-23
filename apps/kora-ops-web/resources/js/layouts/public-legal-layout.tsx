@@ -9,72 +9,54 @@ export default function PublicLegalLayout({
     children: ReactNode;
 }) {
     return (
-        <div className="min-h-svh bg-slate-50 text-[var(--kora)] dark:bg-slate-950 dark:text-slate-100">
-            <header className="relative overflow-hidden bg-[var(--kora)] text-white">
-                <div className="absolute -top-40 -right-32 size-[28rem] rounded-full bg-gold/10 blur-3xl" />
-                <div className="absolute -bottom-56 -left-24 size-[26rem] rounded-full bg-digital/20 blur-3xl" />
-                <div className="relative mx-auto flex w-full max-w-6xl items-center justify-between gap-6 px-5 py-5 sm:px-8 lg:px-10">
+        <div className="min-h-svh bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+            <header className="border-b border-slate-200 bg-white dark:border-white/10 dark:bg-slate-900">
+                <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-6 px-5 py-4 sm:px-8">
                     <Link href={privacyPolicy()} className="shrink-0">
                         <img
-                            src="/kora-logo-light-v2.png"
+                            src="/kora-logo-invoice.png"
                             alt="KORA EXPRESS"
-                            className="h-12 w-auto object-contain object-left sm:h-14"
+                            className="h-10 w-auto object-contain object-left"
                         />
                     </Link>
 
                     <nav
                         aria-label="Navigation des pages légales"
-                        className="hidden items-center gap-2 text-sm sm:flex"
+                        className="flex items-center gap-1 text-sm"
                     >
                         <Link
                             href={privacyPolicy()}
-                            className="rounded-full px-4 py-2 text-white/75 transition hover:bg-white/10 hover:text-white"
+                            className="rounded-lg px-3.5 py-2 font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
                         >
                             Confidentialité
                         </Link>
                         <Link
                             href={accountDeletion()}
-                            className="rounded-full bg-gold px-4 py-2 font-semibold text-[var(--kora)] transition hover:bg-white"
+                            className="rounded-lg px-3.5 py-2 font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
                         >
-                            Supprimer mon compte
+                            Suppression de compte
                         </Link>
                     </nav>
                 </div>
-
-                <div className="relative mx-auto w-full max-w-6xl px-5 pt-12 pb-16 sm:px-8 lg:px-10 lg:pt-16 lg:pb-20">
-                    <p className="mb-4 text-xs font-bold tracking-[0.18em] text-gold uppercase">
-                        KORA APP PASSAGER BUS
-                    </p>
-                    <h1 className="max-w-3xl text-4xl leading-[1.02] font-extrabold tracking-[-0.045em] sm:text-5xl lg:text-6xl">
-                        Vos données, vos choix.
-                    </h1>
-                    <p className="mt-5 max-w-2xl text-base leading-7 text-white/70 sm:text-lg">
-                        Retrouvez les informations de confidentialité et les
-                        démarches liées à votre compte KORA.
-                    </p>
-                </div>
             </header>
 
-            <main className="mx-auto w-full max-w-6xl px-5 py-10 sm:px-8 sm:py-14 lg:px-10">
+            <main className="mx-auto w-full max-w-5xl px-5 py-10 sm:px-8 sm:py-14">
                 {children}
             </main>
 
             <footer className="border-t border-slate-200 bg-white dark:border-white/10 dark:bg-slate-900">
-                <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-5 py-8 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:px-10">
-                    <p>
-                        © {new Date().getFullYear()} KORA EXPRESS · KORA App
-                        Passager Bus
-                    </p>
+                <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-5 py-8 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between sm:px-8">
+                    <p>© {new Date().getFullYear()} KORA EXPRESS</p>
                     <div className="flex flex-wrap gap-x-5 gap-y-2">
                         <Link
                             href={privacyPolicy()}
-                            className="transition hover:text-[var(--kora)] dark:hover:text-white"
+                            className="transition hover:text-slate-900 dark:hover:text-white"
                         >
                             Politique de confidentialité
                         </Link>
                         <Link
                             href={accountDeletion()}
-                            className="inline-flex items-center gap-1 transition hover:text-[var(--kora)] dark:hover:text-white"
+                            className="inline-flex items-center gap-1 transition hover:text-slate-900 dark:hover:text-white"
                         >
                             Suppression de compte
                             <ArrowUpRight className="size-3.5" />

@@ -1,51 +1,109 @@
 import { Head, Link } from '@inertiajs/react';
-import {
-    Banknote,
-    BellRing,
-    CheckCircle2,
-    ChevronRight,
-    Cookie,
-    Database,
-    LockKeyhole,
-    Mail,
-    ShieldCheck,
-    Smartphone,
-} from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { accountDeletion } from '@/routes';
+
+type Company = {
+    name: string;
+    director: string;
+    rccm: string | null;
+    nim: string | null;
+    address: string;
+    phone: string;
+};
 
 type Props = {
     supportEmail: string;
-    lastUpdated: string;
+    company: Company;
 };
 
-const sections = [
+const toc = [
     ['responsable', '1. Responsable du traitement'],
-    ['collecte', '2. Données collectées'],
-    ['utilisation', '3. Utilisation des données'],
-    ['partage', '4. Partage des données'],
-    ['conservation', '5. Conservation'],
-    ['droits', '6. Vos droits'],
-    ['securite', '7. Sécurité'],
-    ['modifications', '8. Modifications'],
+    ['champ', '2. Champ d’application'],
+    ['donnees', '3. Données collectées'],
+    ['finalites', '4. Finalités du traitement'],
+    ['destinataires', '5. Destinataires et sous-traitants'],
+    ['transferts', '6. Transferts hors du Bénin'],
+    ['conservation', '7. Durées de conservation'],
+    ['securite', '8. Sécurité'],
+    ['droits', '9. Vos droits'],
+    ['mineurs', '10. Mineurs'],
+    ['cookies', '11. Cookies et traceurs'],
+    ['modifications', '12. Modifications'],
+    ['reclamation', '13. Réclamation'],
+    ['contact', '14. Contact'],
 ];
 
-export default function PrivacyPolicy({ supportEmail, lastUpdated }: Props) {
+const collectedData: Array<[string, string, string]> = [
+    [
+        'Compte et identité',
+        'Nom, numéro de téléphone, adresse e-mail, informations de profil',
+        'Création et sécurisation du compte voyageur',
+    ],
+    [
+        'Voyages et billets',
+        'Itinéraire, départ, siège, passagers, statut de réservation, pièce d’identité et statut vaccinal fièvre jaune si saisis',
+        'Devis tarifaire, réservation, émission et contrôle du billet',
+    ],
+    [
+        'Paiement',
+        'Référence de transaction, opérateur et statut du paiement',
+        'Confirmation du paiement et suivi comptable. KORA ne stocke jamais le code secret de votre moyen de paiement',
+    ],
+    [
+        'Données techniques',
+        'Jeton de notification push, appareil de confiance, journaux de session et de sécurité',
+        'Notifications de voyage, protection du compte et prévention de la fraude',
+    ],
+    [
+        'Communications',
+        'Contenu des échanges avec le support (e-mail, WhatsApp)',
+        'Traitement des demandes d’assistance',
+    ],
+];
+
+const processors: Array<[string, string]> = [
+    [
+        'KKiaPay, FedaPay et MTN MoMo',
+        'Traitement des paiements mobile money et carte',
+    ],
+    ['Google Firebase', 'Notifications push sur l’application'],
+    ['WhatsApp (via WAHA)', 'Notifications liées aux billets et au compte'],
+    ['Brevo', 'Envoi des e-mails transactionnels'],
+    ['OVH', 'Hébergement de la plateforme'],
+];
+
+const retention: Array<[string, string]> = [
+    [
+        'Compte et profil',
+        'Durée de vie du compte, puis suppression ou anonymisation sous 30 jours après une demande',
+    ],
+    [
+        'Réservations, billets et pièces de paiement',
+        '10 ans (obligations comptables et fiscales, référentiel OHADA)',
+    ],
+    ['Journaux techniques et de sécurité', '12 mois maximum'],
+    [
+        'Demandes d’effacement',
+        'Trace de traitement conservée sans données personnelles du demandeur',
+    ],
+];
+
+export default function PrivacyPolicy({ supportEmail, company }: Props) {
     return (
         <>
             <Head title="Politique de confidentialité" />
 
-            <div className="grid gap-10 lg:grid-cols-[14rem_minmax(0,1fr)] lg:items-start lg:gap-16">
-                <aside className="lg:sticky lg:top-8">
-                    <p className="mb-3 text-xs font-bold tracking-[0.14em] text-slate-500 uppercase dark:text-slate-400">
-                        Sur cette page
+            <div className="grid gap-10 lg:grid-cols-[13rem_minmax(0,1fr)] lg:items-start">
+                <aside className="hidden lg:sticky lg:top-8 lg:block">
+                    <p className="mb-3 text-xs font-bold tracking-[0.14em] text-slate-500 uppercase">
+                        Sommaire
                     </p>
-                    <nav className="grid gap-1">
-                        {sections.map(([id, label]) => (
+                    <nav className="grid gap-0.5">
+                        {toc.map(([id, label]) => (
                             <a
                                 key={id}
                                 href={`#${id}`}
-                                className="rounded-lg px-3 py-2 text-sm text-slate-600 transition hover:bg-white hover:text-[var(--kora)] dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"
+                                className="rounded-lg px-3 py-1.5 text-sm text-slate-600 transition hover:bg-white hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"
                             >
                                 {label}
                             </a>
@@ -53,259 +111,347 @@ export default function PrivacyPolicy({ supportEmail, lastUpdated }: Props) {
                     </nav>
                 </aside>
 
-                <article className="min-w-0 rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_1.5rem_4rem_rgba(0,29,78,0.07)] sm:p-10 lg:p-14 dark:border-white/10 dark:bg-slate-900 dark:shadow-none">
-                    <div className="flex flex-col gap-5 border-b border-slate-200 pb-8 sm:flex-row sm:items-start sm:justify-between dark:border-white/10">
-                        <div>
-                            <div className="mb-4 inline-flex size-12 items-center justify-center rounded-2xl bg-gold/15 text-[var(--kora)] dark:text-gold">
-                                <ShieldCheck className="size-6" />
+                <article className="min-w-0 rounded-2xl border border-slate-200 bg-white px-6 py-8 sm:px-10 sm:py-12 dark:border-white/10 dark:bg-slate-900">
+                    <header className="border-b border-slate-200 pb-8 dark:border-white/10">
+                        <h1 className="text-3xl font-extrabold tracking-[-0.03em] sm:text-4xl">
+                            Politique de confidentialité
+                        </h1>
+                        <dl className="mt-5 grid gap-1 text-sm text-slate-600 dark:text-slate-300">
+                            <div className="flex flex-wrap gap-x-2">
+                                <dt className="font-semibold text-slate-900 dark:text-white">
+                                    Éditeur :
+                                </dt>
+                                <dd>{company.name}</dd>
                             </div>
-                            <h2 className="text-3xl font-extrabold tracking-[-0.04em] sm:text-4xl">
-                                Politique de confidentialité
-                            </h2>
-                            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
-                                Cette politique explique comment KORA traite les
-                                données des personnes qui utilisent KORA App
-                                Passager Bus pour rechercher un départ, réserver
-                                et consulter un billet.
-                            </p>
-                        </div>
-                        <p className="shrink-0 text-xs font-medium text-slate-500 dark:text-slate-400">
-                            Mise à jour : {lastUpdated}
+                            <div className="flex flex-wrap gap-x-2">
+                                <dt className="font-semibold text-slate-900 dark:text-white">
+                                    Application concernée :
+                                </dt>
+                                <dd>KORA App Passager Bus</dd>
+                            </div>
+                            <div className="flex flex-wrap gap-x-2">
+                                <dt className="font-semibold text-slate-900 dark:text-white">
+                                    Version :
+                                </dt>
+                                <dd>1.0 — En vigueur le 24 octobre 2026</dd>
+                            </div>
+                        </dl>
+                    </header>
+
+                    <Section
+                        id="responsable"
+                        title="1. Responsable du traitement"
+                    >
+                        <p>
+                            Le responsable du traitement des données
+                            personnelles est <strong>{company.name}</strong>,
+                            société représentée par{' '}
+                            <strong>{company.director}</strong>.
                         </p>
-                    </div>
+                        <dl className="mt-4 grid gap-1.5 text-sm">
+                            <LegalRow
+                                label="Siège social"
+                                value={company.address}
+                            />
+                            {company.rccm && (
+                                <LegalRow label="RCCM" value={company.rccm} />
+                            )}
+                            {company.nim && (
+                                <LegalRow label="NIM" value={company.nim} />
+                            )}
+                            <LegalRow label="Téléphone" value={company.phone} />
+                            <LegalRow
+                                label="Contact données personnelles"
+                                value={
+                                    <a
+                                        href={`mailto:${supportEmail}`}
+                                        className="font-medium text-digital underline decoration-digital/30 underline-offset-4 hover:decoration-digital"
+                                    >
+                                        {supportEmail}
+                                    </a>
+                                }
+                            />
+                        </dl>
+                    </Section>
 
-                    <div className="divide-y divide-slate-200 dark:divide-white/10">
-                        <section
-                            id="responsable"
-                            className="scroll-mt-8 py-8 first:pt-10"
-                        >
-                            <SectionTitle
-                                icon={Mail}
-                                title="1. Responsable du traitement"
-                            />
-                            <p className="mt-4 text-sm leading-7 text-slate-600 dark:text-slate-300">
-                                KORA EXPRESS est responsable du traitement des
-                                données utilisées dans KORA App Passager Bus.
-                                Pour toute question relative à vos données, vous
-                                pouvez écrire à{' '}
-                                <a
-                                    href={`mailto:${supportEmail}`}
-                                    className="font-semibold text-digital underline decoration-digital/30 underline-offset-4 hover:decoration-digital"
-                                >
-                                    {supportEmail}
-                                </a>
-                                .
-                            </p>
-                        </section>
+                    <Section id="champ" title="2. Champ d’application">
+                        <p>
+                            La présente politique décrit la manière dont{' '}
+                            {company.name} collecte, utilise et protège les
+                            données personnelles des utilisateurs de
+                            l’application mobile KORA App Passager Bus, utilisée
+                            pour rechercher un départ, réserver et consulter un
+                            billet de transport.
+                        </p>
+                    </Section>
 
-                        <section id="collecte" className="scroll-mt-8 py-8">
-                            <SectionTitle
-                                icon={Database}
-                                title="2. Données collectées"
-                            />
-                            <p className="mt-4 text-sm leading-7 text-slate-600 dark:text-slate-300">
-                                Nous collectons uniquement les informations
-                                nécessaires au fonctionnement du service :
-                            </p>
-                            <InfoGrid
-                                items={[
-                                    {
-                                        icon: Smartphone,
-                                        title: 'Compte et identité',
-                                        description:
-                                            'Nom, numéro de téléphone, adresse e-mail et informations de profil fournies lors de l’activation du compte.',
-                                    },
-                                    {
-                                        icon: CheckCircle2,
-                                        title: 'Réservations et billets',
-                                        description:
-                                            'Itinéraire, départ, passagers, siège, statut de réservation et informations nécessaires à l’émission du billet.',
-                                    },
-                                    {
-                                        icon: Banknote,
-                                        title: 'Paiement',
-                                        description:
-                                            'Informations utiles au suivi du paiement et du remboursement. KORA ne stocke pas le code secret de votre moyen de paiement.',
-                                    },
-                                    {
-                                        icon: LockKeyhole,
-                                        title: 'Sécurité technique',
-                                        description:
-                                            'Données de session, appareil de confiance et journaux de sécurité nécessaires à la protection du compte.',
-                                    },
-                                ]}
-                            />
-                        </section>
+                    <Section id="donnees" title="3. Données collectées">
+                        <p>
+                            Nous collectons uniquement les données nécessaires
+                            au fonctionnement du service :
+                        </p>
+                        <DataTable
+                            head={['Catégorie', 'Données', 'Finalité']}
+                            rows={collectedData}
+                        />
+                    </Section>
 
-                        <section id="utilisation" className="scroll-mt-8 py-8">
-                            <SectionTitle
-                                icon={BellRing}
-                                title="3. Utilisation des données"
-                            />
-                            <BulletList
-                                items={[
-                                    'créer et sécuriser votre compte voyageur ;',
-                                    'calculer un devis tarifaire, gérer une réservation et émettre un billet ;',
-                                    'confirmer les paiements, traiter les remboursements et répondre aux demandes d’assistance ;',
-                                    'vous envoyer les informations indispensables au voyage et les alertes liées à votre compte ;',
-                                    'détecter les usages abusifs, prévenir la fraude et respecter nos obligations légales.',
-                                ]}
-                            />
-                        </section>
+                    <Section id="finalites" title="4. Finalités du traitement">
+                        <p>Vos données sont utilisées pour :</p>
+                        <ul>
+                            <li>
+                                créer et sécuriser votre compte voyageur
+                                (authentification par code à usage unique) ;
+                            </li>
+                            <li>
+                                calculer un devis tarifaire, gérer vos
+                                réservations et émettre vos billets ;
+                            </li>
+                            <li>
+                                confirmer vos paiements et traiter les demandes
+                                d’assistance ;
+                            </li>
+                            <li>
+                                vous envoyer les informations indispensables au
+                                voyage et les alertes liées à votre compte ;
+                            </li>
+                            <li>
+                                prévenir la fraude et respecter nos obligations
+                                légales, comptables et fiscales.
+                            </li>
+                        </ul>
+                    </Section>
 
-                        <section id="partage" className="scroll-mt-8 py-8">
-                            <SectionTitle
-                                icon={ShieldCheck}
-                                title="4. Partage des données"
-                            />
-                            <p className="mt-4 text-sm leading-7 text-slate-600 dark:text-slate-300">
-                                Les données peuvent être communiquées, dans la
-                                mesure nécessaire, aux prestataires qui
-                                participent à la fourniture du service :
-                                opérateurs de paiement, services de
-                                notification, transporteurs et prestataires
-                                techniques. Ces partenaires n’utilisent pas vos
-                                données pour les vendre à des fins
-                                publicitaires. Nous pouvons également les
-                                communiquer lorsque la loi, une autorité
-                                compétente ou la sécurité des voyageurs l’exige.
-                            </p>
-                        </section>
+                    <Section
+                        id="destinataires"
+                        title="5. Destinataires et sous-traitants"
+                    >
+                        <p>
+                            Vos données peuvent être communiquées, dans la seule
+                            mesure nécessaire, aux prestataires qui participent
+                            à la fourniture du service :
+                        </p>
+                        <DataTable
+                            head={['Prestataire', 'Rôle']}
+                            rows={processors}
+                        />
+                        <p>
+                            Vos données ne sont <strong>jamais vendues</strong>{' '}
+                            ni louées à des tiers à des fins publicitaires.
+                            Elles peuvent également être communiquées lorsque la
+                            loi ou une autorité compétente l’exige.
+                        </p>
+                    </Section>
 
-                        <section id="conservation" className="scroll-mt-8 py-8">
-                            <SectionTitle
-                                icon={Database}
-                                title="5. Conservation"
-                            />
-                            <p className="mt-4 text-sm leading-7 text-slate-600 dark:text-slate-300">
-                                Les données sont conservées pendant la durée
-                                nécessaire à la gestion du compte, des
-                                réservations, des billets, des paiements et des
-                                demandes d’assistance. Après une demande de
-                                suppression, les données personnelles sont
-                                supprimées ou anonymisées lorsque cela est
-                                possible. Certaines traces comptables,
-                                contractuelles ou de sécurité peuvent être
-                                conservées pendant la durée imposée par la loi
-                                ou nécessaire à la défense de nos droits.
-                            </p>
-                        </section>
+                    <Section
+                        id="transferts"
+                        title="6. Transferts hors du Bénin"
+                    >
+                        <p>
+                            Certains prestataires listés à l’article 5 peuvent
+                            traiter les données sur des serveurs situés hors du
+                            Bénin. Ces transferts sont limités aux données
+                            strictement nécessaires à la fourniture du service
+                            concerné et s’opèrent sous des garanties
+                            contractuelles appropriées.
+                        </p>
+                    </Section>
 
-                        <section id="droits" className="scroll-mt-8 py-8">
-                            <SectionTitle
-                                icon={CheckCircle2}
-                                title="6. Vos droits"
-                            />
-                            <p className="mt-4 text-sm leading-7 text-slate-600 dark:text-slate-300">
-                                Vous pouvez demander l’accès, la rectification,
-                                la suppression ou la limitation du traitement de
-                                vos données, dans les limites prévues par la
-                                réglementation applicable. La procédure de
-                                suppression est détaillée sur la page dédiée :{' '}
-                                <Link
-                                    href={accountDeletion()}
-                                    className="inline-flex items-center gap-1 font-semibold text-digital underline decoration-digital/30 underline-offset-4 hover:decoration-digital"
-                                >
-                                    supprimer un compte KORA
-                                    <ChevronRight className="size-3.5" />
-                                </Link>
-                                .
-                            </p>
-                        </section>
+                    <Section
+                        id="conservation"
+                        title="7. Durées de conservation"
+                    >
+                        <DataTable
+                            head={['Données', 'Durée']}
+                            rows={retention}
+                        />
+                        <p>
+                            À l’issue d’une demande de suppression, les données
+                            personnelles sont supprimées ou anonymisées lorsque
+                            cela est possible. Les traces comptables,
+                            contractuelles ou fiscales dont la conservation est
+                            imposée par la loi sont conservées sous forme
+                            anonymisée ou archivée.
+                        </p>
+                    </Section>
 
-                        <section id="securite" className="scroll-mt-8 py-8">
-                            <SectionTitle
-                                icon={LockKeyhole}
-                                title="7. Sécurité"
-                            />
-                            <p className="mt-4 text-sm leading-7 text-slate-600 dark:text-slate-300">
-                                KORA applique des mesures techniques et
-                                organisationnelles destinées à protéger les
-                                données contre l’accès non autorisé, la perte,
-                                l’altération ou la divulgation. Aucun service
-                                connecté à Internet ne peut toutefois garantir
-                                une sécurité absolue : contactez-nous rapidement
-                                si vous constatez une activité inhabituelle sur
-                                votre compte.
-                            </p>
-                        </section>
+                    <Section id="securite" title="8. Sécurité">
+                        <p>
+                            {company.name} applique des mesures techniques et
+                            organisationnelles destinées à protéger vos données
+                            : chiffrement des échanges (TLS), chiffrement des
+                            identifiants d’intégration, signature
+                            cryptographique des billets, accès au back-office
+                            restreint par rôles et journalisation des opérations
+                            sensibles. Aucun service connecté à Internet ne peut
+                            toutefois garantir une sécurité absolue :
+                            signalez-nous rapidement toute activité inhabituelle
+                            sur votre compte.
+                        </p>
+                    </Section>
 
-                        <section
-                            id="modifications"
-                            className="scroll-mt-8 py-8 last:pb-2"
-                        >
-                            <SectionTitle
-                                icon={Cookie}
-                                title="8. Modifications"
-                            />
-                            <p className="mt-4 text-sm leading-7 text-slate-600 dark:text-slate-300">
-                                Cette politique peut évoluer pour tenir compte
-                                des changements du service ou de la
-                                réglementation. La date de mise à jour affichée
-                                en haut de la page indique la version en
-                                vigueur.
-                            </p>
-                        </section>
-                    </div>
+                    <Section id="droits" title="9. Vos droits">
+                        <p>
+                            Dans les limites prévues par la réglementation en
+                            vigueur en République du Bénin, vous disposez des
+                            droits d’accès, de rectification, de suppression et
+                            de limitation du traitement de vos données
+                            personnelles.
+                        </p>
+                        <p>
+                            Vous pouvez exercer ces droits via la{' '}
+                            <Link
+                                href={accountDeletion()}
+                                className="inline-flex items-center gap-1 font-semibold text-digital underline decoration-digital/30 underline-offset-4 hover:decoration-digital"
+                            >
+                                page de suppression de compte
+                                <ChevronRight className="size-3.5" />
+                            </Link>{' '}
+                            ou en écrivant à{' '}
+                            <a
+                                href={`mailto:${supportEmail}`}
+                                className="font-semibold text-digital underline decoration-digital/30 underline-offset-4 hover:decoration-digital"
+                            >
+                                {supportEmail}
+                            </a>
+                            . Nous pouvons vous demander un élément de
+                            vérification afin de confirmer votre identité. Nous
+                            répondons à toute demande dans un délai maximum de{' '}
+                            <strong>30 jours</strong>.
+                        </p>
+                    </Section>
+
+                    <Section id="mineurs" title="10. Mineurs">
+                        <p>
+                            Le service s’adresse aux personnes majeures. Si un
+                            mineur utilise l’application, son compte et ses
+                            réservations relèvent de la responsabilité du
+                            titulaire de la ligne téléphonique ou du
+                            représentant légal associé au voyage.
+                        </p>
+                    </Section>
+
+                    <Section id="cookies" title="11. Cookies et traceurs">
+                        <p>
+                            L’application KORA App Passager Bus n’utilise pas de
+                            cookies ni de traceurs publicitaires. Seuls les
+                            identifiants techniques nécessaires aux
+                            notifications push et à la sécurité de votre compte
+                            sont enregistrés.
+                        </p>
+                    </Section>
+
+                    <Section id="modifications" title="12. Modifications">
+                        <p>
+                            La présente politique peut évoluer pour tenir compte
+                            des changements du service ou de la réglementation.
+                            La version et la date d’entrée en vigueur affichées
+                            en haut du document font foi. En cas de changement
+                            substantiel, les utilisateurs en seront informés via
+                            l’application.
+                        </p>
+                    </Section>
+
+                    <Section id="reclamation" title="13. Réclamation">
+                        <p>
+                            Si vous estimez que le traitement de vos données ne
+                            respecte pas la réglementation applicable (notamment
+                            la loi n° 2017-20 portant code du numérique en
+                            République du Bénin), vous pouvez introduire une
+                            réclamation auprès de l’Autorité de Protection des
+                            Données à caractère Personnel (APDP) du Bénin, après
+                            nous avoir contactés pour permettre un règlement
+                            amiable.
+                        </p>
+                    </Section>
+
+                    <Section id="contact" title="14. Contact" last>
+                        <p>
+                            Pour toute question relative à vos données
+                            personnelles :{' '}
+                            <a
+                                href={`mailto:${supportEmail}`}
+                                className="font-semibold text-digital underline decoration-digital/30 underline-offset-4 hover:decoration-digital"
+                            >
+                                {supportEmail}
+                            </a>{' '}
+                            · {company.phone} · {company.address}, Bénin.
+                        </p>
+                    </Section>
                 </article>
             </div>
         </>
     );
 }
 
-function SectionTitle({
-    icon: Icon,
+function Section({
+    id,
     title,
+    last = false,
+    children,
 }: {
-    icon: LucideIcon;
+    id: string;
     title: string;
+    last?: boolean;
+    children: React.ReactNode;
 }) {
     return (
-        <h3 className="flex items-center gap-3 text-lg font-bold tracking-[-0.02em]">
-            <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-slate-100 text-digital dark:bg-white/10">
-                <Icon className="size-4" />
-            </span>
-            {title}
-        </h3>
+        <section
+            id={id}
+            className={`scroll-mt-8 py-7 ${last ? '' : 'border-b border-slate-100 dark:border-white/5'}`}
+        >
+            <h2 className="text-lg font-bold tracking-[-0.02em] text-slate-900 dark:text-white">
+                {title}
+            </h2>
+            <div className="mt-3.5 space-y-3 text-sm leading-7 text-slate-600 dark:text-slate-300 [&_ul]:list-disc [&_ul]:space-y-1.5 [&_ul]:pl-5">
+                {children}
+            </div>
+        </section>
     );
 }
 
-function InfoGrid({
-    items,
-}: {
-    items: Array<{
-        icon: LucideIcon;
-        title: string;
-        description: string;
-    }>;
-}) {
+function LegalRow({ label, value }: { label: string; value: React.ReactNode }) {
     return (
-        <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            {items.map(({ icon: Icon, title, description }) => (
-                <div
-                    key={title}
-                    className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/[0.04]"
-                >
-                    <Icon className="size-5 text-gold" />
-                    <h4 className="mt-4 text-sm font-bold">{title}</h4>
-                    <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">
-                        {description}
-                    </p>
-                </div>
-            ))}
+        <div className="flex flex-wrap gap-x-2">
+            <dt className="font-semibold text-slate-900 dark:text-white">
+                {label} :
+            </dt>
+            <dd>{value}</dd>
         </div>
     );
 }
 
-function BulletList({ items }: { items: string[] }) {
+function DataTable({ head, rows }: { head: string[]; rows: string[][] }) {
     return (
-        <ul className="mt-4 grid gap-3 text-sm leading-7 text-slate-600 dark:text-slate-300">
-            {items.map((item) => (
-                <li key={item} className="flex gap-3">
-                    <CheckCircle2 className="mt-1 size-4 shrink-0 text-digital" />
-                    <span>{item}</span>
-                </li>
-            ))}
-        </ul>
+        <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200 dark:border-white/10">
+            <table className="w-full min-w-[34rem] text-left text-sm">
+                <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/[0.03]">
+                        {head.map((h) => (
+                            <th
+                                key={h}
+                                className="px-4 py-2.5 font-semibold text-slate-900 dark:text-white"
+                            >
+                                {h}
+                            </th>
+                        ))}
+                    </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                    {rows.map((row) => (
+                        <tr key={row[0]}>
+                            {row.map((cell, i) => (
+                                <td
+                                    key={i}
+                                    className={`px-4 py-3 align-top leading-6 ${i === 0 ? 'font-semibold text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-300'}`}
+                                >
+                                    {cell}
+                                </td>
+                            ))}
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
     );
 }

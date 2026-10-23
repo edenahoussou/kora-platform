@@ -22,6 +22,8 @@ class PassengerErasureRequest extends KoraModel
         'phone_hash',
         'requested_by_user_id',
         'actor_name',
+        'requester_phone',
+        'requester_email',
         'status',
         'scope',
         'export_checksum',
