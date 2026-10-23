@@ -22,3 +22,6 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
 
+
+# Durcissement : session upload progress (exploitable pour écrire dans les sessions)
+RUN echo 'session.upload_progress.enabled=Off' > /usr/local/etc/php/conf.d/zz-security-upload-progress.ini

@@ -93,6 +93,9 @@ RUN php artisan config:clear \
 
 COPY infra/docker/kora-ops-web/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
+# Durcissement : session upload progress (exploitable pour écrire dans les sessions)
+RUN echo 'session.upload_progress.enabled=Off' > /usr/local/etc/php/conf.d/zz-security-upload-progress.ini
+
 EXPOSE 9000
 
 CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

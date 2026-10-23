@@ -65,6 +65,14 @@ _Avoid_: Affectation implicite par la derniere session, historique mutable
 Terminal P501 non affecte et desactive, conserve comme materiel disponible pour une future affectation. Le retour au stock est une action explicite et auditee, distincte d'une simple consultation ou d'une recuperation apres perte.
 _Avoid_: Terminal actif non affecte utilisable sans controle
 
+**Release applicative**:
+Package (APK) versionne d'une application distribuee hors stores, publie via KORA OPS (MEZ-150). Porte une `version` semver, un `build_number`, des notes de version et un flag « mise a jour obligatoire ». Archiver une release la retire du calcul « latest » (rollback).
+_Avoid_: Confondre release publiee et version installee sur un terminal
+
+**Mise a jour obligatoire**:
+Propriete d'une release applicative. Toute version installee anterieure a la derniere release obligatoire est bloquee sur un ecran de force-update non-dismissible jusqu'a installation ; une release non obligatoire ne declenche qu'un prompt dismissible.
+_Avoid_: Prompt fermable pour une MAJ obligatoire
+
 **KORA Driver**:
 Application mobile future pour les conducteurs Ride/VTC/moto/keke. Elle est hors MVP Bus.
 _Avoid_: Utiliser ce nom pour les chauffeurs de bus
