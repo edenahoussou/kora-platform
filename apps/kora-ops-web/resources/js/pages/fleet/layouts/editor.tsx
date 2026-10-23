@@ -392,14 +392,22 @@ export default function LayoutEditorPage({ template, duplicate }: PageProps) {
                             {template ? template.name : 'Nouveau gabarit'}
                         </h1>
                         {template && (
-                            <KoraStatusBadge
-                                label={templateStatusLabels[template.status]}
-                                tone={
-                                    template.status === 'active'
-                                        ? 'navy'
-                                        : 'gold'
-                                }
-                            />
+                            <>
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 font-mono text-[0.6875rem] font-bold text-muted-foreground">
+                                    <Hash className="size-3" />
+                                    {template.code}
+                                </span>
+                                <KoraStatusBadge
+                                    label={
+                                        templateStatusLabels[template.status]
+                                    }
+                                    tone={
+                                        template.status === 'active'
+                                            ? 'navy'
+                                            : 'gold'
+                                    }
+                                />
+                            </>
                         )}
                         {locked && (
                             <span className="inline-flex items-center gap-1.5 rounded-full bg-gold/15 px-2.5 py-1 text-[0.6875rem] font-bold text-[var(--kora)]">
@@ -478,7 +486,7 @@ export default function LayoutEditorPage({ template, duplicate }: PageProps) {
                 {/* Canvas éditeur */}
                 <section className="rounded-[var(--kora-radius)] border border-border/50 bg-card p-5 shadow-[0_16px_45px_rgba(0,29,78,0.07)]">
                     <div
-                        className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-[1fr_200px]"
+                        className="mb-5 grid grid-cols-1 gap-4"
                         data-onboarding="editor-meta"
                     >
                         <label className="field">
@@ -514,23 +522,6 @@ export default function LayoutEditorPage({ template, duplicate }: PageProps) {
                                     l'affectation aux bus.
                                 </small>
                             )}
-                        </label>
-                        <label className="field">
-                            <span className="flex items-center gap-1.5">
-                                <Hash className="size-3 text-gold" />
-                                Code
-                            </span>
-                            <input
-                                className="control font-mono font-bold uppercase"
-                                value={template ? template.code : 'Auto'}
-                                disabled
-                                readOnly
-                            />
-                            <small>
-                                {template
-                                    ? 'Identifiant unique, non modifiable.'
-                                    : 'Généré automatiquement à l’enregistrement.'}
-                            </small>
                         </label>
                         <label className="field sm:col-span-2">
                             <span className="flex items-center gap-1.5">
