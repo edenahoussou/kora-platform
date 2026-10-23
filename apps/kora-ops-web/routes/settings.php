@@ -39,7 +39,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('settings/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::get('settings/security', RedirectController::class)
-        ->defaults('destination', '/settings/profile')
+        ->defaults('destination', '/settings/profile?tab=security')
         ->defaults('status', 302)
         ->name('security.edit');
 
