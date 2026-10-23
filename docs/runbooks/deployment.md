@@ -25,6 +25,31 @@ docker compose -f docker-compose.staging.yml exec app php artisan view:cache
 
 Verifier : `curl -sS -o /dev/null -w "HTTP %{http_code}" http://51.255.196.129:8080/`
 
+## Deploiement manuel avec build d'image (CI en panne)
+
+Les fichiers compose referencent l'image par son nom complet registry :
+`ghcr.io/edenahoussou/kora-ops-web:latest` (prod) et `ghcr.io/edenahoussou/kora-ops-web:staging` (staging).
+
+**Piege** : builder avec un tag court (`-t kora-ops-web:latest`) cree une image
+distincte de celle que le compose attend — `docker compose up -d` ne detecte
+alors aucun changement et ne recree jamais le conteneur app (silencieusement).
+Toujours builder avec le tag exact du compose :
+
+```bash
+# Production (/opt/kora-prod)
+sudo docker build -f infra/docker/kora-ops-web/Dockerfile.prod \
+    -t ghcr.io/edenahoussou/kora-ops-web:latest /opt/kora-prod
+sudo docker compose -f /opt/kora-prod/docker-compose.prod.yml up -d
+
+# Staging (/opt/kora-staging)
+sudo docker build -f infra/docker/kora-ops-web/Dockerfile.prod \
+    -t ghcr.io/edenahoussou/kora-ops-web:staging /opt/kora-staging
+sudo docker compose -f /opt/kora-staging/docker-compose.staging.yml up -d
+```
+
+Verifier que le nouveau code tourne reellement (ex. date de creation du conteneur
+ou presence d'un fichier modifie) : `docker inspect kora-prod-app --format '{{.Created}}'`.
+
 ## Endpoints de health check
 
 L'API expose deux endpoints dedies au monitoring et au load balancing :
