@@ -19,6 +19,7 @@ import {
     Tag,
     TriangleAlert,
     Undo2,
+    Wrench,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -62,6 +63,7 @@ const TOOLS: {
 }[] = [
     { key: 'seat', label: 'Siège', icon: Armchair },
     { key: 'crew', label: 'Équipage', icon: HardHat },
+    { key: 'maintenance', label: 'Hors service', icon: Wrench },
     { key: 'aisle', label: 'Allée', icon: Footprints },
     { key: 'empty', label: 'Vide', icon: Square },
     { key: 'door', label: 'Porte', icon: DoorOpen },
@@ -122,6 +124,8 @@ const EDITOR_ONBOARDING_STEPS: OnboardingStep[] = [
 const TOOL_HINTS: Record<EditorTool, string> = {
     seat: 'Cliquez ou glissez sur la grille pour peindre des sièges. Cliquez sur un siège existant pour renommer son code.',
     crew: 'Peignez les places réservées à l’équipage — elles ne sont jamais vendables.',
+    maintenance:
+        'Marquez les sièges hors service (maintenance, dégradés…) — jamais vendables sur les bus créés avec ce gabarit.',
     aisle: 'Peignez l’allée centrale ou les couloirs de circulation.',
     empty: 'Marquez des emplacements vides : baies vitrées, espaces libres, zones hors sièges.',
     door: 'Placez les portes d’embarquement sur le plan.',
@@ -209,7 +213,9 @@ export default function LayoutEditorPage({
 
             if (tool !== 'eraser') {
                 const kind: LayoutCell['kind'] =
-                    tool === 'seat' || tool === 'crew' ? 'seat' : tool;
+                    tool === 'seat' || tool === 'crew' || tool === 'maintenance'
+                        ? 'seat'
+                        : tool;
                 cells.push({
                     kind,
                     x,
@@ -219,6 +225,10 @@ export default function LayoutEditorPage({
                             ? tool === 'crew'
                                 ? 'crew'
                                 : 'standard'
+                            : undefined,
+                    maintenance:
+                        kind === 'seat' && tool === 'maintenance'
+                            ? true
                             : undefined,
                 });
             }
@@ -795,6 +805,7 @@ export default function LayoutEditorPage({
                                 [
                                     ['Sièges vendables', stats.sellable],
                                     ['Sièges équipage', stats.crew],
+                                    ['Hors service', stats.maintenance],
                                     [
                                         'Cellules structure',
                                         grid.cells.filter(

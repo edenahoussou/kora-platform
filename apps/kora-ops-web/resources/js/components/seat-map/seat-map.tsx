@@ -88,6 +88,7 @@ function MapCell({
             className={cn(
                 'seat sm-seat',
                 cell.seatKind === 'crew' && 'sm-seat--crew',
+                cell.maintenance && 'sm-seat--maintenance',
                 seatStatusClass(cell, statuses, selectedCodes),
             )}
             aria-label={

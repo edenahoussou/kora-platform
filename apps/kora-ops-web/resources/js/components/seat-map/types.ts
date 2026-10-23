@@ -9,6 +9,7 @@ export type LayoutCell = {
     code?: string;
     seatKind?: SeatKind;
     codeLocked?: boolean;
+    maintenance?: boolean;
 };
 
 export type LayoutGrid = {

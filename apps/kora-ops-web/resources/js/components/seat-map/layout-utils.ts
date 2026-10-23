@@ -7,14 +7,17 @@ export function cellAt(grid: LayoutGrid, x: number, y: number) {
 export function seatStats(grid: LayoutGrid): {
     sellable: number;
     crew: number;
+    maintenance: number;
     total: number;
 } {
     const seats = grid.cells.filter((cell) => cell.kind === 'seat');
     const crew = seats.filter((cell) => cell.seatKind === 'crew').length;
+    const maintenance = seats.filter((cell) => cell.maintenance).length;
 
     return {
-        sellable: seats.length - crew,
+        sellable: seats.length - crew - maintenance,
         crew,
+        maintenance,
         total: seats.length,
     };
 }

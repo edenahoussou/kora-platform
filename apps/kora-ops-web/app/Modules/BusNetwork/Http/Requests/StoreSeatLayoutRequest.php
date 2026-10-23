@@ -33,6 +33,7 @@ class StoreSeatLayoutRequest extends FormRequest
             'grid.cells.*.code' => ['nullable', 'string', 'max:8', 'regex:/^[A-Z0-9][A-Z0-9-]*$/i'],
             'grid.cells.*.seatKind' => ['nullable', Rule::enum(SeatType::class)],
             'grid.cells.*.codeLocked' => ['nullable', 'boolean'],
+            'grid.cells.*.maintenance' => ['nullable', 'boolean'],
         ];
     }
 

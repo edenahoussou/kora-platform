@@ -9,7 +9,7 @@ namespace App\Modules\BusNetwork\Data;
  */
 final class SeatLayout
 {
-    /** @param list<array{kind: string, x: int, y: int, code?: string|null, seatKind?: string|null, codeLocked?: bool}> $cells */
+    /** @param list<array{kind: string, x: int, y: int, code?: string|null, seatKind?: string|null, codeLocked?: bool, maintenance?: bool}> $cells */
     private function __construct(
         public readonly int $rows,
         public readonly int $cols,
@@ -28,6 +28,7 @@ final class SeatLayout
                 'code' => isset($cell['code']) ? mb_strtoupper(trim((string) $cell['code'])) : null,
                 'seatKind' => isset($cell['seatKind']) ? (string) $cell['seatKind'] : null,
                 'codeLocked' => isset($cell['codeLocked']) ? (bool) $cell['codeLocked'] : null,
+                'maintenance' => isset($cell['maintenance']) ? (bool) $cell['maintenance'] : null,
             ], fn (mixed $value): bool => $value !== null);
         }
 
@@ -97,7 +98,8 @@ final class SeatLayout
     {
         return count(array_filter(
             $this->seatCells(),
-            fn (array $cell): bool => ($cell['seatKind'] ?? SeatType::Standard->value) !== SeatType::Crew->value,
+            fn (array $cell): bool => ($cell['seatKind'] ?? SeatType::Standard->value) !== SeatType::Crew->value
+                && ($cell['maintenance'] ?? false) !== true,
         ));
     }
 
@@ -110,7 +112,10 @@ final class SeatLayout
     {
         $rows = [];
         foreach ($this->seatCells() as $cell) {
-            $rows[(int) $cell['y']][(string) ($cell['seatKind'] ?? SeatType::Standard->value)][] = [
+            $type = ($cell['maintenance'] ?? false) === true
+                ? 'maintenance'
+                : (string) ($cell['seatKind'] ?? SeatType::Standard->value);
+            $rows[(int) $cell['y']][$type][] = [
                 'x' => (int) $cell['x'],
                 'code' => (string) ($cell['code'] ?? ''),
             ];

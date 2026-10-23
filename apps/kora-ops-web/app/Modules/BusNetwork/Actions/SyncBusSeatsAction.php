@@ -26,7 +26,7 @@ class SyncBusSeatsAction
     /**
      * Cellules siège de la grille → sièges matérialisés du bus.
      *
-     * @return list<array{code: string, type: string, sellable: bool, status: string}>
+     * @return list<array{code: string, type: string, sellable: bool, status: string, status_reason: string|null}>
      */
     private function seatsFromGrid(BusComposition $composition): array
     {
@@ -34,11 +34,15 @@ class SyncBusSeatsAction
         foreach ($composition->seatGrid()->seatCells() as $cell) {
             $type = (string) ($cell['seatKind'] ?? SeatType::Standard->value);
             $isCrew = $type === SeatType::Crew->value;
+            $isMaintenance = ($cell['maintenance'] ?? false) === true;
             $seats[] = [
                 'code' => (string) ($cell['code'] ?? ''),
                 'type' => $type,
-                'sellable' => ! $isCrew,
-                'status' => $isCrew ? SeatStatus::Blocked->value : SeatStatus::Active->value,
+                'sellable' => ! $isCrew && ! $isMaintenance,
+                'status' => $isMaintenance
+                    ? SeatStatus::Maintenance->value
+                    : ($isCrew ? SeatStatus::Blocked->value : SeatStatus::Active->value),
+                'status_reason' => $isMaintenance ? 'Siège marqué hors service dans le gabarit.' : null,
             ];
         }
 
@@ -50,13 +54,17 @@ class SyncBusSeatsAction
     {
         $seats = [];
         foreach ($composition->layout as $row) {
+            $type = (string) ($row['type'] ?? SeatType::Standard->value);
+            $isCrew = $type === SeatType::Crew->value;
+            $isMaintenance = $type === 'maintenance';
             foreach ($row['codes'] as $code) {
-                $isCrew = ($row['type'] ?? 'standard') === SeatType::Crew->value;
                 $seats[] = [
                     'code' => $code,
-                    'type' => $row['type'] ?? SeatType::Standard->value,
-                    'sellable' => ! $isCrew,
-                    'status' => $isCrew ? SeatStatus::Blocked->value : SeatStatus::Active->value,
+                    'type' => $isMaintenance ? SeatType::Standard->value : $type,
+                    'sellable' => ! $isCrew && ! $isMaintenance,
+                    'status' => $isMaintenance
+                        ? SeatStatus::Maintenance->value
+                        : ($isCrew ? SeatStatus::Blocked->value : SeatStatus::Active->value),
                 ];
             }
         }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Modules\BusNetwork\Actions\SyncBusSeatsAction;
 use App\Modules\BusNetwork\Data\CompositionStatus;
 use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\BusComposition;
@@ -285,6 +286,27 @@ it('requires a reason when a seat is not set back to active', function (): void 
         ->assertSessionHasErrors('reason');
 
     expect($seat->refresh()->status->value)->toBe('active');
+});
+
+it('materializes maintenance seats as non-sellable when syncing bus seats', function (): void {
+    $grid = validGrid();
+    $grid['cells'][2]['maintenance'] = true;
+
+    $composition = makeComposition(['status' => CompositionStatus::Active->value, 'grid' => $grid]);
+    $bus = Bus::query()->create([
+        'registration_number' => 'MAINT-1',
+        'composition_id' => $composition->id,
+        'seat_count' => 3,
+        'status' => 'active',
+    ]);
+
+    app(SyncBusSeatsAction::class)->execute($bus, $composition);
+
+    $seat = Seat::query()->where('bus_id', $bus->id)->where('code', '1A')->firstOrFail();
+    expect($seat->sellable)->toBeFalse()
+        ->and($seat->status->value)->toBe('maintenance')
+        ->and($seat->status_reason)->not->toBeNull()
+        ->and($composition->seatGrid()->sellableCount())->toBe(1);
 });
 
 it('returns 404 when the seat belongs to another bus', function (): void {

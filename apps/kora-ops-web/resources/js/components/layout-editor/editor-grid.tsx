@@ -5,7 +5,14 @@ import type { LayoutCell, LayoutGrid } from '@/components/seat-map/types';
 import { cn } from '@/lib/utils';
 
 export type EditorTool =
-    'seat' | 'crew' | 'aisle' | 'empty' | 'door' | 'driver' | 'eraser';
+    | 'seat'
+    | 'crew'
+    | 'maintenance'
+    | 'aisle'
+    | 'empty'
+    | 'door'
+    | 'driver'
+    | 'eraser';
 
 type Props = {
     grid: LayoutGrid;
@@ -101,8 +108,9 @@ function EditorCell({
             className={cn(
                 'seat sm-seat',
                 cell.seatKind === 'crew' && 'sm-seat--crew',
+                cell.maintenance && 'sm-seat--maintenance',
             )}
-            aria-label={`Siège ${cell.code ?? 'sans code'}`}
+            aria-label={`Siège ${cell.code ?? 'sans code'}${cell.maintenance ? ' (hors service)' : ''}`}
             {...paintProps}
         >
             {isRenaming ? (
