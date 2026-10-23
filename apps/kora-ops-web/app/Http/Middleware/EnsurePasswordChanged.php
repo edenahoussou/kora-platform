@@ -14,6 +14,7 @@ class EnsurePasswordChanged
 
         if ($user?->must_change_password && ! $request->routeIs([
             'security.edit',
+            'profile.edit',
             'user-password.update',
             'password.confirm',
             'password.confirm.store',
