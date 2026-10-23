@@ -10733,3 +10733,281 @@
         }
     }
 }
+
+/* ========================================================================
+   KORA OPS — Gabarits de sièges (seat map générique + éditeur)
+   Cellules à positions explicites : siège, allée, vide, porte, conducteur.
+   ======================================================================== */
+
+@layer kora-seatmap {
+    .seat-map {
+        --sm-cell-size: 45px;
+        --sm-cell-height: 43px;
+    }
+
+    .sm-grid {
+        display: grid;
+        gap: 7px;
+        justify-content: center;
+    }
+
+    .sm-cell {
+        display: grid;
+        width: var(--sm-cell-size);
+        height: var(--sm-cell-height);
+        place-items: center;
+        border-radius: 10px 10px 7px 7px;
+        color: var(--brand-ink);
+        font-size: 9px;
+        font-weight: 850;
+    }
+
+    .sm-cell--aisle,
+    .sm-cell--empty {
+        border: 1px dashed transparent;
+        background: transparent;
+    }
+
+    .seat-map--edit .sm-cell--aisle {
+        border-color: color-mix(in srgb, var(--brand-ink) 14%, transparent);
+        background: repeating-linear-gradient(
+            90deg,
+            transparent,
+            transparent 8px,
+            color-mix(in srgb, var(--brand-ink) 5%, transparent) 8px,
+            color-mix(in srgb, var(--brand-ink) 5%, transparent) 16px
+        );
+    }
+
+    .seat-map--edit .sm-cell--empty {
+        border-color: color-mix(in srgb, var(--brand-ink) 16%, transparent);
+    }
+
+    .sm-cell--door {
+        border: 1px solid color-mix(in srgb, var(--digital) 45%, transparent);
+        border-radius: 7px;
+        color: var(--digital);
+        background: color-mix(in srgb, var(--digital) 8%, transparent);
+    }
+
+    .sm-cell--driver {
+        border: 3px solid var(--kora);
+        border-radius: 50%;
+        color: var(--brand-ink);
+        background: var(--card);
+        font-size: 10px;
+    }
+
+    .seat-map .seat {
+        width: var(--sm-cell-size);
+        height: var(--sm-cell-height);
+    }
+
+    .sm-seat--crew {
+        border-color: color-mix(in srgb, var(--gold) 55%, transparent);
+        background: color-mix(in srgb, var(--gold) 16%, var(--card));
+    }
+
+    .sm-seat--maintenance {
+        border-color: color-mix(in srgb, #d97706 55%, transparent);
+        color: #b45309;
+        background: repeating-linear-gradient(
+            135deg,
+            color-mix(in srgb, #f59e0b 22%, transparent),
+            color-mix(in srgb, #f59e0b 22%, transparent) 6px,
+            color-mix(in srgb, #f59e0b 8%, transparent) 6px,
+            color-mix(in srgb, #f59e0b 8%, transparent) 12px
+        );
+    }
+
+    .sm-seat--blocked {
+        border-color: var(--graphite);
+        color: white;
+        background: var(--graphite);
+    }
+
+    .seat-map--mini {
+        --sm-cell-size: 11px;
+        --sm-cell-height: 11px;
+        pointer-events: none;
+    }
+
+    .seat-map--mini .sm-grid {
+        gap: 3px;
+    }
+
+    .seat-map--mini .sm-cell {
+        border-radius: 3px;
+        font-size: 0;
+    }
+
+    .seat-map--mini .sm-cell--driver {
+        border-width: 2px;
+    }
+
+    .seat-map--mini .seat {
+        border-radius: 3px;
+        font-size: 0;
+    }
+
+    .seat-map--mini .seat::before {
+        display: none;
+    }
+
+    .seat-map--mini.bus-cabin {
+        width: auto;
+        max-height: none;
+        margin: 0;
+        padding: 16px 14px 12px;
+        border-width: 1px;
+        border-radius: 22px 22px 10px 10px;
+        overflow: visible;
+    }
+
+    /* --- Éditeur de gabarit --- */
+
+    .editor-canvas {
+        cursor: crosshair;
+        user-select: none;
+    }
+
+    .editor-canvas .sm-cell,
+    .editor-canvas .seat {
+        transition:
+            transform 0.12s ease,
+            box-shadow 0.12s ease;
+    }
+
+    .editor-canvas .sm-cell:hover,
+    .editor-canvas .seat:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 0 0 2px color-mix(in srgb, var(--gold) 70%, transparent);
+    }
+
+    .sm-code-input {
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        border: 0;
+        border-radius: inherit;
+        color: inherit;
+        background: transparent;
+        font: inherit;
+        text-align: center;
+        outline: none;
+    }
+
+    .tool-palette {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .tool-palette button {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        min-height: 36px;
+        padding: 0 12px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        color: var(--foreground);
+        background: var(--card);
+        font-size: 11px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: 0.18s ease;
+    }
+
+    .tool-palette button:hover {
+        border-color: var(--gold);
+    }
+
+    .tool-palette button.is-active {
+        border-color: var(--gold);
+        color: var(--kora);
+        background: color-mix(in srgb, var(--gold) 16%, var(--card));
+        box-shadow: 0 6px 16px rgba(246, 176, 0, 0.18);
+    }
+
+    .tool-palette button .tool-swatch {
+        display: grid;
+        width: 18px;
+        height: 17px;
+        place-items: center;
+        border-radius: 5px 5px 3px 3px;
+        font-size: 7px;
+    }
+
+    .edge-control {
+        display: flex;
+        gap: 4px;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .edge-control button {
+        display: grid;
+        width: 26px;
+        height: 26px;
+        place-items: center;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--brand-ink);
+        background: var(--card);
+        font-size: 13px;
+        font-weight: 900;
+        cursor: pointer;
+        transition: 0.16s ease;
+    }
+
+    .edge-control button:hover:not(:disabled) {
+        border-color: var(--gold);
+        color: var(--kora);
+        background: color-mix(in srgb, var(--gold) 12%, var(--card));
+    }
+
+    .edge-control button:disabled {
+        cursor: not-allowed;
+        opacity: 0.4;
+    }
+
+    /* --- Popover statut siège (fiche bus) --- */
+
+    .seat-status-popover {
+        position: fixed;
+        z-index: 80;
+        width: 280px;
+        padding: 16px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--card);
+        box-shadow: 0 24px 60px rgba(0, 29, 78, 0.24);
+    }
+
+    .seat-status-choice {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid transparent;
+        border-radius: 9px;
+        color: var(--foreground);
+        background: transparent;
+        font-size: 12px;
+        font-weight: 650;
+        cursor: pointer;
+        text-align: left;
+        transition: 0.15s ease;
+    }
+
+    .seat-status-choice:hover {
+        background: var(--muted);
+    }
+
+    .seat-status-choice.is-active {
+        border-color: var(--gold);
+        background: color-mix(in srgb, var(--gold) 12%, var(--card));
+    }
+}

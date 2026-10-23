@@ -36,6 +36,7 @@ use App\Modules\Ticketing\Http\Controllers\TicketIndexController;
 use App\Modules\Ticketing\Http\Controllers\TicketPreviewController;
 use App\Modules\Ticketing\Http\Controllers\TicketViewController;
 use App\Modules\Tracking\Http\Controllers\FleetTrackingPageController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
@@ -220,6 +221,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('models', [BusModelController::class, 'store'])->name('models.store');
     Route::put('models/{model:uuid}', [BusModelController::class, 'update'])->name('models.update');
     Route::patch('models/{model:uuid}/status', [BusModelController::class, 'changeStatus'])->name('models.status');
+
+    // Gabarits de sièges — maquette UI phase 1 : routes GET factices, état
+    // entièrement mocké côté client (aucune persistance). Top-level pour la
+    // même raison que /amenities et /models (isActive de la sidebar).
+    Route::get('layouts', fn () => inertia('fleet/layouts/index'))
+        ->name('layouts.index');
+    Route::get('layouts/create', fn (Request $request) => inertia('fleet/layouts/editor', [
+        'duplicate' => $request->query('duplicate'),
+    ]))->name('layouts.create');
+    Route::get('layouts/{uuid}/edit', fn (string $uuid) => inertia('fleet/layouts/editor', [
+        'templateUuid' => $uuid,
+    ]))->name('layouts.edit');
 
     // V1 MVP — Agences (Ressources — référentiel parent de la flotte et des utilisateurs)
     Route::get('agencies', [AgencyController::class, 'index'])->name('agencies.index');
