@@ -5,6 +5,7 @@ namespace App\Modules\BusNetwork\Services;
 use App\Modules\BusNetwork\Actions\ChangeSeatLayoutStatusAction;
 use App\Modules\BusNetwork\Actions\CreateSeatLayoutAction;
 use App\Modules\BusNetwork\Actions\DuplicateSeatLayoutAction;
+use App\Modules\BusNetwork\Actions\GenerateSeatLayoutCodeAction;
 use App\Modules\BusNetwork\Actions\UpdateSeatLayoutAction;
 use App\Modules\BusNetwork\Data\CompositionStatus;
 use App\Modules\BusNetwork\Data\SeatLayout;
@@ -18,7 +19,14 @@ class SeatLayoutService
         private UpdateSeatLayoutAction $updateSeatLayout,
         private DuplicateSeatLayoutAction $duplicateSeatLayout,
         private ChangeSeatLayoutStatusAction $changeSeatLayoutStatus,
+        private GenerateSeatLayoutCodeAction $generateCode,
     ) {}
+
+    /** Prochain code disponible — indicatif, le code réel est attribué à l'enregistrement. */
+    public function nextCode(): string
+    {
+        return $this->generateCode->execute();
+    }
 
     /** @return Collection<int, BusComposition> */
     public function templatesForIndex(): Collection

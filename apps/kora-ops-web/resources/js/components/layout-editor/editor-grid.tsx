@@ -1,4 +1,5 @@
-import { DoorOpen } from 'lucide-react';
+import { DoorOpen, Minus, Plus } from 'lucide-react';
+import { Fragment } from 'react';
 import { cellAt } from '@/components/seat-map/layout-utils';
 import type { LayoutCell, LayoutGrid } from '@/components/seat-map/types';
 import { cn } from '@/lib/utils';
@@ -16,6 +17,10 @@ type Props = {
     onRenameChange: (value: string) => void;
     onRenameCommit: () => void;
     onRenameCancel: () => void;
+    onInsertRow: (y: number) => void;
+    onDeleteRow: (y: number) => void;
+    onInsertCol: (x: number) => void;
+    onDeleteCol: (x: number) => void;
 };
 
 function EditorCell({
@@ -136,29 +141,27 @@ export function EditorGrid({
     onRenameChange,
     onRenameCommit,
     onRenameCancel,
+    onInsertRow,
+    onDeleteRow,
+    onInsertCol,
+    onDeleteCol,
 }: Props) {
-    const cells: React.ReactNode[] = [];
-
-    for (let y = 0; y < grid.rows; y++) {
-        for (let x = 0; x < grid.cols; x++) {
-            cells.push(
-                <EditorCell
-                    key={`${x}-${y}`}
-                    cell={cellAt(grid, x, y)}
-                    x={x}
-                    y={y}
-                    locked={locked}
-                    renaming={renaming}
-                    onPaintStart={onPaintStart}
-                    onPaintEnter={onPaintEnter}
-                    onSeatClick={onSeatClick}
-                    onRenameChange={onRenameChange}
-                    onRenameCommit={onRenameCommit}
-                    onRenameCancel={onRenameCancel}
-                />,
-            );
-        }
-    }
+    const editorCell = (x: number, y: number) => (
+        <EditorCell
+            key={`${x}-${y}`}
+            cell={cellAt(grid, x, y)}
+            x={x}
+            y={y}
+            locked={locked}
+            renaming={renaming}
+            onPaintStart={onPaintStart}
+            onPaintEnter={onPaintEnter}
+            onSeatClick={onSeatClick}
+            onRenameChange={onRenameChange}
+            onRenameCommit={onRenameCommit}
+            onRenameCancel={onRenameCancel}
+        />
+    );
 
     return (
         <div
@@ -168,14 +171,75 @@ export function EditorGrid({
             )}
             style={{ '--sm-cell-size': '48px' } as React.CSSProperties}
         >
-            <div
-                className="sm-grid"
-                style={{
-                    gridTemplateColumns: `repeat(${grid.cols}, var(--sm-cell-size, 45px))`,
-                }}
-            >
-                {cells}
-            </div>
+            {locked ? (
+                <div
+                    className="sm-grid"
+                    style={{
+                        gridTemplateColumns: `repeat(${grid.cols}, var(--sm-cell-size, 45px))`,
+                    }}
+                >
+                    {Array.from({ length: grid.rows }, (_, y) =>
+                        Array.from({ length: grid.cols }, (_, x) =>
+                            editorCell(x, y),
+                        ),
+                    )}
+                </div>
+            ) : (
+                <div
+                    className="editor-structure-grid"
+                    style={{
+                        gridTemplateColumns: `30px repeat(${grid.cols}, var(--sm-cell-size, 45px))`,
+                    }}
+                >
+                    <span className="editor-structure-corner" />
+                    {Array.from({ length: grid.cols }, (_, x) => (
+                        <span
+                            key={`col-${x}`}
+                            className="editor-structure-controls"
+                        >
+                            <button
+                                type="button"
+                                onClick={() => onInsertCol(x)}
+                                title="Insérer une colonne à gauche"
+                            >
+                                <Plus className="size-3" />
+                            </button>
+                            <button
+                                type="button"
+                                disabled={grid.cols <= 1}
+                                onClick={() => onDeleteCol(x)}
+                                title="Supprimer cette colonne"
+                            >
+                                <Minus className="size-3" />
+                            </button>
+                        </span>
+                    ))}
+                    {Array.from({ length: grid.rows }, (_, y) => (
+                        <Fragment key={`row-${y}`}>
+                            <span className="editor-structure-controls editor-structure-controls--row">
+                                <button
+                                    type="button"
+                                    onClick={() => onInsertRow(y)}
+                                    title="Insérer une rangée au-dessus"
+                                >
+                                    <Plus className="size-3" />
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={grid.rows <= 1}
+                                    onClick={() => onDeleteRow(y)}
+                                    title="Supprimer cette rangée"
+                                >
+                                    <Minus className="size-3" />
+                                </button>
+                            </span>
+                            {Array.from({ length: grid.cols }, (_, x) =>
+                                editorCell(x, y),
+                            )}
+                        </Fragment>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

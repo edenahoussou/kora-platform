@@ -10972,6 +10972,55 @@
         opacity: 0.4;
     }
 
+    .editor-structure-grid {
+        display: grid;
+        gap: 6px;
+        align-items: center;
+    }
+
+    .editor-structure-corner {
+        width: 30px;
+        height: 30px;
+    }
+
+    .editor-structure-controls {
+        display: flex;
+        gap: 2px;
+        align-items: center;
+        justify-content: center;
+        height: 30px;
+    }
+
+    .editor-structure-controls--row {
+        width: 30px;
+        height: var(--sm-cell-height, 43px);
+        flex-direction: column;
+    }
+
+    .editor-structure-controls button {
+        display: grid;
+        width: 14px;
+        height: 14px;
+        place-items: center;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        color: var(--muted-foreground);
+        background: var(--card);
+        cursor: pointer;
+        transition: 0.16s ease;
+    }
+
+    .editor-structure-controls button:hover:not(:disabled) {
+        border-color: var(--gold);
+        color: var(--kora);
+        background: color-mix(in srgb, var(--gold) 12%, var(--card));
+    }
+
+    .editor-structure-controls button:disabled {
+        cursor: not-allowed;
+        opacity: 0.35;
+    }
+
     /* --- Popover statut siège (fiche bus) --- */
 
     .seat-status-popover {

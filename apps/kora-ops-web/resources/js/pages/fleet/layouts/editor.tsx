@@ -30,6 +30,10 @@ import type { OnboardingStep } from '@/components/onboarding/onboarding-tour';
 import {
     cellAt,
     cloneGrid,
+    deleteColAt,
+    deleteRowAt,
+    insertColAt,
+    insertRowAt,
     renumberSeats,
     seatStats,
 } from '@/components/seat-map/layout-utils';
@@ -48,6 +52,7 @@ import { templateStatusLabels } from './status-labels';
 type PageProps = {
     template?: SeatTemplate | null;
     duplicate?: SeatTemplate | null;
+    nextCode?: string | null;
 };
 
 const TOOLS: {
@@ -135,7 +140,11 @@ function emptyGrid(): LayoutGrid {
     });
 }
 
-export default function LayoutEditorPage({ template, duplicate }: PageProps) {
+export default function LayoutEditorPage({
+    template,
+    duplicate,
+    nextCode,
+}: PageProps) {
     const locked = template?.locked ?? false;
 
     const [name, setName] = useState(
@@ -315,6 +324,38 @@ export default function LayoutEditorPage({ template, duplicate }: PageProps) {
         setGrid((prev) => renumberSeats(prev));
     };
 
+    const mutateGrid = (mutate: (grid: LayoutGrid) => LayoutGrid) => {
+        if (locked) {
+            return;
+        }
+
+        pushHistory(grid);
+        setGrid((prev) => renumberSeats(mutate(prev)));
+    };
+
+    const renumberAll = () => {
+        if (locked) {
+            return;
+        }
+
+        const next = renumberSeats(grid, true);
+        const changed = next.cells.some(
+            (cell, index) =>
+                cell.code !== grid.cells[index].code ||
+                cell.codeLocked !== grid.cells[index].codeLocked,
+        );
+
+        if (!changed) {
+            toast.info('La numérotation est déjà à jour.');
+
+            return;
+        }
+
+        pushHistory(grid);
+        setGrid(next);
+        toast.success('Numérotation recalculée.');
+    };
+
     const errors = useMemo(() => {
         const list: string[] = [];
         const seats = grid.cells.filter((cell) => cell.kind === 'seat');
@@ -391,9 +432,12 @@ export default function LayoutEditorPage({ template, duplicate }: PageProps) {
                         <h1 className="text-[1.8125rem] font-extrabold tracking-[-0.035em] text-foreground">
                             {template ? template.name : 'Nouveau gabarit'}
                         </h1>
-                        {template && (
+                        {template ? (
                             <>
-                                <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 font-mono text-[0.6875rem] font-bold text-muted-foreground">
+                                <span
+                                    className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 font-mono text-[0.6875rem] font-bold text-muted-foreground"
+                                    title="Identifiant unique du gabarit, attribué automatiquement"
+                                >
                                     <Hash className="size-3" />
                                     {template.code}
                                 </span>
@@ -408,7 +452,15 @@ export default function LayoutEditorPage({ template, duplicate }: PageProps) {
                                     }
                                 />
                             </>
-                        )}
+                        ) : nextCode ? (
+                            <span
+                                className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 font-mono text-[0.6875rem] font-bold text-muted-foreground"
+                                title="Code attribué automatiquement à l'enregistrement"
+                            >
+                                <Hash className="size-3" />
+                                {nextCode}
+                            </span>
+                        ) : null}
                         {locked && (
                             <span className="inline-flex items-center gap-1.5 rounded-full bg-gold/15 px-2.5 py-1 text-[0.6875rem] font-bold text-[var(--kora)]">
                                 <Lock className="size-3" />
@@ -600,13 +652,8 @@ export default function LayoutEditorPage({ template, duplicate }: PageProps) {
                             <button
                                 type="button"
                                 disabled={locked}
-                                onClick={() => {
-                                    pushHistory(grid);
-                                    setGrid((prev) =>
-                                        renumberSeats(prev, true),
-                                    );
-                                }}
-                                title="Renuméroter tous les sièges (écrase les codes personnalisés)"
+                                onClick={renumberAll}
+                                title="Recalcule tous les codes (réinitialise les codes renommés à la main)"
                             >
                                 <Hash className="size-3.5" />
                                 Renuméroter
@@ -638,6 +685,18 @@ export default function LayoutEditorPage({ template, duplicate }: PageProps) {
                                 }
                                 onRenameCommit={commitRename}
                                 onRenameCancel={() => setRenaming(null)}
+                                onInsertRow={(y) =>
+                                    mutateGrid((prev) => insertRowAt(prev, y))
+                                }
+                                onDeleteRow={(y) =>
+                                    mutateGrid((prev) => deleteRowAt(prev, y))
+                                }
+                                onInsertCol={(x) =>
+                                    mutateGrid((prev) => insertColAt(prev, x))
+                                }
+                                onDeleteCol={(x) =>
+                                    mutateGrid((prev) => deleteColAt(prev, x))
+                                }
                             />
                         </div>
                         <div

@@ -58,6 +58,7 @@ class SeatLayoutController extends Controller
 
         return inertia('fleet/layouts/editor', [
             'duplicate' => $source ? $this->layouts->serialize($source) : null,
+            'nextCode' => $this->layouts->nextCode(),
         ]);
     }
 

@@ -66,6 +66,17 @@ it('serves the layouts index with serialized templates', function (): void {
             ->has('permissions'));
 });
 
+it('serves the create editor with the next generated code preview', function (): void {
+    makeComposition(['code' => 'GAB-007']);
+
+    $this->actingAs(layoutsUser())
+        ->get(route('layouts.create'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page): Assert => $page
+            ->component('fleet/layouts/editor')
+            ->where('nextCode', 'GAB-008'));
+});
+
 it('forbids the index to users without fleet permission', function (): void {
     $user = User::factory()->create();
 
