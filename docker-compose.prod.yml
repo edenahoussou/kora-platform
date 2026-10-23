@@ -40,7 +40,7 @@ services:
       dockerfile: Dockerfile
     container_name: kora-prod-nginx
     ports:
-      - "80:80"
+      - "9080:80"
     volumes:
       - ./infra/docker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - prod-public:/app/public:ro
