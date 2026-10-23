@@ -3,6 +3,8 @@
 namespace App\Modules\Passengers\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Passengers\Data\PassengerErasureStatus;
+use App\Modules\Passengers\Models\PassengerErasureRequest;
 use App\Modules\Passengers\Services\PassengerDirectoryService;
 use App\Modules\Ticketing\Models\Ticket;
 use Illuminate\Http\JsonResponse;
@@ -49,6 +51,17 @@ class PassengerIndexController extends Controller
                 'canExport' => $request->user()?->can('sensitive-data.export') ?? false,
                 'canErase' => $request->user()?->can('passengers.erase') ?? false,
             ],
+            'pendingErasures' => PassengerErasureRequest::query()
+                ->where('status', PassengerErasureStatus::Requested)
+                ->latest()
+                ->get(['uuid', 'actor_name', 'requester_phone', 'requester_email', 'created_at'])
+                ->map(fn (PassengerErasureRequest $erasure) => [
+                    'uuid' => $erasure->uuid,
+                    'name' => $erasure->actor_name,
+                    'phone' => $erasure->requester_phone,
+                    'email' => $erasure->requester_email,
+                    'requested_at' => $erasure->created_at?->toISOString(),
+                ])->all(),
         ]);
     }
 

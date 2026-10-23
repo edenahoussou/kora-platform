@@ -12,6 +12,7 @@ import {
     Search,
     Smartphone,
     Ticket as TicketIcon,
+    Trash2,
     Users as UsersIcon,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -25,10 +26,19 @@ import type {
     PassengerSummary,
 } from '@/types/passengers';
 
+type PendingErasure = {
+    uuid: string;
+    name: string | null;
+    phone: string | null;
+    email: string | null;
+    requested_at: string | null;
+};
+
 type Props = {
     passengers: PaginatedPassengers;
     filters: PassengerFilters;
     permissions?: PassengerPermissions;
+    pendingErasures?: PendingErasure[];
 };
 
 function getInitials(name: string): string {
@@ -53,6 +63,7 @@ export default function PassengersPage({
     },
     filters = {},
     permissions = { canExport: false, canErase: false },
+    pendingErasures = [],
 }: Props) {
     const [query, setQuery] = useState(filters.q ?? '');
     const [selectedStatus, setSelectedStatus] = useState(
@@ -195,6 +206,52 @@ export default function PassengersPage({
                         </span>
                     </div>
                 </div>
+
+                {/* Demandes de suppression de compte en attente */}
+                {permissions.canErase && pendingErasures.length > 0 && (
+                    <div className="cash-reveal mb-6 rounded-2xl border border-red-200/70 bg-red-50/60 p-4 dark:border-red-400/20 dark:bg-red-400/10">
+                        <div className="flex items-center gap-2 text-[0.8125rem] font-bold text-red-700 dark:text-red-300">
+                            <Trash2 className="size-4" />
+                            {pendingErasures.length} demande
+                            {pendingErasures.length > 1 ? 's' : ''} de
+                            suppression de compte en attente
+                        </div>
+                        <ul className="mt-3 grid gap-2">
+                            {pendingErasures.map((erasure) => (
+                                <li
+                                    key={erasure.uuid}
+                                    className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-card px-3.5 py-2.5 ring-1 ring-black/[0.045] dark:ring-white/[0.06]"
+                                >
+                                    <span className="text-xs text-muted-foreground">
+                                        <strong className="text-foreground">
+                                            {erasure.phone ??
+                                                erasure.name ??
+                                                'Contact inconnu'}
+                                        </strong>
+                                        {erasure.name &&
+                                            erasure.phone &&
+                                            ` · ${erasure.name}`}
+                                        {erasure.requested_at &&
+                                            ` · reçue le ${new Date(erasure.requested_at).toLocaleDateString('fr-FR')}`}
+                                    </span>
+                                    {erasure.phone && (
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                handleQueryChange(
+                                                    erasure.phone ?? '',
+                                                )
+                                            }
+                                            className="rounded-lg bg-red-600/10 px-3 py-1.5 text-xs font-bold text-red-700 transition hover:bg-red-600/20 dark:text-red-300"
+                                        >
+                                            Traiter
+                                        </button>
+                                    )}
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
 
                 {/* Barre de filtres */}
                 <div className="cash-filterbar cash-reveal cash-reveal-delay-1 mb-6">

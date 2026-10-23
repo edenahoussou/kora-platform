@@ -1,143 +1,295 @@
-import { Head, Link } from '@inertiajs/react';
-import {
-    Check,
-    ChevronRight,
-    Clock3,
-    Mail,
-    ShieldCheck,
-    Smartphone,
-    Trash2,
-} from 'lucide-react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import { Check, ChevronRight } from 'lucide-react';
+import { storeDeletionRequest } from '@/actions/App/Http/Controllers/PublicLegalController';
+import InputError from '@/components/input-error';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Spinner } from '@/components/ui/spinner';
 import { privacyPolicy } from '@/routes';
+
+type Company = {
+    name: string;
+    director: string;
+    rccm: string | null;
+    nim: string | null;
+    address: string;
+    phone: string;
+};
 
 type Props = {
     supportEmail: string;
-    lastUpdated: string;
+    company: Company;
 };
 
-export default function AccountDeletion({ supportEmail, lastUpdated }: Props) {
-    const deletionRequestHref = `mailto:${supportEmail}?subject=${encodeURIComponent('Demande de suppression de compte KORA')}&body=${encodeURIComponent('Bonjour,\n\nJe demande la suppression de mon compte KORA App Passager Bus.\n\nTéléphone ou adresse e-mail du compte :\n\nMerci.')}`;
+export default function AccountDeletion({ supportEmail, company }: Props) {
+    const submitted = Boolean(
+        (usePage().props as { flash?: { deletion_submitted?: boolean } }).flash
+            ?.deletion_submitted,
+    );
+
+    const { data, setData, post, processing, errors } = useForm({
+        phone: '',
+        name: '',
+        email: '',
+        reason: '',
+        website: '',
+    });
+
+    const submit = (event: React.FormEvent) => {
+        event.preventDefault();
+        post(storeDeletionRequest.url());
+    };
 
     return (
         <>
             <Head title="Suppression de compte" />
 
-            <div className="mx-auto max-w-4xl">
-                <div className="mb-8 flex items-start justify-between gap-5">
-                    <div>
-                        <div className="mb-4 inline-flex size-12 items-center justify-center rounded-2xl bg-red-500/10 text-red-600 dark:text-red-400">
-                            <Trash2 className="size-6" />
+            <article className="mx-auto max-w-3xl">
+                <header className="border-b border-slate-200 pb-8 dark:border-white/10">
+                    <h1 className="text-3xl font-extrabold tracking-[-0.03em] sm:text-4xl">
+                        Suppression de votre compte
+                    </h1>
+                    <dl className="mt-5 grid gap-1 text-sm text-slate-600 dark:text-slate-300">
+                        <div className="flex flex-wrap gap-x-2">
+                            <dt className="font-semibold text-slate-900 dark:text-white">
+                                Éditeur :
+                            </dt>
+                            <dd>{company.name}</dd>
                         </div>
-                        <p className="mb-2 text-xs font-bold tracking-[0.14em] text-slate-500 uppercase dark:text-slate-400">
-                            KORA App Passager Bus
-                        </p>
-                        <h2 className="text-3xl font-extrabold tracking-[-0.04em] sm:text-5xl">
-                            Suppression de compte
+                        <div className="flex flex-wrap gap-x-2">
+                            <dt className="font-semibold text-slate-900 dark:text-white">
+                                Application concernée :
+                            </dt>
+                            <dd>KORA App Passager Bus</dd>
+                        </div>
+                        <div className="flex flex-wrap gap-x-2">
+                            <dt className="font-semibold text-slate-900 dark:text-white">
+                                Version :
+                            </dt>
+                            <dd>1.0 — En vigueur le 24 octobre 2026</dd>
+                        </div>
+                    </dl>
+                    <p className="mt-5 text-sm leading-7 text-slate-600 dark:text-slate-300">
+                        Vous pouvez demander la suppression de votre compte KORA
+                        et de vos données personnelles à l’aide du formulaire
+                        ci-dessous, sans avoir à vous connecter. Votre demande
+                        est traitée dans un délai maximum de{' '}
+                        <strong>30 jours</strong>.
+                    </p>
+                </header>
+
+                {submitted ? (
+                    <section className="py-8">
+                        <h2 className="flex items-center gap-2.5 text-lg font-bold">
+                            <Check className="size-5 text-emerald-600" />
+                            Demande reçue
                         </h2>
-                        <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600 dark:text-slate-300">
-                            Cette page vous permet de demander la suppression de
-                            votre compte KORA sans devoir vous connecter au site
-                            web.
-                        </p>
-                    </div>
-                    <span className="hidden shrink-0 text-xs font-medium text-slate-500 sm:block dark:text-slate-400">
-                        Mise à jour : {lastUpdated}
-                    </span>
-                </div>
-
-                <div className="grid gap-5 md:grid-cols-2">
-                    <section className="rounded-3xl bg-[var(--kora)] p-6 text-white shadow-[0_1.5rem_3rem_rgba(0,29,78,0.18)] sm:p-8">
-                        <div className="flex size-11 items-center justify-center rounded-2xl bg-gold text-[var(--kora)]">
-                            <Smartphone className="size-5" />
-                        </div>
-                        <h3 className="mt-6 text-xl font-bold tracking-[-0.02em]">
-                            Depuis l’application
-                        </h3>
-                        <ol className="mt-5 grid gap-4 text-sm leading-6 text-white/75">
-                            <Step number="01">
-                                Ouvrez l’onglet <strong>Compte</strong> dans
-                                KORA App Passager Bus.
-                            </Step>
-                            <Step number="02">
-                                Ouvrez <strong>Paramètres</strong>, puis
-                                choisissez <strong>Supprimer mon compte</strong>
-                                .
-                            </Step>
-                            <Step number="03">
-                                Confirmez votre demande après avoir lu les
-                                conséquences de la suppression.
-                            </Step>
-                        </ol>
-                    </section>
-
-                    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_1.5rem_4rem_rgba(0,29,78,0.07)] sm:p-8 dark:border-white/10 dark:bg-slate-900 dark:shadow-none">
-                        <div className="flex size-11 items-center justify-center rounded-2xl bg-gold/15 text-[var(--kora)] dark:text-gold">
-                            <Mail className="size-5" />
-                        </div>
-                        <h3 className="mt-6 text-xl font-bold tracking-[-0.02em]">
-                            Vous n’avez plus accès à l’application ?
-                        </h3>
-                        <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                            Envoyez votre demande depuis l’adresse e-mail
-                            associée au compte, ou indiquez le numéro de
-                            téléphone utilisé sur KORA. Ne transmettez jamais
-                            votre PIN.
-                        </p>
-                        <a
-                            href={deletionRequestHref}
-                            className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gold px-5 py-3 text-sm font-bold text-[var(--kora)] shadow-[0_0.75rem_1.5rem_rgba(246,176,0,0.2)] transition hover:-translate-y-0.5 hover:bg-[var(--kora)] hover:text-white"
-                        >
-                            Demander la suppression
-                            <ChevronRight className="size-4" />
-                        </a>
-                        <p className="mt-3 text-center text-xs break-all text-slate-500 dark:text-slate-400">
-                            {supportEmail}
+                        <p className="mt-3.5 text-sm leading-7 text-slate-600 dark:text-slate-300">
+                            Votre demande de suppression a bien été enregistrée.
+                            Nous pouvons vous recontacter pour vérifier votre
+                            identité. Une confirmation vous sera adressée une
+                            fois le traitement effectué, dans un délai maximum
+                            de 30 jours.
                         </p>
                     </section>
-                </div>
+                ) : (
+                    <section className="border-b border-slate-200 py-8 dark:border-white/10">
+                        <h2 className="text-lg font-bold tracking-[-0.02em]">
+                            1. Formulaire de demande
+                        </h2>
 
-                <section className="mt-5 rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 dark:border-white/10 dark:bg-slate-900">
-                    <div className="flex items-center gap-3">
-                        <ShieldCheck className="size-5 text-digital" />
-                        <h3 className="text-xl font-bold tracking-[-0.02em]">
-                            Ce que la suppression implique
-                        </h3>
-                    </div>
-                    <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                        <DeletionPoint>
-                            Votre profil, vos accès et vos appareils de
-                            confiance sont désactivés.
-                        </DeletionPoint>
-                        <DeletionPoint>
-                            Vos données personnelles sont supprimées ou
-                            anonymisées lorsque cela est possible.
-                        </DeletionPoint>
-                        <DeletionPoint>
-                            Les réservations et billets en cours peuvent
-                            nécessiter un traitement avant la clôture du compte.
-                        </DeletionPoint>
-                        <DeletionPoint>
-                            Certaines données comptables, contractuelles ou de
-                            sécurité peuvent être conservées lorsque la loi
-                            l’impose.
-                        </DeletionPoint>
-                    </div>
+                        <form onSubmit={submit} className="mt-6 grid gap-5">
+                            <div className="grid gap-2">
+                                <Label htmlFor="phone">
+                                    Numéro de téléphone du compte{' '}
+                                    <span className="text-red-500">*</span>
+                                </Label>
+                                <Input
+                                    id="phone"
+                                    type="tel"
+                                    required
+                                    value={data.phone}
+                                    onChange={(e) =>
+                                        setData('phone', e.target.value)
+                                    }
+                                    placeholder="+229 01 XX XX XX XX"
+                                    autoComplete="tel"
+                                />
+                                <p className="text-xs text-slate-500">
+                                    Celui utilisé pour créer votre compte ou
+                                    réserver vos billets.
+                                </p>
+                                <InputError message={errors.phone} />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="name">
+                                    Nom complet{' '}
+                                    <span className="font-normal text-slate-400">
+                                        (optionnel)
+                                    </span>
+                                </Label>
+                                <Input
+                                    id="name"
+                                    value={data.name}
+                                    onChange={(e) =>
+                                        setData('name', e.target.value)
+                                    }
+                                    autoComplete="name"
+                                />
+                                <InputError message={errors.name} />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="email">
+                                    Adresse e-mail{' '}
+                                    <span className="font-normal text-slate-400">
+                                        (optionnel)
+                                    </span>
+                                </Label>
+                                <Input
+                                    id="email"
+                                    type="email"
+                                    value={data.email}
+                                    onChange={(e) =>
+                                        setData('email', e.target.value)
+                                    }
+                                    autoComplete="email"
+                                />
+                                <p className="text-xs text-slate-500">
+                                    Utilisée uniquement pour vous confirmer la
+                                    réception et la clôture de la demande.
+                                </p>
+                                <InputError message={errors.email} />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="reason">
+                                    Motif{' '}
+                                    <span className="font-normal text-slate-400">
+                                        (optionnel)
+                                    </span>
+                                </Label>
+                                <Input
+                                    id="reason"
+                                    value={data.reason}
+                                    onChange={(e) =>
+                                        setData('reason', e.target.value)
+                                    }
+                                    placeholder="Ex. je n’utilise plus l’application"
+                                />
+                                <InputError message={errors.reason} />
+                            </div>
+
+                            {/* Honeypot anti-spam — invisible pour les humains */}
+                            <input
+                                type="text"
+                                name="website"
+                                value={data.website}
+                                onChange={(e) =>
+                                    setData('website', e.target.value)
+                                }
+                                className="hidden"
+                                tabIndex={-1}
+                                autoComplete="off"
+                                aria-hidden="true"
+                            />
+
+                            <div>
+                                <Button type="submit" disabled={processing}>
+                                    {processing && <Spinner />}
+                                    Demander la suppression
+                                </Button>
+                            </div>
+                        </form>
+
+                        <p className="mt-6 text-xs leading-6 text-slate-500 dark:text-slate-400">
+                            Ne transmettez jamais votre code PIN ni votre code
+                            de vérification. Vous pouvez aussi écrire depuis
+                            l’adresse e-mail associée au compte à{' '}
+                            <a
+                                href={`mailto:${supportEmail}`}
+                                className="font-medium text-digital underline decoration-digital/30 underline-offset-4 hover:decoration-digital"
+                            >
+                                {supportEmail}
+                            </a>
+                            .
+                        </p>
+                    </section>
+                )}
+
+                <section className="border-b border-slate-200 py-8 dark:border-white/10">
+                    <h2 className="text-lg font-bold tracking-[-0.02em]">
+                        {submitted
+                            ? 'Ce que la suppression implique'
+                            : '2. Ce que la suppression implique'}
+                    </h2>
+                    <ul className="mt-4 list-disc space-y-2.5 pl-5 text-sm leading-7 text-slate-600 dark:text-slate-300">
+                        <li>
+                            <strong className="text-slate-900 dark:text-white">
+                                Supprimé ou anonymisé :
+                            </strong>{' '}
+                            profil, accès au compte, appareils de confiance,
+                            coordonnées des fiches voyageur et historique
+                            d’authentification.
+                        </li>
+                        <li>
+                            <strong className="text-slate-900 dark:text-white">
+                                Conservé :
+                            </strong>{' '}
+                            réservations, billets et pièces de paiement sous
+                            forme anonymisée, pendant 10 ans (obligations
+                            comptables et fiscales).
+                        </li>
+                        <li>
+                            <strong className="text-slate-900 dark:text-white">
+                                Avant clôture :
+                            </strong>{' '}
+                            les réservations ou billets en cours peuvent
+                            nécessiter un traitement préalable ; nous vous
+                            contacterons si nécessaire.
+                        </li>
+                        <li>
+                            <strong className="text-slate-900 dark:text-white">
+                                Irréversible :
+                            </strong>{' '}
+                            une fois traitée, la suppression est définitive — le
+                            compte ne peut pas être restauré.
+                        </li>
+                    </ul>
                 </section>
 
-                <section className="mt-5 flex gap-4 rounded-3xl border border-amber-200 bg-amber-50 p-6 text-amber-950 sm:p-8 dark:border-amber-300/20 dark:bg-amber-300/10 dark:text-amber-100">
-                    <Clock3 className="mt-0.5 size-5 shrink-0" />
-                    <div>
-                        <h3 className="font-bold">Après votre demande</h3>
-                        <p className="mt-2 text-sm leading-6 opacity-80">
-                            KORA peut vous demander une information de
+                <section className="border-b border-slate-200 py-8 dark:border-white/10">
+                    <h2 className="text-lg font-bold tracking-[-0.02em]">
+                        {submitted
+                            ? 'Après votre demande'
+                            : '3. Après votre demande'}
+                    </h2>
+                    <ul className="mt-4 list-disc space-y-2.5 pl-5 text-sm leading-7 text-slate-600 dark:text-slate-300">
+                        <li>
+                            Nous pouvons vous demander une information de
                             vérification pour éviter qu’une autre personne ne
-                            supprime votre compte. Une confirmation vous sera
-                            envoyée une fois la demande traitée.
-                        </p>
-                    </div>
+                            supprime votre compte.
+                        </li>
+                        <li>
+                            Une confirmation vous est adressée une fois la
+                            demande traitée, dans un délai maximum de 30 jours.
+                        </li>
+                        <li>
+                            Pour toute question :{' '}
+                            <a
+                                href={`mailto:${supportEmail}`}
+                                className="font-medium text-digital underline decoration-digital/30 underline-offset-4 hover:decoration-digital"
+                            >
+                                {supportEmail}
+                            </a>{' '}
+                            · {company.phone}.
+                        </li>
+                    </ul>
                 </section>
 
-                <p className="mt-8 text-center text-sm text-slate-500 dark:text-slate-400">
+                <p className="py-8 text-sm text-slate-500 dark:text-slate-400">
                     Pour connaître les règles applicables à vos données,
                     consultez la{' '}
                     <Link
@@ -149,35 +301,7 @@ export default function AccountDeletion({ supportEmail, lastUpdated }: Props) {
                     </Link>
                     .
                 </p>
-            </div>
+            </article>
         </>
-    );
-}
-
-function Step({
-    number,
-    children,
-}: {
-    number: string;
-    children: React.ReactNode;
-}) {
-    return (
-        <li className="flex gap-3">
-            <span className="font-mono text-xs font-bold text-gold">
-                {number}
-            </span>
-            <span>{children}</span>
-        </li>
-    );
-}
-
-function DeletionPoint({ children }: { children: React.ReactNode }) {
-    return (
-        <div className="flex gap-3 rounded-2xl bg-slate-50 p-4 dark:bg-white/[0.04]">
-            <Check className="mt-0.5 size-4 shrink-0 text-digital" />
-            <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">
-                {children}
-            </p>
-        </div>
     );
 }
