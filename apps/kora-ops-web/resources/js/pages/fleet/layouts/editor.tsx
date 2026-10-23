@@ -30,7 +30,6 @@ import type { OnboardingStep } from '@/components/onboarding/onboarding-tour';
 import {
     cellAt,
     cloneGrid,
-    isTemplateLocked,
     renumberSeats,
     seatStats,
 } from '@/components/seat-map/layout-utils';
@@ -44,11 +43,11 @@ import { useOnboarding } from '@/hooks/use-onboarding';
 import { cn } from '@/lib/utils';
 import layouts from '@/routes/layouts';
 import type { BreadcrumbItem } from '@/types';
-import { findTemplate, templateStatusLabels } from './mock-data';
+import { templateStatusLabels } from './status-labels';
 
 type PageProps = {
-    templateUuid?: string;
-    duplicate?: string | null;
+    template?: SeatTemplate | null;
+    duplicate?: SeatTemplate | null;
 };
 
 const TOOLS: {
@@ -68,7 +67,7 @@ const EDITOR_ONBOARDING_STEPS: OnboardingStep[] = [
     {
         target: '[data-onboarding="editor-meta"]',
         title: 'Décrivez votre gabarit',
-        body: 'Le nom et le code sont requis : ils identifient le gabarit dans les listes et lors de son affectation aux bus. La description aide les équipes ops à choisir le bon modèle.',
+        body: 'Le nom est requis ; le code unique est généré automatiquement à l’enregistrement. La description aide les équipes ops à choisir le bon modèle.',
         side: 'bottom',
     },
     {
@@ -136,40 +135,20 @@ function emptyGrid(): LayoutGrid {
     });
 }
 
-function duplicatedFrom(source: SeatTemplate): SeatTemplate {
-    return {
-        ...source,
-        uuid: `copy-${source.uuid}`,
-        name: `Copie de ${source.name}`,
-        code: `${source.code}-C`,
-        status: 'draft',
-        busesCount: 0,
-        grid: cloneGrid(source.grid),
-    };
-}
+export default function LayoutEditorPage({ template, duplicate }: PageProps) {
+    const locked = template?.locked ?? false;
 
-export default function LayoutEditorPage({
-    templateUuid,
-    duplicate,
-}: PageProps) {
-    const source = templateUuid
-        ? findTemplate(templateUuid)
-        : duplicate
-          ? (() => {
-                const origin = findTemplate(duplicate);
-
-                return origin ? duplicatedFrom(origin) : undefined;
-            })()
-          : undefined;
-
-    const locked = source ? isTemplateLocked(source) : false;
-
-    const [name, setName] = useState(source?.name ?? '');
-    const [code, setCode] = useState(source?.code ?? '');
-    const [description, setDescription] = useState(source?.description ?? '');
-    const [grid, setGrid] = useState<LayoutGrid>(() =>
-        source ? cloneGrid(source.grid) : emptyGrid(),
+    const [name, setName] = useState(
+        template?.name ?? (duplicate ? `Copie de ${duplicate.name}` : ''),
     );
+    const [description, setDescription] = useState(
+        template?.description ?? duplicate?.description ?? '',
+    );
+    const [grid, setGrid] = useState<LayoutGrid>(() => {
+        const source = template ?? duplicate;
+
+        return source ? cloneGrid(source.grid) : emptyGrid();
+    });
     const [tool, setTool] = useState<EditorTool>('seat');
     const [past, setPast] = useState<LayoutGrid[]>([]);
     const [future, setFuture] = useState<LayoutGrid[]>([]);
@@ -350,10 +329,6 @@ export default function LayoutEditorPage({
             list.push('Le nom du gabarit est requis.');
         }
 
-        if (!code.trim()) {
-            list.push('Le code du gabarit est requis.');
-        }
-
         if (seatStats(grid).sellable < 1) {
             list.push('Au moins un siège vendable est requis.');
         }
@@ -369,67 +344,60 @@ export default function LayoutEditorPage({
         }
 
         return list;
-    }, [grid, name, code]);
+    }, [grid, name]);
 
     const stats = seatStats(grid);
-
-    if (templateUuid && !source) {
-        return (
-            <>
-                <Head title="Gabarit introuvable" />
-                <div className="mx-auto max-w-lg rounded-[var(--kora-radius)] border border-border/50 bg-card p-10 text-center">
-                    <Armchair className="mx-auto size-10 text-muted-foreground/40" />
-                    <h1 className="mt-3 text-lg font-bold text-foreground">
-                        Gabarit introuvable
-                    </h1>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        Ce gabarit n'existe pas ou a été supprimé.
-                    </p>
-                    <button
-                        type="button"
-                        onClick={() => router.get(layouts.index.url())}
-                        className="btn btn-ghost mt-5"
-                    >
-                        <ArrowLeft className="size-3.5" />
-                        Retour aux gabarits
-                    </button>
-                </div>
-            </>
-        );
-    }
 
     const save = () => {
         if (errors.length > 0) {
             return;
         }
 
-        toast.success(
-            `Gabarit « ${name} » enregistré (maquette — non persisté).`,
-        );
-        router.get(layouts.index.url());
+        const payload = { name: name.trim(), description, grid };
+        const options = {
+            preserveScroll: true,
+            onError: (formErrors: Record<string, string>) =>
+                toast.error(
+                    Object.values(formErrors)[0] ?? 'Le gabarit est invalide.',
+                ),
+        };
+
+        if (template) {
+            router.put(
+                layouts.update.url({ composition: template.uuid }),
+                payload,
+                options,
+            );
+        } else {
+            router.post(layouts.store.url(), payload, options);
+        }
     };
 
     return (
         <>
             <Head
-                title={source ? `Modifier ${source.name}` : 'Nouveau gabarit'}
+                title={
+                    template ? `Modifier ${template.name}` : 'Nouveau gabarit'
+                }
             />
 
             <div className="kora-page-head mb-6 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                     <div className="kora-breadcrumb mb-2 text-[0.6875rem] text-muted-foreground">
                         KORA OPS / Ressources / Gabarits /{' '}
-                        {source ? source.name : 'Nouveau'}
+                        {template ? template.name : 'Nouveau'}
                     </div>
                     <div className="flex items-center gap-3">
                         <h1 className="text-[1.8125rem] font-extrabold tracking-[-0.035em] text-foreground">
-                            {source ? source.name : 'Nouveau gabarit'}
+                            {template ? template.name : 'Nouveau gabarit'}
                         </h1>
-                        {source && (
+                        {template && (
                             <KoraStatusBadge
-                                label={templateStatusLabels[source.status]}
+                                label={templateStatusLabels[template.status]}
                                 tone={
-                                    source.status === 'active' ? 'navy' : 'gold'
+                                    template.status === 'active'
+                                        ? 'navy'
+                                        : 'gold'
                                 }
                             />
                         )}
@@ -465,15 +433,13 @@ export default function LayoutEditorPage({
                         <ArrowLeft className="size-3.5" />
                         {locked ? 'Retour' : 'Annuler'}
                     </button>
-                    {locked ? (
+                    {locked && template ? (
                         <button
                             type="button"
                             onClick={() =>
-                                router.get(
-                                    layouts.create.url({
-                                        query: {
-                                            duplicate: source?.uuid,
-                                        },
+                                router.post(
+                                    layouts.duplicate.url({
+                                        composition: template.uuid,
                                     }),
                                 )
                             }
@@ -501,7 +467,7 @@ export default function LayoutEditorPage({
                     <Lock className="size-4 shrink-0 text-gold" />
                     <span>
                         Ce gabarit est utilisé par{' '}
-                        <strong>{source?.busesCount} bus</strong> : il ne peut
+                        <strong>{template?.busesCount} bus</strong> : il ne peut
                         plus être modifié directement. Dupliquez-le pour faire
                         évoluer la composition, puis réaffectez les bus.
                     </span>
@@ -552,36 +518,19 @@ export default function LayoutEditorPage({
                         <label className="field">
                             <span className="flex items-center gap-1.5">
                                 <Hash className="size-3 text-gold" />
-                                Code{' '}
-                                <b className="font-black text-destructive">*</b>
+                                Code
                             </span>
                             <input
                                 className="control font-mono font-bold uppercase"
-                                value={code}
-                                disabled={locked}
-                                onChange={(event) =>
-                                    setCode(event.target.value.toUpperCase())
-                                }
-                                onBlur={() =>
-                                    setTouched((prev) => ({
-                                        ...prev,
-                                        code: true,
-                                    }))
-                                }
-                                required
-                                aria-invalid={touched.code && !code.trim()}
-                                placeholder="STD-51"
+                                value={template ? template.code : 'Auto'}
+                                disabled
+                                readOnly
                             />
-                            {touched.code && !code.trim() ? (
-                                <small className="field-error-text">
-                                    Le code est requis.
-                                </small>
-                            ) : (
-                                <small>
-                                    Code court unique, utilisé dans les
-                                    référentiels.
-                                </small>
-                            )}
+                            <small>
+                                {template
+                                    ? 'Identifiant unique, non modifiable.'
+                                    : 'Généré automatiquement à l’enregistrement.'}
+                            </small>
                         </label>
                         <label className="field sm:col-span-2">
                             <span className="flex items-center gap-1.5">

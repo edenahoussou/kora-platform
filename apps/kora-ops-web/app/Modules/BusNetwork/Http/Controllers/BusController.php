@@ -14,6 +14,7 @@ use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\BusAmenity;
 use App\Modules\BusNetwork\Models\BusComposition;
 use App\Modules\BusNetwork\Models\BusModel;
+use App\Modules\BusNetwork\Models\SeatStatusEvent;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -61,7 +62,7 @@ class BusController extends Controller
             'busModel',
             'composition',
             'amenities',
-            'seats' => fn ($q) => $q->orderByRaw('LENGTH(code), code'),
+            'seats' => fn ($q) => $q->with('statusEvents.changedBy')->orderByRaw('LENGTH(code), code'),
             'departures' => fn ($q) => $q->with('line:id,uuid,code,name')->latest('departure_date')->latest('departure_time')->limit(10),
         ]);
 
@@ -131,6 +132,13 @@ class BusController extends Controller
                 'type' => (string) $seat->getRawOriginal('type'),
                 'sellable' => (bool) $seat->sellable,
                 'status' => (string) $seat->getRawOriginal('status'),
+                'reason' => $seat->status_reason,
+                'events' => $seat->statusEvents->take(5)->map(fn (SeatStatusEvent $event): array => [
+                    'status' => (string) $event->getRawOriginal('to_status'),
+                    'reason' => $event->reason,
+                    'author' => $event->changedBy?->name,
+                    'date' => $event->created_at?->toIso8601String(),
+                ])->all(),
             ];
         }
 
@@ -153,6 +161,7 @@ class BusController extends Controller
         $compositionName = $bus->composition ? $bus->composition->name : '—';
         $compositionCode = $bus->composition ? $bus->composition->code : null;
         $layout = $bus->composition ? $bus->composition->layout : [];
+        $seatLayout = $bus->composition?->seatGrid()->toArray();
 
         $amenities = $bus->amenities->map(fn (BusAmenity $amenity): array => [
             'id' => $amenity->id,
@@ -173,6 +182,7 @@ class BusController extends Controller
             'compositionCode' => $compositionCode,
             'compositionName' => $compositionName,
             'layout' => $layout,
+            'seatLayout' => $seatLayout,
             'seatCount' => $bus->seat_count,
             'amenities' => $amenities,
             'amenityIds' => $bus->amenities->pluck('id')->all(),

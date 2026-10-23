@@ -23,10 +23,12 @@ export type SeatTemplate = {
     uuid: string;
     name: string;
     code: string;
-    description: string;
+    description: string | null;
     status: SeatTemplateStatus;
+    seatCount: number;
     busesCount: number;
-    updatedAt: string;
+    locked: boolean;
+    updatedAt: string | null;
     grid: LayoutGrid;
 };
 

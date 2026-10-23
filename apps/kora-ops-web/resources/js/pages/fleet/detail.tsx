@@ -23,19 +23,28 @@ import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { SeatMap } from '@/components/seat-map/seat-map';
 import type {
     LayoutCell,
+    LayoutGrid,
     OperationalSeatStatus,
 } from '@/components/seat-map/types';
 import { Button } from '@/components/ui/button';
 import fleet from '@/routes/fleet';
 import type { BreadcrumbItem } from '@/types';
-import { templateForSeatCount } from './layouts/mock-data';
+
+type SeatStatusEvent = {
+    status: OperationalSeatStatus;
+    reason: string | null;
+    author: string | null;
+    date: string | null;
+};
 
 type SeatItem = {
     uuid: string;
     code: string;
     type: string;
     sellable: boolean;
-    status: string;
+    status: OperationalSeatStatus;
+    reason: string | null;
+    events: SeatStatusEvent[];
 };
 
 type DepartureItem = {
@@ -67,6 +76,7 @@ type BusDetail = BusRecord & {
     model: string;
     compositionCode: string | null;
     layout: { type?: string; codes: string[] }[];
+    seatLayout: LayoutGrid | null;
     amenities: BusAmenityItem[];
     seats: SeatItem[];
     departures: DepartureItem[];
@@ -111,6 +121,7 @@ const seatTypeLabels: Record<string, string> = {
 const seatStatusLabels: Record<string, string> = {
     active: 'Actif',
     blocked: 'Bloqué',
+    maintenance: 'Maintenance',
     reserved: 'Réservé',
     occupied: 'Occupé',
 };
@@ -169,35 +180,27 @@ export default function FleetDetailPage({
     const [tab, setTab] = useState<Tab>('availability');
     const [editDialog, setEditDialog] = useState(false);
 
-    // Maquette gabarits (phase 1) : plan peint + statuts sièges locaux.
-    const seatTemplate = useMemo(
-        () => templateForSeatCount(bus.seats.length),
-        [bus.seats.length],
+    const seatStates = useMemo(
+        () =>
+            Object.fromEntries(
+                bus.seats.map((seat) => [seat.code, seat.status]),
+            ),
+        [bus.seats],
     );
-    const [seatStates, setSeatStates] = useState<
-        Record<string, OperationalSeatStatus>
-    >(() =>
-        Object.fromEntries(
-            bus.seats.map((seat) => [
-                seat.code,
-                seat.status === 'blocked'
-                    ? ('blocked' as OperationalSeatStatus)
-                    : ('active' as OperationalSeatStatus),
-            ]),
-        ),
+    const seatHistory = useMemo(
+        () =>
+            Object.fromEntries(
+                bus.seats.map((seat) => [
+                    seat.code,
+                    seat.events.map((event): SeatStatusChange => ({
+                        status: event.status,
+                        reason: event.reason ?? '',
+                        at: event.date ?? '',
+                    })),
+                ]),
+            ),
+        [bus.seats],
     );
-    const [seatHistory, setSeatHistory] = useState<
-        Record<string, SeatStatusChange[]>
-    >({
-        '3C': [
-            {
-                status: 'maintenance',
-                reason: 'Accoudoir cassé',
-                at: '2026-10-19T08:30:00Z',
-            },
-            { status: 'active', reason: '', at: '2026-10-21T14:12:00Z' },
-        ],
-    });
     const [seatPopover, setSeatPopover] = useState<{
         code: string;
         anchor: DOMRect;
@@ -219,21 +222,24 @@ export default function FleetDetailPage({
             return;
         }
 
-        const code = seatPopover.code;
-        setSeatStates((prev) => ({ ...prev, [code]: status }));
-        setSeatHistory((prev) => ({
-            ...prev,
-            [code]: [
-                {
-                    status,
-                    reason,
-                    at: new Date().toISOString(),
-                },
-                ...(prev[code] ?? []),
-            ],
-        }));
-        setSeatPopover(null);
-        toast.success(`Siège ${code} mis à jour (maquette).`);
+        const seat = bus.seats.find((item) => item.code === seatPopover.code);
+
+        if (!seat) {
+            return;
+        }
+
+        router.patch(
+            fleet.seats.status.url({ bus: bus.uuid, seat: seat.uuid }),
+            { status, reason },
+            {
+                preserveScroll: true,
+                onSuccess: () => setSeatPopover(null),
+                onError: () =>
+                    toast.error(
+                        `Impossible de mettre à jour le siège ${seat.code}.`,
+                    ),
+            },
+        );
     };
 
     const changeStatus = (newStatus: string) => {
@@ -420,11 +426,12 @@ export default function FleetDetailPage({
                                 </div>
                             </div>
 
-                            {/* Plan cabine — gabarit mocké, statuts cliquables */}
+                            {/* Plan cabine — gabarit du bus, statuts cliquables */}
                             <div className="rounded-[1rem] border border-border/50 bg-muted/20 p-5">
                                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                                     <div className="text-xs font-bold text-muted-foreground">
-                                        Disposition cabine — {seatTemplate.name}
+                                        Disposition cabine —{' '}
+                                        {bus.compositionName}
                                     </div>
                                     <div className="flex flex-wrap items-center gap-2 text-[0.625rem] font-medium text-muted-foreground">
                                         <span className="inline-flex items-center gap-1.5">
@@ -445,11 +452,18 @@ export default function FleetDetailPage({
                                         </span>
                                     </div>
                                 </div>
-                                <SeatMap
-                                    grid={seatTemplate.grid}
-                                    seatStatuses={seatStates}
-                                    onSeatClick={openSeatPopover}
-                                />
+                                {bus.seatLayout ? (
+                                    <SeatMap
+                                        grid={bus.seatLayout}
+                                        seatStatuses={seatStates}
+                                        onSeatClick={openSeatPopover}
+                                    />
+                                ) : (
+                                    <p className="py-8 text-center text-[0.75rem] text-muted-foreground">
+                                        Aucun gabarit de sièges n’est associé à
+                                        ce bus.
+                                    </p>
+                                )}
                                 <p className="mt-3 text-center text-[0.625rem] text-muted-foreground">
                                     Cliquez sur un siège pour changer son statut
                                     opérationnel.

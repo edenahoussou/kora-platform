@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Modules\BusNetwork\Data\SeatLayout;
 use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\BusComposition;
 use App\Modules\BusNetwork\Models\BusModel;
@@ -196,13 +197,16 @@ class KoraBusReferenceSeeder extends Seeder
             ['uuid' => (string) Str::uuid(), 'default_seat_count' => 55, 'status' => 'active'],
         );
 
+        $legacyLayout = $this->compositionLayout();
         $composition = BusComposition::query()->firstOrCreate(
             ['code' => '2+2-55'],
             [
                 'uuid' => (string) Str::uuid(),
                 'name' => 'Standard 2+2 — 55 places',
+                'description' => 'Gabarit standard 2+2 des autocars de ligne.',
                 'seat_count' => 55,
-                'layout' => $this->compositionLayout(),
+                'layout' => $legacyLayout,
+                'grid' => SeatLayout::fromLegacyLayout($legacyLayout)->toArray(),
                 'status' => 'active',
             ],
         );

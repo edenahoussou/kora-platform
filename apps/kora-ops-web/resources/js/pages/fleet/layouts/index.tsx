@@ -13,8 +13,7 @@ import {
     Plus,
     RotateCcw,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
-import { toast } from 'sonner';
+import { useEffect } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { OnboardingTour } from '@/components/onboarding/onboarding-tour';
 import type { OnboardingStep } from '@/components/onboarding/onboarding-tour';
@@ -32,7 +31,7 @@ import { useOnboarding } from '@/hooks/use-onboarding';
 import { cn } from '@/lib/utils';
 import layouts from '@/routes/layouts';
 import type { BreadcrumbItem } from '@/types';
-import { mockTemplates, templateStatusLabels } from './mock-data';
+import { templateStatusLabels } from './status-labels';
 
 const ONBOARDING_STEPS: OnboardingStep[] = [
     {
@@ -102,8 +101,27 @@ function KpiCard({
     );
 }
 
-export default function LayoutsIndexPage() {
-    const [templates, setTemplates] = useState<SeatTemplate[]>(mockTemplates);
+type PageProps = {
+    templates: SeatTemplate[];
+    stats: {
+        total: number;
+        active: number;
+        drafts: number;
+        busesEquipped: number;
+        sellableSeats: number;
+    };
+    permissions: {
+        canCreate: boolean;
+        canUpdate: boolean;
+        canDeactivate: boolean;
+    };
+};
+
+export default function LayoutsIndexPage({
+    templates,
+    stats,
+    permissions,
+}: PageProps) {
     const onboarding = useOnboarding('layouts');
     const { shouldAutoStart, start } = onboarding;
 
@@ -117,43 +135,16 @@ export default function LayoutsIndexPage() {
         return () => window.clearTimeout(timer);
     }, [shouldAutoStart, start]);
 
-    const stats = useMemo(() => {
-        const active = templates.filter((t) => t.status === 'active');
-        const drafts = templates.filter((t) => t.status === 'draft').length;
-
-        return {
-            total: templates.length,
-            active: active.length,
-            drafts,
-            busesEquipped: templates.reduce((acc, t) => acc + t.busesCount, 0),
-            sellableSeats: active.reduce(
-                (acc, t) => acc + seatStats(t.grid).sellable,
-                0,
-            ),
-        };
-    }, [templates]);
-
     const archive = (template: SeatTemplate) => {
-        setTemplates((prev) =>
-            prev.map((t) =>
-                t.uuid === template.uuid
-                    ? {
-                          ...t,
-                          status:
-                              t.status === 'archived' ? 'draft' : 'archived',
-                      }
-                    : t,
-            ),
-        );
-        toast.success(
-            template.status === 'archived'
-                ? `« ${template.name} » restauré (maquette).`
-                : `« ${template.name} » archivé (maquette).`,
+        router.patch(
+            layouts.status.url({ composition: template.uuid }),
+            { status: template.status === 'archived' ? 'draft' : 'archived' },
+            { preserveScroll: true },
         );
     };
 
     const duplicate = (template: SeatTemplate) => {
-        router.get(layouts.create.url({ query: { duplicate: template.uuid } }));
+        router.post(layouts.duplicate.url({ composition: template.uuid }));
     };
 
     return (
@@ -185,15 +176,17 @@ export default function LayoutsIndexPage() {
                         <CircleHelp className="size-3.5" />
                         Guide
                     </button>
-                    <button
-                        type="button"
-                        onClick={() => router.get(layouts.create.url())}
-                        className="btn btn-primary"
-                        data-onboarding="layouts-new"
-                    >
-                        <Plus className="size-3.5" />
-                        Nouveau gabarit
-                    </button>
+                    {permissions.canCreate && (
+                        <button
+                            type="button"
+                            onClick={() => router.get(layouts.create.url())}
+                            className="btn btn-primary"
+                            data-onboarding="layouts-new"
+                        >
+                            <Plus className="size-3.5" />
+                            Nouveau gabarit
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -294,32 +287,36 @@ export default function LayoutsIndexPage() {
                                                 <Edit3 className="size-4" />
                                                 Ouvrir l'éditeur
                                             </DropdownMenuItem>
-                                            <DropdownMenuItem
-                                                onClick={() =>
-                                                    duplicate(template)
-                                                }
-                                            >
-                                                <Copy className="size-4" />
-                                                Dupliquer
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem
-                                                onClick={() =>
-                                                    archive(template)
-                                                }
-                                            >
-                                                {template.status ===
-                                                'archived' ? (
-                                                    <>
-                                                        <RotateCcw className="size-4" />
-                                                        Restaurer
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <Archive className="size-4" />
-                                                        Archiver
-                                                    </>
-                                                )}
-                                            </DropdownMenuItem>
+                                            {permissions.canCreate && (
+                                                <DropdownMenuItem
+                                                    onClick={() =>
+                                                        duplicate(template)
+                                                    }
+                                                >
+                                                    <Copy className="size-4" />
+                                                    Dupliquer
+                                                </DropdownMenuItem>
+                                            )}
+                                            {permissions.canDeactivate && (
+                                                <DropdownMenuItem
+                                                    onClick={() =>
+                                                        archive(template)
+                                                    }
+                                                >
+                                                    {template.status ===
+                                                    'archived' ? (
+                                                        <>
+                                                            <RotateCcw className="size-4" />
+                                                            Restaurer
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Archive className="size-4" />
+                                                            Archiver
+                                                        </>
+                                                    )}
+                                                </DropdownMenuItem>
+                                            )}
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                 </div>
@@ -365,22 +362,24 @@ export default function LayoutsIndexPage() {
                 })}
 
                 {/* Carte de création */}
-                <button
-                    type="button"
-                    onClick={() => router.get(layouts.create.url())}
-                    className="flex min-h-[280px] cursor-pointer flex-col items-center justify-center gap-3 rounded-[var(--kora-radius)] border border-dashed border-border/70 bg-muted/10 p-8 text-center transition-colors hover:border-gold/60 hover:bg-muted/20"
-                >
-                    <span className="grid size-12 place-items-center rounded-[0.9rem] bg-gold/15 text-gold">
-                        <Plus className="size-5" />
-                    </span>
-                    <span className="text-sm font-bold text-foreground">
-                        Nouveau gabarit
-                    </span>
-                    <span className="max-w-[220px] text-[0.6875rem] leading-relaxed text-muted-foreground">
-                        Dessinez une nouvelle composition de cabine cellule par
-                        cellule.
-                    </span>
-                </button>
+                {permissions.canCreate && (
+                    <button
+                        type="button"
+                        onClick={() => router.get(layouts.create.url())}
+                        className="flex min-h-[280px] cursor-pointer flex-col items-center justify-center gap-3 rounded-[var(--kora-radius)] border border-dashed border-border/70 bg-muted/10 p-8 text-center transition-colors hover:border-gold/60 hover:bg-muted/20"
+                    >
+                        <span className="grid size-12 place-items-center rounded-[0.9rem] bg-gold/15 text-gold">
+                            <Plus className="size-5" />
+                        </span>
+                        <span className="text-sm font-bold text-foreground">
+                            Nouveau gabarit
+                        </span>
+                        <span className="max-w-[220px] text-[0.6875rem] leading-relaxed text-muted-foreground">
+                            Dessinez une nouvelle composition de cabine cellule
+                            par cellule.
+                        </span>
+                    </button>
+                )}
             </section>
 
             <OnboardingTour
