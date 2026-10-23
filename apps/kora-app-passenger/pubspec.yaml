@@ -2,7 +2,7 @@ name: kora_app_passenger
 description: "KORA EXPRESS — application mobile Passager (Clean Architecture + Bloc)."
 publish_to: 'none'
 
-version: 1.0.0+8
+version: 1.0.0+10
 
 environment:
   sdk: ^3.12.2
@@ -35,7 +35,7 @@ dependencies:
   connectivity_plus: ^6.1.0
 
   # --- Injection de dépendances (Clean Architecture) ---
-  get_it: ^7.7.0
+  get_it: 8.0.0
 
   # --- Navigation ---
   go_router: ^14.6.2
@@ -84,8 +84,6 @@ dependencies:
     path: ../../packages/flutter-design-system
   flutter_networking:
     path: ../../packages/flutter-networking
-  google_sign_in: ^7.2.0
-  flutter_facebook_auth: ^7.1.5
   url_launcher: ^6.3.2
 
   # Dessine les QR des billets. `qr_code` de l'API est une charge à
@@ -110,6 +108,7 @@ dependencies:
   # injecte.
   webview_flutter: ^4.14.1
   country_picker: ^2.0.28
+  kkiapay_flutter_sdk: 1.3.4
 
 dev_dependencies:
   flutter_test:

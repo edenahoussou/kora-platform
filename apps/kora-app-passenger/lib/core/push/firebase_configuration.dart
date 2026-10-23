@@ -50,8 +50,9 @@ class FirebaseConfiguration {
       apiKey.isNotEmpty &&
       projectId.isNotEmpty &&
       messagingSenderId.isNotEmpty &&
-      RegExp('^1:[0-9]+:${RegExp.escape(platform)}:[0-9a-fA-F]+\$')
-          .hasMatch(appId);
+      RegExp(
+        '^1:[0-9]+:${RegExp.escape(platform)}:[0-9a-fA-F]+\$',
+      ).hasMatch(appId);
 
   FirebaseOptions toOptions() => FirebaseOptions(
     apiKey: apiKey,

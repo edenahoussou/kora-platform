@@ -26,7 +26,30 @@ class OperatorBadge extends StatelessWidget {
     'mtn_momo',
     'moov_flooz',
     'celtiis_cash',
+    'wave',
+    'orange_money',
+    'tmoney',
   };
+
+  /// Le logo à employer pour [network], ou `null` s'il n'y en a pas.
+  ///
+  /// Le serveur suffixe les réseaux par pays (`mtn_momo_ci`,
+  /// `moov_flooz_tg`) pour éviter un champ `payer_country` séparé. La
+  /// marque, elle, est la même d'un pays à l'autre : on retire donc le
+  /// suffixe avant de chercher l'image, plutôt que de livrer trois fois
+  /// le même logo sous trois noms.
+  static String? logoFor(String network) {
+    if (logoNetworks.contains(network)) return network;
+
+    for (final suffix in const ['_bj', '_ci', '_tg']) {
+      if (!network.endsWith(suffix)) continue;
+
+      final base = network.substring(0, network.length - suffix.length);
+      if (logoNetworks.contains(base)) return base;
+    }
+
+    return null;
+  }
 
   /// Les initiales du réseau : « MTN », « MO », « CE »…
   String get _initials {
@@ -43,7 +66,8 @@ class OperatorBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final koraColors = context.koraColors;
 
-    if (logoNetworks.contains(network)) {
+    final logo = logoFor(network);
+    if (logo != null) {
       return Container(
         width: size,
         height: size,
@@ -59,7 +83,7 @@ class OperatorBadge extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(3),
           child: Image.asset(
-            'assets/images/operators/$network.png',
+            'assets/images/operators/$logo.png',
             fit: BoxFit.contain,
           ),
         ),

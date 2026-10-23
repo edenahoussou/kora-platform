@@ -82,6 +82,9 @@ class PaymentCatalog extends Equatable {
   /// Code du moyen « Mobile Money » dans le catalogue.
   static const String mobileMoneyCode = 'mobile_money';
 
+  /// Code de la carte bancaire, servie par KKiaPay depuis MEZ-146.
+  static const String cardCode = 'card';
+
   /// Code du Mini Wallet, renvoyé désactivé (`out_of_mvp`) au MVP.
   static const String walletCode = 'wallet';
 
@@ -172,6 +175,74 @@ class PaymentProvider extends Equatable {
   /// l'écran de validation ne raconte alors pas la même histoire qu'un
   /// simple push USSD.
   bool get mayRedirect => interaction == 'push_or_redirect';
+
+  /// Le paiement s'encaisse **dans l'app**, par le widget du provider.
+  ///
+  /// KKiaPay n'a pas d'API de poussée serveur : `initiate` ne contacte
+  /// personne et rend de quoi ouvrir son widget, qui recueille lui-même
+  /// le code du payeur. L'écran d'attente ne doit donc pas lui parler de
+  /// demande poussée sur son téléphone — il n'y en a pas.
+  bool get collectsInApp => interaction == 'sdk_widget';
+
+  /// Les suffixes de pays que le serveur accole aux réseaux.
+  ///
+  /// `mtn_momo_ci`, `moov_flooz_tg` : le pays est déduit du réseau plutôt
+  /// que porté par un champ à part, pour qu'ils ne puissent pas diverger
+  /// (voir ADR 0019).
+  static const Map<String, String> countrySuffixes = {
+    'BJ': '',
+    'CI': '_ci',
+    'TG': '_tg',
+  };
+
+  /// Les **marques** servies, sans le suffixe de pays, dans l'ordre du
+  /// serveur et sans doublon.
+  ///
+  /// Le voyageur choisit MTN, pas « MTN Côte d'Ivoire » : la liste des
+  /// opérateurs afficherait sinon trois fois Moov, une fois par pays
+  /// desservi. Le pays, lui, vient de l'indicatif qu'il compose.
+  List<String> get networkBrands {
+    final brands = <String>[];
+
+    for (final network in networks) {
+      final brand = _brandOf(network);
+      if (!brands.contains(brand)) brands.add(brand);
+    }
+
+    return brands;
+  }
+
+  /// Le réseau exact à envoyer pour cette marque dans ce pays, ou `null`
+  /// si ce provider ne la sert pas là-bas.
+  ///
+  /// C'est ce code-là que `POST payments/initiate` attend : une marque
+  /// seule ne lui suffit pas, et un suffixe qui ne correspond pas au
+  /// numéro composé ferait débiter un compte dans le mauvais pays.
+  String? networkFor(String brand, String country) {
+    final suffix = countrySuffixes[country];
+    if (suffix == null) return null;
+
+    final candidate = '$brand$suffix';
+    return networks.contains(candidate) ? candidate : null;
+  }
+
+  /// Les pays où cette marque est servie, pour dire au voyageur ce qui
+  /// l'attend avant qu'il compose son numéro.
+  List<String> countriesServing(String brand) => [
+    for (final entry in countrySuffixes.entries)
+      if (networks.contains('$brand${entry.value}')) entry.key,
+  ];
+
+  static String _brandOf(String network) {
+    for (final suffix in countrySuffixes.values) {
+      if (suffix.isEmpty) continue;
+      if (network.endsWith(suffix)) {
+        return network.substring(0, network.length - suffix.length);
+      }
+    }
+
+    return network;
+  }
 
   bool servesNetwork(String network) => networks.contains(network);
 

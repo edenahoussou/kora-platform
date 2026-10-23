@@ -654,7 +654,13 @@ class _BirthDateField extends StatelessWidget {
         onTap: () => _pick(context),
         borderRadius: BorderRadius.circular(AppRadius.input),
         child: InputDecorator(
-          decoration: InputDecoration(errorText: errorText),
+          decoration: InputDecoration(
+            errorText: errorText,
+            // Material coupe l'erreur à une ligne et la finit par
+            // « … » : la raison d'un refus ne tient pas toujours en
+            // trente caractères.
+            errorMaxLines: 3,
+          ),
           child: Text(
             date == null
                 ? context.l10n.passengersBirthDateChoose

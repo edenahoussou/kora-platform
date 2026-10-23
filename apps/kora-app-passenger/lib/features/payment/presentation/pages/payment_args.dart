@@ -10,6 +10,7 @@ import '../../../booking/domain/entities/price.dart';
 class PaymentArgs {
   const PaymentArgs({
     required this.total,
+    this.provider,
     this.phone,
     this.departure,
     this.seatLabel,
@@ -17,6 +18,15 @@ class PaymentArgs {
 
   /// Le montant dû pour l'ensemble des voyageurs.
   final Price total;
+
+  /// L'encaisseur choisi sur l'écran des moyens (`fedapay`, `kkiapay`).
+  ///
+  /// Deux passerelles servent le Mobile Money, et elles n'encaissent pas
+  /// de la même façon : FedaPay pousse la demande sur le téléphone,
+  /// KKiaPay ouvre sa feuille dans l'app. Le choix est fait sur la carte,
+  /// pas déduit du réseau — sans quoi l'écran suivant ne saurait pas
+  /// laquelle le voyageur a touchée.
+  final String? provider;
 
   /// Le numéro du compte, proposé par défaut au débit Mobile Money.
   final String? phone;

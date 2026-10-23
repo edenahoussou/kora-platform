@@ -131,23 +131,25 @@ class _PushListenerState extends State<PushListener> {
 
   /// Ouvre l'écran que désigne la notification.
   ///
-  /// **Le serveur n'envoie encore aucune destination** : son
-  /// `fcm_options.link` ne vaut que pour le web et n'atteint pas le
-  /// téléphone. On retombe donc sur la liste des voyages, qui est le
-  /// sujet de presque tous les messages — un billet émis, un départ qui
-  /// change, un paiement confirmé s'y retrouvent tous.
+  /// Trois lectures, de la plus explicite à la plus sûre :
   ///
-  /// Le jour où le back joindra un bloc `data`, [PushMessage.route] le
-  /// rendra et cette méthode suivra sans autre changement.
+  /// 1. **un chemin donné par le serveur** (`route`, ou `link` côté
+  ///    web) : il décide, parce qu'il sait des choses que l'app ignore ;
+  /// 2. **le sujet de la notification** (`resource_uuid`) : on ouvre le
+  ///    billet de cette réservation, exactement comme le fait la boîte
+  ///    de réception quand on y touche la même notification ;
+  /// 3. **la liste des voyages**, quand le bloc `data` ne dit rien —
+  ///    c'est le sujet de la quasi-totalité des messages, et mieux vaut
+  ///    un écran voisin qu'un appui sans effet.
+  ///
+  /// Le serveur peut donc n'envoyer que `type` et `resource_uuid` : rien
+  /// n'oblige à lui réclamer un chemin tout fait, qui dirait la même
+  /// chose dans un autre vocabulaire et qu'il faudrait refaire à chaque
+  /// écran déplacé.
   void _open(PushMessage message) {
     if (!mounted) return;
 
-    final router = AppRouter.router;
-    final route = message.route;
-
-    router.go(
-      route != null && route.startsWith('/') ? route : AppRouter.tripsPath,
-    );
+    AppRouter.router.go(pushDestination(message));
   }
 
   /// Un mot à l'écran, réservé aux réglages.
@@ -182,4 +184,19 @@ class _PushListenerState extends State<PushListener> {
       child: widget.child,
     );
   }
+}
+
+/// L'écran vers lequel mène [message], selon ce que le serveur en dit.
+///
+/// Hors de la classe pour être éprouvé sans monter l'application : c'est
+/// la seule règle de cette page qui décide de quelque chose.
+@visibleForTesting
+String pushDestination(PushMessage message) {
+  final route = message.route;
+  if (route != null && route.startsWith('/')) return route;
+
+  final uuid = message.resourceUuid;
+  if (uuid != null) return AppRouter.ticketByReservation(uuid);
+
+  return AppRouter.tripsPath;
 }

@@ -25,18 +25,20 @@ class PaymentRepositoryImpl with ApiFailureMapper implements PaymentRepository {
   @override
   Future<Either<Failure, PaymentAttempt>> initiate({
     required String reservationId,
+    required String method,
     required String provider,
-    required String network,
-    required String phone,
     required String idempotencyKey,
+    String? network,
+    String? phone,
   }) {
     return attempt(
       () => _remote.initiate(
         reservationId: reservationId,
+        method: method,
         provider: provider,
+        idempotencyKey: idempotencyKey,
         network: network,
         phone: phone,
-        idempotencyKey: idempotencyKey,
       ),
     );
   }
@@ -46,6 +48,8 @@ class PaymentRepositoryImpl with ApiFailureMapper implements PaymentRepository {
       attempt(() => _remote.status(paymentId));
 
   @override
-  Future<Either<Failure, PaymentAttempt>> verify(String paymentId) =>
-      attempt(() => _remote.verify(paymentId));
+  Future<Either<Failure, PaymentAttempt>> verify(
+    String paymentId, {
+    String? transactionId,
+  }) => attempt(() => _remote.verify(paymentId, transactionId: transactionId));
 }

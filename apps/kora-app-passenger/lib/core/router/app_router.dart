@@ -43,10 +43,11 @@ import '../../features/home/presentation/pages/date_picker_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/home/presentation/pages/passengers_picker_page.dart';
 import '../../features/notifications/presentation/pages/notifications_page.dart';
+import '../../features/payment/domain/entities/payment_catalog.dart';
 import '../../features/payment/presentation/bloc/payment_catalog_bloc.dart';
 import '../../features/payment/presentation/bloc/payment_flow_bloc.dart';
 import '../../features/payment/presentation/pages/booking_success_page.dart';
-import '../../features/payment/presentation/pages/card_payment_page.dart';
+import '../../features/payment/presentation/pages/gateway_checkout_page.dart';
 import '../../features/payment/presentation/pages/mobile_money_page.dart';
 import '../../features/payment/presentation/pages/payment_args.dart';
 import '../../features/payment/presentation/pages/payment_failed_page.dart';
@@ -172,6 +173,14 @@ class AppRouter {
   static const String paymentMobileMoneyPath = '/payment/mobile-money';
   static const String paymentWalletPath = '/payment/wallet';
   static const String paymentCardPath = '/payment/card';
+
+  /// Le Mobile Money encaissé dans la feuille de la passerelle.
+  ///
+  /// Distinct de [paymentMobileMoneyPath] parce que les deux passerelles
+  /// ne demandent pas la même chose : FedaPay pousse la demande sur le
+  /// téléphone et réclame donc l'opérateur et le numéro d'avance, là où
+  /// KKiaPay les recueille elle-même dans sa fenêtre.
+  static const String paymentGatewayMomoPath = '/payment/mobile-money/sheet';
 
   /// L'attente entre la demande et le verdict. Seul écran intermédiaire du
   /// paiement : on y arrive dès que la demande part, on en sort quand le
@@ -712,7 +721,12 @@ class AppRouter {
               // relecture d'état s'arrêterait au moment précis où le
               // voyageur compose son code.
               BlocProvider<PaymentFlowBloc>(
-                create: (_) => getIt<PaymentFlowBloc>(),
+                // La reprise se demande à l'entrée : si l'app a été
+                // fermée pendant qu'un paiement attendait son verdict, le
+                // serveur a pu le confirmer entre-temps — son webhook
+                // n'attend pas que l'app revienne.
+                create: (_) =>
+                    getIt<PaymentFlowBloc>()..add(const PaymentFlowResumed()),
               ),
             ],
             child: SeatHoldWatcher(child: child),
@@ -804,8 +818,17 @@ class AppRouter {
             ),
             GoRoute(
               path: paymentCardPath,
-              builder: (context, state) =>
-                  CardPaymentPage(args: state.extra as PaymentArgs?),
+              builder: (context, state) => GatewayCheckoutPage(
+                method: PaymentCatalog.cardCode,
+                args: state.extra as PaymentArgs?,
+              ),
+            ),
+            GoRoute(
+              path: paymentGatewayMomoPath,
+              builder: (context, state) => GatewayCheckoutPage(
+                method: PaymentCatalog.mobileMoneyCode,
+                args: state.extra as PaymentArgs?,
+              ),
             ),
             GoRoute(
               path: paymentPendingPath,

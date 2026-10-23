@@ -128,9 +128,19 @@ class _PaymentPendingPageState extends State<PaymentPendingPage> {
                   // Le texte dit d'abord que le siège est gardé ; il ne
                   // change qu'une fois le délai dépassé, pour expliquer
                   // les boutons qui viennent d'apparaître.
-                  message: _isLate
-                      ? l10n.paymentPendingSlow
-                      : l10n.paymentPendingText,
+                  //
+                  // Deux récits, selon qui a encaissé. Un paiement poussé
+                  // par l'opérateur attend un code dans **sa** fenêtre, et
+                  // le voyageur doit le savoir. Un paiement recueilli par
+                  // le widget est déjà fait : lui parler d'une fenêtre
+                  // d'opérateur l'enverrait chercher quelque chose qui
+                  // n'existe pas.
+                  message: switch ((flow.attempt?.widget != null, _isLate)) {
+                    (true, false) => l10n.paymentPendingTextWidget,
+                    (true, true) => l10n.paymentPendingSlowWidget,
+                    (false, false) => l10n.paymentPendingText,
+                    (false, true) => l10n.paymentPendingSlow,
+                  },
                   showLoader: true,
                   // Rien à faire tant que l'attente est normale.
                   //

@@ -34,6 +34,7 @@ class KoraInput extends StatefulWidget {
     this.controller,
     this.onChanged,
     this.errorText,
+    this.invalid = false,
     this.prefixIcon,
     this.obscureText = false,
     this.enabled = true,
@@ -46,6 +47,15 @@ class KoraInput extends StatefulWidget {
   final TextEditingController? controller;
   final ValueChanged<String>? onChanged;
   final String? errorText;
+
+  /// Marque le champ en faute **sans y écrire la raison**.
+  ///
+  /// Un champ étroit — un numéro posé à côté de son indicatif — n'a pas
+  /// la largeur d'une phrase : le message y tombe sur trois lignes et se
+  /// fait rogner par ce qui suit. L'écran l'affiche alors lui-même, sur
+  /// toute la largeur, et ne demande ici que le liseré rouge.
+  final bool invalid;
+
   final IconData? prefixIcon;
 
   /// Affiche un bouton "œil" pour révéler/masquer la saisie — équivalent
@@ -69,7 +79,9 @@ class _KoraInputState extends State<KoraInput> {
   @override
   Widget build(BuildContext context) {
     final koraColors = context.koraColors;
-    final hasError = widget.errorText != null && widget.errorText!.isNotEmpty;
+    final hasError =
+        widget.invalid ||
+        (widget.errorText != null && widget.errorText!.isNotEmpty);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -123,6 +135,11 @@ class _KoraInputState extends State<KoraInput> {
                   )
                 : null,
             errorText: hasError ? widget.errorText : null,
+            // Par défaut, Material coupe le message d'erreur à une ligne
+            // et le termine par « … » : « Un numéro Côte d'Ivoire
+            // compte 10 chif… » n'apprend rien. Trois lignes suffisent
+            // aux messages les plus longs du dépôt.
+            errorMaxLines: 3,
             enabledBorder: hasError
                 ? OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppRadius.input),

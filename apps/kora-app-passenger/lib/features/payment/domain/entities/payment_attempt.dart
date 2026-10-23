@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+import 'kkiapay_widget.dart';
+
 /// Où en est un paiement, du côté du serveur.
 ///
 /// Les valeurs sont celles de `PaymentResource.status`. L'app ne conclut
@@ -48,6 +50,7 @@ class PaymentAttempt extends Equatable {
     this.expiresAt,
     this.failureMessage,
     this.checkoutUrl,
+    this.widget,
     this.reservationHeld = true,
   });
 
@@ -77,6 +80,21 @@ class PaymentAttempt extends Equatable {
   /// Lien de paiement, si le serveur en produit un un jour. `null`
   /// aujourd'hui — voir la note de classe.
   final String? checkoutUrl;
+
+  /// La configuration du widget KKiaPay, quand c'est lui qui encaisse.
+  ///
+  /// `initiate` ne contacte alors personne : il rend de quoi ouvrir le
+  /// widget, l'app recueille un identifiant de transaction et le soumet
+  /// à `verify`. `null` pour un provider qui encaisse côté serveur.
+  final KkiapayWidget? widget;
+
+  /// Le paiement attend que l'app ouvre un widget.
+  ///
+  /// La configuration doit être utilisable : un widget annoncé mais sans
+  /// clé ni montant ne mène nulle part, et l'écran doit alors traiter le
+  /// paiement comme un échec d'initiation plutôt que d'ouvrir une page
+  /// qui refusera le premier geste.
+  bool get needsWidget => widget?.isUsable ?? false;
 
   /// La réservation tient-elle encore ses sièges ?
   ///
@@ -119,5 +137,6 @@ class PaymentAttempt extends Equatable {
     expiresAt,
     failureMessage,
     checkoutUrl,
+    widget,
   ];
 }

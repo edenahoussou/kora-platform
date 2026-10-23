@@ -58,6 +58,7 @@ import '../../features/notifications/data/datasources/notification_remote_data_s
 import '../../features/notifications/data/repositories/notification_repository_impl.dart';
 import '../../features/notifications/domain/repositories/notification_repository.dart';
 import '../../features/payment/data/datasources/payment_remote_data_source.dart';
+import '../../features/payment/data/datasources/pending_payment_store.dart';
 import '../../features/payment/data/repositories/payment_repository_impl.dart';
 import '../../features/payment/domain/repositories/payment_repository.dart';
 import '../../features/payment/presentation/bloc/payment_catalog_bloc.dart';
@@ -82,7 +83,6 @@ import '../push/push_gateway.dart';
 import '../push/push_messaging.dart';
 import '../push/push_remote_data_source.dart';
 import '../services/app_permissions.dart';
-import '../services/oauth_sign_in.dart';
 import '../update/app_update.dart';
 import '../update/update_gateway.dart';
 
@@ -138,10 +138,6 @@ Future<void> _registerExternalDependencies() async {
   // Autorisations système (position, notifications), demandées par
   // l'écran de fin d'inscription.
   getIt.registerLazySingleton<AppPermissions>(() => const AppPermissionsImpl());
-
-  // SDK Google et Facebook, derrière notre propre interface : les écrans
-  // ne dépendent pas des paquets, et les tests s'en passent.
-  getIt.registerLazySingleton<OAuthSignIn>(() => OAuthSignInImpl());
 }
 
 /// Briques partagées par toutes les features (réseau, connectivité...).
@@ -396,7 +392,15 @@ void _registerPaymentFeature() {
 
   getIt.registerFactory<PaymentCatalogBloc>(() => PaymentCatalogBloc(getIt()));
 
-  getIt.registerFactory<PaymentFlowBloc>(() => PaymentFlowBloc(getIt()));
+  // La trace du paiement en cours survit à la fermeture de l'app : le
+  // Bloc du paiement, lui, naît et meurt avec le tunnel.
+  getIt.registerLazySingleton<PendingPaymentStore>(
+    () => PendingPaymentStore(getIt()),
+  );
+
+  getIt.registerFactory<PaymentFlowBloc>(
+    () => PaymentFlowBloc(getIt(), getIt<PendingPaymentStore>()),
+  );
 }
 
 /// Feature `language` : même chaîne que le thème — un data source

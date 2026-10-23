@@ -14,7 +14,7 @@ import 'package:kora_app_passenger/features/payment/domain/entities/payment_atte
 import 'package:kora_app_passenger/features/payment/domain/entities/payment_catalog.dart';
 import 'package:kora_app_passenger/features/payment/presentation/bloc/payment_catalog_bloc.dart';
 import 'package:kora_app_passenger/features/payment/presentation/bloc/payment_flow_bloc.dart';
-import 'package:kora_app_passenger/features/payment/presentation/pages/card_payment_page.dart';
+import 'package:kora_app_passenger/features/payment/presentation/pages/gateway_checkout_page.dart';
 import 'package:kora_app_passenger/features/payment/presentation/pages/mobile_money_page.dart';
 import 'package:kora_app_passenger/features/payment/presentation/pages/payment_args.dart';
 import 'package:kora_app_passenger/features/payment/presentation/pages/payment_method_page.dart';
@@ -39,11 +39,19 @@ void main() {
     addTearDown(holdBloc.close);
   });
 
+  /// Monte [page] avec les Blocs du tunnel.
+  ///
+  /// [settle] tombe à `false` quand un blocage est posé : [SeatHoldBloc]
+  /// fait alors battre un `Timer.periodic` pour le décompte, chaque
+  /// battement programme une image, et `pumpAndSettle` attendrait un
+  /// repos qui ne vient jamais — jusqu'à expirer au bout de dix minutes.
   Future<void> pump(
     WidgetTester tester,
     Widget page, {
     PaymentCatalogBloc? catalog,
     PaymentFlowBloc? flow,
+    SeatHoldBloc? hold,
+    bool settle = true,
   }) async {
     tester.view.physicalSize = const Size(390 * 3, 1400 * 3);
     tester.view.devicePixelRatio = 3;
@@ -60,10 +68,24 @@ void main() {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        home: withSeatHold(page, bloc: holdBloc, catalog: catalog, flow: flow),
+        home: withSeatHold(
+          page,
+          bloc: hold ?? holdBloc,
+          catalog: catalog,
+          flow: flow,
+        ),
       ),
     );
-    await tester.pumpAndSettle();
+
+    if (settle) {
+      await tester.pumpAndSettle();
+      return;
+    }
+
+    // Deux images suffisent : les Blocs sont déjà dans l'état voulu, il
+    // ne reste qu'à les laisser peindre.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
   }
 
   group('choix du moyen', () {
@@ -75,6 +97,10 @@ void main() {
       );
 
       expect(find.text('Comment souhaitez-vous payer ?'), findsOneWidget);
+      // La carte porte le nom de la passerelle, et le moyen dessous :
+      // deux passerelles côte à côte qui s'appelleraient toutes deux
+      // « Mobile Money » ne se distingueraient que par leur logo.
+      expect(find.text('FedaPay'), findsOneWidget);
       expect(find.text('Mobile Money'), findsOneWidget);
       expect(find.text('KORA Wallet'), findsOneWidget);
       expect(find.text(money(12500)), findsOneWidget);
@@ -83,6 +109,21 @@ void main() {
       // ce moyen : le proposer mènerait à un paiement refusé après que le
       // voyageur a saisi son numéro de carte.
       expect(find.text('Carte bancaire'), findsNothing);
+    });
+
+    testWidgets('donne une carte par passerelle Mobile Money', (tester) async {
+      // Les deux n'encaissent pas de la même façon : les confondre sous
+      // une seule carte promettrait au voyageur une expérience qu'il
+      // n'aura pas.
+      await pump(
+        tester,
+        const PaymentMethodPage(args: args),
+        catalog: await loadedCatalog(catalog: kStubGatewayCatalog),
+      );
+
+      expect(find.text('FedaPay'), findsOneWidget);
+      expect(find.text('KKiaPay'), findsOneWidget);
+      expect(find.text('Mobile Money'), findsNWidgets(2));
     });
 
     testWidgets('grise le Wallet plutôt que de le faire disparaître', (
@@ -205,17 +246,35 @@ void main() {
       expect(find.text('Payer ${money(12500)}'), findsOneWidget);
     });
 
-    testWidgets('refuse de payer sans opérateur', (tester) async {
+    testWidgets('« Payer » reste inerte tant que la saisie manque', (
+      tester,
+    ) async {
+      // L'écran opposait auparavant deux reproches à qui appuyait sans
+      // avoir choisi : le bouton partait vif et ne faisait rien. Il part
+      // maintenant éteint, et s'allume quand la saisie tient.
       await pump(
         tester,
         const MobileMoneyPage(args: args),
         catalog: await loadedCatalog(),
       );
 
-      await tester.tap(find.text('Payer ${money(12500)}'));
+      KoraButton payButton() => tester.widget<KoraButton>(
+        find.widgetWithText(KoraButton, 'Payer ${money(12500)}'),
+      );
+
+      // Le numéro vient du compte ; seul l'opérateur manque.
+      expect(payButton().onPressed, isNull);
+
+      await tester.tap(find.text('MTN MoMo'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Choisissez un opérateur'), findsOneWidget);
+      expect(payButton().onPressed, isNotNull);
+
+      // Un numéro vidé l'éteint de nouveau.
+      await tester.enterText(find.byType(KoraInput), '');
+      await tester.pumpAndSettle();
+
+      expect(payButton().onPressed, isNull);
     });
 
     testWidgets('ne demande jamais le code secret', (tester) async {
@@ -282,13 +341,23 @@ void main() {
         catalog: await loadedCatalog(),
       );
 
-      expect(find.byIcon(Icons.check_circle_rounded), findsNothing);
+      // Les vignettes vont par deux sur une ligne : la place manque
+      // pour une pastille à côté du logo et du nom. La sélection se lit
+      // donc au liseré doré — et se déclare aux lecteurs d'écran, ce
+      // que ce test vérifie.
+      List<Semantics> retenus() => tester
+          .widgetList<Semantics>(find.byType(Semantics))
+          .where((tile) => tile.properties.selected ?? false)
+          .toList();
+
+      expect(retenus(), isEmpty);
 
       await tester.tap(find.text('Moov Flooz'));
       await tester.pumpAndSettle();
 
-      // Un seul retenu : la pastille pleine ne se pose que sur lui.
-      expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
+      // Un seul retenu, et c'est celui qu'on a touché.
+      expect(retenus(), hasLength(1));
+      expect(retenus().single.properties.label, 'Moov Flooz');
     });
 
     testWidgets('sans réseau annoncé, le sélecteur le dit et reste inerte', (
@@ -310,18 +379,34 @@ void main() {
   });
 
   group('un paiement déjà lancé', () {
+    /// Un [SeatHoldBloc] qui retient déjà un siège.
+    ///
+    /// Posé ici et non dans le corps du test : `testWidgets` fait
+    /// tourner une horloge feinte, et le blocage — qui passe par un
+    /// devis puis deux appels — n'y aboutirait jamais sans pompage.
+    late SeatHoldBloc held;
+
+    setUp(() async {
+      held = SeatHoldBloc(StubReservationRepository());
+      addTearDown(held.close);
+      await holdOneSeat(held);
+    });
+
     /// Un [PaymentFlowBloc] dont la demande est partie et déjà tranchée.
     ///
     /// C'est l'état dans lequel on retrouve l'écran quand le voyageur
     /// revient dessus par le geste « retour » depuis l'échec : le bloc
     /// garde la tentative pour ne pas rouvrir un second paiement.
-    Future<PaymentFlowBloc> flowWith(PaymentAttempt attempt) async {
+    Future<PaymentFlowBloc> flowWith(
+      PaymentAttempt attempt, {
+      String reservationId = 'res-1',
+    }) async {
       final bloc = PaymentFlowBloc(StubPaymentRepository(attempt: attempt));
       addTearDown(bloc.close);
 
       bloc.add(
-        const PaymentFlowStarted(
-          reservationId: 'res-1',
+        PaymentFlowStarted(
+          reservationId: reservationId,
           provider: 'fedapay',
           network: 'mtn_momo',
           phone: '+2290166000001',
@@ -354,6 +439,152 @@ void main() {
 
       expect(find.text('Payer ${money(12500)}'), findsOneWidget);
       expect(find.text('Changer de moyen'), findsNothing);
+    });
+
+    testWidgets('celui d’une autre réservation ne verrouille rien', (
+      tester,
+    ) async {
+      // [PaymentFlowBloc] vit au niveau du parcours et redemande au
+      // serveur, à l'entrée, l'état du paiement laissé en attente au
+      // lancement précédent. Ce paiement peut porter sur **une autre**
+      // réservation : son statut pilotait quand même cet écran, et le
+      // bouton « Payer » devenait « Suivre le paiement en cours » — la
+      // réservation en cours ne se payait alors plus du tout.
+      final flow = await flowWith(
+        const PaymentAttempt(
+          id: 'pay-ancien',
+          status: PaymentAttemptStatus.pending,
+          reference: 'KE-PAY-ANCIEN',
+        ),
+        reservationId: 'une-autre-reservation',
+      );
+
+      await pump(
+        tester,
+        const MobileMoneyPage(args: args),
+        catalog: await loadedCatalog(),
+        flow: flow,
+        hold: held,
+        settle: false,
+      );
+
+      expect(find.text('Payer ${money(12500)}'), findsOneWidget);
+      expect(find.text('Suivre le paiement en cours'), findsNothing);
+
+      // Deux battements à couper avant la fin du test, que le cadre
+      // déclarerait sinon comme des minuteurs restés en suspens : le
+      // décompte du blocage, à la seconde, et la relecture du paiement
+      // en attente, aux dix secondes. `runAsync` sort de l'horloge
+      // feinte, sans quoi l'attente des fermetures ne se résoudrait
+      // jamais.
+      await tester.runAsync(flow.close);
+      await tester.runAsync(held.close);
+    });
+
+    testWidgets('celui de la réservation en cours, lui, se suit', (
+      tester,
+    ) async {
+      // L'autre moitié de la règle : le paiement qui porte bien sur le
+      // blocage courant continue de prendre la main sur l'écran, sans
+      // quoi le voyageur relancerait un second débit.
+      final flow = await flowWith(
+        const PaymentAttempt(
+          id: 'pay-1',
+          status: PaymentAttemptStatus.pending,
+          reference: 'KE-PAY-1',
+        ),
+        reservationId: kHeldReservationId,
+      );
+
+      await pump(
+        tester,
+        const MobileMoneyPage(args: args),
+        catalog: await loadedCatalog(),
+        flow: flow,
+        hold: held,
+        settle: false,
+      );
+
+      expect(find.text('Suivre le paiement en cours'), findsOneWidget);
+      expect(find.text('Payer ${money(12500)}'), findsNothing);
+
+      await tester.runAsync(flow.close);
+      await tester.runAsync(held.close);
+    });
+  });
+
+  group('l’indicatif suit l’opérateur', () {
+    /// L'indicatif affiché dans le champ du numéro.
+    PhoneCountry shown(WidgetTester tester) => tester
+        .widget<DropdownButtonFormField<PhoneCountry>>(
+          find.byType(DropdownButtonFormField<PhoneCountry>),
+        )
+        .initialValue!;
+
+    Future<void> open(WidgetTester tester) async => pump(
+      tester,
+      const MobileMoneyPage(
+        args: PaymentArgs(
+          total: Price(12500),
+          provider: 'fedapay',
+          phone: '+229 01 97 42 18 60',
+        ),
+      ),
+      catalog: await loadedCatalog(catalog: kStubGatewayCatalog),
+    );
+
+    testWidgets('une marque ivoirienne amène l’indicatif ivoirien', (
+      tester,
+    ) async {
+      // Wave et Orange Money ne sont servis qu'en Côte d'Ivoire : les
+      // choisir sous l'indicatif béninois ne menait nulle part, et
+      // l'écran renvoyait le voyageur changer d'indicatif lui-même.
+      await open(tester);
+      expect(shown(tester).code, '+229');
+
+      await tester.tap(find.text('Wave'));
+      await tester.pumpAndSettle();
+
+      expect(shown(tester).code, '+225');
+
+      // Le `01` béninois ne survit pas au changement de pays.
+      expect(find.text('01 97 42 18 60'), findsNothing);
+    });
+
+    testWidgets('T-Money amène l’indicatif togolais', (tester) async {
+      await open(tester);
+
+      await tester.tap(find.text('T-Money'));
+      await tester.pumpAndSettle();
+
+      expect(shown(tester).code, '+228');
+    });
+
+    testWidgets('MTN MoMo laisse l’indicatif béninois en place', (
+      tester,
+    ) async {
+      // MTN est annoncé au Bénin : rien à corriger, et corriger quand
+      // même déplacerait le compte du voyageur dans un autre pays.
+      await open(tester);
+
+      await tester.tap(find.text('MTN MoMo'));
+      await tester.pumpAndSettle();
+
+      expect(shown(tester).code, '+229');
+      expect(find.text('01 97 42 18 60'), findsOneWidget);
+    });
+
+    testWidgets('un indicatif déjà servi n’est pas écrasé', (tester) async {
+      // Moov sert les trois pays : une fois le voyageur passé en Côte
+      // d'Ivoire, le choisir ne doit pas le ramener au Bénin.
+      await open(tester);
+
+      await tester.tap(find.text('Wave'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Moov Flooz'));
+      await tester.pumpAndSettle();
+
+      expect(shown(tester).code, '+225');
     });
   });
 
@@ -390,8 +621,10 @@ void main() {
         catalog: await loadedCatalog(),
       );
 
+      // Le reproche n'attend plus l'appui : « Payer » étant inerte tant
+      // que le numéro ne tient pas, l'attendre laisserait le voyageur
+      // devant un bouton éteint sans lui dire pourquoi.
       await tester.enterText(find.byType(KoraInput), '97 42 18 60');
-      await tester.tap(find.text('Payer ${money(12500)}'));
       await tester.pumpAndSettle();
 
       expect(find.text('Un numéro Bénin commence par 01.'), findsOneWidget);
@@ -430,35 +663,73 @@ void main() {
   });
 
   group('carte bancaire', () {
-    testWidgets('n’affiche aucun numéro pré-rempli', (tester) async {
-      // La maquette pré-remplit `4242 4242 4242 4242` ; un numéro affiché
-      // d'avance apprend à ne pas vérifier ce qu'on paie.
-      await pump(tester, const CardPaymentPage(args: args));
+    testWidgets('ne demande aucun numéro de carte', (tester) async {
+      // L'écran réclamait autrefois le numéro, la date et le CVV — sans
+      // jamais les envoyer. Depuis MEZ-146, c'est le widget KKiaPay qui
+      // les recueille, chez le prestataire : faire transiter un PAN par
+      // nos serveurs y ferait entrer les obligations PCI-DSS.
+      await pump(
+        tester,
+        const GatewayCheckoutPage(method: PaymentCatalog.cardCode, args: args),
+        catalog: await loadedCatalog(),
+      );
 
-      expect(find.text('Numéro de carte'), findsOneWidget);
-      expect(find.textContaining('4242'), findsNothing);
+      expect(find.text('Numéro de carte'), findsNothing);
+      expect(find.byType(TextField), findsNothing);
     });
 
-    testWidgets('rejette un numéro qui ne passe pas la clé de Luhn', (
-      tester,
-    ) async {
-      await pump(tester, const CardPaymentPage(args: args));
+    testWidgets('dit où le numéro sera saisi', (tester) async {
+      // Un écran qui retire un formulaire sans rien dire laisse croire à
+      // une panne : il explique donc ce qui va s'ouvrir.
+      await pump(
+        tester,
+        const GatewayCheckoutPage(method: PaymentCatalog.cardCode, args: args),
+        catalog: await loadedCatalog(),
+      );
 
-      await tester.enterText(find.byType(TextField).at(1), '4242424242424241');
-      await tester.tap(find.text('Payer ${money(12500)}'));
-      await tester.pumpAndSettle();
+      expect(find.textContaining('chez notre prestataire'), findsOneWidget);
+      expect(find.text('Paiement par carte'), findsOneWidget);
+      expect(find.text(money(12500)), findsOneWidget);
+    });
+  });
 
-      expect(find.text('Numéro de carte invalide'), findsOneWidget);
+  group('Mobile Money par la feuille de la passerelle', () {
+    testWidgets('ne demande pas l’opérateur', (tester) async {
+      // KKiaPay encaisse dans sa propre fenêtre et y demande
+      // l'opérateur : la liste que montre l'écran FedaPay ferait choisir
+      // deux fois, et le second choix écraserait le premier.
+      await pump(
+        tester,
+        const GatewayCheckoutPage(
+          method: PaymentCatalog.mobileMoneyCode,
+          args: PaymentArgs(total: Price(12500), provider: 'kkiapay'),
+        ),
+        catalog: await loadedCatalog(catalog: kStubGatewayCatalog),
+      );
+
+      expect(find.text('Choisissez votre opérateur'), findsNothing);
+      expect(find.text('MTN MoMo'), findsNothing);
+      expect(find.byType(TextField), findsNothing);
     });
 
-    testWidgets('rejette une date d’expiration passée', (tester) async {
-      await pump(tester, const CardPaymentPage(args: args));
+    testWidgets('dit où l’opérateur se choisira', (tester) async {
+      // Un écran qui ne demande rien laisse croire à une panne : il
+      // annonce donc la fenêtre qui va s'ouvrir, et sous quel nom.
+      await pump(
+        tester,
+        const GatewayCheckoutPage(
+          method: PaymentCatalog.mobileMoneyCode,
+          args: PaymentArgs(total: Price(12500), provider: 'kkiapay'),
+        ),
+        catalog: await loadedCatalog(catalog: kStubGatewayCatalog),
+      );
 
-      await tester.enterText(find.byType(TextField).at(2), '01 / 20');
-      await tester.tap(find.text('Payer ${money(12500)}'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Date invalide'), findsOneWidget);
+      expect(find.text('Mobile Money'), findsOneWidget);
+      expect(
+        find.textContaining('se choisissent dans la fenêtre KKiaPay'),
+        findsOneWidget,
+      );
+      expect(find.text('Payer ${money(12500)}'), findsOneWidget);
     });
   });
 }

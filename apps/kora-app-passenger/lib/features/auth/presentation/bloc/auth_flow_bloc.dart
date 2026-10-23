@@ -29,7 +29,6 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
     on<AuthFlowCodeSubmitted>(_onCodeSubmitted);
     on<AuthFlowCodeResent>(_onCodeResent);
     on<AuthFlowPinSubmitted>(_onPinSubmitted);
-    on<AuthFlowProviderSubmitted>(_onProviderSubmitted);
     on<AuthFlowReset>((_, emit) => emit(const AuthFlowState()));
   }
 
@@ -301,29 +300,6 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
           // Le seul chemin qui crée réellement un compte : c'est lui, et
           // lui seul, qui mène ensuite aux autorisations.
           justRegistered: true,
-        ),
-      ),
-    );
-  }
-
-  Future<void> _onProviderSubmitted(
-    AuthFlowProviderSubmitted event,
-    Emitter<AuthFlowState> emit,
-  ) async {
-    emit(state.copyWith(isSubmitting: true, errorMessage: ''));
-
-    final result = await _repository.loginWithProvider(
-      provider: event.provider,
-      providerToken: event.providerToken,
-    );
-
-    emit(
-      result.fold(
-        (failure) => _failed(failure),
-        (session) => state.copyWith(
-          isSubmitting: false,
-          step: AuthFlowStep.done,
-          session: session,
         ),
       ),
     );

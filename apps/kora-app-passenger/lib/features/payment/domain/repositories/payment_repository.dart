@@ -16,21 +16,31 @@ abstract class PaymentRepository {
   /// état d'erreur.
   Future<Either<Failure, PaymentCatalog>> catalog();
 
-  /// Lance un paiement Mobile Money pour une réservation retenue.
+  /// Lance un paiement pour une réservation retenue.
   ///
-  /// Le serveur pousse alors la demande de code sur le téléphone du
-  /// payeur ; il n'y a aucune page à ouvrir côté app.
+  /// [method] vaut `mobile_money` ou `card`. [network] et [phone] ne
+  /// concernent que les encaisseurs qui poussent eux-mêmes la demande
+  /// sur le téléphone du payeur : KKiaPay les recueille dans son widget,
+  /// et une carte n'en a pas.
   Future<Either<Failure, PaymentAttempt>> initiate({
     required String reservationId,
+    required String method,
     required String provider,
-    required String network,
-    required String phone,
     required String idempotencyKey,
+    String? network,
+    String? phone,
   });
 
   /// Relit l'état d'un paiement.
   Future<Either<Failure, PaymentAttempt>> status(String paymentId);
 
   /// Demande au serveur d'interroger le provider maintenant.
-  Future<Either<Failure, PaymentAttempt>> verify(String paymentId);
+  ///
+  /// [transactionId] est celui que le widget KKiaPay a rendu, quand
+  /// c'est lui qui a encaissé. Le serveur reste seul juge : il
+  /// l'interroge chez KKiaPay avant de conclure.
+  Future<Either<Failure, PaymentAttempt>> verify(
+    String paymentId, {
+    String? transactionId,
+  });
 }

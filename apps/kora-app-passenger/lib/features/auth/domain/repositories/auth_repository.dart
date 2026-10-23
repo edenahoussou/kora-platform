@@ -131,13 +131,6 @@ abstract class AuthRepository {
   /// Déverrouille un compte bloqué après un OTP `account_unlock`.
   Future<Either<Failure, void>> unlockAccount(OtpVerification verification);
 
-  /// Échange le jeton d'un fournisseur (Google, Facebook, TikTok) contre
-  /// une session KORA.
-  Future<Either<Failure, AuthSession>> loginWithProvider({
-    required String provider,
-    required String providerToken,
-  });
-
   /// Appareils de confiance du compte.
   Future<Either<Failure, List<AuthDevice>>> devices();
 

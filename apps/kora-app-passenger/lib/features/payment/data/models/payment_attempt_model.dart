@@ -1,4 +1,5 @@
 import '../../../../core/network/api_json.dart';
+import '../../domain/entities/kkiapay_widget.dart';
 import '../../domain/entities/payment_attempt.dart';
 
 /// Couche DATA : la réponse de `POST payments/initiate` et de
@@ -26,6 +27,7 @@ class PaymentAttemptModel {
       checkoutUrl:
           ApiJson.stringOrNull(_json['payment_url']) ??
           ApiJson.stringOrNull(_json['redirect_url']),
+      widget: _widget(),
       reservationHeld: _reservationHeld(),
     );
   }
@@ -39,6 +41,34 @@ class PaymentAttemptModel {
   /// Sans statut dans la réponse, on suppose la réservation vivante :
   /// mieux vaut proposer un essai de trop que d'annoncer à tort des
   /// sièges perdus.
+  /// La configuration du widget KKiaPay, quand le serveur l'envoie.
+  ///
+  /// Les noms viennent du SDK, pas de nos conventions : `key`,
+  /// `partnerId`, `paymentmethod`. On les lit tels quels plutôt que de
+  /// les renommer, pour que la correspondance avec la documentation
+  /// KKiaPay reste lisible.
+  KkiapayWidget? _widget() {
+    final raw = _json['widget'];
+    if (raw is! Map) return null;
+
+    final widget = raw.cast<String, dynamic>();
+    final key = ApiJson.string(widget['key']);
+    if (key.isEmpty) return null;
+
+    return KkiapayWidget(
+      publicKey: key,
+      amount: ApiJson.intOrNull(widget['amount']) ?? 0,
+      partnerId: ApiJson.string(widget['partnerId']),
+      // Absent, on suppose le bac à sable : se tromper dans ce sens
+      // n'encaisse rien, alors que l'inverse débiterait pour de vrai.
+      sandbox: widget['sandbox'] != false,
+      methods: ApiJson.strings(widget['paymentmethod']),
+      countries: ApiJson.strings(widget['countries']),
+      phone: ApiJson.stringOrNull(widget['phone']),
+      reason: ApiJson.stringOrNull(widget['data']),
+    );
+  }
+
   bool _reservationHeld() {
     final reservation = _json['reservation'];
     if (reservation is! Map) return true;

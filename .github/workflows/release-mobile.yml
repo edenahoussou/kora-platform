@@ -59,31 +59,8 @@ jobs:
             "${{ secrets.KEY_ALIAS }}" \
             "${{ secrets.KEY_PASSWORD }}" > android/key.properties
 
-      - name: Write Facebook properties
-        # Le SDK Facebook lit son App ID et son client token dans le
-        # manifest, pas dans le code Dart : le --dart-define ci-dessous ne
-        # suffit pas, il ne pilote que l'activation du bouton. Sans ce
-        # fichier, le build passe et le bouton reste désactivé.
-        if: env.FACEBOOK_APP_ID != ''
-        env:
-          FACEBOOK_APP_ID: ${{ secrets.FACEBOOK_APP_ID }}
-          FACEBOOK_CLIENT_TOKEN: ${{ secrets.FACEBOOK_CLIENT_TOKEN }}
-        run: |
-          {
-            echo "facebookAppId=$FACEBOOK_APP_ID"
-            echo "facebookClientToken=$FACEBOOK_CLIENT_TOKEN"
-          } > android/facebook.properties
-
       - name: Build APK (release)
-        # Les identifiants OAuth ne sont pas versionnés : ils arrivent par
-        # --dart-define (voir lib/core/env/app_env.dart). Sans eux,
-        # `OAuthSignInImpl.isConfigured()` renvoie false et les boutons
-        # Google/Facebook restent désactivés dans l'APK publié.
-        run: |
-          flutter build apk --release \
-            -t lib/main_${TARGET_ENV}.dart \
-            --dart-define=GOOGLE_SERVER_CLIENT_ID="${{ secrets.GOOGLE_SERVER_CLIENT_ID }}" \
-            --dart-define=FACEBOOK_APP_ID="${{ secrets.FACEBOOK_APP_ID }}"
+        run: flutter build apk --release -t lib/main_${TARGET_ENV}.dart
 
       - name: Rename APK with version tag
         run: |
