@@ -345,6 +345,8 @@ enum SystemRole: string
             'settings.integrations.view',
             'settings.integrations.manage',
             'monitoring.view',
+            'app-releases.view',
+            'app-releases.manage',
         ];
     }
 

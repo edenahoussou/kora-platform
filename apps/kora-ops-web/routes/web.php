@@ -3,6 +3,7 @@
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\PublicLegalController;
+use App\Modules\AppDistribution\Http\Controllers\AppDownloadController;
 use App\Modules\AssistedBooking\Http\Controllers\AssistedBookingController;
 use App\Modules\Booking\Http\Controllers\CounterSaleController;
 use App\Modules\BusNetwork\Http\Controllers\BusAmenityController;
@@ -49,6 +50,23 @@ Route::get('account-deletion', [PublicLegalController::class, 'accountDeletion']
 Route::post('account-deletion', [PublicLegalController::class, 'storeDeletionRequest'])
     ->middleware('throttle:5,1')
     ->name('account-deletion.store');
+
+// Distribution hors store des applications mobiles (MEZ-150) — pages et
+// binaires publics : les P501 n'ont pas de session OPS Web. Aucune liste de
+// releases n'est exposée ; seuls la dernière version et les liens précis
+// (UUID) sont atteignables.
+Route::prefix('downloads/apps/{app}')
+    ->name('downloads.apps.')
+    ->where(['app' => '[A-Za-z0-9_-]+'])
+    ->group(function (): void {
+        Route::get('/', [AppDownloadController::class, 'show'])->name('show');
+        Route::middleware('throttle:app-downloads')->group(function (): void {
+            Route::get('latest.apk', [AppDownloadController::class, 'latest'])->name('latest');
+            Route::get('releases/{release}', [AppDownloadController::class, 'release'])
+                ->whereUuid('release')
+                ->name('release');
+        });
+    });
 
 Route::get('tickets/{ticket:uuid}/pdf/signed', [TicketViewController::class, 'signedPdf'])
     ->middleware('signed')

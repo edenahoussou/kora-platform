@@ -3,6 +3,7 @@
 namespace App\Modules\IdentityAccess\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\AppDistribution\Services\TerminalAppUpdateResolver;
 use App\Modules\IdentityAccess\Actions\HandshakeTerminalAction;
 use App\Modules\IdentityAccess\Actions\LogTerminalActivityAction;
 use App\Modules\IdentityAccess\Actions\RecordTerminalSyncAction;
@@ -24,6 +25,11 @@ use Illuminate\Http\JsonResponse;
  * Mobile. L'authentification de l'utilisateur (login, PIN, OTP) reste celle
  * de l'app KORA existante (auth:sanctum) ; ces endpoints ajoutent le
  * contrôle du terminal par-dessus une session déjà ouverte.
+ *
+ * Distribution hors store (MEZ-150) : handshake, sync et activity
+ * renvoient en plus un bloc `update` (dernière version publiée, mise à jour
+ * obligatoire ou non, URL de téléchargement, sha256), calculé à partir de
+ * l'`app_version` remontée par le terminal. Champ additionnel uniquement.
  */
 class TerminalOpsMobileController extends Controller
 {
@@ -62,7 +68,17 @@ class TerminalOpsMobileController extends Controller
      *       "renewal_count": 0
      *     },
      *     "capabilities": { "departures_view": true, "boarding_scan": true, "seat_release": true },
-     *     "user": { "uuid": "977e5426-8d13-3824-86aa-b092f8ae52c5", "name": "Marc Adjagba", "status": "active", "permissions": ["departures.view", "boarding.scan"] }
+     *     "user": { "uuid": "977e5426-8d13-3824-86aa-b092f8ae52c5", "name": "Marc Adjagba", "status": "active", "permissions": ["departures.view", "boarding.scan"] },
+     *     "update": {
+     *       "app": "ops_mobile", "status": "update_required", "installed_version": "1.2.0", "installed_build": 30,
+     *       "latest_version": "1.4.0", "latest_build": 42, "latest_full_version": "1.4.0+42",
+     *       "update_available": true, "mandatory": true, "minimum_version": "1.3.0", "minimum_build": 35,
+     *       "release_uuid": "6f0c1d3e-7c1b-4a8a-9d6e-2b1a0c9f8e71", "release_notes": "Correctifs d'impression du manifeste.",
+     *       "download_url": "https://ops.koraexpress.app/downloads/apps/ops-mobile/releases/6f0c1d3e-7c1b-4a8a-9d6e-2b1a0c9f8e71",
+     *       "download_page_url": "https://ops.koraexpress.app/downloads/apps/ops-mobile",
+     *       "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08", "size_bytes": 31457280,
+     *       "published_at": "2026-10-25T09:00:00.000Z"
+     *     }
      *   },
      *   "meta": { "server_time": "2026-09-14T09:00:00.000Z" }
      * }
@@ -111,13 +127,17 @@ class TerminalOpsMobileController extends Controller
      * @bodyParam serial_number string Numéro de série du terminal, requis si l'en-tête X-Terminal-Serial est absent. Example: P501-000123
      * @bodyParam summary object Résumé libre de ce qui a été synchronisé (compté, jamais interprété par ce endpoint). No-example.
      *
+     * `data.update` (MEZ-150) : statut de mise à jour de l'app du terminal,
+     * même format que le handshake — `null` si aucune release n'est publiée.
+     *
      * @response 200 scenario="Synchronisation enregistrée" {
      *   "data": {
      *     "uuid": "b3091549-9179-454e-8440-58179f2208df",
      *     "serial_number": "P501-000123",
      *     "status": "active",
      *     "last_sync_at": "2026-09-14T09:05:00.000Z",
-     *     "last_handshake_at": "2026-09-14T09:00:00.000Z"
+     *     "last_handshake_at": "2026-09-14T09:00:00.000Z",
+     *     "update": null
      *   }
      * }
      * @response 403 scenario="Terminal non utilisable" {
@@ -127,7 +147,7 @@ class TerminalOpsMobileController extends Controller
      *   "error": { "code": "terminal_unknown", "message": "Ce terminal n’est pas enregistré. Contactez votre agence." }
      * }
      */
-    public function sync(TerminalSyncRequest $request, RecordTerminalSyncAction $recordSync): JsonResponse
+    public function sync(TerminalSyncRequest $request, RecordTerminalSyncAction $recordSync, TerminalAppUpdateResolver $appUpdates): JsonResponse
     {
         /** @var TerminalP501 $terminal */
         $terminal = $request->attributes->get('terminal');
@@ -141,7 +161,12 @@ class TerminalOpsMobileController extends Controller
             )
             ->load(['assignedUser', 'agency']);
 
-        return response()->json(['data' => new TerminalP501Resource($terminal)]);
+        return response()->json([
+            'data' => [
+                ...(new TerminalP501Resource($terminal))->resolve($request),
+                'update' => $appUpdates->payload($terminal),
+            ],
+        ]);
     }
 
     /**
@@ -152,7 +177,14 @@ class TerminalOpsMobileController extends Controller
      *
      * @header X-Terminal-Serial Numéro de série du terminal (alternative au champ serial_number du corps). Example: P501-000123
      *
-     * @response 204 scenario="Activité journalisée"
+     * Réponse (MEZ-150) : `204` sans corps tant qu'aucune release n'est
+     * publiée pour l'app du terminal (contrat historique inchangé) ; sinon
+     * `200` avec `data.update`, même format que le handshake.
+     *
+     * @response 204 scenario="Activité journalisée (aucune release publiée)"
+     * @response 200 scenario="Activité journalisée, mise à jour disponible" {
+     *   "data": { "update": { "app": "ops_mobile", "status": "update_available", "latest_version": "1.4.0", "latest_build": 42, "update_available": true, "mandatory": false, "download_url": "https://ops.koraexpress.app/downloads/apps/ops-mobile/releases/6f0c1d3e-7c1b-4a8a-9d6e-2b1a0c9f8e71", "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08" } }
+     * }
      * @response 403 scenario="Terminal non utilisable" {
      *   "error": { "code": "terminal_inactive", "message": "Ce terminal est désactivé. Contactez votre agence." }
      * }
@@ -161,8 +193,12 @@ class TerminalOpsMobileController extends Controller
      *   "errors": { "type": ["The selected type is invalid."] }
      * }
      */
-    public function activity(TerminalActivityRequest $request, LogTerminalActivityAction $logActivity, OpsNotifier $notifier): JsonResponse
-    {
+    public function activity(
+        TerminalActivityRequest $request,
+        LogTerminalActivityAction $logActivity,
+        OpsNotifier $notifier,
+        TerminalAppUpdateResolver $appUpdates,
+    ): JsonResponse {
         /** @var TerminalP501 $terminal */
         $terminal = $request->attributes->get('terminal');
 
@@ -174,6 +210,10 @@ class TerminalOpsMobileController extends Controller
             $notifier->printError($terminal, $request->user(), $request->context());
         }
 
-        return response()->json(status: 204);
+        $update = $appUpdates->payload($terminal);
+
+        return $update === null
+            ? response()->json(status: 204)
+            : response()->json(['data' => ['update' => $update]]);
     }
 }

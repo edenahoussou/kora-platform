@@ -65,6 +65,29 @@ return [
             ],
         ],
 
+        // MEZ-150 — packages (APK) des applications distribuées hors store.
+        // Disque privé : jamais servi directement par le serveur web ni
+        // listable ; les binaires ne sortent que par les routes
+        // `downloads.apps.*` (AppDownloadController).
+        'releases' => [
+            'driver' => 'local',
+            'root' => storage_path('app/releases'),
+            'visibility' => 'private',
+            'serve' => false,
+            'throw' => true,
+            'report' => false,
+            'permissions' => [
+                'file' => [
+                    'public' => 0644,
+                    'private' => 0640,
+                ],
+                'dir' => [
+                    'public' => 0755,
+                    'private' => 0750,
+                ],
+            ],
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\AppDistribution\Http\Controllers\AppUpdateCheckController;
 use App\Modules\AssistedBooking\Http\Controllers\AssistedBookingApiController;
 use App\Modules\Boarding\Http\Controllers\OpsBoardingController;
 use App\Modules\Boarding\Http\Controllers\OpsSeatReleaseController;
@@ -40,6 +41,13 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::get('health', [HealthController::class, 'index'])->name('health');
     Route::get('health/ping', [HealthController::class, 'ping'])->name('health.ping');
+
+    // Distribution hors store (MEZ-150) — vérification de mise à jour au
+    // lancement de l'app, avant toute session (publique, limitée en débit).
+    Route::get('apps/{app}/update', AppUpdateCheckController::class)
+        ->where('app', '[A-Za-z0-9_-]+')
+        ->middleware('throttle:app-update-check')
+        ->name('apps.update');
 
     Route::prefix('auth')->name('auth.')->group(function (): void {
         Route::middleware('throttle:auth-otp')->group(function (): void {
