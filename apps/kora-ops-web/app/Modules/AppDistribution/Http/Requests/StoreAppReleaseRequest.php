@@ -5,6 +5,7 @@ namespace App\Modules\AppDistribution\Http\Requests;
 use App\Modules\AppDistribution\Data\AppVersion;
 use App\Modules\AppDistribution\Data\ReleasedApp;
 use App\Modules\AppDistribution\Models\AppRelease;
+use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\Rule;
@@ -94,6 +95,9 @@ class StoreAppReleaseRequest extends FormRequest
         ];
     }
 
+    /**
+     * @return list<Closure(Validator): void>
+     */
     public function after(): array
     {
         return [

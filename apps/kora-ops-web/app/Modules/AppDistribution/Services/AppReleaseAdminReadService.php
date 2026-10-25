@@ -74,7 +74,7 @@ class AppReleaseAdminReadService
      */
     private function releases(ReleasedApp $app, ?AppRelease $latest, ?AppRelease $mandatory): array
     {
-        return AppRelease::query()
+        $releases = AppRelease::query()
             ->forApp($app)
             ->with('creator:id,uuid,name')
             ->get()
@@ -82,6 +82,8 @@ class AppReleaseAdminReadService
             ->map(fn (AppRelease $release): array => $this->serializeRelease($release, $latest, $mandatory))
             ->values()
             ->all();
+
+        return array_values($releases);
     }
 
     /**
@@ -126,7 +128,7 @@ class AppReleaseAdminReadService
         $terminals = TerminalP501::query()
             ->where('status', '!=', TerminalP501Status::Lost->value)
             ->get(['id', 'type', 'app_version'])
-            ->filter(fn (TerminalP501 $terminal): bool => ReleasedApp::forTerminal($terminal) === $app)
+            ->filter(fn (TerminalP501 $terminal): bool => $app->runsOn($terminal))
             ->values();
 
         $groups = $terminals
@@ -168,7 +170,7 @@ class AppReleaseAdminReadService
         return [
             'total' => $terminals->count(),
             'by_status' => $byStatus,
-            'versions' => $groups->all(),
+            'versions' => array_values($groups->all()),
         ];
     }
 }

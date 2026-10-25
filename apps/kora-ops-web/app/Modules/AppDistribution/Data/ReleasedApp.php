@@ -87,4 +87,15 @@ enum ReleasedApp: string
     {
         return self::OpsMobile;
     }
+
+    /**
+     * Cette application est-elle celle installée sur [terminal] ? Écrit en
+     * `match` exhaustif : l'ajout d'une app (passager…) oblige à trancher.
+     */
+    public function runsOn(TerminalP501 $terminal): bool
+    {
+        return match ($this) {
+            self::OpsMobile => true,
+        };
+    }
 }

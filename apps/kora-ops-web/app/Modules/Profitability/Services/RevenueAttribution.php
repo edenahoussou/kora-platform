@@ -232,7 +232,7 @@ class RevenueAttribution
             'unattributed' => $unattributed,
             'unattributedByDate' => $unattributedByDate,
             'postPeriodDeductions' => $postPeriodDeductions,
-            'nonXofPaymentCount' => $this->nonXofPaymentCount($reservationIds),
+            'nonXofPaymentCount' => $this->nonXofPaymentCount(array_values($reservationIds)),
         ];
     }
 
