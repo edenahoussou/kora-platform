@@ -26,6 +26,8 @@ class BusDepartureController extends Controller
      *
      * Returns every seat on the assigned bus, with its availability status for
      * the requested origin/destination segment (available, held, occupied, or blocked).
+     * Adds `composition_uuid` and `grid` (canonical cabin layout; cells join
+     * `data` seats on `code`). Both are null when the bus has no template.
      *
      * @urlParam departure string required Public UUID of the departure. Example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
      *
@@ -35,6 +37,17 @@ class BusDepartureController extends Controller
      * @unauthenticated
      *
      * @response 200 scenario="Seat map" {
+     *   "composition_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e",
+     *   "grid": {
+     *     "rows": 2, "cols": 4,
+     *     "cells": [
+     *       {"kind": "driver", "x": 0, "y": 0},
+     *       {"kind": "door", "x": 3, "y": 0},
+     *       {"kind": "seat", "x": 0, "y": 1, "code": "1A", "seatKind": "standard"},
+     *       {"kind": "aisle", "x": 2, "y": 1},
+     *       {"kind": "seat", "x": 3, "y": 1, "code": "1B", "seatKind": "standard", "maintenance": true}
+     *     ]
+     *   },
      *   "data": [
      *     {
      *       "uuid": "6e2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e50",
@@ -79,6 +92,9 @@ class BusDepartureController extends Controller
                 $data['origin_stop_uuid'],
                 $data['destination_stop_uuid'],
             ),
-        );
+        )->additional([
+            'composition_uuid' => $departure->bus?->composition?->uuid,
+            'grid' => $departure->bus?->composition?->seatGrid()->toArray(),
+        ]);
     }
 }

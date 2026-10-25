@@ -226,6 +226,7 @@ class DepartureSearchService
         $departure->load([
             'line.stops' => fn ($query) => $query->where('status', StopStatus::Active->value)->orderBy('stop_order'),
             'bus.seats',
+            'bus.composition',
         ]);
         /** @var list<array{stop_uuid: string, departure_minutes: int|null, arrival_minutes: int|null, timezone: string}> $stopTimes */
         $stopTimes = $departure->stop_times ?? [];

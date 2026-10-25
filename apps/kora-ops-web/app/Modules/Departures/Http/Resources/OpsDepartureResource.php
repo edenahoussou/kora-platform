@@ -3,6 +3,7 @@
 namespace App\Modules\Departures\Http\Resources;
 
 use App\Modules\BusNetwork\Data\LineType;
+use App\Modules\BusNetwork\Models\Seat;
 use App\Modules\Departures\Models\Departure;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -51,6 +52,18 @@ class OpsDepartureResource extends JsonResource
                 'registrationNumber' => $this->bus->registration_number,
                 'seatCount' => $this->bus->seat_count,
             ]),
+            'seatMap' => $this->when(
+                $this->bus?->relationLoaded('composition') === true,
+                fn () => $this->bus->composition === null ? null : [
+                    'compositionUuid' => $this->bus->composition->uuid,
+                    'grid' => $this->bus->composition->seatGrid()->toArray(),
+                    'seats' => $this->bus->seats->map(fn (Seat $seat): array => [
+                        'code' => $seat->code,
+                        'status' => enum_value($seat->status),
+                        'sellable' => (bool) $seat->sellable,
+                    ])->values(),
+                ],
+            ),
             'crew' => [
                 'driver' => $this->whenLoaded('driver', fn () => $this->driver ? ['uuid' => $this->driver->uuid, 'name' => $this->driver->name] : null),
                 'secondaryDriver' => $this->whenLoaded('secondaryDriver', fn () => $this->secondaryDriver ? ['uuid' => $this->secondaryDriver->uuid, 'name' => $this->secondaryDriver->name] : null),

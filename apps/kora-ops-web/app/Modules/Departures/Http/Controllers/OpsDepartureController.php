@@ -156,7 +156,9 @@ class OpsDepartureController extends Controller
         $departure->load([
             'line:id,uuid,code,name,type',
             'line.stops:id,uuid,line_id,name,city,country,stop_order',
-            'bus:id,uuid,registration_number,seat_count',
+            'bus:id,uuid,registration_number,seat_count,composition_id',
+            'bus.composition',
+            'bus.seats:id,uuid,bus_id,code,status,sellable',
             'driver:id,uuid,name',
             'secondaryDriver:id,uuid,name',
             'conductor:id,uuid,name',

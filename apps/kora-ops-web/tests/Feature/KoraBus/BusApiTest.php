@@ -355,6 +355,32 @@ it('marks a seat as held (not occupied) with a visible expiry while a temporary 
         ->assertJsonFragment(['code' => '2A', 'availability_status' => 'occupied', 'held_until' => null]);
 });
 
+it('exposes the canonical seat grid alongside seat availability', function (): void {
+    $scenario = koraBusApiScenario();
+
+    $this->getJson("/api/v1/bus/departures/{$scenario['departure']->uuid}/seats?origin_stop_uuid={$scenario['origin']->uuid}&destination_stop_uuid={$scenario['destination']->uuid}")
+        ->assertOk()
+        ->assertJsonPath('composition_uuid', $scenario['composition']->uuid)
+        ->assertJsonPath('grid.rows', 2)
+        ->assertJsonPath('grid.cols', 2)
+        ->assertJsonCount(3, 'grid.cells')
+        // La liste `data` reste inchangée : rétrocompatible avec les
+        // versions publiées de l'app passager.
+        ->assertJsonCount(3, 'data')
+        ->assertJsonFragment(['code' => '2B', 'availability_status' => 'available']);
+});
+
+it('returns a null grid when the departure bus has no seat template', function (): void {
+    $scenario = koraBusApiScenario();
+    $scenario['bus']->update(['composition_id' => null]);
+
+    $this->getJson("/api/v1/bus/departures/{$scenario['departure']->uuid}/seats?origin_stop_uuid={$scenario['origin']->uuid}&destination_stop_uuid={$scenario['destination']->uuid}")
+        ->assertOk()
+        ->assertJsonPath('composition_uuid', null)
+        ->assertJsonPath('grid', null)
+        ->assertJsonCount(3, 'data');
+});
+
 it('returns 404 for unknown public uuids', function (): void {
     $this->getJson('/api/v1/bus/lines/'.Str::uuid())->assertNotFound();
 });
@@ -506,7 +532,7 @@ function koraBusApiScenario(): array
         ],
     );
 
-    return compact('line', 'origin', 'middle', 'destination', 'bus', 'blockedSeat', 'occupiedSeat', 'availableSeat', 'departure');
+    return compact('line', 'origin', 'middle', 'destination', 'composition', 'bus', 'blockedSeat', 'occupiedSeat', 'availableSeat', 'departure');
 }
 
 /**
