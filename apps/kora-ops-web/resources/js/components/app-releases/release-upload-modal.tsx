@@ -1,6 +1,6 @@
 import { useForm } from '@inertiajs/react';
 import { FileUp, Package, ShieldAlert, Upload, X } from 'lucide-react';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { formatBytes } from '@/components/app-releases/shared';
 import type { AppRelease } from '@/components/app-releases/shared';
 import administration from '@/routes/administration';
@@ -9,6 +9,8 @@ type Props = {
     app: { value: string; label: string };
     latest: AppRelease | null;
     maxPackageKilobytes: number;
+    /** Limite PHP effective (upload_max_filesize / post_max_size), en octets. */
+    serverMaxUploadBytes: number | null;
     maxBuildNumber: number;
     onClose: () => void;
 };
@@ -31,6 +33,7 @@ export function ReleaseUploadModal({
     app,
     latest,
     maxPackageKilobytes,
+    serverMaxUploadBytes,
     maxBuildNumber,
     onClose,
 }: Props) {
@@ -44,7 +47,13 @@ export function ReleaseUploadModal({
         is_mandatory: false,
     });
 
-    const maxBytes = maxPackageKilobytes * 1024;
+    const [serverError, setServerError] = useState<string | null>(null);
+    const appMaxBytes = maxPackageKilobytes * 1024;
+    // Au-delà de la limite PHP, la requête est rejetée avant Laravel (aucune
+    // erreur de validation possible) : on bloque donc avant l'envoi.
+    const limitedByServer =
+        serverMaxUploadBytes !== null && serverMaxUploadBytes < appMaxBytes;
+    const maxBytes = limitedByServer ? serverMaxUploadBytes : appMaxBytes;
     const tooLarge =
         form.data.package !== null && form.data.package.size > maxBytes;
 
@@ -61,9 +70,24 @@ export function ReleaseUploadModal({
             return;
         }
 
+        setServerError(null);
         form.post(administration.releases.store.url(), {
             forceFormData: true,
             preserveScroll: true,
+            // Réponse non-Inertia (413 du serveur web, 500, session
+            // expirée…) : message dans la modale plutôt qu'une page brute.
+            onHttpException: (response) => {
+                setServerError(httpErrorMessage(response.status, maxBytes));
+
+                return false;
+            },
+            onNetworkError: () => {
+                setServerError(
+                    'Connexion au serveur interrompue pendant le téléversement. Réessayez.',
+                );
+
+                return false;
+            },
             onSuccess: () => {
                 form.reset();
                 onClose();
@@ -172,7 +196,9 @@ export function ReleaseUploadModal({
                         />
                         {tooLarge && (
                             <small className="field-error-text font-semibold text-destructive">
-                                Le fichier dépasse {formatBytes(maxBytes)}.
+                                {limitedByServer
+                                    ? `Le fichier dépasse la limite d’envoi du serveur (${formatBytes(maxBytes)}). Augmentez upload_max_filesize et post_max_size dans la configuration PHP.`
+                                    : `Le fichier dépasse ${formatBytes(maxBytes)}.`}
                             </small>
                         )}
                         {form.errors.package && (
@@ -316,6 +342,12 @@ export function ReleaseUploadModal({
                     </div>
                 )}
 
+                {serverError && (
+                    <div className="cash-form-error mt-4" role="alert">
+                        {serverError}
+                    </div>
+                )}
+
                 {form.errors.app && (
                     <div className="cash-form-error mt-4" role="alert">
                         {form.errors.app}
@@ -345,4 +377,17 @@ export function ReleaseUploadModal({
             </form>
         </div>
     );
+}
+
+function httpErrorMessage(status: number, maxBytes: number): string {
+    switch (status) {
+        case 413:
+            return `Le serveur a refusé le fichier : il dépasse sa taille maximale d’envoi (${formatBytes(maxBytes)} annoncés). Vérifiez upload_max_filesize / post_max_size (PHP) et client_max_body_size (Nginx).`;
+        case 419:
+            return 'Votre session a expiré. Actualisez la page puis recommencez.';
+        case 403:
+            return 'Vous n’avez pas l’autorisation de publier une version.';
+        default:
+            return `Le serveur a répondu par une erreur (${status}). La version n’a pas été publiée.`;
+    }
 }

@@ -88,6 +88,8 @@ it('renders the releases screen with links, releases and fleet distribution for 
             ->where('distribution.by_status.update_available', 1)
             ->where('distribution.by_status.update_required', 1)
             ->where('distribution.by_status.unknown', 1)
+            ->where('constraints.max_package_kilobytes', 204_800)
+            ->has('constraints.server_max_upload_bytes')
             ->where('permissions.canManage', true),
         );
 });

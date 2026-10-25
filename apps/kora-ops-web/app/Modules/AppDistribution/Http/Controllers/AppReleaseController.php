@@ -37,11 +37,55 @@ class AppReleaseController extends Controller
             'constraints' => [
                 'max_package_kilobytes' => StoreAppReleaseRequest::MAX_PACKAGE_KILOBYTES,
                 'max_build_number' => StoreAppReleaseRequest::MAX_BUILD_NUMBER,
+                // Limite réellement acceptée par PHP (upload_max_filesize /
+                // post_max_size) : au-delà, PHP rejette la requête avant
+                // Laravel et l'utilisateur ne verrait qu'un écran vide.
+                'server_max_upload_bytes' => self::serverUploadLimitBytes(),
             ],
             'permissions' => [
                 'canManage' => Gate::allows('create', AppRelease::class),
             ],
         ]);
+    }
+
+    /**
+     * Plus petite des limites PHP d'upload (`upload_max_filesize`,
+     * `post_max_size`), en octets — `null` si aucune limite n'est fixée.
+     */
+    private static function serverUploadLimitBytes(): ?int
+    {
+        $limits = array_filter(
+            [
+                self::iniBytes((string) ini_get('upload_max_filesize')),
+                // Le corps POST porte aussi les autres champs du formulaire :
+                // marge de 64 Ko.
+                ($post = self::iniBytes((string) ini_get('post_max_size'))) === null ? null : $post - 65_536,
+            ],
+            static fn (?int $bytes): bool => $bytes !== null && $bytes > 0,
+        );
+
+        return $limits === [] ? null : min($limits);
+    }
+
+    /**
+     * `64M` → 67108864 ; `0`/vide → null (pas de limite).
+     */
+    private static function iniBytes(string $value): ?int
+    {
+        $value = trim($value);
+
+        if ($value === '' || $value === '0' || $value === '-1') {
+            return null;
+        }
+
+        $number = (int) $value;
+
+        return match (strtolower(substr($value, -1))) {
+            'g' => $number * 1024 ** 3,
+            'm' => $number * 1024 ** 2,
+            'k' => $number * 1024,
+            default => $number,
+        };
     }
 
     public function store(StoreAppReleaseRequest $request, PublishAppReleaseAction $publish): RedirectResponse

@@ -45,7 +45,11 @@ type PageProps = {
     minimum: { uuid: string; version: string; build_number: number } | null;
     releases: AppRelease[];
     distribution: VersionDistribution;
-    constraints: { max_package_kilobytes: number; max_build_number: number };
+    constraints: {
+        max_package_kilobytes: number;
+        max_build_number: number;
+        server_max_upload_bytes: number | null;
+    };
     permissions: { canManage: boolean };
 };
 
@@ -618,6 +622,7 @@ export default function AppReleasesPage({
                     app={app}
                     latest={releases[0] ?? null}
                     maxPackageKilobytes={constraints.max_package_kilobytes}
+                    serverMaxUploadBytes={constraints.server_max_upload_bytes}
                     maxBuildNumber={constraints.max_build_number}
                     onClose={() => setUploadOpen(false)}
                 />
