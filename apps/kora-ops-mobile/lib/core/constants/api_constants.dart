@@ -16,6 +16,11 @@ abstract final class ApiConstants {
   static const String logout = '$_v1/auth/logout';
   static const String devices = '$_v1/auth/devices';
 
+  /// Distribution hors store (MEZ-150) : vérification de mise à jour au
+  /// lancement, publique (avant toute session). Les réponses
+  /// handshake/sync/activity portent le même bloc dans `data.update`.
+  static const String appUpdateCheck = '$_v1/apps/ops-mobile/update';
+
   /// Préférences du compte (`push_notifications`...) — voir
   /// `UserPreferenceController`. Couper le push purge les tokens côté back.
   static const String preferences = '$_v1/auth/preferences';

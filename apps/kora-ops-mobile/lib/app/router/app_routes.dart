@@ -64,4 +64,10 @@ abstract final class AppRoutes {
   /// Formulaire de signalement d'incident (MEZ-98) — accessible depuis
   /// Accueil et Manifeste.
   static const String incidentReport = '/tournee/manifeste/incident';
+
+  /// Mise à jour non obligatoire de l'app (MEZ-150), ouverte depuis le
+  /// prompt « Nouvelle version disponible ». Accessible connecté ou non
+  /// (voir `AuthGuard`). La mise à jour OBLIGATOIRE n'est pas une route :
+  /// `AppUpdateGate` remplace alors toute l'application.
+  static const String appUpdate = '/app-update';
 }

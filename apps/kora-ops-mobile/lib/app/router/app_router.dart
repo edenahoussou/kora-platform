@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:kora_ops_mobile/features/terminal/presentation/cubit/terminal_cubit.dart';
 
 import '../../core/widgets/kora_bottom_nav.dart';
+import '../../features/app_update/presentation/cubit/app_update_cubit.dart';
+import '../../features/app_update/presentation/pages/app_update_page.dart';
 import '../../features/auth/presentation/bloc/auth_flow_bloc.dart';
 import '../../features/auth/presentation/cubit/auth_cubit.dart';
 import '../../features/auth/presentation/pages/change_pin_page.dart';
@@ -170,6 +172,22 @@ class AppRouter {
       GoRoute(
         path: AppRoutes.incidentReport,
         builder: (context, state) => const IncidentReportPage(),
+      ),
+      // Mise à jour non obligatoire (MEZ-150) — « Plus tard » reporte la
+      // proposition de 24 h puis referme l'écran.
+      GoRoute(
+        path: AppRoutes.appUpdate,
+        builder: (context, state) => AppUpdatePage(
+          mandatory: false,
+          onLater: () {
+            context.read<AppUpdateCubit>().postpone();
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go(AppRoutes.home);
+            }
+          },
+        ),
       ),
       GoRoute(
         path: AppRoutes.notifications,

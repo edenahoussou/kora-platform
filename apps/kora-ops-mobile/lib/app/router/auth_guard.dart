@@ -55,6 +55,9 @@ class AuthGuard extends ChangeNotifier {
     // rediriger prématurément couperait la présentation avant sa fin.
     if (currentLocation == AppRoutes.splash) return null;
     if (currentLocation == AppRoutes.onboarding) return null;
+    // Mise à jour de l'app (MEZ-150) : proposée aussi avant connexion,
+    // jamais redirigée.
+    if (currentLocation == AppRoutes.appUpdate) return null;
 
     final AuthState state = _authCubit.state;
     final bool isInLoginFlow = _loginFlowRoutes.contains(currentLocation);

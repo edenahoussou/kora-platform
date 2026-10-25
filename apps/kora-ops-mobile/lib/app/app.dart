@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:phone_form_field/phone_form_field.dart';
+import '../features/app_update/presentation/cubit/app_update_cubit.dart';
+import '../features/app_update/presentation/widgets/app_update_gate.dart';
 import '../features/auth/presentation/cubit/auth_cubit.dart';
 import '../features/manifeste/presentation/cubit/manifeste_cubit.dart';
 import '../features/notifications/presentation/cubit/notification_cubit.dart';
@@ -33,6 +35,8 @@ class App extends StatelessWidget {
         BlocProvider<AuthCubit>.value(value: getIt<AuthCubit>()),
         BlocProvider<TerminalCubit>.value(value: getIt<TerminalCubit>()),
         BlocProvider<ThemeCubit>.value(value: getIt<ThemeCubit>()),
+        // Distribution hors store (MEZ-150) — voir AppUpdateGate.
+        BlocProvider<AppUpdateCubit>.value(value: getIt<AppUpdateCubit>()),
         // Cubits partagés par les 5 onglets ET les écrans empilés
         // au-dessus (détail passager, résultat de scan…) — voir
         // document.md § Navigation.
@@ -98,6 +102,10 @@ class _AppLifecycleListenerState extends State<_AppLifecycleListener>
       // accordée (point 5, échange du 23/09/2026) — le suivi de position
       // en dépend, voir TrackingCubit.onAppResumed.
       getIt<TrackingCubit>().onAppResumed();
+      // Retour depuis les réglages « Installer des applis inconnues » ou
+      // l'installeur Android, et revérification de la version publiée
+      // (MEZ-150).
+      getIt<AppUpdateCubit>().onAppResumed();
     }
   }
 
@@ -148,8 +156,17 @@ class _AppRouterHost extends StatelessWidget {
               routerConfig: appRouter.router,
               // Bouton flottant « Chat support » au-dessus de toutes les
               // pages connectées (plus seulement le Profil).
-              builder: (BuildContext context, Widget? child) =>
-                  SupportChatOverlay(router: appRouter.router, child: child),
+              //
+              // AppUpdateGate (MEZ-150) enveloppe le tout : une mise à jour
+              // obligatoire remplace l'application entière par l'écran
+              // bloquant, chat support compris.
+              builder: (BuildContext context, Widget? child) => AppUpdateGate(
+                router: appRouter.router,
+                child: SupportChatOverlay(
+                  router: appRouter.router,
+                  child: child,
+                ),
+              ),
             );
           },
         );

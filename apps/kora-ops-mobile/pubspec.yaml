@@ -20,6 +20,11 @@ dependencies:
   # seule clé publique, sans réseau.
   cryptography: ^2.7.0
 
+  # Empreinte sha256 de l'APK téléchargé, calculée en flux avant toute
+  # installation (mise à jour hors store, MEZ-150 — voir ApkDownloader).
+  # Déjà présent en transitif (pubspec.lock 3.0.7), déclaré explicitement.
+  crypto: ^3.0.6
+
   # State management
   flutter_bloc: ^8.1.6
   bloc: ^8.1.4

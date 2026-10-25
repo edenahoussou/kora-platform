@@ -38,6 +38,12 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-feature android:name="android.hardware.location.gps" android:required="false"/>
 
+    <!-- Mise à jour hors store (MEZ-150) : l'app n'est pas distribuée sur le
+         Play Store, elle installe elle-même l'APK téléchargé depuis KORA OPS
+         Web (Android 8+ : l'utilisateur doit autoriser KORA OPS à installer
+         des applications, voir ApkInstallerChannel). -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
+
     <application
         android:label="KORA OPS"
         android:name="${applicationName}"
@@ -87,6 +93,18 @@
             android:foregroundServiceType="location"
             android:stopWithTask="false"
             android:exported="false"/>
+
+        <!-- Partage de l'APK téléchargé avec l'installeur système (MEZ-150).
+             Autorité propre à KORA OPS, distincte de celles des plugins. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.apk_installer"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/apk_installer_paths"/>
+        </provider>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

@@ -1,11 +1,14 @@
 // connectivity_plus déplacé dans SyncCubit (MEZ-88, écoute continue) —
 // plus utilisé directement ici.
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../injection/injection.dart';
+import '../../../app_update/presentation/cubit/app_update_cubit.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../onboarding/data/onboarding_store.dart';
 import '../../../ops/presentation/cubit/selected_depart_cubit.dart';
@@ -79,6 +82,13 @@ class _SplashPageState extends State<SplashPage>
     // relit le nombre d'opérations en attente et démarre l'écoute
     // continue de la connectivité — remplace l'ancienne vérification
     // ponctuelle ci-dessous (_checkConnectivity, conservée en commentaire).
+    // Vérification de mise à jour au lancement (MEZ-150) — volontairement
+    // NON attendue : hors ligne elle ne doit jamais retarder le démarrage.
+    // Une mise à jour obligatoire (ou le dernier blocage connu, relu du
+    // cache) remplace l'app par l'écran bloquant dès qu'elle est connue,
+    // via AppUpdateGate.
+    unawaited(context.read<AppUpdateCubit>().bootstrap());
+
     await Future.wait<void>(<Future<void>>[
       context.read<AuthCubit>().checkAuthStatus(),
       context.read<TerminalCubit>().bootstrap(),

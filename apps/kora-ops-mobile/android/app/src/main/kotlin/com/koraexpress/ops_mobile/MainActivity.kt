@@ -72,6 +72,9 @@ class MainActivity : FlutterActivity() {
     private val timeoutHandler = Handler(Looper.getMainLooper())
     private var timeoutRunnable: Runnable? = null
 
+    // Mise à jour hors store (MEZ-150) — voir ApkInstallerChannel.
+    private var apkInstallerChannel: ApkInstallerChannel? = null
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
@@ -82,6 +85,8 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+
+        apkInstallerChannel = ApkInstallerChannel(this, flutterEngine.dartExecutor.binaryMessenger)
     }
 
     private fun startScan(result: MethodChannel.Result) {
@@ -215,6 +220,8 @@ class MainActivity : FlutterActivity() {
     }
 
     override fun onDestroy() {
+        apkInstallerChannel?.dispose()
+        apkInstallerChannel = null
         cancelPendingScan()
         super.onDestroy()
     }
