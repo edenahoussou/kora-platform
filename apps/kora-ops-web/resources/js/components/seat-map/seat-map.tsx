@@ -20,6 +20,7 @@ const SALE_STATUS_CLASSES: Partial<Record<SeatMapStatus, string>> = {
     reserved: 'reserved',
     paid: 'paid',
     taken: 'taken',
+    busy: 'busy',
 };
 
 function seatStatusClass(

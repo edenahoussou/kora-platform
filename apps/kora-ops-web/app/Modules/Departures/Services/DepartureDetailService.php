@@ -29,7 +29,8 @@ class DepartureDetailService
     {
         $departure->load([
             'line.stops' => fn ($q) => $q->where('status', 'active')->orderBy('stop_order')->with('physicalStop:id,uuid,name,city'),
-            'bus:id,uuid,registration_number,seat_count',
+            'bus:id,uuid,registration_number,seat_count,composition_id',
+            'bus.composition',
             'bus.seats' => fn ($q) => $q->orderByRaw('LENGTH(code), code'),
             'driver:id,uuid,name',
             'conductor:id,uuid,name',
@@ -144,6 +145,7 @@ class DepartureDetailService
             'busUuid' => $departure->bus?->uuid,
             'busRegistration' => $departure->bus->registration_number ?? 'À affecter',
             'busSeatCount' => $seatCount,
+            'seatLayout' => $departure->bus?->composition?->seatGrid()->toArray(),
             'seats' => $seats,
             'departureDate' => $departure->departure_date?->format('Y-m-d'),
             'departureTime' => substr((string) $departure->departure_time, 0, 5),
