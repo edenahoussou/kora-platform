@@ -80,133 +80,128 @@ class ProfilPage extends StatelessWidget {
     // Le bouton flottant « Chat support » n'est plus propre au Profil : il est
     // affiché sur tous les écrans connectés par `SupportChatOverlay`.
     return Scaffold(
-          backgroundColor: context.koraColors.background,
-          body: AnnotatedRegion<SystemUiOverlayStyle>(
-            sized: false,
-            value: const SystemUiOverlayStyle(
-              statusBarColor: Colors.transparent,
-              statusBarIconBrightness: Brightness.light,
-              statusBarBrightness: Brightness.dark,
-            ),
-            // ✅ CORRIGÉ : Utilisation de SingleChildScrollView pour un scroll garanti
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+      backgroundColor: context.koraColors.background,
+      body: AnnotatedRegion<SystemUiOverlayStyle>(
+        sized: false,
+        value: const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+        ),
+        // ✅ CORRIGÉ : Utilisation de SingleChildScrollView pour un scroll garanti
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Stack(
+                clipBehavior: Clip.none,
                 children: <Widget>[
-                  Stack(
-                    clipBehavior: Clip.none,
-                    children: <Widget>[
-                      _ProfilHeader(
-                          fullName: fullName,
-                          role: role,
-                          initials: _initials(fullName)),
-                      Positioned(
-                          left: AppSpacing.md,
-                          right: AppSpacing.md,
-                          bottom: -46,
-                          child: _StatsCard(
-                              pendingSync: pendingSync,
-                              accountActive: accountActive)),
-                    ],
-                  ),
-                  const SizedBox(height: 64),
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: <Widget>[
-                        Text('Mon compte',
-                            style: AppTextStyles.heading2(
-                                context.koraColors.textPrimary)),
-                        const SizedBox(height: AppSpacing.sm),
-                        _AccountTile(
-                          icon: Icons.person_outline,
-                          title: 'Mes informations',
-                          subtitle: 'Identité et coordonnées',
-                          onTap: () => context.push(AppRoutes.mesInformations),
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
-                        _AccountTile(
-                          icon: Icons.shield_outlined,
-                          title: 'Sécurité',
-                          subtitle: 'PIN, email et appareils',
-                          highlighted: true,
-                          onTap: () => context.push(AppRoutes.securite),
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
-                        _AccountTile(
-                          icon: Icons.tune,
-                          title: 'Préférences',
-                          subtitle: 'Alertes, langue, thème',
-                          onTap: () => context.push(AppRoutes.preferences),
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
-                        _AccountTile(
-                          icon: Icons.outbox_outlined,
-                          title: 'Notifications envoyées',
-                          subtitle:
-                              'Vos alertes déclenchées (incidents, départs…)',
-                          onTap: () =>
-                              context.push(AppRoutes.notificationsSent),
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
-                        _AccountTile(
-                          icon: Icons.point_of_sale,
-                          title: AppConfig.instance.terminalMode ==
-                                  TerminalMode.phone
-                              ? 'Terminal (téléphone)'
-                              : 'Terminal P501',
-                          subtitle: switch (
-                              context.watch<TerminalCubit>().state) {
-                            TerminalLinked(:final terminal) =>
-                              'Lié — ${terminal.serialNumber}',
-                            _ => 'Aucun terminal lié',
-                          },
-                          onTap: () => _confirmChangeTerminal(context),
-                        ),
-                        const SizedBox(height: AppSpacing.lg),
-                        Text('Besoin d\'aide ?',
-                            style: AppTextStyles.heading2(
-                                context.koraColors.textPrimary)),
-                        const SizedBox(height: AppSpacing.sm),
-                        const _HelpCard(),
-                        const SizedBox(height: AppSpacing.lg),
-                        Center(
-                          child: TextButton(
-                            onPressed: () async {
-                              final bool confirmed = await KoraDialogs.confirm(
-                                context,
-                                title: 'Se déconnecter ?',
-                                description:
-                                    'Vous devrez ressaisir votre PIN pour vous reconnecter.',
-                                confirmLabel: 'OK',
-                                cancelLabel: 'Non',
-                              );
-                              if (confirmed && context.mounted) {
-                                getIt<AuthFlowBloc>()
-                                    .add(const AuthFlowReset());
-                                await context.read<AuthCubit>().logout();
-                              }
-                            },
-                            child: const Text('Se déconnecter',
-                                style: TextStyle(color: AppColors.danger)),
-                          ),
-                        ),
-                        // ✅ CORRIGÉ : Ajout de l'espace système en bas (Home indicator)
-                        // pour s'assurer que le bouton de déconnexion soit entièrement visible
-                        SizedBox(
-                            height: MediaQuery.of(context).padding.bottom +
-                                AppSpacing.xl),
-                      ],
-                    ),
-                  ),
+                  _ProfilHeader(
+                      fullName: fullName,
+                      role: role,
+                      initials: _initials(fullName)),
+                  Positioned(
+                      left: AppSpacing.md,
+                      right: AppSpacing.md,
+                      bottom: -46,
+                      child: _StatsCard(
+                          pendingSync: pendingSync,
+                          accountActive: accountActive)),
                 ],
               ),
-            ),
+              const SizedBox(height: 64),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    Text('Mon compte',
+                        style: AppTextStyles.heading2(
+                            context.koraColors.textPrimary)),
+                    const SizedBox(height: AppSpacing.sm),
+                    _AccountTile(
+                      icon: Icons.person_outline,
+                      title: 'Mes informations',
+                      subtitle: 'Identité et coordonnées',
+                      onTap: () => context.push(AppRoutes.mesInformations),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    _AccountTile(
+                      icon: Icons.shield_outlined,
+                      title: 'Sécurité',
+                      subtitle: 'PIN, email et appareils',
+                      highlighted: true,
+                      onTap: () => context.push(AppRoutes.securite),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    _AccountTile(
+                      icon: Icons.tune,
+                      title: 'Préférences',
+                      subtitle: 'Alertes, langue, thème',
+                      onTap: () => context.push(AppRoutes.preferences),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    _AccountTile(
+                      icon: Icons.outbox_outlined,
+                      title: 'Notifications envoyées',
+                      subtitle: 'Vos alertes déclenchées (incidents, départs…)',
+                      onTap: () => context.push(AppRoutes.notificationsSent),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    _AccountTile(
+                      icon: Icons.point_of_sale,
+                      title:
+                          AppConfig.instance.terminalMode == TerminalMode.phone
+                              ? 'Terminal (téléphone)'
+                              : 'Terminal P501',
+                      subtitle: switch (context.watch<TerminalCubit>().state) {
+                        TerminalLinked(:final terminal) =>
+                          'Lié — ${terminal.serialNumber}',
+                        _ => 'Aucun terminal lié',
+                      },
+                      onTap: () => _confirmChangeTerminal(context),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    Text('Besoin d\'aide ?',
+                        style: AppTextStyles.heading2(
+                            context.koraColors.textPrimary)),
+                    const SizedBox(height: AppSpacing.sm),
+                    const _HelpCard(),
+                    const SizedBox(height: AppSpacing.lg),
+                    Center(
+                      child: TextButton(
+                        onPressed: () async {
+                          final bool confirmed = await KoraDialogs.confirm(
+                            context,
+                            title: 'Se déconnecter ?',
+                            description:
+                                'Vous devrez ressaisir votre PIN pour vous reconnecter.',
+                            confirmLabel: 'OK',
+                            cancelLabel: 'Non',
+                          );
+                          if (confirmed && context.mounted) {
+                            getIt<AuthFlowBloc>().add(const AuthFlowReset());
+                            await context.read<AuthCubit>().logout();
+                          }
+                        },
+                        child: const Text('Se déconnecter',
+                            style: TextStyle(color: AppColors.danger)),
+                      ),
+                    ),
+                    // ✅ CORRIGÉ : Ajout de l'espace système en bas (Home indicator)
+                    // pour s'assurer que le bouton de déconnexion soit entièrement visible
+                    SizedBox(
+                        height: MediaQuery.of(context).padding.bottom +
+                            AppSpacing.xl),
+                  ],
+                ),
+              ),
+            ],
           ),
-        );
+        ),
+      ),
+    );
   }
 }
 
