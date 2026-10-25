@@ -246,7 +246,42 @@ export default function AppReleasesPage({
                     </nav>
                 )}
 
-                <div className="cash-reveal cash-reveal-delay-1 mb-6 grid gap-5 xl:grid-cols-[1.35fr_1fr]">
+                <section className="cash-ledger-grid cash-reveal cash-reveal-delay-1 mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                    <KpiCard
+                        icon={Laptop}
+                        label="Parc suivi"
+                        hint="terminaux non perdus"
+                        value={distribution.total}
+                        tone="navy"
+                    />
+                    <KpiCard
+                        icon={CheckCircle2}
+                        label="À jour"
+                        hint="dernière version installée"
+                        value={distribution.by_status.up_to_date ?? 0}
+                        tone="green"
+                    />
+                    <KpiCard
+                        icon={AlertTriangle}
+                        label="MAJ disponible"
+                        hint="mise à jour proposée"
+                        value={distribution.by_status.update_available ?? 0}
+                        tone="gold"
+                    />
+                    <KpiCard
+                        icon={ShieldAlert}
+                        label="MAJ requise"
+                        hint="bloqués jusqu’à la mise à jour"
+                        value={distribution.by_status.update_required ?? 0}
+                        tone={
+                            (distribution.by_status.update_required ?? 0) > 0
+                                ? 'rose'
+                                : 'muted'
+                        }
+                    />
+                </section>
+
+                <div className="cash-reveal cash-reveal-delay-2 mb-6 grid gap-5 xl:grid-cols-[1.35fr_1fr]">
                     <ReleaseSharePanel
                         appLabel={app.label}
                         appSlug={app.slug}
@@ -309,41 +344,6 @@ export default function AppReleasesPage({
                         )}
                     </section>
                 </div>
-
-                <section className="cash-ledger-grid cash-reveal cash-reveal-delay-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-                    <KpiCard
-                        icon={Laptop}
-                        label="Parc suivi"
-                        hint="terminaux non perdus"
-                        value={distribution.total}
-                        tone="navy"
-                    />
-                    <KpiCard
-                        icon={CheckCircle2}
-                        label="À jour"
-                        hint="dernière version installée"
-                        value={distribution.by_status.up_to_date ?? 0}
-                        tone="green"
-                    />
-                    <KpiCard
-                        icon={AlertTriangle}
-                        label="MAJ disponible"
-                        hint="mise à jour proposée"
-                        value={distribution.by_status.update_available ?? 0}
-                        tone="gold"
-                    />
-                    <KpiCard
-                        icon={ShieldAlert}
-                        label="MAJ requise"
-                        hint="bloqués jusqu’à la mise à jour"
-                        value={distribution.by_status.update_required ?? 0}
-                        tone={
-                            (distribution.by_status.update_required ?? 0) > 0
-                                ? 'rose'
-                                : 'muted'
-                        }
-                    />
-                </section>
 
                 <section className="cash-table-card cash-reveal cash-reveal-delay-2 mt-6 p-5 md:p-6">
                     <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
