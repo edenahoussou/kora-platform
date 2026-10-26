@@ -8,6 +8,7 @@ class SeatsState extends Equatable {
     this.status = SeatsStatus.loading,
     this.departure,
     this.seats = const [],
+    this.grid,
     this.selectedSeats = const [],
     this.passengers = 1,
     this.errorMessage,
@@ -16,6 +17,19 @@ class SeatsState extends Equatable {
   final SeatsStatus status;
   final Departure? departure;
   final List<Seat> seats;
+
+  /// La géométrie de la cabine, quand le bus a un gabarit.
+  ///
+  /// `null` sinon : l'écran dessine alors le plan en déduisant les
+  /// positions des codes, comme il l'a toujours fait.
+  final SeatGrid? grid;
+
+  /// Vrai quand l'écran a de quoi dessiner la vraie cabine — voir
+  /// [SeatGrid.describesCabin] pour ce que « vraie » veut dire ici.
+  bool get hasGrid {
+    final grid = this.grid;
+    return grid != null && grid.isUsable && grid.describesCabin;
+  }
 
   /// Dans l'ordre de sélection : c'est aussi l'ordre d'affichage sous le
   /// plan (`4A, 4B`).
@@ -46,6 +60,7 @@ class SeatsState extends Equatable {
     SeatsStatus? status,
     Departure? departure,
     List<Seat>? seats,
+    SeatGrid? grid,
     List<Seat>? selectedSeats,
     int? passengers,
     String? errorMessage,
@@ -54,6 +69,7 @@ class SeatsState extends Equatable {
       status: status ?? this.status,
       departure: departure ?? this.departure,
       seats: seats ?? this.seats,
+      grid: grid ?? this.grid,
       selectedSeats: selectedSeats ?? this.selectedSeats,
       passengers: passengers ?? this.passengers,
       errorMessage: errorMessage ?? this.errorMessage,
@@ -65,6 +81,7 @@ class SeatsState extends Equatable {
     status,
     departure,
     seats,
+    grid,
     selectedSeats,
     passengers,
     errorMessage,
