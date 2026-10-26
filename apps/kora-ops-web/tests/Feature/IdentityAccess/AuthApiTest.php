@@ -766,24 +766,6 @@ it('rejects a phone already in use when updating the profile', function (): void
         ->assertJsonValidationErrors('phone');
 });
 
-function pendingOtpChallenge(
-    string $email,
-    OtpPurpose $purpose,
-    string $code,
-    mixed $expiresAt = null,
-    ?User $user = null,
-): AuthOtpChallenge {
-    return AuthOtpChallenge::query()->create([
-        'identifier' => $email,
-        'user_id' => $user?->id,
-        'purpose' => $purpose,
-        'code_hash' => Hash::make($code),
-        'attempts' => 0,
-        'expires_at' => $expiresAt ?: now()->addMinutes(5),
-        'status' => OtpChallengeStatus::Pending,
-    ]);
-}
-
 /**
  * @return array{0: AuthOtpChallenge, 1: string}
  */
@@ -803,15 +785,6 @@ function verifiedOtpChallenge(string $email, OtpPurpose $purpose, ?User $user = 
     ]);
 
     return [$challenge, $verificationToken];
-}
-
-function pinUser(string $email, ?string $phone = null): User
-{
-    return User::factory()->create([
-        'email' => $email,
-        'phone' => $phone,
-        'pin_hash' => Hash::make('1234'),
-    ]);
 }
 
 function trustedDevice(User $user, string $fingerprint): UserDevice

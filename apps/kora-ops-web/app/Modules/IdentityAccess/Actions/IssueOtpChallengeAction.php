@@ -8,6 +8,7 @@ use App\Modules\IdentityAccess\Data\OtpPurpose;
 use App\Modules\IdentityAccess\Exceptions\UserNotFoundException;
 use App\Modules\IdentityAccess\Models\AuthOtpChallenge;
 use App\Modules\IdentityAccess\Services\AuthIdentifierResolver;
+use App\Modules\IdentityAccess\Services\StoreReviewGate;
 use App\Notifications\IdentityAccess\OtpCodeNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -18,6 +19,7 @@ class IssueOtpChallengeAction
 {
     public function __construct(
         private readonly AuthIdentifierResolver $identifierResolver,
+        private readonly StoreReviewGate $storeReviewGate,
     ) {}
 
     public function handle(User|string $identifier, OtpPurpose $purpose, Request $request): AuthOtpChallenge
@@ -58,6 +60,13 @@ class IssueOtpChallengeAction
             'ip_address' => $request->ip(),
             'user_agent' => Str::limit((string) $request->userAgent(), 1000, ''),
         ]);
+
+        // Compte de revue store (MEZ-152) : le code fixe sera accepté à la
+        // vérification. Aucun envoi réel — le reviewer ne peut pas recevoir
+        // WhatsApp/SMS/email, et on ne notifie pas une boîte réelle.
+        if ($this->storeReviewGate->isReviewChallenge($challenge)) {
+            return $challenge;
+        }
 
         $notification = new OtpCodeNotification($code, $purpose);
 

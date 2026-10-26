@@ -4,7 +4,11 @@ use App\Models\User;
 use App\Modules\BusNetwork\Models\Line;
 use App\Modules\BusNetwork\Models\PhysicalStop;
 use App\Modules\BusNetwork\Models\Stop;
+use App\Modules\IdentityAccess\Data\OtpChallengeStatus;
+use App\Modules\IdentityAccess\Data\OtpPurpose;
+use App\Modules\IdentityAccess\Models\AuthOtpChallenge;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -118,4 +122,31 @@ function lineWithStops(): array
     ]);
 
     return [$line, $origin, $destination];
+}
+
+function pendingOtpChallenge(
+    string $email,
+    OtpPurpose $purpose,
+    string $code,
+    mixed $expiresAt = null,
+    ?User $user = null,
+): AuthOtpChallenge {
+    return AuthOtpChallenge::query()->create([
+        'identifier' => $email,
+        'user_id' => $user?->id,
+        'purpose' => $purpose,
+        'code_hash' => Hash::make($code),
+        'attempts' => 0,
+        'expires_at' => $expiresAt ?: now()->addMinutes(5),
+        'status' => OtpChallengeStatus::Pending,
+    ]);
+}
+
+function pinUser(string $email, ?string $phone = null): User
+{
+    return User::factory()->create([
+        'email' => $email,
+        'phone' => $phone,
+        'pin_hash' => Hash::make('1234'),
+    ]);
 }
