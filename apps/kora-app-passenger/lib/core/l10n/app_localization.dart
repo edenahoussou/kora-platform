@@ -1247,9 +1247,19 @@ class AppLocalization {
   String get securityDeleteAccount => translate('security_delete_account');
   String get securityDeleteAccountSub =>
       translate('security_delete_account_sub');
-  String securityDeleteAccountUnavailable(String url) =>
-      _withArgs('security_delete_account_unavailable', {'url': url});
   String get securityDevices => translate('security_devices');
+
+  // --- Suppression du compte ---
+  String get accountDeletionEyebrow => translate('account_deletion_eyebrow');
+  String get accountDeletionTitle => translate('account_deletion_title');
+  String get accountDeletionLead => translate('account_deletion_lead');
+  String get accountDeletionReason => translate('account_deletion_reason');
+  String get accountDeletionReasonHint =>
+      translate('account_deletion_reason_hint');
+  String get accountDeletionPinTitle => translate('account_deletion_pin_title');
+  String get accountDeletionPinLead => translate('account_deletion_pin_lead');
+  String get accountDeletionSubmit => translate('account_deletion_submit');
+  String get accountDeletionDone => translate('account_deletion_done');
   String get securityDeviceCurrent => translate('security_device_current');
   String get securityDeviceActive => translate('security_device_active');
   String get securityDeviceRevoke => translate('security_device_revoke');

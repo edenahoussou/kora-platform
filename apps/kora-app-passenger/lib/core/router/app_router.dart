@@ -55,6 +55,7 @@ import '../../features/payment/presentation/pages/payment_flow_args.dart';
 import '../../features/payment/presentation/pages/payment_method_page.dart';
 import '../../features/payment/presentation/pages/payment_pending_page.dart';
 import '../../features/payment/presentation/pages/wallet_payment_page.dart';
+import '../../features/profil/presentation/pages/account_deletion_page.dart';
 import '../../features/profil/presentation/pages/birth_date_picker_page.dart';
 import '../../features/profil/presentation/pages/change_pin_page.dart';
 import '../../features/profil/presentation/pages/preferences_page.dart';
@@ -130,6 +131,7 @@ class AppRouter {
   static const String birthDatePath = '/profile/informations/naissance';
   static const String securityPath = '/profile/securite';
   static const String changePinPath = '/profile/securite/pin';
+  static const String accountDeletionPath = '/profile/securite/suppression';
   static const String preferencesPath = '/profile/preferences';
   static const String notificationsPath = '/notifications';
   static const String helpPath = '/aide';
@@ -486,12 +488,17 @@ class AppRouter {
             // Le lien mène au parcours de vérification, qui a besoin du
             // compte : il vit dans le ShellRoute d'authentification.
             onNewDevice: () => context.push(newDevicePath),
+            onDeleteAccount: () => context.push(accountDeletionPath),
           ),
         ),
         GoRoute(
           path: changePinPath,
           builder: (context, state) =>
               ChangePinPage(onDone: () => context.pop()),
+        ),
+        GoRoute(
+          path: accountDeletionPath,
+          builder: (context, state) => const AccountDeletionPage(),
         ),
         GoRoute(
           path: preferencesPath,

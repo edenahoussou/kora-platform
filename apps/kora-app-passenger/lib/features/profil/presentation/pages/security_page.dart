@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/di/injector.dart';
-import '../../../../core/env/app_env.dart';
 import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/utils/date_formats.dart';
 import '../../../../core/utils/title_color.dart';
@@ -24,19 +22,15 @@ class SecurityPage extends StatefulWidget {
     super.key,
     this.onChangePin,
     this.onNewDevice,
-    this.accountDeletionUrl,
-    this.launcher,
+    this.onDeleteAccount,
   });
 
   final VoidCallback? onChangePin;
   final VoidCallback? onNewDevice;
 
-  /// La page web de suppression du compte. Par défaut, celle du serveur
-  /// de l'environnement courant ; les tests, qui n'en ont pas, la donnent.
-  final Uri? accountDeletionUrl;
-
-  /// Injectable pour les tests, qui n'ont pas de navigateur à ouvrir.
-  final Future<bool> Function(Uri)? launcher;
+  /// Mène à la demande de suppression du compte. Apple exige qu'elle
+  /// puisse commencer dans l'app (règle 5.1.1(v)).
+  final VoidCallback? onDeleteAccount;
 
   @override
   State<SecurityPage> createState() => _SecurityPageState();
@@ -103,29 +97,6 @@ class _SecurityPageState extends State<SecurityPage> {
     });
   }
 
-  /// Ouvre la demande de suppression du compte, hébergée par le serveur.
-  ///
-  /// Apple exige que la suppression puisse **commencer** dans l'app
-  /// (règle 5.1.1(v)) ; la page web, elle, vérifie l'identité et explique
-  /// ce qui est conservé — les billets émis relèvent de la facturation.
-  Future<void> _openAccountDeletion() async {
-    final url =
-        widget.accountDeletionUrl ??
-        Uri.parse('${AppEnv.current.apiBaseUrl}/account-deletion');
-    final launch =
-        widget.launcher ??
-        (uri) => launchUrl(uri, mode: LaunchMode.externalApplication);
-
-    final opened = await launch(url);
-    if (opened || !mounted) return;
-
-    // Aucun navigateur n'a répondu : l'adresse permet d'y aller à la main.
-    KoraToaster.show(
-      context,
-      context.l10n.securityDeleteAccountUnavailable(url.toString()),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
@@ -181,7 +152,7 @@ class _SecurityPageState extends State<SecurityPage> {
                           icon: Icons.delete_forever_rounded,
                           title: l10n.securityDeleteAccount,
                           subtitle: l10n.securityDeleteAccountSub,
-                          onTap: _openAccountDeletion,
+                          onTap: widget.onDeleteAccount,
                         ),
                       ],
                     ),
