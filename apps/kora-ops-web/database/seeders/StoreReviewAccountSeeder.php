@@ -52,7 +52,7 @@ class StoreReviewAccountSeeder extends Seeder
         $user = $this->seedAccount();
 
         if (app()->isProduction()) {
-            $this->command?->info('Store review : compte seul créé (données démo désactivées en production).');
+            $this->command->info('Store review : compte seul créé (données démo désactivées en production).');
 
             return;
         }
@@ -120,7 +120,7 @@ class StoreReviewAccountSeeder extends Seeder
             $user->assignRole($role);
         }
 
-        $this->command?->info("Store review : compte {$email} prêt (PIN configuré, email vérifié).");
+        $this->command->info("Store review : compte {$email} prêt (PIN configuré, email vérifié).");
 
         return $user;
     }
@@ -130,7 +130,7 @@ class StoreReviewAccountSeeder extends Seeder
         $context = $this->findDepartureContext();
 
         if ($context === null) {
-            $this->command?->warn(
+            $this->command->warn(
                 'Store review : aucun départ à venir avec des sièges libres, données démo ignorées.',
             );
 
@@ -152,7 +152,7 @@ class StoreReviewAccountSeeder extends Seeder
             $created++;
         }
 
-        $this->command?->info($created > 0
+        $this->command->info($created > 0
             ? "Store review : {$created} réservation(s) démo créée(s) sur le départ {$departure->uuid}."
             : 'Store review : données démo déjà présentes, rien à faire.');
     }
@@ -290,7 +290,7 @@ class StoreReviewAccountSeeder extends Seeder
         try {
             $payload = app(BuildTicketQrPayloadAction::class)->execute($reservation, $ticket);
         } catch (\Throwable $exception) {
-            $this->command?->warn(
+            $this->command->warn(
                 "Store review : QR du billet {$index} non signé (clé Ed25519 absente ?) : {$exception->getMessage()}",
             );
 
