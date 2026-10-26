@@ -181,6 +181,23 @@ docker compose -f docker-compose.prod.yml exec app php artisan view:cache
 
 Verifier : `curl -sS -o /dev/null -w "HTTP %{http_code}" http://51.255.196.129/`
 
+## Compte de revue store (fenetre temporaire)
+
+Avant une soumission Apple/Google, ouvrir la fenetre de revue en production :
+
+```bash
+cd /opt/kora-prod
+# 1. .env.prod : STORE_REVIEW_ENABLED=true, STORE_REVIEW_OTP_CODE=<code campagne>, whitelist a jour
+docker compose -f docker-compose.prod.yml up -d            # env_file lu au demarrage
+docker compose -f docker-compose.prod.yml exec app php artisan config:cache
+docker compose -f docker-compose.prod.yml exec app php artisan queue:restart
+docker compose -f docker-compose.prod.yml exec app php artisan db:seed --class=StoreReviewAccountSeeder --force
+```
+
+Fermer la fenetre des l'acceptation de la fiche : `STORE_REVIEW_ENABLED=false`, vider
+`STORE_REVIEW_OTP_CODE`, `docker compose up -d`, `config:cache`, `queue:restart`. Procedure complete
+(staging, comptes, recette, depannage) : `docs/runbooks/store-review.md`.
+
 ## Structure des repertoires VPS
 
 ```
