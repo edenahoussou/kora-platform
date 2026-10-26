@@ -1,18 +1,17 @@
 import { Form } from '@inertiajs/react';
-import { AlertCircle, Check, Info, Tag, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import InputError from '@/components/input-error';
-import { Button } from '@/components/ui/button';
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogOverlay,
-    DialogPortal,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+    ArrowRight,
+    Banknote,
+    Calendar,
+    Check,
+    Info,
+    MapPin,
+    Route,
+    Sparkles,
+    Tag,
+    X,
+} from 'lucide-react';
+import { useMemo, useState } from 'react';
 import fares from '@/routes/fares';
 
 export type FareRecord = {
@@ -43,33 +42,50 @@ type LineOption = {
     stops: StopOption[];
 };
 
-type ServiceClassOption = {
-    uuid: string;
-    code: string;
-    name: string;
-};
-
 type Props = {
     open: boolean;
     fare?: FareRecord | null;
     lines: LineOption[];
-    serviceClasses: ServiceClassOption[];
     onOpenChange: (open: boolean) => void;
 };
 
-function HelpText({ children }: { children: React.ReactNode }) {
-    return (
-        <p className="text-[0.6875rem] leading-relaxed text-muted-foreground">
-            {children}
-        </p>
-    );
+function formatMoney(amount: number | string): string {
+    const num = typeof amount === 'string' ? Number(amount) : amount;
+
+    if (!num || isNaN(num)) {
+        return '—';
+    }
+
+    const formatted = new Intl.NumberFormat('fr-FR', {
+        maximumFractionDigits: 0,
+    }).format(num);
+
+    return `${formatted} FCFA`;
 }
 
+function formatDate(iso: string | null): string {
+    if (!iso) {
+        return '—';
+    }
+
+    const date = new Date(iso);
+
+    if (isNaN(date.getTime())) {
+        return iso;
+    }
+
+    return date.toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+    });
+}
+
+/** Formulaire modal de gestion de grille tarifaire (style caisse unifié). */
 export function FareFormDialog({
     open,
     fare,
     lines,
-    serviceClasses,
     onOpenChange,
 }: Props) {
     const editing = Boolean(fare);
@@ -86,9 +102,28 @@ export function FareFormDialog({
     const [selectedOriginUuid, setSelectedOriginUuid] = useState<string>(
         fare?.originName
             ? (lines
-                  .flatMap((l) => l.stops)
-                  .find((s) => s.name === fare.originName)?.uuid ?? '')
+                .flatMap((l) => l.stops)
+                .find((s) => s.name === fare.originName)?.uuid ?? '')
             : '',
+    );
+
+    const [selectedDestinationUuid, setSelectedDestinationUuid] =
+        useState<string>(
+            fare?.destinationName
+                ? (lines
+                    .flatMap((l) => l.stops)
+                    .find((s) => s.name === fare.destinationName)?.uuid ?? '')
+                : '',
+        );
+
+    const [baseAmount, setBaseAmount] = useState<string>(
+        fare?.baseAmount ? String(fare.baseAmount) : '',
+    );
+    const [effectiveFrom, setEffectiveFrom] = useState<string>(
+        fare?.effectiveFrom ?? '',
+    );
+    const [effectiveUntil, setEffectiveUntil] = useState<string>(
+        fare?.effectiveUntil ?? '',
     );
 
     const selectedLine = useMemo(
@@ -96,8 +131,6 @@ export function FareFormDialog({
         [lines, selectedLineUuid],
     );
 
-    // RAPPEL CORRECTION ICI : Envelopper dans useMemo pour stabiliser la référence du tableau
-    // Cela empêche la création d'un nouveau tableau [] à chaque rendu
     const availableStops = useMemo(
         () => selectedLine?.stops ?? [],
         [selectedLine],
@@ -108,7 +141,6 @@ export function FareFormDialog({
         [availableStops, selectedOriginUuid],
     );
 
-    // Destinations possibles : seulement les arrêts après l'origine dans l'itinéraire
     const destinationStops = useMemo(() => {
         if (!selectedOrigin) {
             return availableStops;
@@ -119,391 +151,570 @@ export function FareFormDialog({
         );
     }, [availableStops, selectedOrigin]);
 
-    // Origines possibles : exclure la destination déjà sélectionnée
-    // (Plus besoin de useMemo ici car availableStops est déjà stable, mais on le garde pour la cohérence)
     const originStops = useMemo(() => availableStops, [availableStops]);
 
+    const previewLineCode =
+        selectedLine?.code ?? fare?.lineCode ?? '';
+    const previewOriginName =
+        availableStops.find((s) => s.uuid === selectedOriginUuid)?.name ??
+        fare?.originName ??
+        '';
+    const previewDestinationName =
+        availableStops.find((s) => s.uuid === selectedDestinationUuid)?.name ??
+        fare?.destinationName ??
+        '';
+
+    if (!open) {
+        return null;
+    }
+
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogPortal>
-                <DialogOverlay className="bg-[rgba(0,29,78,0.24)] backdrop-blur-md" />
-            </DialogPortal>
-            <DialogContent
-                overlay={false}
-                className="!max-h-[85vh] !max-w-[52rem] overflow-y-auto rounded-[1.75rem] border-border/50 bg-card p-0 shadow-[0_30px_80px_rgba(0,29,78,0.35)] [&>button]:hidden"
+        <div
+            className="cash-modal-backdrop"
+            role="presentation"
+            onMouseDown={(e) =>
+                e.target === e.currentTarget && onOpenChange(false)
+            }
+        >
+            <Form
+                key={fare?.uuid ?? 'new'}
+                {...form}
+                options={{ preserveScroll: true }}
+                resetOnSuccess
+                onSuccess={() => onOpenChange(false)}
+                className="cash-modal cash-opening-modal w-[48rem]! max-w-[95vw]!"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="fare-modal-title"
             >
-                <Form
-                    {...form}
-                    options={{ preserveScroll: true }}
-                    resetOnSuccess
-                    onSuccess={() => onOpenChange(false)}
-                    className="flex flex-col"
-                >
-                    {({ processing, errors }) => (
-                        <>
-                            {/* En-tête */}
-                            <div className="flex items-start justify-between gap-5 border-b border-border/70 p-8 pb-7">
-                                <div className="flex items-start gap-4">
-                                    <span className="grid size-12 shrink-0 place-items-center rounded-[0.9rem] bg-gold text-[var(--kora)]">
-                                        <Tag className="size-5" />
-                                    </span>
-                                    <div>
-                                        <span className="mb-1 block text-[0.6875rem] font-black tracking-[0.15em] text-gold uppercase">
-                                            Tarification
+                {({ processing, errors }) => (
+                    <>
+                        <div className="cash-modal-head">
+                            <div className="flex items-start gap-3">
+                                <span className="cash-opening-icon">
+                                    <Tag className="size-5" />
+                                </span>
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="section-kicker">
+                                            Exploitation · Tarification
                                         </span>
-                                        <DialogTitle className="text-[1.5rem] font-extrabold tracking-[-0.03em] text-foreground">
-                                            {editing
-                                                ? 'Modifier le tarif'
-                                                : 'Nouvelle grille'}
-                                        </DialogTitle>
-                                        <DialogDescription className="mt-1.5 text-sm text-muted-foreground">
-                                            Définissez le segment, la classe de
-                                            service et la période d'effet.
-                                        </DialogDescription>
+                                        {editing && fare?.lineCode && (
+                                            <span className="rounded bg-gold/15 px-2 py-0.5 font-mono text-[11px] font-bold text-[var(--kora)]">
+                                                {fare.lineCode}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <h3 id="fare-modal-title">
+                                        {editing
+                                            ? 'Modifier la tarification'
+                                            : 'Nouvelle grille tarifaire'}
+                                    </h3>
+                                    <p>
+                                        {editing
+                                            ? 'Ajustez le montant et la période de validité du segment.'
+                                            : 'Définissez la ligne, le segment O/D et le prix unitaire applicable.'}
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => onOpenChange(false)}
+                                className="cash-modal-close"
+                                aria-label="Fermer"
+                                disabled={processing}
+                            >
+                                <X className="size-4" />
+                            </button>
+                        </div>
+
+                        <div className="cash-opening-list">
+                            {/* Alerte contextuelle informative */}
+                            {!editing ? (
+                                <div className="flex items-start gap-3 rounded-xl border border-gold/30 bg-gold/10 p-3.5 text-xs">
+                                    <Info className="mt-0.5 size-4 shrink-0 text-gold" />
+                                    <div className="space-y-0.5">
+                                        <strong className="block font-bold text-foreground">
+                                            Création en mode brouillon
+                                        </strong>
+                                        <p className="text-[11px] leading-relaxed text-muted-foreground">
+                                            Définissez la ligne, le tronçon Origine → Destination, le prix unitaire et la période d'effet. La grille sera créée en <strong>brouillon</strong> et devra être activée explicitement pour être vendable au guichet.
+                                        </p>
                                     </div>
                                 </div>
-                                <button
-                                    type="button"
-                                    onClick={() => onOpenChange(false)}
-                                    className="grid size-9 place-items-center rounded-[0.7rem] bg-muted"
-                                    aria-label="Fermer"
-                                >
-                                    <X className="size-4" />
-                                </button>
-                            </div>
+                            ) : (
+                                <div className="flex items-start gap-3 rounded-xl border border-border/80 bg-muted/40 p-3.5 text-xs">
+                                    <Info className="mt-0.5 size-4 shrink-0 text-gold" />
+                                    <div className="space-y-0.5">
+                                        <strong className="block font-bold text-foreground">
+                                            {fare?.status === 'active'
+                                                ? 'Tarif actif — modification sensible'
+                                                : fare?.status === 'draft'
+                                                  ? 'Tarif en brouillon — ajustement libre'
+                                                  : 'Tarif archivé — consultation'}
+                                        </strong>
+                                        <p className="text-[11px] leading-relaxed text-muted-foreground">
+                                            {fare?.status === 'active'
+                                                ? "Modifier le prix ou la période s'applique immédiatement aux prochaines réservations. Les billets déjà émis conservent leur montant d'origine."
+                                                : fare?.status === 'draft'
+                                                  ? 'Vous pouvez ajuster librement le montant et la validité avant activation.'
+                                                  : 'Ce tarif est archivé et n’est plus proposé à la vente.'}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
 
-                            <div className="grid gap-7 p-8">
-                                {/* Alerte informative */}
-                                {!editing ? (
-                                    <div className="flex items-start gap-3.5 rounded-[0.875rem] border border-[rgba(246,176,0,0.3)] bg-[rgba(246,176,0,0.06)] p-4">
-                                        <Info className="mt-0.5 size-4 shrink-0 text-gold" />
-                                        <div>
-                                            <p className="text-[0.8125rem] font-medium text-foreground">
-                                                Le tarif sera créé en brouillon
-                                            </p>
-                                            <p className="mt-1 text-[0.75rem] leading-relaxed text-muted-foreground">
-                                                Vous devrez l'activer
-                                                explicitement pour qu'il soit
-                                                vendable. Les billets déjà émis
-                                                ne sont jamais modifiés
-                                                rétroactivement.
-                                            </p>
+                            {/* Section 1 : Itinéraire & Segment */}
+                            <div className="cash-opening-row">
+                                <div className="cash-opening-row-head">
+                                    <span className="cash-opening-icon">
+                                        <Route className="size-4" />
+                                    </span>
+                                    <div>
+                                        <strong>Itinéraire & Segment</strong>
+                                        <small>
+                                            Ligne exploitée et tronçon Origine →
+                                            Destination
+                                        </small>
+                                    </div>
+                                </div>
+
+                                {editing ? (
+                                    <div className="flex flex-col gap-2 rounded-xl border border-border/70 bg-card p-3.5 sm:flex-row sm:items-center sm:justify-between">
+                                        <div className="flex items-center gap-2.5">
+                                            <span className="rounded-md bg-gold/15 px-2 py-1 font-mono text-xs font-bold text-[var(--kora)]">
+                                                {fare?.lineCode}
+                                            </span>
+                                            <span className="text-xs font-semibold text-foreground">
+                                                {fare?.lineName}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-xs font-medium text-foreground">
+                                            <span className="inline-flex items-center gap-1 text-muted-foreground">
+                                                <MapPin className="size-3 text-gold" />
+                                                {fare?.originName}
+                                            </span>
+                                            <ArrowRight className="size-3.5 text-muted-foreground" />
+                                            <span className="inline-flex items-center gap-1 font-semibold text-foreground">
+                                                <MapPin className="size-3 text-[var(--kora)]" />
+                                                {fare?.destinationName}
+                                            </span>
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="flex items-start gap-3.5 rounded-[0.875rem] border border-border/60 bg-muted/40 p-4">
-                                        <AlertCircle className="mt-0.5 size-4 shrink-0 text-[var(--digital)]" />
-                                        <div>
-                                            <p className="text-[0.8125rem] font-medium text-foreground">
-                                                {fare?.status === 'active'
-                                                    ? 'Tarif actif — modification sensible'
-                                                    : fare?.status === 'draft'
-                                                      ? 'Tarif en brouillon — libre modification'
-                                                      : 'Tarif archivé — lecture seule'}
-                                            </p>
-                                            <p className="mt-1 text-[0.75rem] leading-relaxed text-muted-foreground">
-                                                {fare?.status === 'active'
-                                                    ? "Modifier le prix ou la période impacte immédiatement les nouvelles recherches. Les billets déjà vendus conservent leur prix d'origine."
-                                                    : fare?.status === 'draft'
-                                                      ? "Ce tarif n'est pas encore vendable. Vous pouvez ajuster librement le prix et la période."
-                                                      : "Ce tarif n'est plus vendable. Créez un nouveau tarif pour le remplacer."}
-                                            </p>
+                                    <div className="grid grid-cols-1 gap-4">
+                                        <label className="field">
+                                            <span className="field-label">
+                                                Ligne commerciale{' '}
+                                                <b className="font-black text-destructive">
+                                                    *
+                                                </b>
+                                            </span>
+                                            <select
+                                                className="control"
+                                                name="line_id"
+                                                value={selectedLineUuid}
+                                                onChange={(e) => {
+                                                    setSelectedLineUuid(
+                                                        e.target.value,
+                                                    );
+                                                    setSelectedOriginUuid('');
+                                                    setSelectedDestinationUuid(
+                                                        '',
+                                                    );
+                                                }}
+                                                required
+                                            >
+                                                <option value="">
+                                                    Sélectionner une ligne
+                                                </option>
+                                                {lines.map((line) => (
+                                                    <option
+                                                        key={line.uuid}
+                                                        value={line.uuid}
+                                                    >
+                                                        {line.code} · {line.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {errors.line_id ? (
+                                                <small className="field-error-text">
+                                                    {errors.line_id}
+                                                </small>
+                                            ) : (
+                                                <small>
+                                                    Détermine les arrêts
+                                                    ordonnés disponibles pour le
+                                                    tronçon.
+                                                </small>
+                                            )}
+                                        </label>
+
+                                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                            <label className="field">
+                                                <span className="field-label">
+                                                    Arrêt d'origine{' '}
+                                                    <b className="font-black text-destructive">
+                                                        *
+                                                    </b>
+                                                </span>
+                                                <select
+                                                    className="control"
+                                                    name="origin_stop_id"
+                                                    value={selectedOriginUuid}
+                                                    onChange={(e) => {
+                                                        setSelectedOriginUuid(
+                                                            e.target.value,
+                                                        );
+                                                        setSelectedDestinationUuid(
+                                                            '',
+                                                        );
+                                                    }}
+                                                    required
+                                                    disabled={
+                                                        availableStops.length ===
+                                                        0
+                                                    }
+                                                >
+                                                    <option value="">
+                                                        {availableStops.length ===
+                                                        0
+                                                            ? 'Choisir une ligne d’abord'
+                                                            : 'Sélectionner l’origine'}
+                                                    </option>
+                                                    {originStops.map((stop) => (
+                                                        <option
+                                                            key={stop.uuid}
+                                                            value={stop.uuid}
+                                                        >
+                                                            {stop.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                {errors.origin_stop_id ? (
+                                                    <small className="field-error-text">
+                                                        {errors.origin_stop_id}
+                                                    </small>
+                                                ) : (
+                                                    <small>
+                                                        Point d'embarquement du
+                                                        passager.
+                                                    </small>
+                                                )}
+                                            </label>
+
+                                            <label className="field">
+                                                <span className="field-label">
+                                                    Arrêt de destination{' '}
+                                                    <b className="font-black text-destructive">
+                                                        *
+                                                    </b>
+                                                </span>
+                                                <select
+                                                    className="control"
+                                                    name="destination_stop_id"
+                                                    value={
+                                                        selectedDestinationUuid
+                                                    }
+                                                    onChange={(e) =>
+                                                        setSelectedDestinationUuid(
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                    required
+                                                    disabled={
+                                                        availableStops.length ===
+                                                            0 ||
+                                                        !selectedOriginUuid
+                                                    }
+                                                >
+                                                    <option value="">
+                                                        {availableStops.length ===
+                                                        0
+                                                            ? 'Choisir une ligne d’abord'
+                                                            : !selectedOriginUuid
+                                                              ? 'Choisir l’origine d’abord'
+                                                              : destinationStops.length ===
+                                                                  0
+                                                                ? 'Aucun arrêt aval disponible'
+                                                                : 'Sélectionner la destination'}
+                                                    </option>
+                                                    {destinationStops.map(
+                                                        (stop) => (
+                                                            <option
+                                                                key={stop.uuid}
+                                                                value={stop.uuid}
+                                                            >
+                                                                {stop.name}
+                                                            </option>
+                                                        ),
+                                                    )}
+                                                </select>
+                                                {errors.destination_stop_id ? (
+                                                    <small className="field-error-text">
+                                                        {
+                                                            errors.destination_stop_id
+                                                        }
+                                                    </small>
+                                                ) : (
+                                                    <small>
+                                                        Arrêt situé en aval de
+                                                        l’origine dans
+                                                        l'itinéraire.
+                                                    </small>
+                                                )}
+                                            </label>
                                         </div>
                                     </div>
                                 )}
+                            </div>
 
-                                {/* Ligne + Service */}
-                                <div className="grid gap-7 sm:grid-cols-2">
-                                    <div className="grid gap-2.5">
-                                        <Label htmlFor="fare-line">
-                                            Ligne *
-                                        </Label>
-                                        <select
-                                            id="fare-line"
-                                            name="line_id"
-                                            value={selectedLineUuid}
-                                            onChange={(e) => {
-                                                setSelectedLineUuid(
-                                                    e.target.value,
-                                                );
-                                                setSelectedOriginUuid('');
-                                            }}
-                                            required
-                                            disabled={editing}
-                                            className="h-12 w-full rounded-[0.875rem] border-0 bg-muted px-3 text-sm text-foreground shadow-[inset_0_0_0_1px_var(--border)] outline-none disabled:opacity-60"
-                                        >
-                                            <option value="">
-                                                Sélectionner une ligne
-                                            </option>
-                                            {lines.map((line) => (
-                                                <option
-                                                    key={line.uuid}
-                                                    value={line.uuid}
-                                                >
-                                                    {line.code} · {line.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <HelpText>
-                                            La ligne détermine les arrêts
-                                            disponibles pour le segment.
-                                        </HelpText>
-                                        <InputError message={errors.line_id} />
-                                    </div>
-                                    <div className="grid gap-2.5">
-                                        <Label htmlFor="fare-service">
-                                            Service *
-                                        </Label>
-                                        <select
-                                            id="fare-service"
-                                            name="service_class_id"
-                                            defaultValue={
-                                                fare?.serviceClassCode
-                                                    ? (serviceClasses.find(
-                                                          (s) =>
-                                                              s.code ===
-                                                              fare.serviceClassCode,
-                                                      )?.uuid ?? '')
-                                                    : ''
-                                            }
-                                            required
-                                            disabled={editing}
-                                            className="h-12 w-full rounded-[0.875rem] border-0 bg-muted px-3 text-sm text-foreground shadow-[inset_0_0_0_1px_var(--border)] outline-none disabled:opacity-60"
-                                        >
-                                            <option value="">
-                                                Sélectionner un service
-                                            </option>
-                                            {serviceClasses.map((cls) => (
-                                                <option
-                                                    key={cls.uuid}
-                                                    value={cls.uuid}
-                                                >
-                                                    {cls.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <HelpText>
-                                            Chaque classe de service a son
-                                            propre prix sur le même segment.
-                                        </HelpText>
-                                        <InputError
-                                            message={errors.service_class_id}
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Origine + Destination */}
-                                <div className="grid gap-7 sm:grid-cols-2">
-                                    <div className="grid gap-2.5">
-                                        <Label htmlFor="fare-origin">
-                                            Origine *
-                                        </Label>
-                                        <select
-                                            id="fare-origin"
-                                            name="origin_stop_id"
-                                            value={selectedOriginUuid}
-                                            onChange={(e) => {
-                                                setSelectedOriginUuid(
-                                                    e.target.value,
-                                                );
-                                            }}
-                                            required
-                                            disabled={
-                                                editing ||
-                                                availableStops.length === 0
-                                            }
-                                            className="h-12 w-full rounded-[0.875rem] border-0 bg-muted px-3 text-sm text-foreground shadow-[inset_0_0_0_1px_var(--border)] outline-none disabled:opacity-60"
-                                        >
-                                            <option value="">
-                                                {availableStops.length === 0
-                                                    ? "Sélectionner d'abord une ligne"
-                                                    : "Sélectionner l'origine"}
-                                            </option>
-                                            {originStops.map((stop) => (
-                                                <option
-                                                    key={stop.uuid}
-                                                    value={stop.uuid}
-                                                >
-                                                    {stop.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <HelpText>
-                                            Point de départ du segment vendable.
-                                        </HelpText>
-                                        <InputError
-                                            message={errors.origin_stop_id}
-                                        />
-                                    </div>
-                                    <div className="grid gap-2.5">
-                                        <Label htmlFor="fare-destination">
-                                            Destination *
-                                        </Label>
-                                        <select
-                                            id="fare-destination"
-                                            name="destination_stop_id"
-                                            defaultValue={
-                                                fare?.destinationName
-                                                    ? (availableStops.find(
-                                                          (s) =>
-                                                              s.name ===
-                                                              fare.destinationName,
-                                                      )?.uuid ?? '')
-                                                    : ''
-                                            }
-                                            required
-                                            disabled={
-                                                editing ||
-                                                availableStops.length === 0
-                                            }
-                                            className="h-12 w-full rounded-[0.875rem] border-0 bg-muted px-3 text-sm text-foreground shadow-[inset_0_0_0_1px_var(--border)] outline-none disabled:opacity-60"
-                                        >
-                                            <option value="">
-                                                {availableStops.length === 0
-                                                    ? "Sélectionner d'abord une ligne"
-                                                    : selectedOriginUuid === ''
-                                                      ? "Sélectionner d'abord l'origine"
-                                                      : destinationStops.length ===
-                                                          0
-                                                        ? 'Aucune destination disponible'
-                                                        : 'Sélectionner la destination'}
-                                            </option>
-                                            {destinationStops.map((stop) => (
-                                                <option
-                                                    key={stop.uuid}
-                                                    value={stop.uuid}
-                                                >
-                                                    {stop.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <HelpText>
-                                            Doit être située après l'origine
-                                            dans l'itinéraire de la ligne.
-                                        </HelpText>
-                                        <InputError
-                                            message={errors.destination_stop_id}
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Prix */}
-                                <div className="grid gap-2.5">
-                                    <Label htmlFor="fare-amount">
-                                        Prix (FCFA) *
-                                    </Label>
-                                    <Input
-                                        id="fare-amount"
-                                        name="base_amount"
-                                        type="number"
-                                        min="1"
-                                        defaultValue={fare?.baseAmount ?? ''}
-                                        required
-                                        placeholder="8500"
-                                        className="h-12 rounded-[0.875rem] border-0 bg-muted shadow-[inset_0_0_0_1px_var(--border)]"
-                                    />
-                                    <HelpText>
-                                        Montant en Francs CFA (XOF), entier,
-                                        sans décimale. Taxes incluses.
-                                    </HelpText>
-                                    <InputError message={errors.base_amount} />
-                                </div>
-
-                                {/* Période d'effet */}
-                                <div className="rounded-[1rem] bg-muted/40 p-6">
-                                    <span className="mb-2 block text-[0.5625rem] font-black tracking-[0.13em] text-[var(--digital)] uppercase">
-                                        Période d'effet
+                            {/* Section 2 : Tarification & Montant */}
+                            <div className="cash-opening-row">
+                                <div className="cash-opening-row-head">
+                                    <span className="cash-opening-icon">
+                                        <Banknote className="size-4" />
                                     </span>
-                                    <p className="mb-5 text-[0.6875rem] leading-relaxed text-muted-foreground">
-                                        Définit la fenêtre de validité du tarif.
-                                        En dehors de cette période, le tarif
-                                        n'est pas proposé à la vente.
-                                    </p>
-                                    <div className="grid gap-7 sm:grid-cols-2">
-                                        <div className="grid gap-2.5">
-                                            <Label htmlFor="fare-from">
-                                                Date d'effet (début) *
-                                            </Label>
-                                            <Input
-                                                id="fare-from"
-                                                name="effective_from"
-                                                type="date"
-                                                defaultValue={
-                                                    fare?.effectiveFrom ?? ''
+                                    <div>
+                                        <strong>Tarif applicable</strong>
+                                        <small>
+                                            Prix unitaire standard par passager
+                                            (TTC)
+                                        </small>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-4">
+                                    <label className="field">
+                                        <span className="field-label">
+                                            Prix de base{' '}
+                                            <b className="font-black text-destructive">
+                                                *
+                                            </b>
+                                        </span>
+                                        <div className="relative flex items-center">
+                                            <input
+                                                className="control pr-16 font-mono text-base font-bold tracking-tight"
+                                                name="base_amount"
+                                                type="number"
+                                                min="1"
+                                                step="1"
+                                                inputMode="numeric"
+                                                value={baseAmount}
+                                                onChange={(e) =>
+                                                    setBaseAmount(e.target.value)
                                                 }
                                                 required
-                                                className="h-12 rounded-[0.875rem] border-0 bg-muted shadow-[inset_0_0_0_1px_var(--border)]"
-                                            />
-                                            <HelpText>
-                                                À partir de cette date, le tarif
-                                                est proposé à la vente (après
-                                                activation).
-                                            </HelpText>
-                                            <InputError
-                                                message={errors.effective_from}
-                                            />
-                                        </div>
-                                        <div className="grid gap-2.5">
-                                            <Label htmlFor="fare-until">
-                                                Date de fin (optionnel)
-                                            </Label>
-                                            <Input
-                                                id="fare-until"
-                                                name="effective_until"
-                                                type="date"
-                                                defaultValue={
-                                                    fare?.effectiveUntil ?? ''
+                                                placeholder="ex: 8500"
+                                                aria-invalid={
+                                                    !!errors.base_amount
                                                 }
-                                                className="h-12 rounded-[0.875rem] border-0 bg-muted shadow-[inset_0_0_0_1px_var(--border)]"
                                             />
-                                            <HelpText>
-                                                Laisser vide pour un tarif
-                                                permanent (indéterminé). Sinon,
-                                                le tarif cesse automatiquement à
-                                                cette date.
-                                            </HelpText>
-                                            <InputError
-                                                message={errors.effective_until}
-                                            />
+                                            <span className="pointer-events-none absolute right-3 inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-extrabold text-muted-foreground">
+                                                FCFA
+                                            </span>
                                         </div>
+                                        {errors.base_amount ? (
+                                            <small className="field-error-text">
+                                                {errors.base_amount}
+                                            </small>
+                                        ) : (
+                                            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                                                <span>
+                                                    Montant entier en Francs CFA
+                                                    (XOF), toutes taxes
+                                                    comprises.
+                                                </span>
+                                                {baseAmount &&
+                                                    !isNaN(
+                                                        Number(baseAmount),
+                                                    ) &&
+                                                    Number(baseAmount) > 0 && (
+                                                        <span className="font-mono font-bold text-foreground">
+                                                            {formatMoney(
+                                                                baseAmount,
+                                                            )}
+                                                        </span>
+                                                    )}
+                                            </div>
+                                        )}
+                                    </label>
+                                </div>
+                            </div>
+
+                            {/* Section 3 : Période d'effet */}
+                            <div className="cash-opening-row">
+                                <div className="cash-opening-row-head">
+                                    <span className="cash-opening-icon">
+                                        <Calendar className="size-4" />
+                                    </span>
+                                    <div>
+                                        <strong>Période de validité</strong>
+                                        <small>
+                                            Fenêtre temporelle d'application de
+                                            la grille tarifaire
+                                        </small>
                                     </div>
                                 </div>
 
-                                {/* Devise (champ caché XOF par défaut) */}
-                                <input
-                                    type="hidden"
-                                    name="currency"
-                                    value={fare?.currency ?? 'XOF'}
-                                />
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                    <label className="field">
+                                        <span className="field-label">
+                                            Date de début d'effet{' '}
+                                            <b className="font-black text-destructive">
+                                                *
+                                            </b>
+                                        </span>
+                                        <input
+                                            className="control"
+                                            name="effective_from"
+                                            type="date"
+                                            value={effectiveFrom}
+                                            onChange={(e) =>
+                                                setEffectiveFrom(e.target.value)
+                                            }
+                                            required
+                                            aria-invalid={
+                                                !!errors.effective_from
+                                            }
+                                        />
+                                        {errors.effective_from ? (
+                                            <small className="field-error-text">
+                                                {errors.effective_from}
+                                            </small>
+                                        ) : (
+                                            <small>
+                                                Date à partir de laquelle le
+                                                tarif sera actif.
+                                            </small>
+                                        )}
+                                    </label>
+
+                                    <label className="field">
+                                        <span className="field-label">
+                                            Date de fin d'effet{' '}
+                                            <em>(Optionnel)</em>
+                                        </span>
+                                        <input
+                                            className="control"
+                                            name="effective_until"
+                                            type="date"
+                                            value={effectiveUntil}
+                                            onChange={(e) =>
+                                                setEffectiveUntil(
+                                                    e.target.value,
+                                                )
+                                            }
+                                            aria-invalid={
+                                                !!errors.effective_until
+                                            }
+                                        />
+                                        {errors.effective_until ? (
+                                            <small className="field-error-text">
+                                                {errors.effective_until}
+                                            </small>
+                                        ) : (
+                                            <small>
+                                                Laisser vide pour une
+                                                application permanente.
+                                            </small>
+                                        )}
+                                    </label>
+                                </div>
                             </div>
 
-                            <div className="flex flex-col-reverse gap-3 border-t border-border/70 bg-muted/30 p-8 sm:flex-row sm:justify-end">
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    onClick={() => onOpenChange(false)}
-                                    disabled={processing}
-                                    className="h-12 rounded-[0.8rem] px-5"
-                                >
-                                    Annuler
-                                </Button>
-                                <Button
-                                    type="submit"
-                                    disabled={processing}
-                                    className="h-12 rounded-[0.8rem] bg-gold px-6 font-medium text-[var(--kora)] shadow-[0_9px_22px_rgba(246,176,0,0.22)] hover:bg-[var(--kora)] hover:text-white"
-                                >
-                                    <Check className="size-4" />
-                                    {processing
-                                        ? 'Enregistrement…'
-                                        : editing
-                                          ? 'Enregistrer les changements'
-                                          : 'Valider et continuer'}
-                                </Button>
+                            {/* Bandeau récapitulatif dynamique style Billet Caisse */}
+                            <div className="rounded-xl border border-gold/30 bg-gold/5 p-4 transition-all">
+                                <div className="flex items-center justify-between border-b border-gold/20 pb-2.5">
+                                    <div className="flex items-center gap-2">
+                                        <Sparkles className="size-4 text-gold" />
+                                        <span className="text-[11px] font-black tracking-wider text-[var(--kora)] uppercase">
+                                            Aperçu billetterie
+                                        </span>
+                                    </div>
+                                    <span className="rounded bg-gold/20 px-2 py-0.5 text-[10px] font-extrabold text-[var(--kora)]">
+                                        {editing
+                                            ? 'Mise à jour'
+                                            : 'Nouveau tarif (Brouillon)'}
+                                    </span>
+                                </div>
+                                <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                                    <div>
+                                        <span className="block text-[10px] font-bold text-muted-foreground uppercase">
+                                            Ligne
+                                        </span>
+                                        <span className="font-mono text-xs font-bold text-foreground">
+                                            {previewLineCode || '—'}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <span className="block text-[10px] font-bold text-muted-foreground uppercase">
+                                            Tronçon
+                                        </span>
+                                        <span className="truncate text-xs font-bold text-foreground">
+                                            {previewOriginName &&
+                                            previewDestinationName
+                                                ? `${previewOriginName} → ${previewDestinationName}`
+                                                : '—'}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <span className="block text-[10px] font-bold text-muted-foreground uppercase">
+                                            Prix unitaire
+                                        </span>
+                                        <span className="font-mono text-xs font-black text-foreground">
+                                            {baseAmount
+                                                ? formatMoney(baseAmount)
+                                                : '—'}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <span className="block text-[10px] font-bold text-muted-foreground uppercase">
+                                            Validité
+                                        </span>
+                                        <span className="text-xs font-medium text-foreground">
+                                            {effectiveFrom
+                                                ? `${formatDate(effectiveFrom)}${effectiveUntil ? ` → ${formatDate(effectiveUntil)}` : ' → ∞'}`
+                                                : '—'}
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
-                        </>
-                    )}
-                </Form>
-            </DialogContent>
-        </Dialog>
+
+                            {/* Devise cachée (XOF) */}
+                            <input
+                                type="hidden"
+                                name="currency"
+                                value={fare?.currency ?? 'XOF'}
+                            />
+                        </div>
+
+                        {/* Boutons d'action style Caisse */}
+                        <div className="cash-modal-actions mt-6">
+                            <button
+                                type="button"
+                                onClick={() => onOpenChange(false)}
+                                className="btn btn-ghost"
+                                disabled={processing}
+                            >
+                                Annuler
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={processing}
+                                className="btn btn-primary"
+                            >
+                                <Check className="size-4" />
+                                {processing
+                                    ? 'Enregistrement…'
+                                    : editing
+                                      ? 'Enregistrer les modifications'
+                                      : 'Créer le tarif'}
+                            </button>
+                        </div>
+                    </>
+                )}
+            </Form>
+        </div>
     );
 }

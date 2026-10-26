@@ -1,4 +1,4 @@
-export type PhysicalStationRecord = {
+export type PhysicalStopRecord = {
     uuid: string;
     code: string;
     name: string;
@@ -35,7 +35,7 @@ export type LineRecord = {
     uuid: string;
     code: string;
     name: string;
-    type: 'nationale' | 'internationale' | 'regionale';
+    type: 'nationale' | 'internationale';
     bidirectional: boolean;
     itinerary: string;
     originCity: string;

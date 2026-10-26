@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { FareFormDialog } from '@/components/fares/fare-form-dialog';
 import type { FareRecord } from '@/components/fares/fare-form-dialog';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
-import { Button } from '@/components/ui/button';
 import fares from '@/routes/fares';
 import type { BreadcrumbItem } from '@/types';
 
@@ -35,12 +34,6 @@ type TimelineEvent = {
     date: string | null;
 };
 
-type ServiceClassOption = {
-    uuid: string;
-    code: string;
-    name: string;
-};
-
 type StopOption = {
     uuid: string;
     name: string;
@@ -58,7 +51,6 @@ type PageProps = {
     fare: FareDetail;
     versions: FareVersion[];
     timeline: TimelineEvent[];
-    serviceClasses: ServiceClassOption[];
     lines: LineOption[];
     permissions: {
         canUpdate: boolean;
@@ -79,7 +71,7 @@ const statusTones: Record<string, 'navy' | 'gold' | 'muted'> = {
 type Tab = 'segments' | 'periods' | 'history';
 
 const BUSINESS_RULE =
-    "Chaque combinaison origine–destination possède son prix commercial par classe de service. Les billets déjà émis conservent leur prix d'origine, même après modification de la grille.";
+    "Chaque combinaison origine–destination possède son prix commercial. Les billets déjà émis conservent leur prix d'origine, même après modification de la grille.";
 
 function formatDate(iso: string | null): string {
     if (!iso) {
@@ -119,7 +111,6 @@ export default function FareDetailPage({
     fare,
     versions,
     timeline,
-    serviceClasses,
     lines,
     permissions,
 }: PageProps) {
@@ -139,10 +130,6 @@ export default function FareDetailPage({
         { label: 'Ligne', value: `${fare.lineCode} · ${fare.lineName}` },
         { label: 'Origine', value: fare.originName },
         { label: 'Destination', value: fare.destinationName },
-        {
-            label: 'Classe de service',
-            value: fare.serviceClassName,
-        },
         {
             label: 'Prix de base',
             value: formatAmount(fare.baseAmount, fare.currency),
@@ -176,25 +163,27 @@ export default function FareDetailPage({
                     </h1>
                     <p className="mt-1.5 text-sm text-muted-foreground">
                         {fare.reference} · {fare.lineCode} · {fare.originName} →{' '}
-                        {fare.destinationName} · {fare.serviceClassName}
+                        {fare.destinationName}
                     </p>
                 </div>
                 <div className="flex flex-wrap gap-2.5">
                     <button
+                        type="button"
                         onClick={() => router.get(fares.index.url())}
-                        className="inline-flex h-10 items-center gap-2 rounded-[0.75rem] border border-border/50 bg-card px-4 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                        className="btn btn-ghost"
                     >
                         <ArrowLeft className="size-4" />
                         Retour
                     </button>
                     {permissions.canUpdate && (
-                        <Button
+                        <button
+                            type="button"
                             onClick={() => setEditDialog(true)}
-                            className="h-10 rounded-[0.75rem] bg-gold px-4 font-medium text-[var(--kora)] hover:bg-[var(--kora)] hover:text-white"
+                            className="btn btn-primary"
                         >
-                            <Pencil className="size-4" />
+                            <Pencil className="size-3.5" />
                             Modifier
-                        </Button>
+                        </button>
                     )}
                 </div>
             </div>
@@ -205,11 +194,10 @@ export default function FareDetailPage({
                     <button
                         key={key}
                         onClick={() => setTab(key)}
-                        className={`border-b-2 px-4 py-3 text-[0.6875rem] font-extrabold tracking-[0.035em] transition-colors ${
-                            tab === key
-                                ? 'border-gold text-foreground'
-                                : 'border-transparent text-muted-foreground hover:text-foreground'
-                        }`}
+                        className={`border-b-2 px-4 py-3 text-[0.6875rem] font-extrabold tracking-[0.035em] transition-colors ${tab === key
+                            ? 'border-gold text-foreground'
+                            : 'border-transparent text-muted-foreground hover:text-foreground'
+                            }`}
                     >
                         {label}
                     </button>
@@ -227,7 +215,6 @@ export default function FareDetailPage({
                     </h2>
                     <p className="mt-2 max-w-[560px] text-[0.6875rem] leading-relaxed text-white/72">
                         {fare.originName} → {fare.destinationName} ·{' '}
-                        {fare.serviceClassName} ·{' '}
                         {formatAmount(fare.baseAmount, fare.currency)}
                     </p>
                 </div>
@@ -363,11 +350,10 @@ export default function FareDetailPage({
                                             {versions.map((version) => (
                                                 <tr
                                                     key={version.uuid}
-                                                    className={`border-b border-border/30 ${
-                                                        version.isCurrent
-                                                            ? 'bg-gold/5'
-                                                            : ''
-                                                    }`}
+                                                    className={`border-b border-border/30 ${version.isCurrent
+                                                        ? 'bg-gold/5'
+                                                        : ''
+                                                        }`}
                                                 >
                                                     <td className="py-3 pr-4 font-medium text-foreground">
                                                         {version.reference}
@@ -397,15 +383,15 @@ export default function FareDetailPage({
                                                         <KoraStatusBadge
                                                             label={
                                                                 statusLabels[
-                                                                    version
-                                                                        .status
+                                                                version
+                                                                    .status
                                                                 ] ??
                                                                 version.status
                                                             }
                                                             tone={
                                                                 statusTones[
-                                                                    version
-                                                                        .status
+                                                                version
+                                                                    .status
                                                                 ] ?? 'muted'
                                                             }
                                                         />
@@ -533,7 +519,6 @@ export default function FareDetailPage({
                 open={editDialog}
                 fare={fare}
                 lines={lines}
-                serviceClasses={serviceClasses}
                 onOpenChange={setEditDialog}
             />
         </>

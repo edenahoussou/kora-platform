@@ -15,12 +15,12 @@ beforeEach(function (): void {
 
 it('lists fares with line, segment, service class, and price without exposing numeric ids', function (): void {
     [$line, $origin, $destination] = lineWithStops();
-    $confort = ServiceClass::query()->where('code', 'confort')->firstOrFail();
+    $standard = ServiceClass::query()->where('code', 'standard')->firstOrFail();
 
     $fare = Fare::query()->create([
         'uuid' => Str::uuid()->toString(),
         'line_id' => $line->id,
-        'service_class_id' => $confort->id,
+        'service_class_id' => $standard->id,
         'origin_stop_id' => $origin->id,
         'destination_stop_id' => $destination->id,
         'base_amount' => 8500,
@@ -39,8 +39,8 @@ it('lists fares with line, segment, service class, and price without exposing nu
             ->where('fares.data.0.lineName', $line->name)
             ->where('fares.data.0.originName', 'Cotonou')
             ->where('fares.data.0.destinationName', 'Parakou')
-            ->where('fares.data.0.serviceClassCode', 'confort')
-            ->where('fares.data.0.serviceClassName', 'KORA Confort')
+            ->where('fares.data.0.serviceClassCode', 'standard')
+            ->where('fares.data.0.serviceClassName', 'Standard')
             ->where('fares.data.0.baseAmount', 8500)
             ->where('fares.data.0.currency', 'XOF')
             ->where('fares.data.0.status', 'active')
@@ -51,13 +51,13 @@ it('lists fares with line, segment, service class, and price without exposing nu
 
 it('filters fares by status and service class', function (): void {
     [$line, $origin, $destination] = lineWithStops();
-    $confort = ServiceClass::query()->where('code', 'confort')->firstOrFail();
-    $premium = ServiceClass::query()->where('code', 'premium')->firstOrFail();
+    $standard = ServiceClass::query()->where('code', 'standard')->firstOrFail();
+    $premium = ServiceClass::query()->create(['uuid' => Str::uuid()->toString(), 'code' => 'premium', 'name' => 'KORA Premium', 'sort_order' => 2]);
 
     Fare::query()->create([
         'uuid' => Str::uuid()->toString(),
         'line_id' => $line->id,
-        'service_class_id' => $confort->id,
+        'service_class_id' => $standard->id,
         'origin_stop_id' => $origin->id,
         'destination_stop_id' => $destination->id,
         'base_amount' => 8500,
@@ -91,18 +91,18 @@ it('filters fares by status and service class', function (): void {
         ->assertSuccessful()
         ->assertInertia(fn (Assert $page) => $page
             ->where('fares.total', 1)
-            ->where('fares.data.0.serviceClassCode', 'confort'));
+            ->where('fares.data.0.serviceClassCode', 'standard'));
 });
 
 it('filters fares by line uuid', function (): void {
     [$lineA, $originA, $destinationA] = lineWithStops();
     [$lineB, $originB, $destinationB] = lineWithStops();
-    $confort = ServiceClass::query()->where('code', 'confort')->firstOrFail();
+    $standard = ServiceClass::query()->where('code', 'standard')->firstOrFail();
 
     Fare::query()->create([
         'uuid' => Str::uuid()->toString(),
         'line_id' => $lineA->id,
-        'service_class_id' => $confort->id,
+        'service_class_id' => $standard->id,
         'origin_stop_id' => $originA->id,
         'destination_stop_id' => $destinationA->id,
         'base_amount' => 8500,
@@ -114,7 +114,7 @@ it('filters fares by line uuid', function (): void {
     Fare::query()->create([
         'uuid' => Str::uuid()->toString(),
         'line_id' => $lineB->id,
-        'service_class_id' => $confort->id,
+        'service_class_id' => $standard->id,
         'origin_stop_id' => $originB->id,
         'destination_stop_id' => $destinationB->id,
         'base_amount' => 12000,
@@ -134,13 +134,13 @@ it('filters fares by line uuid', function (): void {
 
 it('exposes line fares in the network index payload', function (): void {
     [$line, $origin, $destination] = lineWithStops();
-    $confort = ServiceClass::query()->where('code', 'confort')->firstOrFail();
-    $premium = ServiceClass::query()->where('code', 'premium')->firstOrFail();
+    $standard = ServiceClass::query()->where('code', 'standard')->firstOrFail();
+    $premium = ServiceClass::query()->create(['uuid' => Str::uuid()->toString(), 'code' => 'premium', 'name' => 'KORA Premium', 'sort_order' => 2]);
 
     Fare::query()->create([
         'uuid' => Str::uuid()->toString(),
         'line_id' => $line->id,
-        'service_class_id' => $confort->id,
+        'service_class_id' => $standard->id,
         'origin_stop_id' => $origin->id,
         'destination_stop_id' => $destination->id,
         'base_amount' => 8500,
@@ -172,7 +172,7 @@ it('exposes line fares in the network index payload', function (): void {
             ->has('lines.0.fares', 2)
             ->where('lines.0.fares.0.originName', 'Cotonou')
             ->where('lines.0.fares.0.destinationName', 'Parakou')
-            ->where('lines.0.fares.0.serviceClassName', 'KORA Confort')
+            ->where('lines.0.fares.0.serviceClassName', 'Standard')
             ->where('lines.0.fares.0.baseAmount', 8500)
             ->where('lines.0.fares.1.serviceClassName', 'KORA Premium')
             ->where('lines.0.fares.1.baseAmount', 10500));
@@ -180,12 +180,12 @@ it('exposes line fares in the network index payload', function (): void {
 
 it('excludes archived fares from the network index payload', function (): void {
     [$line, $origin, $destination] = lineWithStops();
-    $confort = ServiceClass::query()->where('code', 'confort')->firstOrFail();
+    $standard = ServiceClass::query()->where('code', 'standard')->firstOrFail();
 
     Fare::query()->create([
         'uuid' => Str::uuid()->toString(),
         'line_id' => $line->id,
-        'service_class_id' => $confort->id,
+        'service_class_id' => $standard->id,
         'origin_stop_id' => $origin->id,
         'destination_stop_id' => $destination->id,
         'base_amount' => 8000,
@@ -213,11 +213,11 @@ it('rejects unauthorized fares access for agency agents', function (): void {
 
 it('creates a fare in draft status with validation explicit required', function (): void {
     [$line, $origin, $destination] = lineWithStops();
-    $confort = ServiceClass::query()->where('code', 'confort')->firstOrFail();
+    $standard = ServiceClass::query()->where('code', 'standard')->firstOrFail();
 
     $this->actingAs(commercialDirector())->post(route('fares.store'), [
         'line_id' => $line->uuid,
-        'service_class_id' => $confort->uuid,
+        'service_class_id' => $standard->uuid,
         'origin_stop_id' => $origin->uuid,
         'destination_stop_id' => $destination->uuid,
         'base_amount' => 9000,
@@ -231,13 +231,30 @@ it('creates a fare in draft status with validation explicit required', function 
         ->and($fare->effective_until)->toBeNull();
 });
 
-it('rejects fare creation when origin equals destination', function (): void {
+it('defaults to the standard service class when none is selected', function (): void {
     [$line, $origin, $destination] = lineWithStops();
-    $confort = ServiceClass::query()->where('code', 'confort')->firstOrFail();
+    $standard = ServiceClass::query()->where('code', 'standard')->firstOrFail();
 
     $this->actingAs(commercialDirector())->post(route('fares.store'), [
         'line_id' => $line->uuid,
-        'service_class_id' => $confort->uuid,
+        'origin_stop_id' => $origin->uuid,
+        'destination_stop_id' => $destination->uuid,
+        'base_amount' => 9000,
+        'currency' => 'XOF',
+        'effective_from' => '2026-09-01',
+    ])->assertRedirect(route('fares.index', absolute: false));
+
+    $fare = Fare::query()->where('line_id', $line->id)->firstOrFail();
+    expect($fare->service_class_id)->toBe($standard->id);
+});
+
+it('rejects fare creation when origin equals destination', function (): void {
+    [$line, $origin, $destination] = lineWithStops();
+    $standard = ServiceClass::query()->where('code', 'standard')->firstOrFail();
+
+    $this->actingAs(commercialDirector())->post(route('fares.store'), [
+        'line_id' => $line->uuid,
+        'service_class_id' => $standard->uuid,
         'origin_stop_id' => $origin->uuid,
         'destination_stop_id' => $origin->uuid,
         'base_amount' => 9000,
@@ -248,11 +265,11 @@ it('rejects fare creation when origin equals destination', function (): void {
 
 it('rejects fare creation when effective_until is before effective_from', function (): void {
     [$line, $origin, $destination] = lineWithStops();
-    $confort = ServiceClass::query()->where('code', 'confort')->firstOrFail();
+    $standard = ServiceClass::query()->where('code', 'standard')->firstOrFail();
 
     $this->actingAs(commercialDirector())->post(route('fares.store'), [
         'line_id' => $line->uuid,
-        'service_class_id' => $confort->uuid,
+        'service_class_id' => $standard->uuid,
         'origin_stop_id' => $origin->uuid,
         'destination_stop_id' => $destination->uuid,
         'base_amount' => 9000,
@@ -264,12 +281,12 @@ it('rejects fare creation when effective_until is before effective_from', functi
 
 it('activates a draft fare via status change', function (): void {
     [$line, $origin, $destination] = lineWithStops();
-    $confort = ServiceClass::query()->where('code', 'confort')->firstOrFail();
+    $standard = ServiceClass::query()->where('code', 'standard')->firstOrFail();
 
     $fare = Fare::query()->create([
         'uuid' => Str::uuid()->toString(),
         'line_id' => $line->id,
-        'service_class_id' => $confort->id,
+        'service_class_id' => $standard->id,
         'origin_stop_id' => $origin->id,
         'destination_stop_id' => $destination->id,
         'base_amount' => 9000,
@@ -287,12 +304,12 @@ it('activates a draft fare via status change', function (): void {
 
 it('archives an active fare via status change', function (): void {
     [$line, $origin, $destination] = lineWithStops();
-    $confort = ServiceClass::query()->where('code', 'confort')->firstOrFail();
+    $standard = ServiceClass::query()->where('code', 'standard')->firstOrFail();
 
     $fare = Fare::query()->create([
         'uuid' => Str::uuid()->toString(),
         'line_id' => $line->id,
-        'service_class_id' => $confort->id,
+        'service_class_id' => $standard->id,
         'origin_stop_id' => $origin->id,
         'destination_stop_id' => $destination->id,
         'base_amount' => 9000,
@@ -310,12 +327,12 @@ it('archives an active fare via status change', function (): void {
 
 it('updates a fare price and effective period', function (): void {
     [$line, $origin, $destination] = lineWithStops();
-    $confort = ServiceClass::query()->where('code', 'confort')->firstOrFail();
+    $standard = ServiceClass::query()->where('code', 'standard')->firstOrFail();
 
     $fare = Fare::query()->create([
         'uuid' => Str::uuid()->toString(),
         'line_id' => $line->id,
-        'service_class_id' => $confort->id,
+        'service_class_id' => $standard->id,
         'origin_stop_id' => $origin->id,
         'destination_stop_id' => $destination->id,
         'base_amount' => 8000,
@@ -337,14 +354,14 @@ it('updates a fare price and effective period', function (): void {
 
 it('rejects fare creation from unauthorized agency agents', function (): void {
     [$line, $origin, $destination] = lineWithStops();
-    $confort = ServiceClass::query()->where('code', 'confort')->firstOrFail();
+    $standard = ServiceClass::query()->where('code', 'standard')->firstOrFail();
 
     $agent = User::factory()->create();
     $agent->assignRole('agency_agent');
 
     $this->actingAs($agent)->post(route('fares.store'), [
         'line_id' => $line->uuid,
-        'service_class_id' => $confort->uuid,
+        'service_class_id' => $standard->uuid,
         'origin_stop_id' => $origin->uuid,
         'destination_stop_id' => $destination->uuid,
         'base_amount' => 9000,
@@ -355,12 +372,12 @@ it('rejects fare creation from unauthorized agency agents', function (): void {
 
 it('shows fare detail with segment, price, reference, versions and timeline without exposing numeric ids', function (): void {
     [$line, $origin, $destination] = lineWithStops();
-    $confort = ServiceClass::query()->where('code', 'confort')->firstOrFail();
+    $standard = ServiceClass::query()->where('code', 'standard')->firstOrFail();
 
     $fare = Fare::query()->create([
         'uuid' => Str::uuid()->toString(),
         'line_id' => $line->id,
-        'service_class_id' => $confort->id,
+        'service_class_id' => $standard->id,
         'origin_stop_id' => $origin->id,
         'destination_stop_id' => $destination->id,
         'base_amount' => 8500,
@@ -375,13 +392,13 @@ it('shows fare detail with segment, price, reference, versions and timeline with
         ->assertInertia(fn (Assert $page) => $page
             ->component('fares/detail')
             ->where('fare.uuid', $fare->uuid)
-            ->where('fare.reference', "TAR-{$line->code}-confort-2026-08")
+            ->where('fare.reference', "TAR-{$line->code}-standard-2026-08")
             ->where('fare.lineCode', $line->code)
             ->where('fare.lineName', $line->name)
             ->where('fare.originName', 'Cotonou')
             ->where('fare.destinationName', 'Parakou')
-            ->where('fare.serviceClassCode', 'confort')
-            ->where('fare.serviceClassName', 'KORA Confort')
+            ->where('fare.serviceClassCode', 'standard')
+            ->where('fare.serviceClassName', 'Standard')
             ->where('fare.baseAmount', 8500)
             ->where('fare.currency', 'XOF')
             ->where('fare.status', 'active')
@@ -390,19 +407,19 @@ it('shows fare detail with segment, price, reference, versions and timeline with
             ->where('versions.0.uuid', $fare->uuid)
             ->where('versions.0.isCurrent', true)
             ->has('timeline')
-            ->has('serviceClasses')
+            ->missing('serviceClasses')
             ->has('lines')
             ->where('permissions.canUpdate', true));
 });
 
 it('lists sibling fares on the same segment as versions ordered by effective_from', function (): void {
     [$line, $origin, $destination] = lineWithStops();
-    $confort = ServiceClass::query()->where('code', 'confort')->firstOrFail();
+    $standard = ServiceClass::query()->where('code', 'standard')->firstOrFail();
 
     $older = Fare::query()->create([
         'uuid' => Str::uuid()->toString(),
         'line_id' => $line->id,
-        'service_class_id' => $confort->id,
+        'service_class_id' => $standard->id,
         'origin_stop_id' => $origin->id,
         'destination_stop_id' => $destination->id,
         'base_amount' => 7000,
@@ -415,7 +432,7 @@ it('lists sibling fares on the same segment as versions ordered by effective_fro
     $current = Fare::query()->create([
         'uuid' => Str::uuid()->toString(),
         'line_id' => $line->id,
-        'service_class_id' => $confort->id,
+        'service_class_id' => $standard->id,
         'origin_stop_id' => $origin->id,
         'destination_stop_id' => $destination->id,
         'base_amount' => 8500,
@@ -439,12 +456,12 @@ it('lists sibling fares on the same segment as versions ordered by effective_fro
 
 it('rejects unauthorized fare detail access for agency agents', function (): void {
     [$line, $origin, $destination] = lineWithStops();
-    $confort = ServiceClass::query()->where('code', 'confort')->firstOrFail();
+    $standard = ServiceClass::query()->where('code', 'standard')->firstOrFail();
 
     $fare = Fare::query()->create([
         'uuid' => Str::uuid()->toString(),
         'line_id' => $line->id,
-        'service_class_id' => $confort->id,
+        'service_class_id' => $standard->id,
         'origin_stop_id' => $origin->id,
         'destination_stop_id' => $destination->id,
         'base_amount' => 8500,

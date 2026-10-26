@@ -137,12 +137,6 @@ export type SaleCity = {
 
 export type SaleTripType = 'one_way' | 'round_trip';
 
-export type SaleServiceClass = {
-    uuid: string;
-    code: string;
-    name: string;
-};
-
 export type SaleSearch = {
     date: string | null;
     from: string | null;
@@ -483,7 +477,6 @@ export type SaleReservation = {
 
 export type SaleProps = {
     cities: SaleCity[];
-    serviceClasses: SaleServiceClass[];
     search: SaleSearch;
     outboundItineraries: SaleItinerary[];
     inboundItineraries?: SaleItinerary[];

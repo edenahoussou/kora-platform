@@ -22,7 +22,7 @@ class StoreFareRequest extends FormRequest
     {
         return [
             'line_id' => ['required', 'string', 'exists:lines,uuid'],
-            'service_class_id' => ['required', 'string', 'exists:service_classes,uuid'],
+            'service_class_id' => ['nullable', 'string', 'exists:service_classes,uuid'],
             'origin_stop_id' => ['required', 'string', 'exists:stops,uuid'],
             'destination_stop_id' => ['required', 'string', 'exists:stops,uuid', 'different:origin_stop_id'],
             'direction' => ['nullable', 'string', Rule::in(array_column(FareDirection::cases(), 'value'))],
@@ -61,7 +61,9 @@ class StoreFareRequest extends FormRequest
     public function payload(): array
     {
         $line = Line::query()->where('uuid', $this->string('line_id')->value())->firstOrFail();
-        $serviceClass = ServiceClass::query()->where('uuid', $this->string('service_class_id')->value())->firstOrFail();
+        $serviceClass = $this->filled('service_class_id')
+            ? ServiceClass::query()->where('uuid', $this->string('service_class_id')->value())->firstOrFail()
+            : ServiceClass::standard();
         $origin = Stop::query()->where('uuid', $this->string('origin_stop_id')->value())->firstOrFail();
         $destination = Stop::query()->where('uuid', $this->string('destination_stop_id')->value())->firstOrFail();
 

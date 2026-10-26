@@ -3,20 +3,13 @@ import {
     CalendarDays,
     MapPin,
     Search,
-    Sofa,
 } from 'lucide-react';
 import type { ReactNode, SyntheticEvent } from 'react';
 import { cn } from '@/lib/utils';
-import type {
-    SaleCity,
-    SaleSearch,
-    SaleServiceClass,
-    SaleTripType,
-} from './sale-types';
+import type { SaleCity, SaleSearch, SaleTripType } from './sale-types';
 
 type Props = {
     cities: SaleCity[];
-    serviceClasses: SaleServiceClass[];
     value: SaleSearch;
     processing: boolean;
     onChange: (value: SaleSearch) => void;
@@ -52,7 +45,6 @@ function FieldLabel({
 
 export function RouteSearch({
     cities,
-    serviceClasses,
     value,
     processing,
     onChange,
@@ -103,8 +95,8 @@ export function RouteSearch({
                 className={cn(
                     'grid gap-3 xl:items-end',
                     isRoundTrip
-                        ? 'xl:grid-cols-[minmax(0,1fr)_2.2rem_minmax(0,1fr)_minmax(8rem,0.7fr)_minmax(8rem,0.7fr)_minmax(7rem,0.6fr)_auto]'
-                        : 'xl:grid-cols-[minmax(0,1fr)_2.2rem_minmax(0,1fr)_minmax(8.5rem,0.8fr)_minmax(8rem,0.7fr)_auto]',
+                        ? 'xl:grid-cols-[minmax(0,1fr)_2.2rem_minmax(0,1fr)_minmax(8rem,0.7fr)_minmax(7rem,0.6fr)_auto]'
+                        : 'xl:grid-cols-[minmax(0,1fr)_2.2rem_minmax(0,1fr)_minmax(8.5rem,0.8fr)_auto]',
                 )}
             >
                 <label className="grid gap-1.5 text-[0.625rem] font-extrabold text-white/60">
@@ -159,31 +151,6 @@ export function RouteSearch({
                                 className="text-foreground"
                             >
                                 {city.city}
-                            </option>
-                        ))}
-                    </select>
-                </label>
-                <label className="grid gap-1.5 text-[0.625rem] font-extrabold text-white/60">
-                    <FieldLabel icon={<Sofa className="size-3.5" />}>
-                        Type de service
-                    </FieldLabel>
-                    <select
-                        value={value.serviceClass ?? ''}
-                        onChange={(event) =>
-                            update('serviceClass', event.target.value)
-                        }
-                        className="h-12 w-full rounded-[0.8rem] border border-white/15 bg-white/10 px-3 text-[0.75rem] font-bold text-white outline-none focus:border-gold focus:ring-2 focus:ring-gold/30"
-                    >
-                        <option value="" className="text-foreground">
-                            Tous les services
-                        </option>
-                        {serviceClasses.map((serviceClass) => (
-                            <option
-                                key={serviceClass.uuid}
-                                value={serviceClass.code}
-                                className="text-foreground"
-                            >
-                                {serviceClass.name}
                             </option>
                         ))}
                     </select>

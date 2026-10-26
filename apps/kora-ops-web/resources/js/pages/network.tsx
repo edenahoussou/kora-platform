@@ -20,7 +20,7 @@ import { lazy, Suspense, useMemo, useState } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import type {
     LineRecord,
-    PhysicalStationRecord,
+    PhysicalStopRecord,
 } from '@/components/network/types';
 import { Button } from '@/components/ui/button';
 import {
@@ -42,7 +42,7 @@ const LineCreatorStudio = lazy(() =>
 
 type PageProps = {
     lines: LineRecord[];
-    physicalStations: PhysicalStationRecord[];
+    physicalStops: PhysicalStopRecord[];
     statuses: Record<string, string>;
     types: Record<string, string>;
     permissions: {
@@ -68,12 +68,11 @@ const statusTones: Record<string, 'navy' | 'gold' | 'muted'> = {
 const typeLabels: Record<string, string> = {
     nationale: 'Nationale',
     internationale: 'Internationale',
-    regionale: 'Régionale',
 };
 
 export default function NetworkPage({
     lines,
-    physicalStations,
+    physicalStops,
     statuses,
     types,
     permissions,
@@ -816,11 +815,6 @@ export default function NetworkPage({
                                                                     }
                                                                 </span>
                                                             </div>
-                                                            <span className="text-[0.625rem] font-bold text-muted-foreground uppercase">
-                                                                {
-                                                                    fare.serviceClassName
-                                                                }
-                                                            </span>
                                                         </div>
                                                         <span className="font-black text-foreground">
                                                             {fare.baseAmount.toLocaleString(
@@ -881,7 +875,7 @@ export default function NetworkPage({
                     <LineCreatorStudio
                         open={studioOpen}
                         onClose={() => setStudioOpen(false)}
-                        physicalStations={physicalStations}
+                        physicalStops={physicalStops}
                         initialLine={editingLine}
                     />
                 </Suspense>

@@ -14,7 +14,7 @@ use Illuminate\Support\Str;
  * Tarifs réalistes en XOF basés sur la distance :
  * - L1 (internationale) : ~35 FCFA/km
  * - L2, L3 (nationale) : ~22 FCFA/km
- * Deux classes de service : confort et premium (premium = +40%).
+ * Une seule classe de service au lancement : standard.
  *
  * Les fares sont créés avec direction='both' par défaut, ce qui permet
  * au moteur de tarification de les utiliser pour l'aller ET le retour.
@@ -25,10 +25,9 @@ class KoraFareSeeder extends Seeder
 {
     public function run(): void
     {
-        $confort = ServiceClass::query()->where('code', 'confort')->first();
-        $premium = ServiceClass::query()->where('code', 'premium')->first();
+        $standard = ServiceClass::query()->where('code', ServiceClass::STANDARD_CODE)->first();
 
-        if (! $confort || ! $premium) {
+        if (! $standard) {
             return;
         }
 
@@ -56,11 +55,9 @@ class KoraFareSeeder extends Seeder
                     $destination = $stops[$j];
 
                     $distance = (float) $destination->km_from_origin - (float) $origin->km_from_origin;
-                    $confortPrice = (int) max(500, round($distance * $ratePerKm / 100) * 100);
-                    $premiumPrice = (int) round($confortPrice * 1.4 / 100) * 100;
+                    $price = (int) max(500, round($distance * $ratePerKm / 100) * 100);
 
-                    $this->firstOrCreateFare($line, $confort, $origin, $destination, $confortPrice);
-                    $this->firstOrCreateFare($line, $premium, $origin, $destination, $premiumPrice);
+                    $this->firstOrCreateFare($line, $standard, $origin, $destination, $price);
                 }
             }
         }

@@ -1,4 +1,4 @@
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import {
     Check,
     ChevronRight,
@@ -15,7 +15,7 @@ import {
     XCircle,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import type { FormEvent } from 'react';
+import { ExpenseFormDialog } from '@/components/expenses/expense-form-dialog';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { formatMoney } from '@/components/sale/sale-utils';
 import { cn } from '@/lib/utils';
@@ -25,7 +25,6 @@ import {
     index,
     reject,
     reverse,
-    store,
 } from '@/routes/expenses';
 import type { BreadcrumbItem } from '@/types';
 
@@ -48,6 +47,7 @@ type Expense = {
     costCenterType: 'departure' | 'bus' | 'line' | 'agency';
     costCenter: string | null;
 };
+
 type ExpenseDetail = Expense & {
     description: string | null;
     payeeReference: string | null;
@@ -68,6 +68,7 @@ type ExpenseDetail = Expense & {
     } | null;
     permissions: { canApprove: boolean; canReverse: boolean };
 };
+
 type Paginated<T> = {
     data: T[];
     current_page: number;
@@ -76,6 +77,7 @@ type Paginated<T> = {
     from: number | null;
     to: number | null;
 };
+
 type Props = {
     expenses: Paginated<Expense>;
     filters: {
@@ -295,26 +297,6 @@ export default function ExpensesPage({
     const [from, setFrom] = useState(filters.from);
     const [to, setTo] = useState(filters.to);
     const [createOpen, setCreateOpen] = useState(false);
-    const form = useForm({
-        category_uuid: categories[0]?.uuid ?? '',
-        ledger_uuid: '',
-        agency_uuid: '',
-        center_type: 'none',
-        bus_uuid: '',
-        line_uuid: '',
-        departure_uuid: '',
-        maintenance_type: 'corrective',
-        garage_label: '',
-        parts_amount: '',
-        labor_amount: '',
-        payment_channel: 'cash',
-        amount: '',
-        payee_label: '',
-        payee_reference: '',
-        description: '',
-        occurred_at: new Date().toISOString().slice(0, 16),
-        evidence: null as File | null,
-    });
 
     const statusOptions: [string, string][] = useMemo(
         () => [
@@ -342,16 +324,6 @@ export default function ExpensesPage({
         ],
         [categories],
     );
-
-    const selectedCategory = categories.find(
-        (item) => item.uuid === form.data.category_uuid,
-    );
-    const isMaintenance = selectedCategory?.code === 'maintenance';
-    const centerOptions = {
-        bus: costCenters.buses,
-        line: costCenters.lines,
-        departure: costCenters.departures,
-    } as const;
 
     const buildParams = (extra: Record<string, string> = {}) => {
         const params: Record<string, string> = { ...extra };
@@ -421,42 +393,6 @@ export default function ExpensesPage({
             query: { ...filters, format },
         });
 
-    const submitExpense = (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        form.transform((data) => {
-            const payload: Record<string, unknown> = { ...data };
-            delete payload.center_type;
-            delete payload.maintenance_type;
-            delete payload.garage_label;
-            delete payload.parts_amount;
-            delete payload.labor_amount;
-
-            payload.bus_uuid = data.center_type === 'bus' ? data.bus_uuid : '';
-            payload.line_uuid =
-                data.center_type === 'line' ? data.line_uuid : '';
-            payload.departure_uuid =
-                data.center_type === 'departure' ? data.departure_uuid : '';
-
-            if (isMaintenance) {
-                payload.maintenance = {
-                    type: data.maintenance_type,
-                    garage_label: data.garage_label,
-                    parts_amount: data.parts_amount,
-                    labor_amount: data.labor_amount,
-                };
-            }
-
-            return payload;
-        });
-        form.post(store.url(), {
-            forceFormData: true,
-            onSuccess: () => {
-                form.reset();
-                setCreateOpen(false);
-            },
-        });
-    };
-
     const closeDetail = () =>
         router.get(
             index.url({ query: { ...filters } }),
@@ -504,7 +440,7 @@ export default function ExpensesPage({
                         {permissions.canCreate && (
                             <button
                                 type="button"
-                                onClick={() => setCreateOpen((value) => !value)}
+                                onClick={() => setCreateOpen(true)}
                                 className="btn btn-primary"
                             >
                                 <Plus className="size-3.5" /> Nouvelle dépense
@@ -512,423 +448,6 @@ export default function ExpensesPage({
                         )}
                     </div>
                 </div>
-
-                {createOpen && (
-                    <section className="cash-table-card cash-reveal mb-5 p-5">
-                        <div className="flex items-start justify-between">
-                            <div>
-                                <span className="section-kicker">Saisie</span>
-                                <h2 className="mt-1 font-black">
-                                    Nouvelle dépense
-                                </h2>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => setCreateOpen(false)}
-                                className="grid size-8 place-items-center rounded-full bg-muted text-foreground transition-[background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-gold/15"
-                                aria-label="Fermer"
-                            >
-                                <X className="size-4" strokeWidth={1.7} />
-                            </button>
-                        </div>
-                        <form
-                            onSubmit={submitExpense}
-                            className="mt-4 grid gap-3 md:grid-cols-3"
-                        >
-                            <label className="field">
-                                <span>Catégorie</span>
-                                <select
-                                    value={form.data.category_uuid}
-                                    onChange={(event) =>
-                                        form.setData(
-                                            'category_uuid',
-                                            event.target.value,
-                                        )
-                                    }
-                                    className="control"
-                                >
-                                    {categories.map((item) => (
-                                        <option
-                                            key={item.uuid}
-                                            value={item.uuid}
-                                        >
-                                            {item.label}
-                                        </option>
-                                    ))}
-                                </select>
-                            </label>
-                            <label className="field">
-                                <span>Moyen</span>
-                                <select
-                                    value={form.data.payment_channel}
-                                    onChange={(event) =>
-                                        form.setData(
-                                            'payment_channel',
-                                            event.target.value,
-                                        )
-                                    }
-                                    className="control"
-                                >
-                                    {Object.entries(channels).map(
-                                        ([value, label]) => (
-                                            <option key={value} value={value}>
-                                                {label}
-                                            </option>
-                                        ),
-                                    )}
-                                </select>
-                            </label>
-                            <label className="field">
-                                <span>Ledger (optionnel)</span>
-                                <select
-                                    value={form.data.ledger_uuid}
-                                    onChange={(event) =>
-                                        form.setData(
-                                            'ledger_uuid',
-                                            event.target.value,
-                                        )
-                                    }
-                                    className="control"
-                                >
-                                    <option value="">
-                                        À rapprocher plus tard
-                                    </option>
-                                    {ledgers.map((ledger) => (
-                                        <option
-                                            key={ledger.uuid}
-                                            value={ledger.uuid}
-                                        >
-                                            {ledger.label}
-                                        </option>
-                                    ))}
-                                </select>
-                            </label>
-                            <label className="field">
-                                <span>Montant XOF</span>
-                                <input
-                                    required
-                                    type="number"
-                                    min="1"
-                                    value={form.data.amount}
-                                    onChange={(event) =>
-                                        form.setData(
-                                            'amount',
-                                            event.target.value,
-                                        )
-                                    }
-                                    className="control"
-                                    aria-invalid={!!form.errors.amount}
-                                />
-                            </label>
-                            <label className="field">
-                                <span>Bénéficiaire</span>
-                                <input
-                                    required
-                                    value={form.data.payee_label}
-                                    onChange={(event) =>
-                                        form.setData(
-                                            'payee_label',
-                                            event.target.value,
-                                        )
-                                    }
-                                    className="control"
-                                    aria-invalid={!!form.errors.payee_label}
-                                />
-                            </label>
-                            <label className="field">
-                                <span>Date</span>
-                                <input
-                                    required
-                                    type="datetime-local"
-                                    value={form.data.occurred_at}
-                                    onChange={(event) =>
-                                        form.setData(
-                                            'occurred_at',
-                                            event.target.value,
-                                        )
-                                    }
-                                    className="control"
-                                    aria-invalid={!!form.errors.occurred_at}
-                                />
-                            </label>
-                            {permissions.canChooseAgency && (
-                                <label className="field">
-                                    <span>Agence support</span>
-                                    <select
-                                        value={form.data.agency_uuid}
-                                        onChange={(event) =>
-                                            form.setData(
-                                                'agency_uuid',
-                                                event.target.value,
-                                            )
-                                        }
-                                        className="control"
-                                        aria-invalid={!!form.errors.agency_uuid}
-                                    >
-                                        <option value="">
-                                            Sélectionner l’agence
-                                        </option>
-                                        {costCenters.agencies.map((agency) => (
-                                            <option
-                                                key={agency.uuid}
-                                                value={agency.uuid}
-                                            >
-                                                {agency.label}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </label>
-                            )}
-                            {permissions.canAttachCostCenter && (
-                                <>
-                                    <label className="field">
-                                        <span>Centre de coût</span>
-                                        <select
-                                            value={form.data.center_type}
-                                            onChange={(event) =>
-                                                form.setData(
-                                                    'center_type',
-                                                    event.target.value,
-                                                )
-                                            }
-                                            className="control"
-                                        >
-                                            <option value="none">
-                                                Aucun (coût non affecté)
-                                            </option>
-                                            <option value="bus">Bus</option>
-                                            <option value="line">Ligne</option>
-                                            <option value="departure">
-                                                Départ
-                                            </option>
-                                        </select>
-                                    </label>
-                                    {form.data.center_type !== 'none' && (
-                                        <label className="field md:col-span-2">
-                                            <span>
-                                                {form.data.center_type === 'bus'
-                                                    ? 'Bus'
-                                                    : form.data.center_type ===
-                                                        'line'
-                                                      ? 'Ligne'
-                                                      : 'Départ'}
-                                            </span>
-                                            <select
-                                                value={
-                                                    form.data.center_type ===
-                                                    'bus'
-                                                        ? form.data.bus_uuid
-                                                        : form.data
-                                                                .center_type ===
-                                                            'line'
-                                                          ? form.data.line_uuid
-                                                          : form.data
-                                                                .departure_uuid
-                                                }
-                                                onChange={(event) => {
-                                                    const key =
-                                                        form.data
-                                                            .center_type ===
-                                                        'bus'
-                                                            ? 'bus_uuid'
-                                                            : form.data
-                                                                    .center_type ===
-                                                                'line'
-                                                              ? 'line_uuid'
-                                                              : 'departure_uuid';
-                                                    form.setData(
-                                                        key,
-                                                        event.target.value,
-                                                    );
-                                                }}
-                                                className="control"
-                                                aria-invalid={
-                                                    !!form.errors.bus_uuid ||
-                                                    !!form.errors.line_uuid ||
-                                                    !!form.errors.departure_uuid
-                                                }
-                                            >
-                                                <option value="">
-                                                    Sélectionner
-                                                </option>
-                                                {centerOptions[
-                                                    form.data
-                                                        .center_type as keyof typeof centerOptions
-                                                ].map((center) => (
-                                                    <option
-                                                        key={center.uuid}
-                                                        value={center.uuid}
-                                                    >
-                                                        {center.label}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </label>
-                                    )}
-                                </>
-                            )}
-                            {isMaintenance && (
-                                <>
-                                    <label className="field">
-                                        <span>Type de maintenance</span>
-                                        <select
-                                            value={form.data.maintenance_type}
-                                            onChange={(event) =>
-                                                form.setData(
-                                                    'maintenance_type',
-                                                    event.target.value,
-                                                )
-                                            }
-                                            className="control"
-                                        >
-                                            <option value="preventive">
-                                                Préventive
-                                            </option>
-                                            <option value="corrective">
-                                                Corrective
-                                            </option>
-                                            <option value="diagnostic">
-                                                Diagnostic
-                                            </option>
-                                        </select>
-                                    </label>
-                                    <label className="field">
-                                        <span>Garage</span>
-                                        <input
-                                            value={form.data.garage_label}
-                                            onChange={(event) =>
-                                                form.setData(
-                                                    'garage_label',
-                                                    event.target.value,
-                                                )
-                                            }
-                                            className="control"
-                                        />
-                                    </label>
-                                    <label className="field">
-                                        <span>Pièces XOF</span>
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            value={form.data.parts_amount}
-                                            onChange={(event) =>
-                                                form.setData(
-                                                    'parts_amount',
-                                                    event.target.value,
-                                                )
-                                            }
-                                            className="control"
-                                        />
-                                    </label>
-                                    <label className="field">
-                                        <span>Main-d’œuvre XOF</span>
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            value={form.data.labor_amount}
-                                            onChange={(event) =>
-                                                form.setData(
-                                                    'labor_amount',
-                                                    event.target.value,
-                                                )
-                                            }
-                                            className="control"
-                                        />
-                                    </label>
-                                </>
-                            )}
-                            <label className="field md:col-span-2">
-                                <span>Description</span>
-                                <textarea
-                                    value={form.data.description}
-                                    onChange={(event) =>
-                                        form.setData(
-                                            'description',
-                                            event.target.value,
-                                        )
-                                    }
-                                    className="control min-h-10 py-2"
-                                />
-                            </label>
-                            <label className="field">
-                                <span>Justificatif</span>
-                                <input
-                                    required
-                                    type="file"
-                                    accept="image/*,.pdf"
-                                    onChange={(event) =>
-                                        form.setData(
-                                            'evidence',
-                                            event.target.files?.[0] ?? null,
-                                        )
-                                    }
-                                    className="control"
-                                    aria-invalid={!!form.errors.evidence}
-                                />
-                            </label>
-                            {(form.errors.amount ??
-                                form.errors.payee_label ??
-                                form.errors.evidence ??
-                                form.errors.category_uuid ??
-                                form.errors.payment_channel ??
-                                form.errors.occurred_at ??
-                                form.errors.bus_uuid ??
-                                form.errors.line_uuid ??
-                                form.errors.departure_uuid ??
-                                form.errors.agency_uuid ??
-                                (
-                                    form.errors as Record<
-                                        string,
-                                        string | undefined
-                                    >
-                                ).maintenance) && (
-                                <div
-                                    className="cash-form-error md:col-span-3"
-                                    role="alert"
-                                >
-                                    {form.errors.amount ??
-                                        form.errors.payee_label ??
-                                        form.errors.evidence ??
-                                        form.errors.category_uuid ??
-                                        form.errors.payment_channel ??
-                                        form.errors.occurred_at ??
-                                        form.errors.bus_uuid ??
-                                        form.errors.line_uuid ??
-                                        form.errors.departure_uuid ??
-                                        form.errors.agency_uuid ??
-                                        (
-                                            form.errors as Record<
-                                                string,
-                                                string | undefined
-                                            >
-                                        ).maintenance}
-                                </div>
-                            )}
-                            <div className="flex gap-2 md:col-span-3">
-                                <button
-                                    type="submit"
-                                    disabled={form.processing}
-                                    className={cn(
-                                        'btn btn-primary',
-                                        form.processing && 'opacity-60',
-                                    )}
-                                >
-                                    {form.processing
-                                        ? 'Enregistrement…'
-                                        : 'Envoyer pour validation'}
-                                </button>
-                                <button
-                                    type="button"
-                                    className="btn btn-ghost"
-                                    onClick={() => setCreateOpen(false)}
-                                    disabled={form.processing}
-                                >
-                                    Annuler
-                                </button>
-                            </div>
-                        </form>
-                    </section>
-                )}
 
                 <section className="cash-ledger-grid cash-reveal cash-reveal-delay-1">
                     <KpiCard
@@ -1142,6 +661,17 @@ export default function ExpensesPage({
                     />
                 </section>
             </div>
+
+            {/* Modale de saisie de dépense (Style Caisse) */}
+            <ExpenseFormDialog
+                open={createOpen}
+                onOpenChange={setCreateOpen}
+                categories={categories}
+                channels={channels}
+                ledgers={ledgers}
+                costCenters={costCenters}
+                permissions={permissions}
+            />
 
             {expenseDetail && (
                 <aside className="fixed inset-y-0 right-0 z-40 w-full max-w-xl overflow-y-auto border-l border-border bg-card p-6 shadow-2xl">

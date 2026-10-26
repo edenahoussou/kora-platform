@@ -44,7 +44,6 @@ use App\Modules\Cash\Models\CashRegister;
 use App\Modules\Cash\Models\CashSession;
 use App\Modules\CompanyAccounts\Services\CompanyAccountCatalogService;
 use App\Modules\Departures\Models\Departure;
-use App\Modules\DynamicPricing\Models\ServiceClass;
 use App\Modules\Fiscalization\Models\FiscalInvoice;
 use App\Modules\Payments\Actions\RecordCounterSalePaymentAction;
 use App\Modules\Payments\Models\AgencyPaymentAccount;
@@ -130,7 +129,6 @@ class CounterSaleController extends Controller
 
         return Inertia::render('sale', [
             'cities' => $this->serializeCities($this->catalog->cities()),
-            'serviceClasses' => $this->serializeServiceClasses(),
             'search' => [
                 'date' => $filters['date'],
                 'from' => $filters['from'],
@@ -845,18 +843,6 @@ class CounterSaleController extends Controller
                 'name' => $stop['name'],
             ], $city['physical_stops']),
         ])->all());
-    }
-
-    /**
-     * @return array<int, array{uuid: string, code: string, name: string}>
-     */
-    private function serializeServiceClasses(): array
-    {
-        return ServiceClass::ordered()->get()->map(fn (ServiceClass $class): array => [
-            'uuid' => $class->uuid,
-            'code' => $class->code,
-            'name' => $class->name,
-        ])->values()->all();
     }
 
     /** @return array{uuid: string, name: string, city: string, country: string, stopOrder: int} */
