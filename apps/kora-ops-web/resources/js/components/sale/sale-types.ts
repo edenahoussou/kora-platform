@@ -1,3 +1,5 @@
+import type { LayoutGrid } from '@/components/seat-map/types';
+
 export type SaleStage =
     'search' | 'seats' | 'passengers' | 'payment' | 'tickets';
 
@@ -379,6 +381,7 @@ export type SaleItineraryQuote = SaleQuote & {
 export type SaleItineraryLegSeat = {
     legOrder: number;
     direction: 'outbound' | 'inbound';
+    grid?: LayoutGrid | null;
     seats: SaleSeat[];
 };
 

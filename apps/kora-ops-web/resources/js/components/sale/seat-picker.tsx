@@ -1,5 +1,7 @@
 import { Check, CircleDot, Octagon } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { SeatMap } from '@/components/seat-map/seat-map';
+import type { SeatMapStatus } from '@/components/seat-map/types';
 import { cn } from '@/lib/utils';
 import type {
     SaleCompanyAccount,
@@ -41,6 +43,17 @@ const DIRECTION_LABEL: Record<string, string> = {
     outbound: 'Aller',
     inbound: 'Retour',
 };
+
+function expiryLabel(value: string | null): string | null {
+    if (!value) {
+        return null;
+    }
+
+    return new Intl.DateTimeFormat('fr-FR', {
+        hour: '2-digit',
+        minute: '2-digit',
+    }).format(new Date(value));
+}
 
 function emptyAssignmentsFor(
     passengerCount: number,
@@ -101,7 +114,10 @@ export function SeatPicker({
     const activeLegSeat = legSeats.find(
         (entry) => entry.legOrder === activeLeg.legOrder,
     );
-    const seatsForActiveLeg: SaleSeat[] = activeLegSeat?.seats ?? [];
+    const seatsForActiveLeg: SaleSeat[] = useMemo(
+        () => activeLegSeat?.seats ?? [],
+        [activeLegSeat],
+    );
 
     const selectedUuidsForActiveLeg = useMemo(() => {
         if (isMultiLeg) {
@@ -134,6 +150,43 @@ export function SeatPicker({
     const selectedSeatCodes = seatsForActiveLeg
         .filter((seat) => selectedUuidsForActiveLeg.includes(seat.uuid))
         .map((seat) => seat.code);
+
+    const seatStatusesForActiveLeg = useMemo(() => {
+        const map: Record<string, SeatMapStatus> = {};
+
+        for (const seat of seatsForActiveLeg) {
+            map[seat.code] = seat.sellable
+                ? seat.availabilityStatus
+                : 'blocked';
+        }
+
+        for (const uuid of takenByOthersForActiveLeg) {
+            const seat = seatsForActiveLeg.find((entry) => entry.uuid === uuid);
+
+            if (seat) {
+                map[seat.code] = 'taken';
+            }
+        }
+
+        return map;
+    }, [seatsForActiveLeg, takenByOthersForActiveLeg]);
+
+    const seatExpiryLabels = useMemo(
+        () =>
+            Object.fromEntries(
+                seatsForActiveLeg
+                    .filter(
+                        (seat) =>
+                            seat.availabilityStatus === 'reserved' &&
+                            seat.expiresAt !== null,
+                    )
+                    .map((seat) => [
+                        seat.code,
+                        expiryLabel(seat.expiresAt) ?? '',
+                    ]),
+            ),
+        [seatsForActiveLeg],
+    );
 
     const isPassengerComplete = (passengerIndex: number) => {
         const passenger = assignments[passengerIndex];
@@ -388,13 +441,36 @@ export function SeatPicker({
                         />
                     )}
                     <div className="seat-map-scroll">
-                        <SeatGrid
-                            seats={seatsForActiveLeg}
-                            selectedSeatUuids={selectedUuidsForActiveLeg}
-                            takenSeatUuids={takenByOthersForActiveLeg}
-                            loading={seatsForActiveLeg.length === 0}
-                            onToggleSeat={toggleSeat}
-                        />
+                        {seatsForActiveLeg.length === 0 ? (
+                            <div className="bus-cabin seat-grid-loading">
+                                Chargement des places…
+                            </div>
+                        ) : activeLegSeat?.grid ? (
+                            <SeatMap
+                                grid={activeLegSeat.grid}
+                                mode="select"
+                                seatStatuses={seatStatusesForActiveLeg}
+                                seatLabels={seatExpiryLabels}
+                                selectedCodes={selectedSeatCodes}
+                                onSeatClick={(cell) => {
+                                    const seat = seatsForActiveLeg.find(
+                                        (entry) => entry.code === cell.code,
+                                    );
+
+                                    if (seat) {
+                                        toggleSeat(seat);
+                                    }
+                                }}
+                            />
+                        ) : (
+                            <SeatGrid
+                                seats={seatsForActiveLeg}
+                                selectedSeatUuids={selectedUuidsForActiveLeg}
+                                takenSeatUuids={takenByOthersForActiveLeg}
+                                loading={seatsForActiveLeg.length === 0}
+                                onToggleSeat={toggleSeat}
+                            />
+                        )}
                     </div>
                 </section>
 

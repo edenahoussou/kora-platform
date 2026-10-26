@@ -8,6 +8,7 @@ use App\Modules\Booking\Models\Reservation;
 use App\Modules\Booking\Models\ReservationPassenger;
 use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\BusNetwork\Models\Bus;
+use App\Modules\BusNetwork\Models\BusComposition;
 use App\Modules\BusNetwork\Models\Line;
 use App\Modules\BusNetwork\Models\PhysicalStop;
 use App\Modules\BusNetwork\Models\Seat;
@@ -321,6 +322,63 @@ it('grants access to every crew role assigned to the departure, not just the con
             ->getJson("/api/v1/ops/departures/{$departure->uuid}")
             ->assertOk("Expected access for role [{$role}] via column [{$column}]");
     }
+});
+
+it('exposes the canonical seat map for the departure bus', function (): void {
+    [$user, $token] = manifestCrewToken('conductor');
+    $terminal = manifestActiveTerminal();
+    $line = manifestLine();
+    [$bus, $seat] = manifestBusWithSeat();
+
+    $composition = BusComposition::query()->create([
+        'code' => 'OPS-COMP',
+        'name' => 'Coach OPS',
+        'seat_count' => 2,
+        'layout' => [['type' => 'standard', 'codes' => ['1A', '1B']]],
+        'grid' => [
+            'rows' => 2,
+            'cols' => 3,
+            'cells' => [
+                ['kind' => 'driver', 'x' => 0, 'y' => 0],
+                ['kind' => 'door', 'x' => 2, 'y' => 0],
+                ['kind' => 'seat', 'x' => 0, 'y' => 1, 'code' => '1A', 'seatKind' => 'standard'],
+                ['kind' => 'aisle', 'x' => 1, 'y' => 1],
+                ['kind' => 'seat', 'x' => 2, 'y' => 1, 'code' => '1B', 'seatKind' => 'standard', 'maintenance' => true],
+            ],
+        ],
+        'status' => 'active',
+    ]);
+    $bus->update(['composition_id' => $composition->id]);
+
+    $departure = manifestOpsDeparture($line, $bus, ['conductor_id' => $user->id]);
+
+    $this->withToken($token)
+        ->withHeaders(['X-Terminal-Serial' => $terminal->serial_number])
+        ->getJson("/api/v1/ops/departures/{$departure->uuid}")
+        ->assertOk()
+        ->assertJsonPath('data.seatMap.compositionUuid', $composition->uuid)
+        ->assertJsonPath('data.seatMap.grid.rows', 2)
+        ->assertJsonPath('data.seatMap.grid.cols', 3)
+        ->assertJsonCount(5, 'data.seatMap.grid.cells')
+        ->assertJsonCount(1, 'data.seatMap.seats')
+        ->assertJsonPath('data.seatMap.seats.0.code', '1A')
+        ->assertJsonPath('data.seatMap.seats.0.status', 'active')
+        ->assertJsonPath('data.seatMap.seats.0.sellable', true);
+});
+
+it('returns a null seatMap when the departure bus has no seat template', function (): void {
+    [$user, $token] = manifestCrewToken('conductor');
+    $terminal = manifestActiveTerminal();
+    $line = manifestLine();
+    [$bus] = manifestBusWithSeat();
+    $departure = manifestOpsDeparture($line, $bus, ['conductor_id' => $user->id]);
+
+    $this->withToken($token)
+        ->withHeaders(['X-Terminal-Serial' => $terminal->serial_number])
+        ->getJson("/api/v1/ops/departures/{$departure->uuid}")
+        ->assertOk()
+        ->assertJsonPath('data.seatMap', null)
+        ->assertJsonPath('data.bus.uuid', $bus->uuid);
 });
 
 it('refuses a departure that is not assigned, cancelled, or otherwise out of scope', function (): void {

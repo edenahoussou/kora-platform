@@ -93,6 +93,10 @@ _Avoid_: Siege reserve definitif
 Modele reutilisable de plan de cabine d'un bus (grille de cellules types : siege, allee, vide, porte, conducteur) qui definit la position, le type et la vendabilite structurelle de chaque siege. Un gabarit est rattache a un bus et sert de source unique pour tous les rendus du plan (vente, detail depart, fiche vehicule, editeur). Le statut operationnel d'un siege (maintenance, blocage temporaire) reste propre au bus, pas au gabarit.
 _Avoid_: Composition, plan HTML statique par ecran
 
+**Siege hors service**:
+Siege indisponible pour cause materielle (degrade, en reparation), distinct du siege equipage qui est reserve au personnel. Un siege hors service n'est jamais vendable et est materialise sur le bus avec le statut `maintenance`, la ou l'equipage donne `blocked`.
+_Avoid_: Siege bloque, siege equipage
+
 **Devis tarifaire**:
 Prix final calcule cote serveur pour une demande de reservation, fige pendant la duree du blocage de siege.
 _Avoid_: Prix indicatif

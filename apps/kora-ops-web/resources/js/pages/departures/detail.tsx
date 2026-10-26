@@ -27,6 +27,8 @@ import { useMemo, useState } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { KoraTooltip } from '@/components/kora-tooltip';
 import { PanelAlert } from '@/components/panel-alert';
+import { SeatMap } from '@/components/seat-map/seat-map';
+import type { LayoutGrid, SeatMapStatus } from '@/components/seat-map/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import departures from '@/routes/departures';
 import manifest from '@/routes/manifest';
@@ -65,6 +67,7 @@ type DepartureDetail = {
     busUuid: string | null;
     busRegistration: string;
     busSeatCount: number;
+    seatLayout: LayoutGrid | null;
     seats: SeatItem[];
     departureDate: string | null;
     departureTime: string | null;
@@ -515,6 +518,26 @@ export default function DepartureDetailPage({
         });
 
         return [...rows.entries()].sort((a, b) => a[0] - b[0]);
+    }, [departure.seats]);
+
+    // Statuts par code pour le plan canonique (SeatMap) — priorité à
+    // l'état opérationnel du siège, puis embarqué, puis réservé.
+    const seatStatuses = useMemo(() => {
+        const map: Record<string, SeatMapStatus> = {};
+
+        for (const seat of departure.seats) {
+            if (seat.status === 'maintenance') {
+                map[seat.code] = 'maintenance';
+            } else if (seat.status === 'blocked' || !seat.sellable) {
+                map[seat.code] = 'blocked';
+            } else if (seat.boarded) {
+                map[seat.code] = 'busy';
+            } else if (seat.occupied) {
+                map[seat.code] = 'reserved';
+            }
+        }
+
+        return map;
     }, [departure.seats]);
 
     return (
@@ -1292,46 +1315,56 @@ export default function DepartureDetailPage({
                         </p>
                         {departure.seats.length > 0 ? (
                             <>
-                                {/* Cabine façon modale sièges de la vente
-                                    guichet : volant conducteur, allée
-                                    centrale, rangée arrière pleine */}
-                                <div className="bus-cabin">
-                                    <span
-                                        className="driver-wheel"
-                                        title="Conducteur"
-                                    >
-                                        <LifeBuoy className="size-3" />
-                                    </span>
-                                    <div className="seat-grid">
-                                        {seatRows.map(([rowNumber, seats]) => (
-                                            <div
-                                                key={rowNumber}
-                                                className={`seat-row${seats.length === 5 ? 'rear' : ''}`}
-                                            >
-                                                {seats.map((seat) => (
-                                                    <span
-                                                        key={seat.uuid}
-                                                        className={`seat${!seat.sellable ? 'blocked' : seat.boarded ? 'busy' : seat.occupied ? 'reserved' : ''}`}
-                                                        title={`${seat.code} · ${
-                                                            !seat.sellable
-                                                                ? 'Bloqué / équipage'
-                                                                : seat.boarded
-                                                                  ? 'Embarqué sur ce départ'
-                                                                  : seat.occupied
-                                                                    ? 'Réservé sur ce départ'
-                                                                    : 'Libre'
-                                                        }`}
+                                {departure.seatLayout ? (
+                                    <SeatMap
+                                        grid={departure.seatLayout}
+                                        mode="display"
+                                        size="mini"
+                                        seatStatuses={seatStatuses}
+                                    />
+                                ) : (
+                                    /* Fallback plat pour les bus sans
+                                       gabarit assigné */
+                                    <div className="bus-cabin">
+                                        <span
+                                            className="driver-wheel"
+                                            title="Conducteur"
+                                        >
+                                            <LifeBuoy className="size-3" />
+                                        </span>
+                                        <div className="seat-grid">
+                                            {seatRows.map(
+                                                ([rowNumber, seats]) => (
+                                                    <div
+                                                        key={rowNumber}
+                                                        className={`seat-row${seats.length === 5 ? 'rear' : ''}`}
                                                     >
-                                                        {seat.code.replace(
-                                                            /^\d+/,
-                                                            '',
-                                                        ) || seat.code}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        ))}
+                                                        {seats.map((seat) => (
+                                                            <span
+                                                                key={seat.uuid}
+                                                                className={`seat${!seat.sellable ? 'blocked' : seat.boarded ? 'busy' : seat.occupied ? 'reserved' : ''}`}
+                                                                title={`${seat.code} · ${
+                                                                    !seat.sellable
+                                                                        ? 'Bloqué / équipage'
+                                                                        : seat.boarded
+                                                                          ? 'Embarqué sur ce départ'
+                                                                          : seat.occupied
+                                                                            ? 'Réservé sur ce départ'
+                                                                            : 'Libre'
+                                                                }`}
+                                                            >
+                                                                {seat.code.replace(
+                                                                    /^\d+/,
+                                                                    '',
+                                                                ) || seat.code}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                ),
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                                 <div className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-2 text-[0.5625rem] text-muted-foreground">
                                     <span className="flex items-center gap-1.5">
                                         <span className="size-2.5 rounded-[0.2rem] border border-border bg-card" />

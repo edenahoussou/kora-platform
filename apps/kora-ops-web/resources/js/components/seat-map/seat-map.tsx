@@ -1,7 +1,7 @@
 import { DoorOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { cellAt } from './layout-utils';
-import type { LayoutCell, LayoutGrid, OperationalSeatStatus } from './types';
+import type { LayoutCell, LayoutGrid, SeatMapStatus } from './types';
 
 type SeatMapMode = 'display' | 'edit' | 'select';
 
@@ -10,41 +10,66 @@ type Props = {
     mode?: SeatMapMode;
     size?: 'normal' | 'mini';
     cabin?: boolean;
-    seatStatuses?: Record<string, OperationalSeatStatus>;
+    seatStatuses?: Record<string, SeatMapStatus>;
+    seatLabels?: Record<string, string>;
     selectedCodes?: string[];
     onSeatClick?: (cell: LayoutCell, event: React.MouseEvent) => void;
 };
 
+const SALE_STATUS_CLASSES: Partial<Record<SeatMapStatus, string>> = {
+    reserved: 'reserved',
+    paid: 'paid',
+    taken: 'taken',
+    busy: 'busy',
+};
+
 function seatStatusClass(
     cell: LayoutCell,
-    statuses: Record<string, OperationalSeatStatus>,
+    statuses: Record<string, SeatMapStatus>,
     selectedCodes: string[],
 ): string {
     if (cell.code && selectedCodes.includes(cell.code)) {
         return 'selected';
     }
 
-    if (cell.code && statuses[cell.code] === 'maintenance') {
+    const status = cell.code ? statuses[cell.code] : undefined;
+
+    if (status === 'maintenance') {
         return 'sm-seat--maintenance';
     }
 
-    if (cell.code && statuses[cell.code] === 'blocked') {
+    if (status === 'blocked') {
         return 'sm-seat--blocked';
     }
 
-    return '';
+    return (status && SALE_STATUS_CLASSES[status]) || '';
+}
+
+function isUnavailableForSelection(
+    cell: LayoutCell | undefined,
+    statuses: Record<string, SeatMapStatus>,
+): boolean {
+    if (cell?.kind !== 'seat' || !cell.code) {
+        return false;
+    }
+
+    const status = statuses[cell.code];
+
+    return status !== undefined && !['available', 'selected'].includes(status);
 }
 
 function MapCell({
     cell,
     mode,
     statuses,
+    labels,
     selectedCodes,
     onSeatClick,
 }: {
     cell: LayoutCell | undefined;
     mode: SeatMapMode;
-    statuses: Record<string, OperationalSeatStatus>;
+    statuses: Record<string, SeatMapStatus>;
+    labels: Record<string, string>;
     selectedCodes: string[];
     onSeatClick?: Props['onSeatClick'];
 }) {
@@ -78,7 +103,10 @@ function MapCell({
         );
     }
 
-    const clickable = mode !== 'display' || Boolean(onSeatClick);
+    const clickable =
+        (mode !== 'display' || Boolean(onSeatClick)) &&
+        !(mode === 'select' && isUnavailableForSelection(cell, statuses));
+    const label = cell.code ? labels[cell.code] : undefined;
 
     return (
         <button
@@ -98,6 +126,7 @@ function MapCell({
             }
         >
             <span>{cell.code ?? ''}</span>
+            {label && <small>{label}</small>}
         </button>
     );
 }
@@ -108,6 +137,7 @@ export function SeatMap({
     size = 'normal',
     cabin = true,
     seatStatuses = {},
+    seatLabels = {},
     selectedCodes = [],
     onSeatClick,
 }: Props) {
@@ -121,6 +151,7 @@ export function SeatMap({
                     cell={cellAt(grid, x, y)}
                     mode={mode}
                     statuses={seatStatuses}
+                    labels={seatLabels}
                     selectedCodes={selectedCodes}
                     onSeatClick={onSeatClick}
                 />,

@@ -34,3 +34,8 @@ export type SeatTemplate = {
 };
 
 export type OperationalSeatStatus = 'active' | 'maintenance' | 'blocked';
+
+export type SeatAvailabilityStatus =
+    'available' | 'reserved' | 'paid' | 'blocked' | 'taken' | 'busy';
+
+export type SeatMapStatus = OperationalSeatStatus | SeatAvailabilityStatus;

@@ -3,6 +3,7 @@
 use App\Models\User;
 use App\Modules\Booking\Models\ItineraryQuote;
 use App\Modules\BusNetwork\Models\Bus;
+use App\Modules\BusNetwork\Models\BusComposition;
 use App\Modules\BusNetwork\Models\Line;
 use App\Modules\BusNetwork\Models\PhysicalStop;
 use App\Modules\BusNetwork\Models\Seat;
@@ -80,6 +81,48 @@ it('returns seat availability for round-trip legs with sequential leg ordering',
             ->where('itineraryLegSeats.1.direction', 'inbound'));
 
     expect(ItineraryQuote::count())->toBe(0);
+});
+
+it('returns the bus composition grid with seat availability', function (): void {
+    $scenario = seatsEndpointScenario();
+
+    $composition = BusComposition::query()->create([
+        'code' => 'GAB-SEATS',
+        'name' => 'Coach test',
+        'seat_count' => 2,
+        'layout' => [['type' => 'standard', 'codes' => ['1A', '1B']]],
+        'grid' => [
+            'rows' => 2,
+            'cols' => 3,
+            'cells' => [
+                ['kind' => 'driver', 'x' => 0, 'y' => 0],
+                ['kind' => 'door', 'x' => 2, 'y' => 0],
+                ['kind' => 'seat', 'x' => 0, 'y' => 1, 'code' => '1A', 'seatKind' => 'standard'],
+                ['kind' => 'aisle', 'x' => 1, 'y' => 1],
+                ['kind' => 'seat', 'x' => 2, 'y' => 1, 'code' => '1B', 'seatKind' => 'standard'],
+            ],
+        ],
+        'status' => 'active',
+    ]);
+    $scenario['bus']->update(['composition_id' => $composition->id]);
+
+    $this->actingAs($scenario['agent'])
+        ->post(route('sale.seats'), [
+            'date' => '2026-08-20',
+            'from' => 'Cotonou',
+            'to' => 'Abidjan',
+            'trip_type' => 'one_way',
+            'outbound_legs' => [[
+                'departure_uuid' => $scenario['departure']->uuid,
+                'origin_stop_uuid' => $scenario['origin']->uuid,
+                'destination_stop_uuid' => $scenario['destination']->uuid,
+            ]],
+        ])
+        ->assertInertia(fn (Assert $page): Assert => $page
+            ->component('sale')
+            ->where('itineraryLegSeats.0.grid.rows', 2)
+            ->where('itineraryLegSeats.0.grid.cols', 3)
+            ->has('itineraryLegSeats.0.grid.cells', 5));
 });
 
 it('validates required outbound legs', function (): void {
