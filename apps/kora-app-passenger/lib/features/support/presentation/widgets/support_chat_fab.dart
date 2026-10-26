@@ -66,14 +66,24 @@ class _Fab extends StatelessWidget {
       builder: (context, state) {
         if (!state.isAvailable) return const SizedBox.shrink();
 
+        // `SupportChatOverlay` pose ce bouton au-dessus du `Navigator`, où
+        // il n'y a pas d'`Overlay` : une infobulle y lève « No Overlay
+        // widget found » — écran rouge en debug, zone grise en release.
+        // Là, le libellé passe par l'icône, que les lecteurs d'écran
+        // annoncent de la même façon.
+        final hasOverlay = Overlay.maybeOf(context) != null;
+
         return FloatingActionButton(
           onPressed: () => onOpen(state.configuration),
           backgroundColor: AppColors.gold,
           foregroundColor: AppColors.kora,
           // La bulle de l'assistance, pas l'icône générique du casque :
           // c'est une conversation qui s'ouvre, pas un appel.
-          tooltip: l10n.contactChat,
-          child: const Icon(Icons.support_agent_rounded),
+          tooltip: hasOverlay ? l10n.contactChat : null,
+          child: Icon(
+            Icons.support_agent_rounded,
+            semanticLabel: hasOverlay ? null : l10n.contactChat,
+          ),
         );
       },
     );

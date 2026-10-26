@@ -128,4 +128,43 @@ void main() {
     // l'identité du passager.
     expect(opened.single.secureHash, 'hmac-de-l-email');
   });
+
+  testWidgets('tient au-dessus du Navigator, sans Overlay', (tester) async {
+    // C'est là que `SupportChatOverlay` le pose : dans le `builder` de
+    // `MaterialApp`, au-dessus du `Navigator` — donc sans `Overlay`.
+    // Une infobulle y lève « No Overlay widget found » : écran rouge en
+    // debug, zone grise en release, dès qu'on quitte les onglets.
+    final cubit = SupportChatCubit(FakeSupportChatRepository(rendered: live));
+    unawaited(cubit.load());
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        locale: const Locale('fr'),
+        supportedLocales: const [Locale('fr'), Locale('en')],
+        localizationsDelegates: const [
+          AppLocalization.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        builder: (context, child) => Stack(
+          children: [
+            ?child,
+            Align(
+              alignment: Alignment.bottomRight,
+              child: SupportChatFab(cubit: cubit, onOpen: (_) {}),
+            ),
+          ],
+        ),
+        home: const Scaffold(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(FloatingActionButton), findsOneWidget);
+    // Sans infobulle, le bouton garde un nom pour les lecteurs d'écran.
+    expect(find.bySemanticsLabel('Discuter avec un agent'), findsOneWidget);
+  });
 }
