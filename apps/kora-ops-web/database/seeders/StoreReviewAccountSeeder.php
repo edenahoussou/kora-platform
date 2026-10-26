@@ -302,7 +302,7 @@ class StoreReviewAccountSeeder extends Seeder
 
     private function reference(string $email, int $index): string
     {
-        return 'REV-'.strtoupper(substr(hash('sha256', $email.'#'.$index), 0, 12));
+        return 'REV-'.strtoupper(substr(hash('sha256', $email.'#'.$index), 0, 8));
     }
 
     /**
