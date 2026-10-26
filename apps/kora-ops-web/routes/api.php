@@ -30,6 +30,7 @@ use App\Modules\Notifications\Http\Controllers\OpsWebPushPreferenceController;
 use App\Modules\Notifications\Http\Controllers\PassengerFirebaseConfigurationController;
 use App\Modules\Notifications\Http\Controllers\PassengerNotificationController;
 use App\Modules\Notifications\Http\Controllers\PassengerSupportChatConfigurationController;
+use App\Modules\Passengers\Http\Controllers\AccountErasureApiController;
 use App\Modules\Payments\Http\Controllers\PaymentController;
 use App\Modules\Support\Http\Controllers\HealthController;
 use App\Modules\Sync\Http\Controllers\OpsSyncController;
@@ -72,6 +73,9 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::middleware('auth:sanctum')->group(function (): void {
             Route::get('me', [AuthSessionController::class, 'me'])->name('me');
             Route::put('me', [AuthSessionController::class, 'updateProfile'])->name('me.update');
+            Route::delete('me', [AccountErasureApiController::class, 'destroy'])
+                ->middleware('throttle:auth-login')
+                ->name('me.destroy');
             Route::post('pin/change', [AuthSessionController::class, 'changePin'])->name('pin.change');
             Route::get('preferences', [UserPreferenceController::class, 'index'])->name('preferences.index');
             Route::put('preferences', [UserPreferenceController::class, 'update'])->name('preferences.update');

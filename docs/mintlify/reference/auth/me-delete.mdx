@@ -1,0 +1,51 @@
+---
+title: Supprimer le compte
+description: "Endpoint DELETE /api/v1/auth/me de l'API KORA BUS : demande de suppression de compte passager depuis l'app, vérification du PIN, traitement OPS asynchrone."
+api: DELETE /api/v1/auth/me
+---
+
+# Supprimer le compte
+
+Enregistre une demande de suppression de compte (droit à l'oubli). La suppression est **asynchrone** : la demande est traitée par l'équipe OPS sous 30 jours, comme le formulaire web public `/account-deletion`. La session n'est pas révoquée par cet appel — l'app doit déconnecter l'utilisateur localement.
+
+Exigence App Store / Play Store : la suppression de compte doit être accessible depuis l'application.
+
+## Paramètres
+
+<ParamField body="pin" type="string" required>
+  Code PIN du compte (4 chiffres), re-vérifié côté serveur. Les comptes sans PIN reçoivent l'erreur `pin_required`.
+</ParamField>
+
+<ParamField body="reason" type="string">
+  Motif de la demande (max 500 caractères).
+</ParamField>
+
+## Réponse
+
+`202 Accepted` — `{ "data": { "status": "requested" } }`. L'appel est idempotent : un second appel met à jour la demande existante.
+
+<RequestExample>
+
+```bash cURL
+curl -X DELETE https://staging.koraexpress.app/api/v1/auth/me \
+  -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef' \
+  -H 'Content-Type: application/json' \
+  -d '{ "pin": "1234", "reason": "Je ne voyage plus." }'
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 202
+{ "data": { "status": "requested" } }
+```
+
+```json 422
+{
+  "message": "Le champ pin est incorrect.",
+  "errors": { "pin": ["Le code PIN est incorrect."] }
+}
+```
+
+</ResponseExample>
