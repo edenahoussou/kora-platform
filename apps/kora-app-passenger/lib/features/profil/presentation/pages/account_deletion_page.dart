@@ -5,6 +5,7 @@ import 'package:flutter_design_system/flutter_design_system.dart';
 
 import '../../../../core/di/injector.dart';
 import '../../../../core/l10n/app_localization.dart';
+import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
@@ -71,6 +72,20 @@ class _AccountDeletionPageState extends State<AccountDeletionPage> {
       return;
     }
 
+    // Une confirmation explicite avant l'envoi, et pas seulement le PIN :
+    // celui-ci prouve qui tape, pas qu'on veut vraiment partir. Un code
+    // composé par réflexe sur un clavier déjà ouvert ne doit pas suffire
+    // à lancer une suppression de compte.
+    final confirmed = await KoraDialogs.confirm(
+      context,
+      title: l10n.accountDeletionConfirmTitle,
+      description: l10n.accountDeletionConfirmText,
+      confirmLabel: l10n.accountDeletionConfirmCta,
+      cancelLabel: l10n.actionCancel,
+      buttonsAxis: Axis.vertical,
+    );
+    if (!mounted || !confirmed) return;
+
     setState(() => _sending = true);
 
     final result = await getIt<AuthRepository>().requestAccountDeletion(
@@ -116,7 +131,7 @@ class _AccountDeletionPageState extends State<AccountDeletionPage> {
                   padding: EdgeInsets.zero,
                   children: _step == _Step.explain
                       ? _explain(context)
-                      : _confirm(context),
+                      : _confirmStep(context),
                 ),
               ),
             ],
@@ -133,6 +148,27 @@ class _AccountDeletionPageState extends State<AccountDeletionPage> {
       Text(
         l10n.accountDeletionLead,
         style: AppTextStyles.lead(context.koraColors.textMuted),
+      ),
+      const SizedBox(height: AppSpacing.md),
+      // Le même partage que la page publique, mot pour mot : l'app et le
+      // web ne doivent pas promettre deux choses différentes à qui
+      // compare les deux avant de se décider.
+      _Effects(
+        title: l10n.accountDeletionEffectsTitle,
+        lines: [
+          (
+            l10n.accountDeletionEffectsRemovedLabel,
+            l10n.accountDeletionEffectsRemoved,
+          ),
+          (
+            l10n.accountDeletionEffectsKeptLabel,
+            l10n.accountDeletionEffectsKept,
+          ),
+          (
+            l10n.accountDeletionEffectsPendingLabel,
+            l10n.accountDeletionEffectsPending,
+          ),
+        ],
       ),
       const SizedBox(height: AppSpacing.lg),
       KoraInput(
@@ -151,7 +187,7 @@ class _AccountDeletionPageState extends State<AccountDeletionPage> {
     ];
   }
 
-  List<Widget> _confirm(BuildContext context) {
+  List<Widget> _confirmStep(BuildContext context) {
     final l10n = context.l10n;
     final error = _error;
 
@@ -185,5 +221,53 @@ class _AccountDeletionPageState extends State<AccountDeletionPage> {
       ),
       const SizedBox(height: AppSpacing.lg),
     ];
+  }
+}
+
+/// Ce que la suppression emporte, et ce qu'elle laisse.
+///
+/// Apple (5.1.1(v)) demande que le voyageur sache **avant** de confirmer
+/// ce qu'il perd et ce qui reste : un compte supprimé sans que les dix
+/// ans de pièces comptables soient annoncés serait une promesse que KORA
+/// ne peut pas tenir.
+class _Effects extends StatelessWidget {
+  const _Effects({required this.title, required this.lines});
+
+  final String title;
+
+  /// Chaque ligne : son intitulé en gras, puis ce qu'il recouvre.
+  final List<(String, String)> lines;
+
+  @override
+  Widget build(BuildContext context) {
+    final koraColors = context.koraColors;
+
+    return KoraCard(
+      variant: KoraCardVariant.mist,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(title, style: AppTextStyles.titleMedium(context.koraTitleColor)),
+          for (final (label, detail) in lines) ...[
+            const SizedBox(height: AppSpacing.sm),
+            RichText(
+              text: TextSpan(
+                style: AppTextStyles.body(koraColors.textMuted),
+                children: [
+                  TextSpan(
+                    text: '$label : ',
+                    style: AppTextStyles.body(
+                      koraColors.textPrimary,
+                    ).copyWith(fontWeight: FontWeight.w800),
+                  ),
+                  TextSpan(text: detail),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 }

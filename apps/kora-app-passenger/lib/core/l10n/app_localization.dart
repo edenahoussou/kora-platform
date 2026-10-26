@@ -1254,6 +1254,26 @@ class AppLocalization {
   String get accountDeletionEyebrow => translate('account_deletion_eyebrow');
   String get accountDeletionTitle => translate('account_deletion_title');
   String get accountDeletionLead => translate('account_deletion_lead');
+  String get accountDeletionEffectsTitle =>
+      translate('account_deletion_effects_title');
+  String get accountDeletionEffectsRemovedLabel =>
+      translate('account_deletion_effects_removed_label');
+  String get accountDeletionEffectsRemoved =>
+      translate('account_deletion_effects_removed');
+  String get accountDeletionEffectsKeptLabel =>
+      translate('account_deletion_effects_kept_label');
+  String get accountDeletionEffectsKept =>
+      translate('account_deletion_effects_kept');
+  String get accountDeletionEffectsPendingLabel =>
+      translate('account_deletion_effects_pending_label');
+  String get accountDeletionEffectsPending =>
+      translate('account_deletion_effects_pending');
+  String get accountDeletionConfirmTitle =>
+      translate('account_deletion_confirm_title');
+  String get accountDeletionConfirmText =>
+      translate('account_deletion_confirm_text');
+  String get accountDeletionConfirmCta =>
+      translate('account_deletion_confirm_cta');
   String get accountDeletionReason => translate('account_deletion_reason');
   String get accountDeletionReasonHint =>
       translate('account_deletion_reason_hint');

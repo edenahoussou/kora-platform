@@ -346,6 +346,12 @@ void main() {
 
       await enterPin(tester, '1234');
       await tester.tap(find.text('Supprimer mon compte'));
+      await tester.pumpAndSettle();
+
+      // La confirmation explicite, juste avant l'envoi : le PIN prouve
+      // qui tape, pas qu'on veut vraiment partir.
+      expect(find.text('Envoyer la demande de suppression ?'), findsOneWidget);
+      await tester.tap(find.text('Envoyer la demande'));
       // Le bouton garde son indicateur : dans l'app, la déconnexion fait
       // quitter l'écran. Pas de `pumpAndSettle`, donc : on avance le temps
       // le long du toast — entrée, attente, sortie.
@@ -366,6 +372,47 @@ void main() {
       ]);
     });
 
+    testWidgets('dit ce qui est supprimé et ce qui est conservé', (
+      tester,
+    ) async {
+      // Apple (5.1.1(v)) veut que le voyageur sache ce qu'il perd avant
+      // de confirmer. Les mêmes termes que la page publique, pour que
+      // l'app et le web ne promettent pas deux choses différentes.
+      await pump(tester, const AccountDeletionPage());
+
+      expect(find.text('Ce que la suppression implique'), findsOneWidget);
+      // Les lignes du récapitulatif mêlent gras et texte courant dans un
+      // même paragraphe : sans `findRichText`, le chercheur ne voit que
+      // les `Text` d'un seul morceau et passe à côté.
+      expect(
+        find.textContaining('appareils de confiance', findRichText: true),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('pendant 10 ans', findRichText: true),
+        findsOneWidget,
+      );
+      expect(find.textContaining('sous 30 jours'), findsOneWidget);
+    });
+
+    testWidgets('une confirmation refusée n’envoie rien', (tester) async {
+      await pump(tester, const AccountDeletionPage());
+
+      await tester.tap(find.text('Continuer'));
+      await tester.pumpAndSettle();
+      await enterPin(tester, '1234');
+      await tester.tap(find.text('Supprimer mon compte'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Annuler'));
+      await tester.pumpAndSettle();
+
+      // Rien n'est parti, et le PIN reste saisi : on peut confirmer
+      // ensuite sans tout retaper.
+      expect(repository.calls, isEmpty);
+      expect(find.text('Confirmez avec votre PIN'), findsOneWidget);
+    });
+
     testWidgets('un PIN refusé ne déconnecte pas et garde le motif', (
       tester,
     ) async {
@@ -380,6 +427,8 @@ void main() {
 
       await enterPin(tester, '9999');
       await tester.tap(find.text('Supprimer mon compte'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Envoyer la demande'));
       await tester.pumpAndSettle();
 
       expect(find.text('Le code PIN est incorrect.'), findsOneWidget);
