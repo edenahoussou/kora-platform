@@ -107,6 +107,9 @@ abstract class AuthRemoteDataSource {
   Future<UserPreferences> updatePreferences(UserPreferences preferences);
 
   Future<void> revokeDevice(String uuid);
+
+  /// `DELETE auth/me` : demande la suppression du compte.
+  Future<void> requestAccountDeletion({required String pin, String? reason});
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -312,6 +315,19 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<void> revokeDevice(String uuid) =>
       _guard(() => _dio.delete<void>(ApiConstants.device(uuid)));
+
+  @override
+  Future<void> requestAccountDeletion({required String pin, String? reason}) =>
+      _guard(
+        () => _dio.delete<void>(
+          ApiConstants.me,
+          data: {
+            'pin': pin,
+            if (reason != null && reason.trim().isNotEmpty)
+              'reason': reason.trim(),
+          },
+        ),
+      );
 
   Future<Response<dynamic>> _post(String path, Map<String, dynamic> body) {
     return _guard(

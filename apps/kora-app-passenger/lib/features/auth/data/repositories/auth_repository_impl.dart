@@ -211,6 +211,13 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Either<Failure, void>> revokeDevice(String uuid) =>
       _attempt(() => _remote.revokeDevice(uuid));
 
+  @override
+  Future<Either<Failure, void>> requestAccountDeletion({
+    required String pin,
+    String? reason,
+  }) =>
+      _attempt(() => _remote.requestAccountDeletion(pin: pin, reason: reason));
+
   /// Exécute [call] et traduit tout ce qui peut en sortir en [Failure].
   Future<Either<Failure, T>> _attempt<T>(Future<T> Function() call) async {
     try {
