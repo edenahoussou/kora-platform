@@ -1209,6 +1209,7 @@ class AppLocalization {
   String get notificationsMarkAll => translate('notifications_mark_all');
   String get notificationsMarked => translate('notifications_marked');
   String get notificationsEmpty => translate('notifications_empty');
+  String get notificationsEmptyLead => translate('notifications_empty_lead');
   String get notificationsSoon => translate('notifications_soon');
   String get notificationsErrorTitle => translate('notifications_error_title');
   String get notificationsErrorText => translate('notifications_error_text');

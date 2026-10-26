@@ -4,7 +4,7 @@ import '../../../../core/error/failures.dart';
 import '../entities/city.dart';
 import '../entities/departure.dart';
 import '../entities/line_stop.dart';
-import '../entities/seat.dart';
+import '../entities/seat_plan.dart';
 import '../entities/ticket.dart';
 import '../entities/upcoming_trip.dart';
 
@@ -31,7 +31,7 @@ abstract class BookingRepository {
   /// section « Les étapes ».
   Future<Either<Failure, List<LineStop>>> getLineStops(String lineId);
 
-  Future<Either<Failure, List<Seat>>> getSeats(Departure departure);
+  Future<Either<Failure, SeatPlan>> getSeats(Departure departure);
 
   /// Prochain voyage réservé, ou `null` si l'utilisateur n'en a aucun
   /// (c'est un cas normal, pas une erreur — d'où le `Right(null)` plutôt

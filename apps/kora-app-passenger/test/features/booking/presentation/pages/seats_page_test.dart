@@ -13,6 +13,7 @@ import 'package:kora_app_passenger/features/booking/domain/entities/departure.da
 import 'package:kora_app_passenger/features/booking/domain/entities/price.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/search_criteria.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/seat.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/seat_plan.dart';
 import 'package:kora_app_passenger/features/booking/domain/usecases/get_seats_usecase.dart';
 import 'package:kora_app_passenger/features/booking/presentation/bloc/group_quote_cubit.dart';
 import 'package:kora_app_passenger/features/booking/presentation/bloc/seat_hold_bloc.dart';
@@ -54,7 +55,9 @@ void main() {
     seats = mockSeatsFor(departure);
 
     getSeats = MockGetSeatsUseCase();
-    when(() => getSeats(any())).thenAnswer((_) async => Right(seats));
+    when(
+      () => getSeats(any()),
+    ).thenAnswer((_) async => Right(SeatPlan.flat(seats)));
 
     getIt.registerFactory<SeatsBloc>(() => SeatsBloc(getSeats));
   });
@@ -115,6 +118,87 @@ void main() {
         again.map((seat) => seat.status),
         seats.map((seat) => seat.status),
       );
+    });
+  });
+
+  group('le plan de cabine du serveur', () {
+    /// Une cabine minuscule, mais complète : un poste de conduite, une
+    /// porte, un couloir, et quatre sièges dont un d'équipage et un hors
+    /// service.
+    ///
+    /// Elle n'est pas en 2+2 — c'est tout l'intérêt : c'est le cas que
+    /// l'ancien plan, qui déduisait la position du code, dessinait de
+    /// travers.
+    const grid = SeatGrid(
+      rows: 3,
+      cols: 3,
+      cells: [
+        SeatCell(kind: SeatCellKind.driver, x: 0, y: 0),
+        SeatCell(kind: SeatCellKind.door, x: 2, y: 0),
+        SeatCell(kind: SeatCellKind.seat, x: 0, y: 1, code: '1A'),
+        SeatCell(kind: SeatCellKind.aisle, x: 1, y: 1),
+        SeatCell(kind: SeatCellKind.seat, x: 2, y: 1, code: '1B'),
+        SeatCell(kind: SeatCellKind.seat, x: 0, y: 2, code: '2A', isCrew: true),
+        SeatCell(
+          kind: SeatCellKind.seat,
+          x: 2,
+          y: 2,
+          code: '2B',
+          isUnderMaintenance: true,
+        ),
+      ],
+    );
+
+    const inventory = [
+      Seat(id: 's1', label: '1A', row: 1, column: 1),
+      Seat(id: 's2', label: '1B', row: 1, column: 2),
+      Seat(id: 's3', label: '2A', row: 2, column: 1),
+      Seat(id: 's4', label: '2B', row: 2, column: 2),
+    ];
+
+    setUp(() {
+      when(() => getSeats(any())).thenAnswer(
+        (_) async => const Right(
+          SeatPlan(seats: inventory, grid: grid, compositionId: 'comp-1'),
+        ),
+      );
+    });
+
+    testWidgets('dessine les sièges de la grille, et eux seuls', (
+      tester,
+    ) async {
+      await pumpSeats(tester);
+
+      for (final code in const ['1A', '1B', '2A', '2B']) {
+        expect(find.text(code), findsOneWidget, reason: code);
+      }
+
+      // Le couloir, la porte et le poste de conduite occupent leur case
+      // sans porter de siège : rien à compter de plus.
+      expect(find.byType(KoraSeat), findsNothing);
+    });
+
+    testWidgets('rend intouchables l’équipage et le hors-service', (
+      tester,
+    ) async {
+      // Les deux places existent à bord et se voient sur le plan ; les
+      // offrir à la vente mènerait le voyageur à un refus du serveur.
+      await pumpSeats(tester);
+
+      await tester.tap(find.text('2A'));
+      await tester.tap(find.text('2B'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Aucun siège · 0/1'), findsOneWidget);
+    });
+
+    testWidgets('laisse choisir un siège vendable', (tester) async {
+      await pumpSeats(tester);
+
+      await tester.tap(find.text('1B'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('1B · 1/1'), findsOneWidget);
     });
   });
 

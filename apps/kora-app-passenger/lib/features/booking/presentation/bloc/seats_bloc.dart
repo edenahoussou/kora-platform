@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/departure.dart';
 import '../../domain/entities/price.dart';
 import '../../domain/entities/seat.dart';
+import '../../domain/entities/seat_plan.dart';
 import '../../domain/usecases/get_seats_usecase.dart';
 
 part 'seats_event.dart';
@@ -37,8 +38,15 @@ class SeatsBloc extends Bloc<SeatsEvent, SeatsState> {
           errorMessage: failure.message,
         ),
       ),
-      (seats) =>
-          emit(state.copyWith(status: SeatsStatus.success, seats: seats)),
+      (plan) => emit(
+        state.copyWith(
+          status: SeatsStatus.success,
+          seats: plan.seats,
+          // `null` pour un bus sans gabarit : l'écran retombe alors sur
+          // le plan déduit des codes.
+          grid: plan.grid,
+        ),
+      ),
     );
   }
 

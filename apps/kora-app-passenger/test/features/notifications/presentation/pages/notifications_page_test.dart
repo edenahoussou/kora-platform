@@ -235,12 +235,19 @@ void main() {
     expect(find.text('Réservation confirmée'), findsOneWidget);
   });
 
-  testWidgets('sans notification, l’écran le dit', (tester) async {
+  testWidgets('sans notification, l’écran le dit dans une carte', (
+    tester,
+  ) async {
+    // Une ligne de gris seule sur un écran vide se lit comme un
+    // chargement qui n'a pas abouti : la carte dit que l'écran a bien
+    // répondu, et ce qui viendra s'y poser.
     repository.pages = [const NotificationFeed()];
 
     await pumpPage(tester);
 
-    expect(find.text('Rien de neuf pour le moment.'), findsOneWidget);
+    expect(find.text('Vous n’avez aucune notification.'), findsOneWidget);
+    expect(find.textContaining('confirmations de réservation'), findsOneWidget);
+    expect(find.byType(KoraCard), findsOneWidget);
     expect(find.text('Tout lire'), findsNothing);
   });
 

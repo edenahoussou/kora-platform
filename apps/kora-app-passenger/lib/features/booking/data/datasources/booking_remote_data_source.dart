@@ -12,12 +12,14 @@ import '../../domain/entities/line_stop.dart';
 import '../../domain/entities/price.dart';
 import '../../domain/entities/search_criteria.dart';
 import '../../domain/entities/seat.dart';
+import '../../domain/entities/seat_plan.dart';
 import '../../domain/entities/ticket.dart';
 import '../../domain/entities/upcoming_trip.dart';
 import '../models/city_model.dart';
 import '../models/itinerary_model.dart';
 import '../models/line_stop_model.dart';
 import '../models/passenger_ticket_model.dart';
+import '../models/seat_grid_model.dart';
 import '../models/seat_model.dart';
 import 'booking_cache_local_data_source.dart';
 import 'booking_data_source.dart';
@@ -210,7 +212,7 @@ class BookingRemoteDataSourceImpl implements BookingDataSource {
   }
 
   @override
-  Future<List<Seat>> getSeats(Departure departure) async {
+  Future<SeatPlan> getSeats(Departure departure) async {
     final origin = departure.originStopId;
     final destination = departure.destinationStopId;
 
@@ -230,10 +232,20 @@ class BookingRemoteDataSourceImpl implements BookingDataSource {
       },
     );
 
-    return [
-      for (final json in ApiJson.list(response.data))
-        SeatModel.fromJson(json).toEntity(),
-    ];
+    // La réponse porte trois choses : la liste plate `data`, inchangée
+    // depuis toujours, et depuis l'ADR 0020 la géométrie de la cabine
+    // (`grid`) avec le gabarit dont elle vient (`composition_uuid`).
+    // Les deux dernières sont nulles pour un bus sans gabarit.
+    final body = ApiJson.map(response.data);
+
+    return SeatPlan(
+      seats: [
+        for (final json in ApiJson.list(response.data))
+          SeatModel.fromJson(json).toEntity(),
+      ],
+      grid: SeatGridModel.fromJson(body['grid']),
+      compositionId: ApiJson.stringOrNull(body['composition_uuid']),
+    );
   }
 
   /// Pas encore servi par l'API — voir la note de classe.
