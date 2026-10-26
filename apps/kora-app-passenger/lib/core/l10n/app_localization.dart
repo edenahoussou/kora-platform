@@ -1244,6 +1244,11 @@ class AppLocalization {
   String get securityChangePinSub => translate('security_change_pin_sub');
   String get securityNewDevice => translate('security_new_device');
   String get securityNewDeviceSub => translate('security_new_device_sub');
+  String get securityDeleteAccount => translate('security_delete_account');
+  String get securityDeleteAccountSub =>
+      translate('security_delete_account_sub');
+  String securityDeleteAccountUnavailable(String url) =>
+      _withArgs('security_delete_account_unavailable', {'url': url});
   String get securityDevices => translate('security_devices');
   String get securityDeviceCurrent => translate('security_device_current');
   String get securityDeviceActive => translate('security_device_active');

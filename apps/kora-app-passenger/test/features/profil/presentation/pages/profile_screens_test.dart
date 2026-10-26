@@ -304,6 +304,63 @@ void main() {
       );
       expect(find.text('Réessayer'), findsOneWidget);
     });
+
+    // Apple l'exige (règle 5.1.1(v)) : une app qui crée des comptes doit
+    // permettre d'en demander la suppression depuis l'app elle-même.
+    final deletionPage = Uri.parse(
+      'https://prod.koraexpress.app/account-deletion',
+    );
+
+    testWidgets('ouvre la page de suppression du compte', (tester) async {
+      repository = _DevicesRepository();
+      final opened = <Uri>[];
+      await pump(
+        tester,
+        SecurityPage(
+          accountDeletionUrl: deletionPage,
+          launcher: (uri) async {
+            opened.add(uri);
+            return true;
+          },
+        ),
+      );
+
+      await tester.scrollUntilVisible(find.text('Supprimer mon compte'), 200);
+      await tester.tap(find.text('Supprimer mon compte'));
+      await tester.pumpAndSettle();
+
+      expect(opened, [deletionPage]);
+    });
+
+    testWidgets('donne l’adresse si aucun navigateur ne s’ouvre', (
+      tester,
+    ) async {
+      repository = _DevicesRepository();
+      await pump(
+        tester,
+        SecurityPage(
+          accountDeletionUrl: deletionPage,
+          launcher: (_) async => false,
+        ),
+      );
+
+      await tester.scrollUntilVisible(find.text('Supprimer mon compte'), 200);
+      await tester.tap(find.text('Supprimer mon compte'));
+      // Le toast s'insère dans l'Overlay une frame plus tard, puis entre
+      // en glissant.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      // Un appui sans effet laisserait croire la demande partie.
+      expect(
+        find.textContaining('prod.koraexpress.app/account-deletion'),
+        findsOneWidget,
+      );
+      // Laisse le toast finir son cycle — entrée, attente, sortie : sinon
+      // sa minuterie survit au test.
+      await tester.pumpAndSettle();
+      await settleToast(tester);
+    });
   });
 
   group('Préférences', () {
