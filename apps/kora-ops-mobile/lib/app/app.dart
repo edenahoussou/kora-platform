@@ -10,6 +10,9 @@ import '../features/notifications/presentation/cubit/sent_notification_cubit.dar
 import '../features/ops/presentation/cubit/departure_list_cubit.dart';
 import '../features/ops/presentation/cubit/selected_depart_cubit.dart';
 import '../features/scan/presentation/cubit/scan_boarding_cubit.dart';
+import '../features/support_chat/data/support_chat_remote_datasource.dart';
+import '../features/support_chat/presentation/cubit/support_chat_cubit.dart';
+import '../features/support_chat/presentation/widgets/support_chat_overlay.dart';
 import '../features/synchro/presentation/cubit/sync_cubit.dart';
 import '../features/terminal/presentation/cubit/terminal_cubit.dart';
 import '../features/tracking/presentation/cubit/tracking_cubit.dart';
@@ -46,6 +49,14 @@ class App extends StatelessWidget {
         BlocProvider<SentNotificationCubit>.value(
             value: getIt<SentNotificationCubit>()),
         BlocProvider<TrackingCubit>.value(value: getIt<TrackingCubit>()),
+        // Chat support tawk.to : un seul cubit pour le bouton flottant
+        // affiché sur tous les écrans connectés (voir SupportChatOverlay).
+        BlocProvider<SupportChatCubit>(
+          create: (_) => SupportChatCubit(
+            getIt<SupportChatRemoteDataSource>(),
+            authCubit: getIt<AuthCubit>(),
+          ),
+        ),
       ],
       child: const _AppLifecycleListener(child: _AppRouterHost()),
     );
@@ -135,6 +146,10 @@ class _AppRouterHost extends StatelessWidget {
               darkTheme: AppTheme.dark,
               themeMode: themeMode,
               routerConfig: appRouter.router,
+              // Bouton flottant « Chat support » au-dessus de toutes les
+              // pages connectées (plus seulement le Profil).
+              builder: (BuildContext context, Widget? child) =>
+                  SupportChatOverlay(router: appRouter.router, child: child),
             );
           },
         );

@@ -16,8 +16,6 @@ import '../../../../core/widgets/notification_button.dart';
 import '../../../../injection/injection.dart';
 import '../../../auth/presentation/bloc/auth_flow_bloc.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
-import '../../../support_chat/data/support_chat_remote_datasource.dart';
-import '../../../support_chat/presentation/cubit/support_chat_cubit.dart';
 import '../../../synchro/presentation/cubit/sync_cubit.dart';
 import '../../../terminal/presentation/cubit/terminal_cubit.dart';
 
@@ -79,12 +77,10 @@ class ProfilPage extends StatelessWidget {
     // « Agent KORA » seul (voir plus bas).
     const String role = '';
 
-    return BlocProvider<SupportChatCubit>(
-        create: (_) =>
-            SupportChatCubit(getIt<SupportChatRemoteDataSource>())..load(),
-        child: Scaffold(
+    // Le bouton flottant « Chat support » n'est plus propre au Profil : il est
+    // affiché sur tous les écrans connectés par `SupportChatOverlay`.
+    return Scaffold(
           backgroundColor: context.koraColors.background,
-          floatingActionButton: const _SupportChatFab(),
           body: AnnotatedRegion<SystemUiOverlayStyle>(
             sized: false,
             value: const SystemUiOverlayStyle(
@@ -210,7 +206,7 @@ class ProfilPage extends StatelessWidget {
               ),
             ),
           ),
-        ));
+        );
   }
 }
 
@@ -632,63 +628,5 @@ class _HelpAction extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-/// Bouton flottant « Chat support » (tawk.to) : grisé tant que le chat n'est
-/// pas utilisable (hors ligne, désactivé, config injoignable) — un tap
-/// explique pourquoi, sans jamais bloquer ni planter.
-class _SupportChatFab extends StatelessWidget {
-  const _SupportChatFab();
-
-  @override
-  Widget build(BuildContext context) {
-    final SupportChatState state = context.watch<SupportChatCubit>().state;
-    final bool available =
-        state.status == SupportChatStatus.available && state.config != null;
-
-    // Le Scaffold parent (`_ScaffoldWithBottomNav`) utilise `extendBody: true` :
-    // la barre de navigation flottante masquerait le bouton sans ce décalage
-    // (même correctif que le bouton « Filtrer » de la Tournée).
-    return Padding(
-        padding: const EdgeInsets.only(bottom: 88),
-        child: FloatingActionButton(
-          heroTag: 'support-chat-fab',
-          tooltip: 'Chat support',
-          backgroundColor: available
-              ? AppColors.gold
-              : AppColors.gold.withValues(alpha: 0.35),
-          foregroundColor: available
-              ? AppColors.onGold
-              : AppColors.onGold.withValues(alpha: 0.5),
-          elevation: available ? 6 : 0,
-          onPressed: () {
-            if (available) {
-              context.push(AppRoutes.supportChat, extra: state.config);
-              return;
-            }
-            final (String title, String description) = switch (state.status) {
-              SupportChatStatus.offline => (
-                  'Hors ligne',
-                  'Le chat support nécessite une connexion internet. '
-                      'Réessayez dès que vous avez du réseau.',
-                ),
-              SupportChatStatus.loading => (
-                  'Chargement',
-                  'Vérification de la disponibilité du chat en cours…',
-                ),
-              _ => (
-                  'Chat indisponible',
-                  'Le chat support n\'est pas disponible actuellement. '
-                      'Contactez votre superviseur d\'agence.',
-                ),
-            };
-            KoraDialogs.info(context, title: title, description: description);
-            if (state.status != SupportChatStatus.loading) {
-              context.read<SupportChatCubit>().load();
-            }
-          },
-          child: const Icon(Icons.support_agent),
-        ));
   }
 }
