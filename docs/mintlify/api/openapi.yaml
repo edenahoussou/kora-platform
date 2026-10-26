@@ -20,6 +20,9 @@ tags:
     name: 'Company Accounts'
     description: "\nCompany account management for group purchases and credit-based billing."
   -
+    name: 'Distribution des applications'
+    description: "\nVérification de mise à jour au lancement de l'app (MEZ-150)."
+  -
     name: Endpoints
     description: ''
   -
@@ -57,7 +60,7 @@ tags:
     description: "\nContrat de synchronisation pour le convoyeur en réseau dégradé ou hors\nligne : vérification de version de manifeste et soumission par lot des\nopérations enregistrées localement (embarquement, no-show, libération\nde siège). Idempotent à deux niveaux (lot et opération) — un lot\nrejoué, en tout ou partie, ne crée jamais de doublon."
   -
     name: 'OPS Mobile — Terminal'
-    description: "\nHandshake et opérations liées au terminal P501 pour l'application OPS\nMobile. L'authentification de l'utilisateur (login, PIN, OTP) reste celle\nde l'app KORA existante (auth:sanctum) ; ces endpoints ajoutent le\ncontrôle du terminal par-dessus une session déjà ouverte."
+    description: "\nHandshake et opérations liées au terminal P501 pour l'application OPS\nMobile. L'authentification de l'utilisateur (login, PIN, OTP) reste celle\nde l'app KORA existante (auth:sanctum) ; ces endpoints ajoutent le\ncontrôle du terminal par-dessus une session déjà ouverte.\n\nDistribution hors store (MEZ-150) : handshake, sync et activity\nrenvoient en plus un bloc `update` (dernière version publiée, mise à jour\nobligatoire ou non, URL de téléchargement, sha256), calculé à partir de\nl'`app_version` remontée par le terminal. Champ additionnel uniquement."
   -
     name: 'OPS Web — Suivi de la flotte'
     description: "\nPositions des départs actuellement en circulation, pour la carte OPS Web\n(ticket MEZ-100). Protégé par permission ET par périmètre : un\ngestionnaire d'agence (`tracking.view-agency`) ne voit que sa propre\nagence, un rôle réseau (`tracking.view-network`) voit toute la flotte\n(filtrable par agence). Ne retourne que des UUID, des codes métier et les\ndonnées nécessaires à la carte — aucun identifiant numérique interne."
@@ -442,7 +445,7 @@ paths:
     get:
       summary: 'List departure seats.'
       operationId: listDepartureSeats
-      description: "Returns every seat on the assigned bus, with its availability status for\nthe requested origin/destination segment (available, held, occupied, or blocked)."
+      description: "Returns every seat on the assigned bus, with its availability status for\nthe requested origin/destination segment (available, held, occupied, or blocked).\nAdds `composition_uuid` and `grid` (canonical cabin layout; cells join\n`data` seats on `code`). Both are null when the bus has no template."
       parameters:
         -
           in: query
@@ -472,6 +475,36 @@ paths:
               schema:
                 type: object
                 example:
+                  composition_uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                  grid:
+                    rows: 2
+                    cols: 4
+                    cells:
+                      -
+                        kind: driver
+                        x: 0
+                        'y': 0
+                      -
+                        kind: door
+                        x: 3
+                        'y': 0
+                      -
+                        kind: seat
+                        x: 0
+                        'y': 1
+                        code: 1A
+                        seatKind: standard
+                      -
+                        kind: aisle
+                        x: 2
+                        'y': 1
+                      -
+                        kind: seat
+                        x: 3
+                        'y': 1
+                        code: 1B
+                        seatKind: standard
+                        maintenance: true
                   data:
                     -
                       uuid: 6e2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e50
@@ -495,6 +528,58 @@ paths:
                       availability_status: occupied
                       held_until: null
                 properties:
+                  composition_uuid:
+                    type: string
+                    example: 00000000-0000-4000-8000-000000000000
+                  grid:
+                    type: object
+                    properties:
+                      rows:
+                        type: integer
+                        example: 2
+                      cols:
+                        type: integer
+                        example: 4
+                      cells:
+                        type: array
+                        example:
+                          -
+                            kind: driver
+                            x: 0
+                            'y': 0
+                          -
+                            kind: door
+                            x: 3
+                            'y': 0
+                          -
+                            kind: seat
+                            x: 0
+                            'y': 1
+                            code: 1A
+                            seatKind: standard
+                          -
+                            kind: aisle
+                            x: 2
+                            'y': 1
+                          -
+                            kind: seat
+                            x: 3
+                            'y': 1
+                            code: 1B
+                            seatKind: standard
+                            maintenance: true
+                        items:
+                          type: object
+                          properties:
+                            kind:
+                              type: string
+                              example: driver
+                            x:
+                              type: integer
+                              example: 0
+                            'y':
+                              type: integer
+                              example: 0
                   data:
                     type: array
                     example:
@@ -3928,6 +4013,33 @@ paths:
               required:
                 - name
                 - email
+    delete:
+      summary: ''
+      operationId: deleteApiV1AuthMe
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - Endpoints
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pin:
+                  type: string
+                  description: 'Le champ value doit contenir 4 chiffres.'
+                  example: '9775'
+                reason:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 500 caractères.'
+                  example: 'n'
+                  nullable: true
+              required:
+                - pin
+      security: []
   /api/v1/auth/pin/change:
     post:
       summary: "Change the authenticated user's PIN."
@@ -5130,6 +5242,164 @@ paths:
         name: companyAccount_uuid
         description: ''
         example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/apps/{id}/update':
+    get:
+      summary: 'Vérifier si une mise à jour est disponible ou obligatoire.'
+      operationId: vrifierSiUneMiseJourEstDisponibleOuObligatoire
+      description: "Appelé par l'app au démarrage, AVANT toute connexion (un terminal dont\nla version est obsolète doit être bloqué même sans session). Renvoie\nle même bloc `update` que les réponses `ops-mobile/terminal/handshake`,\n`sync` et `activity`. `data` vaut `null` tant qu'aucune version n'est\npubliée pour l'application.\n\nRègle : `mandatory = true` dès qu'une release obligatoire plus récente\nque la version installée est publiée ; la cible proposée\n(`download_url`, `sha256`) est toujours la dernière release publiée.\nLe client DOIT vérifier le `sha256` du fichier téléchargé avant de\nlancer l'installation."
+      parameters:
+        -
+          in: query
+          name: version
+          description: 'Version installée (semver, build optionnel après « + »). Le champ value ne doit pas dépasser 64 caractères.'
+          example: 1.3.2+37
+          required: false
+          schema:
+            type: string
+            description: 'Version installée (semver, build optionnel après « + »). Le champ value ne doit pas dépasser 64 caractères.'
+            example: 1.3.2+37
+            nullable: true
+        -
+          in: query
+          name: build
+          description: 'Build number installé (versionCode Android). Le champ value doit être au moins 0. Le champ value ne doit pas être supérieur à 2100000000.'
+          example: 37
+          required: false
+          schema:
+            type: integer
+            description: 'Build number installé (versionCode Android). Le champ value doit être au moins 0. Le champ value ne doit pas être supérieur à 2100000000.'
+            example: 37
+            nullable: true
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  -
+                    description: 'Mise à jour obligatoire'
+                    type: object
+                    example:
+                      data:
+                        app: ops_mobile
+                        status: update_required
+                        installed_version: 1.2.0
+                        installed_build: 30
+                        latest_version: 1.4.0
+                        latest_build: 42
+                        latest_full_version: 1.4.0+42
+                        update_available: true
+                        mandatory: true
+                        minimum_version: 1.3.0
+                        minimum_build: 35
+                        release_uuid: 6f0c1d3e-7c1b-4a8a-9d6e-2b1a0c9f8e71
+                        release_notes: "Correctifs d'impression du manifeste."
+                        download_url: 'https://ops.koraexpress.app/downloads/apps/ops-mobile/releases/6f0c1d3e-7c1b-4a8a-9d6e-2b1a0c9f8e71'
+                        download_page_url: 'https://ops.koraexpress.app/downloads/apps/ops-mobile'
+                        sha256: 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
+                        size_bytes: 31457280
+                        published_at: '2026-10-25T09:00:00.000Z'
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          app:
+                            type: string
+                            example: ops_mobile
+                          status:
+                            type: string
+                            example: update_required
+                          installed_version:
+                            type: string
+                            example: 1.2.0
+                          installed_build:
+                            type: integer
+                            example: 30
+                          latest_version:
+                            type: string
+                            example: 1.4.0
+                          latest_build:
+                            type: integer
+                            example: 42
+                          latest_full_version:
+                            type: string
+                            example: 1.4.0+42
+                          update_available:
+                            type: boolean
+                            example: false
+                          mandatory:
+                            type: boolean
+                            example: false
+                          minimum_version:
+                            type: string
+                            example: 1.3.0
+                          minimum_build:
+                            type: integer
+                            example: 35
+                          release_uuid:
+                            type: string
+                            example: 00000000-0000-4000-8000-000000000000
+                          release_notes:
+                            type: string
+                            example: "Correctifs d'impression du manifeste."
+                          download_url:
+                            type: string
+                            example: 'https://ops.koraexpress.app/downloads/apps/ops-mobile/releases/6f0c1d3e-7c1b-4a8a-9d6e-2b1a0c9f8e71'
+                          download_page_url:
+                            type: string
+                            example: 'https://ops.koraexpress.app/downloads/apps/ops-mobile'
+                          sha256:
+                            type: string
+                            example: 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
+                          size_bytes:
+                            type: integer
+                            example: 31457280
+                          published_at:
+                            type: string
+                            example: '2026-10-25T09:00:00.000Z'
+                  -
+                    description: 'Aucune version publiée'
+                    type: object
+                    example:
+                      data: null
+                    properties:
+                      data:
+                        type: string
+                        example: null
+                        nullable: true
+        404:
+          description: 'Application inconnue'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Not Found'
+                properties:
+                  message:
+                    type: string
+                    example: 'Not Found'
+      tags:
+        - 'Distribution des applications'
+      security: []
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the app.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+      -
+        in: path
+        name: app
+        description: 'Application (`ops-mobile` ou `ops_mobile`).'
+        example: ops-mobile
         required: true
         schema:
           type: string
@@ -7466,7 +7736,7 @@ paths:
                 birth_date:
                   type: string
                   description: 'Date de naissance (Y-m-d). Must be a valid date in the format <code>Y-m-d</code>. Le champ value doit être une date antérieure ou égale à <code>today</code>.'
-                  example: '2022-11-17'
+                  example: '2022-11-20'
                   nullable: true
                 yellow_fever_vaccinated:
                   type: boolean
@@ -8768,6 +9038,25 @@ paths:
                       permissions:
                         - departures.view
                         - boarding.scan
+                    update:
+                      app: ops_mobile
+                      status: update_required
+                      installed_version: 1.2.0
+                      installed_build: 30
+                      latest_version: 1.4.0
+                      latest_build: 42
+                      latest_full_version: 1.4.0+42
+                      update_available: true
+                      mandatory: true
+                      minimum_version: 1.3.0
+                      minimum_build: 35
+                      release_uuid: 6f0c1d3e-7c1b-4a8a-9d6e-2b1a0c9f8e71
+                      release_notes: "Correctifs d'impression du manifeste."
+                      download_url: 'https://ops.koraexpress.app/downloads/apps/ops-mobile/releases/6f0c1d3e-7c1b-4a8a-9d6e-2b1a0c9f8e71'
+                      download_page_url: 'https://ops.koraexpress.app/downloads/apps/ops-mobile'
+                      sha256: 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
+                      size_bytes: 31457280
+                      published_at: '2026-10-25T09:00:00.000Z'
                   meta:
                     server_time: '2026-09-14T09:00:00.000Z'
                 properties:
@@ -8849,6 +9138,63 @@ paths:
                               - boarding.scan
                             items:
                               type: string
+                      update:
+                        type: object
+                        properties:
+                          app:
+                            type: string
+                            example: ops_mobile
+                          status:
+                            type: string
+                            example: update_required
+                          installed_version:
+                            type: string
+                            example: 1.2.0
+                          installed_build:
+                            type: integer
+                            example: 30
+                          latest_version:
+                            type: string
+                            example: 1.4.0
+                          latest_build:
+                            type: integer
+                            example: 42
+                          latest_full_version:
+                            type: string
+                            example: 1.4.0+42
+                          update_available:
+                            type: boolean
+                            example: false
+                          mandatory:
+                            type: boolean
+                            example: false
+                          minimum_version:
+                            type: string
+                            example: 1.3.0
+                          minimum_build:
+                            type: integer
+                            example: 35
+                          release_uuid:
+                            type: string
+                            example: 00000000-0000-4000-8000-000000000000
+                          release_notes:
+                            type: string
+                            example: "Correctifs d'impression du manifeste."
+                          download_url:
+                            type: string
+                            example: 'https://ops.koraexpress.app/downloads/apps/ops-mobile/releases/6f0c1d3e-7c1b-4a8a-9d6e-2b1a0c9f8e71'
+                          download_page_url:
+                            type: string
+                            example: 'https://ops.koraexpress.app/downloads/apps/ops-mobile'
+                          sha256:
+                            type: string
+                            example: 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
+                          size_bytes:
+                            type: integer
+                            example: 31457280
+                          published_at:
+                            type: string
+                            example: '2026-10-25T09:00:00.000Z'
                   meta:
                     type: object
                     properties:
@@ -9005,6 +9351,7 @@ paths:
                     status: active
                     last_sync_at: '2026-09-14T09:05:00.000Z'
                     last_handshake_at: '2026-09-14T09:00:00.000Z'
+                    update: null
                 properties:
                   data:
                     type: object
@@ -9024,6 +9371,10 @@ paths:
                       last_handshake_at:
                         type: string
                         example: '2026-09-14T09:00:00.000Z'
+                      update:
+                        type: string
+                        example: null
+                        nullable: true
         403:
           description: 'Terminal non utilisable'
           content:
@@ -9079,7 +9430,7 @@ paths:
                   example: P501-000123
                 summary:
                   type: object
-                  description: 'Résumé libre de ce qui a été synchronisé (compté, jamais interprété par ce endpoint).'
+                  description: "Résumé libre de ce qui a été synchronisé (compté, jamais interprété par ce endpoint). \n\n`data.update` (MEZ-150) : statut de mise à jour de l'app du terminal,\nmême format que le handshake — `null` si aucune release n'est publiée."
                   example: null
                   properties: {}
                   nullable: true
@@ -9112,8 +9463,56 @@ paths:
           schema:
             type: string
       responses:
+        200:
+          description: 'Activité journalisée, mise à jour disponible'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    update:
+                      app: ops_mobile
+                      status: update_available
+                      latest_version: 1.4.0
+                      latest_build: 42
+                      update_available: true
+                      mandatory: false
+                      download_url: 'https://ops.koraexpress.app/downloads/apps/ops-mobile/releases/6f0c1d3e-7c1b-4a8a-9d6e-2b1a0c9f8e71'
+                      sha256: 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      update:
+                        type: object
+                        properties:
+                          app:
+                            type: string
+                            example: ops_mobile
+                          status:
+                            type: string
+                            example: update_available
+                          latest_version:
+                            type: string
+                            example: 1.4.0
+                          latest_build:
+                            type: integer
+                            example: 42
+                          update_available:
+                            type: boolean
+                            example: false
+                          mandatory:
+                            type: boolean
+                            example: false
+                          download_url:
+                            type: string
+                            example: 'https://ops.koraexpress.app/downloads/apps/ops-mobile/releases/6f0c1d3e-7c1b-4a8a-9d6e-2b1a0c9f8e71'
+                          sha256:
+                            type: string
+                            example: 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
         204:
-          description: 'Activité journalisée'
+          description: 'Activité journalisée (aucune release publiée)'
           content:
             text/plain:
               schema:

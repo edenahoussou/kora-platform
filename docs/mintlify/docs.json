@@ -93,6 +93,7 @@
                   "reference/auth/unlock",
                   "reference/auth/me",
                   "reference/auth/me-update",
+                  "reference/auth/me-delete",
                   "reference/auth/devices-list",
                   "reference/auth/devices-revoke",
                   "reference/auth/devices-push-token",
