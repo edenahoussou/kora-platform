@@ -80,3 +80,28 @@ class TerminalNotUsableFailure extends Failure {
   @override
   List<Object?> get props => <Object?>[message, code];
 }
+
+/// Échec de la mise à jour hors store (MEZ-150) — téléchargement,
+/// vérification d'intégrité (sha256) ou lancement de l'installeur. [code]
+/// distingue les cas pour adapter le message et l'action proposée.
+class AppUpdateFailure extends Failure {
+  const AppUpdateFailure(this.code, super.message);
+
+  /// Le fichier téléchargé ne correspond pas au sha256 annoncé : il est
+  /// supprimé et jamais installé.
+  static const String integrity = 'integrity';
+
+  /// Le téléchargement a échoué (réseau, espace disque, serveur).
+  static const String download = 'download';
+
+  /// L'installeur Android n'a pas pu être lancé.
+  static const String install = 'install';
+
+  /// Plateforme sans installation d'APK possible (iOS, web…).
+  static const String unsupported = 'unsupported';
+
+  final String code;
+
+  @override
+  List<Object?> get props => <Object?>[message, code];
+}

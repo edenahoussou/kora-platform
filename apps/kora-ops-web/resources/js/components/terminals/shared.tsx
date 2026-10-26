@@ -1,3 +1,4 @@
+import type { VersionStatusSummary } from '@/components/app-releases/shared';
 import { cn } from '@/lib/utils';
 import * as terminalsRoutes from '@/routes/terminals';
 
@@ -14,6 +15,8 @@ export type TerminalSummary = {
     hardware_model: string | null;
     os_version: string | null;
     app_version: string | null;
+    /** Statut de version de l'app installée, calculé côté serveur (MEZ-150). */
+    version_status: VersionStatusSummary;
     status: TerminalStatus;
     connectivity_status: ConnectivityStatus;
     assigned_user: PersonSummary | null;

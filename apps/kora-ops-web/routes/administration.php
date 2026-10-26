@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\AppDistribution\Http\Controllers\AppReleaseController;
 use App\Modules\IdentityAccess\Http\Controllers\RoleController;
 use App\Modules\IdentityAccess\Http\Controllers\TerminalManagementController;
 use App\Modules\IdentityAccess\Http\Controllers\UserController;
@@ -65,6 +66,17 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         ->name('administration.monitoring');
     Route::get('terminals/{terminal:uuid}', [TerminalManagementController::class, 'show'])
         ->name('terminals.show');
+
+    Route::get('administration/releases', [AppReleaseController::class, 'index'])
+        ->name('administration.releases');
+    Route::post('administration/releases', [AppReleaseController::class, 'store'])
+        ->name('administration.releases.store');
+    Route::patch('administration/releases/{release:uuid}', [AppReleaseController::class, 'update'])
+        ->name('administration.releases.update');
+    Route::post('administration/releases/{release:uuid}/archive', [AppReleaseController::class, 'archive'])
+        ->name('administration.releases.archive');
+    Route::post('administration/releases/{release:uuid}/restore', [AppReleaseController::class, 'restore'])
+        ->name('administration.releases.restore');
     Route::get('integrations', $comingSoon('Intégrations', 'Supervisez CassKai, MECeF, Mobile Money et les files de synchronisation.', 'Administration'))
         ->name('integrations');
     Route::get('audit', $comingSoon('Journal d’audit', 'Retrouvez chaque action sensible et son contexte.', 'Administration'))

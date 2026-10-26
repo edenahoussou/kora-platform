@@ -15,4 +15,6 @@ return [
     'sensitive-data.export' => 'Export sensitive data',
     'profitability.view' => 'View profitability',
     'profitability.export' => 'Export profitability',
+    'app-releases.view' => 'View mobile app releases',
+    'app-releases.manage' => 'Publish and manage mobile app releases',
 ];

@@ -157,7 +157,15 @@ function IdentityTab({ terminal }: { terminal: TerminalSummary }) {
                 icon={Activity}
                 label="Version application"
                 value={terminal.app_version ?? 'Non remontée'}
-                hint="Build OPS embarqué"
+                hint={
+                    terminal.version_status.status === 'not_tracked'
+                        ? 'Build OPS embarqué'
+                        : `${terminal.version_status.label}${
+                              terminal.version_status.latest_version
+                                  ? ` · dernière publiée ${terminal.version_status.latest_version}`
+                                  : ''
+                          }`
+                }
             />
             <InfoBentoCard
                 icon={Wifi}

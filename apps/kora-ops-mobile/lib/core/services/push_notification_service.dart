@@ -103,8 +103,8 @@ class PushNotificationService {
       await _initLocalNotifications();
 
       FirebaseMessaging.onMessage.listen(_onForeground);
-      FirebaseMessaging.onMessageOpenedApp.listen(
-          (RemoteMessage m) => _onTap(OpsPushPayload.fromData(m.data)));
+      FirebaseMessaging.onMessageOpenedApp
+          .listen((RemoteMessage m) => _onTap(OpsPushPayload.fromData(m.data)));
       // ignore: deprecated_member_use
       FirebaseMessaging.instance.onTokenRefresh
           .listen((_) => unawaited(_syncToken()));
@@ -303,7 +303,7 @@ class PushNotificationService {
   /// Premier plan : FCM n'affiche rien, on affiche nous-mêmes en gardant
   /// la charge utile pour le deep link au tap.
   void _onForeground(RemoteMessage message) {
-    unawaited(_safe(() => _notificationCubit.refresh()));
+    unawaited(_safe(_notificationCubit.refresh));
     final RemoteNotification? n = message.notification;
     if (n == null) return;
 
@@ -375,11 +375,8 @@ class PushNotificationService {
     for (int attempt = 0; attempt < 30; attempt++) {
       final BuildContext? context = rootNavigatorKey.currentContext;
       if (context != null && context.mounted) {
-        final String path = GoRouter.of(context)
-            .routerDelegate
-            .currentConfiguration
-            .uri
-            .path;
+        final String path =
+            GoRouter.of(context).routerDelegate.currentConfiguration.uri.path;
         if (!_notReadyRoutes.contains(path)) return context;
       }
       if (_authCubit.state is! AuthAuthenticated) return null;
@@ -389,7 +386,7 @@ class PushNotificationService {
   }
 
   Future<void> _refreshAndMarkRead(String? notificationUuid) async {
-    await _safe(() => _notificationCubit.refresh());
+    await _safe(_notificationCubit.refresh);
     if (notificationUuid != null) {
       await _safe(() => _notificationCubit.markAsRead(notificationUuid));
     }

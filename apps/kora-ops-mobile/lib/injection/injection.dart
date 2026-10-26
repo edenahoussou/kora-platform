@@ -10,11 +10,20 @@ import '../app/config/app_config.dart';
 import '../app/config/terminal_mode.dart';
 import '../app/theme/theme_cubit.dart';
 import '../core/database/app_database.dart';
+import '../core/network/app_update_interceptor.dart';
 import '../core/network/network_client.dart';
 import '../core/network/session_expiry_interceptor.dart';
 import '../core/network/terminal_header_interceptor.dart';
 import '../core/services/push/push_token_store.dart';
 import '../core/services/push_notification_service.dart';
+import '../features/app_update/data/datasources/app_update_local_datasource.dart';
+import '../features/app_update/data/datasources/app_update_remote_datasource.dart';
+import '../features/app_update/data/repositories/app_update_repository_impl.dart';
+import '../features/app_update/data/services/apk_downloader.dart';
+import '../features/app_update/data/services/apk_installer.dart';
+import '../features/app_update/data/services/app_telemetry_provider.dart';
+import '../features/app_update/domain/repositories/app_update_repository.dart';
+import '../features/app_update/presentation/cubit/app_update_cubit.dart';
 import '../features/auth/data/datasources/auth_local_datasource.dart';
 import '../features/auth/data/datasources/auth_remote_datasource.dart';
 import '../features/auth/data/datasources/device_info_datasource.dart';
@@ -186,6 +195,32 @@ Future<void> configureDependencies() async {
     () => AuthFlowBloc(getIt<AuthRepository>()),
   );
 
+  // --- Feature: app_update (MEZ-150 — distribution hors store) ---
+  //
+  // Vérification au lancement (endpoint public, client `authDioClient`),
+  // téléchargement + contrôle sha256 (client Dio dédié, sans auth — voir
+  // ApkDownloader) et installeur natif (canal `kora.ops/apk_installer`).
+  // Le cubit est enregistré avant `opsDioClient` : l'AppUpdateInterceptor
+  // de ce dernier lui transmet le bloc `update` des réponses OPS Mobile.
+  getIt.registerLazySingleton<ApkInstaller>(MethodChannelApkInstaller.new);
+  getIt.registerLazySingleton<AppTelemetryProvider>(
+    () => AppTelemetryProvider(
+      getIt<ApkInstaller>(),
+      getIt<DeviceInfoPlugin>(),
+    ),
+  );
+  getIt.registerLazySingleton<AppUpdateRepository>(
+    () => AppUpdateRepositoryImpl(
+      AppUpdateRemoteDataSourceImpl(authDioClient.dio),
+      AppUpdateLocalDataSourceImpl(getIt<SharedPreferences>()),
+      ApkDownloader(),
+      getIt<ApkInstaller>(),
+    ),
+  );
+  getIt.registerSingleton<AppUpdateCubit>(
+    AppUpdateCubit(getIt<AppUpdateRepository>()),
+  );
+
   // --- Feature: terminal P501 (MEZ-91) ---
   //
   // Base sqlite locale (manifeste en cache, file de sync, journal
@@ -222,6 +257,13 @@ Future<void> configureDependencies() async {
           getIt<TerminalLocalDataSource>().readSerialNumber(),
     ),
   );
+  // Bloc `data.update` des réponses handshake/sync/activity/session
+  // (MEZ-150) → politique de mise à jour appliquée en temps réel.
+  opsDioClient.dio.interceptors.add(
+    AppUpdateInterceptor(
+      onUpdateBlock: (info) => getIt<AppUpdateCubit>().applyServerInfo(info),
+    ),
+  );
   // Même raison que pour authDioClient : un 401 ici doit aussi purger la
   // session (ex. token expiré pendant un scan hors ligne prolongé).
   opsDioClient.dio.interceptors.add(
@@ -231,7 +273,13 @@ Future<void> configureDependencies() async {
   );
 
   getIt.registerLazySingleton<TerminalRemoteDataSource>(
-    () => TerminalRemoteDataSourceImpl(opsDioClient.dio),
+    () => TerminalRemoteDataSourceImpl(
+      opsDioClient.dio,
+      // app_version/os_version/hardware_model au handshake et à la sync —
+      // la nouvelle version est rapportée dès le handshake suivant une
+      // mise à jour (MEZ-150).
+      telemetry: () => getIt<AppTelemetryProvider>().collect(),
+    ),
   );
 
   getIt.registerLazySingleton<TerminalRepository>(

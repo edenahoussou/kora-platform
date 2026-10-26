@@ -281,6 +281,7 @@ const navItems: NavEntry[] = [
             'users.view',
             'roles.view',
             'terminals.view',
+            'app-releases.view',
             'settings.general.view',
             'settings.operations.view',
             'settings.integrations.view',
@@ -301,6 +302,11 @@ const navItems: NavEntry[] = [
                 title: 'Terminaux P501',
                 href: '/terminals',
                 permission: 'terminals.view',
+            },
+            {
+                title: 'Versions de l’application',
+                href: '/administration/releases',
+                permission: 'app-releases.view',
             },
             {
                 title: 'Monitoring',

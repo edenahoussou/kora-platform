@@ -36,4 +36,14 @@ abstract final class StorageKeys {
   /// Dernier couple `deviceUuid|tokenFCM` confirmé par
   /// `PUT auth/devices/{uuid}/push-token` — voir `PushTokenStore`.
   static const String pushTokenRegistration = 'push_token_registration';
+
+  /// Mise à jour hors store (MEZ-150) : build dont la proposition non
+  /// obligatoire a été reportée (« Plus tard »), et échéance du report
+  /// (epoch ms) — SharedPreferences.
+  static const String appUpdateSnoozedBuild = 'app_update_snoozed_build';
+  static const String appUpdateSnoozedUntil = 'app_update_snoozed_until';
+
+  /// Dernier bloc `update` reçu (JSON) : garde une mise à jour obligatoire
+  /// bloquante même après un redémarrage hors ligne (MEZ-150).
+  static const String appUpdateLastBlock = 'app_update_last_block';
 }

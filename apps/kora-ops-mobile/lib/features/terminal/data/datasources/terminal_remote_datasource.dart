@@ -41,16 +41,37 @@ abstract class TerminalRemoteDataSource {
 }
 
 class TerminalRemoteDataSourceImpl implements TerminalRemoteDataSource {
-  TerminalRemoteDataSourceImpl(this._dio);
+  TerminalRemoteDataSourceImpl(this._dio, {this.telemetry});
 
   final Dio _dio;
 
+  /// Télémétrie de l'appareil (`app_version`, `os_version`,
+  /// `hardware_model`) ajoutée au handshake et à la sync — c'est elle qui
+  /// permet au serveur de calculer le bloc `update` (MEZ-150). Optionnelle :
+  /// sans elle, les corps envoyés restent ceux d'avant.
+  final Future<Map<String, String>> Function()? telemetry;
+
+  Future<Map<String, String>> _telemetry() async {
+    final Future<Map<String, String>> Function()? provider = telemetry;
+    if (provider == null) return const <String, String>{};
+
+    try {
+      return await provider();
+    } on Object {
+      return const <String, String>{};
+    }
+  }
+
   @override
   Future<Terminal> handshake(String serialNumber) async {
+    final Map<String, String> telemetry = await _telemetry();
     final response = await _guard(
       () => _dio.post<dynamic>(
         '/api/v1/ops-mobile/terminal/handshake',
-        data: <String, dynamic>{'serial_number': serialNumber},
+        data: <String, dynamic>{
+          'serial_number': serialNumber,
+          ...telemetry,
+        },
       ),
     );
     return TerminalDtos.terminal(response.data);
@@ -58,10 +79,11 @@ class TerminalRemoteDataSourceImpl implements TerminalRemoteDataSource {
 
   @override
   Future<Terminal> acknowledgeSync(Map<String, dynamic> summary) async {
+    final Map<String, String> telemetry = await _telemetry();
     final response = await _guard(
       () => _dio.post<dynamic>(
         '/api/v1/ops-mobile/terminal/sync',
-        data: <String, dynamic>{'summary': summary},
+        data: <String, dynamic>{'summary': summary, ...telemetry},
       ),
     );
     return TerminalDtos.terminal(response.data);

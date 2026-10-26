@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { versionStatusTones } from '@/components/app-releases/shared';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import {
     connectivityLabels,
@@ -546,9 +547,32 @@ export default function TerminalsPage({
                                                         </span>
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-3.5 font-mono text-xs text-foreground">
-                                                    {terminal.app_version ??
-                                                        '—'}
+                                                <td className="px-4 py-3.5">
+                                                    <div className="flex flex-col items-start gap-1.5">
+                                                        <span className="font-mono text-xs text-foreground">
+                                                            {terminal.app_version ??
+                                                                '—'}
+                                                        </span>
+                                                        {terminal.version_status
+                                                            .status !==
+                                                            'not_tracked' && (
+                                                            <KoraStatusBadge
+                                                                label={
+                                                                    terminal
+                                                                        .version_status
+                                                                        .label
+                                                                }
+                                                                tone={
+                                                                    versionStatusTones[
+                                                                        terminal
+                                                                            .version_status
+                                                                            .status
+                                                                    ]
+                                                                }
+                                                                className="whitespace-nowrap"
+                                                            />
+                                                        )}
+                                                    </div>
                                                 </td>
                                                 <td className="px-4 py-3.5">
                                                     <div className="flex flex-col items-start gap-1.5">

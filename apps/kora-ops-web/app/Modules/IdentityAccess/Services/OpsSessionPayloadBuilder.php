@@ -3,6 +3,7 @@
 namespace App\Modules\IdentityAccess\Services;
 
 use App\Models\User;
+use App\Modules\AppDistribution\Services\TerminalAppUpdateResolver;
 use App\Modules\IdentityAccess\Http\Resources\AuthUserResource;
 use App\Modules\IdentityAccess\Http\Resources\OpsSessionResource;
 use App\Modules\IdentityAccess\Http\Resources\TerminalP501Resource;
@@ -15,10 +16,17 @@ use Illuminate\Http\Request;
  * renouvellement d'une session : les champs du terminal restent à la racine
  * (contrat handshake antérieur), la session, l'utilisateur et ses
  * permissions OPS sont ajoutés à côté.
+ *
+ * MEZ-150 : `update` (champ additionnel) porte le statut de mise à jour de
+ * l'app installée sur le terminal — `null` tant qu'aucune release n'est
+ * publiée. Voir AppUpdateCheck::toPayload() pour le détail des champs.
  */
 class OpsSessionPayloadBuilder
 {
-    public function __construct(private OpsSessionGuard $guard) {}
+    public function __construct(
+        private OpsSessionGuard $guard,
+        private TerminalAppUpdateResolver $appUpdates,
+    ) {}
 
     /**
      * @return array<string, mixed>
@@ -32,6 +40,7 @@ class OpsSessionPayloadBuilder
             'session' => (new OpsSessionResource($session))->resolve($request),
             'capabilities' => $this->guard->capabilities($user),
             'user' => (new AuthUserResource($user))->resolve($request),
+            'update' => $this->appUpdates->payload($terminal),
         ];
     }
 }

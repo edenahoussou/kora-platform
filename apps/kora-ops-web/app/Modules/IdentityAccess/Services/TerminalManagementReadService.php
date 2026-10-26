@@ -3,6 +3,7 @@
 namespace App\Modules\IdentityAccess\Services;
 
 use App\Models\User;
+use App\Modules\AppDistribution\Services\TerminalAppUpdateResolver;
 use App\Modules\IdentityAccess\Data\TerminalP501Status;
 use App\Modules\IdentityAccess\Data\TerminalType;
 use App\Modules\IdentityAccess\Models\Agency;
@@ -44,6 +45,8 @@ class TerminalManagementReadService
         'ops_session_revoked',
         'terminal_assignment',
     ];
+
+    public function __construct(private TerminalAppUpdateResolver $appUpdates) {}
 
     /**
      * @return LengthAwarePaginator<int, array<string, mixed>>
@@ -136,6 +139,7 @@ class TerminalManagementReadService
             'hardware_model' => $terminal->hardware_model,
             'os_version' => $terminal->os_version,
             'app_version' => $terminal->app_version,
+            'version_status' => $this->versionStatus($terminal),
             'status' => $terminal->status->value,
             'connectivity_status' => $this->connectivityStatus($terminal, $now, $lastSeenAt, $lastActiveSeenAt, $activeSessionsCount),
             'assigned_user' => $terminal->relationLoaded('assignedUser') && $terminal->assignedUser ? [
@@ -406,6 +410,25 @@ class TerminalManagementReadService
             ->where('expires_at', '>', $now)
             ->whereNotNull('last_seen_at')
             ->where('last_seen_at', '>=', $now->copy()->subMinutes(self::ONLINE_MINUTES));
+    }
+
+    /**
+     * Statut de version de l'app installée (MEZ-150), calculé côté serveur
+     * selon la même règle que le bloc `update` renvoyé au terminal.
+     *
+     * @return array{status: string, label: string, latest_version: string|null, latest_build: int|null, mandatory: bool}
+     */
+    private function versionStatus(TerminalP501 $terminal): array
+    {
+        $check = $this->appUpdates->check($terminal);
+
+        return [
+            'status' => $check->status->value,
+            'label' => $check->status->label(),
+            'latest_version' => $check->latest?->version,
+            'latest_build' => $check->latest?->build_number,
+            'mandatory' => $check->mandatory(),
+        ];
     }
 
     private function connectivityStatus(

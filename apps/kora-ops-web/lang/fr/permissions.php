@@ -15,4 +15,6 @@ return [
     'sensitive-data.export' => 'Exporter les données sensibles',
     'profitability.view' => 'Consulter la rentabilité',
     'profitability.export' => 'Exporter la rentabilité',
+    'app-releases.view' => "Consulter les versions de l'application mobile",
+    'app-releases.manage' => "Publier et gérer les versions de l'application mobile",
 ];

@@ -18,9 +18,8 @@ class PushTokenStore {
       _preferences.getString(StorageKeys.pushTokenRegistration) ==
       _key(deviceUuid, token);
 
-  Future<void> markRegistered(String deviceUuid, String token) =>
-      _preferences.setString(
-          StorageKeys.pushTokenRegistration, _key(deviceUuid, token));
+  Future<void> markRegistered(String deviceUuid, String token) => _preferences
+      .setString(StorageKeys.pushTokenRegistration, _key(deviceUuid, token));
 
   Future<void> clear() =>
       _preferences.remove(StorageKeys.pushTokenRegistration);

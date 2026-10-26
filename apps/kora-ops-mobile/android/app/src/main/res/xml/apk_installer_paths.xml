@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Mise à jour hors store (MEZ-150) : seul le répertoire des APK
+     téléchargés (cacheDir/apk_updates) est partagé avec l'installeur
+     système, via le FileProvider déclaré dans AndroidManifest.xml. -->
+<paths>
+    <cache-path name="apk_updates" path="apk_updates/" />
+</paths>

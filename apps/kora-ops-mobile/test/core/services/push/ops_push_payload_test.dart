@@ -5,7 +5,8 @@ import 'package:kora_ops_mobile/features/notifications/domain/entities/ops_notif
 void main() {
   group('OpsPushPayload.fromData', () {
     test('lit la charge utile complète envoyée par SendOpsPushJob', () {
-      final OpsPushPayload payload = OpsPushPayload.fromData(<String, dynamic>{
+      final OpsPushPayload payload =
+          OpsPushPayload.fromData(const <String, dynamic>{
         'type': 'departure_assigned',
         'event_id': '42',
         'notification_uuid': 'notif-uuid',
@@ -24,25 +25,25 @@ void main() {
 
     test('déduit l\'action du type si le back ne l\'envoie pas encore', () {
       expect(
-        OpsPushPayload.fromData(<String, dynamic>{'type': 'manifest_stale'})
-            .action,
+        OpsPushPayload.fromData(
+            const <String, dynamic>{'type': 'manifest_stale'}).action,
         OpsNotificationAction.refreshManifest,
       );
       expect(
-        OpsPushPayload.fromData(<String, dynamic>{'type': 'sync_failed'})
+        OpsPushPayload.fromData(const <String, dynamic>{'type': 'sync_failed'})
             .action,
         OpsNotificationAction.retrySync,
       );
       expect(
-        OpsPushPayload.fromData(<String, dynamic>{'type': 'terminal_revoked'})
-            .action,
+        OpsPushPayload.fromData(
+            const <String, dynamic>{'type': 'terminal_revoked'}).action,
         OpsNotificationAction.reauthenticate,
       );
     });
 
     test('un payload vide ou inconnu ne lève pas et ne vise rien', () {
-      final OpsPushPayload payload =
-          OpsPushPayload.fromData(<String, dynamic>{'departure_uuid': ''});
+      final OpsPushPayload payload = OpsPushPayload.fromData(
+          const <String, dynamic>{'departure_uuid': ''});
 
       expect(payload.type, 'unknown');
       expect(payload.action, OpsNotificationAction.none);
@@ -51,7 +52,8 @@ void main() {
     });
 
     test('l\'action explicite prime sur le type', () {
-      final OpsPushPayload payload = OpsPushPayload.fromData(<String, dynamic>{
+      final OpsPushPayload payload =
+          OpsPushPayload.fromData(const <String, dynamic>{
         'type': 'departure_assigned',
         'action': 'none',
       });

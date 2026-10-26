@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Listeners\SendTwoFactorSecurityAlert;
 use App\Models\User;
+use App\Modules\AppDistribution\Models\AppRelease;
 use App\Modules\AssistedBooking\Models\AssistedBooking;
 use App\Modules\Boarding\Models\BoardingEvent;
 use App\Modules\Boarding\Models\SeatReleaseEvent;
@@ -47,6 +48,7 @@ use App\Modules\Settings\Settings\IntegrationsSettings;
 use App\Modules\Support\Queue\IdempotentFailedJobProvider;
 use App\Modules\Ticketing\Models\Ticket;
 use App\Policies\AgencyPolicy;
+use App\Policies\AppReleasePolicy;
 use App\Policies\AssistedBookingPolicy;
 use App\Policies\BoardingEventPolicy;
 use App\Policies\BusCompositionPolicy;
@@ -270,6 +272,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::define('manage-fiscal-test-invoices', fn (User $user): bool => $user->hasRole('system_admin'));
         Gate::policy(Agency::class, AgencyPolicy::class);
+        Gate::policy(AppRelease::class, AppReleasePolicy::class);
         Gate::policy(AssistedBooking::class, AssistedBookingPolicy::class);
         Gate::policy(BoardingEvent::class, BoardingEventPolicy::class);
         Gate::policy(Bus::class, BusPolicy::class);
@@ -354,5 +357,13 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('settings-probes', fn (Request $request) => Limit::perMinute(6)->by(
             $request->user()?->getAuthIdentifier().'|'.$request->ip(),
         ));
+
+        // Distribution hors store (MEZ-150). Les terminaux d'une même agence
+        // sortent souvent par la même IP (Wi-Fi / NAT opérateur) : limites
+        // larges, suffisantes pour couper un abus sans gêner une vague de
+        // mises à jour de toute une agence.
+        RateLimiter::for('app-downloads', fn (Request $request) => Limit::perMinute(60)->by($request->ip()));
+
+        RateLimiter::for('app-update-check', fn (Request $request) => Limit::perMinute(120)->by($request->ip()));
     }
 }

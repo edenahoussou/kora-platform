@@ -75,7 +75,7 @@ class AppConfig {
   /// utilisé pour la nouvelle valeur (sinon, rien à changer dans le code
   /// — voir docstring [ticketSigningPublicKeyBase64]).
   static const String _ticketSigningPublicKeyBase64 =
-      '9csxdLdBfzIoFPHrt76YDy/F43oY6rtU6gCZEcSFE8A=';
+      'la-cle-publique-base64-par-défaut-32-octets-ici';
 
   static AppConfig? _instance;
 
@@ -90,8 +90,7 @@ class AppConfig {
   }
 
   static void init() {
-    const String rawEnv =
-        String.fromEnvironment('ENV', defaultValue: 'staging');
+    const String rawEnv = String.fromEnvironment('ENV', defaultValue: 'dev');
     final Environment env = EnvironmentX.fromString(rawEnv);
 
     bool resolveUseMockHardware(bool defaultValue) {
