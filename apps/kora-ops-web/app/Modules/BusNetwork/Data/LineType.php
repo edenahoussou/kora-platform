@@ -10,5 +10,4 @@ enum LineType: string
 
     case Nationale = 'nationale';
     case Internationale = 'internationale';
-    case Regionale = 'regionale';
 }

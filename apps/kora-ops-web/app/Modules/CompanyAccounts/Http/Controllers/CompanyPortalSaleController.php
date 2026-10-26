@@ -36,7 +36,6 @@ use App\Modules\CompanyAccounts\Models\CompanyAccount;
 use App\Modules\CompanyAccounts\Models\CompanyTraveler;
 use App\Modules\CompanyAccounts\Services\CompanyCreditService;
 use App\Modules\Departures\Models\Departure;
-use App\Modules\DynamicPricing\Models\ServiceClass;
 use App\Modules\Fiscalization\Models\FiscalInvoice;
 use App\Modules\Payments\Actions\RecordCounterSalePaymentAction;
 use App\Modules\SeatInventory\Actions\BuildCounterSaleSeatAvailabilityAction;
@@ -99,7 +98,6 @@ class CompanyPortalSaleController extends Controller
                 'reference' => $account->reference,
             ],
             'cities' => $this->serializeCities($this->catalog->cities()),
-            'serviceClasses' => $this->serializeServiceClasses(),
             'search' => [
                 'date' => $filters['date'],
                 'from' => $filters['from'],
@@ -410,16 +408,6 @@ class CompanyPortalSaleController extends Controller
             'city' => $city['city'],
             'country' => $city['country'],
             'stopsCount' => count($city['physical_stops']),
-        ])->all());
-    }
-
-    /** @return list<array{uuid: string, code: string, name: string}> */
-    private function serializeServiceClasses(): array
-    {
-        return array_values(ServiceClass::ordered()->get()->map(fn (ServiceClass $class): array => [
-            'uuid' => $class->uuid,
-            'code' => $class->code,
-            'name' => $class->name,
         ])->all());
     }
 

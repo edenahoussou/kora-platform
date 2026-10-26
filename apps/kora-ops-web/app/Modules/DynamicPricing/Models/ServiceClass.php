@@ -13,6 +13,8 @@ class ServiceClass extends KoraModel
 {
     use SoftDeletes;
 
+    public const STANDARD_CODE = 'standard';
+
     protected $fillable = [
         'uuid',
         'code',
@@ -26,6 +28,14 @@ class ServiceClass extends KoraModel
         'status' => 'active',
         'sort_order' => 0,
     ];
+
+    /**
+     * Classe unique du lancement : utilisée quand aucun choix de classe n'est fait.
+     */
+    public static function standard(): self
+    {
+        return static::query()->where('code', self::STANDARD_CODE)->firstOrFail();
+    }
 
     /**
      * @return HasMany<Fare, $this>

@@ -1,11 +1,15 @@
 import { Head, router } from '@inertiajs/react';
 import {
     Archive,
-    CheckCircle,
+    ArrowRight,
+    Calendar,
+    CheckCircle2,
+    Clock,
     Edit3,
     Eye,
     MoreHorizontal,
     Plus,
+    Route,
     Tag,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -23,14 +27,9 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
 import faresRoutes from '@/routes/fares';
 import type { BreadcrumbItem } from '@/types';
-
-type ServiceClassOption = {
-    uuid: string;
-    code: string;
-    name: string;
-};
 
 type StopOption = {
     uuid: string;
@@ -56,7 +55,6 @@ type PageProps = {
         to: number | null;
     };
     statuses: Record<string, string>;
-    serviceClasses: ServiceClassOption[];
     lines: LineOption[];
     permissions: {
         canCreate: boolean;
@@ -69,19 +67,12 @@ const statusLabels: Record<string, string> = {
     draft: 'Brouillon',
     archived: 'Archivée',
 };
+
 const statusTones: Record<string, 'navy' | 'gold' | 'muted'> = {
     active: 'navy',
     draft: 'gold',
     archived: 'muted',
 };
-
-function formatMoney(amount: number, currency: string): string {
-    const formatted = new Intl.NumberFormat('fr-FR', {
-        maximumFractionDigits: 0,
-    }).format(amount);
-
-    return `${formatted} ${currency}`;
-}
 
 function formatDate(iso: string | null): string {
     if (!iso) {
@@ -95,15 +86,70 @@ function formatDate(iso: string | null): string {
     });
 }
 
+function KpiCard({
+    icon: Icon,
+    label,
+    hint,
+    value,
+    tone = 'navy',
+}: {
+    icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+    label: string;
+    hint: string;
+    value: string | number;
+    tone: 'navy' | 'gold' | 'blue' | 'muted' | 'green' | 'rose';
+}) {
+    const toneStyles = {
+        navy: 'bg-kora text-white',
+        gold: 'bg-gold/15 text-gold',
+        blue: 'bg-digital/10 text-digital',
+        muted: 'bg-muted text-muted-foreground',
+        green: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+        rose: 'bg-destructive/10 text-destructive',
+    };
+
+    return (
+        <article className="cash-ledger-card cash-ledger-card-cash">
+            <div className="cash-ledger-head">
+                <div className="cash-ledger-identity">
+                    <span className={cn('cash-ledger-brand', toneStyles[tone])}>
+                        <Icon className="size-4" strokeWidth={1.8} />
+                    </span>
+                    <div>
+                        <span className="cash-ledger-title">{label}</span>
+                        <small>{hint}</small>
+                    </div>
+                </div>
+            </div>
+            <div className="cash-ledger-balance">
+                <span>Total</span>
+                <strong>{value}</strong>
+            </div>
+        </article>
+    );
+}
+
 export default function FaresPage({
     fares,
     statuses,
-    serviceClasses,
     lines,
     permissions,
 }: PageProps) {
     const [open, setOpen] = useState(false);
     const [selected, setSelected] = useState<FareRecord | null>(null);
+
+    const stats = useMemo(() => {
+        const data = fares.data;
+        const active = data.filter((f) => f.status === 'active').length;
+        const draft = data.filter((f) => f.status === 'draft').length;
+
+        return {
+            total: fares.total,
+            active,
+            draft,
+            linesCount: lines.length,
+        };
+    }, [fares, lines]);
 
     const filters: FilterConfig[] = useMemo(
         () => [
@@ -125,17 +171,8 @@ export default function FaresPage({
                     label: `${line.code} · ${line.name}`,
                 })),
             },
-            {
-                name: 'service',
-                label: 'Service',
-                placeholder: 'Tous les services',
-                options: serviceClasses.map((cls) => ({
-                    value: cls.code,
-                    label: cls.name,
-                })),
-            },
         ],
-        [statuses, serviceClasses, lines],
+        [statuses, lines],
     );
 
     const pagination: PaginationMeta = {
@@ -161,13 +198,18 @@ export default function FaresPage({
             key: 'line',
             header: 'Ligne',
             render: (fare) => (
-                <div>
-                    <span className="cell-main block font-bold text-foreground">
-                        {fare.lineCode}
+                <div className="flex items-center gap-3">
+                    <span className="grid size-9 place-items-center rounded-[0.65rem] bg-gold/12 font-mono text-[0.6875rem] font-black text-[var(--kora)]">
+                        {fare.lineCode.slice(0, 4)}
                     </span>
-                    <span className="cell-sub block text-xs text-muted-foreground">
-                        {fare.lineName}
-                    </span>
+                    <div>
+                        <strong className="block font-bold text-foreground">
+                            {fare.lineCode}
+                        </strong>
+                        <span className="text-xs text-muted-foreground">
+                            {fare.lineName}
+                        </span>
+                    </div>
                 </div>
             ),
         },
@@ -175,39 +217,42 @@ export default function FaresPage({
             key: 'segment',
             header: 'Segment O/D',
             render: (fare) => (
-                <span className="font-medium text-foreground">
-                    {fare.originName} → {fare.destinationName}
-                </span>
-            ),
-        },
-        {
-            key: 'service',
-            header: 'Service',
-            render: (fare) => (
-                <span className="font-medium text-foreground">
-                    {fare.serviceClassName}
-                </span>
+                <div className="flex items-center gap-1.5 font-medium text-foreground">
+                    <span className="text-foreground">{fare.originName}</span>
+                    <ArrowRight className="size-3 text-muted-foreground" />
+                    <span className="text-foreground">{fare.destinationName}</span>
+                </div>
             ),
         },
         {
             key: 'price',
-            header: 'Prix',
+            header: 'Prix unitaire',
             render: (fare) => (
-                <span className="font-bold text-foreground">
-                    {formatMoney(fare.baseAmount, fare.currency)}
-                </span>
+                <div className="flex items-baseline gap-1">
+                    <span className="font-mono text-sm font-black text-foreground">
+                        {new Intl.NumberFormat('fr-FR', {
+                            maximumFractionDigits: 0,
+                        }).format(fare.baseAmount)}
+                    </span>
+                    <span className="text-[10px] font-bold text-muted-foreground">
+                        {fare.currency}
+                    </span>
+                </div>
             ),
         },
         {
             key: 'period',
-            header: 'Période',
+            header: 'Période d\u2019effet',
             render: (fare) => (
-                <span className="text-xs text-muted-foreground">
-                    {formatDate(fare.effectiveFrom)}
-                    {fare.effectiveUntil
-                        ? ` → ${formatDate(fare.effectiveUntil)}`
-                        : ' → indéterminée'}
-                </span>
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Calendar className="size-3 text-muted-foreground" />
+                    <span>
+                        {formatDate(fare.effectiveFrom)}
+                        {fare.effectiveUntil
+                            ? ` → ${formatDate(fare.effectiveUntil)}`
+                            : ' → indéterminée'}
+                    </span>
+                </div>
             ),
         },
         {
@@ -270,7 +315,7 @@ export default function FaresPage({
                                             changeStatus(fare, 'active')
                                         }
                                     >
-                                        <CheckCircle className="size-4" />
+                                        <CheckCircle2 className="size-4" />
                                         Activer
                                     </DropdownMenuItem>
                                 )}
@@ -295,6 +340,7 @@ export default function FaresPage({
     return (
         <>
             <Head title="Tarifs" />
+
             <div className="kora-page-head mb-6 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                     <div className="kora-breadcrumb mb-2 text-[0.6875rem] text-muted-foreground">
@@ -309,23 +355,57 @@ export default function FaresPage({
                     </p>
                 </div>
                 {permissions.canCreate && (
-                    <Button
+                    <button
+                        type="button"
                         onClick={() => {
                             setSelected(null);
                             setOpen(true);
                         }}
-                        className="h-11 rounded-[0.75rem] bg-gold px-5 font-medium text-[var(--kora)] hover:bg-[var(--kora)] hover:text-white"
+                        className="btn btn-primary"
                     >
-                        <Plus className="size-4" />
+                        <Plus className="size-3.5" />
                         Nouvelle grille
-                    </Button>
+                    </button>
                 )}
             </div>
+
+            <section className="mb-6 grid grid-cols-2 gap-3.5 sm:grid-cols-4">
+                <KpiCard
+                    icon={Tag}
+                    label="Grilles"
+                    hint="Référentiel tarifaire"
+                    value={stats.total}
+                    tone="navy"
+                />
+                <KpiCard
+                    icon={CheckCircle2}
+                    label="Actives"
+                    hint="En exploitation"
+                    value={stats.active}
+                    tone="green"
+                />
+                <KpiCard
+                    icon={Clock}
+                    label="En préparation"
+                    hint="Brouillons"
+                    value={stats.draft}
+                    tone="gold"
+                />
+                <KpiCard
+                    icon={Route}
+                    label="Lignes"
+                    hint="Réseau couvert"
+                    value={stats.linesCount}
+                    tone="blue"
+                />
+            </section>
+
             <KoraFilterBar
                 route="/fares"
                 searchPlaceholder="Rechercher par ligne, arrêt ou ville…"
                 filters={filters}
             />
+
             <KoraTable
                 title="Grilles tarifaires"
                 subtitle={`${fares.total} tarif${fares.total > 1 ? 's' : ''} au total`}
@@ -341,11 +421,11 @@ export default function FaresPage({
                 emptyIcon={Tag}
                 pagination={pagination}
             />
+
             <FareFormDialog
                 open={open}
                 fare={selected}
                 lines={lines}
-                serviceClasses={serviceClasses}
                 onOpenChange={setOpen}
             />
         </>

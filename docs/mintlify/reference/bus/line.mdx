@@ -68,7 +68,7 @@ final res = await dio.get('/api/v1/bus/lines/6ff8f7f6-1eb3-3525-be4a-3932c805afe
   <ResponseField name="uuid" type="UUID" required>Identifiant de la ligne.</ResponseField>
   <ResponseField name="code" type="string" required>Code de la ligne.</ResponseField>
   <ResponseField name="name" type="string" required>Nom de la ligne.</ResponseField>
-  <ResponseField name="type" type="string" required>`nationale`, `internationale`, ou `regionale`.</ResponseField>
+  <ResponseField name="type" type="string" required>`nationale` ou `internationale`.</ResponseField>
   <ResponseField name="countries_crossed" type="string[]">Pays traversés.</ResponseField>
   <ResponseField name="distance_km" type="integer">Distance en km ou `null`.</ResponseField>
   <ResponseField name="estimated_duration_minutes" type="integer">Durée estimée en minutes ou `null`.</ResponseField>

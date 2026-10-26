@@ -39,7 +39,6 @@ import companyPortal from '@/routes/company-portal';
 type Props = Pick<
     SaleProps,
     | 'cities'
-    | 'serviceClasses'
     | 'outboundItineraries'
     | 'inboundItineraries'
     | 'itineraryLegSeats'
@@ -144,7 +143,6 @@ export default function CompanyPortalSalePage(props: Props) {
     const {
         account,
         cities,
-        serviceClasses,
         search: initialSearch,
         outboundItineraries,
         inboundItineraries = [],
@@ -478,7 +476,6 @@ export default function CompanyPortalSalePage(props: Props) {
                                 <>
                                     <RouteSearch
                                         cities={cities}
-                                        serviceClasses={serviceClasses}
                                         value={search}
                                         processing={processing}
                                         onChange={setSearch}

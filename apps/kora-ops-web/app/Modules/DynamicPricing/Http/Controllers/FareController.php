@@ -69,11 +69,6 @@ class FareController extends Controller
         return inertia('fares', [
             'fares' => $fares,
             'statuses' => FareStatus::options(),
-            'serviceClasses' => ServiceClass::ordered()->get()->map(fn (ServiceClass $class): array => [
-                'uuid' => $class->uuid,
-                'code' => $class->code,
-                'name' => $class->name,
-            ]),
             'lines' => Line::query()->orderBy('code')->get()->map(fn (Line $line): array => [
                 'uuid' => $line->uuid,
                 'code' => $line->code,
@@ -119,11 +114,6 @@ class FareController extends Controller
             'fare' => $this->serializeFareDetail($fare),
             'versions' => $versions,
             'timeline' => $this->buildTimeline($fare),
-            'serviceClasses' => ServiceClass::ordered()->get()->map(fn (ServiceClass $class): array => [
-                'uuid' => $class->uuid,
-                'code' => $class->code,
-                'name' => $class->name,
-            ]),
             'lines' => Line::query()->orderBy('code')->get()->map(fn (Line $line): array => [
                 'uuid' => $line->uuid,
                 'code' => $line->code,

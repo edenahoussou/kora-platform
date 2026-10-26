@@ -10,25 +10,21 @@ use Database\Seeders\KoraServiceClassSeeder;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Str;
 
-it('seeds KORA Confort and KORA Premium service classes', function (): void {
+it('seeds the single Standard service class', function (): void {
     $this->seed(KoraServiceClassSeeder::class);
 
-    $confort = ServiceClass::query()->where('code', 'confort')->firstOrFail();
-    $premium = ServiceClass::query()->where('code', 'premium')->firstOrFail();
+    $standard = ServiceClass::query()->where('code', 'standard')->firstOrFail();
 
-    expect($confort->name)->toBe('KORA Confort')
-        ->and($confort->sort_order)->toBe(1)
-        ->and($confort->status)->toBe(ServiceClassStatus::Active)
-        ->and($premium->name)->toBe('KORA Premium')
-        ->and($premium->sort_order)->toBe(2)
-        ->and($premium->status)->toBe(ServiceClassStatus::Active);
+    expect($standard->name)->toBe('Standard')
+        ->and($standard->sort_order)->toBe(0)
+        ->and($standard->status)->toBe(ServiceClassStatus::Active);
 });
 
 it('is idempotent and does not duplicate service classes on reseed', function (): void {
     $this->seed(KoraServiceClassSeeder::class);
     $this->seed(KoraServiceClassSeeder::class);
 
-    expect(ServiceClass::query()->count())->toBe(2);
+    expect(ServiceClass::query()->count())->toBe(1);
 });
 
 it('hides numeric ids and uses uuid as route key', function (): void {
@@ -63,7 +59,7 @@ it('orders service classes by sort order then name', function (): void {
 
     $ordered = ServiceClass::ordered()->pluck('code')->all();
 
-    expect($ordered)->toBe(['confort', 'premium', 'vip']);
+    expect($ordered)->toBe(['standard', 'confort', 'premium', 'vip']);
 });
 
 it('enforces unique service class codes', function (): void {

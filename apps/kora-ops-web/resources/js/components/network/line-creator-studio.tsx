@@ -12,6 +12,7 @@ import {
     MapPin,
     Maximize2,
     Navigation,
+    Pencil,
     RotateCcw,
     Route,
     Search,
@@ -21,6 +22,11 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import network from '@/routes/network';
 import type {
@@ -34,11 +40,29 @@ import {
     reverseGeocode,
     searchPlaces,
 } from './route-calculator';
-import type {
-    LineRecord,
-    LineStopRecord,
-    PhysicalStationRecord,
-} from './types';
+import type { LineRecord, LineStopRecord, PhysicalStopRecord } from './types';
+
+const STOP_LABEL_MAX_CHARS = 25;
+
+function truncateStopLabel(name: string): string {
+    return name.length > STOP_LABEL_MAX_CHARS
+        ? `${name.slice(0, STOP_LABEL_MAX_CHARS - 1)}…`
+        : name;
+}
+
+function escapeMarkerHtml(value: string): string {
+    return value.replace(
+        /[&<>"']/g,
+        (c) =>
+            ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;',
+            })[c] ?? c,
+    );
+}
 
 let stopIdCounter = 0;
 function createStopUuid(): string {
@@ -81,7 +105,7 @@ type StudioFormData = {
 type Props = {
     open: boolean;
     onClose: () => void;
-    physicalStations: PhysicalStationRecord[];
+    physicalStops: PhysicalStopRecord[];
     initialLine?: LineRecord | null;
 };
 
@@ -92,7 +116,7 @@ const DEFAULT_ZOOM = 7;
 export function LineCreatorStudio({
     open,
     onClose,
-    physicalStations,
+    physicalStops = [],
     initialLine,
 }: Props) {
     // Soumission Inertia vers le backend (payload construit à la sauvegarde)
@@ -111,9 +135,9 @@ export function LineCreatorStudio({
     // Métadonnées de la ligne
     const [name, setName] = useState(initialLine?.name ?? '');
     const [code, setCode] = useState(initialLine?.code ?? '');
-    const [type, setType] = useState<
-        'nationale' | 'internationale' | 'regionale'
-    >(initialLine?.type ?? 'nationale');
+    const [type, setType] = useState<'nationale' | 'internationale'>(
+        initialLine?.type ?? 'nationale',
+    );
     const [bidirectional, setBidirectional] = useState<boolean>(
         initialLine?.bidirectional ?? true,
     );
@@ -134,7 +158,7 @@ export function LineCreatorStudio({
 
     // Recherche de gare
     const [searchQuery, setSearchQuery] = useState('');
-    const [searchResults, setSearchResults] = useState<PhysicalStationRecord[]>(
+    const [searchResults, setSearchResults] = useState<PhysicalStopRecord[]>(
         [],
     );
     const [placeResults, setPlaceResults] = useState<PlaceResult[]>([]);
@@ -145,6 +169,10 @@ export function LineCreatorStudio({
     const [selectedStopUuid, setSelectedStopUuid] = useState<string | null>(
         null,
     );
+
+    // Renommage inline du libellé d'un arrêt (propre à la ligne)
+    const [editingStopUuid, setEditingStopUuid] = useState<string | null>(null);
+    const [editingStopName, setEditingStopName] = useState('');
 
     // Parcours d'onboarding du studio (masquable)
     const [onboardingDismissed, setOnboardingDismissed] = useState(false);
@@ -390,8 +418,8 @@ export function LineCreatorStudio({
                             ${(index + 1).toString().padStart(2, '0')}
                         </div>
                     </div>
-                    <div class="mt-1 px-1.5 py-0.5 rounded bg-black/80 text-[10px] font-bold text-white shadow whitespace-nowrap backdrop-blur-sm pointer-events-none">
-                        ${stop.name}
+                    <div class="mt-1 px-1.5 py-0.5 rounded bg-black/80 text-[10px] font-bold text-white shadow whitespace-nowrap backdrop-blur-sm pointer-events-none" title="${escapeMarkerHtml(stop.name)}">
+                        ${escapeMarkerHtml(truncateStopLabel(stop.name))}
                     </div>
                 </div>
             `;
@@ -539,7 +567,7 @@ export function LineCreatorStudio({
 
         setIsSearching(true);
         const lower = trimmed.toLowerCase();
-        const filtered = physicalStations.filter(
+        const filtered = physicalStops.filter(
             (st) =>
                 st.latitude !== null &&
                 st.longitude !== null &&
@@ -583,7 +611,7 @@ export function LineCreatorStudio({
     };
 
     // Ajouter une gare depuis la liste des résultats de recherche
-    const handleAddPhysicalStation = (station: PhysicalStationRecord) => {
+    const handleAddPhysicalStop = (station: PhysicalStopRecord) => {
         if (station.latitude === null || station.longitude === null) {
             return;
         }
@@ -662,6 +690,26 @@ export function LineCreatorStudio({
         });
 
         setStops(newStops);
+    };
+
+    // Renommer le libellé d'un arrêt pour cette ligne uniquement
+    const startRenameStop = (stop: LineStopRecord) => {
+        setEditingStopUuid(stop.uuid);
+        setEditingStopName(stop.name);
+    };
+
+    const commitStopRename = () => {
+        const trimmed = editingStopName.trim();
+
+        if (editingStopUuid !== null && trimmed !== '') {
+            setStops((prev) =>
+                prev.map((s) =>
+                    s.uuid === editingStopUuid ? { ...s, name: trimmed } : s,
+                ),
+            );
+        }
+
+        setEditingStopUuid(null);
     };
 
     // Supprimer un arrêt
@@ -1026,7 +1074,6 @@ export function LineCreatorStudio({
                                     <option value="internationale">
                                         Internationale
                                     </option>
-                                    <option value="regionale">Régionale</option>
                                 </select>
                             </div>
                         </div>
@@ -1112,7 +1159,7 @@ export function LineCreatorStudio({
                                                             key={station.uuid}
                                                             type="button"
                                                             onClick={() =>
-                                                                handleAddPhysicalStation(
+                                                                handleAddPhysicalStop(
                                                                     station,
                                                                 )
                                                             }
@@ -1281,9 +1328,77 @@ export function LineCreatorStudio({
                                                         </span>
                                                         <div className="min-w-0">
                                                             <div className="flex items-center gap-1.5">
-                                                                <strong className="block truncate text-xs font-bold text-foreground">
-                                                                    {stop.name}
-                                                                </strong>
+                                                                {editingStopUuid ===
+                                                                stop.uuid ? (
+                                                                    <input
+                                                                        autoFocus
+                                                                        value={
+                                                                            editingStopName
+                                                                        }
+                                                                        onChange={(
+                                                                            e,
+                                                                        ) =>
+                                                                            setEditingStopName(
+                                                                                e
+                                                                                    .target
+                                                                                    .value,
+                                                                            )
+                                                                        }
+                                                                        onClick={(
+                                                                            e,
+                                                                        ) =>
+                                                                            e.stopPropagation()
+                                                                        }
+                                                                        onBlur={
+                                                                            commitStopRename
+                                                                        }
+                                                                        onKeyDown={(
+                                                                            e,
+                                                                        ) => {
+                                                                            if (
+                                                                                e.key ===
+                                                                                'Enter'
+                                                                            ) {
+                                                                                commitStopRename();
+                                                                            }
+
+                                                                            if (
+                                                                                e.key ===
+                                                                                'Escape'
+                                                                            ) {
+                                                                                setEditingStopUuid(
+                                                                                    null,
+                                                                                );
+                                                                            }
+                                                                        }}
+                                                                        className="w-full min-w-0 rounded border border-gold bg-background px-1.5 py-0.5 text-xs font-bold text-foreground outline-none"
+                                                                    />
+                                                                ) : stop.name
+                                                                      .length >
+                                                                  STOP_LABEL_MAX_CHARS ? (
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger
+                                                                            asChild
+                                                                        >
+                                                                            <strong className="block truncate text-xs font-bold text-foreground">
+                                                                                {truncateStopLabel(
+                                                                                    stop.name,
+                                                                                )}
+                                                                            </strong>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent>
+                                                                            {
+                                                                                stop.name
+                                                                            }
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+                                                                ) : (
+                                                                    <strong className="block truncate text-xs font-bold text-foreground">
+                                                                        {
+                                                                            stop.name
+                                                                        }
+                                                                    </strong>
+                                                                )}
                                                                 {isFirst && (
                                                                     <span className="py-0.2 rounded bg-emerald-500/10 px-1.5 text-[0.5625rem] font-bold text-emerald-600">
                                                                         DÉPART
@@ -1311,6 +1426,21 @@ export function LineCreatorStudio({
                                                     {activeDirection ===
                                                         'outbound' && (
                                                         <div className="flex items-center gap-1 opacity-70 transition-opacity group-hover:opacity-100">
+                                                            <button
+                                                                type="button"
+                                                                onClick={(
+                                                                    e,
+                                                                ) => {
+                                                                    e.stopPropagation();
+                                                                    startRenameStop(
+                                                                        stop,
+                                                                    );
+                                                                }}
+                                                                className="rounded p-1 hover:bg-muted"
+                                                                title="Renommer le libellé"
+                                                            >
+                                                                <Pencil className="size-3.5" />
+                                                            </button>
                                                             <button
                                                                 type="button"
                                                                 onClick={(

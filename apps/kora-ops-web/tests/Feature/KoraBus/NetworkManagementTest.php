@@ -376,12 +376,12 @@ it('rejects removing a stop that is referenced by a fare', function (): void {
     $destPhysical = makePhysicalStop(['name' => 'Parakou L14', 'city' => 'Parakou']);
     $origin = makeStop($line, $originPhysical, 1);
     $destination = makeStop($line, $destPhysical, 2, ['km_from_origin' => 420]);
-    $confort = ServiceClass::query()->where('code', 'confort')->firstOrFail();
+    $standard = ServiceClass::query()->where('code', 'standard')->firstOrFail();
 
     Fare::query()->create([
         'uuid' => Str::uuid()->toString(),
         'line_id' => $line->id,
-        'service_class_id' => $confort->id,
+        'service_class_id' => $standard->id,
         'origin_stop_id' => $origin->id,
         'destination_stop_id' => $destination->id,
         'base_amount' => 5000,
