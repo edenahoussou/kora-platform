@@ -10,9 +10,9 @@ class ChangeSeatLayoutStatusAction
 {
     public function execute(BusComposition $composition, CompositionStatus $status): BusComposition
     {
-        if ($status === CompositionStatus::Archived && $composition->isLocked()) {
+        if ($status !== CompositionStatus::Active && $composition->isLocked()) {
             throw ValidationException::withMessages([
-                'status' => 'Impossible d’archiver un gabarit utilisé par au moins un bus.',
+                'status' => 'Impossible de mettre en brouillon ou d’archiver un gabarit utilisé par au moins un bus.',
             ]);
         }
 

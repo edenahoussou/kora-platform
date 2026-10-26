@@ -226,6 +226,42 @@ it('refuses to archive a layout used by a bus', function (): void {
     expect($composition->refresh()->status)->toBe(CompositionStatus::Active);
 });
 
+it('activates a draft layout', function (): void {
+    $composition = makeComposition();
+
+    $this->actingAs(layoutsUser())
+        ->patch(route('layouts.status', $composition), ['status' => 'active'])
+        ->assertRedirect();
+
+    expect($composition->refresh()->status)->toBe(CompositionStatus::Active);
+});
+
+it('reverts an unused active layout to draft', function (): void {
+    $composition = makeComposition(['status' => CompositionStatus::Active->value]);
+
+    $this->actingAs(layoutsUser())
+        ->patch(route('layouts.status', $composition), ['status' => 'draft'])
+        ->assertRedirect();
+
+    expect($composition->refresh()->status)->toBe(CompositionStatus::Draft);
+});
+
+it('refuses to revert to draft a layout used by a bus', function (): void {
+    $composition = makeComposition(['status' => CompositionStatus::Active->value]);
+    Bus::query()->create([
+        'registration_number' => 'LOCK-3',
+        'composition_id' => $composition->id,
+        'seat_count' => 2,
+        'status' => 'active',
+    ]);
+
+    $this->actingAs(layoutsUser())
+        ->patch(route('layouts.status', $composition), ['status' => 'draft'])
+        ->assertSessionHasErrors('status');
+
+    expect($composition->refresh()->status)->toBe(CompositionStatus::Active);
+});
+
 it('serves the editor with the serialized template', function (): void {
     $composition = makeComposition();
 
