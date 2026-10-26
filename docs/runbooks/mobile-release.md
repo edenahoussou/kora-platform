@@ -117,3 +117,10 @@ Quand un compte Google Play Console sera disponible, on ajoutera Fastlane au wor
 | `PLAY_SERVICE_ACCOUNT_JSON` | Clé JSON du service account Google Play API |
 
 Le workflow `release-mobile.yml` sera étendu avec un step `fastlane supply` après le build.
+
+## Compte de revue store (Apple / Google)
+
+Avant toute soumission à l'App Store ou au Play Store, ouvrir la fenêtre de revue et créer le
+compte de test : voir `docs/runbooks/store-review.md` (code OTP fixe whitelisté, PIN, données de
+démonstration hors production). La production est concernée au même titre que le staging : le build
+soumis est un build `main_prod.dart`.

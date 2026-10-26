@@ -112,4 +112,34 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Compte de revue App Store / Play Store (MEZ-152)
+    |--------------------------------------------------------------------------
+    |
+    | Le reviewer ne peut pas recevoir nos OTP (WhatsApp/SMS/email). Un code
+    | fixe, stocké uniquement en variable d'environnement, est accepté pour
+    | les seuls identifiants whitelistés, et uniquement si `enabled` vaut
+    | true. Désactivé par défaut : aucun effet hors fenêtre de revue.
+    |
+    | `identifiers` est une liste CSV (une seule variable d'environnement) :
+    |   STORE_REVIEW_IDENTIFIERS=apple-review@koraexpress.app,apple-review+signup@koraexpress.app
+    |
+    | `login_identifier` désigne LE compte que le seeder crée. Les autres
+    | identifiants de la liste servent aux tests d'inscription et ne sont
+    | jamais pré-créés (sinon l'inscription renverrait `account_exists`).
+    |
+    */
+
+    'store_review' => [
+        'enabled' => filter_var(env('STORE_REVIEW_ENABLED', false), FILTER_VALIDATE_BOOLEAN),
+        'otp_code' => env('STORE_REVIEW_OTP_CODE'),
+        'identifiers' => array_values(array_filter(array_map(
+            static fn (string $value): string => strtolower(trim($value)),
+            explode(',', (string) env('STORE_REVIEW_IDENTIFIERS', '')),
+        ))),
+        'login_identifier' => strtolower(trim((string) env('STORE_REVIEW_LOGIN_IDENTIFIER', 'apple-review@koraexpress.app'))),
+        'pin' => (string) env('STORE_REVIEW_PIN', '2468'),
+    ],
+
 ];

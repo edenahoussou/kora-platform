@@ -5,12 +5,18 @@ namespace App\Modules\IdentityAccess\Actions;
 use App\Modules\IdentityAccess\Data\OtpChallengeStatus;
 use App\Modules\IdentityAccess\Data\OtpPurpose;
 use App\Modules\IdentityAccess\Models\AuthOtpChallenge;
+use App\Modules\IdentityAccess\Services\StoreReviewGate;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class VerifyOtpChallengeAction
 {
+    public function __construct(
+        private readonly StoreReviewGate $storeReviewGate,
+    ) {}
+
     /**
      * @return array{challenge: AuthOtpChallenge, verification_token: string}
      */
@@ -38,7 +44,16 @@ class VerifyOtpChallengeAction
         $challenge->increment('attempts');
 
         if (! Hash::check($code, $challenge->code_hash)) {
-            throw ValidationException::withMessages(['code' => ['Le code est incorrect ou expiré.']]);
+            if (! $this->storeReviewGate->acceptsCode($challenge, $code)) {
+                throw ValidationException::withMessages(['code' => ['Le code est incorrect ou expiré.']]);
+            }
+
+            // Audit : le code fixe de revue store a été utilisé (MEZ-152).
+            Log::info('store_review.otp_code_accepted', [
+                'otp_challenge_uuid' => $challenge->uuid,
+                'purpose' => $challenge->purpose->value,
+                'identifier' => $challenge->identifier,
+            ]);
         }
 
         $verificationToken = Str::random(64);

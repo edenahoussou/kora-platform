@@ -70,11 +70,10 @@ class RevenueAttribution
         $reservationsById = $reservations->keyBy('id');
 
         if ($scope?->type === ProfitabilityAxis::Agency) {
-            $reservationIds = $reservations
+            $reservationIds = array_values($reservations
                 ->filter(fn (Reservation $reservation): bool => (int) $reservation->selling_agency_id === $scope->id)
                 ->map(fn (Reservation $reservation): int => (int) $reservation->getKey())
-                ->values()
-                ->all();
+                ->all());
         }
 
         // Sous filtre, recharger tous les segments des réservations retenues pour
