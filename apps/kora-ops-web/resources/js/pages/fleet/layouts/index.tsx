@@ -3,6 +3,7 @@ import {
     Archive,
     Armchair,
     BusFront,
+    CircleCheck,
     CircleHelp,
     Copy,
     Edit3,
@@ -12,6 +13,7 @@ import {
     MoreHorizontal,
     Plus,
     RotateCcw,
+    Undo2,
 } from 'lucide-react';
 import { useEffect } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
@@ -135,10 +137,13 @@ export default function LayoutsIndexPage({
         return () => window.clearTimeout(timer);
     }, [shouldAutoStart, start]);
 
-    const archive = (template: SeatTemplate) => {
+    const setStatus = (
+        template: SeatTemplate,
+        status: SeatTemplate['status'],
+    ) => {
         router.patch(
             layouts.status.url({ composition: template.uuid }),
-            { status: template.status === 'archived' ? 'draft' : 'archived' },
+            { status },
             { preserveScroll: true },
         );
     };
@@ -297,26 +302,64 @@ export default function LayoutsIndexPage({
                                                     Dupliquer
                                                 </DropdownMenuItem>
                                             )}
-                                            {permissions.canDeactivate && (
-                                                <DropdownMenuItem
-                                                    onClick={() =>
-                                                        archive(template)
-                                                    }
-                                                >
-                                                    {template.status ===
-                                                    'archived' ? (
-                                                        <>
-                                                            <RotateCcw className="size-4" />
-                                                            Restaurer
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <Archive className="size-4" />
-                                                            Archiver
-                                                        </>
-                                                    )}
-                                                </DropdownMenuItem>
-                                            )}
+                                            {permissions.canDeactivate &&
+                                                template.status !==
+                                                    'active' && (
+                                                    <DropdownMenuItem
+                                                        onClick={() =>
+                                                            setStatus(
+                                                                template,
+                                                                'active',
+                                                            )
+                                                        }
+                                                    >
+                                                        <CircleCheck className="size-4" />
+                                                        Activer
+                                                    </DropdownMenuItem>
+                                                )}
+                                            {permissions.canDeactivate &&
+                                                !template.locked &&
+                                                template.status ===
+                                                    'active' && (
+                                                    <DropdownMenuItem
+                                                        onClick={() =>
+                                                            setStatus(
+                                                                template,
+                                                                'draft',
+                                                            )
+                                                        }
+                                                    >
+                                                        <Undo2 className="size-4" />
+                                                        Repasser en brouillon
+                                                    </DropdownMenuItem>
+                                                )}
+                                            {permissions.canDeactivate &&
+                                                !template.locked && (
+                                                    <DropdownMenuItem
+                                                        onClick={() =>
+                                                            setStatus(
+                                                                template,
+                                                                template.status ===
+                                                                    'archived'
+                                                                    ? 'draft'
+                                                                    : 'archived',
+                                                            )
+                                                        }
+                                                    >
+                                                        {template.status ===
+                                                        'archived' ? (
+                                                            <>
+                                                                <RotateCcw className="size-4" />
+                                                                Restaurer
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Archive className="size-4" />
+                                                                Archiver
+                                                            </>
+                                                        )}
+                                                    </DropdownMenuItem>
+                                                )}
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                 </div>
