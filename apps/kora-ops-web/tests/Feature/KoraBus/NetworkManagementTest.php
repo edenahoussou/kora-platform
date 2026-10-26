@@ -309,6 +309,39 @@ it('synchronizes stops on update: update in place, create, delete and re-sequenc
         ->and(Stop::withTrashed()->find($stopA->id)->trashed())->toBeTrue();
 });
 
+it('allows re-syncing stops after a previous sync removed a stop', function (): void {
+    $line = makeLine(['code' => 'L7']);
+    $cotonouPhysical = makePhysicalStop(['name' => 'Cotonou L7']);
+    $parakouPhysical = makePhysicalStop(['name' => 'Parakou L7', 'city' => 'Parakou']);
+    $bohiconPhysical = makePhysicalStop(['name' => 'Bohicon L7', 'city' => 'Bohicon']);
+
+    $stopA = makeStop($line, $cotonouPhysical, 1, ['name' => 'Cotonou', 'city' => 'Cotonou']);
+    $stopB = makeStop($line, $parakouPhysical, 2, ['name' => 'Parakou', 'city' => 'Parakou']);
+
+    $payload = fn (array $stops): array => ['stops' => $stops];
+
+    // 1ère édition : supprime stopA et ajoute Bohicon (fantôme soft-deleted en ordre décalé)
+    $this->actingAs(networkManager())->put(route('network.update', $line), $payload([
+        ['uuid' => $stopB->uuid, 'name' => 'Parakou', 'city' => 'Parakou', 'country' => 'BJ', 'stop_order' => 1, 'km_from_origin' => 0, 'physical_stop_uuid' => $parakouPhysical->uuid],
+        ['name' => 'Bohicon', 'city' => 'Bohicon', 'country' => 'BJ', 'stop_order' => 2, 'km_from_origin' => 290, 'physical_stop_uuid' => $bohiconPhysical->uuid],
+    ]))->assertRedirect(route('network.index', absolute: false));
+
+    // 2ème édition : réordonne les arrêts restants — doit réussir malgré le fantôme
+    $bohicon = $line->stops()->where('name', 'Bohicon')->firstOrFail();
+
+    $this->actingAs(networkManager())->put(route('network.update', $line), $payload([
+        ['uuid' => $bohicon->uuid, 'name' => 'Bohicon', 'city' => 'Bohicon', 'country' => 'BJ', 'stop_order' => 1, 'km_from_origin' => 0, 'physical_stop_uuid' => $bohiconPhysical->uuid],
+        ['uuid' => $stopB->uuid, 'name' => 'Parakou', 'city' => 'Parakou', 'country' => 'BJ', 'stop_order' => 2, 'km_from_origin' => 290, 'physical_stop_uuid' => $parakouPhysical->uuid],
+    ]))->assertRedirect(route('network.index', absolute: false));
+
+    $ordered = $line->stops()->orderBy('stop_order')->get();
+
+    expect($ordered)->toHaveCount(2)
+        ->and($ordered[0]->uuid)->toBe($bohicon->uuid)
+        ->and($ordered[1]->uuid)->toBe($stopB->uuid)
+        ->and(Stop::withTrashed()->find($stopA->id)->trashed())->toBeTrue();
+});
+
 it('rejects stop synchronization when the line has published departures', function (): void {
     $line = makeLine(['code' => 'L12', 'name' => 'Avant départs']);
     $physical = makePhysicalStop(['name' => 'Cotonou L12']);

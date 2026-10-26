@@ -30,9 +30,10 @@ class SyncLineStopsAction
             $incomingUuids = collect($stops)->pluck('uuid')->filter()->all();
 
             // Décale les ordres existants : UNIQUE (line_id, stop_order) interdit les échanges directs
-            foreach ($existingStops as $existingStop) {
-                $existingStop->update(['stop_order' => $existingStop->stop_order + 1000]);
-            }
+            Stop::query()
+                ->where('line_id', $line->id)
+                ->whereNull('deleted_at')
+                ->update(['stop_order' => DB::raw('stop_order + 1000')]);
 
             foreach ($stops as $index => $data) {
                 $attributes = [
