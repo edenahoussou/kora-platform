@@ -18,6 +18,8 @@ class AuthUser extends Equatable {
     this.status = 'active',
     this.avatarUrl,
     this.permissions = const <String>[],
+    this.roles = const <String>[],
+    this.requiresTerminal = true,
   });
 
   final String uuid;
@@ -36,7 +38,31 @@ class AuthUser extends Equatable {
   /// de la laisser échouer en 403.
   final List<String> permissions;
 
+  /// Codes des rôles système (`bus_driver`, `conductor`...) — voir
+  /// `SystemRole` côté backend.
+  final List<String> roles;
+
+  /// Le compte doit-il passer par un terminal P501 (liaison + session OPS) ?
+  /// Calculé par le serveur (`requires_terminal`, voir `OpsSessionGuard`) :
+  /// `false` pour le chauffeur seul, `true` pour le convoyeur et tout autre
+  /// rôle terrain — ou pour tous si `OPS_FORCE_TERMINAL_FOR_ALL=true`
+  /// côté serveur. `true` par défaut (ancien serveur, cache plus ancien) :
+  /// on garde alors le comportement historique (terminal obligatoire).
+  final bool requiresTerminal;
+
   bool can(String permission) => permissions.contains(permission);
+
+  bool hasRole(String role) => roles.contains(role);
+
+  /// Chauffeur de bus (`bus_driver`).
+  bool get isDriver => hasRole('bus_driver');
+
+  /// Convoyeur (`conductor`).
+  bool get isConductor => hasRole('conductor');
+
+  /// Peut saisir le carnet de bord (kilométrage, carburant, péages et
+  /// taxes frontières) — chauffeur et convoyeur.
+  bool get canRecordTripLog => can('trip-logs.create');
 
   /// Vrai si le compte a au moins une des permissions données — pratique
   /// pour gater un onglet qui a plusieurs points d'entrée possibles.
@@ -61,6 +87,8 @@ class AuthUser extends Equatable {
     String? status,
     String? avatarUrl,
     List<String>? permissions,
+    List<String>? roles,
+    bool? requiresTerminal,
   }) {
     return AuthUser(
       uuid: uuid ?? this.uuid,
@@ -70,10 +98,22 @@ class AuthUser extends Equatable {
       status: status ?? this.status,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       permissions: permissions ?? this.permissions,
+      roles: roles ?? this.roles,
+      requiresTerminal: requiresTerminal ?? this.requiresTerminal,
     );
   }
 
   @override
   List<Object?> get props =>
-      <Object?>[uuid, name, email, phone, status, avatarUrl, permissions];
+      <Object?>[
+        uuid,
+        name,
+        email,
+        phone,
+        status,
+        avatarUrl,
+        permissions,
+        roles,
+        requiresTerminal,
+      ];
 }

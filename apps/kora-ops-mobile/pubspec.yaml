@@ -106,6 +106,10 @@ dependencies:
   # permission de stockage sur Android récent.
   file_saver: ^0.2.14
 
+  # Photo du ticket de carburant / reçu de péage (carnet de bord du
+  # chauffeur et du convoyeur) — appareil photo ou galerie.
+  image_picker: ^1.1.2
+
   # Rendu du QR code sur le billet affiché en app — voir document.md § Ticket
   qr_flutter: ^4.1.0
 

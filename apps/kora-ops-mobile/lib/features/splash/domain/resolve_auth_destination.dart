@@ -1,5 +1,6 @@
 import '../../../app/router/app_routes.dart';
 import '../../auth/presentation/cubit/auth_cubit.dart';
+import '../../terminal/domain/terminal_requirement.dart';
 import '../../terminal/presentation/cubit/terminal_cubit.dart';
 
 /// Décide de la destination une fois `checkAuthStatus()` **et**
@@ -18,7 +19,10 @@ import '../../terminal/presentation/cubit/terminal_cubit.dart';
 String resolveAuthDestination(
     AuthState authState, TerminalState terminalState) {
   switch (authState) {
-    case AuthAuthenticated():
+    case AuthAuthenticated(:final user):
+      // Chauffeur dispensé de terminal (voir `needsTerminal`) : accueil
+      // directement, sans passer par la liaison P501.
+      if (!needsTerminal(user)) return AppRoutes.home;
       return terminalState is TerminalLinked
           ? AppRoutes.home
           : AppRoutes.terminalSetup;

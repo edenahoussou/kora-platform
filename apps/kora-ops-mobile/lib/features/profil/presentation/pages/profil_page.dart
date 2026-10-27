@@ -17,6 +17,7 @@ import '../../../../injection/injection.dart';
 import '../../../auth/presentation/bloc/auth_flow_bloc.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../synchro/presentation/cubit/sync_cubit.dart';
+import '../../../terminal/domain/terminal_requirement.dart';
 import '../../../terminal/presentation/cubit/terminal_cubit.dart';
 
 /// Onglet Profil — reproduit trait pour trait l'écran Profil de
@@ -44,6 +45,15 @@ class ProfilPage extends StatelessWidget {
   /// se refait aussitôt automatiquement (même empreinte d'appareil) : ce
   /// n'est pas un « changement » de terminal, juste une reliaison forcée
   /// (ex. terminal réactivé côté agence après une perte/désactivation).
+  /// Tuile « Terminal » : masquée pour un chauffeur dispensé de terminal
+  /// (voir `needsTerminal`), sauf s'il a malgré tout un terminal lié.
+  bool _showTerminalTile(BuildContext context) {
+    final AuthState auth = context.watch<AuthCubit>().state;
+    if (auth is! AuthAuthenticated) return true;
+    return needsTerminal(auth.user) ||
+        context.watch<TerminalCubit>().state is TerminalLinked;
+  }
+
   Future<void> _confirmChangeTerminal(BuildContext context) async {
     final bool isPhoneMode =
         AppConfig.instance.terminalMode == TerminalMode.phone;
@@ -148,20 +158,24 @@ class ProfilPage extends StatelessWidget {
                       subtitle: 'Vos alertes déclenchées (incidents, départs…)',
                       onTap: () => context.push(AppRoutes.notificationsSent),
                     ),
-                    const SizedBox(height: AppSpacing.sm),
-                    _AccountTile(
-                      icon: Icons.point_of_sale,
-                      title:
-                          AppConfig.instance.terminalMode == TerminalMode.phone
-                              ? 'Terminal (téléphone)'
-                              : 'Terminal P501',
-                      subtitle: switch (context.watch<TerminalCubit>().state) {
-                        TerminalLinked(:final terminal) =>
-                          'Lié — ${terminal.serialNumber}',
-                        _ => 'Aucun terminal lié',
-                      },
-                      onTap: () => _confirmChangeTerminal(context),
-                    ),
+                    // Chauffeur dispensé de terminal (voir `needsTerminal`) :
+                    // pas de tuile de liaison P501.
+                    if (_showTerminalTile(context)) ...<Widget>[
+                      const SizedBox(height: AppSpacing.sm),
+                      _AccountTile(
+                        icon: Icons.point_of_sale,
+                        title:
+                            AppConfig.instance.terminalMode == TerminalMode.phone
+                                ? 'Terminal (téléphone)'
+                                : 'Terminal P501',
+                        subtitle: switch (context.watch<TerminalCubit>().state) {
+                          TerminalLinked(:final terminal) =>
+                            'Lié — ${terminal.serialNumber}',
+                          _ => 'Aucun terminal lié',
+                        },
+                        onTap: () => _confirmChangeTerminal(context),
+                      ),
+                    ],
                     const SizedBox(height: AppSpacing.lg),
                     Text('Besoin d\'aide ?',
                         style: AppTextStyles.heading2(

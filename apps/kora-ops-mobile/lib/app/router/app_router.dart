@@ -45,6 +45,8 @@ import '../../features/support_chat/presentation/pages/support_chat_page.dart';
 import '../../features/synchro/presentation/pages/synchro_page.dart';
 import '../../features/terminal/presentation/pages/terminal_setup_page.dart';
 import '../../features/tournee/presentation/pages/tournee_page.dart';
+import '../../features/trip_log/presentation/pages/trip_expense_form_page.dart';
+import '../../features/trip_log/presentation/pages/trip_log_page.dart';
 import '../../injection/injection.dart';
 import 'app_routes.dart';
 import 'auth_guard.dart';
@@ -172,6 +174,16 @@ class AppRouter {
       GoRoute(
         path: AppRoutes.incidentReport,
         builder: (context, state) => const IncidentReportPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.tripLog,
+        builder: (context, state) => const TripLogPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.tripExpenseForm,
+        builder: (context, state) => TripExpenseFormPage(
+          args: state.extra! as TripExpenseFormArgs,
+        ),
       ),
       // Mise à jour non obligatoire (MEZ-150) — « Plus tard » reporte la
       // proposition de 24 h puis referme l'écran.

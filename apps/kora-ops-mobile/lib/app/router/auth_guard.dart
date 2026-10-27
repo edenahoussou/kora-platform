@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../../features/auth/presentation/cubit/auth_cubit.dart';
+import '../../features/terminal/domain/terminal_requirement.dart';
 import '../../features/terminal/presentation/cubit/terminal_cubit.dart';
 import 'app_routes.dart';
 
@@ -22,6 +23,8 @@ import 'app_routes.dart';
 ///   désactivé ou en maintenance)
 ///                            → `/terminal/setup`
 ///   authentifié, terminal lié → `/home`
+///   authentifié, chauffeur dispensé de terminal (voir `needsTerminal`)
+///                            → `/home`, jamais `/terminal/setup`
 ///
 /// Les sous-routes `/login/forgot-password`, `/login/otp` et
 /// `/login/otp-invalid` sont des étapes intermédiaires du même parcours et
@@ -68,7 +71,10 @@ class AuthGuard extends ChangeNotifier {
     if (state is AuthAuthenticated) {
       final TerminalState terminalState = _terminalCubit.state;
 
-      if (terminalState is TerminalLinked) {
+      // Chauffeur dispensé de terminal (voir `needsTerminal` — sauf si
+      // OPS_FORCE_TERMINAL_FOR_ALL / FORCE_TERMINAL_FOR_ALL l'imposent) :
+      // jamais d'écran de liaison, même règle que pour un terminal lié.
+      if (terminalState is TerminalLinked || !needsTerminal(state.user)) {
         // Terminal résolu : jamais laisser l'agent bloqué sur l'écran de
         // liaison ni sur le parcours de connexion.
         return (currentLocation == AppRoutes.terminalSetup || isInLoginFlow)

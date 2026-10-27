@@ -9,6 +9,8 @@ import '../../../core/widgets/delay_sheet.dart';
 import '../../../injection/injection.dart';
 import '../../tracking/domain/entities/tracking_availability.dart';
 import '../../tracking/presentation/cubit/tracking_cubit.dart';
+import '../../trip_log/domain/entities/trip_log.dart';
+import '../../trip_log/presentation/trip_log_actions.dart';
 import 'cubit/selected_depart_cubit.dart';
 
 /// Étape suivante proposée au convoyeur pour un départ — voir
@@ -88,6 +90,19 @@ Future<void> progressDeparture(
       // l'autoriser (jamais automatiquement au retour au premier plan,
       // voir TrackingCubit.onAppResumed — échange du 24/09/2026, pour ne
       // pas réintroduire la boucle de boîtes de dialogue).
+      // Carnet de bord : le kilométrage compteur est demandé au moment
+      // même où le bus part / arrive (« Plus tard » possible, la saisie
+      // reste ouverte dans le carnet) — chauffeur comme convoyeur.
+      if ((newStatus == 'departed' || newStatus == 'arrived') &&
+          context.mounted &&
+          canRecordTripLog(context)) {
+        await promptOdometerReading(
+          context,
+          departureUuid: depart.id,
+          kind: newStatus == 'departed' ? OdometerKind.start : OdometerKind.end,
+          fromProgress: true,
+        );
+      }
       if (newStatus == 'departed' && context.mounted) {
         await _offerLocationSettingsIfBlocked(context);
       }

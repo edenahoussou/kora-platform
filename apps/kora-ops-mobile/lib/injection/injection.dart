@@ -105,6 +105,11 @@ import '../features/tracking/data/services/mock_location_provider.dart';
 import '../features/tracking/domain/repositories/tracking_repository.dart';
 import '../features/tracking/domain/services/location_provider.dart';
 import '../features/tracking/presentation/cubit/tracking_cubit.dart';
+import '../features/trip_log/data/datasources/trip_log_local_datasource.dart';
+import '../features/trip_log/data/datasources/trip_log_remote_datasource.dart';
+import '../features/trip_log/data/repositories/trip_log_repository_impl.dart';
+import '../features/trip_log/domain/repositories/trip_log_repository.dart';
+import '../features/trip_log/presentation/cubit/trip_log_cubit.dart';
 
 final GetIt getIt = GetIt.instance;
 
@@ -477,6 +482,25 @@ Future<void> configureDependencies() async {
     ),
   );
 
+  // --- Feature: carnet de bord (chauffeur et convoyeur — kilométrage,
+  // carburant, péages, taxes frontières ; file hors ligne rejouée par
+  // SyncCubit, voir TripLogRepositoryImpl). Enregistrée avant Synchro.
+  getIt.registerLazySingleton<TripLogRemoteDataSource>(
+    () => TripLogRemoteDataSourceImpl(opsDioClient.dio),
+  );
+  getIt.registerLazySingleton<TripLogLocalDataSource>(
+    () => TripLogLocalDataSourceImpl(getIt<AppDatabase>()),
+  );
+  getIt.registerLazySingleton<TripLogRepository>(
+    () => TripLogRepositoryImpl(
+      getIt<TripLogRemoteDataSource>(),
+      getIt<TripLogLocalDataSource>(),
+    ),
+  );
+  getIt.registerFactory<TripLogCubit>(
+    () => TripLogCubit(getIt<TripLogRepository>()),
+  );
+
   // --- Feature: synchro (MEZ-88 — réel : POST ops/sync/batches, envoi
   // par lot des files boarding_operations + seat_release_operations en
   // un seul lot, détection de connectivité continue et reprise
@@ -497,6 +521,7 @@ Future<void> configureDependencies() async {
       getIt<BoardingRepository>(),
       getIt<SeatReleaseRepository>(),
       getIt<IncidentRepository>(),
+      tripLogRepository: getIt<TripLogRepository>(),
     ),
   );
 

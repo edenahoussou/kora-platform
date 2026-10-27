@@ -29,6 +29,16 @@ const TerminalMode kTerminalModeOverride = TerminalMode.p501;
 // const bool? kUseMockHardwareOverride = null;
 const bool kUseMockHardwareOverride = false;
 
+/// Force le terminal P501 pour TOUS les rôles, chauffeur compris, côté
+/// application — pendant mobile de `OPS_FORCE_TERMINAL_FOR_ALL` (.env du
+/// backend, qui reste la référence : il est renvoyé dans
+/// `requires_terminal` à la connexion). `false` par défaut.
+///
+/// `--dart-define=FORCE_TERMINAL_FOR_ALL=true` pour l'imposer sur un build
+/// précis sans toucher au serveur.
+const bool kForceTerminalForAll =
+    bool.fromEnvironment('FORCE_TERMINAL_FOR_ALL', defaultValue: false);
+
 extension TerminalModeX on TerminalMode {
   static TerminalMode fromString(String value) => switch (value.toLowerCase()) {
         'phone' || 'telephone' || 'téléphone' => TerminalMode.phone,

@@ -20,6 +20,7 @@ import '../../../ops/presentation/cubit/selected_depart_cubit.dart';
 import '../../../ops/presentation/depart_progress.dart';
 import '../../../tracking/domain/entities/tracking_availability.dart';
 import '../../../tracking/presentation/cubit/tracking_cubit.dart';
+import '../../../trip_log/presentation/trip_log_actions.dart';
 
 /// Onglet Accueil — reproduit trait pour trait la mise en page de l'accueil
 /// `kora-passager` (voir document.md § Design System / Accueil) : en-tête
@@ -56,6 +57,10 @@ class AccueilPage extends StatelessWidget {
     final bool canReportIncident = depart != null &&
         authState is AuthAuthenticated &&
         authState.user.can('incidents.report');
+    // Carnet de bord (chauffeur et convoyeur) : kilométrage, carburant,
+    // péages et taxes frontières.
+    final bool canTripLog =
+        authState is AuthAuthenticated && authState.user.canRecordTripLog;
 
     return Scaffold(
       backgroundColor: context.koraColors.background,
@@ -205,14 +210,24 @@ class AccueilPage extends StatelessWidget {
                     //     onTap: () => context.go(AppRoutes.synchro),
                     //   ),
                     // ),
+                    // 4ᵉ tuile : « Carnet » de bord (kilométrage, carburant,
+                    // péages et taxes) pour le chauffeur et le convoyeur —
+                    // remplace « Alertes », qui reste accessible par la
+                    // cloche de l'en-tête. Comptes sans carnet : Alertes.
                     Expanded(
-                      child: _QuickTile(
-                        icon: Icons.notifications_rounded,
-                        label: 'Alertes',
-                        onTap: () => depart == null
-                            ? _promptSelectDepart(context)
-                            : context.push(AppRoutes.notifications),
-                      ),
+                      child: canTripLog
+                          ? _QuickTile(
+                              icon: Icons.local_gas_station_rounded,
+                              label: 'Carnet',
+                              onTap: () => openTripLog(context, depart),
+                            )
+                          : _QuickTile(
+                              icon: Icons.notifications_rounded,
+                              label: 'Alertes',
+                              onTap: () => depart == null
+                                  ? _promptSelectDepart(context)
+                                  : context.push(AppRoutes.notifications),
+                            ),
                     ),
                   ],
                 ),
