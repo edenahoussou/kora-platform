@@ -15,6 +15,7 @@ use App\Modules\Departures\Http\Controllers\OpsDepartureProgressController;
 use App\Modules\Departures\Http\Controllers\OpsPassengerCorrectionController;
 use App\Modules\DynamicPricing\Http\Controllers\GroupDiscountRuleController;
 use App\Modules\FleetLite\Http\Controllers\OpsIncidentController;
+use App\Modules\FleetLite\Http\Controllers\OpsTripLogController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthDeviceController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthOAuthController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthOtpController;
@@ -113,7 +114,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                 ->middleware('throttle:terminal-handshake')
                 ->name('handshake');
 
-            Route::middleware('ops.session')->group(function (): void {
+            Route::middleware('ops.session:terminal')->group(function (): void {
                 Route::post('sync', [TerminalOpsMobileController::class, 'sync'])->name('sync');
                 Route::post('activity', [TerminalOpsMobileController::class, 'activity'])->name('activity');
             });
@@ -128,7 +129,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         ->group(function (): void {
             Route::delete('/', [OpsSessionController::class, 'destroy'])->name('destroy');
 
-            Route::middleware('ops.session')->group(function (): void {
+            Route::middleware('ops.session:terminal')->group(function (): void {
                 Route::get('/', [OpsSessionController::class, 'show'])->name('show');
                 Route::post('renew', [OpsSessionController::class, 'renew'])
                     ->middleware('throttle:terminal-handshake')
@@ -161,6 +162,15 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             // commencé, bus parti, arrivé, retard. Même statut que OPS Web.
             Route::post('{departure:uuid}/status', [OpsDepartureProgressController::class, 'updateStatus'])->name('status');
             Route::patch('{departure:uuid}/delay', [OpsDepartureProgressController::class, 'recordDelay'])->name('delay');
+
+            // Carnet de bord (chauffeur et convoyeur) : kilométrage départ /
+            // arrivée, carburant, péages et taxes frontières. Les dépenses
+            // partent « en attente » de validation au bureau (module Dépenses).
+            Route::get('{departure:uuid}/trip-log', [OpsTripLogController::class, 'show'])->name('trip-log');
+            Route::put('{departure:uuid}/odometer', [OpsTripLogController::class, 'odometer'])->name('odometer');
+            Route::post('{departure:uuid}/trip-expenses', [OpsTripLogController::class, 'storeExpense'])
+                ->middleware('throttle:30,1')
+                ->name('trip-expenses.store');
         });
 
     // OPS Mobile — signalement d'incident par le convoyeur (MEZ-98). Même
@@ -182,7 +192,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         ->middleware('auth:sanctum')
         ->group(function (): void {
             Route::post('/', [OpsBoardingController::class, 'store'])
-                ->middleware('ops.session')
+                ->middleware('ops.session:terminal')
                 ->name('store');
             Route::post('{boardingEvent:uuid}/reverse', [OpsBoardingController::class, 'reverse'])->name('reverse');
 
@@ -196,13 +206,13 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             // bien sur ce départ (422 `ticket_not_for_departure`).
             Route::get('{departure:uuid}/tickets/{ticket:uuid}/pdf', [OpsBoardingController::class, 'pdf'])
                 ->withoutScopedBindings()
-                ->middleware('ops.session')
+                ->middleware('ops.session:terminal')
                 ->name('ticket-pdf');
         });
 
     Route::prefix('ops/seat-releases')
         ->name('ops.seat-releases.')
-        ->middleware(['auth:sanctum', 'ops.session'])
+        ->middleware(['auth:sanctum', 'ops.session:terminal'])
         ->group(function (): void {
             Route::post('/', [OpsSeatReleaseController::class, 'store'])->name('store');
             Route::post('no-show-closure', [OpsSeatReleaseController::class, 'closeNoShows'])->name('no-show-closure');
@@ -210,7 +220,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
 
     Route::prefix('ops/sync')
         ->name('ops.sync.')
-        ->middleware(['auth:sanctum', 'ops.session'])
+        ->middleware(['auth:sanctum', 'ops.session:terminal'])
         ->group(function (): void {
             Route::post('manifest-versions', [OpsSyncController::class, 'manifestVersions'])->name('manifest-versions');
             Route::post('batches', [OpsSyncController::class, 'submitBatch'])->name('batches');
@@ -225,7 +235,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
 
     Route::prefix('ops/tracking')
         ->name('ops.tracking.')
-        ->middleware(['auth:sanctum', 'ops.session'])
+        ->middleware(['auth:sanctum', 'ops.session:terminal'])
         ->group(function (): void {
             Route::post('positions/batch', [OpsTrackingController::class, 'storeBatch'])
                 ->middleware('throttle:tracking-batch')

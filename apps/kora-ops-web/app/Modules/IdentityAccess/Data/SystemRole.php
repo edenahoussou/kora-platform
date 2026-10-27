@@ -56,6 +56,7 @@ enum SystemRole: string
                 'incidents.report',
                 'departures.view',
                 'notifications.view',
+                'trip-logs.create',
             ],
             self::Mechanic => [
                 'incidents.report',
@@ -72,6 +73,7 @@ enum SystemRole: string
                 'seat-releases.view',
                 'tickets.view',
                 'tracking.report',
+                'trip-logs.create',
             ],
             self::AgencyAgent => [
                 'incidents.report',
@@ -277,6 +279,7 @@ enum SystemRole: string
             'kora-points.view', 'kora-points.manage', 'kora-points.terms', 'kora-points.documents.upload', 'kora-points.remit', 'kora-points.refund-request', 'kora-points.finance', 'kora-points.visits.actions.update',
             'departures.progress',
             'incidents.report',
+            'trip-logs.create',
             'notifications.view',
             'agencies.view',
             'agencies.create',

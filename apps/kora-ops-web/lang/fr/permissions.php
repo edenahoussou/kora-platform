@@ -19,4 +19,5 @@ return [
     'profitability.export' => 'Exporter la rentabilité',
     'app-releases.view' => "Consulter les versions de l'application mobile",
     'app-releases.manage' => "Publier et gérer les versions de l'application mobile",
+    'trip-logs.create' => 'Saisir le carnet de bord (kilométrage, carburant, péages et taxes)',
 ];

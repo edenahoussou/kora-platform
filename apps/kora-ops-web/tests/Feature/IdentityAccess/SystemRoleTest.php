@@ -26,7 +26,7 @@ describe('SystemRole enum', function (): void {
 
     it('returns permissions for each role', function (): void {
         expect(SystemRole::Passenger->permissions())->toBe(['bookings.create', 'bookings.view-own', 'bookings.cancel', 'tickets.view', 'company-accounts.view', 'company-portal.access'])
-            ->and(SystemRole::BusDriver->permissions())->toBe(['departures.progress', 'incidents.report', 'departures.view', 'notifications.view'])
+            ->and(SystemRole::BusDriver->permissions())->toBe(['departures.progress', 'incidents.report', 'departures.view', 'notifications.view', 'trip-logs.create'])
             ->and(SystemRole::Conductor->permissions())->toContain('boarding.scan', 'seat-releases.create')
             ->and(SystemRole::KoraPointSupervisor->permissions())->toContain('kora-points.remit')
             ->and(SystemRole::KoraPointSupervisor->permissions())->not->toContain('kora-points.finance')
@@ -38,7 +38,7 @@ describe('SystemRole enum', function (): void {
         $driverPerms = SystemRole::BusDriver->permissions();
         $conductorPerms = SystemRole::Conductor->permissions();
 
-        expect($driverPerms)->toBe(['departures.progress', 'incidents.report', 'departures.view', 'notifications.view'])
+        expect($driverPerms)->toBe(['departures.progress', 'incidents.report', 'departures.view', 'notifications.view', 'trip-logs.create'])
             ->and($conductorPerms)->not->toBe($driverPerms)
             ->and(count($conductorPerms))->toBeGreaterThan(count($driverPerms));
     });
@@ -63,8 +63,9 @@ describe('SystemRole enum', function (): void {
             ->and($all)->toContain('kora-points.visits.actions.update')
             ->and($all)->toContain('wallet.debit-counter', 'wallet.manage-restitutions', 'wallet.adjust')
             ->and($all)->toContain('wallet.ops.view', 'wallet.loyalty-rules.view', 'wallet.loyalty-rules.manage')
-            ->and($all)->toHaveCount(107)
-            ->and(count(array_unique($all)))->toBe(107);
+            ->and($all)->toContain('trip-logs.create')
+            ->and($all)->toHaveCount(108)
+            ->and(count(array_unique($all)))->toBe(108);
     });
 
     it('registers every permission declared by a system role', function (): void {

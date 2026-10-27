@@ -60,6 +60,44 @@ class OpsSessionGuard
     }
 
     /**
+     * Le compte doit-il passer par un terminal P501 (liaison + session OPS) ?
+     *
+     * Par défaut seul le chauffeur (`bus_driver`, sans aucun autre rôle
+     * terrain) en est dispensé : il travaille depuis son téléphone, sa
+     * session est portée par son jeton Sanctum. Un compte à la fois
+     * chauffeur ET convoyeur (ou tout autre rôle terrain) reste soumis au
+     * terminal. `ops_session.force_terminal_for_all`
+     * (`OPS_FORCE_TERMINAL_FOR_ALL=true`) l'impose à tous.
+     */
+    public function requiresTerminal(User $user): bool
+    {
+        if ((bool) config('ops_session.force_terminal_for_all', false)) {
+            return true;
+        }
+
+        if (! $user->hasRole(SystemRole::BusDriver->value)) {
+            return true;
+        }
+
+        $otherFieldRoles = array_values(array_map(
+            static fn (SystemRole $role): string => $role->value,
+            array_filter(SystemRole::fieldRoles(), static fn (SystemRole $role): bool => $role !== SystemRole::BusDriver),
+        ));
+
+        if ($user->hasAnyRole($otherFieldRoles)) {
+            return true;
+        }
+
+        // Rôle custom de catégorie « terrain » actif (créé via l'écran Rôles) :
+        // on ne sait pas ce qu'il autorise, prudence → terminal.
+        return $user->roles()
+            ->where('category', RoleCategory::Terrain->value)
+            ->where('is_active', true)
+            ->where('name', '!=', SystemRole::BusDriver->value)
+            ->exists();
+    }
+
+    /**
      * @throws OpsSessionException
      */
     public function assertTerminalAssignedTo(TerminalP501 $terminal, User $user): void

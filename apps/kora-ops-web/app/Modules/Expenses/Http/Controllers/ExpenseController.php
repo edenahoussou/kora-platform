@@ -30,7 +30,7 @@ class ExpenseController extends Controller
         $expenses = $expenseQuery->build($request->user(), $filters)->paginate(20)->withQueryString();
         $expenseDetail = null;
         if ($request->filled('expense')) {
-            $detail = Expense::query()->with(['category', 'agency', 'creator', 'approver', 'cashLedger.agencyPaymentAccount', 'cashMovement', 'media', 'bus', 'line', 'departure.line', 'maintenanceDetails'])->where('uuid', $request->string('expense')->value())->firstOrFail();
+            $detail = Expense::query()->with(['category', 'agency', 'creator', 'approver', 'cashLedger.agencyPaymentAccount', 'cashMovement', 'media', 'bus', 'line', 'departure.line', 'maintenanceDetails', 'tripDetails.submitter'])->where('uuid', $request->string('expense')->value())->firstOrFail();
             Gate::authorize('view', $detail);
             $expenseDetail = $this->serializeDetail($detail, $request);
         }
@@ -60,7 +60,7 @@ class ExpenseController extends Controller
     public function show(Request $request, Expense $expense): RedirectResponse
     {
         Gate::authorize('view', $expense);
-        $expense->load(['category', 'agency', 'creator', 'approver', 'cashLedger.agencyPaymentAccount', 'cashMovement', 'media', 'bus', 'line', 'departure.line', 'maintenanceDetails']);
+        $expense->load(['category', 'agency', 'creator', 'approver', 'cashLedger.agencyPaymentAccount', 'cashMovement', 'media', 'bus', 'line', 'departure.line', 'maintenanceDetails', 'tripDetails.submitter']);
 
         return to_route('expenses.index', ['expense' => $expense->uuid]);
     }
@@ -179,6 +179,8 @@ class ExpenseController extends Controller
             'isReconciled' => $expense->cash_ledger_id !== null,
             'costCenterType' => $this->costCenterType($expense),
             'costCenter' => $this->costCenterLabel($expense),
+            // Saisie terrain du carnet de bord (KORA OPS Mobile).
+            'fromMobile' => $expense->tripDetails !== null,
         ];
     }
 
@@ -206,6 +208,18 @@ class ExpenseController extends Controller
                 'laborAmount' => $expense->maintenanceDetails->labor_amount,
                 'immobilizedFrom' => $expense->maintenanceDetails->immobilized_from?->toDateString(),
                 'immobilizedTo' => $expense->maintenanceDetails->immobilized_to?->toDateString(),
+            ],
+            'trip' => $expense->tripDetails === null ? null : [
+                'kind' => $expense->tripDetails->kind->value,
+                'kindLabel' => $expense->tripDetails->kind->label(),
+                'liters' => $expense->tripDetails->liters !== null ? (float) $expense->tripDetails->liters : null,
+                'unitPrice' => $expense->tripDetails->unit_price,
+                'stationLabel' => $expense->tripDetails->station_label,
+                'checkpointLabel' => $expense->tripDetails->checkpoint_label,
+                'countryCode' => $expense->tripDetails->country_code,
+                'odometerKm' => $expense->tripDetails->odometer_km,
+                'submittedBy' => $expense->tripDetails->submitter?->name,
+                'busUuid' => $expense->bus?->uuid,
             ],
             'media' => $expense->getMedia('evidence')->map(fn (Media $media): array => [
                 'uuid' => $media->uuid,

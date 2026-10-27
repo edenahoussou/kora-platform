@@ -15,6 +15,7 @@ use App\Modules\BusNetwork\Models\BusAmenity;
 use App\Modules\BusNetwork\Models\BusComposition;
 use App\Modules\BusNetwork\Models\BusModel;
 use App\Modules\BusNetwork\Models\SeatStatusEvent;
+use App\Modules\FleetLite\Services\BusTripLogReadService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -73,6 +74,8 @@ class BusController extends Controller
             'compositions' => BusComposition::query()->where('status', 'active')->orderBy('seat_count')->get()->map(fn (BusComposition $composition): array => ['id' => $composition->id, 'label' => $composition->name, 'seatCount' => $composition->seat_count]),
             'amenities' => BusAmenity::query()->where('status', 'active')->ordered()->get()->map(fn (BusAmenity $amenity): array => ['id' => $amenity->id, 'code' => $amenity->code, 'label' => $amenity->label, 'icon' => $amenity->icon]),
             'timeline' => $this->buildTimeline($bus),
+            // Carnet de bord OPS Mobile (onglets Carburant et Kilométrage).
+            'tripLog' => app(BusTripLogReadService::class)->forBus($bus, $request->user()),
             'permissions' => [
                 'canUpdate' => Gate::allows('update', $bus),
                 'canDeactivate' => Gate::allows('deactivate', $bus),

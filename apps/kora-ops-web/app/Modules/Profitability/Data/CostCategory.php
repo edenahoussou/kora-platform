@@ -16,6 +16,7 @@ final class CostCategory
         'fuel' => ['label' => 'Carburant', 'behavior' => CostBehavior::Variable, 'rule' => CostAllocationRule::BusKm],
         'maintenance' => ['label' => 'Maintenance', 'behavior' => CostBehavior::Variable, 'rule' => CostAllocationRule::BusKm],
         'tolls' => ['label' => 'Péages', 'behavior' => CostBehavior::Variable, 'rule' => CostAllocationRule::BusKm],
+        'border_taxes' => ['label' => 'Taxes frontières', 'behavior' => CostBehavior::Variable, 'rule' => CostAllocationRule::BusKm],
         'tires' => ['label' => 'Pneus', 'behavior' => CostBehavior::Variable, 'rule' => CostAllocationRule::BusKm],
         'insurance' => ['label' => 'Assurance', 'behavior' => CostBehavior::Fixed, 'rule' => CostAllocationRule::BusKm],
         'leasing' => ['label' => 'Leasing', 'behavior' => CostBehavior::Fixed, 'rule' => CostAllocationRule::BusKm],
@@ -25,7 +26,7 @@ final class CostCategory
     ];
 
     /** @var list<string> */
-    public const POST_ORDER = ['fuel', 'maintenance', 'tolls', 'tires', 'insurance', 'leasing', 'agency_supplies', 'services', 'other'];
+    public const POST_ORDER = ['fuel', 'maintenance', 'tolls', 'border_taxes', 'tires', 'insurance', 'leasing', 'agency_supplies', 'services', 'other'];
 
     public static function behavior(Expense $expense): CostBehavior
     {

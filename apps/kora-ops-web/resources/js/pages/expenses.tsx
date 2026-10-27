@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import {
     Check,
     ChevronRight,
@@ -46,6 +46,7 @@ type Expense = {
     isReconciled: boolean;
     costCenterType: 'departure' | 'bus' | 'line' | 'agency';
     costCenter: string | null;
+    fromMobile: boolean;
 };
 
 type ExpenseDetail = Expense & {
@@ -65,6 +66,18 @@ type ExpenseDetail = Expense & {
         laborAmount: number | null;
         immobilizedFrom: string | null;
         immobilizedTo: string | null;
+    } | null;
+    trip: {
+        kind: 'fuel' | 'toll' | 'border_tax';
+        kindLabel: string;
+        liters: number | null;
+        unitPrice: number | null;
+        stationLabel: string | null;
+        checkpointLabel: string | null;
+        countryCode: string | null;
+        odometerKm: number | null;
+        submittedBy: string | null;
+        busUuid: string | null;
     } | null;
     permissions: { canApprove: boolean; canReverse: boolean };
 };
@@ -601,6 +614,11 @@ export default function ExpensesPage({
                                                     <div>
                                                         <p className="text-xs font-black text-foreground">
                                                             {expense.reference}
+                                                            {expense.fromMobile && (
+                                                                <span className="ml-2 rounded-full bg-[var(--digital)]/10 px-2 py-0.5 text-[0.5625rem] font-bold text-[var(--digital)]">
+                                                                    OPS Mobile
+                                                                </span>
+                                                            )}
                                                         </p>
                                                         <p className="mt-0.5 text-[0.625rem] text-muted-foreground">
                                                             {expense.payeeLabel}{' '}
@@ -776,6 +794,73 @@ export default function ExpensesPage({
                                             {expenseDetail.maintenance
                                                 .immobilizedTo ?? '—'}
                                         </p>
+                                    )}
+                                </dd>
+                            </div>
+                        )}
+                        {expenseDetail.trip && (
+                            <div className="rounded-[0.9rem] bg-muted p-3.5">
+                                <dt className="text-[0.625rem] font-black tracking-[0.1em] text-[var(--digital)] uppercase">
+                                    Carnet de bord — OPS Mobile
+                                </dt>
+                                <dd className="mt-2 space-y-1.5 text-xs">
+                                    <p className="font-bold">
+                                        {expenseDetail.trip.kindLabel}
+                                        {expenseDetail.trip.submittedBy
+                                            ? ` · saisi par ${expenseDetail.trip.submittedBy}`
+                                            : ''}
+                                    </p>
+                                    {expenseDetail.trip.kind === 'fuel' ? (
+                                        <>
+                                            <p>
+                                                {expenseDetail.trip.liters?.toLocaleString(
+                                                    'fr-FR',
+                                                    {
+                                                        maximumFractionDigits: 2,
+                                                    },
+                                                ) ?? '—'}{' '}
+                                                L ×{' '}
+                                                {formatMoney(
+                                                    expenseDetail.trip
+                                                        .unitPrice ?? 0,
+                                                    expenseDetail.currency,
+                                                )}
+                                                /L
+                                            </p>
+                                            <p className="text-muted-foreground">
+                                                Station :{' '}
+                                                {expenseDetail.trip
+                                                    .stationLabel ?? '—'}
+                                            </p>
+                                        </>
+                                    ) : (
+                                        <p className="text-muted-foreground">
+                                            Poste :{' '}
+                                            {expenseDetail.trip
+                                                .checkpointLabel ?? '—'}
+                                            {expenseDetail.trip.countryCode
+                                                ? ` (${expenseDetail.trip.countryCode})`
+                                                : ''}
+                                        </p>
+                                    )}
+                                    {expenseDetail.trip.odometerKm !== null && (
+                                        <p className="text-muted-foreground">
+                                            Compteur :{' '}
+                                            {new Intl.NumberFormat(
+                                                'fr-FR',
+                                            ).format(
+                                                expenseDetail.trip.odometerKm,
+                                            )}{' '}
+                                            km
+                                        </p>
+                                    )}
+                                    {expenseDetail.trip.busUuid && (
+                                        <Link
+                                            href={`/fleet/${expenseDetail.trip.busUuid}`}
+                                            className="inline-block font-bold text-[var(--digital)] hover:underline"
+                                        >
+                                            Voir la fiche du bus
+                                        </Link>
                                     )}
                                 </dd>
                             </div>

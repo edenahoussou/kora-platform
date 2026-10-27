@@ -38,6 +38,13 @@ use Symfony\Component\HttpFoundation\Response;
  *  4. session liée à CE terminal (terminal_mismatch) ;
  *  5. terminal affecté à cet utilisateur (terminal_not_assigned).
  *
+ * Chauffeur sans terminal (voir OpsSessionGuard::requiresTerminal) : sur les
+ * routes « équipage » (mode par défaut), seul le contrôle 2 s'applique — la
+ * session est portée par le jeton Sanctum, `terminal` et `ops_session`
+ * valent null. Les routes propres au terminal (scan, synchro, suivi, session,
+ * journal du terminal) sont déclarées `ops.session:terminal` et exigent
+ * toujours le parcours complet, quel que soit le rôle.
+ *
  * Une session trouvée expirée est révoquée sur-le-champ (jeton supprimé) :
  * le terminal doit se reconnecter, jamais réutiliser silencieusement la
  * session. Chaque refus est journalisé (`ops_session_refused`). Le terminal
@@ -58,8 +65,16 @@ class EnsureOpsSession
     /**
      * @throws TerminalUnknownException|TerminalNotUsableException|OpsSessionException
      */
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next, string $mode = 'crew'): Response
     {
+        $candidateUser = $request->user();
+
+        if ($mode !== 'terminal'
+            && $candidateUser instanceof User
+            && ! $this->guard->requiresTerminal($candidateUser)) {
+            return $this->handleWithoutTerminal($request, $next, $candidateUser);
+        }
+
         $serialNumber = (string) ($request->header('X-Terminal-Serial') ?? $request->input('serial_number'));
         $candidate = $request->user();
         $user = $candidate instanceof User ? $candidate : null;
@@ -88,6 +103,28 @@ class EnsureOpsSession
 
         $request->attributes->set('terminal', $terminal);
         $request->attributes->set('ops_session', $session);
+
+        return $next($request);
+    }
+
+    /**
+     * Chauffeur dispensé de terminal : compte actif, rôle terrain et
+     * permission, sans terminal ni session OPS.
+     *
+     * @throws OpsSessionException
+     */
+    private function handleWithoutTerminal(Request $request, Closure $next, User $user): Response
+    {
+        try {
+            $this->assertUserAllowed($user);
+        } catch (OpsSessionException $exception) {
+            $this->logRefusal->execute($exception, $user, null, '', $request->ip());
+
+            throw $exception;
+        }
+
+        $request->attributes->set('terminal', null);
+        $request->attributes->set('ops_session', null);
 
         return $next($request);
     }
