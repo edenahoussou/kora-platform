@@ -1,0 +1,126 @@
+<?php
+
+namespace App\Modules\KoraPoints\Services;
+
+use App\Models\User;
+use App\Modules\IdentityAccess\Data\SystemRole;
+use App\Modules\IdentityAccess\Models\Agency;
+use App\Modules\KoraPoints\Models\KoraPoint;
+use App\Modules\KoraPoints\Models\KoraPointOrganization;
+use App\Modules\KoraPoints\Models\KoraPointRemittanceLine;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
+
+class KoraPointManagementService
+{
+    public function __construct(private readonly KoraPointAccess $access, private readonly KoraPointLedgerService $ledger) {}
+
+    /** @param array<string, mixed> $data */
+    public function savePoint(User $actor, array $data, ?KoraPoint $point = null): KoraPoint
+    {
+        $this->access->authorize($actor, 'kora-points.manage');
+
+        return DB::transaction(function () use ($actor, $data, $point): KoraPoint {
+            $organization = isset($data['organization_uuid']) ? KoraPointOrganization::query()->where('uuid', $data['organization_uuid'])->lockForUpdate()->firstOrFail() : null;
+            if ($point !== null) {
+                $point = KoraPoint::query()->lockForUpdate()->whereKey($point->getKey())->firstOrFail();
+                if (array_key_exists('organization_uuid', $data) && $point->organization_id !== $organization?->getKey()) {
+                    $pending = $point->sales()->whereHas('refunds', fn ($query) => $query->whereNotIn('status', ['confirmed', 'rejected']))->exists();
+                    $claimed = KoraPointRemittanceLine::query()->whereNotNull('claimed_sale_id')->whereHas('sale', fn ($query) => $query->where('point_id', $point->getKey()))->exists();
+                    if ($this->ledger->balance($point) !== 0 || $pending || $claimed) {
+                        throw ValidationException::withMessages(['organization_uuid' => 'Soldez les encours et opérations en cours avant de changer le rattachement.']);
+                    }
+                }
+                $point->agency->update(Arr::only($data, ['code', 'name', 'city', 'country']));
+            } else {
+                $agency = Agency::query()->create(Arr::only($data, ['code', 'name', 'city', 'country']) + ['status' => 'active', 'kind' => 'partner']);
+                $point = new KoraPoint(['agency_id' => $agency->getKey(), 'status' => 'active']);
+            }
+            $before = $point->exists ? $point->getAttributes() : [];
+            $point->fill(Arr::only($data, ['responsible_name', 'phone', 'address', 'latitude', 'longitude']));
+            if (array_key_exists('organization_uuid', $data)) {
+                $point->organization_id = $organization?->getKey();
+            }
+            $point->save();
+            $this->audit($actor, $point, 'point.saved', $before);
+
+            return $point->refresh();
+        }, 3);
+    }
+
+    /** @param array<string, mixed> $data */
+    public function saveOrganization(User $actor, array $data, ?KoraPointOrganization $organization = null): KoraPointOrganization
+    {
+        $this->access->authorize($actor, 'kora-points.manage');
+
+        return DB::transaction(function () use ($actor, $data, $organization): KoraPointOrganization {
+            $creating = $organization === null;
+            if (! $creating && ! empty($data['points'])) {
+                throw ValidationException::withMessages(['points' => 'Les bureaux se rattachent individuellement depuis leur fiche.']);
+            }
+            $organization = $creating ? new KoraPointOrganization(['status' => 'active']) : KoraPointOrganization::query()->lockForUpdate()->whereKey($organization->getKey())->firstOrFail();
+            $before = $organization->getAttributes();
+            $organization->fill(Arr::only($data, ['code', 'name', 'phone', 'address']));
+            $organization->save();
+            foreach ($data['points'] ?? [] as $pointData) {
+                $this->savePoint($actor, $pointData + ['organization_uuid' => $organization->uuid]);
+            }
+            $this->audit($actor, $organization, 'organization.saved', $before);
+
+            return $organization;
+        }, 3);
+    }
+
+    /** @param array<string, mixed> $data */
+    public function updateTerms(User $actor, KoraPoint|KoraPointOrganization $subject, array $data): void
+    {
+        $this->access->authorize($actor, 'kora-points.terms');
+        $values = Validator::make($data, KoraPointTermsService::rules())->validate();
+        DB::transaction(function () use ($actor, $subject, $values): void {
+            $locked = $subject->newQuery()->lockForUpdate()->whereKey($subject->getKey())->firstOrFail();
+            $before = $locked->getAttributes();
+            $locked->fill(Arr::only($values, ['commission_basis_points', 'ceiling_amount', 'settlement_calendar']))->save();
+            $this->audit($actor, $locked, 'terms.updated', $before);
+        });
+    }
+
+    public function changeStatus(User $actor, KoraPoint|KoraPointOrganization $subject, string $status): void
+    {
+        $this->access->authorize($actor, 'kora-points.manage');
+        Validator::make(['status' => $status], ['status' => 'required|in:active,suspended,closed'])->validate();
+        DB::transaction(function () use ($actor, $subject, $status): void {
+            $locked = $subject->newQuery()->lockForUpdate()->whereKey($subject->getKey())->firstOrFail();
+            $before = $locked->getAttributes();
+            $locked->update(['status' => $status]);
+            $this->audit($actor, $locked, 'status.updated', $before);
+        });
+    }
+
+    public function assign(User $actor, User $user, KoraPoint|KoraPointOrganization $subject, string $role): void
+    {
+        $this->access->authorize($actor, 'users.manage');
+        $this->access->authorize($actor, 'kora-points.manage');
+        $allowed = $subject instanceof KoraPoint ? ['kora_point_agent'] : ['kora_point_supervisor', 'kora_point_treasurer'];
+        if (! in_array($role, $allowed, true)) {
+            throw ValidationException::withMessages(['role' => 'Rôle incompatible avec cette affectation.']);
+        }
+        DB::transaction(function () use ($actor, $user, $subject, $role): void {
+            $locked = User::query()->lockForUpdate()->whereKey($user->getKey())->firstOrFail();
+            if ($locked->hasAnyRole(SystemRole::internalRoles())) {
+                throw ValidationException::withMessages(['role' => 'Désaffectez d’abord ce compte de son rôle interne.']);
+            }
+            $before = ['agency_id' => $locked->agency_id, 'organization_id' => $locked->kora_point_organization_id, 'roles' => $locked->getRoleNames()->all()];
+            $locked->forceFill(['agency_id' => $subject instanceof KoraPoint ? $subject->agency_id : null, 'kora_point_organization_id' => $subject instanceof KoraPointOrganization ? $subject->getKey() : null])->save();
+            $locked->syncRoles([$role]);
+            activity('kora-points')->performedOn($locked)->causedBy($actor)->withProperties(['before' => $before, 'role' => $role, 'subject_uuid' => $subject->uuid])->log('partner.assigned');
+        });
+    }
+
+    /** @param array<string, mixed> $before */
+    private function audit(User $actor, KoraPoint|KoraPointOrganization $subject, string $event, array $before): void
+    {
+        activity('kora-points')->performedOn($subject)->causedBy($actor)->withProperties(['before' => $before, 'after' => $subject->getAttributes()])->log($event);
+    }
+}
