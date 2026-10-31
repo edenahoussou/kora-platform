@@ -45,6 +45,7 @@ use App\Modules\Cash\Models\CashSession;
 use App\Modules\CompanyAccounts\Services\CompanyAccountCatalogService;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\Fiscalization\Models\FiscalInvoice;
+use App\Modules\KoraPoints\Models\KoraPoint;
 use App\Modules\Payments\Actions\RecordCounterSalePaymentAction;
 use App\Modules\Payments\Models\AgencyPaymentAccount;
 use App\Modules\Payments\Models\PaymentRefund;
@@ -803,6 +804,7 @@ class CounterSaleController extends Controller
                 $query->where('created_by_user_id', $user->getKey())
                     ->orWhereHas('assistedBooking', fn ($assistance) => $assistance->where('assigned_user_id', $user->getKey())->where('status', 'in_progress'));
             })
+            ->when($user->isKoraPointUser(), fn ($query) => $query->whereIn('origin_kora_point_id', KoraPoint::query()->where('agency_id', $user->agency_id ?? 0)->select('id')))
             ->where('channel', ReservationChannel::Counter->value)
             ->where('status', ReservationStatus::Held->value)
             ->where('expires_at', '>', now())
@@ -886,7 +888,7 @@ class CounterSaleController extends Controller
             ->sortByDesc('id')
             ->first();
         $agent = $payment?->verifier;
-        $agency = $agent?->agency ?? auth()->user()?->agency;
+        $agency = $reservation->sellingAgency ?? $agent?->agency ?? auth()->user()?->agency;
         $confirmedAt = $payment?->confirmed_at ?? $payment?->verified_at;
         $reservationCode = Str::upper(Str::substr(str_replace('-', '', $reservation->uuid), 0, 8));
         $fiscalInvoice = FiscalInvoice::query()
@@ -1134,7 +1136,7 @@ class CounterSaleController extends Controller
     private function serializeCompanyAccounts(): array
     {
         $user = auth()->user();
-        if (! $user instanceof User || ! $user->can('createCounterSale', Reservation::class)) {
+        if (! $user instanceof User || $user->isKoraPointUser() || ! $user->can('createCounterSale', Reservation::class)) {
             return [];
         }
 

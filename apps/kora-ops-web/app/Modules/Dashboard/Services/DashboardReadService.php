@@ -98,6 +98,10 @@ class DashboardReadService
      */
     private function agencyScope(User $user): ?int
     {
+        if ($user->isKoraPointUser()) {
+            return $user->hasRole('kora_point_agent') ? ($user->agency_id ?? 0) : 0;
+        }
+
         return $user->hasAnyRole([SystemRole::AgencyAgent->value, SystemRole::AgencyManager->value])
             ? $user->agency_id
             : null;

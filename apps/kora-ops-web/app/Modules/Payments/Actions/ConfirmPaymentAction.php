@@ -57,6 +57,9 @@ class ConfirmPaymentAction
                 ]);
 
                 $reservation = $lockedPayment->reservation;
+                if ($reservation?->origin_kora_point_id !== null) {
+                    throw ValidationException::withMessages(['payment' => 'Une réservation KORA Point se règle au guichet partenaire.']);
+                }
                 if ($reservation) {
                     if ($lockedPayment->method === PaymentMethod::CompanyCredit) {
                         $hold = $reservation->companyCreditHolds()

@@ -47,6 +47,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property string|null $department
  * @property string|null $location
  * @property Carbon|null $birth_date
+ * @property int|null $kora_point_organization_id
  * @property int|null $agency_id
  * @property Carbon|null $deleted_at
  * @property UserStatus $status
@@ -142,6 +143,12 @@ class User extends Authenticatable implements HasMedia, PasskeyUser
         $this->addMediaConversion('thumb')
             ->fit(Fit::Contain, 200, 200)
             ->nonQueued(); // @phpstan-ignore-line — nonQueued() est défini sur Conversion, pas sur le retour de fit() selon PHPStan
+    }
+
+    /** Vrai si l'utilisateur porte un rôle de distribution partenaire KORA POINT. */
+    public function isKoraPointUser(): bool
+    {
+        return $this->hasAnyRole(['kora_point_agent', 'kora_point_supervisor', 'kora_point_treasurer']);
     }
 
     /**

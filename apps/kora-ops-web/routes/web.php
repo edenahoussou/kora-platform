@@ -332,9 +332,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Réseau commercial — V2 (sauf dynamic-pricing qui est V1)
     Route::get('network-commercial', $comingSoon('Réseau commercial', 'Suivez l’activité et la performance du réseau de distribution.', 'Réseau commercial — V2'))->name('network-commercial');
-    Route::get('kora-points', $comingSoon('Réseau KORA POINT', 'Suivez l’activité et la performance de chaque point.', 'Réseau commercial — V2'))->name('kora-points');
-    Route::get('commissions', $comingSoon('Commissions', 'Contrôlez les commissions calculées sur les opérations éligibles.', 'Réseau commercial — V2'))->name('commissions');
-    Route::get('settlements', $comingSoon('Reversements', 'Rapprochez et validez les reversements du réseau.', 'Réseau commercial — V2'))->name('settlements');
     // Promotions à code (MEZ-73) : offres commerciales déclenchées par la
     // saisie du code au devis — jamais rétroactives sur les ventes confirmées.
     Route::prefix('promotions')->name('promotions.')->group(function (): void {
@@ -368,3 +365,5 @@ Route::middleware(['auth', 'verified'])->group(function () {
 require __DIR__.'/administration.php';
 require __DIR__.'/companies.php';
 require __DIR__.'/settings.php';
+
+require __DIR__.'/kora-points.php';

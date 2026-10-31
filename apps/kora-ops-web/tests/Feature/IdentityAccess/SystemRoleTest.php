@@ -4,8 +4,8 @@ use App\Modules\IdentityAccess\Data\SystemRole;
 use App\Modules\IdentityAccess\Data\TerminalP501Status;
 
 describe('SystemRole enum', function (): void {
-    it('has all eleven system roles', function (): void {
-        expect(SystemRole::cases())->toHaveCount(11)
+    it('has all fourteen system roles', function (): void {
+        expect(SystemRole::cases())->toHaveCount(14)
             ->and(array_column(SystemRole::cases(), 'value'))->toBe([
                 'passenger',
                 'bus_driver',
@@ -18,6 +18,9 @@ describe('SystemRole enum', function (): void {
                 'daf',
                 'general_management',
                 'system_admin',
+                'kora_point_agent',
+                'kora_point_supervisor',
+                'kora_point_treasurer',
             ]);
     });
 
@@ -55,8 +58,14 @@ describe('SystemRole enum', function (): void {
             ->and($all)->toContain('passengers.erase', 'sensitive-data.export')
             ->and($all)->toContain('monitoring.view')
             ->and($all)->toContain('app-releases.view', 'app-releases.manage')
-            ->and($all)->toHaveCount(93)
-            ->and(count(array_unique($all)))->toBe(93);
+            ->and($all)->toHaveCount(99)
+            ->and(count(array_unique($all)))->toBe(99);
+    });
+
+    it('registers every permission declared by a system role', function (): void {
+        foreach (SystemRole::cases() as $role) {
+            expect(array_values(array_diff($role->permissions(), SystemRole::allPermissions())))->toBe([]);
+        }
     });
 
     it('separates internal, field and management roles', function (): void {
@@ -114,7 +123,7 @@ describe('SystemRole enum', function (): void {
         expect($options)->toHaveKey('passenger')
             ->and($options['passenger'])->toBe('Passager')
             ->and($options['bus_driver'])->toBe('Chauffeur de bus')
-            ->and($options)->toHaveCount(11);
+            ->and($options)->toHaveCount(14);
     });
 
     it('falls back to headline label when translation key is missing', function (): void {

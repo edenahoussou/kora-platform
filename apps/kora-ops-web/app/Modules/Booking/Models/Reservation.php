@@ -17,6 +17,7 @@ use App\Modules\DynamicPricing\Models\Promotion;
 use App\Modules\Fiscalization\Data\FiscalInvoiceDocumentKind;
 use App\Modules\Fiscalization\Models\FiscalInvoice;
 use App\Modules\IdentityAccess\Models\Agency;
+use App\Modules\KoraPoints\Models\KoraPoint;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\Models\PaymentRefund;
 use App\Modules\Support\Models\KoraModel;
@@ -82,6 +83,10 @@ class Reservation extends KoraModel
     protected static function booted(): void
     {
         static::creating(function (Reservation $reservation): void {
+            $creator = $reservation->created_by_user_id === null ? null : User::query()->find($reservation->created_by_user_id);
+            if ($creator?->isKoraPointUser()) {
+                $reservation->origin_kora_point_id = KoraPoint::query()->where('agency_id', $creator->agency_id ?? 0)->value('id');
+            }
             if ($reservation->reference) {
                 return;
             }
@@ -94,6 +99,9 @@ class Reservation extends KoraModel
         });
 
         static::updating(function (Reservation $reservation): void {
+            if ($reservation->isDirty('origin_kora_point_id') && $reservation->getOriginal('origin_kora_point_id') !== null) {
+                throw new \LogicException('Le Point d’origine de la réservation est immuable.');
+            }
             if ($reservation->isDirty('reference') && $reservation->getOriginal('reference') !== null) {
                 $reservation->reference = $reservation->getOriginal('reference');
             }

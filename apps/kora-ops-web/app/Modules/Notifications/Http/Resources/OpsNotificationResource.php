@@ -31,7 +31,9 @@ class OpsNotificationResource extends JsonResource
         $severity = $event === null ? (string) ($payload['severity'] ?? 'info') : $event->severity->value;
         $action = $event === null ? (string) ($payload['action'] ?? 'none') : $event->type->action()->value;
 
-        if ($departure !== null && $user?->can('departures.view')) {
+        if ($type === 'kora_point_settlement_overdue' && $user?->can('kora-points.view')) {
+            $actionUrl = $payload['url'] ?? null;
+        } elseif ($departure !== null && $user?->can('departures.view')) {
             $actionUrl = route('departures.show', $departure->uuid);
         } elseif (str_starts_with($type, 'fiscalization_') && $user?->can('fiscalization.view')) {
             $actionUrl = route('fiscal-invoices.index');

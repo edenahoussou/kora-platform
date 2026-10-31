@@ -19,3 +19,5 @@ Schedule::command('health:check')->everyMinute()->withoutOverlapping();
 Schedule::command('health:schedule-check-heartbeat')->everyMinute()->withoutOverlapping();
 Schedule::command('health:queue-check-heartbeat')->everyMinute()->withoutOverlapping();
 Schedule::command('horizon:snapshot')->everyFiveMinutes();
+
+Schedule::command('kora-points:check-settlements')->hourly()->withoutOverlapping()->onOneServer();

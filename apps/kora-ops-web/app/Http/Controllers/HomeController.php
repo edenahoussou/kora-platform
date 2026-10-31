@@ -20,6 +20,10 @@ class HomeController extends Controller
             return redirect()->route('login');
         }
 
+        if ($user->isKoraPointUser() && ! $user->hasRole('kora_point_agent')) {
+            return redirect()->route('kora-points');
+        }
+
         return redirect()->route(
             $this->referentAccount->isPortalOnlyUser($user)
                 ? 'company-portal.index'

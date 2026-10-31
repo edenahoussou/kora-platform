@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+/** @property AgencyStatus $status */
 class Agency extends KoraModel
 {
     /** @use HasFactory<AgencyFactory> */
@@ -23,6 +24,8 @@ class Agency extends KoraModel
         return AgencyFactory::new();
     }
 
+    protected $attributes = ['kind' => 'internal'];
+
     protected $fillable = [
         'uuid',
         'code',
@@ -31,6 +34,7 @@ class Agency extends KoraModel
         'country',
         'head_user_id',
         'status',
+        'kind',
     ];
 
     protected function casts(): array

@@ -162,6 +162,10 @@ class PassengerNotificationPublisher
             ],
         };
 
+        if (in_array($refund->destination->value, ['partner_manual', 'kora_manual'], true) && $refund->status === PaymentRefundStatus::Completed) {
+            $message = 'Le remboursement de votre réservation a été effectué par restitution sur votre moyen de paiement initial.';
+        }
+
         $this->publishReservation($reservation, 'refund_'.$refund->status->value, $title, $message, 'tickets', $refund->reference);
     }
 
