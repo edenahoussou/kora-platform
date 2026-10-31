@@ -14,6 +14,16 @@ class AccountErasureApiController extends Controller
         private readonly RequestAccountErasureAction $requestErasure,
     ) {}
 
+    /**
+     * Request account erasure.
+     *
+     * @group Auth
+     *
+     * @authenticated
+     *
+     * @response 202 {"data":{"status":"requested"}}
+     * @response 401 {"message":"Unauthenticated."}
+     */
     public function destroy(DeleteAccountRequest $request): JsonResponse
     {
         $this->requestErasure->execute(
