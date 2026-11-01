@@ -1,7 +1,6 @@
 import {
     X,
     Coins,
-    Building2,
     Calendar,
     Landmark,
     FileText,
@@ -9,14 +8,11 @@ import {
     Clock,
     AlertTriangle,
     Eye,
-    Download,
     Ticket,
     ChevronDown,
     ChevronUp,
-    ShieldCheck,
     Hash,
     User,
-    ArrowUpRight,
 } from 'lucide-react';
 import { useState } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
@@ -36,12 +32,12 @@ export function KoraPointSettlementDetailDrawer({
     onClose,
     onResubmit,
 }: Props) {
-    if (!isOpen || !settlement) {
-return null;
-}
-
     const [isTicketsExpanded, setIsTicketsExpanded] = useState(false);
     const [isProofModalOpen, setIsProofModalOpen] = useState(false);
+
+    if (!isOpen || !settlement) {
+        return null;
+    }
 
     const getStatusBadge = (status: PointSettlementRecord['status']) => {
         switch (status) {

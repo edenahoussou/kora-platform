@@ -4,7 +4,6 @@ import {
     FileText,
     X,
     Check,
-    Sparkles,
 } from 'lucide-react';
 import { useState } from 'react';
 

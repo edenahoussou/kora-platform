@@ -52,13 +52,11 @@ export const TreasuryDashboard: Story = {
     render: () => <TreasuryStoryWrapper />,
 };
 
-export const GroupSettlementModalPreview: Story = {
-    name: '02. Reversement groupé — Ventilation automatique au prorata & Contrôle d’écart',
-    render: () => {
-        const demo = useKoraPointDemo('org_attached_healthy');
-        const [isOpen, setIsOpen] = useState(true);
+function GroupSettlementStory() {
+    const demo = useKoraPointDemo('org_attached_healthy');
+    const [isOpen, setIsOpen] = useState(true);
 
-        return (
+    return (
             <div className="p-8 bg-slate-900 min-h-screen text-white flex items-center justify-center">
                 <button
                     type="button"
@@ -79,6 +77,10 @@ export const GroupSettlementModalPreview: Story = {
                     }}
                 />
             </div>
-        );
-    },
+    );
+}
+
+export const GroupSettlementModalPreview: Story = {
+    name: '02. Reversement groupé — Ventilation automatique au prorata & Contrôle d’écart',
+    render: () => <GroupSettlementStory />,
 };

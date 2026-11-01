@@ -1,15 +1,11 @@
 import {
     X,
     Ticket,
-    Calendar,
     MapPin,
     User,
-    Phone,
     Printer,
     Download,
     RotateCcw,
-    ShieldCheck,
-    AlertCircle,
     TrendingUp,
 } from 'lucide-react';
 import { useState } from 'react';

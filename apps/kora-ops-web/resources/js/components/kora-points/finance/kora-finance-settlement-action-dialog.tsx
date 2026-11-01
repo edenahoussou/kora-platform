@@ -8,12 +8,10 @@ import {
     X,
     FileText,
     Receipt,
-    ExternalLink,
     AlertTriangle,
     Eye,
 } from 'lucide-react';
 import { useState } from 'react';
-import { KoraStatusBadge } from '@/components/kora-status-badge';
 import type { PointSettlementRecord } from '../mock/kora-point-mock-data';
 
 type Props = {
@@ -39,19 +37,19 @@ export function KoraFinanceSettlementActionDialog({
     onReconcile,
     onReject,
 }: Props) {
-    if (!isOpen || !settlement) {
-return null;
-}
-
     const [valueDate, setValueDate] = useState(() => new Date().toISOString().slice(0, 10));
-    const [bankAmount, setBankAmount] = useState<number>(settlement.amount_declared);
+    const [bankAmount, setBankAmount] = useState<number>(settlement?.amount_declared ?? 0);
     const [bankReference, setBankReference] = useState(
-        settlement.payment_reference ? `REF-${settlement.payment_reference}` : '',
+        settlement?.payment_reference ? `REF-${settlement.payment_reference}` : '',
     );
     const [notes, setNotes] = useState('');
     const [mode, setMode] = useState<'VALIDATE' | 'REJECT'>('VALIDATE');
     const [rejectionReason, setRejectionReason] = useState('');
     const [showProofPreview, setShowProofPreview] = useState(false);
+
+    if (!isOpen || !settlement) {
+        return null;
+    }
 
     const delta = bankAmount - settlement.amount_declared;
 

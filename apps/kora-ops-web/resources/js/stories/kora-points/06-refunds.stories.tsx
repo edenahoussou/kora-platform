@@ -60,13 +60,11 @@ export const RefundsFullListView: Story = {
     render: () => <RefundsStoryWrapper initialScenario="autonomous_healthy" />,
 };
 
-export const RefundRequestModalPreview: Story = {
-    name: '02. Modal de demande — Sélection billet & Décomposition reprise com (-3 %)',
-    render: () => {
-        const demo = useKoraPointDemo('autonomous_healthy');
-        const [isOpen, setIsOpen] = useState(true);
+function RefundRequestStory() {
+    const demo = useKoraPointDemo('autonomous_healthy');
+    const [isOpen, setIsOpen] = useState(true);
 
-        return (
+    return (
             <div className="p-8 bg-slate-900 min-h-screen text-white flex items-center justify-center">
                 <button
                     type="button"
@@ -87,18 +85,20 @@ export const RefundRequestModalPreview: Story = {
                     }}
                 />
             </div>
-        );
-    },
+    );
+}
+
+export const RefundRequestModalPreview: Story = {
+    name: '02. Modal de demande — Sélection billet & Décomposition reprise com (-3 %)',
+    render: () => <RefundRequestStory />,
 };
 
-export const RefundRestitutionModalPreview: Story = {
-    name: '03. Restitution d’espèces & Quittance d’émargement thermique démo',
-    render: () => {
-        const demo = useKoraPointDemo('autonomous_healthy');
-        const [isOpen, setIsOpen] = useState(true);
-        const approvedRefund = demo.refunds.find((r) => r.status === 'APPROVED_BY_FINANCE') || demo.refunds[0];
+function RefundRestitutionStory() {
+    const demo = useKoraPointDemo('autonomous_healthy');
+    const [isOpen, setIsOpen] = useState(true);
+    const approvedRefund = demo.refunds.find((r) => r.status === 'APPROVED_BY_FINANCE') || demo.refunds[0];
 
-        return (
+    return (
             <div className="p-8 bg-slate-900 min-h-screen text-white flex items-center justify-center">
                 <button
                     type="button"
@@ -118,6 +118,10 @@ export const RefundRestitutionModalPreview: Story = {
                     }}
                 />
             </div>
-        );
-    },
+    );
+}
+
+export const RefundRestitutionModalPreview: Story = {
+    name: '03. Restitution d’espèces & Quittance d’émargement thermique démo',
+    render: () => <RefundRestitutionStory />,
 };

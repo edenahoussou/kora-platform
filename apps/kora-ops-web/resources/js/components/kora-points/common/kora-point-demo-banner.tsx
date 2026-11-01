@@ -1,6 +1,5 @@
-import { RotateCcw, Sparkles, HelpCircle, AlertCircle, UserCheck } from 'lucide-react';
+import { RotateCcw, Sparkles, HelpCircle, } from 'lucide-react';
 import type { DemoScenarioId, KoraPointUserRole} from '../mock/kora-point-mock-data';
-import { MOCK_PERSONAS } from '../mock/kora-point-mock-data';
 
 type Props = {
     currentScenario: DemoScenarioId;

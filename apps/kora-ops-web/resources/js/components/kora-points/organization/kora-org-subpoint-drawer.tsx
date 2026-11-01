@@ -4,17 +4,11 @@ import {
     MapPin,
     Phone,
     User,
-    Coins,
-    Calendar,
     Clock,
     CheckCircle2,
     AlertTriangle,
-    ShieldCheck,
-    Ticket,
     Info,
-    TrendingUp,
 } from 'lucide-react';
-import { useState } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { cn } from '@/lib/utils';
 import type { OrganizationSubPoint } from '../mock/kora-point-mock-data';

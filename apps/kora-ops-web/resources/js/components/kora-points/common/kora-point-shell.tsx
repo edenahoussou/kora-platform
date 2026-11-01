@@ -13,11 +13,9 @@ import {
     Menu,
     X,
     ChevronRight,
-    LogOut,
     Coins,
     Landmark,
     Search,
-    UserCheck,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useState, useMemo } from 'react';

@@ -8,7 +8,6 @@ import {
     Edit3,
 } from 'lucide-react';
 import { useState } from 'react';
-import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { cn } from '@/lib/utils';
 import type {
     AdminOrganization,

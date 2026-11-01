@@ -93,12 +93,11 @@ export const VueCompleteReconciliation: Story = {
     render: () => <FinanceInteractiveStory />,
 };
 
-export const ModalRapprochementBancaire: StoryObj<typeof KoraFinanceSettlementActionDialog> = {
-    render: () => {
-        const [isOpen, setIsOpen] = useState(true);
-        const settlement = MOCK_POINT_SETTLEMENTS.find((s) => s.status === 'DECLARED') || MOCK_POINT_SETTLEMENTS[0];
+function SettlementActionStory() {
+    const [isOpen, setIsOpen] = useState(true);
+    const settlement = MOCK_POINT_SETTLEMENTS.find((s) => s.status === 'DECLARED') || MOCK_POINT_SETTLEMENTS[0];
 
-        return (
+    return (
             <div className="p-8">
                 <button
                     type="button"
@@ -121,16 +120,18 @@ export const ModalRapprochementBancaire: StoryObj<typeof KoraFinanceSettlementAc
                     }}
                 />
             </div>
-        );
-    },
+    );
+}
+
+export const ModalRapprochementBancaire: StoryObj<typeof KoraFinanceSettlementActionDialog> = {
+    render: () => <SettlementActionStory />,
 };
 
-export const ModalInstructionRemboursement: StoryObj<typeof KoraFinanceRefundActionDialog> = {
-    render: () => {
-        const [isOpen, setIsOpen] = useState(true);
-        const refund = MOCK_POINT_REFUNDS.find((r) => r.status === 'REQUESTED') || MOCK_POINT_REFUNDS[2];
+function RefundActionStory() {
+    const [isOpen, setIsOpen] = useState(true);
+    const refund = MOCK_POINT_REFUNDS.find((r) => r.status === 'REQUESTED') || MOCK_POINT_REFUNDS[2];
 
-        return (
+    return (
             <div className="p-8">
                 <button
                     type="button"
@@ -153,6 +154,9 @@ export const ModalInstructionRemboursement: StoryObj<typeof KoraFinanceRefundAct
                     }}
                 />
             </div>
-        );
-    },
+    );
+}
+
+export const ModalInstructionRemboursement: StoryObj<typeof KoraFinanceRefundActionDialog> = {
+    render: () => <RefundActionStory />,
 };

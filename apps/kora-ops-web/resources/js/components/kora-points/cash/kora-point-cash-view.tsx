@@ -1,17 +1,12 @@
 import {
     Wallet,
     Banknote,
-    Smartphone,
     ArrowRight,
     Clock,
     Lock,
     Unlock,
     ReceiptText,
     TrendingUp,
-    ShieldAlert,
-    AlertCircle,
-    CheckCircle2,
-    Calendar,
 } from 'lucide-react';
 import { useState } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';

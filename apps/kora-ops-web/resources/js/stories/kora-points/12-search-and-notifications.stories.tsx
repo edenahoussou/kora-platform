@@ -61,11 +61,10 @@ export const CentreNotifications: Story = {
     render: () => <NotificationsInteractiveStory />,
 };
 
-export const RechercheGlobaleSpotlight: StoryObj<typeof KoraGlobalSearchDialog> = {
-    render: () => {
-        const [isOpen, setIsOpen] = useState(true);
+function GlobalSearchStory() {
+    const [isOpen, setIsOpen] = useState(true);
 
-        return (
+    return (
             <div className="p-8">
                 <button
                     type="button"
@@ -88,6 +87,9 @@ export const RechercheGlobaleSpotlight: StoryObj<typeof KoraGlobalSearchDialog> 
                     }}
                 />
             </div>
-        );
-    },
+    );
+}
+
+export const RechercheGlobaleSpotlight: StoryObj<typeof KoraGlobalSearchDialog> = {
+    render: () => <GlobalSearchStory />,
 };

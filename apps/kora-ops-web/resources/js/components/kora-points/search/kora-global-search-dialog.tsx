@@ -5,11 +5,7 @@ import {
     Store,
     Building2,
     Receipt,
-    ArrowRight,
     CornerDownLeft,
-    Clock,
-    User,
-    Check,
 } from 'lucide-react';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
@@ -60,12 +56,22 @@ export function KoraGlobalSearchDialog({
     const [selectedIndex, setSelectedIndex] = useState(0);
     const inputRef = useRef<HTMLInputElement>(null);
 
+    // Reset transient search state each time the dialog opens
+    const [wasOpen, setWasOpen] = useState(isOpen);
+
+    if (isOpen !== wasOpen) {
+        setWasOpen(isOpen);
+
+        if (isOpen) {
+            setQuery('');
+            setSelectedIndex(0);
+        }
+    }
+
     // Focus input on open
     useEffect(() => {
         if (isOpen) {
             setTimeout(() => inputRef.current?.focus(), 50);
-            setQuery('');
-            setSelectedIndex(0);
         }
     }, [isOpen]);
 

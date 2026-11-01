@@ -5,12 +5,8 @@ import {
     Landmark,
     FileText,
     UploadCloud,
-    Camera,
-    Image as ImageIcon,
     CheckCircle2,
     AlertCircle,
-    Info,
-    Calendar,
     Hash,
     Calculator,
     Check,
@@ -45,10 +41,6 @@ export function KoraOrgGroupSettlementDialog({
     onClose,
     onSubmit,
 }: Props) {
-    if (!isOpen) {
-return null;
-}
-
     // Step state: 1: Selection & Ventilation, 2: Payment & Proof
     const [step, setStep] = useState<1 | 2>(1);
 
@@ -94,6 +86,10 @@ return null;
             0,
         );
     }, [selectedSubPointUuids, allocations]);
+
+    if (!isOpen) {
+        return null;
+    }
 
     const balanceDelta = totalDeclared - allocatedSum;
     const isBalanced = Math.abs(balanceDelta) < 1;

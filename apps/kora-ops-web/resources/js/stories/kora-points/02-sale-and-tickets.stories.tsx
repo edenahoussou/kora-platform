@@ -95,30 +95,32 @@ export const SaleBlockedByLimit: Story = {
     render: () => <SaleInteractiveStory initialScenario="autonomous_limit_reached" />,
 };
 
+function SaleSuccessStory() {
+    const [isOpen, setIsOpen] = useState(true);
+
+    return (
+        <div className="p-8">
+            <button
+                type="button"
+                onClick={() => setIsOpen(true)}
+                className="rounded-xl bg-gold px-4 py-2 text-xs font-black text-kora"
+            >
+                Rouvrir le reçu de vente
+            </button>
+            {isOpen && (
+                <KoraPointSaleSuccessDialog
+                    saleRecord={MOCK_POINT_SALES[0]}
+                    onClose={() => setIsOpen(false)}
+                    onNewSale={() => setIsOpen(false)}
+                />
+            )}
+        </div>
+    );
+}
+
 export const SaleSuccessConfirmationModal: Story = {
     name: '03. Reçu de vente & Billet thermique simulé (Exemple démo)',
-    render: () => {
-        const [isOpen, setIsOpen] = useState(true);
-
-        return (
-            <div className="p-8">
-                <button
-                    type="button"
-                    onClick={() => setIsOpen(true)}
-                    className="rounded-xl bg-gold px-4 py-2 text-xs font-black text-kora"
-                >
-                    Rouvrir le reçu de vente
-                </button>
-                {isOpen && (
-                    <KoraPointSaleSuccessDialog
-                        saleRecord={MOCK_POINT_SALES[0]}
-                        onClose={() => setIsOpen(false)}
-                        onNewSale={() => setIsOpen(false)}
-                    />
-                )}
-            </div>
-        );
-    },
+    render: () => <SaleSuccessStory />,
 };
 
 export const TicketLedgerFull: Story = {
@@ -126,25 +128,24 @@ export const TicketLedgerFull: Story = {
     render: () => <TicketsInteractiveStory />,
 };
 
+function TicketDetailDrawerStory() {
+    const [selectedSale, setSelectedSale] = useState<any>(MOCK_POINT_SALES[0]);
+
+    return (
+        <div className="p-8">
+            <button
+                type="button"
+                onClick={() => setSelectedSale(MOCK_POINT_SALES[0])}
+                className="rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white dark:bg-white dark:text-slate-900"
+            >
+                Ouvrir le détail du billet TK-AKP-260801-01
+            </button>
+            <KoraPointTicketDetailDrawer sale={selectedSale} onClose={() => setSelectedSale(null)} />
+        </div>
+    );
+}
+
 export const TicketDetailDrawerPreview: Story = {
     name: '05. Tiroir de détail du billet sélectionné',
-    render: () => {
-        const [selectedSale, setSelectedSale] = useState<any>(MOCK_POINT_SALES[0]);
-
-        return (
-            <div className="p-8">
-                <button
-                    type="button"
-                    onClick={() => setSelectedSale(MOCK_POINT_SALES[0])}
-                    className="rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white dark:bg-white dark:text-slate-900"
-                >
-                    Ouvrir le détail du billet TK-AKP-260801-01
-                </button>
-                <KoraPointTicketDetailDrawer
-                    sale={selectedSale}
-                    onClose={() => setSelectedSale(null)}
-                />
-            </div>
-        );
-    },
+    render: () => <TicketDetailDrawerStory />,
 };

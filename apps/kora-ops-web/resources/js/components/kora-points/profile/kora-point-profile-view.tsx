@@ -1,22 +1,14 @@
 import {
-    Store,
     MapPin,
     Phone,
-    Mail,
     User,
-    Building2,
     Shield,
     Calendar,
     Percent,
     FileText,
     Download,
-    Eye,
-    CheckCircle2,
     Clock,
-    AlertTriangle,
-    Users,
     FileCheck,
-    ArrowUpRight,
 } from 'lucide-react';
 import { useState } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';

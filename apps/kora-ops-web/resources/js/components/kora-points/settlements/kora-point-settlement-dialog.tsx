@@ -1,22 +1,17 @@
 import {
     X,
     Coins,
-    Building2,
     Landmark,
-    Smartphone,
     FileText,
     UploadCloud,
     Camera,
     Image as ImageIcon,
     CheckCircle2,
     AlertCircle,
-    Info,
-    Calendar,
     Hash,
     Trash2,
 } from 'lucide-react';
 import { useState, useRef } from 'react';
-import { cn } from '@/lib/utils';
 import type { FinancialHealth, PointSettlementMethod } from '../mock/kora-point-mock-data';
 
 type Props = {
@@ -40,10 +35,6 @@ export function KoraPointSettlementDialog({
     onClose,
     onSubmit,
 }: Props) {
-    if (!isOpen) {
-return null;
-}
-
     const [amountDeclared, setAmountDeclared] = useState<number>(health.current_exposure || 100000);
     const [paymentMethod, setPaymentMethod] = useState<PointSettlementMethod>('BANK_DEPOSIT');
     const [paymentReference, setPaymentReference] = useState('');
@@ -52,11 +43,15 @@ return null;
         name: 'bordereau_versement_ecobank_saint_michel.pdf',
         size: '345 Ko',
     });
-    const [uploadProgress, setUploadProgress] = useState<number>(100);
+    const [, setUploadProgress] = useState<number>(100);
     const [error, setError] = useState<string | null>(null);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
+
+    if (!isOpen) {
+        return null;
+    }
 
     const remainingExposure = Math.max(0, health.current_exposure - amountDeclared);
 

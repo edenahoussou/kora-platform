@@ -1,15 +1,7 @@
 import {
-    TrendingUp,
-    Download,
     FileSpreadsheet,
     FileText,
-    HelpCircle,
     Info,
-    AlertTriangle,
-    RotateCcw,
-    Calendar,
-    ArrowUpRight,
-    CheckCircle2,
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';

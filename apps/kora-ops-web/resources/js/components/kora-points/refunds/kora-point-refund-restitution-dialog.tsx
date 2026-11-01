@@ -4,15 +4,11 @@ import {
     CheckCircle2,
     Printer,
     Download,
-    FileCheck,
     UserCheck,
     AlertCircle,
-    Info,
-    Receipt,
     Shield,
 } from 'lucide-react';
 import { useState } from 'react';
-import { cn } from '@/lib/utils';
 import type { PointRefundRecord } from '../mock/kora-point-mock-data';
 
 type Props = {
@@ -32,15 +28,15 @@ export function KoraPointRefundRestitutionDialog({
     onClose,
     onConfirmRestitution,
 }: Props) {
-    if (!isOpen || !refund) {
-return null;
-}
-
-    const [signatoryName, setSignatoryName] = useState(refund.passenger_name);
+    const [signatoryName, setSignatoryName] = useState(refund?.passenger_name ?? '');
     const [idCardNumber, setIdCardNumber] = useState('CNI-BJ-2021-99821');
     const [isConfirmedCashGiven, setIsConfirmedCashGiven] = useState(false);
     const [isSuccessView, setIsSuccessView] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    if (!isOpen || !refund) {
+        return null;
+    }
 
     const handleConfirm = (e: React.FormEvent) => {
         e.preventDefault();

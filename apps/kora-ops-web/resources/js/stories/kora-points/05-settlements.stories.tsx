@@ -62,13 +62,11 @@ export const SettlementsOrganizationAttached: Story = {
     render: () => <SettlementsStoryWrapper initialScenario="org_attached_healthy" />,
 };
 
-export const SettlementDeclarationModalPreview: Story = {
-    name: '03. Modal de déclaration — Sélection dette & Upload preuve (Desktop / Mobile)',
-    render: () => {
-        const demo = useKoraPointDemo('autonomous_healthy');
-        const [isOpen, setIsOpen] = useState(true);
+function SettlementDeclarationStory() {
+    const demo = useKoraPointDemo('autonomous_healthy');
+    const [isOpen, setIsOpen] = useState(true);
 
-        return (
+    return (
             <div className="p-8 bg-slate-900 min-h-screen text-white flex items-center justify-center">
                 <button
                     type="button"
@@ -89,17 +87,19 @@ export const SettlementDeclarationModalPreview: Story = {
                     }}
                 />
             </div>
-        );
-    },
+    );
+}
+
+export const SettlementDeclarationModalPreview: Story = {
+    name: '03. Modal de déclaration — Sélection dette & Upload preuve (Desktop / Mobile)',
+    render: () => <SettlementDeclarationStory />,
 };
 
-export const SettlementDetailDrawerPreview: Story = {
-    name: '04. Tiroir latéral de détail — Reçu bancaire & Billets couverts',
-    render: () => {
-        const demo = useKoraPointDemo('autonomous_healthy');
-        const [isOpen, setIsOpen] = useState(true);
+function SettlementDetailDrawerStory() {
+    const demo = useKoraPointDemo('autonomous_healthy');
+    const [isOpen, setIsOpen] = useState(true);
 
-        return (
+    return (
             <div className="p-8 bg-slate-900 min-h-screen text-white flex items-center justify-center">
                 <button
                     type="button"
@@ -114,6 +114,10 @@ export const SettlementDetailDrawerPreview: Story = {
                     onClose={() => setIsOpen(false)}
                 />
             </div>
-        );
-    },
+    );
+}
+
+export const SettlementDetailDrawerPreview: Story = {
+    name: '04. Tiroir latéral de détail — Reçu bancaire & Billets couverts',
+    render: () => <SettlementDetailDrawerStory />,
 };

@@ -1,4 +1,4 @@
-import { ShieldCheck, AlertTriangle, Wallet, TrendingUp, AlertCircle } from 'lucide-react';
+import { ShieldCheck, AlertTriangle, TrendingUp, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { FinancialHealth, KoraPointProfile } from '../mock/kora-point-mock-data';
 

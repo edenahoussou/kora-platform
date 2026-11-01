@@ -1,14 +1,8 @@
 import {
     Search,
-    Filter,
-    Calendar,
     Ticket,
-    Download,
     Eye,
     ChevronRight,
-    MapPin,
-    User,
-    Wallet,
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';

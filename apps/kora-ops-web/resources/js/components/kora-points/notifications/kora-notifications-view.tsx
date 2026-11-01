@@ -6,10 +6,8 @@ import {
     Info,
     Receipt,
     Ticket,
-    Sliders,
     ExternalLink,
     Volume2,
-    ShieldAlert,
     X,
     Radio,
     Sparkles,
@@ -18,7 +16,6 @@ import { useState, useMemo } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import type { KoraPointActivePage } from '../common/kora-point-shell';
 import type { KoraNotificationItem} from '../mock/kora-point-mock-data';
-import { KoraNotificationCategory } from '../mock/kora-point-mock-data';
 
 type Props = {
     notifications: KoraNotificationItem[];

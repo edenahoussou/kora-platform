@@ -1,23 +1,17 @@
 import {
     Coins,
-    Building2,
-    Calendar,
     Clock,
     CheckCircle2,
     AlertTriangle,
     Plus,
     FileText,
     Eye,
-    TrendingUp,
     Landmark,
-    Search,
     ChevronDown,
     ChevronUp,
-    Shield,
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
-import { cn } from '@/lib/utils';
 import type {
     GroupSettlementRecord,
     OrganizationSubPoint,
@@ -37,11 +31,9 @@ export function KoraOrgTreasuryView({
     organizationName,
     subpoints,
     groupSettlements,
-    refunds,
     onDeclareGroupSettlement,
 }: Props) {
     const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
-    const [searchQuery, setSearchQuery] = useState('');
     const [expandedSettlementUuid, setExpandedSettlementUuid] = useState<string | null>(null);
 
     // Financial aggregates

@@ -1,4 +1,4 @@
-import { ArrowRight, Bell, Calendar, ChevronRight, Zap } from 'lucide-react';
+import { Bell, Calendar, ChevronRight, } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { DailyActivity, PointPriorityAlert } from '../mock/kora-point-mock-data';
 

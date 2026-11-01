@@ -2,11 +2,8 @@ import {
     X,
     RotateCcw,
     Ticket,
-    User,
-    Phone,
     FileText,
     AlertCircle,
-    Info,
     CheckCircle2,
     Coins,
     Camera,
@@ -15,7 +12,6 @@ import {
     HelpCircle,
 } from 'lucide-react';
 import { useState } from 'react';
-import { cn } from '@/lib/utils';
 import type {
     PointRefundReason,
     PointSaleRecord,
@@ -46,10 +42,6 @@ export function KoraPointRefundRequestDialog({
     onClose,
     onSubmit,
 }: Props) {
-    if (!isOpen) {
-return null;
-}
-
     const [selectedTicketNumber, setSelectedTicketNumber] = useState<string>(
         eligibleSales[0]?.ticket_number || '',
     );
@@ -59,6 +51,10 @@ return null;
         size: '180 Ko',
     });
     const [error, setError] = useState<string | null>(null);
+
+    if (!isOpen) {
+        return null;
+    }
 
     const activeSale = eligibleSales.find((s) => s.ticket_number === selectedTicketNumber);
     const originalAmount = activeSale?.amount_paid || 9000;

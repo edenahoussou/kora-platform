@@ -111,12 +111,10 @@ export const CashSessionClosed: Story = {
     render: () => <CashStoryWrapper initialScenario="autonomous_healthy" startClosed={true} />,
 };
 
-export const CashClosingModalPreview: Story = {
-    name: '03. Caisse — Dialogue de clôture avec calcul d’écart automatique',
-    render: () => {
-        const [isOpen, setIsOpen] = useState(true);
+function CashClosingStory() {
+    const [isOpen, setIsOpen] = useState(true);
 
-        return (
+    return (
             <div className="p-8 bg-slate-900 min-h-screen text-white flex items-center justify-center">
                 <button
                     type="button"
@@ -146,8 +144,12 @@ export const CashClosingModalPreview: Story = {
                     }}
                 />
             </div>
-        );
-    },
+    );
+}
+
+export const CashClosingModalPreview: Story = {
+    name: '03. Caisse — Dialogue de clôture avec calcul d’écart automatique',
+    render: () => <CashClosingStory />,
 };
 
 export const MyPointAutonomous: Story = {

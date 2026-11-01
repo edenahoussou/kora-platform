@@ -1,4 +1,4 @@
-import { Ticket, ArrowRight, Store, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { Ticket, ArrowRight, ShieldCheck, AlertTriangle } from 'lucide-react';
 import type { KoraPointProfile, FinancialHealth } from '../mock/kora-point-mock-data';
 
 type Props = {

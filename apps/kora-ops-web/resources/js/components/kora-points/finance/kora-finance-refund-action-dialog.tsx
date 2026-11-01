@@ -1,21 +1,14 @@
 import {
     RotateCcw,
     X,
-    User,
-    Ticket,
-    Banknote,
     FileText,
     AlertCircle,
     CheckCircle2,
     CreditCard,
-    DollarSign,
     Store,
-    Smartphone,
     Building2,
-    Calendar,
 } from 'lucide-react';
 import { useState } from 'react';
-import { KoraStatusBadge } from '@/components/kora-status-badge';
 import type { PointRefundRecord } from '../mock/kora-point-mock-data';
 
 type Props = {
@@ -39,14 +32,14 @@ export function KoraFinanceRefundActionDialog({
     onApprove,
     onReject,
 }: Props) {
-    if (!isOpen || !refund) {
-return null;
-}
-
     const [mode, setMode] = useState<'APPROVE' | 'REJECT'>('APPROVE');
     const [payoutMode, setPayoutMode] = useState<'POINT_CASH' | 'KORA_DIRECT'>('POINT_CASH');
     const [notes, setNotes] = useState('');
     const [rejectionReason, setRejectionReason] = useState('');
+
+    if (!isOpen || !refund) {
+        return null;
+    }
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();

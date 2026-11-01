@@ -1,19 +1,13 @@
 import {
     Coins,
     Search,
-    Filter,
     Plus,
     Clock,
     CheckCircle2,
     AlertTriangle,
     Eye,
-    Landmark,
     Building2,
     Info,
-    Calendar,
-    ArrowUpRight,
-    TrendingUp,
-    FileText,
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
@@ -149,7 +143,7 @@ export function KoraPointSettlementListView({
                 settlement={selectedSettlement}
                 isOpen={selectedSettlement !== null}
                 onClose={() => setSelectedSettlement(null)}
-                onResubmit={(s) => {
+                onResubmit={() => {
                     setSelectedSettlement(null);
                     setIsDeclarationModalOpen(true);
                 }}

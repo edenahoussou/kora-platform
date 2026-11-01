@@ -480,7 +480,7 @@ return;
                         step: 'Espèces remises au voyageur',
                         date_label: `${dateStr} ${timeStr}`,
                         actor: `${point.manager_name} (Agent)`,
-                        detail: `${targetRefund.refund_amount.toLocaleString()} FCFA remis en main propre à ${signatoryName}. Quittance d'émargement générée.`,
+                        detail: `${targetRefund.refund_amount.toLocaleString()} FCFA remis en main propre à ${signatoryName}. Quittance d'émargement générée.${receiptNote ? ` ${receiptNote}` : ''}`,
                     },
                 ],
             };
@@ -703,7 +703,6 @@ return;
 return;
 }
 
-            const isGroup = target.reference.startsWith('REV-ORG');
             const updatedSettlements = settlements.map((s) => {
                 if (s.uuid !== settlementUuid) {
 return s;

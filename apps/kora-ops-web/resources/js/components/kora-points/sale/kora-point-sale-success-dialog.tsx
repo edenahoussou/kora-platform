@@ -4,9 +4,6 @@ import {
     Download,
     PlusCircle,
     X,
-    Sparkles,
-    Ticket,
-    ShieldCheck,
 } from 'lucide-react';
 import { useState } from 'react';
 import type { PointSaleRecord } from '../mock/kora-point-mock-data';

@@ -51,16 +51,14 @@ export const SupervisionGlobalView: Story = {
     render: () => <SupervisionStoryWrapper />,
 };
 
-export const SubPointDetailDrawerPreview: Story = {
-    name: '02. Fiche Bureau rattaché en lecture seule — Porto-Novo (Plafond 100 % atteint)',
-    render: () => {
-        const demo = useKoraPointDemo('org_attached_healthy');
-        const [isOpen, setIsOpen] = useState(true);
-        const targetSubpoint =
-            demo.organizationSubPoints.find((sp) => sp.status === 'LIMIT_REACHED') ||
-            demo.organizationSubPoints[0];
+function SubPointDetailDrawerStory() {
+    const demo = useKoraPointDemo('org_attached_healthy');
+    const [isOpen, setIsOpen] = useState(true);
+    const targetSubpoint =
+        demo.organizationSubPoints.find((sp) => sp.status === 'LIMIT_REACHED') ||
+        demo.organizationSubPoints[0];
 
-        return (
+    return (
             <div className="p-8 bg-slate-900 min-h-screen text-white flex items-center justify-center">
                 <button
                     type="button"
@@ -75,6 +73,10 @@ export const SubPointDetailDrawerPreview: Story = {
                     onClose={() => setIsOpen(false)}
                 />
             </div>
-        );
-    },
+    );
+}
+
+export const SubPointDetailDrawerPreview: Story = {
+    name: '02. Fiche Bureau rattaché en lecture seule — Porto-Novo (Plafond 100 % atteint)',
+    render: () => <SubPointDetailDrawerStory />,
 };

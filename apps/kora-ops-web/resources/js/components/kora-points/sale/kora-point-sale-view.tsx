@@ -1,19 +1,14 @@
 import {
     MapPin,
     Calendar,
-    Users,
     ArrowRight,
     Check,
-    CreditCard,
     Smartphone,
     Banknote,
     User,
     Phone,
     FileBadge,
-    Info,
     ChevronLeft,
-    Clock,
-    AlertCircle,
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';

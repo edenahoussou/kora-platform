@@ -50,13 +50,11 @@ export const AdminNetworkDashboard: Story = {
     render: () => <AdminNetworkStoryWrapper />,
 };
 
-export const CreatePointWizardModalPreview: Story = {
-    name: '02. Déploiement guidé — Formulaire en 4 étapes (Localisation, Rattachement, Conditions, Pièces)',
-    render: () => {
-        const demo = useKoraPointDemo('autonomous_healthy');
-        const [isOpen, setIsOpen] = useState(true);
+function CreatePointWizardStory() {
+    const demo = useKoraPointDemo('autonomous_healthy');
+    const [isOpen, setIsOpen] = useState(true);
 
-        return (
+    return (
             <div className="p-8 bg-slate-900 min-h-screen text-white flex items-center justify-center">
                 <button
                     type="button"
@@ -76,6 +74,10 @@ export const CreatePointWizardModalPreview: Story = {
                     }}
                 />
             </div>
-        );
-    },
+    );
+}
+
+export const CreatePointWizardModalPreview: Story = {
+    name: '02. Déploiement guidé — Formulaire en 4 étapes (Localisation, Rattachement, Conditions, Pièces)',
+    render: () => <CreatePointWizardStory />,
 };

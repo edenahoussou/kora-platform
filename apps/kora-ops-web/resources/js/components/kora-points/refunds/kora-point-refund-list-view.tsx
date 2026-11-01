@@ -6,12 +6,8 @@ import {
     CheckCircle2,
     AlertTriangle,
     Coins,
-    Ticket,
     Receipt,
-    Eye,
-    UserCheck,
     FileText,
-    ArrowUpRight,
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';

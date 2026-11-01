@@ -5,11 +5,12 @@ import { KoraAdminOrganizationsView } from '@/components/kora-points/admin/kora-
 import { KoraPointAgentDashboard } from '@/components/kora-points/agent-dashboard/kora-point-agent-dashboard';
 import { KoraPointCashView } from '@/components/kora-points/cash/kora-point-cash-view';
 import { KoraPointCommissionsView } from '@/components/kora-points/commissions/kora-point-commissions-view';
-import { KoraFinanceReconciliationView } from '@/components/kora-points/finance/kora-finance-reconciliation-view';
+import { KoraPointDemoBanner } from '@/components/kora-points/common/kora-point-demo-banner';
 import type { KoraPointActivePage } from '@/components/kora-points/common/kora-point-shell';
 import { KoraPointShell } from '@/components/kora-points/common/kora-point-shell';
-import { KoraPointDemoBanner } from '@/components/kora-points/common/kora-point-demo-banner';
-import { KoraPointUserRole, MOCK_PERSONAS } from '@/components/kora-points/mock/kora-point-mock-data';
+import { KoraFinanceReconciliationView } from '@/components/kora-points/finance/kora-finance-reconciliation-view';
+import { MOCK_PERSONAS } from '@/components/kora-points/mock/kora-point-mock-data';
+import type { KoraPointUserRole } from '@/components/kora-points/mock/kora-point-mock-data';
 import { useKoraPointDemo } from '@/components/kora-points/mock/use-kora-point-demo';
 import { KoraNotificationsView } from '@/components/kora-points/notifications/kora-notifications-view';
 import { KoraOrgSupervisionView } from '@/components/kora-points/organization/kora-org-supervision-view';
@@ -117,7 +118,7 @@ export default function KoraPointPreviewPage() {
                     <KoraPointCommissionsView
                         point={demo.point}
                         commissions={demo.commissions}
-                        onViewRefundDetail={(refundRef) => setActivePage('refunds')}
+                        onViewRefundDetail={() => setActivePage('refunds')}
                     />
                 )}
 

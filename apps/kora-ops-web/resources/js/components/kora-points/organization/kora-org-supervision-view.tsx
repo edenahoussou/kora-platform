@@ -1,7 +1,6 @@
 import {
     Building2,
     Store,
-    Users,
     TrendingUp,
     Ticket,
     Coins,
@@ -10,10 +9,6 @@ import {
     AlertTriangle,
     Eye,
     Search,
-    MapPin,
-    Calendar,
-    ArrowUpRight,
-    Filter,
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
@@ -36,7 +31,6 @@ export function KoraOrgSupervisionView({
     organizationName,
     subpoints,
     recentSales,
-    recentRefunds,
 }: Props) {
     const [selectedSubpointId, setSelectedSubpointId] = useState<string>('ALL');
     const [searchQuery, setSearchQuery] = useState('');

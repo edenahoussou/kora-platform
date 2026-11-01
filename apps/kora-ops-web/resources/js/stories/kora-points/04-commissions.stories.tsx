@@ -78,12 +78,10 @@ export const CommissionsWithRefundAdjustment: Story = {
     render: () => <CommissionsStoryWrapper initialScenario="autonomous_healthy" />,
 };
 
-export const ExportExcelAndPdfModalPreview: Story = {
-    name: '03. Modals d’export démo — Bordereau Excel & Relevé officiel PDF',
-    render: () => {
-        const [exportType, setExportType] = useState<'EXCEL' | 'PDF' | null>('EXCEL');
+function ExportDemoStory() {
+    const [exportType, setExportType] = useState<'EXCEL' | 'PDF' | null>('EXCEL');
 
-        return (
+    return (
             <div className="p-8 bg-slate-900 min-h-screen text-white flex flex-col items-center justify-center gap-4">
                 <div className="flex gap-2">
                     <button
@@ -109,6 +107,10 @@ export const ExportExcelAndPdfModalPreview: Story = {
                     onClose={() => setExportType(null)}
                 />
             </div>
-        );
-    },
+    );
+}
+
+export const ExportExcelAndPdfModalPreview: Story = {
+    name: '03. Modals d’export démo — Bordereau Excel & Relevé officiel PDF',
+    render: () => <ExportDemoStory />,
 };

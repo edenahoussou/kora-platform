@@ -10,8 +10,6 @@ import {
     Calendar,
     FileText,
     UploadCloud,
-    Camera,
-    Image as ImageIcon,
     CheckCircle2,
     AlertCircle,
     ArrowRight,
@@ -48,10 +46,6 @@ export function KoraAdminPointWizardDialog({
     onClose,
     onSubmit,
 }: Props) {
-    if (!isOpen) {
-return null;
-}
-
     const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
 
     // Step 1: Identité & Localisation
@@ -80,6 +74,10 @@ return null;
     });
 
     const [error, setError] = useState<string | null>(null);
+
+    if (!isOpen) {
+        return null;
+    }
 
     // Handle organization selection change (auto-prefill inherited terms)
     const handleOrgChange = (orgUuid: string) => {

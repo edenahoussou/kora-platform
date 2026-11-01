@@ -3,21 +3,11 @@ import {
     RotateCcw,
     CheckCircle2,
     Clock,
-    AlertCircle,
     Search,
-    Filter,
-    ArrowUpRight,
-    Building2,
     FileText,
-    Calendar,
-    Banknote,
-    TrendingUp,
-    Check,
     Eye,
     ShieldCheck,
-    Layers,
     UserCheck,
-    DollarSign,
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
@@ -56,7 +46,6 @@ type Props = {
 export function KoraFinanceReconciliationView({
     settlements,
     refunds,
-    groupSettlements = [],
     onReconcileSettlement,
     onRejectSettlement,
     onApproveRefund,
