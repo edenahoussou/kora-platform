@@ -211,6 +211,7 @@ export function KoraPointSettlementDetailDrawer({
                                     <span className="font-bold text-slate-900 dark:text-white">
                                         {settlement.payment_method === 'BANK_DEPOSIT' && 'Dépôt bancaire espèces'}
                                         {settlement.payment_method === 'BANK_TRANSFER' && 'Virement bancaire'}
+                                        {settlement.payment_method === 'CHECK' && 'Chèque bancaire'}
                                         {settlement.payment_method === 'MOBILE_MONEY' && 'Mobile Money B2B'}
                                     </span>
                                 </div>

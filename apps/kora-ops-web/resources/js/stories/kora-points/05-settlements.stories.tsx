@@ -83,7 +83,7 @@ export const SettlementDeclarationModalPreview: Story = {
                     onClose={() => setIsOpen(false)}
                     onSubmit={(data) => {
                         demo.createSettlementDeclaration(data);
-                        alert(`Déclaration transmise : ${data.amountDeclared.toLocaleString()} FCFA (${data.paymentReference})`);
+                        alert(`Déclaration transmise (${data.paymentReference})`);
                         setIsOpen(false);
                     }}
                 />

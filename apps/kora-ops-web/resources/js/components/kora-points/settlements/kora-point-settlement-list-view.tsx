@@ -1,49 +1,58 @@
-import { useState, useMemo } from 'react';
 import {
-    Coins,
-    Search,
-    Filter,
-    Plus,
-    Clock,
-    CheckCircle2,
     AlertTriangle,
-    Eye,
-    Landmark,
     Building2,
+    CheckCircle2,
+    Clock,
+    Coins,
+    Eye,
+    HelpCircle,
     Info,
-    Calendar,
-    ArrowUpRight,
-    TrendingUp,
-    FileText,
+    Plus,
+    ReceiptText,
+    Search,
 } from 'lucide-react';
-import {
+import { useMemo, useState } from 'react';
+import { KoraStatusBadge } from '@/components/kora-status-badge';
+import { KoraTooltip } from '@/components/kora-tooltip';
+import { cn } from '@/lib/utils';
+import type {
     FinancialHealth,
+    KoraPaymentDetails,
     KoraPointProfile,
+    PointSettlementMethod,
     PointSettlementRecord,
     PointSettlementStatus,
-} from '../mock/kora-point-mock-data';
-import { KoraPointSettlementDialog } from './kora-point-settlement-dialog';
+} from '@/types/kora-points';
 import { KoraPointSettlementDetailDrawer } from './kora-point-settlement-detail-drawer';
-import { KoraStatusBadge } from '@/components/kora-status-badge';
-import { cn } from '@/lib/utils';
+import { KoraPointSettlementDialog } from './kora-point-settlement-dialog';
 
 type Props = {
     point: KoraPointProfile;
     health: FinancialHealth;
     settlements: PointSettlementRecord[];
+    koraPaymentDetails?: KoraPaymentDetails;
     onDeclareSettlement: (data: {
-        amountDeclared: number;
-        paymentMethod: any;
+        saleUuids: string[];
+        paymentMethod: PointSettlementMethod;
         paymentReference: string;
-        proofFileName?: string;
+        proofFile: File;
+        bankName?: string;
         notes?: string;
     }) => void;
+};
+
+const kpiVariants = {
+    navy: 'cash-ledger-card-kpi-navy',
+    blue: 'cash-ledger-card-kpi-digital',
+    gold: 'cash-ledger-card-kpi-gold',
+    emerald: 'cash-ledger-card-kpi-emerald',
 };
 
 export function KoraPointSettlementListView({
     point,
     health,
     settlements,
+    koraPaymentDetails,
     onDeclareSettlement,
 }: Props) {
     const isAutonomous = !point.organization;
@@ -75,6 +84,7 @@ export function KoraPointSettlementListView({
             if (s.status === 'DECLARED') {
                 declaredPending += s.amount_declared;
             }
+
             if (s.status === 'VALIDATED') {
                 validatedTotal += s.amount_validated ?? s.amount_declared;
             }
@@ -82,6 +92,53 @@ export function KoraPointSettlementListView({
 
         return { declaredPending, validatedTotal };
     }, [settlements]);
+
+    const kpis = [
+        {
+            id: 'exposure',
+            label: 'Total restant dû',
+            hint: 'Recettes nettes à reverser',
+            value: `${health.current_exposure.toLocaleString('fr-FR')} FCFA`,
+            trend: 'À reverser à KORA',
+            tone: 'navy' as const,
+            icon: ReceiptText,
+            formula:
+                'Montant net cumulé des billets émis non encore apurés par un versement validé.',
+        },
+        {
+            id: 'available',
+            label: 'Capacité disponible',
+            hint: `Plafond : ${health.credit_limit.toLocaleString('fr-FR')} FCFA`,
+            value: `${health.available_balance.toLocaleString('fr-FR')} FCFA`,
+            trend: `${health.usage_percentage} % du plafond utilisé`,
+            tone: 'blue' as const,
+            icon: Coins,
+            formula:
+                'Capacité résiduelle d’émission de billets = Plafond autorisé − Encours actuel.',
+        },
+        {
+            id: 'pending',
+            label: 'En vérification Trésorerie',
+            hint: 'Bordereaux déclarés',
+            value: `${totals.declaredPending.toLocaleString('fr-FR')} FCFA`,
+            trend: 'En attente de pointage',
+            tone: 'gold' as const,
+            icon: Clock,
+            formula:
+                'Montant total des versements déclarés par votre guichet en cours de contrôle par la Trésorerie KORA.',
+        },
+        {
+            id: 'validated',
+            label: 'Total apuré & validé',
+            hint: 'Fonds reçus et rapprochés',
+            value: `${totals.validatedTotal.toLocaleString('fr-FR')} FCFA`,
+            trend: 'Rapprochements confirmés',
+            tone: 'emerald' as const,
+            icon: CheckCircle2,
+            formula:
+                'Cumul historique des reversements validés et apurés par la Trésorerie KORA.',
+        },
+    ];
 
     const getStatusBadge = (status: PointSettlementRecord['status']) => {
         switch (status) {
@@ -137,6 +194,7 @@ export function KoraPointSettlementListView({
                 isOpen={isDeclarationModalOpen}
                 health={health}
                 pointName={point.name}
+                koraPaymentDetails={koraPaymentDetails}
                 onClose={() => setIsDeclarationModalOpen(false)}
                 onSubmit={(data) => {
                     onDeclareSettlement(data);
@@ -148,130 +206,116 @@ export function KoraPointSettlementListView({
                 settlement={selectedSettlement}
                 isOpen={selectedSettlement !== null}
                 onClose={() => setSelectedSettlement(null)}
-                onResubmit={(s) => {
+                onResubmit={() => {
                     setSelectedSettlement(null);
                     setIsDeclarationModalOpen(true);
                 }}
             />
 
-            {/* Page Header */}
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            {/* Header */}
+            <div className="kora-page-head cash-reveal mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                    <h1 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-                        <Coins className="h-6 w-6 text-gold-dark dark:text-gold" />
-                        Reversements partenaires
+                    <div className="kora-breadcrumb mb-2 text-[0.6875rem] text-muted-foreground">
+                        KORA POINT / Espace Agent / Versements
+                    </div>
+                    <h1 className="text-[clamp(1.8rem,3vw,2.65rem)] font-extrabold tracking-[-0.055em] text-foreground">
+                        Versements partenaires
                     </h1>
-                    <p className="text-xs text-slate-500 mt-1">
-                        Déclarations et suivi des apurements de recettes de billetterie vers KORA Exploitation
+                    <p className="mt-1.5 text-[0.8125rem] leading-6 text-muted-foreground">
+                        Déclarations et suivi des apurements de recettes de billetterie vers KORA Exploitation.
                     </p>
                 </div>
 
-                {isAutonomous ? (
-                    <button
-                        type="button"
-                        onClick={() => setIsDeclarationModalOpen(true)}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-gold px-5 py-2.5 text-xs font-black uppercase tracking-wider text-kora shadow-sm hover:bg-gold-light focus:outline-none focus:ring-2 focus:ring-gold"
-                    >
-                        <Plus className="h-4 w-4" />
-                        Déclarer un reversement +
-                    </button>
-                ) : (
-                    <div className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-4 py-2 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                        <Building2 className="h-4 w-4 text-slate-400" />
-                        Versements centralisés par le Trésorier
-                    </div>
-                )}
+                <div className="flex flex-wrap items-center gap-2.5">
+                    {isAutonomous ? (
+                        <button
+                            type="button"
+                            onClick={() => setIsDeclarationModalOpen(true)}
+                            className="btn btn-primary"
+                        >
+                            <Plus className="size-4" />
+                            <span>Déclarer un versement</span>
+                        </button>
+                    ) : (
+                        <div className="btn btn-ghost opacity-80 cursor-default">
+                            <Building2 className="size-4 text-gold" />
+                            <span>Versements centralisés ({point.organization?.name})</span>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Organization notice if attached */}
             {!isAutonomous && (
-                <div className="rounded-xl border border-blue-200 bg-blue-50/80 p-4 text-xs text-blue-900 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-200 flex items-start gap-3">
-                    <Info className="h-5 w-5 shrink-0 text-blue-600 mt-0.5" />
+                <div className="rounded-2xl border border-blue-500/20 bg-blue-500/10 p-4 text-xs text-foreground flex items-start gap-3">
+                    <Info className="size-5 shrink-0 text-digital mt-0.5" />
                     <div className="space-y-1">
                         <p className="font-bold">
                             Bureau rattaché à l’organisation {point.organization?.name}
                         </p>
-                        <p className="text-blue-800 dark:text-blue-300">
-                            En tant qu'agent de bureau, cet écran vous permet de consulter l'historique des reversements et l'encours apuré. La déclaration et le règlement financier des reversements groupés sont assurés par la direction financière / le trésorier de votre organisation.
+                        <p className="text-muted-foreground leading-relaxed">
+                            En tant qu'agent de bureau, cet écran vous permet de consulter l'historique des reversements et les montants apurés. La déclaration et le règlement financier des reversements groupés sont assurés par la direction financière / le trésorier de votre organisation.
                         </p>
                     </div>
                 </div>
             )}
 
-            {/* Financial Summary KPIs */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                {/* Encours actuel */}
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                            Encours total à reverser
-                        </span>
-                        <div className="rounded-lg bg-amber-500/10 p-2 text-amber-600 dark:text-amber-400">
-                            <Clock className="h-4 w-4" />
-                        </div>
-                    </div>
-                    <div className="mt-3">
-                        <span className="text-2xl font-black text-slate-900 dark:text-white">
-                            {health.current_exposure.toLocaleString()} FCFA
-                        </span>
-                        <p className="text-xs text-slate-500 mt-1">
-                            Plafond : {health.credit_limit.toLocaleString()} FCFA ({health.usage_percentage} % utilisé)
-                        </p>
-                    </div>
-                </div>
+            {/* Financial Summary 4 Colored KPIs (Dashboard System Style) */}
+            <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-4 cash-reveal cash-reveal-delay-1">
+                {kpis.map((kpi) => {
+                    const Icon = kpi.icon;
 
-                {/* En cours de vérification */}
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                            En vérification Trésorerie
-                        </span>
-                        <div className="rounded-lg bg-blue-500/10 p-2 text-blue-600 dark:text-blue-400">
-                            <Coins className="h-4 w-4" />
-                        </div>
-                    </div>
-                    <div className="mt-3">
-                        <span className="text-2xl font-black text-blue-600 dark:text-blue-400">
-                            {totals.declaredPending.toLocaleString()} FCFA
-                        </span>
-                        <p className="text-xs text-slate-500 mt-1">
-                            Déclaré par le Point, en attente de pointage bancaire
-                        </p>
-                    </div>
-                </div>
+                    return (
+                        <article
+                            key={kpi.id}
+                            className={cn(
+                                'cash-ledger-card transition-[transform,box-shadow] duration-300 hover:-translate-y-1 hover:shadow-lg',
+                                kpiVariants[kpi.tone],
+                            )}
+                        >
+                            <div className="cash-ledger-head">
+                                <div className="cash-ledger-identity">
+                                    <span className="cash-ledger-brand">
+                                        <Icon className="size-4" strokeWidth={1.8} />
+                                    </span>
+                                    <div>
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="cash-ledger-title">{kpi.label}</span>
+                                            <KoraTooltip content={kpi.formula} side="top">
+                                                <button
+                                                    type="button"
+                                                    aria-label={`Explication du calcul : ${kpi.label}`}
+                                                    className="opacity-70 transition-opacity hover:opacity-100 focus:outline-none"
+                                                >
+                                                    <HelpCircle className="size-3.5" />
+                                                </button>
+                                            </KoraTooltip>
+                                        </div>
+                                        <small>{kpi.hint}</small>
+                                    </div>
+                                </div>
+                            </div>
 
-                {/* Validé & Rapproché */}
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                            Total apuré & validé
-                        </span>
-                        <div className="rounded-lg bg-emerald-500/10 p-2 text-emerald-600 dark:text-emerald-400">
-                            <CheckCircle2 className="h-4 w-4" />
-                        </div>
-                    </div>
-                    <div className="mt-3">
-                        <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
-                            {totals.validatedTotal.toLocaleString()} FCFA
-                        </span>
-                        <p className="text-xs text-slate-500 mt-1">
-                            Fonds reçus et rapprochés par KORA Exploitation
-                        </p>
-                    </div>
-                </div>
+                            <div className="cash-ledger-balance mb-0">
+                                <span>{kpi.trend}</span>
+                                <strong>{kpi.value}</strong>
+                            </div>
+                        </article>
+                    );
+                })}
             </div>
 
             {/* Filter Bar */}
-            <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-between">
+            <div className="cash-filterbar cash-reveal cash-reveal-delay-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 {/* Search */}
                 <div className="relative flex-1">
-                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                    <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
                     <input
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Rechercher par référence, n° d’opération, observation..."
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-4 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:border-gold focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                        className="w-full rounded-xl border border-border bg-muted/40 py-2 pl-9 pr-4 text-xs font-medium text-foreground placeholder:text-muted-foreground focus:bg-card focus:border-gold focus:outline-none"
                     />
                 </div>
 
@@ -281,10 +325,8 @@ export function KoraPointSettlementListView({
                         type="button"
                         onClick={() => setStatusFilter('ALL')}
                         className={cn(
-                            'rounded-xl px-3 py-1.5 text-xs font-bold transition-colors',
-                            statusFilter === 'ALL'
-                                ? 'bg-navy text-white dark:bg-gold dark:text-kora'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300',
+                            'btn btn-sm',
+                            statusFilter === 'ALL' ? 'btn-navy' : 'btn-ghost',
                         )}
                     >
                         Tous ({settlements.length})
@@ -293,10 +335,8 @@ export function KoraPointSettlementListView({
                         type="button"
                         onClick={() => setStatusFilter('DECLARED')}
                         className={cn(
-                            'rounded-xl px-3 py-1.5 text-xs font-bold transition-colors',
-                            statusFilter === 'DECLARED'
-                                ? 'bg-amber-600 text-white'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300',
+                            'btn btn-sm',
+                            statusFilter === 'DECLARED' ? 'btn-navy' : 'btn-ghost',
                         )}
                     >
                         En vérification
@@ -305,10 +345,8 @@ export function KoraPointSettlementListView({
                         type="button"
                         onClick={() => setStatusFilter('VALIDATED')}
                         className={cn(
-                            'rounded-xl px-3 py-1.5 text-xs font-bold transition-colors',
-                            statusFilter === 'VALIDATED'
-                                ? 'bg-emerald-600 text-white'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300',
+                            'btn btn-sm',
+                            statusFilter === 'VALIDATED' ? 'btn-navy' : 'btn-ghost',
                         )}
                     >
                         Validés
@@ -317,10 +355,8 @@ export function KoraPointSettlementListView({
                         type="button"
                         onClick={() => setStatusFilter('REJECTED')}
                         className={cn(
-                            'rounded-xl px-3 py-1.5 text-xs font-bold transition-colors',
-                            statusFilter === 'REJECTED'
-                                ? 'bg-rose-600 text-white'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300',
+                            'btn btn-sm',
+                            statusFilter === 'REJECTED' ? 'btn-danger' : 'btn-ghost',
                         )}
                     >
                         Rejetés
