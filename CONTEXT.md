@@ -245,8 +245,40 @@ Unites de recompense propres au voyageur eligible, acquises par les voyages effe
 _Avoid_: Argent disponible, remise immediate sur le voyage qui les genere, KORA POINT
 
 **KORA POINT**:
-Point physique ou relais partenaire susceptible de vendre ou supporter les services KORA dans une phase ulterieure. Hors MVP Bus.
-_Avoid_: Guichet agence KORA OPS Web du MVP
+Lieu physique de distribution exploite par un partenaire KORA et distinct des personnes qui y travaillent. Autonome par defaut, il peut etre rattache a une organisation partenaire. Son offre VOYAGE permet la vente de billets Bus au public. Le backend de cette extension explicite est suivi par MEZ-156 ; son interface web est un lot separe.
+_Avoid_: Partenaire distributeur entier, compte utilisateur, point de fidelite, agence interne KORA
+
+**Partenaire distributeur**:
+Personne ou entite externe qui distribue les billets KORA. Dans le cas courant, le Point autonome represente directement ce partenaire. Une organisation partenaire facultative permet de regrouper plusieurs Points, comme les bureaux de La Poste du Togo, sans imposer ce niveau a tous les revendeurs.
+_Avoid_: KORA Point unique pour tous les bureaux, compte entreprise achetant pour ses propres voyageurs
+
+**Organisation partenaire KORA POINT**:
+Regroupement facultatif de Points physiques d'un meme partenaire institutionnel. Un responsable consulte ses bureaux en lecture seule ; un tresorier distinct peut declarer leurs reversements groupes. Ce regroupement est distinct du compte organisationnel acheteur de voyages.
+_Avoid_: Organisation obligatoire pour chaque boutique, Point principal COLIS
+
+**Conditions commerciales KORA POINT**:
+Commission, plafond d'encours et calendrier de reversement resolus dans l'ordre Point, organisation eventuelle, parametres d'exploitation. Null signifie heriter ; 0 % est une commission explicite. La vente fige ses conditions au paiement et un changement ne recalcule pas l'historique.
+_Avoid_: Taux contractuel implicite tire de la maquette, plafond mensuel de chiffre d'affaires
+
+**Reversement partenaire**:
+Reglement net declare pour des ventes entieres, affecte explicitement a chaque Point. Seule la reception validee par Finance KORA diminue l'encours. Le declarant ne valide pas sa propre operation ; une difference reste a rapprocher.
+_Avoid_: Transfert de caisse interne, encours libere par une simple preuve
+
+**Restitution KORA POINT**:
+Remboursement autorise par KORA, execute par le Point avant reversement ou par KORA apres reversement. L'obligation, la restitution declaree et sa confirmation sont distinctes ; le beneficiaire est le payeur initial derive du paiement, sans saisie. La confirmation corrige la commission au prorata et la dette selon le detenteur des fonds ; aucun credit Wallet fictif n'est cree.
+_Avoid_: Annulation partenaire autonome, statut rembourse avant restitution effective
+
+**Utilisateur partenaire**:
+Personne identifiee par un compte personnel qui opere pour un KORA Point. Le bureau et le compte de connexion de son agent sont deux concepts distincts.
+_Avoid_: Compte partage au nom du bureau, partenaire distributeur, agence postale representee par une personne fictive
+
+**Responsable partenaire**:
+Personne habilitee a consulter en lecture seule les ventes et les situations financieres des KORA Points de son partenaire distributeur. Son perimetre exclut les autres partenaires et les donnees globales KORA.
+_Avoid_: Responsable reseau KORA, administrateur partenaire, agent autorise a modifier les conditions commerciales
+
+**Encours a reverser d'un Point**:
+Dette de reglement d'un KORA Point envers KORA, issue des encaissements detenus par le partenaire, des commissions retenues et des mouvements de reglement ou de correction justifies. Elle reste distincte du chiffre d'affaires et du montant des billets annules.
+_Avoid_: Plafond mensuel de ventes, caisse physique, dette automatiquement effacee par une annulation
 
 **Agence**:
 Entite commerciale KORA ou l'argent circule (vente guichet, caisse, encaissement mobile money, terminal P501). L'agence se rattache aux utilisateurs et aux flux financiers, pas aux ressources d'exploitation. Un bus, une ligne, un arret ou un depart n'appartient pas a une agence — ce sont des ressources du reseau KORA. L'arret (ou le bus s'arrete) et l'agence (ou l'argent change de mains) sont deux concepts distincts qui peuvent coexister geographiquement sans etre lies structurellement.

@@ -22,6 +22,8 @@ use App\Modules\CompanyAccounts\Services\CompanyCreditService;
 use App\Modules\DynamicPricing\Actions\RecordPromotionRedemptionAction;
 use App\Modules\Fiscalization\Data\FiscalInvoiceStatus;
 use App\Modules\Fiscalization\Models\FiscalInvoice;
+use App\Modules\KoraPoints\Actions\RecordKoraPointSaleAction;
+use App\Modules\KoraPoints\Models\KoraPoint;
 use App\Modules\Payments\Data\MobileMoneyNetwork;
 use App\Modules\Payments\Data\PaymentMethod;
 use App\Modules\Payments\Data\PaymentStatus;
@@ -29,6 +31,7 @@ use App\Modules\Payments\Models\AgencyPaymentAccount;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Ticketing\Data\TicketIssuanceStatus;
 use App\Modules\Ticketing\Models\Ticket;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -37,6 +40,7 @@ use Illuminate\Validation\ValidationException;
 class RecordCounterSalePaymentAction
 {
     public function __construct(
+        private readonly RecordKoraPointSaleAction $recordKoraPointSale,
         private readonly CompanyCreditService $companyCredit,
         private readonly RecordPromotionRedemptionAction $recordPromotionRedemption,
     ) {}
@@ -57,6 +61,14 @@ class RecordCounterSalePaymentAction
                 ->where('reservation_id', $lockedReservation->getKey())
                 ->lockForUpdate()
                 ->first();
+
+            if ($agent->isKoraPointUser() && (! $agent->hasRole('kora_point_agent') || $lockedReservation->created_by_user_id !== $agent->getKey() || ! KoraPoint::query()->whereKey($lockedReservation->origin_kora_point_id ?? 0)->where('agency_id', $agent->agency_id ?? 0)->exists())) {
+                throw new AuthorizationException;
+            }
+
+            if ($agent->isKoraPointUser() && blank($attributes['payer_phone'] ?? null)) {
+                throw ValidationException::withMessages(['payer_phone' => 'Identifiez le téléphone du payeur initial pour la vente partenaire.']);
+            }
 
             $idempotencyKey = (string) ($attributes['idempotency_key'] ?? '');
             $existingPayment = Payment::query()
@@ -141,6 +153,7 @@ class RecordCounterSalePaymentAction
                 'draft_data' => null,
             ]);
             $lockedReservation->segments()->update(['status' => ReservationSegmentStatus::Paid]);
+            $this->recordKoraPointSale->execute($lockedReservation, $payment, $agent);
 
             // La promotion gelée sur le devis se consomme uniquement ici, au
             // passage payé — jamais au devis ni au hold abandonné.

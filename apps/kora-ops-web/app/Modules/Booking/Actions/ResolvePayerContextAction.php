@@ -37,6 +37,10 @@ class ResolvePayerContextAction
             ]);
         }
 
+        if ($actor?->isKoraPointUser()) {
+            throw ValidationException::withMessages(['payer.type' => 'Les Points distribuent uniquement des ventes individuelles au public.']);
+        }
+
         if ($type !== 'company' || $actor === null) {
             throw ValidationException::withMessages(['payer.type' => 'Le contexte de payeur est invalide.']);
         }

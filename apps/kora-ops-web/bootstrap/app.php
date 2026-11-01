@@ -3,6 +3,7 @@
 use App\Http\Middleware\EnsurePasswordChanged;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\RestrictPartnerAccess;
 use App\Modules\CompanyAccounts\Http\Middleware\EnsureCompanyReferent;
 use App\Modules\IdentityAccess\Http\Middleware\EnsureOpsSession;
 use App\Modules\IdentityAccess\Http\Middleware\EnsureTerminalIsUsable;
@@ -36,12 +37,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             ApplyKoraSettings::class,
             HandleAppearance::class,
+            RestrictPartnerAccess::class,
             HandleInertiaRequests::class,
             EnsurePasswordChanged::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
 
-        $middleware->api(append: [ApplyKoraSettings::class]);
+        $middleware->api(append: [ApplyKoraSettings::class, RestrictPartnerAccess::class]);
 
         $middleware->alias([
             'terminal.active' => EnsureTerminalIsUsable::class,

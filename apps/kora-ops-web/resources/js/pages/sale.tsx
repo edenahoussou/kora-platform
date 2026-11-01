@@ -86,16 +86,16 @@ export default function SalePage(props: SaleProps) {
     const [isSeatPickerOpen, setIsSeatPickerOpen] = useState(false);
     const logicalPassengerCount = reservation
         ? new Set(
-            reservation.segments.map(
-                (segment, index) => segment.passengerIndex ?? index,
-            ),
-        ).size
+              reservation.segments.map(
+                  (segment, index) => segment.passengerIndex ?? index,
+              ),
+          ).size
         : 0;
     const [paymentStepReservationUuid, setPaymentStepReservationUuid] =
         useState<string | null>(() =>
             reservation &&
-                reservation.passengers.length === logicalPassengerCount &&
-                logicalPassengerCount > 0
+            reservation.passengers.length === logicalPassengerCount &&
+            logicalPassengerCount > 0
                 ? reservation.uuid
                 : null,
         );
@@ -155,11 +155,11 @@ export default function SalePage(props: SaleProps) {
         ? isSaleCompleted
             ? 'tickets'
             : isPaymentStepOpen
-                ? 'payment'
-                : 'passengers'
+              ? 'payment'
+              : 'passengers'
         : selectedOutbound
-            ? 'seats'
-            : 'search';
+          ? 'seats'
+          : 'search';
 
     const applyPromoCode = (code: string | null) => {
         if (!reservation) {
@@ -195,7 +195,7 @@ export default function SalePage(props: SaleProps) {
             outboundDepartureAt &&
             inboundDepartureAt &&
             new Date(inboundDepartureAt).getTime() <=
-            new Date(outboundDepartureAt).getTime()
+                new Date(outboundDepartureAt).getTime()
         ) {
             setSelectedInbound(null);
         }
@@ -233,7 +233,7 @@ export default function SalePage(props: SaleProps) {
             return (
                 inboundDepartureAt !== undefined &&
                 new Date(inboundDepartureAt).getTime() >
-                outboundArrivalTimestamp
+                    outboundArrivalTimestamp
             );
         });
     }, [inboundItineraries, selectedOutbound]);
@@ -291,9 +291,9 @@ export default function SalePage(props: SaleProps) {
         const payer =
             payerType === 'company' && selectedCompanyAccountUuid
                 ? {
-                    type: 'company' as const,
-                    company_account_uuid: selectedCompanyAccountUuid,
-                }
+                      type: 'company' as const,
+                      company_account_uuid: selectedCompanyAccountUuid,
+                  }
                 : undefined;
 
         confirmSale(
@@ -463,8 +463,8 @@ export default function SalePage(props: SaleProps) {
                                             selectedLegsKey={
                                                 selectedInbound
                                                     ? itineraryKey(
-                                                        selectedInbound,
-                                                    )
+                                                          selectedInbound,
+                                                      )
                                                     : null
                                             }
                                             onSelect={onSelectInboundItinerary}

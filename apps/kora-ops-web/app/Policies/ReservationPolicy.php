@@ -5,6 +5,8 @@ namespace App\Policies;
 use App\Models\User;
 use App\Modules\Booking\Data\ReservationChannel;
 use App\Modules\Booking\Models\Reservation;
+use App\Modules\KoraPoints\Models\KoraPoint;
+use App\Modules\KoraPoints\Models\KoraPointSale;
 use App\Policies\Concerns\AuthorizesPermissions;
 
 class ReservationPolicy
@@ -13,6 +15,15 @@ class ReservationPolicy
 
     public function view(User $user, Reservation $reservation): bool
     {
+        if ($user->isKoraPointUser()) {
+            if (! $user->hasRole('kora_point_agent') || $user->agency_id === null) {
+                return false;
+            }
+
+            return $reservation->selling_agency_id === $user->agency_id
+                || ($reservation->selling_agency_id === null && $reservation->created_by_user_id === $user->getKey() && KoraPoint::query()->whereKey($reservation->origin_kora_point_id ?? 0)->where('agency_id', $user->agency_id)->exists());
+        }
+
         return $this->allows($user, 'bookings.view')
             || ($reservation->created_by_user_id === $user->id && $this->allows($user, 'bookings.view-own'))
             || ($reservation->payer_user_id === $user->id && $this->allows($user, 'bookings.view-own'));
@@ -20,6 +31,10 @@ class ReservationPolicy
 
     public function cancel(User $user, Reservation $reservation): bool
     {
+        if ($user->isKoraPointUser() || KoraPointSale::query()->where('reservation_id', $reservation->getKey())->exists()) {
+            return false;
+        }
+
         return $this->allows($user, 'bookings.cancel')
             || $reservation->created_by_user_id === $user->id
             || $reservation->payer_user_id === $user->id;
@@ -41,7 +56,7 @@ class ReservationPolicy
      */
     public function updatePromoCode(User $user, Reservation $reservation): bool
     {
-        return $reservation->channel !== ReservationChannel::CompanyPortal
+        return ! $user->isKoraPointUser() && $reservation->channel !== ReservationChannel::CompanyPortal
             && ($reservation->created_by_user_id === $user->id
                 || $reservation->payer_user_id === $user->id);
     }
@@ -60,6 +75,10 @@ class ReservationPolicy
     public function manageCounterSale(User $user, Reservation $reservation): bool
     {
         if (! $this->allows($user, 'counter-sales.create')) {
+            return false;
+        }
+
+        if ($user->isKoraPointUser() && (! $user->hasRole('kora_point_agent') || ! KoraPoint::query()->whereKey($reservation->origin_kora_point_id ?? 0)->where('agency_id', $user->agency_id ?? 0)->exists())) {
             return false;
         }
 

@@ -1,9 +1,4 @@
-import {
-    ArrowRightLeft,
-    CalendarDays,
-    MapPin,
-    Search,
-} from 'lucide-react';
+import { ArrowRightLeft, CalendarDays, MapPin, Search } from 'lucide-react';
 import type { ReactNode, SyntheticEvent } from 'react';
 import { cn } from '@/lib/utils';
 import type { SaleCity, SaleSearch, SaleTripType } from './sale-types';

@@ -10,6 +10,7 @@ use App\Modules\IdentityAccess\Data\UserStatus;
 use App\Modules\Settings\Contracts\SettingsCoordinator;
 use App\Modules\Settings\Data\SettingsGroup;
 use App\Modules\Settings\Data\SettingsSnapshot;
+use App\Modules\Settings\DTO\OperationsSettingsUpdate;
 use App\Modules\Settings\DTO\SettingsUpdate;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\DatabaseManager;
@@ -58,6 +59,23 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
 
         $this->authorize($group->managePermission(), $actor);
 
+        return $this->persist($group, $update, $actor);
+    }
+
+    /** @param array<string, mixed> $values */
+    public function updateKoraPointDefaults(array $values, User $actor): SettingsSnapshot
+    {
+        $this->authorize('kora-points.terms', $actor);
+        $allowed = ['koraPointCommissionBasisPoints', 'koraPointCeilingAmount', 'koraPointSettlementCalendar', 'koraPointGraceDays'];
+        if (array_diff(array_keys($values), $allowed) !== []) {
+            throw ValidationException::withMessages(['settings' => 'Paramètres KORA POINT uniquement.']);
+        }
+
+        return $this->persist(SettingsGroup::Operations, new OperationsSettingsUpdate($values), $actor);
+    }
+
+    private function persist(SettingsGroup $group, SettingsUpdate $update, User $actor): SettingsSnapshot
+    {
         /** @var SettingsSnapshot $snapshot */
         $snapshot = $this->database->transaction(function () use ($group, $update, $actor): SettingsSnapshot {
             $this->lockGroup($group);
@@ -167,6 +185,15 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
 
         if ($group === SettingsGroup::Operations) {
             return [
+                'koraPointCommissionBasisPoints' => ['nullable', 'integer', 'between:0,10000'],
+                'koraPointCeilingAmount' => ['nullable', 'integer', 'min:0', 'max:1000000000000'],
+                'koraPointGraceDays' => ['required', 'integer', 'between:0,365'],
+                'koraPointSettlementCalendar' => ['nullable', 'array:frequency,time,timezone,weekday,day'],
+                'koraPointSettlementCalendar.frequency' => ['required_with:koraPointSettlementCalendar', 'in:daily,weekly,monthly'],
+                'koraPointSettlementCalendar.time' => ['required_with:koraPointSettlementCalendar', 'date_format:H:i'],
+                'koraPointSettlementCalendar.timezone' => ['required_with:koraPointSettlementCalendar', 'timezone'],
+                'koraPointSettlementCalendar.weekday' => ['required_if:koraPointSettlementCalendar.frequency,weekly', 'nullable', 'integer', 'between:1,7'],
+                'koraPointSettlementCalendar.day' => ['required_if:koraPointSettlementCalendar.frequency,monthly', 'nullable', 'integer', 'between:1,28'],
                 'quoteTtlMinutes' => ['required', 'integer', 'min:1', 'max:10080'],
                 'seatHoldMinutes' => ['required', 'integer', 'min:1', 'max:1440'],
                 'saleCutoffMinutes' => ['required', 'integer', 'min:0', 'max:1440'],

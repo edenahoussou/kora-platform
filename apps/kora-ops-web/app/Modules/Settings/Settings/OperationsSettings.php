@@ -6,6 +6,15 @@ use Spatie\LaravelSettings\Settings;
 
 final class OperationsSettings extends Settings
 {
+    public ?int $koraPointCommissionBasisPoints = null;
+
+    public ?int $koraPointCeilingAmount = null;
+
+    /** @phpstan-var array<string, mixed>|null */
+    public ?array $koraPointSettlementCalendar = null;
+
+    public int $koraPointGraceDays = 0;
+
     public int $quoteTtlMinutes = 10;
 
     public int $seatHoldMinutes = 10;

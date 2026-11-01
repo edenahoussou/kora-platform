@@ -19,12 +19,15 @@ enum SystemRole: string
     case Daf = 'daf';
     case GeneralManagement = 'general_management';
     case SystemAdmin = 'system_admin';
+    case KoraPointAgent = 'kora_point_agent';
+    case KoraPointSupervisor = 'kora_point_supervisor';
+    case KoraPointTreasurer = 'kora_point_treasurer';
 
     public function category(): RoleCategory
     {
         return match ($this) {
             self::BusDriver, self::Mechanic, self::Conductor => RoleCategory::Terrain,
-            self::AgencyAgent, self::AgencyManager => RoleCategory::Agency,
+            self::KoraPointAgent, self::AgencyAgent, self::AgencyManager => RoleCategory::Agency,
             default => RoleCategory::Central,
         };
     }
@@ -37,6 +40,9 @@ enum SystemRole: string
     public function permissions(): array
     {
         return match ($this) {
+            self::KoraPointAgent => ['departures.view', 'kora-points.view', 'kora-points.remit', 'kora-points.refund-request', 'counter-sales.create', 'cash.open', 'cash.close', 'cash.view', 'cash.media.view', 'tickets.view', 'tickets.issue', 'notifications.view'],
+            self::KoraPointSupervisor => ['kora-points.view', 'notifications.view'],
+            self::KoraPointTreasurer => ['kora-points.view', 'kora-points.remit', 'notifications.view'],
             self::Passenger => [
                 'bookings.create',
                 'bookings.view-own',
@@ -155,6 +161,7 @@ enum SystemRole: string
                 'profitability.export',
             ],
             self::CommercialDirector => [
+                'kora-points.view', 'kora-points.manage', 'kora-points.terms', 'kora-points.refund-request',
                 'notifications.view',
                 'tickets.view-network',
                 'agencies.view',
@@ -184,6 +191,7 @@ enum SystemRole: string
                 'profitability.export',
             ],
             self::Daf => [
+                'kora-points.view', 'kora-points.finance', 'kora-points.refund-request',
                 'notifications.view',
                 'tickets.view-network',
                 'bookings.view',
@@ -208,6 +216,7 @@ enum SystemRole: string
                 'profitability.export',
             ],
             self::GeneralManagement => [
+                'kora-points.view',
                 'notifications.view',
                 'tickets.view-network',
                 'agencies.view',
@@ -254,6 +263,7 @@ enum SystemRole: string
     public static function allPermissions(): array
     {
         return [
+            'kora-points.view', 'kora-points.manage', 'kora-points.terms', 'kora-points.remit', 'kora-points.refund-request', 'kora-points.finance',
             'departures.progress',
             'incidents.report',
             'notifications.view',
@@ -357,7 +367,7 @@ enum SystemRole: string
      */
     public static function internalRoles(): array
     {
-        return array_values(array_filter(self::cases(), fn (self $role): bool => $role !== self::Passenger));
+        return array_values(array_filter(self::cases(), fn (self $role): bool => ! in_array($role, [self::Passenger, self::KoraPointAgent, self::KoraPointSupervisor, self::KoraPointTreasurer], true)));
     }
 
     /**
