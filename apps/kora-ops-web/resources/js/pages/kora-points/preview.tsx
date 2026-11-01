@@ -3,6 +3,9 @@ import { Head } from '@inertiajs/react';
 import { KoraPointAgentDashboard } from '@/components/kora-points/agent-dashboard/kora-point-agent-dashboard';
 import { KoraPointSaleView } from '@/components/kora-points/sale/kora-point-sale-view';
 import { KoraPointTicketListView } from '@/components/kora-points/tickets/kora-point-ticket-list-view';
+import { KoraPointCashView } from '@/components/kora-points/cash/kora-point-cash-view';
+import { KoraPointProfileView } from '@/components/kora-points/profile/kora-point-profile-view';
+import { KoraPointCommissionsView } from '@/components/kora-points/commissions/kora-point-commissions-view';
 import { KoraPointShell, KoraPointActivePage } from '@/components/kora-points/common/kora-point-shell';
 import { KoraPointDemoBanner } from '@/components/kora-points/common/kora-point-demo-banner';
 import { useKoraPointDemo } from '@/components/kora-points/mock/use-kora-point-demo';
@@ -53,6 +56,17 @@ export default function KoraPointPreviewPage() {
                     />
                 )}
 
+                {activePage === 'cash' && (
+                    <KoraPointCashView
+                        point={demo.point}
+                        health={demo.health}
+                        cashSession={demo.cashSession}
+                        onOpenSession={demo.openCashSession}
+                        onCloseSession={demo.closeCashSession}
+                        onNavigateToSettlements={() => setActivePage('settlements')}
+                    />
+                )}
+
                 {activePage === 'tickets' && (
                     <KoraPointTicketListView
                         sales={demo.sales}
@@ -60,9 +74,30 @@ export default function KoraPointPreviewPage() {
                     />
                 )}
 
+                {activePage === 'my-point' && (
+                    <KoraPointProfileView
+                        point={demo.point}
+                        health={demo.health}
+                        convention={demo.convention}
+                        documents={demo.documents}
+                        assignedUsers={demo.assignedUsers}
+                    />
+                )}
+
+                {activePage === 'commissions' && (
+                    <KoraPointCommissionsView
+                        point={demo.point}
+                        commissions={demo.commissions}
+                        onViewRefundDetail={(refundRef) => setActivePage('refunds')}
+                    />
+                )}
+
                 {activePage !== 'dashboard' &&
                     activePage !== 'sale' &&
-                    activePage !== 'tickets' && (
+                    activePage !== 'cash' &&
+                    activePage !== 'tickets' &&
+                    activePage !== 'my-point' &&
+                    activePage !== 'commissions' && (
                         <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center dark:border-slate-700 dark:bg-slate-900">
                             <span className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-black uppercase text-amber-800 dark:text-amber-300">
                                 Prévu pour les lots suivants
@@ -71,7 +106,7 @@ export default function KoraPointPreviewPage() {
                                 Module « {activePage} » en cours de développement
                             </h2>
                             <p className="mt-2 text-xs text-slate-500 max-w-md mx-auto">
-                                Le Lot 1 couvre l'Accueil Agent (Écran 01) et le Guichet de vente & Billets (Écran 02). Cliquez ci-dessous pour revenir aux écrans du Lot 1.
+                                Les Lots 1 et 2 couvrent Accueil Agent (01), Vente & Billets (02), Caisse & Mon Point (03) et Commissions (04). Les Reversements (05) et Remboursements (06) seront disponibles dans le Lot 3.
                             </p>
                             <button
                                 type="button"

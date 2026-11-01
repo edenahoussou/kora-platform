@@ -7,6 +7,16 @@ import {
     PointPriorityAlert,
     PointSaleRecord,
     DailyMetrics,
+    PointCashSession,
+    MOCK_CASH_SESSION_OPEN,
+    PointConvention,
+    MOCK_CONVENTION,
+    PointDocument,
+    MOCK_DOCUMENTS,
+    PointAssignedUser,
+    MOCK_POINT_USERS,
+    PointCommissionRecord,
+    MOCK_COMMISSION_RECORDS,
 } from './kora-point-mock-data';
 
 export type DemoState = {
@@ -16,6 +26,11 @@ export type DemoState = {
     metrics: DailyMetrics;
     priorities: PointPriorityAlert[];
     sales: PointSaleRecord[];
+    cashSession: PointCashSession;
+    convention: PointConvention;
+    documents: PointDocument[];
+    assignedUsers: PointAssignedUser[];
+    commissions: PointCommissionRecord[];
 };
 
 export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_healthy') {
@@ -29,6 +44,11 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
     const metrics = stateOverride?.metrics ?? baseData.metrics;
     const priorities = stateOverride?.priorities ?? baseData.priorities;
     const sales = stateOverride?.sales ?? baseData.sales;
+    const cashSession = stateOverride?.cashSession ?? MOCK_CASH_SESSION_OPEN;
+    const convention = stateOverride?.convention ?? MOCK_CONVENTION;
+    const documents = stateOverride?.documents ?? MOCK_DOCUMENTS;
+    const assignedUsers = stateOverride?.assignedUsers ?? MOCK_POINT_USERS;
+    const commissions = stateOverride?.commissions ?? MOCK_COMMISSION_RECORDS;
 
     const changeScenario = useCallback((newScenario: DemoScenarioId) => {
         setScenarioId(newScenario);
@@ -38,6 +58,56 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
     const resetDemo = useCallback(() => {
         setStateOverride(null);
     }, []);
+
+    const openCashSession = useCallback((openingAmount: number) => {
+        const newSession: PointCashSession = {
+            status: 'OPEN',
+            opened_at: 'À l’instant',
+            operator_name: point.manager_name,
+            opening_amount: openingAmount,
+            cash_collected: 0,
+            mobile_money_collected: 0,
+            expected_closing_cash: openingAmount,
+            movements: [
+                {
+                    id: `m-${Date.now()}`,
+                    time_label: new Date().toLocaleTimeString('fr-FR', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                    }),
+                    label: 'Ouverture de session — Fond de caisse initial',
+                    amount: openingAmount,
+                    type: 'OPENING',
+                    method: 'CASH',
+                    balance_after: openingAmount,
+                },
+            ],
+        };
+
+        setStateOverride((prev) => ({
+            ...prev,
+            cashSession: newSession,
+        }));
+    }, [point]);
+
+    const closeCashSession = useCallback((actualCash: number, closingNote?: string) => {
+        const expected = cashSession.expected_closing_cash;
+        const variance = actualCash - expected;
+
+        const closedSession: PointCashSession = {
+            ...cashSession,
+            status: 'CLOSED',
+            closed_at: 'À l’instant',
+            actual_closing_cash: actualCash,
+            variance_amount: variance,
+            closing_note: closingNote,
+        };
+
+        setStateOverride((prev) => ({
+            ...prev,
+            cashSession: closedSession,
+        }));
+    }, [cashSession]);
 
     const recordSimulatedSale = useCallback(
         (sale: {
@@ -82,6 +152,23 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
                 refundable: true,
             };
 
+            const newCommissionLine: PointCommissionRecord = {
+                uuid: `com-${Date.now()}`,
+                sale_uuid: newSaleRecord.uuid,
+                ticket_number: ticketNumber,
+                date_label: 'À l’instant',
+                departure_ref: sale.departureRef,
+                route_label: sale.routeLabel,
+                seller_name: point.manager_name,
+                amount_paid: sale.amountPaid,
+                commission_rate_bps: commissionRateBps,
+                initial_commission: commissionAmount,
+                correction_amount: 0,
+                net_commission: commissionAmount,
+                settlement_status: 'open',
+                has_refund_correction: false,
+            };
+
             const newExposure = health.current_exposure + sale.amountPaid;
             const newAvailable = Math.max(0, health.credit_limit - newExposure);
             const usagePct = Math.min(100, Math.round((newExposure / health.credit_limit) * 100));
@@ -106,15 +193,47 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
                 total_due_amount: newExposure,
             };
 
-            setStateOverride({
+            // Update cash session movements if open
+            let updatedCashSession = cashSession;
+            if (cashSession.status === 'OPEN') {
+                const isCash = sale.paymentMethod === 'CASH';
+                const newCashCollected = cashSession.cash_collected + (isCash ? sale.amountPaid : 0);
+                const newMobileCollected = cashSession.mobile_money_collected + (isCash ? 0 : sale.amountPaid);
+                const newExpectedCash = cashSession.opening_amount + newCashCollected;
+                const newMovement = {
+                    id: `m-${Date.now()}`,
+                    time_label: new Date().toLocaleTimeString('fr-FR', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                    }),
+                    label: `Vente billet ${ticketNumber} (${sale.passengerName})`,
+                    amount: sale.amountPaid,
+                    type: isCash ? ('SALE_CASH' as const) : ('SALE_MOBILE' as const),
+                    method: sale.paymentMethod,
+                    balance_after: newExpectedCash,
+                };
+
+                updatedCashSession = {
+                    ...cashSession,
+                    cash_collected: newCashCollected,
+                    mobile_money_collected: newMobileCollected,
+                    expected_closing_cash: newExpectedCash,
+                    movements: [newMovement, ...cashSession.movements],
+                };
+            }
+
+            setStateOverride((prev) => ({
+                ...prev,
                 sales: [newSaleRecord, ...sales],
+                commissions: [newCommissionLine, ...commissions],
                 health: updatedHealth,
                 metrics: updatedMetrics,
-            });
+                cashSession: updatedCashSession,
+            }));
 
             return newSaleRecord;
         },
-        [point, health, metrics, sales],
+        [point, health, metrics, sales, commissions, cashSession],
     );
 
     return {
@@ -126,6 +245,13 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
         metrics,
         priorities,
         sales,
+        cashSession,
+        convention,
+        documents,
+        assignedUsers,
+        commissions,
+        openCashSession,
+        closeCashSession,
         recordSimulatedSale,
     };
 }

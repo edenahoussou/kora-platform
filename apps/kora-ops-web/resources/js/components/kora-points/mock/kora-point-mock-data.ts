@@ -645,3 +645,348 @@ export function getScenarioData(scenarioId: DemoScenarioId): {
         sales: MOCK_POINT_SALES,
     };
 }
+
+// -------------------------------------------------------------
+// LOT 2 DATA EXTENSIONS : CAISSE, MON POINT, COMMISSIONS
+// -------------------------------------------------------------
+
+export type PointCashMovement = {
+    id: string;
+    time_label: string;
+    label: string;
+    amount: number;
+    type: 'OPENING' | 'SALE_CASH' | 'SALE_MOBILE' | 'EXPENSE' | 'DEPOSIT';
+    method: 'CASH' | 'MOBILE_MONEY';
+    balance_after: number;
+};
+
+export type PointCashSession = {
+    status: 'OPEN' | 'CLOSED';
+    opened_at: string;
+    closed_at?: string;
+    operator_name: string;
+    opening_amount: number;
+    cash_collected: number;
+    mobile_money_collected: number;
+    expected_closing_cash: number;
+    actual_closing_cash?: number;
+    variance_amount?: number;
+    closing_note?: string;
+    movements: PointCashMovement[];
+};
+
+export const MOCK_CASH_SESSION_OPEN: PointCashSession = {
+    status: 'OPEN',
+    opened_at: 'Aujourd’hui à 08:00',
+    operator_name: 'Jean Dossou',
+    opening_amount: 50000,
+    cash_collected: 118500,
+    mobile_money_collected: 50000,
+    expected_closing_cash: 168500, // 50 000 fond + 118 500 espèces
+    movements: [
+        {
+            id: 'm-1',
+            time_label: '08:00',
+            label: 'Ouverture de session — Fond de caisse initial',
+            amount: 50000,
+            type: 'OPENING',
+            method: 'CASH',
+            balance_after: 50000,
+        },
+        {
+            id: 'm-2',
+            time_label: '09:14',
+            label: 'Vente billet TK-AKP-260801-01 (Bio Kora Seidou)',
+            amount: 9000,
+            type: 'SALE_CASH',
+            method: 'CASH',
+            balance_after: 59000,
+        },
+        {
+            id: 'm-3',
+            time_label: '09:22',
+            label: 'Vente billet TK-AKP-260801-02 (Mariam Bio)',
+            amount: 9000,
+            type: 'SALE_MOBILE',
+            method: 'MOBILE_MONEY',
+            balance_after: 59000,
+        },
+        {
+            id: 'm-4',
+            time_label: '10:05',
+            label: 'Vente billet VIP TK-AKP-260801-03 (David Hounsa)',
+            amount: 12000,
+            type: 'SALE_CASH',
+            method: 'CASH',
+            balance_after: 71000,
+        },
+        {
+            id: 'm-5',
+            time_label: '11:30',
+            label: 'Vente multiple 4 billets (Famille Dossou)',
+            amount: 36000,
+            type: 'SALE_CASH',
+            method: 'CASH',
+            balance_after: 107000,
+        },
+        {
+            id: 'm-6',
+            time_label: '14:15',
+            label: 'Vente Mobile Money 3 billets (Groupe étudiant)',
+            amount: 27000,
+            type: 'SALE_MOBILE',
+            method: 'MOBILE_MONEY',
+            balance_after: 107000,
+        },
+        {
+            id: 'm-7',
+            time_label: '16:00',
+            label: 'Vente 2 billets Express Parakou',
+            amount: 18000,
+            type: 'SALE_CASH',
+            method: 'CASH',
+            balance_after: 125000,
+        },
+    ],
+};
+
+export type PointConvention = {
+    ref: string;
+    title: string;
+    signed_at: string;
+    expires_at: string;
+    status: 'ACTIVE' | 'EXPIRED' | 'PENDING';
+    file_name: string;
+    file_size: string;
+    commission_rate_bps: number;
+    credit_limit_amount: number;
+};
+
+export type PointDocument = {
+    uuid: string;
+    title: string;
+    category: 'IDENTITE' | 'REGISTRE' | 'FISCAL' | 'LOCALISATION' | 'AUTRE';
+    file_name: string;
+    file_size: string;
+    uploaded_at: string;
+    status: 'VALID' | 'PENDING' | 'EXPIRED';
+};
+
+export type PointAssignedUser = {
+    uuid: string;
+    name: string;
+    email: string;
+    phone: string;
+    role_label: string;
+    assigned_at: string;
+    is_primary: boolean;
+};
+
+export const MOCK_CONVENTION: PointConvention = {
+    ref: 'CONV-KP-2026-AKP01',
+    title: 'Convention de partenariat commercial — Distribution Billetterie Bus',
+    signed_at: '15 janvier 2026',
+    expires_at: '14 janvier 2027',
+    status: 'ACTIVE',
+    file_name: 'Convention_Partenariat_KoraPoint_Akpakpa.pdf',
+    file_size: '2.4 Mo',
+    commission_rate_bps: 300,
+    credit_limit_amount: 1500000,
+};
+
+export const MOCK_DOCUMENTS: PointDocument[] = [
+    {
+        uuid: 'doc-01',
+        title: 'Pièce d’identité du Gérant (CNI)',
+        category: 'IDENTITE',
+        file_name: 'CNI_Jean_Dossou_2026.pdf',
+        file_size: '1.2 Mo',
+        uploaded_at: '10 janv. 2026',
+        status: 'VALID',
+    },
+    {
+        uuid: 'doc-02',
+        title: 'Registre du Commerce (RCCM)',
+        category: 'REGISTRE',
+        file_name: 'RCCM_Ets_Dossou_Distribution.pdf',
+        file_size: '3.1 Mo',
+        uploaded_at: '12 janv. 2026',
+        status: 'VALID',
+    },
+    {
+        uuid: 'doc-03',
+        title: 'Attestation Fiscale (IFU)',
+        category: 'FISCAL',
+        file_name: 'Attestation_IFU_0201948572.pdf',
+        file_size: '850 Ko',
+        uploaded_at: '12 janv. 2026',
+        status: 'VALID',
+    },
+    {
+        uuid: 'doc-04',
+        title: 'Bail commercial / Plan de situation local',
+        category: 'LOCALISATION',
+        file_name: 'Plan_Local_Akpakpa_PK3.pdf',
+        file_size: '4.5 Mo',
+        uploaded_at: '14 janv. 2026',
+        status: 'VALID',
+    },
+];
+
+export const MOCK_POINT_USERS: PointAssignedUser[] = [
+    {
+        uuid: 'usr-01',
+        name: 'Jean Dossou',
+        email: 'jean.dossou@korapoint.bj',
+        phone: '+229 97 00 11 22',
+        role_label: 'Gérant Point & Caissier principal',
+        assigned_at: '15 janv. 2026',
+        is_primary: true,
+    },
+    {
+        uuid: 'usr-02',
+        name: 'Awa Bio',
+        email: 'awa.bio@korapoint.bj',
+        phone: '+229 96 11 22 33',
+        role_label: 'Agent guichetier remplaçant',
+        assigned_at: '01 mars 2026',
+        is_primary: false,
+    },
+];
+
+export type PointCommissionRecord = {
+    uuid: string;
+    sale_uuid: string;
+    ticket_number: string;
+    date_label: string;
+    departure_ref: string;
+    route_label: string;
+    seller_name: string;
+    amount_paid: number;
+    commission_rate_bps: number;
+    initial_commission: number;
+    correction_amount: number; // e.g. -270 if ticket refunded
+    net_commission: number;
+    settlement_status: SettlementStatus;
+    has_refund_correction: boolean;
+    refund_ref?: string;
+    refund_reason?: string;
+};
+
+export const MOCK_COMMISSION_RECORDS: PointCommissionRecord[] = [
+    {
+        uuid: 'com-01',
+        sale_uuid: 'sale-901',
+        ticket_number: 'TK-AKP-260801-01',
+        date_label: 'Aujourd’hui 09:14',
+        departure_ref: 'KE 118',
+        route_label: 'Cotonou → Parakou',
+        seller_name: 'Jean Dossou',
+        amount_paid: 9000,
+        commission_rate_bps: 300,
+        initial_commission: 270,
+        correction_amount: 0,
+        net_commission: 270,
+        settlement_status: 'open',
+        has_refund_correction: false,
+    },
+    {
+        uuid: 'com-02',
+        sale_uuid: 'sale-902',
+        ticket_number: 'TK-AKP-260801-02',
+        date_label: 'Aujourd’hui 09:22',
+        departure_ref: 'KE 118',
+        route_label: 'Cotonou → Parakou',
+        seller_name: 'Jean Dossou',
+        amount_paid: 9000,
+        commission_rate_bps: 300,
+        initial_commission: 270,
+        correction_amount: 0,
+        net_commission: 270,
+        settlement_status: 'open',
+        has_refund_correction: false,
+    },
+    {
+        uuid: 'com-03',
+        sale_uuid: 'sale-903',
+        ticket_number: 'TK-AKP-260801-03',
+        date_label: 'Aujourd’hui 10:05',
+        departure_ref: 'KE 124 VIP',
+        route_label: 'Cotonou → Parakou',
+        seller_name: 'Jean Dossou',
+        amount_paid: 12000,
+        commission_rate_bps: 300,
+        initial_commission: 360,
+        correction_amount: 0,
+        net_commission: 360,
+        settlement_status: 'open',
+        has_refund_correction: false,
+    },
+    {
+        uuid: 'com-04',
+        sale_uuid: 'sale-890',
+        ticket_number: 'TK-AKP-260731-09',
+        date_label: '31 juil. 14:10',
+        departure_ref: 'KE 118',
+        route_label: 'Cotonou → Parakou',
+        seller_name: 'Jean Dossou',
+        amount_paid: 9000,
+        commission_rate_bps: 300,
+        initial_commission: 270,
+        correction_amount: -270,
+        net_commission: 0,
+        settlement_status: 'open',
+        has_refund_correction: true,
+        refund_ref: 'REM-2026-0004',
+        refund_reason: 'Annulation voyageur autorisée par KORA Finance. Reprise de commission effectuée.',
+    },
+    {
+        uuid: 'com-05',
+        sale_uuid: 'sale-904',
+        ticket_number: 'TK-AKP-260731-15',
+        date_label: '31 juil. 16:40',
+        departure_ref: 'KE 140 Nuit',
+        route_label: 'Cotonou → Parakou',
+        seller_name: 'Jean Dossou',
+        amount_paid: 9000,
+        commission_rate_bps: 300,
+        initial_commission: 270,
+        correction_amount: 0,
+        net_commission: 270,
+        settlement_status: 'in_settlement',
+        has_refund_correction: false,
+    },
+    {
+        uuid: 'com-06',
+        sale_uuid: 'sale-906',
+        ticket_number: 'TK-AKP-260730-01',
+        date_label: '30 juil. 08:30',
+        departure_ref: 'KE 118',
+        route_label: 'Cotonou → Parakou',
+        seller_name: 'Jean Dossou',
+        amount_paid: 9000,
+        commission_rate_bps: 300,
+        initial_commission: 270,
+        correction_amount: 0,
+        net_commission: 270,
+        settlement_status: 'settled',
+        has_refund_correction: false,
+    },
+    {
+        uuid: 'com-07',
+        sale_uuid: 'sale-907',
+        ticket_number: 'TK-AKP-260730-02',
+        date_label: '30 juil. 09:15',
+        departure_ref: 'KE 124 VIP',
+        route_label: 'Cotonou → Parakou',
+        seller_name: 'Jean Dossou',
+        amount_paid: 12000,
+        commission_rate_bps: 300,
+        initial_commission: 360,
+        correction_amount: 0,
+        net_commission: 360,
+        settlement_status: 'settled',
+        has_refund_correction: false,
+    },
+];
+
