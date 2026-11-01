@@ -18,8 +18,14 @@ import {
     Coins,
     Landmark,
     Search,
+    UserCheck,
 } from 'lucide-react';
-import { KoraPointProfile, FinancialHealth } from '../mock/kora-point-mock-data';
+import {
+    KoraPointProfile,
+    FinancialHealth,
+    KoraPointUserRole,
+    MOCK_PERSONAS,
+} from '../mock/kora-point-mock-data';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { cn } from '@/lib/utils';
 
@@ -48,6 +54,7 @@ type Props = {
     bannerSlot?: ReactNode;
     unreadNotificationsCount?: number;
     onOpenSearch?: () => void;
+    currentRole?: KoraPointUserRole;
 };
 
 export function KoraPointShell({
@@ -59,111 +66,95 @@ export function KoraPointShell({
     bannerSlot,
     unreadNotificationsCount,
     onOpenSearch,
+    currentRole = 'AGENT_POINT',
 }: Props) {
     const [mobileNavOpen, setMobileNavOpen] = useState(false);
     const isAutonomous = !point.organization;
+    const persona = MOCK_PERSONAS[currentRole] || MOCK_PERSONAS.AGENT_POINT;
 
-    const navItems = [
-        {
-            id: 'dashboard' as KoraPointActivePage,
-            label: 'Accueil agent',
-            icon: LayoutDashboard,
-            badge: null,
-        },
-        {
-            id: 'sale' as KoraPointActivePage,
-            label: 'Vente guichet',
-            icon: Ticket,
-            badge: health.sales_allowed ? 'Prêt' : 'Bloqué',
-            badgeTone: health.sales_allowed ? ('emerald' as const) : ('destructive' as const),
-        },
-        {
-            id: 'cash' as KoraPointActivePage,
-            label: 'Caisse',
-            icon: Wallet,
-            badge: null,
-        },
-        {
-            id: 'tickets' as KoraPointActivePage,
-            label: 'Billets & Activité',
-            icon: FileText,
-            badge: null,
-        },
-        {
-            id: 'my-point' as KoraPointActivePage,
-            label: 'Mon Point',
-            icon: Store,
-            badge: null,
-        },
-        {
-            id: 'commissions' as KoraPointActivePage,
-            label: 'Commissions',
-            icon: TrendingUp,
-            badge: '3 %',
-            badgeTone: 'gold' as const,
-        },
-        {
-            id: 'settlements' as KoraPointActivePage,
-            label: 'Reversements',
-            icon: ReceiptText,
-            badge: isAutonomous ? 'Préparer' : 'Trésorier',
-            badgeTone: isAutonomous ? ('navy' as const) : ('muted' as const),
-            subtext: isAutonomous ? undefined : 'Géré au niveau organisation',
-        },
-        {
-            id: 'refunds' as KoraPointActivePage,
-            label: 'Remboursements',
-            icon: RotateCcw,
-            badge: null,
-        },
-        {
-            id: 'notifications' as KoraPointActivePage,
-            label: 'Notifications',
-            icon: Bell,
-            badge: '2',
-            badgeTone: 'amber' as const,
-        },
-    ];
+    const navGroups = useMemo(() => {
+        if (currentRole === 'RESPONSABLE_ORG') {
+            return [
+                {
+                    title: 'Supervision Organisation',
+                    items: [
+                        { id: 'org-supervision' as KoraPointActivePage, label: 'Supervision réseau', icon: Building2, badge: 'Resp.', badgeTone: 'navy' as const },
+                        { id: 'admin-organizations' as KoraPointActivePage, label: 'Bureaux & Organisation', icon: Store, badge: null },
+                        { id: 'commissions' as KoraPointActivePage, label: 'Commissions réseau', icon: TrendingUp, badge: null },
+                        { id: 'tickets' as KoraPointActivePage, label: 'Ventes & Billets réseau', icon: FileText, badge: null },
+                        { id: 'settlements' as KoraPointActivePage, label: 'Dossiers financiers', icon: ReceiptText, badge: null },
+                        { id: 'notifications' as KoraPointActivePage, label: 'Notifications', icon: Bell, badge: unreadNotificationsCount ? String(unreadNotificationsCount) : null, badgeTone: 'amber' as const },
+                    ],
+                },
+            ];
+        }
 
-    const orgNavItems = [
-        {
-            id: 'org-supervision' as KoraPointActivePage,
-            label: 'Supervision réseau',
-            icon: Building2,
-            badge: 'Resp.',
-            badgeTone: 'navy' as const,
-        },
-        {
-            id: 'org-treasury' as KoraPointActivePage,
-            label: 'Trésorerie groupée',
-            icon: Coins,
-            badge: 'Trésorier',
-            badgeTone: 'gold' as const,
-        },
-    ];
+        if (currentRole === 'TRESORIER_ORG') {
+            return [
+                {
+                    title: 'Trésorerie Organisation',
+                    items: [
+                        { id: 'org-treasury' as KoraPointActivePage, label: 'Trésorerie groupée', icon: Coins, badge: 'Trésorier', badgeTone: 'gold' as const },
+                        { id: 'settlements' as KoraPointActivePage, label: 'Suivi des reversements', icon: ReceiptText, badge: null },
+                        { id: 'commissions' as KoraPointActivePage, label: 'Commissions réseau', icon: TrendingUp, badge: null },
+                        { id: 'refunds' as KoraPointActivePage, label: 'Consultation remboursements', icon: RotateCcw, badge: null },
+                        { id: 'admin-organizations' as KoraPointActivePage, label: 'Organisation & Bureaux', icon: Building2, badge: null },
+                        { id: 'notifications' as KoraPointActivePage, label: 'Notifications', icon: Bell, badge: unreadNotificationsCount ? String(unreadNotificationsCount) : null, badgeTone: 'amber' as const },
+                    ],
+                },
+            ];
+        }
 
-    const adminNavItems = [
-        {
-            id: 'admin-network' as KoraPointActivePage,
-            label: 'Réseau commercial',
-            icon: Store,
-            badge: 'Admin',
-            badgeTone: 'gold' as const,
-        },
-        {
-            id: 'admin-organizations' as KoraPointActivePage,
-            label: 'Organisations & Contrats',
-            icon: Building2,
-            badge: null,
-        },
-        {
-            id: 'finance' as KoraPointActivePage,
-            label: 'Finance KORA & Rapprochements',
-            icon: Landmark,
-            badge: 'Pôle Finance',
-            badgeTone: 'emerald' as const,
-        },
-    ];
+        if (currentRole === 'ADMIN_KORA') {
+            return [
+                {
+                    title: 'Administration Commerciale',
+                    items: [
+                        { id: 'admin-network' as KoraPointActivePage, label: 'Réseau commercial', icon: Store, badge: 'Admin', badgeTone: 'gold' as const },
+                        { id: 'admin-organizations' as KoraPointActivePage, label: 'Organisations & Contrats', icon: Building2, badge: null },
+                        { id: 'tickets' as KoraPointActivePage, label: 'Billets & Contrôle', icon: FileText, badge: null },
+                        { id: 'settlements' as KoraPointActivePage, label: 'Reversements réseau', icon: ReceiptText, badge: null },
+                        { id: 'notifications' as KoraPointActivePage, label: 'Notifications', icon: Bell, badge: unreadNotificationsCount ? String(unreadNotificationsCount) : null, badgeTone: 'amber' as const },
+                    ],
+                },
+            ];
+        }
+
+        if (currentRole === 'FINANCE_KORA') {
+            return [
+                {
+                    title: 'Pôle Finance & Trésorerie',
+                    items: [
+                        { id: 'finance' as KoraPointActivePage, label: 'Finance & Rapprochements', icon: Landmark, badge: 'Finance', badgeTone: 'emerald' as const },
+                        { id: 'settlements' as KoraPointActivePage, label: 'File des reversements', icon: ReceiptText, badge: null },
+                        { id: 'refunds' as KoraPointActivePage, label: 'Instruction remboursements', icon: RotateCcw, badge: null },
+                        { id: 'tickets' as KoraPointActivePage, label: 'Journal des ventes & audit', icon: FileText, badge: null },
+                        { id: 'commissions' as KoraPointActivePage, label: 'Commissions réseau', icon: TrendingUp, badge: null },
+                        { id: 'admin-network' as KoraPointActivePage, label: 'Réseau commercial', icon: Store, badge: null },
+                        { id: 'notifications' as KoraPointActivePage, label: 'Notifications', icon: Bell, badge: unreadNotificationsCount ? String(unreadNotificationsCount) : null, badgeTone: 'amber' as const },
+                    ],
+                },
+            ];
+        }
+
+        // AGENT_POINT (Default)
+        return [
+            {
+                title: 'Espace Agent Point',
+                items: [
+                    { id: 'dashboard' as KoraPointActivePage, label: 'Accueil agent', icon: LayoutDashboard, badge: null },
+                    { id: 'sale' as KoraPointActivePage, label: 'Vente guichet', icon: Ticket, badge: health.sales_allowed ? 'Prêt' : 'Bloqué', badgeTone: health.sales_allowed ? ('emerald' as const) : ('destructive' as const) },
+                    { id: 'cash' as KoraPointActivePage, label: 'Caisse', icon: Wallet, badge: null },
+                    { id: 'tickets' as KoraPointActivePage, label: 'Billets & Activité', icon: FileText, badge: null },
+                    { id: 'my-point' as KoraPointActivePage, label: 'Mon Point', icon: Store, badge: null },
+                    { id: 'commissions' as KoraPointActivePage, label: 'Commissions', icon: TrendingUp, badge: '3 %', badgeTone: 'gold' as const },
+                    { id: 'settlements' as KoraPointActivePage, label: 'Reversements', icon: ReceiptText, badge: isAutonomous ? 'Préparer' : 'Trésorier', badgeTone: isAutonomous ? ('navy' as const) : ('muted' as const) },
+                    { id: 'refunds' as KoraPointActivePage, label: 'Remboursements', icon: RotateCcw, badge: null },
+                    { id: 'notifications' as KoraPointActivePage, label: 'Notifications', icon: Bell, badge: unreadNotificationsCount ? String(unreadNotificationsCount) : null, badgeTone: 'amber' as const },
+                ],
+            },
+        ];
+    }, [currentRole, health.sales_allowed, isAutonomous, unreadNotificationsCount]);
 
     const handleNavClick = (pageId: KoraPointActivePage) => {
         onNavigate(pageId);
@@ -221,65 +212,13 @@ export function KoraPointShell({
                     </div>
 
                     {/* Navigation Menu */}
-                    <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4" aria-label="Navigation partenaire">
-                        <div className="px-3 pb-2 text-[0.625rem] font-black uppercase tracking-wider text-white/40">
-                            Espace agent
-                        </div>
-                        {navItems.map((item) => {
-                            const Icon = item.icon;
-                            const isActive = activePage === item.id;
-                            return (
-                                <button
-                                    key={item.id}
-                                    type="button"
-                                    onClick={() => handleNavClick(item.id)}
-                                    className={cn(
-                                        'group flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition',
-                                        isActive
-                                            ? 'bg-gold text-kora font-black shadow-md'
-                                            : 'text-white/80 hover:bg-white/10 hover:text-white',
-                                    )}
-                                >
-                                    <div className="flex items-center gap-2.5 truncate">
-                                        <Icon
-                                            className={cn(
-                                                'size-4 shrink-0',
-                                                isActive ? 'text-kora' : 'text-white/70 group-hover:text-white',
-                                            )}
-                                        />
-                                        <span className="truncate">{item.label}</span>
-                                    </div>
-                                    {item.badge && (
-                                        <span
-                                            className={cn(
-                                                'rounded-full px-2 py-0.5 text-[0.625rem] font-extrabold',
-                                                isActive
-                                                    ? 'bg-kora text-white'
-                                                    : item.badgeTone === 'emerald'
-                                                    ? 'bg-emerald-500/20 text-emerald-300'
-                                                    : item.badgeTone === 'destructive'
-                                                    ? 'bg-rose-500/25 text-rose-300'
-                                                    : item.badgeTone === 'amber'
-                                                    ? 'bg-amber-500/25 text-amber-300'
-                                                    : item.badgeTone === 'gold'
-                                                    ? 'bg-gold/25 text-gold'
-                                                    : 'bg-white/10 text-white/70',
-                                            )}
-                                        >
-                                            {item.badge}
-                                        </span>
-                                    )}
-                                </button>
-                            );
-                        })}
-
-                        {/* Organisation Sub-navigation if attached */}
-                        {point.organization && (
-                            <div className="pt-4 mt-2 border-t border-white/10">
-                                <div className="px-3 pb-2 text-[0.625rem] font-black uppercase tracking-wider text-gold">
-                                    Espace Organisation
+                    <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-4" aria-label="Navigation partenaire">
+                        {navGroups.map((group) => (
+                            <div key={group.title} className="space-y-1">
+                                <div className="px-3 pb-1 text-[0.625rem] font-black uppercase tracking-wider text-gold">
+                                    {group.title}
                                 </div>
-                                {orgNavItems.map((item) => {
+                                {group.items.map((item) => {
                                     const Icon = item.icon;
                                     const isActive = activePage === item.id;
                                     return (
@@ -298,9 +237,7 @@ export function KoraPointShell({
                                                 <Icon
                                                     className={cn(
                                                         'size-4 shrink-0',
-                                                        isActive
-                                                            ? 'text-kora'
-                                                            : 'text-white/70 group-hover:text-white',
+                                                        isActive ? 'text-kora' : 'text-white/70 group-hover:text-white',
                                                     )}
                                                 />
                                                 <span className="truncate">{item.label}</span>
@@ -311,9 +248,15 @@ export function KoraPointShell({
                                                         'rounded-full px-2 py-0.5 text-[0.625rem] font-extrabold',
                                                         isActive
                                                             ? 'bg-kora text-white'
+                                                            : item.badgeTone === 'emerald'
+                                                            ? 'bg-emerald-500/20 text-emerald-300'
+                                                            : item.badgeTone === 'destructive'
+                                                            ? 'bg-rose-500/25 text-rose-300'
+                                                            : item.badgeTone === 'amber'
+                                                            ? 'bg-amber-500/25 text-amber-300'
                                                             : item.badgeTone === 'gold'
                                                             ? 'bg-gold/25 text-gold'
-                                                            : 'bg-white/15 text-white',
+                                                            : 'bg-white/10 text-white/70',
                                                     )}
                                                 >
                                                     {item.badge}
@@ -323,73 +266,23 @@ export function KoraPointShell({
                                     );
                                 })}
                             </div>
-                        )}
-
-                        {/* Administration Réseau Section */}
-                        <div className="pt-4 mt-2 border-t border-white/10">
-                            <div className="px-3 pb-2 text-[0.625rem] font-black uppercase tracking-wider text-white/40">
-                                Administration Réseau KORA
-                            </div>
-                            {adminNavItems.map((item) => {
-                                const Icon = item.icon;
-                                const isActive = activePage === item.id;
-                                return (
-                                    <button
-                                        key={item.id}
-                                        type="button"
-                                        onClick={() => handleNavClick(item.id)}
-                                        className={cn(
-                                            'group flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition',
-                                            isActive
-                                                ? 'bg-gold text-kora font-black shadow-md'
-                                                : 'text-white/80 hover:bg-white/10 hover:text-white',
-                                        )}
-                                    >
-                                        <div className="flex items-center gap-2.5 truncate">
-                                            <Icon
-                                                className={cn(
-                                                    'size-4 shrink-0',
-                                                    isActive
-                                                        ? 'text-kora'
-                                                        : 'text-white/70 group-hover:text-white',
-                                                )}
-                                            />
-                                            <span className="truncate">{item.label}</span>
-                                        </div>
-                                        {item.badge && (
-                                            <span
-                                                className={cn(
-                                                    'rounded-full px-2 py-0.5 text-[0.625rem] font-extrabold',
-                                                    isActive
-                                                        ? 'bg-kora text-white'
-                                                        : 'bg-gold/25 text-gold',
-                                                )}
-                                            >
-                                                {item.badge}
-                                            </span>
-                                        )}
-                                    </button>
-                                );
-                            })}
-                        </div>
+                        ))}
                     </nav>
 
                     {/* Footer User Menu */}
                     <div className="border-t border-white/10 p-4">
                         <div className="flex items-center justify-between gap-3">
                             <div className="flex items-center gap-2.5 truncate">
-                                <div className="grid size-8 place-items-center rounded-full bg-white/15 text-xs font-black text-white">
-                                    {point.manager_name
-                                        .split(' ')
-                                        .map((n) => n[0])
-                                        .join('')
-                                        .slice(0, 2)}
+                                <div className="grid size-8 place-items-center rounded-full bg-gold text-xs font-black text-kora shrink-0">
+                                    {persona.initials}
                                 </div>
                                 <div className="truncate">
                                     <div className="truncate text-xs font-bold text-white">
-                                        {point.manager_name}
+                                        {persona.name}
                                     </div>
-                                    <div className="text-[0.625rem] text-white/60">Agent guichet</div>
+                                    <div className="text-[0.625rem] text-gold font-semibold truncate">
+                                        {persona.roleLabel}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -428,6 +321,13 @@ export function KoraPointShell({
                                     tone={point.organization ? 'blue' : 'emerald'}
                                     variant="solid"
                                     className="hidden sm:inline-flex"
+                                />
+
+                                <KoraStatusBadge
+                                    label={`${persona.roleLabel} • ${persona.name}`}
+                                    tone={persona.badgeTone}
+                                    variant="solid"
+                                    className="hidden md:inline-flex"
                                 />
                             </div>
                         </div>
@@ -509,41 +409,13 @@ export function KoraPointShell({
                                     </button>
                                 </div>
 
-                                <nav className="flex-1 space-y-1 overflow-y-auto">
-                                    {navItems.map((item) => {
-                                        const Icon = item.icon;
-                                        const isActive = activePage === item.id;
-                                        return (
-                                            <button
-                                                key={item.id}
-                                                type="button"
-                                                onClick={() => handleNavClick(item.id)}
-                                                className={cn(
-                                                    'flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition',
-                                                    isActive
-                                                        ? 'bg-gold text-kora font-black shadow-md'
-                                                        : 'text-white/80 hover:bg-white/10 hover:text-white',
-                                                )}
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <Icon className="size-4 shrink-0" />
-                                                    <span>{item.label}</span>
-                                                </div>
-                                                {item.badge && (
-                                                    <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold">
-                                                        {item.badge}
-                                                    </span>
-                                                )}
-                                            </button>
-                                        );
-                                    })}
-
-                                    {point.organization && (
-                                        <div className="pt-3 mt-2 border-t border-white/10">
-                                            <div className="px-3 pb-2 text-xs font-black uppercase tracking-wider text-gold">
-                                                Espace Organisation
+                                <nav className="flex-1 space-y-4 overflow-y-auto">
+                                    {navGroups.map((group) => (
+                                        <div key={group.title} className="space-y-1">
+                                            <div className="px-3 pb-1 text-xs font-black uppercase tracking-wider text-gold">
+                                                {group.title}
                                             </div>
-                                            {orgNavItems.map((item) => {
+                                            {group.items.map((item) => {
                                                 const Icon = item.icon;
                                                 const isActive = activePage === item.id;
                                                 return (
@@ -571,40 +443,7 @@ export function KoraPointShell({
                                                 );
                                             })}
                                         </div>
-                                    )}
-
-                                    <div className="pt-3 mt-2 border-t border-white/10">
-                                        <div className="px-3 pb-2 text-xs font-black uppercase tracking-wider text-white/40">
-                                            Administration Réseau KORA
-                                        </div>
-                                        {adminNavItems.map((item) => {
-                                            const Icon = item.icon;
-                                            const isActive = activePage === item.id;
-                                            return (
-                                                <button
-                                                    key={item.id}
-                                                    type="button"
-                                                    onClick={() => handleNavClick(item.id)}
-                                                    className={cn(
-                                                        'flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition',
-                                                        isActive
-                                                            ? 'bg-gold text-kora font-black shadow-md'
-                                                            : 'text-white/80 hover:bg-white/10 hover:text-white',
-                                                    )}
-                                                >
-                                                    <div className="flex items-center gap-3">
-                                                        <Icon className="size-4 shrink-0" />
-                                                        <span>{item.label}</span>
-                                                    </div>
-                                                    {item.badge && (
-                                                        <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold">
-                                                            {item.badge}
-                                                        </span>
-                                                    )}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
+                                    ))}
                                 </nav>
                             </div>
                         </div>

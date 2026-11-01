@@ -18,12 +18,22 @@ import { KoraGlobalSearchDialog } from '@/components/kora-points/search/kora-glo
 import { KoraPointShell, KoraPointActivePage } from '@/components/kora-points/common/kora-point-shell';
 import { KoraPointDemoBanner } from '@/components/kora-points/common/kora-point-demo-banner';
 import { useKoraPointDemo } from '@/components/kora-points/mock/use-kora-point-demo';
+import { KoraPointUserRole, MOCK_PERSONAS } from '@/components/kora-points/mock/kora-point-mock-data';
 
 export default function KoraPointPreviewPage() {
     const demo = useKoraPointDemo('autonomous_healthy');
+    const [currentRole, setCurrentRole] = useState<KoraPointUserRole>('AGENT_POINT');
     const [activePage, setActivePage] = useState<KoraPointActivePage>('dashboard');
     const [tourKey, setTourKey] = useState(0);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+    const handleRoleChange = (newRole: KoraPointUserRole) => {
+        setCurrentRole(newRole);
+        const persona = MOCK_PERSONAS[newRole];
+        if (persona) {
+            setActivePage(persona.defaultPage as KoraPointActivePage);
+        }
+    };
 
     const unreadNotificationsCount = demo.notifications.filter((n) => !n.read).length;
 
@@ -38,10 +48,13 @@ export default function KoraPointPreviewPage() {
                 onNavigate={(page) => setActivePage(page)}
                 unreadNotificationsCount={unreadNotificationsCount}
                 onOpenSearch={() => setIsSearchOpen(true)}
+                currentRole={currentRole}
                 bannerSlot={
                     <KoraPointDemoBanner
                         currentScenario={demo.scenarioId}
                         onScenarioChange={demo.changeScenario}
+                        currentRole={currentRole}
+                        onRoleChange={handleRoleChange}
                         onReset={demo.resetDemo}
                         onRestartTour={() => setTourKey((k) => k + 1)}
                     />
@@ -206,6 +219,7 @@ export default function KoraPointPreviewPage() {
                 points={demo.adminNetworkPoints}
                 organizations={demo.adminOrganizations}
                 settlements={demo.settlements}
+                currentRole={currentRole}
                 onNavigate={(page) => setActivePage(page)}
             />
         </>

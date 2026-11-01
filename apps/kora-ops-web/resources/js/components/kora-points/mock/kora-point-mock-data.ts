@@ -2098,6 +2098,75 @@ export const MOCK_NOTIFICATIONS: KoraNotificationItem[] = [
     },
 ];
 
+// -------------------------------------------------------------
+// RÔLES, PROFILS & PERSONAS DE DÉMONSTRATION (MEZ-157)
+// -------------------------------------------------------------
+
+export type KoraPointUserRole =
+    | 'AGENT_POINT'
+    | 'RESPONSABLE_ORG'
+    | 'TRESORIER_ORG'
+    | 'ADMIN_KORA'
+    | 'FINANCE_KORA';
+
+export type KoraPersona = {
+    role: KoraPointUserRole;
+    name: string;
+    roleLabel: string;
+    initials: string;
+    contextLabel: string;
+    badgeTone: 'emerald' | 'navy' | 'gold' | 'blue';
+    defaultPage: string;
+};
+
+export const MOCK_PERSONAS: Record<KoraPointUserRole, KoraPersona> = {
+    AGENT_POINT: {
+        role: 'AGENT_POINT',
+        name: 'Jean Dossou',
+        roleLabel: 'Agent de Guichet & Caisse',
+        initials: 'JD',
+        contextLabel: 'Point Service Akpakpa (KP-AKP-01)',
+        badgeTone: 'emerald',
+        defaultPage: 'dashboard',
+    },
+    RESPONSABLE_ORG: {
+        role: 'RESPONSABLE_ORG',
+        name: 'Koffi Paul Hounkpatin',
+        roleLabel: 'Directeur Commercial & Réseau',
+        initials: 'PH',
+        contextLabel: 'La Poste du Bénin SA (Supervision)',
+        badgeTone: 'navy',
+        defaultPage: 'org-supervision',
+    },
+    TRESORIER_ORG: {
+        role: 'TRESORIER_ORG',
+        name: 'Adolphe Gbaguidi',
+        roleLabel: 'Trésorier Général Organisation',
+        initials: 'AG',
+        contextLabel: 'La Poste du Bénin SA (Trésorerie)',
+        badgeTone: 'gold',
+        defaultPage: 'org-treasury',
+    },
+    ADMIN_KORA: {
+        role: 'ADMIN_KORA',
+        name: 'Éric Lawson',
+        roleLabel: 'Administrateur Réseau KORA',
+        initials: 'EL',
+        contextLabel: 'Administration Réseau National',
+        badgeTone: 'gold',
+        defaultPage: 'admin-network',
+    },
+    FINANCE_KORA: {
+        role: 'FINANCE_KORA',
+        name: 'Clarisse Mensah',
+        roleLabel: 'Pôle Finance & Trésorerie Centrale',
+        initials: 'CM',
+        contextLabel: 'Contrôle & Rapprochement Bancaire',
+        badgeTone: 'blue',
+        defaultPage: 'finance',
+    },
+};
+
 
 
 

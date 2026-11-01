@@ -17,6 +17,7 @@ import {
     AdminNetworkPoint,
     AdminOrganization,
     PointSettlementRecord,
+    KoraPointUserRole,
 } from '../mock/kora-point-mock-data';
 import { KoraPointActivePage } from '../common/kora-point-shell';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
@@ -29,6 +30,7 @@ type Props = {
     organizations: AdminOrganization[];
     settlements: PointSettlementRecord[];
     onNavigate: (page: KoraPointActivePage) => void;
+    currentRole?: KoraPointUserRole;
 };
 
 type SearchResultItem = {
@@ -51,6 +53,7 @@ export function KoraGlobalSearchDialog({
     organizations,
     settlements,
     onNavigate,
+    currentRole = 'AGENT_POINT',
 }: Props) {
     const [query, setQuery] = useState('');
     const [activeCategory, setActiveCategory] = useState<string>('ALL');
@@ -86,11 +89,47 @@ export function KoraGlobalSearchDialog({
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isOpen, onClose]);
 
+    // Filter datasets according to active persona permissions
+    const accessibleSales = useMemo(() => {
+        if (currentRole === 'AGENT_POINT') {
+            return sales.filter((s) => s.seller_name.includes('Jean Dossou') || s.ticket_number.includes('AKP'));
+        }
+        return sales;
+    }, [sales, currentRole]);
+
+    const accessiblePoints = useMemo(() => {
+        if (currentRole === 'AGENT_POINT') {
+            return points.filter((p) => p.code.includes('AKP'));
+        }
+        if (currentRole === 'RESPONSABLE_ORG' || currentRole === 'TRESORIER_ORG') {
+            return points.filter((p) => p.organization_name?.includes('La Poste'));
+        }
+        return points;
+    }, [points, currentRole]);
+
+    const accessibleOrgs = useMemo(() => {
+        if (currentRole === 'AGENT_POINT') return [];
+        if (currentRole === 'RESPONSABLE_ORG' || currentRole === 'TRESORIER_ORG') {
+            return organizations.filter((o) => o.code.includes('LAPOSTE'));
+        }
+        return organizations;
+    }, [organizations, currentRole]);
+
+    const accessibleSettlements = useMemo(() => {
+        if (currentRole === 'AGENT_POINT') {
+            return settlements.filter((s) => s.point_name.includes('Akpakpa'));
+        }
+        if (currentRole === 'RESPONSABLE_ORG' || currentRole === 'TRESORIER_ORG') {
+            return settlements.filter((s) => s.reference.includes('ORG') || s.point_name.includes('Akpakpa') || s.point_name.includes('Poste'));
+        }
+        return settlements;
+    }, [settlements, currentRole]);
+
     // Transform datasets to unified results
     const allResults = useMemo<SearchResultItem[]>(() => {
         const q = query.trim().toLowerCase();
 
-        const ticketResults: SearchResultItem[] = sales.map((sale) => ({
+        const ticketResults: SearchResultItem[] = accessibleSales.map((sale) => ({
             id: `ticket-${sale.uuid}`,
             category: 'TICKET',
             categoryLabel: 'Billet Bus',
@@ -112,7 +151,7 @@ export function KoraGlobalSearchDialog({
             targetPage: 'tickets',
         }));
 
-        const pointResults: SearchResultItem[] = points.map((p) => ({
+        const pointResults: SearchResultItem[] = accessiblePoints.map((p) => ({
             id: `point-${p.uuid}`,
             category: 'POINT',
             categoryLabel: 'Point de Vente',
@@ -133,10 +172,10 @@ export function KoraGlobalSearchDialog({
                     : p.status === 'WARNING_THRESHOLD'
                     ? 'amber'
                     : 'destructive',
-            targetPage: 'admin-network',
+            targetPage: currentRole === 'RESPONSABLE_ORG' ? 'org-supervision' : 'admin-network',
         }));
 
-        const orgResults: SearchResultItem[] = organizations.map((org) => ({
+        const orgResults: SearchResultItem[] = accessibleOrgs.map((org) => ({
             id: `org-${org.uuid}`,
             category: 'ORGANIZATION',
             categoryLabel: 'Organisation',
@@ -148,7 +187,7 @@ export function KoraGlobalSearchDialog({
             targetPage: 'admin-organizations',
         }));
 
-        const settlementResults: SearchResultItem[] = settlements.map((set) => ({
+        const settlementResults: SearchResultItem[] = accessibleSettlements.map((set) => ({
             id: `set-${set.uuid}`,
             category: 'SETTLEMENT',
             categoryLabel: 'Reversement',
@@ -171,7 +210,7 @@ export function KoraGlobalSearchDialog({
                     : set.status === 'REJECTED'
                     ? 'destructive'
                     : 'muted',
-            targetPage: 'settlements',
+            targetPage: currentRole === 'FINANCE_KORA' ? 'finance' : currentRole === 'TRESORIER_ORG' ? 'org-treasury' : 'settlements',
         }));
 
         const combined = [...ticketResults, ...pointResults, ...orgResults, ...settlementResults];
@@ -187,7 +226,7 @@ export function KoraGlobalSearchDialog({
                 item.subtitle.toLowerCase().includes(q) ||
                 (item.meta && item.meta.toLowerCase().includes(q)),
         );
-    }, [sales, points, organizations, settlements, query]);
+    }, [accessibleSales, accessiblePoints, accessibleOrgs, accessibleSettlements, query, currentRole]);
 
     // Filter by selected category chip
     const filteredResults = useMemo(() => {

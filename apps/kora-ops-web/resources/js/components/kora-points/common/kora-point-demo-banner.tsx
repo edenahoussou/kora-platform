@@ -1,9 +1,11 @@
-import { RotateCcw, Sparkles, HelpCircle, AlertCircle } from 'lucide-react';
-import { DemoScenarioId } from '../mock/kora-point-mock-data';
+import { RotateCcw, Sparkles, HelpCircle, AlertCircle, UserCheck } from 'lucide-react';
+import { DemoScenarioId, KoraPointUserRole, MOCK_PERSONAS } from '../mock/kora-point-mock-data';
 
 type Props = {
     currentScenario: DemoScenarioId;
     onScenarioChange: (scenario: DemoScenarioId) => void;
+    currentRole?: KoraPointUserRole;
+    onRoleChange?: (role: KoraPointUserRole) => void;
     onReset: () => void;
     onRestartTour?: () => void;
 };
@@ -39,6 +41,8 @@ const SCENARIOS: { id: DemoScenarioId; label: string; desc: string }[] = [
 export function KoraPointDemoBanner({
     currentScenario,
     onScenarioChange,
+    currentRole = 'AGENT_POINT',
+    onRoleChange,
     onReset,
     onRestartTour,
 }: Props) {
@@ -55,12 +59,32 @@ export function KoraPointDemoBanner({
                         Mode Démonstration UI
                     </span>
                     <span className="hidden font-medium text-amber-900/80 sm:inline dark:text-amber-200/80">
-                        Données simulées en local pour la recette MEZ-157
+                        Recette MEZ-157
                     </span>
                 </div>
 
                 {/* Right: Controls */}
                 <div className="flex flex-wrap items-center gap-2">
+                    {/* Role / Persona Switcher */}
+                    {onRoleChange && (
+                        <label className="flex items-center gap-1.5 font-medium">
+                            <span className="text-[0.6875rem] font-bold text-amber-900/70 dark:text-amber-300/70">
+                                Profil :
+                            </span>
+                            <select
+                                value={currentRole}
+                                onChange={(e) => onRoleChange(e.target.value as KoraPointUserRole)}
+                                className="h-8 rounded-lg border border-amber-300/60 bg-white/90 px-2 py-1 text-xs font-black text-amber-950 shadow-sm transition hover:bg-white focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-amber-500/40 dark:bg-slate-900/90 dark:text-amber-100"
+                            >
+                                <option value="AGENT_POINT">Agent Point (Jean Dossou)</option>
+                                <option value="RESPONSABLE_ORG">Resp. Organisation (Paul H.)</option>
+                                <option value="TRESORIER_ORG">Trésorier Org. (Adolphe G.)</option>
+                                <option value="ADMIN_KORA">Admin Réseau (Éric L.)</option>
+                                <option value="FINANCE_KORA">Finance KORA (Clarisse M.)</option>
+                            </select>
+                        </label>
+                    )}
+
                     <label className="flex items-center gap-1.5 font-medium">
                         <span className="sr-only">Scénario de test :</span>
                         <select
