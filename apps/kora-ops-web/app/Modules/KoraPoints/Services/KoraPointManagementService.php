@@ -83,6 +83,9 @@ class KoraPointManagementService
             if (! $creating && ! empty($data['points'])) {
                 throw ValidationException::withMessages(['points' => 'Les bureaux se rattachent individuellement depuis leur fiche.']);
             }
+            if ($creating && empty($data['code'])) {
+                $data['code'] = $this->generateOrganizationCode((string) ($data['name'] ?? 'ORG'));
+            }
             $organization = $creating ? new KoraPointOrganization(['status' => 'active']) : KoraPointOrganization::query()->lockForUpdate()->whereKey($organization->getKey())->firstOrFail();
             $before = $organization->getAttributes();
             $organization->fill(Arr::only($data, ['code', 'name', 'phone', 'address']));
@@ -153,13 +156,34 @@ class KoraPointManagementService
     }
 
     /** @param array<string, mixed> $before */
-    /**
-     * Writes an audit activity entry capturing before and after attribute snapshots.
-     *
-     * @param  array<string, mixed>  $before
-     */
     private function audit(User $actor, KoraPoint|KoraPointOrganization $subject, string $event, array $before): void
     {
         activity('kora-points')->performedOn($subject)->causedBy($actor)->withProperties(['before' => $before, 'after' => $subject->getAttributes()])->log($event);
+    }
+
+    /** Generates a unique business code from an organization name (e.g. LPB-01). */
+    private function generateOrganizationCode(string $name): string
+    {
+        $words = preg_split('/[\s\-_\'\.]+/u', trim($name)) ?: [];
+        $words = array_values(array_filter($words, fn (string $w): bool => $w !== ''));
+        $prefix = '';
+        foreach ($words as $word) {
+            $clean = preg_replace('/[^A-Za-z0-9]/', '', $word);
+            if ($clean !== '') {
+                $prefix .= strtoupper(substr($clean, 0, 1));
+            }
+        }
+        if (strlen($prefix) < 3) {
+            $cleanName = strtoupper((string) preg_replace('/[^A-Za-z0-9]/', '', $name));
+            $prefix = substr($cleanName.'ORG', 0, 4);
+        }
+        $prefix = substr($prefix, 0, 6);
+        $counter = 1;
+        do {
+            $candidate = sprintf('%s-%02d', $prefix, $counter);
+            $counter++;
+        } while (KoraPointOrganization::query()->where('code', $candidate)->exists());
+
+        return $candidate;
     }
 }

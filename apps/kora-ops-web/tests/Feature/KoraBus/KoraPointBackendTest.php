@@ -117,6 +117,19 @@ it('creates standalone points through web routes with optional GPS and documents
     expect($point->organization_id)->toBeNull()->and($point->latitude)->toBeNull()->and($point->agency->kind)->toBe('partner');
 });
 
+it('creates an organization with auto generated code composed from structure name', function (): void {
+    $this->actingAs($this->commercial)->post(route('kora-points.organizations.store'), [
+        'name' => 'La Poste du Bénin',
+        'phone' => '+22921300000',
+        'address' => 'Ganhi, Cotonou',
+    ])->assertRedirect();
+
+    $org = KoraPointOrganization::query()->where('name', 'La Poste du Bénin')->sole();
+    expect($org->code)->toBe('LPDB-01')
+        ->and($org->phone)->toBe('+22921300000')
+        ->and($org->address)->toBe('Ganhi, Cotonou');
+});
+
 it('creates an organization and its points atomically and rolls back invalid batches', function (): void {
     $point = ['code' => 'POST-1', 'name' => 'Bureau central', 'city' => 'Lomé', 'country' => 'TG', 'responsible_name' => 'Afi', 'phone' => '+22890000000'];
     $this->actingAs($this->commercial)->post(route('kora-points.organizations.store'), ['code' => 'POST', 'name' => 'La Poste', 'points' => [$point, $point]])->assertSessionHasErrors('points.0.code');
