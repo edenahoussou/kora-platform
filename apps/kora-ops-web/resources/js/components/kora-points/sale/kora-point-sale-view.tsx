@@ -1,31 +1,27 @@
-import { useState } from 'react';
 import {
-    MapPin,
-    Calendar,
-    Users,
     ArrowRight,
-    Check,
-    CreditCard,
-    Smartphone,
     Banknote,
-    User,
-    Phone,
-    FileBadge,
-    Info,
+    Calendar,
+    Check,
     ChevronLeft,
-    Clock,
-    AlertCircle,
+    FileBadge,
+    MapPin,
+    Phone,
+    Smartphone,
+    User,
 } from 'lucide-react';
-import {
+import { useState } from 'react';
+import { cn } from '@/lib/utils';
+import type {
     FinancialHealth,
     KoraPointProfile,
-    MOCK_DEPARTURES,
     PointSaleRecord,
-    SaleDepartureMock,
+    SaleDepartureMock} from '../mock/kora-point-mock-data';
+import {
+    MOCK_DEPARTURES
 } from '../mock/kora-point-mock-data';
 import { KoraPointSaleCapacityCard } from './kora-point-sale-capacity-card';
 import { KoraPointSaleSuccessDialog } from './kora-point-sale-success-dialog';
-import { cn } from '@/lib/utils';
 
 type Props = {
     point: KoraPointProfile;
@@ -97,13 +93,17 @@ export function KoraPointSaleView({
 
     const validatePassengerStep = () => {
         const errors: { [key: string]: string } = {};
+
         if (!passengerName.trim()) {
             errors.passengerName = 'Le prénom et nom du voyageur sont obligatoires.';
         }
+
         if (!passengerPhone.trim()) {
             errors.passengerPhone = 'Le numéro de téléphone est obligatoire pour le billet.';
         }
+
         setFormErrors(errors);
+
         return Object.keys(errors).length === 0;
     };
 
@@ -114,7 +114,9 @@ export function KoraPointSaleView({
     };
 
     const handleConfirmSale = () => {
-        if (isExceeded) return;
+        if (isExceeded) {
+return;
+}
 
         const record = onSaleCompleted({
             passengerName: passengerName || 'Passager Guichet',
@@ -150,31 +152,47 @@ export function KoraPointSaleView({
                 onNewSale={resetSaleForm}
             />
 
-            {/* Top Navigation & Stepper */}
-            <div className="flex flex-col gap-4 border-b border-slate-200 pb-4 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800">
-                <div className="flex items-center gap-3">
+            {/* Page Header */}
+            <div className="kora-page-head cash-reveal mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                    <div className="kora-breadcrumb mb-2 text-[0.6875rem] text-muted-foreground">
+                        KORA POINT / Espace Agent / Vente
+                    </div>
+                    <h1 className="text-[clamp(1.8rem,3vw,2.65rem)] font-extrabold tracking-[-0.055em] text-foreground">
+                        Vente au guichet
+                    </h1>
+                    <p className="mt-1.5 text-[0.8125rem] leading-6 text-muted-foreground">
+                        Émission de billets, attribution des sièges et encaissement direct.
+                    </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2.5">
                     <button
                         type="button"
                         onClick={onBackToDashboard}
-                        className="grid size-9 place-items-center rounded-xl border border-slate-200 text-slate-600 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-                        title="Retour à l'accueil"
+                        className="btn btn-ghost"
                     >
-                        <ChevronLeft className="size-5" />
+                        <ChevronLeft className="size-4" />
+                        <span>Retour au tableau de bord</span>
                     </button>
-                    <div>
-                        <div className="flex items-center gap-2">
-                            <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[0.625rem] font-bold text-blue-700 dark:bg-blue-500/10 dark:text-blue-400">
-                                Guichet Partenaire
-                            </span>
-                            <span className="text-xs text-slate-400">Étape {step} sur 4</span>
-                        </div>
-                        <h1 className="text-lg font-black text-slate-900 sm:text-xl dark:text-white">
-                            {step === 1 && '1. Choix du voyage et départ'}
-                            {step === 2 && '2. Sélection des places'}
-                            {step === 3 && '3. Coordonnées des passagers'}
-                            {step === 4 && '4. Encaissement guichet'}
-                        </h1>
+                </div>
+            </div>
+
+            {/* Top Stepper Header */}
+            <div className="flex flex-col gap-4 border-b border-border/60 pb-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <div className="flex items-center gap-2">
+                        <span className="section-kicker text-gold">
+                            Guichet Partenaire
+                        </span>
+                        <span className="text-xs text-muted-foreground">Étape {step} sur 4</span>
                     </div>
+                    <h2 className="text-base font-extrabold text-foreground">
+                        {step === 1 && '1. Choix du voyage et départ'}
+                        {step === 2 && '2. Sélection des places'}
+                        {step === 3 && '3. Coordonnées des passagers'}
+                        {step === 4 && '4. Encaissement guichet'}
+                    </h2>
                 </div>
 
                 {/* Progress Indicators */}
@@ -191,12 +209,12 @@ export function KoraPointSaleView({
                             onClick={() => s.num < step && setStep(s.num as any)}
                             disabled={s.num > step}
                             className={cn(
-                                'flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs font-bold transition',
+                                'btn btn-sm',
                                 step === s.num
-                                    ? 'bg-[var(--kora)] text-white dark:bg-digital dark:text-kora'
+                                    ? 'btn-navy'
                                     : s.num < step
-                                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 cursor-pointer'
-                                    : 'bg-slate-100 text-slate-400 dark:bg-slate-800 cursor-not-allowed',
+                                    ? 'btn-ghost text-emerald-600'
+                                    : 'btn-ghost opacity-40 cursor-not-allowed',
                             )}
                         >
                             <span>{s.num < step ? '✓' : s.num}</span>
@@ -283,6 +301,7 @@ export function KoraPointSaleView({
 
                                 {MOCK_DEPARTURES.map((dep) => {
                                     const isSelected = selectedDeparture.uuid === dep.uuid;
+
                                     return (
                                         <button
                                             key={dep.uuid}
@@ -352,7 +371,7 @@ export function KoraPointSaleView({
                                 <button
                                     type="button"
                                     onClick={() => setStep(2)}
-                                    className="inline-flex items-center gap-2 rounded-xl bg-gold px-5 py-2.5 text-xs font-black uppercase tracking-wider text-kora shadow-md transition hover:bg-gold/90"
+                                    className="btn btn-primary"
                                 >
                                     <span>Choisir les places</span>
                                     <ArrowRight className="size-4" />
@@ -388,6 +407,7 @@ export function KoraPointSaleView({
                                 <div className="grid grid-cols-4 gap-3 max-w-xs mx-auto">
                                     {availableSeatOptions.map((seat) => {
                                         const isSelected = selectedSeats.includes(seat);
+
                                         return (
                                             <button
                                                 key={seat}
@@ -422,7 +442,7 @@ export function KoraPointSaleView({
                                 <button
                                     type="button"
                                     onClick={() => setStep(1)}
-                                    className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white"
+                                    className="btn btn-ghost"
                                 >
                                     ← Changer le départ
                                 </button>
@@ -430,7 +450,7 @@ export function KoraPointSaleView({
                                 <button
                                     type="button"
                                     onClick={() => setStep(3)}
-                                    className="inline-flex items-center gap-2 rounded-xl bg-gold px-5 py-2.5 text-xs font-black uppercase tracking-wider text-kora shadow-md transition hover:bg-gold/90"
+                                    className="btn btn-primary"
                                 >
                                     <span>Renseigner les passagers</span>
                                     <ArrowRight className="size-4" />
@@ -469,6 +489,7 @@ export function KoraPointSaleView({
                                         value={passengerName}
                                         onChange={(e) => {
                                             setPassengerName(e.target.value);
+
                                             if (formErrors.passengerName) {
                                                 setFormErrors({ ...formErrors, passengerName: '' });
                                             }
@@ -501,6 +522,7 @@ export function KoraPointSaleView({
                                         value={passengerPhone}
                                         onChange={(e) => {
                                             setPassengerPhone(e.target.value);
+
                                             if (formErrors.passengerPhone) {
                                                 setFormErrors({ ...formErrors, passengerPhone: '' });
                                             }
@@ -555,7 +577,7 @@ export function KoraPointSaleView({
                                 <button
                                     type="button"
                                     onClick={() => setStep(2)}
-                                    className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white"
+                                    className="btn btn-ghost"
                                 >
                                     ← Modifier les places
                                 </button>
@@ -563,7 +585,7 @@ export function KoraPointSaleView({
                                 <button
                                     type="button"
                                     onClick={handleNextToPayment}
-                                    className="inline-flex items-center gap-2 rounded-xl bg-gold px-5 py-2.5 text-xs font-black uppercase tracking-wider text-kora shadow-md transition hover:bg-gold/90"
+                                    className="btn btn-primary"
                                 >
                                     <span>Procéder au paiement</span>
                                     <ArrowRight className="size-4" />
@@ -675,11 +697,11 @@ export function KoraPointSaleView({
                             )}
 
                             {/* Final Action */}
-                            <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
+                            <div className="flex items-center justify-between pt-3 border-t border-border/60">
                                 <button
                                     type="button"
                                     onClick={() => setStep(3)}
-                                    className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white"
+                                    className="btn btn-ghost"
                                 >
                                     ← Modifier les passagers
                                 </button>
@@ -688,7 +710,7 @@ export function KoraPointSaleView({
                                     type="button"
                                     onClick={handleConfirmSale}
                                     disabled={isExceeded}
-                                    className="inline-flex h-11 items-center gap-2 rounded-xl bg-emerald-600 px-6 text-xs font-black uppercase tracking-wider text-white shadow-lg transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-slate-800"
+                                    className="btn btn-primary"
                                 >
                                     <Check className="size-4" />
                                     <span>Valider et émettre le billet</span>

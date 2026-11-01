@@ -9,6 +9,7 @@ import {
     PanelLeftClose,
     PanelLeftOpen,
     ReceiptText,
+    RotateCcw,
     ShieldCheck,
     Store,
     Ticket,
@@ -48,10 +49,63 @@ type NavEntry = {
     href: string;
     icon: typeof LayoutDashboard;
     permission: NavPermission;
+    exact?: boolean;
     children?: NavChild[];
 };
 
 const companyPortalHref = companyPortalRoutes.index.url();
+
+const koraPointAgentNavItems: NavEntry[] = [
+    {
+        title: 'Tableau de bord',
+        href: '/kora-point',
+        icon: LayoutDashboard,
+        permission: null,
+        exact: true,
+    },
+    {
+        title: 'Vente de billets',
+        href: '/kora-point/sale',
+        icon: Ticket,
+        permission: null,
+    },
+    {
+        title: 'Session caisse',
+        href: '/kora-point/cash',
+        icon: Wallet,
+        permission: null,
+    },
+    {
+        title: 'Billets émis',
+        href: '/kora-point/tickets',
+        icon: FileText,
+        permission: null,
+    },
+    {
+        title: 'Mon Point',
+        href: '/kora-point/profile',
+        icon: Store,
+        permission: null,
+    },
+    {
+        title: 'Commissions',
+        href: '/kora-point/commissions',
+        icon: TrendingUp,
+        permission: null,
+    },
+    {
+        title: 'Versements',
+        href: '/kora-point/settlements',
+        icon: ReceiptText,
+        permission: null,
+    },
+    {
+        title: 'Remboursements',
+        href: '/kora-point/refunds',
+        icon: RotateCcw,
+        permission: null,
+    },
+];
 
 const navItems: NavEntry[] = [
     {
@@ -59,6 +113,63 @@ const navItems: NavEntry[] = [
         href: dashboard().url,
         icon: LayoutDashboard,
         permission: null,
+    },
+    {
+        title: 'KORA POINT',
+        href: '/kora-point',
+        icon: Store,
+        permission: null,
+        children: [
+            {
+                title: 'Tableau de bord',
+                href: '/kora-point',
+                permission: null,
+                role: 'kora_point_agent',
+                exact: true,
+            },
+            {
+                title: 'Vente de billets',
+                href: '/kora-point/sale',
+                permission: null,
+                role: 'kora_point_agent',
+            },
+            {
+                title: 'Session caisse',
+                href: '/kora-point/cash',
+                permission: null,
+                role: 'kora_point_agent',
+            },
+            {
+                title: 'Billets émis',
+                href: '/kora-point/tickets',
+                permission: null,
+                role: 'kora_point_agent',
+            },
+            {
+                title: 'Mon Point',
+                href: '/kora-point/profile',
+                permission: null,
+                role: 'kora_point_agent',
+            },
+            {
+                title: 'Commissions',
+                href: '/kora-point/commissions',
+                permission: null,
+                role: 'kora_point_agent',
+            },
+            {
+                title: 'Versements',
+                href: '/kora-point/settlements',
+                permission: null,
+                role: 'kora_point_agent',
+            },
+            {
+                title: 'Remboursements',
+                href: '/kora-point/refunds',
+                permission: null,
+                role: 'kora_point_agent',
+            },
+        ],
     },
     {
         title: 'Espace entreprise',
@@ -448,6 +559,7 @@ export function KoraSidebar({
         isCurrentUrl(href) ||
         (!exact &&
             href !== dashboard().url &&
+            href !== '/kora-point' &&
             typeof window !== 'undefined' &&
             window.location.pathname.startsWith(href));
 
@@ -519,7 +631,9 @@ export function KoraSidebar({
             {/* Workspace label */}
             {!isCollapsed && (
                 <div className="mx-2 mb-3 text-[0.625rem] font-black tracking-[0.13em] text-white/35 uppercase">
-                    Espace de travail
+                    {hasRole('kora_point_agent')
+                        ? 'Espace KORA POINT'
+                        : 'Espace de travail'}
                 </div>
             )}
 
@@ -528,9 +642,11 @@ export function KoraSidebar({
                 className="flex flex-1 flex-col gap-[3px] overflow-y-auto"
                 aria-label="Navigation principale"
             >
-                {(portalOnly
+                {(hasRole('kora_point_agent')
+                    ? koraPointAgentNavItems
+                    : portalOnly
                     ? navItems.filter((item) => item.href === companyPortalHref)
-                    : navItems
+                    : navItems.filter((item) => item.title !== 'KORA POINT' || hasRole('system_admin'))
                 ).map((item) => {
                     const visibleChildren = item.children?.filter(
                         (child) =>
@@ -549,7 +665,7 @@ export function KoraSidebar({
                         return null;
                     }
 
-                    const active = isActive(item.href);
+                    const active = isActive(item.href, item.exact);
 
                     if (item.children) {
                         const hasActiveChild =

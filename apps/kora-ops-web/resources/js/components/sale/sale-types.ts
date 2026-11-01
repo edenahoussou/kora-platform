@@ -11,7 +11,16 @@ export type SaleBusAmenity = {
     icon: string | null;
 };
 
-export type SaleMobileMoneyNetwork = 'mtn_momo' | 'moov_flooz' | 'celtiis_cash';
+export type SaleMobileMoneyNetwork =
+    | 'mtn_momo'
+    | 'moov_flooz'
+    | 'celtiis_cash'
+    | 'tmoney_tg'
+    | 'moov_flooz_tg'
+    | 'wave_ci'
+    | 'orange_money_ci'
+    | 'mtn_momo_ci'
+    | 'moov_flooz_ci';
 
 export type SaleCompanyAccount = {
     uuid: string;

@@ -1,33 +1,32 @@
-import { useState, ReactNode } from 'react';
 import {
-    LayoutDashboard,
-    Ticket,
-    Wallet,
-    FileText,
-    Store,
-    TrendingUp,
-    ReceiptText,
-    RotateCcw,
     Bell,
     Building2,
-    Shield,
-    Menu,
-    X,
     ChevronRight,
-    LogOut,
     Coins,
+    FileText,
     Landmark,
+    LayoutDashboard,
+    Menu,
+    ReceiptText,
+    RotateCcw,
     Search,
-    UserCheck,
+    Shield,
+    Store,
+    Ticket,
+    TrendingUp,
+    Wallet,
+    X,
 } from 'lucide-react';
-import {
-    KoraPointProfile,
-    FinancialHealth,
-    KoraPointUserRole,
-    MOCK_PERSONAS,
-} from '../mock/kora-point-mock-data';
+import { useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { cn } from '@/lib/utils';
+import { MOCK_PERSONAS } from '../mock/kora-point-mock-data';
+import type {
+    FinancialHealth,
+    KoraPointProfile,
+    KoraPointUserRole,
+} from '../mock/kora-point-mock-data';
 
 export type KoraPointActivePage =
     | 'dashboard'
@@ -55,9 +54,10 @@ type Props = {
     unreadNotificationsCount?: number;
     onOpenSearch?: () => void;
     currentRole?: KoraPointUserRole;
+    standalone?: boolean;
 };
 
-export function KoraPointShell({
+function KoraPointStandaloneShell({
     point,
     health,
     activePage,
@@ -67,7 +67,7 @@ export function KoraPointShell({
     unreadNotificationsCount,
     onOpenSearch,
     currentRole = 'AGENT_POINT',
-}: Props) {
+}: Omit<Props, 'standalone'>) {
     const [mobileNavOpen, setMobileNavOpen] = useState(false);
     const isAutonomous = !point.organization;
     const persona = MOCK_PERSONAS[currentRole] || MOCK_PERSONAS.AGENT_POINT;
@@ -221,6 +221,7 @@ export function KoraPointShell({
                                 {group.items.map((item) => {
                                     const Icon = item.icon;
                                     const isActive = activePage === item.id;
+
                                     return (
                                         <button
                                             key={item.id}
@@ -418,6 +419,7 @@ export function KoraPointShell({
                                             {group.items.map((item) => {
                                                 const Icon = item.icon;
                                                 const isActive = activePage === item.id;
+
                                                 return (
                                                     <button
                                                         key={item.id}
@@ -453,6 +455,43 @@ export function KoraPointShell({
                     <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
                 </div>
             </div>
+        </div>
+    );
+}
+
+export function KoraPointShell({
+    point,
+    health,
+    activePage,
+    onNavigate,
+    children,
+    bannerSlot,
+    unreadNotificationsCount,
+    onOpenSearch,
+    currentRole = 'AGENT_POINT',
+    standalone = false,
+}: Props) {
+    if (standalone) {
+        return (
+            <KoraPointStandaloneShell
+                point={point}
+                health={health}
+                activePage={activePage}
+                onNavigate={onNavigate}
+                bannerSlot={bannerSlot}
+                unreadNotificationsCount={unreadNotificationsCount}
+                onOpenSearch={onOpenSearch}
+                currentRole={currentRole}
+            >
+                {children}
+            </KoraPointStandaloneShell>
+        );
+    }
+
+    return (
+        <div className="cash-page space-y-6">
+            {bannerSlot}
+            <div className="min-w-0">{children}</div>
         </div>
     );
 }

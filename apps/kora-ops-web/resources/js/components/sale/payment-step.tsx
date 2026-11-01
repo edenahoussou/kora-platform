@@ -59,29 +59,103 @@ type Props = {
     onHoldExpired: () => void;
     search?: SaleSearch | null;
     itineraryQuote?: SaleItineraryQuote | null;
+    isPartner?: boolean;
 };
 
-const networkMeta: Record<
-    SaleMobileMoneyNetwork,
-    { label: string; color: string; bg: string; icon: LucideIcon }
-> = {
+type MobileMoneyNetworkMeta = {
+    label: string;
+    color: string;
+    bg: string;
+    icon: LucideIcon;
+    country: 'bj' | 'tg' | 'ci';
+    countryName: string;
+    flag: string;
+};
+
+const networkMeta: Record<SaleMobileMoneyNetwork, MobileMoneyNetworkMeta> = {
+    // Bénin 🇧🇯
     mtn_momo: {
         label: 'MTN MoMo',
         color: '#ffcc00',
         bg: 'rgba(255, 204, 0, 0.12)',
         icon: Smartphone,
+        country: 'bj',
+        countryName: 'Bénin',
+        flag: '🇧🇯',
     },
     moov_flooz: {
-        label: 'Moov Money',
+        label: 'Moov Money / Flooz',
         color: '#0066cc',
         bg: 'rgba(0, 102, 204, 0.12)',
         icon: Smartphone,
+        country: 'bj',
+        countryName: 'Bénin',
+        flag: '🇧🇯',
     },
     celtiis_cash: {
         label: 'Celtiis Cash',
         color: '#00a651',
         bg: 'rgba(0, 166, 81, 0.12)',
         icon: Smartphone,
+        country: 'bj',
+        countryName: 'Bénin',
+        flag: '🇧🇯',
+    },
+    // Togo 🇹🇬
+    tmoney_tg: {
+        label: 'TMoney (Togocom)',
+        color: '#ffb600',
+        bg: 'rgba(255, 182, 0, 0.12)',
+        icon: Smartphone,
+        country: 'tg',
+        countryName: 'Togo',
+        flag: '🇹🇬',
+    },
+    moov_flooz_tg: {
+        label: 'Moov Money Togo',
+        color: '#0077c8',
+        bg: 'rgba(0, 119, 200, 0.12)',
+        icon: Smartphone,
+        country: 'tg',
+        countryName: 'Togo',
+        flag: '🇹🇬',
+    },
+    // Côte d'Ivoire 🇨🇮
+    wave_ci: {
+        label: 'Wave CI',
+        color: '#1dc3e4',
+        bg: 'rgba(29, 195, 228, 0.14)',
+        icon: Smartphone,
+        country: 'ci',
+        countryName: "Côte d'Ivoire",
+        flag: '🇨🇮',
+    },
+    orange_money_ci: {
+        label: 'Orange Money CI',
+        color: '#ff7900',
+        bg: 'rgba(255, 121, 0, 0.12)',
+        icon: Smartphone,
+        country: 'ci',
+        countryName: "Côte d'Ivoire",
+        flag: '🇨🇮',
+    },
+    mtn_momo_ci: {
+        label: 'MTN MoMo CI',
+        color: '#ffcc00',
+        bg: 'rgba(255, 204, 0, 0.12)',
+        icon: Smartphone,
+        country: 'ci',
+        countryName: "Côte d'Ivoire",
+        flag: '🇨🇮',
+    },
+    moov_flooz_ci: {
+        label: 'Moov Money CI',
+        color: '#0066cc',
+        bg: 'rgba(0, 102, 204, 0.12)',
+        icon: Smartphone,
+        country: 'ci',
+        countryName: "Côte d'Ivoire",
+        flag: '🇨🇮',
     },
 };
 
@@ -130,6 +204,7 @@ export function PaymentStep({
     onHoldExpired,
     search = null,
     itineraryQuote = null,
+    isPartner = false,
 }: Props) {
     const [method, setMethod] = useState<SalePaymentMethod>(
         reservation.payerType === 'company' && reservation.companyAccount
@@ -160,6 +235,21 @@ export function PaymentStep({
         onHoldExpired();
     }, [holdCountdown.isExpired, onHoldExpired]);
 
+    // For partner points (and general convenience), prefill payer information
+    // with primary passenger if available.
+    useEffect(() => {
+        if (reservation.passengers && reservation.passengers.length > 0) {
+            const primary = reservation.passengers[0];
+            const name = `${primary.firstName} ${primary.lastName}`.trim();
+            if (!payerName && name) {
+                setPayerName(name);
+            }
+            if (!payerPhone && primary.phone) {
+                setPayerPhone(primary.phone);
+            }
+        }
+    }, [reservation.passengers]);
+
     const total = reservation.totalAmount;
     const received = Number(cashReceived) || 0;
     const change = Math.max(0, received - total);
@@ -177,14 +267,17 @@ export function PaymentStep({
         () => networkAccounts.find((account) => account.uuid === accountUuid),
         [networkAccounts, accountUuid],
     );
-    const cashReady =
-        cashSession.isOpen && isCashSufficient && payerName.trim() !== '';
     const phoneValid =
         payerPhone.trim() !== '' && isValidPhoneNumber(payerPhone);
+    const cashReady =
+        (cashSession.isOpen || isPartner) &&
+        isCashSufficient &&
+        payerName.trim() !== '' &&
+        (!isPartner || phoneValid);
     const mobileReady =
-        cashSession.isOpen &&
+        (cashSession.isOpen || isPartner) &&
         network !== '' &&
-        accountUuid !== '' &&
+        (isPartner || accountUuid !== '') &&
         phoneValid &&
         reference.trim() !== '' &&
         verified;
@@ -206,15 +299,22 @@ export function PaymentStep({
     const mobileChecklist = useMemo(
         () => [
             { label: 'Réseau sélectionné', done: network !== '' },
-            { label: 'Compte agence choisi', done: accountUuid !== '' },
+            ...(!isPartner
+                ? [{ label: 'Compte agence choisi', done: accountUuid !== '' }]
+                : []),
             { label: 'Téléphone du payeur saisi', done: phoneValid },
             {
                 label: 'Référence de transaction',
                 done: reference.trim() !== '',
             },
-            { label: 'Crédit vérifié manuellement', done: verified },
+            {
+                label: isPartner
+                    ? 'Crédit vérifié sur votre compte'
+                    : 'Crédit vérifié manuellement',
+                done: verified,
+            },
         ],
-        [network, accountUuid, phoneValid, reference, verified],
+        [isPartner, network, accountUuid, phoneValid, reference, verified],
     );
     const mobileChecklistDone = mobileChecklist.filter(
         (item) => item.done,
@@ -247,7 +347,7 @@ export function PaymentStep({
             mobile_money_network:
                 method === 'mobile_money' && network ? network : null,
             agency_payment_account_uuid:
-                method === 'mobile_money' ? accountUuid : null,
+                method === 'mobile_money' && !isPartner ? accountUuid : null,
             payer_phone:
                 method === 'mobile_money'
                     ? payerPhone.trim()
@@ -300,7 +400,7 @@ export function PaymentStep({
                         </div>
                     </div>
 
-                    {!cashSession.isOpen && method !== 'company_credit' && (
+                    {!isPartner && !cashSession.isOpen && method !== 'company_credit' && (
                         <div className="cash-required-card" role="status">
                             <span className="cash-required-icon">
                                 <Banknote className="size-5" />
@@ -384,6 +484,7 @@ export function PaymentStep({
                             payerPhone={payerPhone}
                             onPayerNameChange={setPayerName}
                             onPayerPhoneChange={setPayerPhone}
+                            isPartner={isPartner}
                         />
                     ) : method === 'mobile_money' ? (
                         <MobileMoneyFields
@@ -402,6 +503,7 @@ export function PaymentStep({
                             onPayerNameChange={setPayerName}
                             onReferenceChange={setReference}
                             onVerifiedChange={setVerified}
+                            isPartner={isPartner}
                         />
                     ) : (
                         <CompanyCreditFields
@@ -469,6 +571,7 @@ export function PaymentStep({
                             : null
                     }
                     selectedAccount={selectedAccount ?? null}
+                    isPartner={isPartner}
                 />
             </form>
             {cashModalOpen && (
@@ -528,6 +631,7 @@ function CashPaymentFields({
     payerPhone,
     onPayerNameChange,
     onPayerPhoneChange,
+    isPartner = false,
 }: {
     total: number;
     currency: string;
@@ -541,6 +645,7 @@ function CashPaymentFields({
     payerPhone: string;
     onPayerNameChange: (value: string) => void;
     onPayerPhoneChange: (value: string) => void;
+    isPartner?: boolean;
 }) {
     const quickAmounts = useMemo(() => smartQuickAmounts(total), [total]);
 
@@ -648,7 +753,10 @@ function CashPaymentFields({
                 <label className="field">
                     <span className="field-label">
                         <Phone className="size-3.5" />
-                        Téléphone du payeur
+                        Téléphone du payeur{' '}
+                        {isPartner ? (
+                            <span className="required-asterisk">*</span>
+                        ) : null}
                     </span>
                     <span className="payment-field-control">
                         <Phone
@@ -665,7 +773,9 @@ function CashPaymentFields({
                         />
                     </span>
                     <small className="payment-field-help">
-                        Numéro de contact du client (optionnel).
+                        {isPartner
+                            ? 'Numéro de contact du client (requis pour le point partenaire).'
+                            : 'Numéro de contact du client (optionnel).'}
                     </small>
                 </label>
             </div>
@@ -735,6 +845,7 @@ function MobileMoneyFields({
     onPayerNameChange,
     onReferenceChange,
     onVerifiedChange,
+    isPartner = false,
 }: {
     network: SaleMobileMoneyNetwork | '';
     accountUuid: string;
@@ -751,7 +862,12 @@ function MobileMoneyFields({
     onPayerNameChange: (value: string) => void;
     onReferenceChange: (value: string) => void;
     onVerifiedChange: (value: boolean) => void;
+    isPartner?: boolean;
 }) {
+    const [countryFilter, setCountryFilter] = useState<
+        'all' | 'bj' | 'tg' | 'ci'
+    >('all');
+
     return (
         <div className="mobile-money-section">
             <div className="mm-step">
@@ -759,99 +875,189 @@ function MobileMoneyFields({
                     <span className="mm-step-number">1</span>
                     <span className="mm-step-title">
                         <Smartphone className="size-3.5" />
-                        Réseau & compte agence
+                        {isPartner
+                            ? 'Réseau Mobile Money'
+                            : 'Réseau & compte agence'}
                     </span>
                 </div>
                 <div className="mm-step-body">
+                    <div className="flex flex-wrap items-center gap-1.5 mb-3 border-b border-border/50 pb-2 text-xs">
+                        <button
+                            type="button"
+                            className={cn(
+                                'px-2.5 py-1 rounded-md text-xs font-medium transition',
+                                countryFilter === 'all'
+                                    ? 'bg-primary text-primary-foreground shadow-sm'
+                                    : 'text-muted-foreground hover:bg-muted/80',
+                            )}
+                            onClick={() => setCountryFilter('all')}
+                        >
+                            Tous les pays ({Object.keys(networkMeta).length})
+                        </button>
+                        <button
+                            type="button"
+                            className={cn(
+                                'px-2.5 py-1 rounded-md text-xs font-medium transition flex items-center gap-1',
+                                countryFilter === 'bj'
+                                    ? 'bg-primary text-primary-foreground shadow-sm'
+                                    : 'text-muted-foreground hover:bg-muted/80',
+                            )}
+                            onClick={() => setCountryFilter('bj')}
+                        >
+                            <span>🇧🇯</span> Bénin
+                        </button>
+                        <button
+                            type="button"
+                            className={cn(
+                                'px-2.5 py-1 rounded-md text-xs font-medium transition flex items-center gap-1',
+                                countryFilter === 'tg'
+                                    ? 'bg-primary text-primary-foreground shadow-sm'
+                                    : 'text-muted-foreground hover:bg-muted/80',
+                            )}
+                            onClick={() => setCountryFilter('tg')}
+                        >
+                            <span>🇹🇬</span> Togo
+                        </button>
+                        <button
+                            type="button"
+                            className={cn(
+                                'px-2.5 py-1 rounded-md text-xs font-medium transition flex items-center gap-1',
+                                countryFilter === 'ci'
+                                    ? 'bg-primary text-primary-foreground shadow-sm'
+                                    : 'text-muted-foreground hover:bg-muted/80',
+                            )}
+                            onClick={() => setCountryFilter('ci')}
+                        >
+                            <span>🇨🇮</span> Côte d’Ivoire
+                        </button>
+                    </div>
+
                     <div className="mm-network-grid">
                         {(
                             Object.keys(networkMeta) as SaleMobileMoneyNetwork[]
-                        ).map((value) => {
-                            const meta = networkMeta[value];
-                            const Icon = meta.icon;
-                            const isActive = network === value;
+                        )
+                            .filter(
+                                (value) =>
+                                    countryFilter === 'all' ||
+                                    networkMeta[value].country === countryFilter,
+                            )
+                            .map((value) => {
+                                const meta = networkMeta[value];
+                                const Icon = meta.icon;
+                                const isActive = network === value;
 
-                            return (
-                                <button
-                                    key={value}
-                                    type="button"
-                                    className={cn(
-                                        'mm-network-card',
-                                        isActive && 'is-active',
-                                    )}
-                                    style={
-                                        isActive
-                                            ? {
-                                                  borderColor: meta.color,
-                                                  background: meta.bg,
-                                              }
-                                            : undefined
-                                    }
-                                    onClick={() => onNetworkChange(value)}
-                                >
-                                    <span
-                                        className="mm-network-icon"
-                                        style={{
-                                            color: meta.color,
-                                            background: meta.bg,
-                                        }}
+                                return (
+                                    <button
+                                        key={value}
+                                        type="button"
+                                        className={cn(
+                                            'mm-network-card',
+                                            isActive && 'is-active',
+                                        )}
+                                        style={
+                                            isActive
+                                                ? {
+                                                      borderColor: meta.color,
+                                                      background: meta.bg,
+                                                  }
+                                                : undefined
+                                        }
+                                        onClick={() => onNetworkChange(value)}
                                     >
-                                        <Icon className="size-4" />
-                                    </span>
-                                    <span className="mm-network-copy">
-                                        <strong>{meta.label}</strong>
-                                        <small>
-                                            {
-                                                accounts.filter(
-                                                    (a) => a.network === value,
-                                                ).length
-                                            }{' '}
-                                            compte(s)
-                                        </small>
-                                    </span>
-                                    {isActive && (
-                                        <Check className="mm-network-check size-3.5" />
-                                    )}
-                                </button>
-                            );
-                        })}
+                                        <span
+                                            className="mm-network-icon"
+                                            style={{
+                                                color: meta.color,
+                                                background: meta.bg,
+                                            }}
+                                        >
+                                            <Icon className="size-4" />
+                                        </span>
+                                        <span className="mm-network-copy">
+                                            <strong className="flex items-center gap-1.5">
+                                                <span>{meta.flag}</span>
+                                                <span>{meta.label}</span>
+                                            </strong>
+                                            <small>
+                                                {isPartner
+                                                    ? meta.countryName
+                                                    : `${
+                                                          accounts.filter(
+                                                              (a) =>
+                                                                  a.network ===
+                                                                  value,
+                                                          ).length
+                                                      } compte(s)`}
+                                            </small>
+                                        </span>
+                                        {isActive && (
+                                            <Check className="mm-network-check size-3.5" />
+                                        )}
+                                    </button>
+                                );
+                            })}
                     </div>
-                    <label className="field">
-                        <span className="field-label">
-                            <Building2 className="size-3.5" />
-                            Compte agence crédité{' '}
-                            <span className="required-asterisk">*</span>
-                        </span>
-                        <select
-                            className="control"
-                            value={accountUuid}
-                            onChange={(event) =>
-                                onAccountChange(event.target.value)
-                            }
-                            disabled={!network || accounts.length === 1}
-                        >
-                            <option value="">
-                                {network
-                                    ? 'Sélectionner le compte'
-                                    : 'Choisir le réseau d’abord'}
-                            </option>
-                            {accounts.map((account) => (
-                                <option key={account.uuid} value={account.uuid}>
-                                    {account.label} ·{' '}
-                                    {account.accountIdentifier}
+                    {isPartner ? (
+                        <div className="mt-3 rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs text-foreground/80 flex items-start gap-2.5">
+                            <ShieldCheck className="size-4 text-primary shrink-0 mt-0.5" />
+                            <div className="space-y-0.5">
+                                <p className="font-semibold text-foreground">
+                                    Encaissement direct partenaire KORA
+                                </p>
+                                <p className="text-muted-foreground leading-relaxed">
+                                    Vous encaissez directement le montant sur votre
+                                    propre téléphone ou compte marchand{' '}
+                                    <strong>
+                                        {network
+                                            ? networkMeta[network].label
+                                            : 'Mobile Money'}
+                                    </strong>
+                                    . Le montant net sera déduit de votre disponible
+                                    KORA.
+                                </p>
+                            </div>
+                        </div>
+                    ) : (
+                        <label className="field">
+                            <span className="field-label">
+                                <Building2 className="size-3.5" />
+                                Compte agence crédité{' '}
+                                <span className="required-asterisk">*</span>
+                            </span>
+                            <select
+                                className="control"
+                                value={accountUuid}
+                                onChange={(event) =>
+                                    onAccountChange(event.target.value)
+                                }
+                                disabled={!network || accounts.length === 1}
+                            >
+                                <option value="">
+                                    {network
+                                        ? 'Sélectionner le compte'
+                                        : 'Choisir le réseau d’abord'}
                                 </option>
-                            ))}
-                        </select>
-                        <small className="payment-field-help">
-                            Compte de l’agence sur lequel le transfert doit
-                            arriver.
-                        </small>
-                        {errors.agency_payment_account_uuid && (
-                            <small className="field-error-text">
-                                {errors.agency_payment_account_uuid}
+                                {accounts.map((account) => (
+                                    <option
+                                        key={account.uuid}
+                                        value={account.uuid}
+                                    >
+                                        {account.label} ·{' '}
+                                        {account.accountIdentifier}
+                                    </option>
+                                ))}
+                            </select>
+                            <small className="payment-field-help">
+                                Compte de l’agence sur lequel le transfert doit
+                                arriver.
                             </small>
-                        )}
-                    </label>
+                            {errors.agency_payment_account_uuid && (
+                                <small className="field-error-text">
+                                    {errors.agency_payment_account_uuid}
+                                </small>
+                            )}
+                        </label>
+                    )}
                 </div>
             </div>
 
@@ -962,13 +1168,9 @@ function MobileMoneyFields({
                             <span>
                                 <strong>J’ai vérifié le crédit reçu</strong>
                                 <small>
-                                    Je confirme manuellement que le montant a
-                                    été crédité sur le compte Mobile Money de
-                                    l’agence
-                                    {selectedAccount
-                                        ? ` (${selectedAccount.accountIdentifier})`
-                                        : ''}
-                                    .
+                                    {isPartner
+                                        ? 'Je confirme manuellement avoir bien reçu la somme convenue sur mon compte / téléphone partenaire.'
+                                        : `Je confirme manuellement que le montant a été crédité sur le compte Mobile Money de l’agence${selectedAccount ? ` (${selectedAccount.accountIdentifier})` : ''}.`}
                                 </small>
                             </span>
                         </label>
