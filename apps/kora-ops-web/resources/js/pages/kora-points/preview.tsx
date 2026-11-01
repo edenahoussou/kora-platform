@@ -8,6 +8,8 @@ import { KoraPointProfileView } from '@/components/kora-points/profile/kora-poin
 import { KoraPointCommissionsView } from '@/components/kora-points/commissions/kora-point-commissions-view';
 import { KoraPointSettlementListView } from '@/components/kora-points/settlements/kora-point-settlement-list-view';
 import { KoraPointRefundListView } from '@/components/kora-points/refunds/kora-point-refund-list-view';
+import { KoraOrgSupervisionView } from '@/components/kora-points/organization/kora-org-supervision-view';
+import { KoraOrgTreasuryView } from '@/components/kora-points/organization/kora-org-treasury-view';
 import { KoraPointShell, KoraPointActivePage } from '@/components/kora-points/common/kora-point-shell';
 import { KoraPointDemoBanner } from '@/components/kora-points/common/kora-point-demo-banner';
 import { useKoraPointDemo } from '@/components/kora-points/mock/use-kora-point-demo';
@@ -115,6 +117,27 @@ export default function KoraPointPreviewPage() {
                     />
                 )}
 
+                {activePage === 'org-supervision' && (
+                    <KoraOrgSupervisionView
+                        organizationName={demo.point.organization?.name || 'La Poste du Bénin SA'}
+                        subpoints={demo.organizationSubPoints}
+                        recentSales={demo.sales}
+                        recentRefunds={demo.refunds}
+                    />
+                )}
+
+                {activePage === 'org-treasury' && (
+                    <KoraOrgTreasuryView
+                        organizationName={demo.point.organization?.name || 'La Poste du Bénin SA'}
+                        subpoints={demo.organizationSubPoints}
+                        groupSettlements={demo.groupSettlements}
+                        refunds={demo.refunds}
+                        onDeclareGroupSettlement={(data) =>
+                            demo.createGroupSettlementDeclaration(data)
+                        }
+                    />
+                )}
+
                 {activePage !== 'dashboard' &&
                     activePage !== 'sale' &&
                     activePage !== 'cash' &&
@@ -122,7 +145,9 @@ export default function KoraPointPreviewPage() {
                     activePage !== 'my-point' &&
                     activePage !== 'commissions' &&
                     activePage !== 'settlements' &&
-                    activePage !== 'refunds' && (
+                    activePage !== 'refunds' &&
+                    activePage !== 'org-supervision' &&
+                    activePage !== 'org-treasury' && (
                         <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center dark:border-slate-700 dark:bg-slate-900">
                             <span className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-black uppercase text-amber-800 dark:text-amber-300">
                                 Prévu pour les lots suivants
@@ -131,14 +156,14 @@ export default function KoraPointPreviewPage() {
                                 Module « {activePage} » en cours de développement
                             </h2>
                             <p className="mt-2 text-xs text-slate-500 max-w-md mx-auto">
-                                Les Lots 1, 2 et 3 couvrent Accueil, Vente, Billets, Caisse, Mon Point, Commissions, Reversements et Remboursements. Les modules d'administration et de supervision arriveront dans les Lots 4 et 5.
+                                Les Lots 1 à 4 couvrent l'intégralité du quotidien agent, caisse, commissions, reversements, remboursements, et la supervision/trésorerie d'organisation. Les écrans administratifs KORA réseau arriveront dans le Lot 5.
                             </p>
                             <button
                                 type="button"
                                 onClick={() => setActivePage('dashboard')}
                                 className="mt-4 rounded-xl bg-gold px-4 py-2 text-xs font-black uppercase text-kora"
                             >
-                                Retour à l'accueil agent
+                                Retour à l'accueil
                             </button>
                         </div>
                     )}

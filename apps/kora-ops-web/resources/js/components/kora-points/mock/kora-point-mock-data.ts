@@ -1387,4 +1387,269 @@ export const MOCK_POINT_REFUNDS: PointRefundRecord[] = [
     },
 ];
 
+export type OrganizationSubPoint = {
+    uuid: string;
+    code: string;
+    name: string;
+    city: string;
+    manager_name: string;
+    phone: string;
+    status: 'ACTIVE' | 'WARNING_THRESHOLD' | 'LIMIT_REACHED' | 'SUSPENDED';
+    daily_sales_amount: number;
+    daily_tickets_count: number;
+    monthly_sales_amount: number;
+    credit_limit: number;
+    current_exposure: number;
+    usage_percentage: number;
+    commission_rate_bps: number;
+    monthly_commission_earned: number;
+    last_settlement_date: string;
+};
+
+export const MOCK_ORGANIZATION_SUBPOINTS: OrganizationSubPoint[] = [
+    {
+        uuid: 'sub-01',
+        code: 'LP-COT-01',
+        name: 'Agence Centrale Cotonou',
+        city: 'Cotonou (Ganhi)',
+        manager_name: 'Marcellin Houndéto',
+        phone: '+229 97 10 20 30',
+        status: 'ACTIVE',
+        daily_sales_amount: 145000,
+        daily_tickets_count: 16,
+        monthly_sales_amount: 3200000,
+        credit_limit: 1500000,
+        current_exposure: 650000,
+        usage_percentage: 43,
+        commission_rate_bps: 300,
+        monthly_commission_earned: 96000,
+        last_settlement_date: '28 juil. 2026',
+    },
+    {
+        uuid: 'sub-02',
+        code: 'LP-AKP-02',
+        name: 'Bureau de Poste Akpakpa',
+        city: 'Cotonou (Akpakpa)',
+        manager_name: 'Jean Dossou',
+        phone: '+229 97 12 34 56',
+        status: 'WARNING_THRESHOLD',
+        daily_sales_amount: 81000,
+        daily_tickets_count: 9,
+        monthly_sales_amount: 1850000,
+        credit_limit: 500000,
+        current_exposure: 430000,
+        usage_percentage: 86,
+        commission_rate_bps: 300,
+        monthly_commission_earned: 55500,
+        last_settlement_date: '31 juil. 2026',
+    },
+    {
+        uuid: 'sub-03',
+        code: 'LP-PAR-03',
+        name: 'Agence Principale Parakou',
+        city: 'Parakou (Centre-ville)',
+        manager_name: 'Fadilatou Saka',
+        phone: '+229 96 44 55 66',
+        status: 'ACTIVE',
+        daily_sales_amount: 112000,
+        daily_tickets_count: 12,
+        monthly_sales_amount: 2400000,
+        credit_limit: 1000000,
+        current_exposure: 380000,
+        usage_percentage: 38,
+        commission_rate_bps: 300,
+        monthly_commission_earned: 72000,
+        last_settlement_date: '28 juil. 2026',
+    },
+    {
+        uuid: 'sub-04',
+        code: 'LP-POR-04',
+        name: 'Bureau de Poste Porto-Novo',
+        city: 'Porto-Novo (Ogun)',
+        manager_name: 'Gérard Agbo',
+        phone: '+229 95 77 88 99',
+        status: 'LIMIT_REACHED',
+        daily_sales_amount: 0,
+        daily_tickets_count: 0,
+        monthly_sales_amount: 1250000,
+        credit_limit: 500000,
+        current_exposure: 500000,
+        usage_percentage: 100,
+        commission_rate_bps: 300,
+        monthly_commission_earned: 37500,
+        last_settlement_date: '20 juil. 2026',
+    },
+    {
+        uuid: 'sub-05',
+        code: 'LP-CAL-05',
+        name: 'Bureau Abomey-Calavi',
+        city: 'Abomey-Calavi (Kpota)',
+        manager_name: 'Solange Zannou',
+        phone: '+229 94 33 22 11',
+        status: 'ACTIVE',
+        daily_sales_amount: 63000,
+        daily_tickets_count: 7,
+        monthly_sales_amount: 1400000,
+        credit_limit: 800000,
+        current_exposure: 190000,
+        usage_percentage: 24,
+        commission_rate_bps: 300,
+        monthly_commission_earned: 42000,
+        last_settlement_date: '28 juil. 2026',
+    },
+];
+
+export type GroupSettlementBreakdown = {
+    subpoint_uuid: string;
+    subpoint_name: string;
+    current_exposure: number;
+    amount_allocated: number;
+};
+
+export type GroupSettlementRecord = {
+    uuid: string;
+    reference: string;
+    organization_name: string;
+    created_by_name: string;
+    created_at: string;
+    total_amount_expected: number;
+    total_amount_declared: number;
+    amount_validated?: number;
+    payment_method: 'BANK_TRANSFER' | 'BANK_DEPOSIT' | 'MOBILE_MONEY';
+    payment_reference: string;
+    proof_file_name?: string;
+    status: 'DECLARED' | 'VALIDATED' | 'REJECTED';
+    breakdown: GroupSettlementBreakdown[];
+    notes?: string;
+    timeline: {
+        step: string;
+        date_label: string;
+        actor: string;
+        comment?: string;
+    }[];
+};
+
+export const MOCK_GROUP_SETTLEMENTS: GroupSettlementRecord[] = [
+    {
+        uuid: 'grp-01',
+        reference: 'REV-ORG-2026-0008',
+        organization_name: 'La Poste du Bénin SA',
+        created_by_name: 'Adolphe Gbaguidi (Trésorier)',
+        created_at: '01 août 2026 à 10:30',
+        total_amount_expected: 2150000,
+        total_amount_declared: 1500000,
+        payment_method: 'BANK_TRANSFER',
+        payment_reference: 'VIR-BOA-LP-2026-8841',
+        proof_file_name: 'ordre_virement_boa_laposte_0108.pdf',
+        status: 'DECLARED',
+        breakdown: [
+            {
+                subpoint_uuid: 'sub-01',
+                subpoint_name: 'Agence Centrale Cotonou',
+                current_exposure: 650000,
+                amount_allocated: 500000,
+            },
+            {
+                subpoint_uuid: 'sub-02',
+                subpoint_name: 'Bureau de Poste Akpakpa',
+                current_exposure: 430000,
+                amount_allocated: 400000,
+            },
+            {
+                subpoint_uuid: 'sub-04',
+                subpoint_name: 'Bureau de Poste Porto-Novo',
+                current_exposure: 500000,
+                amount_allocated: 400000,
+            },
+            {
+                subpoint_uuid: 'sub-03',
+                subpoint_name: 'Agence Principale Parakou',
+                current_exposure: 380000,
+                amount_allocated: 200000,
+            },
+        ],
+        notes: 'Virement groupé pour déblocage du bureau Porto-Novo et allègement Akpakpa.',
+        timeline: [
+            {
+                step: 'Préparation et ventilation du reversement',
+                date_label: '01 août 10:15',
+                actor: 'Adolphe Gbaguidi (Trésorier)',
+                comment: 'Répartition validée sur 4 bureaux.',
+            },
+            {
+                step: 'Ordre de virement transmis',
+                date_label: '01 août 10:30',
+                actor: 'Adolphe Gbaguidi (Trésorier)',
+                comment: 'Réf VIR-BOA-LP-2026-8841 (1 500 000 FCFA)',
+            },
+            {
+                step: 'En attente de rapprochement Trésorerie KORA',
+                date_label: 'En cours',
+                actor: 'Pôle Trésorerie KORA',
+                comment: 'Contrôle interbancaire BOA en cours.',
+            },
+        ],
+    },
+    {
+        uuid: 'grp-02',
+        reference: 'REV-ORG-2026-0005',
+        organization_name: 'La Poste du Bénin SA',
+        created_by_name: 'Adolphe Gbaguidi (Trésorier)',
+        created_at: '28 juil. 2026 à 15:45',
+        total_amount_expected: 2800000,
+        total_amount_declared: 2800000,
+        amount_validated: 2800000,
+        payment_method: 'BANK_TRANSFER',
+        payment_reference: 'VIR-ECO-LP-2026-7719',
+        proof_file_name: 'avis_credit_ecobank_laposte_2807.pdf',
+        status: 'VALIDATED',
+        breakdown: [
+            {
+                subpoint_uuid: 'sub-01',
+                subpoint_name: 'Agence Centrale Cotonou',
+                current_exposure: 1000000,
+                amount_allocated: 1000000,
+            },
+            {
+                subpoint_uuid: 'sub-02',
+                subpoint_name: 'Bureau de Poste Akpakpa',
+                current_exposure: 600000,
+                amount_allocated: 600000,
+            },
+            {
+                subpoint_uuid: 'sub-03',
+                subpoint_name: 'Agence Principale Parakou',
+                current_exposure: 500000,
+                amount_allocated: 500000,
+            },
+            {
+                subpoint_uuid: 'sub-04',
+                subpoint_name: 'Bureau de Poste Porto-Novo',
+                current_exposure: 400000,
+                amount_allocated: 400000,
+            },
+            {
+                subpoint_uuid: 'sub-05',
+                subpoint_name: 'Bureau Abomey-Calavi',
+                current_exposure: 300000,
+                amount_allocated: 300000,
+            },
+        ],
+        timeline: [
+            {
+                step: 'Déclaration transmise',
+                date_label: '28 juil. 15:45',
+                actor: 'Adolphe Gbaguidi (Trésorier)',
+            },
+            {
+                step: 'Fonds reçus et rapprochés par KORA',
+                date_label: '29 juil. 09:15',
+                actor: 'Clarisse Mensah (Finance KORA)',
+                comment: 'Rapprochement 100% conforme sur les 5 comptes auxiliaires.',
+            },
+        ],
+    },
+];
+
+
 

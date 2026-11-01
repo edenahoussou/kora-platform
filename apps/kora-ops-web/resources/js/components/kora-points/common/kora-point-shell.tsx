@@ -29,7 +29,9 @@ export type KoraPointActivePage =
     | 'commissions'
     | 'settlements'
     | 'refunds'
-    | 'notifications';
+    | 'notifications'
+    | 'org-supervision'
+    | 'org-treasury';
 
 type Props = {
     point: KoraPointProfile;
@@ -110,6 +112,23 @@ export function KoraPointShell({
             icon: Bell,
             badge: '2',
             badgeTone: 'amber' as const,
+        },
+    ];
+
+    const orgNavItems = [
+        {
+            id: 'org-supervision' as KoraPointActivePage,
+            label: 'Supervision réseau',
+            icon: Building2,
+            badge: 'Resp.',
+            badgeTone: 'navy' as const,
+        },
+        {
+            id: 'org-treasury' as KoraPointActivePage,
+            label: 'Trésorerie groupée',
+            icon: Coins,
+            badge: 'Trésorier',
+            badgeTone: 'gold' as const,
         },
     ];
 
@@ -220,6 +239,58 @@ export function KoraPointShell({
                                 </button>
                             );
                         })}
+
+                        {/* Organisation Sub-navigation if attached */}
+                        {point.organization && (
+                            <div className="pt-4 mt-2 border-t border-white/10">
+                                <div className="px-3 pb-2 text-[0.625rem] font-black uppercase tracking-wider text-gold">
+                                    Espace Organisation
+                                </div>
+                                {orgNavItems.map((item) => {
+                                    const Icon = item.icon;
+                                    const isActive = activePage === item.id;
+                                    return (
+                                        <button
+                                            key={item.id}
+                                            type="button"
+                                            onClick={() => handleNavClick(item.id)}
+                                            className={cn(
+                                                'group flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition',
+                                                isActive
+                                                    ? 'bg-gold text-kora font-black shadow-md'
+                                                    : 'text-white/80 hover:bg-white/10 hover:text-white',
+                                            )}
+                                        >
+                                            <div className="flex items-center gap-2.5 truncate">
+                                                <Icon
+                                                    className={cn(
+                                                        'size-4 shrink-0',
+                                                        isActive
+                                                            ? 'text-kora'
+                                                            : 'text-white/70 group-hover:text-white',
+                                                    )}
+                                                />
+                                                <span className="truncate">{item.label}</span>
+                                            </div>
+                                            {item.badge && (
+                                                <span
+                                                    className={cn(
+                                                        'rounded-full px-2 py-0.5 text-[0.625rem] font-extrabold',
+                                                        isActive
+                                                            ? 'bg-kora text-white'
+                                                            : item.badgeTone === 'gold'
+                                                            ? 'bg-gold/25 text-gold'
+                                                            : 'bg-white/15 text-white',
+                                                    )}
+                                                >
+                                                    {item.badge}
+                                                </span>
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </nav>
 
                     {/* Footer User Menu */}
@@ -349,6 +420,41 @@ export function KoraPointShell({
                                             </button>
                                         );
                                     })}
+
+                                    {point.organization && (
+                                        <div className="pt-3 mt-2 border-t border-white/10">
+                                            <div className="px-3 pb-2 text-xs font-black uppercase tracking-wider text-gold">
+                                                Espace Organisation
+                                            </div>
+                                            {orgNavItems.map((item) => {
+                                                const Icon = item.icon;
+                                                const isActive = activePage === item.id;
+                                                return (
+                                                    <button
+                                                        key={item.id}
+                                                        type="button"
+                                                        onClick={() => handleNavClick(item.id)}
+                                                        className={cn(
+                                                            'flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition',
+                                                            isActive
+                                                                ? 'bg-gold text-kora font-black shadow-md'
+                                                                : 'text-white/80 hover:bg-white/10 hover:text-white',
+                                                        )}
+                                                    >
+                                                        <div className="flex items-center gap-3">
+                                                            <Icon className="size-4 shrink-0" />
+                                                            <span>{item.label}</span>
+                                                        </div>
+                                                        {item.badge && (
+                                                            <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold">
+                                                                {item.badge}
+                                                            </span>
+                                                        )}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
                                 </nav>
                             </div>
                         </div>

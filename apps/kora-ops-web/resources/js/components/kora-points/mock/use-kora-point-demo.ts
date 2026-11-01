@@ -21,6 +21,11 @@ import {
     MOCK_POINT_SETTLEMENTS,
     PointRefundRecord,
     MOCK_POINT_REFUNDS,
+    OrganizationSubPoint,
+    MOCK_ORGANIZATION_SUBPOINTS,
+    GroupSettlementRecord,
+    MOCK_GROUP_SETTLEMENTS,
+    GroupSettlementBreakdown,
 } from './kora-point-mock-data';
 
 export type DemoState = {
@@ -37,6 +42,8 @@ export type DemoState = {
     commissions: PointCommissionRecord[];
     settlements: PointSettlementRecord[];
     refunds: PointRefundRecord[];
+    organizationSubPoints: OrganizationSubPoint[];
+    groupSettlements: GroupSettlementRecord[];
 };
 
 export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_healthy') {
@@ -57,6 +64,9 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
     const commissions = stateOverride?.commissions ?? MOCK_COMMISSION_RECORDS;
     const settlements = stateOverride?.settlements ?? MOCK_POINT_SETTLEMENTS;
     const refunds = stateOverride?.refunds ?? MOCK_POINT_REFUNDS;
+    const organizationSubPoints =
+        stateOverride?.organizationSubPoints ?? MOCK_ORGANIZATION_SUBPOINTS;
+    const groupSettlements = stateOverride?.groupSettlements ?? MOCK_GROUP_SETTLEMENTS;
 
     const changeScenario = useCallback((newScenario: DemoScenarioId) => {
         setScenarioId(newScenario);
@@ -488,6 +498,92 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
         [point, refunds, cashSession],
     );
 
+    const createGroupSettlementDeclaration = useCallback(
+        (data: {
+            totalAmountDeclared: number;
+            paymentMethod: 'BANK_TRANSFER' | 'BANK_DEPOSIT' | 'MOBILE_MONEY';
+            paymentReference: string;
+            proofFileName?: string;
+            breakdown: GroupSettlementBreakdown[];
+            notes?: string;
+        }) => {
+            const newRef = `REV-ORG-2026-00${Math.floor(10 + Math.random() * 50)}`;
+            const dateStr = new Date().toLocaleDateString('fr-FR', {
+                day: '2-digit',
+                month: 'short',
+            });
+            const timeStr = new Date().toLocaleTimeString('fr-FR', {
+                hour: '2-digit',
+                minute: '2-digit',
+            });
+
+            const totalExpected = data.breakdown.reduce(
+                (sum, b) => sum + b.current_exposure,
+                0,
+            );
+
+            const newDeclaration: GroupSettlementRecord = {
+                uuid: `grp-${Date.now()}`,
+                reference: newRef,
+                organization_name: point.organization?.name || 'La Poste du Bénin SA',
+                created_by_name: `${point.manager_name} (Trésorier)`,
+                created_at: `${dateStr} à ${timeStr}`,
+                total_amount_expected: totalExpected,
+                total_amount_declared: data.totalAmountDeclared,
+                payment_method: data.paymentMethod,
+                payment_reference: data.paymentReference,
+                proof_file_name: data.proofFileName || 'ordre_virement_groupé.pdf',
+                status: 'DECLARED',
+                breakdown: data.breakdown,
+                notes: data.notes,
+                timeline: [
+                    {
+                        step: 'Déclaration de reversement groupé transmise',
+                        date_label: `${dateStr} ${timeStr}`,
+                        actor: `${point.manager_name} (Trésorier)`,
+                        comment: `Total : ${data.totalAmountDeclared.toLocaleString()} FCFA sur ${data.breakdown.length} bureaux. Réf: ${data.paymentReference}`,
+                    },
+                    {
+                        step: 'Rapprochement comptable KORA Trésorerie',
+                        date_label: 'En cours',
+                        actor: 'Pôle Trésorerie KORA',
+                        comment: 'Vérification de la conformité du virement bancaire sous 24-48h.',
+                    },
+                ],
+            };
+
+            // Update subpoints exposure in demo
+            const updatedSubPoints = organizationSubPoints.map((sp) => {
+                const alloc = data.breakdown.find((b) => b.subpoint_uuid === sp.uuid);
+                if (alloc) {
+                    const newExposure = Math.max(0, sp.current_exposure - alloc.amount_allocated);
+                    const newUsage = Math.round((newExposure / sp.credit_limit) * 100);
+                    return {
+                        ...sp,
+                        current_exposure: newExposure,
+                        usage_percentage: newUsage,
+                        status:
+                            newUsage >= 100
+                                ? ('LIMIT_REACHED' as const)
+                                : newUsage >= 80
+                                ? ('WARNING_THRESHOLD' as const)
+                                : ('ACTIVE' as const),
+                    };
+                }
+                return sp;
+            });
+
+            setStateOverride((prev) => ({
+                ...prev,
+                groupSettlements: [newDeclaration, ...groupSettlements],
+                organizationSubPoints: updatedSubPoints,
+            }));
+
+            return newDeclaration;
+        },
+        [point, organizationSubPoints, groupSettlements],
+    );
+
     return {
         scenarioId,
         changeScenario,
@@ -504,11 +600,14 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
         commissions,
         settlements,
         refunds,
+        organizationSubPoints,
+        groupSettlements,
         openCashSession,
         closeCashSession,
         recordSimulatedSale,
         createSettlementDeclaration,
         initiateRefundRequest,
         confirmRefundRestitution,
+        createGroupSettlementDeclaration,
     };
 }
