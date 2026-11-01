@@ -89,7 +89,8 @@ class RecordCounterSalePaymentAction
             $this->ensureReservationCanBePaid($lockedReservation, $agent, $lockedAssistance);
 
             $method = PaymentMethod::from((string) $attributes['method']);
-            $cashSession = $method === PaymentMethod::CompanyCredit ? null : $this->openCashSession($agent);
+            $isPartner = $agent->isKoraPointUser();
+            $cashSession = ($method === PaymentMethod::CompanyCredit || $isPartner) ? null : $this->openCashSession($agent);
             $total = (int) $lockedReservation->total_amount;
             $paymentData = $this->paymentData($method, $attributes, $lockedReservation, $agent, $cashSession, $total);
 
@@ -104,7 +105,16 @@ class RecordCounterSalePaymentAction
 
             $payment = Payment::query()->create($paymentData);
 
-            if ($method !== PaymentMethod::CompanyCredit) {
+            if ($method === PaymentMethod::CompanyCredit) {
+                $creditHold = $lockedReservation->companyCreditHolds()
+                    ->where('status', CompanyCreditHoldStatus::Reserved->value)
+                    ->lockForUpdate()
+                    ->first();
+                if ($lockedReservation->payer_type->value !== 'company' || $creditHold === null) {
+                    throw ValidationException::withMessages(['method' => 'Aucun crédit entreprise réservé pour cette vente.']);
+                }
+                $this->companyCredit->convert($creditHold, $payment);
+            } elseif (! $isPartner && $cashSession !== null) {
                 $movementType = $method === PaymentMethod::Cash ? 'counter_sale_cash' : 'counter_sale_mobile_money';
                 CashMovement::query()->create([
                     'cash_session_id' => $cashSession->getKey(),
@@ -134,15 +144,6 @@ class RecordCounterSalePaymentAction
                 } else {
                     $cashSession->increment('total_mobile_money', $total);
                 }
-            } else {
-                $creditHold = $lockedReservation->companyCreditHolds()
-                    ->where('status', CompanyCreditHoldStatus::Reserved->value)
-                    ->lockForUpdate()
-                    ->first();
-                if ($lockedReservation->payer_type->value !== 'company' || $creditHold === null) {
-                    throw ValidationException::withMessages(['method' => 'Aucun crédit entreprise réservé pour cette vente.']);
-                }
-                $this->companyCredit->convert($creditHold, $payment);
             }
 
             $lockedReservation->update([
@@ -410,6 +411,47 @@ class RecordCounterSalePaymentAction
             'verified_at' => now(),
             'provider_payload' => ['manualVerification' => true, 'channel' => 'counter_sale'],
         ];
+
+        if ($agent->isKoraPointUser()) {
+            if ($method === PaymentMethod::Cash) {
+                $received = (int) ($attributes['cash_received_amount'] ?? -1);
+
+                if ($received < $total) {
+                    throw ValidationException::withMessages([
+                        'cash_received_amount' => 'Le montant reçu est insuffisant.',
+                    ]);
+                }
+
+                return $base + [
+                    'cash_received_amount' => $received,
+                    'change_amount' => $received - $total,
+                    'payer_name' => trim((string) ($attributes['payer_name'] ?? '')) ?: null,
+                    'payer_phone' => trim((string) ($attributes['payer_phone'] ?? '')) ?: null,
+                ];
+            }
+
+            if ($method === PaymentMethod::MobileMoney) {
+                $network = MobileMoneyNetwork::from((string) $attributes['mobile_money_network']);
+                $reference = trim((string) ($attributes['provider_reference'] ?? ''));
+
+                if ($reference !== '' && Payment::query()
+                    ->where('provider', $network->value)
+                    ->where('provider_reference', $reference)
+                    ->exists()) {
+                    throw ValidationException::withMessages([
+                        'provider_reference' => 'Cette référence Mobile Money a déjà été utilisée.',
+                    ]);
+                }
+
+                return $base + [
+                    'provider' => $network->value,
+                    'mobile_money_network' => $network,
+                    'provider_reference' => $reference,
+                    'payer_phone' => trim((string) ($attributes['payer_phone'] ?? '')),
+                    'payer_name' => trim((string) ($attributes['payer_name'] ?? '')) ?: null,
+                ];
+            }
+        }
 
         if ($method === PaymentMethod::Cash) {
             $ledger = $cashSession->ledgers->firstWhere('kind', CashLedgerKind::Cash);

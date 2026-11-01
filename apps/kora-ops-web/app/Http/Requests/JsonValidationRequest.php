@@ -27,6 +27,10 @@ abstract class JsonValidationRequest extends FormRequest
 
     protected function validationRoute(): string
     {
+        if ($this->routeIs('kora-point.*') || ($this->user()?->isKoraPointUser() ?? false)) {
+            return 'kora-point.sale';
+        }
+
         return 'sale';
     }
 }

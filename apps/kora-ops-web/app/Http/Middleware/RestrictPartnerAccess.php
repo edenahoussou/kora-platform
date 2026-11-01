@@ -20,7 +20,7 @@ class RestrictPartnerAccess
 
                 return $next($request);
             }
-            $allowed = $request->routeIs('kora-points', 'kora-points.*', 'commissions', 'settlements', 'logout', 'profile.*', 'security.*', 'user-password.*', 'two-factor.*', 'passkeys.*', 'password.*', 'verification.*', 'notifications.*', 'settings.notifications', 'settings.notifications.*');
+            $allowed = $request->routeIs('kora-points', 'kora-points.*', 'kora-point.*', 'commissions', 'settlements', 'logout', 'profile.*', 'security.*', 'user-password.*', 'two-factor.*', 'passkeys.*', 'password.*', 'verification.*', 'notifications.*', 'settings.notifications', 'settings.notifications.*');
             if ($user->hasRole('kora_point_agent')) {
                 $allowed = $allowed || $request->routeIs('sale', 'sale.*', 'cash', 'cash.*', 'tickets', 'tickets.*', 'dashboard');
             }

@@ -15,6 +15,11 @@ class CreateKoraPointRemittanceRequest extends FormRequest
     /** @return array<string, mixed> */
     public function rules(): array
     {
-        return ['sale_uuids' => ['required', 'array', 'min:1', 'max:500'], 'sale_uuids.*' => ['required', 'uuid', 'distinct'], 'method' => ['required', 'in:cash,mobile_money,bank_transfer'], 'reference' => ['required', 'string', 'max:255']];
+        return [
+            'sale_uuids' => ['required', 'array', 'min:1', 'max:500'],
+            'sale_uuids.*' => ['required', 'uuid', 'distinct'],
+            'method' => ['required', 'in:cash,mobile_money,bank_transfer,bank_deposit,check'],
+            'reference' => ['required', 'string', 'max:255'],
+        ];
     }
 }

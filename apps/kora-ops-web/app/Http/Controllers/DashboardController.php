@@ -22,6 +22,10 @@ class DashboardController extends Controller
             return to_route('company-portal.index');
         }
 
+        if ($request->user()->hasRole('kora_point_agent')) {
+            return to_route('kora-point.dashboard');
+        }
+
         $period = $request->dashboardPeriod();
 
         return Inertia::render('dashboard', array_merge(
