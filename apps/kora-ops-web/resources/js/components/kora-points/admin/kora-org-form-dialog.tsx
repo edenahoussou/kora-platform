@@ -3,7 +3,9 @@ import {
     Building2,
     CalendarClock,
     Coins,
+    Landmark,
     MapPin,
+    Percent,
     Phone,
     Tag,
     X,
@@ -14,6 +16,7 @@ import PhoneInput, {
     parsePhoneNumber,
 } from 'react-phone-number-input';
 import phoneLabels from 'react-phone-number-input/locale/fr.json';
+import { cn } from '@/lib/utils';
 import organizationRoutes from '@/routes/kora-points/organizations';
 import type { AdminOrganization } from './kora-admin-ui';
 
@@ -253,7 +256,7 @@ export function KoraOrgFormDialog({
                     <label className="field">
                         <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
                             <MapPin className="size-3.5 text-gold" />
-                            Siège social & Adresse
+                            Adresse
                         </span>
                         <input
                             type="text"
@@ -299,11 +302,11 @@ export function KoraOrgFormDialog({
                                 Conditions cadres
                             </h4>
                         </div>
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <label className="field">
                                 <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-                                    <Coins className="size-3.5 text-gold" />
-                                    Commission (bps)
+                                    <Percent className="size-3.5 text-gold" />
+                                    Commission (points de base)
                                 </span>
                                 <input
                                     type="number"
@@ -323,17 +326,22 @@ export function KoraOrgFormDialog({
                                         form.errors.commission_basis_points,
                                     )}
                                 />
-                                {form.errors.commission_basis_points && (
+                                {form.errors.commission_basis_points ? (
                                     <small className="field-error-text">
                                         {form.errors.commission_basis_points}
+                                    </small>
+                                ) : (
+                                    <small className="text-muted-foreground">
+                                        Part du prix du billet conservée par le
+                                        partenaire sur chaque vente.
                                     </small>
                                 )}
                             </label>
 
                             <label className="field">
                                 <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-                                    <Coins className="size-3.5 text-gold" />
-                                    Plafond d'encours (FCFA)
+                                    <Landmark className="size-3.5 text-gold" />
+                                    Plafond (FCFA)
                                 </span>
                                 <input
                                     type="number"
@@ -351,62 +359,121 @@ export function KoraOrgFormDialog({
                                         form.errors.ceiling_amount,
                                     )}
                                 />
-                                {form.errors.ceiling_amount && (
+                                {form.errors.ceiling_amount ? (
                                     <small className="field-error-text">
                                         {form.errors.ceiling_amount}
                                     </small>
-                                )}
-                            </label>
-
-                            <label className="field">
-                                <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-                                    <CalendarClock className="size-3.5 text-gold" />
-                                    Reversements
-                                </span>
-                                <select
-                                    className="control"
-                                    value={
-                                        form.data.settlement_calendar
-                                            ?.frequency ?? ''
-                                    }
-                                    onChange={(e) => {
-                                        const frequency = e.target.value as
-                                            | 'daily'
-                                            | 'weekly'
-                                            | 'monthly'
-                                            | '';
-                                        form.setData(
-                                            'settlement_calendar',
-                                            frequency
-                                                ? {
-                                                      frequency,
-                                                      time: '18:00',
-                                                      timezone:
-                                                          'Africa/Porto-Novo',
-                                                      weekday:
-                                                          frequency === 'weekly'
-                                                              ? 1
-                                                              : null,
-                                                      day:
-                                                          frequency === 'monthly'
-                                                              ? 1
-                                                              : null,
-                                                  }
-                                                : null,
-                                        );
-                                    }}
-                                >
-                                    <option value="">Hérité (hebdomadaire)</option>
-                                    <option value="daily">Quotidien</option>
-                                    <option value="weekly">Hebdomadaire</option>
-                                    <option value="monthly">Mensuel</option>
-                                </select>
-                                {form.errors.settlement_calendar && (
-                                    <small className="field-error-text">
-                                        {form.errors.settlement_calendar}
+                                ) : (
+                                    <small className="text-muted-foreground">
+                                        Montant maximal que l’organisation peut
+                                        devoir à KORA avant blocage des ventes.
                                     </small>
                                 )}
                             </label>
+                        </div>
+
+                        <div className="field">
+                            <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                                <CalendarClock className="size-3.5 text-gold" />
+                                Reversements
+                            </span>
+                            <div
+                                className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4"
+                                role="radiogroup"
+                                aria-label="Fréquence de reversement"
+                            >
+                                {(
+                                    [
+                                        {
+                                            value: '',
+                                            label: 'Hérité',
+                                            hint: 'Réglage global KORA POINT',
+                                        },
+                                        {
+                                            value: 'daily',
+                                            label: 'Quotidien',
+                                            hint: 'Versement chaque jour',
+                                        },
+                                        {
+                                            value: 'weekly',
+                                            label: 'Hebdomadaire',
+                                            hint: 'Chaque semaine',
+                                        },
+                                        {
+                                            value: 'monthly',
+                                            label: 'Mensuel',
+                                            hint: 'Chaque mois',
+                                        },
+                                    ] as const
+                                ).map((option) => {
+                                    const selected =
+                                        (form.data.settlement_calendar
+                                            ?.frequency ?? '') === option.value;
+
+                                    return (
+                                        <button
+                                            key={option.value || 'inherited'}
+                                            type="button"
+                                            role="radio"
+                                            aria-checked={selected}
+                                            onClick={() =>
+                                                form.setData(
+                                                    'settlement_calendar',
+                                                    option.value
+                                                        ? {
+                                                              frequency:
+                                                                  option.value,
+                                                              time: '18:00',
+                                                              timezone:
+                                                                  'Africa/Porto-Novo',
+                                                              weekday:
+                                                                  option.value ===
+                                                                  'weekly'
+                                                                      ? 1
+                                                                      : null,
+                                                              day:
+                                                                  option.value ===
+                                                                  'monthly'
+                                                                      ? 1
+                                                                      : null,
+                                                          }
+                                                        : null,
+                                                )
+                                            }
+                                            className={cn(
+                                                'rounded-lg border px-2.5 py-2 text-center transition-colors',
+                                                selected
+                                                    ? 'border-[var(--kora)] bg-[var(--kora)] text-white'
+                                                    : 'border-border bg-card text-muted-foreground hover:border-gold/60 hover:text-foreground',
+                                            )}
+                                        >
+                                            <span className="block text-[11px] font-bold">
+                                                {option.label}
+                                            </span>
+                                            <span
+                                                className={cn(
+                                                    'mt-0.5 block text-[9.5px] leading-tight',
+                                                    selected
+                                                        ? 'text-white/75'
+                                                        : 'text-muted-foreground',
+                                                )}
+                                            >
+                                                {option.hint}
+                                            </span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            {form.errors.settlement_calendar ? (
+                                <small className="field-error-text">
+                                    {form.errors.settlement_calendar}
+                                </small>
+                            ) : (
+                                <small className="text-muted-foreground">
+                                    Rythme auquel l’organisation reverse à KORA
+                                    les ventes encaissées par ses points.
+                                </small>
+                            )}
                         </div>
                     </div>
                 </div>
