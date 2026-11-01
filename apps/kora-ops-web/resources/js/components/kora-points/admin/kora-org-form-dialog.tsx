@@ -29,7 +29,7 @@ type OrgFormValues = {
     name: string;
     phone: string;
     address: string;
-    commission_basis_points: string;
+    commission_rate: string;
     ceiling_amount: string;
     settlement_calendar: {
         frequency: 'daily' | 'weekly' | 'monthly';
@@ -44,7 +44,7 @@ const emptyValues: OrgFormValues = {
     name: '',
     phone: '',
     address: '',
-    commission_basis_points: '',
+    commission_rate: '',
     ceiling_amount: '',
     settlement_calendar: null,
 };
@@ -85,10 +85,10 @@ function valuesFromOrg(org?: AdminOrganization | null): OrgFormValues {
         name: org.name ?? '',
         phone: normalizePhoneValue(org.phone),
         address: org.address ?? '',
-        commission_basis_points:
+        commission_rate:
             org.commission_basis_points !== null &&
             org.commission_basis_points !== undefined
-                ? String(org.commission_basis_points)
+                ? String(org.commission_basis_points / 100)
                 : '',
         ceiling_amount:
             org.ceiling_amount !== null && org.ceiling_amount !== undefined
@@ -130,6 +130,9 @@ export function KoraOrgFormDialog({
     const phoneError =
         form.errors.phone ??
         (phoneInvalid ? 'Numéro de téléphone invalide.' : undefined);
+    const commissionError = (
+        form.errors as Record<string, string | undefined>
+    ).commission_basis_points;
 
     const submit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -142,6 +145,21 @@ export function KoraOrgFormDialog({
             preserveScroll: true,
             onSuccess: () => onOpenChange(false),
         };
+
+        form.transform((data) => ({
+            name: data.name,
+            phone: data.phone,
+            address: data.address,
+            commission_basis_points:
+                data.commission_rate === ''
+                    ? null
+                    : Math.round(Number(data.commission_rate) * 100),
+            ceiling_amount:
+                data.ceiling_amount === ''
+                    ? null
+                    : Number(data.ceiling_amount),
+            settlement_calendar: data.settlement_calendar,
+        }));
 
         if (isEditing) {
             form.put(
@@ -305,29 +323,27 @@ export function KoraOrgFormDialog({
                             <label className="field">
                                 <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
                                     <Percent className="size-3.5 text-gold" />
-                                    Commission (points de base)
+                                    Commission (%)
                                 </span>
                                 <input
                                     type="number"
                                     min={0}
-                                    max={10000}
-                                    step={1}
+                                    max={100}
+                                    step="0.01"
                                     className="control"
-                                    value={form.data.commission_basis_points}
+                                    value={form.data.commission_rate}
                                     onChange={(e) =>
                                         form.setData(
-                                            'commission_basis_points',
+                                            'commission_rate',
                                             e.target.value,
                                         )
                                     }
-                                    placeholder="ex : 300 (3 %)"
-                                    aria-invalid={Boolean(
-                                        form.errors.commission_basis_points,
-                                    )}
+                                    placeholder="ex : 3,5"
+                                    aria-invalid={Boolean(commissionError)}
                                 />
-                                {form.errors.commission_basis_points ? (
+                                {commissionError ? (
                                     <small className="field-error-text">
-                                        {form.errors.commission_basis_points}
+                                        {commissionError}
                                     </small>
                                 ) : (
                                     <small className="text-muted-foreground">

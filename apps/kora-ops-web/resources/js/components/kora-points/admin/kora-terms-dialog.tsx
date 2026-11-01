@@ -26,6 +26,11 @@ export function KoraTermsDialog({ open, target, values, onOpenChange }: Props) {
     const [frequency, setFrequency] = useState(
         values?.settlement_calendar?.frequency ?? '',
     );
+    const [commissionRate, setCommissionRate] = useState(
+        values?.commission_basis_points != null
+            ? String(values.commission_basis_points / 100)
+            : '',
+    );
 
     if (!open || !target) {
         return null;
@@ -89,17 +94,32 @@ export function KoraTermsDialog({ open, target, values, onOpenChange }: Props) {
                         <div className="cash-opening-list">
                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                 <label className="field">
-                                    <span>Commission (points de base)</span>
+                                    <span>Commission (%)</span>
                                     <input
                                         type="number"
-                                        name="commission_basis_points"
                                         min={0}
-                                        max={10000}
-                                        defaultValue={
-                                            values?.commission_basis_points ??
-                                            ''
+                                        max={100}
+                                        step="0.01"
+                                        value={commissionRate}
+                                        onChange={(e) =>
+                                            setCommissionRate(e.target.value)
                                         }
-                                        placeholder="300 = 3 %"
+                                        placeholder="ex : 3,5"
+                                    />
+                                    <input
+                                        type="hidden"
+                                        name="commission_basis_points"
+                                        value={
+                                            commissionRate === ''
+                                                ? ''
+                                                : String(
+                                                      Math.round(
+                                                          Number(
+                                                              commissionRate,
+                                                          ) * 100,
+                                                      ),
+                                                  )
+                                        }
                                     />
                                     {errors.commission_basis_points && (
                                         <small className="text-destructive">
