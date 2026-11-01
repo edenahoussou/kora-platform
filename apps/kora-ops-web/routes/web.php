@@ -40,8 +40,13 @@ use App\Modules\Ticketing\Http\Controllers\TicketPreviewController;
 use App\Modules\Ticketing\Http\Controllers\TicketViewController;
 use App\Modules\Tracking\Http\Controllers\FleetTrackingPageController;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::get('/', HomeController::class)->name('home');
+
+// Prévisualisation interactive KORA POINT VOYAGE (MEZ-157)
+Route::get('kora-points-preview', fn () => Inertia::render('kora-points/preview'))
+    ->name('kora-points.preview');
 
 Route::get('privacy-policy', [PublicLegalController::class, 'privacyPolicy'])
     ->name('privacy-policy');
