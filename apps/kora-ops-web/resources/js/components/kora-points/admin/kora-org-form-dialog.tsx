@@ -1,5 +1,13 @@
 import { useForm } from '@inertiajs/react';
-import { Building2, MapPin, Phone, Sparkles, Tag, X } from 'lucide-react';
+import {
+    Building2,
+    CalendarClock,
+    Coins,
+    MapPin,
+    Phone,
+    Tag,
+    X,
+} from 'lucide-react';
 import { useEffect } from 'react';
 import PhoneInput, {
     isValidPhoneNumber,
@@ -19,12 +27,24 @@ type OrgFormValues = {
     name: string;
     phone: string;
     address: string;
+    commission_basis_points: string;
+    ceiling_amount: string;
+    settlement_calendar: {
+        frequency: 'daily' | 'weekly' | 'monthly';
+        time: string;
+        timezone: string;
+        weekday: number | null;
+        day: number | null;
+    } | null;
 };
 
 const emptyValues: OrgFormValues = {
     name: '',
     phone: '',
     address: '',
+    commission_basis_points: '',
+    ceiling_amount: '',
+    settlement_calendar: null,
 };
 
 function normalizePhoneValue(value: string | null | undefined): string {
@@ -44,10 +64,35 @@ function valuesFromOrg(org?: AdminOrganization | null): OrgFormValues {
         return emptyValues;
     }
 
+    const frequency = org.settlement_calendar?.frequency as
+        | 'daily'
+        | 'weekly'
+        | 'monthly'
+        | undefined;
+    const settlementCalendar = frequency
+        ? {
+              frequency,
+              time: org.settlement_calendar?.time ?? '18:00',
+              timezone: org.settlement_calendar?.timezone ?? 'Africa/Porto-Novo',
+              weekday: org.settlement_calendar?.weekday ?? null,
+              day: org.settlement_calendar?.day ?? null,
+          }
+        : null;
+
     return {
         name: org.name ?? '',
         phone: normalizePhoneValue(org.phone),
         address: org.address ?? '',
+        commission_basis_points:
+            org.commission_basis_points !== null &&
+            org.commission_basis_points !== undefined
+                ? String(org.commission_basis_points)
+                : '',
+        ceiling_amount:
+            org.ceiling_amount !== null && org.ceiling_amount !== undefined
+                ? String(org.ceiling_amount)
+                : '',
+        settlement_calendar: settlementCalendar,
     };
 }
 
@@ -227,7 +272,7 @@ export function KoraOrgFormDialog({
                         )}
                     </label>
 
-                    {isEditing ? (
+                    {isEditing && (
                         <div className="flex items-center justify-between rounded-xl border border-border bg-muted/40 p-3">
                             <div className="flex items-center gap-2.5">
                                 <Tag className="size-4 text-muted-foreground" />
@@ -244,21 +289,126 @@ export function KoraOrgFormDialog({
                                 {organization?.code}
                             </span>
                         </div>
-                    ) : (
-                        <div className="flex items-start gap-3 rounded-xl border border-gold/30 bg-gold/10 p-3.5 text-xs text-foreground">
-                            <Sparkles className="mt-0.5 size-4 shrink-0 text-gold" />
-                            <div>
-                                <strong className="block font-bold text-foreground">
-                                    Génération automatique du code
-                                </strong>
-                                <span className="text-muted-foreground">
-                                    Le code organisation (ex : LPDB-01) sera
-                                    généré automatiquement à partir de la raison
-                                    sociale.
-                                </span>
-                            </div>
-                        </div>
                     )}
+
+                    {/* Conditions cadres */}
+                    <div className="space-y-3 border-t border-border pt-4">
+                        <div className="flex items-center gap-2">
+                            <Coins className="size-4 text-gold" />
+                            <h4 className="text-xs font-black tracking-wider text-foreground uppercase">
+                                Conditions cadres
+                            </h4>
+                        </div>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                            <label className="field">
+                                <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                                    <Coins className="size-3.5 text-gold" />
+                                    Commission (bps)
+                                </span>
+                                <input
+                                    type="number"
+                                    min={0}
+                                    max={10000}
+                                    step={1}
+                                    className="control"
+                                    value={form.data.commission_basis_points}
+                                    onChange={(e) =>
+                                        form.setData(
+                                            'commission_basis_points',
+                                            e.target.value,
+                                        )
+                                    }
+                                    placeholder="ex : 300 (3 %)"
+                                    aria-invalid={Boolean(
+                                        form.errors.commission_basis_points,
+                                    )}
+                                />
+                                {form.errors.commission_basis_points && (
+                                    <small className="field-error-text">
+                                        {form.errors.commission_basis_points}
+                                    </small>
+                                )}
+                            </label>
+
+                            <label className="field">
+                                <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                                    <Coins className="size-3.5 text-gold" />
+                                    Plafond d'encours (FCFA)
+                                </span>
+                                <input
+                                    type="number"
+                                    min={0}
+                                    className="control"
+                                    value={form.data.ceiling_amount}
+                                    onChange={(e) =>
+                                        form.setData(
+                                            'ceiling_amount',
+                                            e.target.value,
+                                        )
+                                    }
+                                    placeholder="ex : 1 500 000"
+                                    aria-invalid={Boolean(
+                                        form.errors.ceiling_amount,
+                                    )}
+                                />
+                                {form.errors.ceiling_amount && (
+                                    <small className="field-error-text">
+                                        {form.errors.ceiling_amount}
+                                    </small>
+                                )}
+                            </label>
+
+                            <label className="field">
+                                <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                                    <CalendarClock className="size-3.5 text-gold" />
+                                    Reversements
+                                </span>
+                                <select
+                                    className="control"
+                                    value={
+                                        form.data.settlement_calendar
+                                            ?.frequency ?? ''
+                                    }
+                                    onChange={(e) => {
+                                        const frequency = e.target.value as
+                                            | 'daily'
+                                            | 'weekly'
+                                            | 'monthly'
+                                            | '';
+                                        form.setData(
+                                            'settlement_calendar',
+                                            frequency
+                                                ? {
+                                                      frequency,
+                                                      time: '18:00',
+                                                      timezone:
+                                                          'Africa/Porto-Novo',
+                                                      weekday:
+                                                          frequency === 'weekly'
+                                                              ? 1
+                                                              : null,
+                                                      day:
+                                                          frequency === 'monthly'
+                                                              ? 1
+                                                              : null,
+                                                  }
+                                                : null,
+                                        );
+                                    }}
+                                >
+                                    <option value="">Hérité (hebdomadaire)</option>
+                                    <option value="daily">Quotidien</option>
+                                    <option value="weekly">Hebdomadaire</option>
+                                    <option value="monthly">Mensuel</option>
+                                </select>
+                                {form.errors.settlement_calendar && (
+                                    <small className="field-error-text">
+                                        {form.errors.settlement_calendar}
+                                    </small>
+                                )}
+                            </label>
+                        </div>
+                    </div>
                 </div>
 
                 <div className="cash-modal-actions mt-6">

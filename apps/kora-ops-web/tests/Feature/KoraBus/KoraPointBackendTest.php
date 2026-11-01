@@ -122,12 +122,18 @@ it('creates an organization with auto generated code composed from structure nam
         'name' => 'La Poste du Bénin',
         'phone' => '+22921300000',
         'address' => 'Ganhi, Cotonou',
+        'commission_basis_points' => 350,
+        'ceiling_amount' => 2500000,
+        'settlement_calendar' => ['frequency' => 'weekly', 'time' => '18:00', 'timezone' => 'Africa/Porto-Novo', 'weekday' => 1],
     ])->assertRedirect();
 
     $org = KoraPointOrganization::query()->where('name', 'La Poste du Bénin')->sole();
     expect($org->code)->toBe('LPDB-01')
         ->and($org->phone)->toBe('+22921300000')
-        ->and($org->address)->toBe('Ganhi, Cotonou');
+        ->and($org->address)->toBe('Ganhi, Cotonou')
+        ->and($org->commission_basis_points)->toBe(350)
+        ->and($org->ceiling_amount)->toBe(2500000)
+        ->and($org->settlement_calendar['frequency'])->toBe('weekly');
 });
 
 it('creates an organization and its points atomically and rolls back invalid batches', function (): void {

@@ -4,7 +4,6 @@ import {
     Download,
     FileText,
     Link2,
-    Pencil,
     Phone,
     Store,
     Unlink,
@@ -25,7 +24,6 @@ import type {
     UnattachedPoint,
 } from './kora-admin-ui';
 import { formatAmount, PointStatusBadge } from './kora-admin-ui';
-import { KoraTermsDialog } from './kora-terms-dialog';
 
 type Props = {
     open: boolean;
@@ -51,11 +49,6 @@ export function KoraOrgDetailSheet({
     onOpenChange,
 }: Props) {
     const [attachUuid, setAttachUuid] = useState('');
-    const [termsTarget, setTermsTarget] = useState<
-        | { type: 'point'; uuid: string; label: string }
-        | { type: 'organization'; uuid: string; label: string }
-        | null
-    >(null);
 
     if (!organization) {
         return null;
@@ -155,22 +148,6 @@ export function KoraOrgDetailSheet({
                                     Conditions cadres
                                 </strong>
                             </div>
-                            {permissions.canManageTerms && (
-                                <button
-                                    type="button"
-                                    className="btn btn-ghost btn-xs"
-                                    onClick={() =>
-                                        setTermsTarget({
-                                            type: 'organization',
-                                            uuid: organization.uuid,
-                                            label: organization.name,
-                                        })
-                                    }
-                                >
-                                    <Pencil className="size-3.5" />
-                                    Modifier
-                                </button>
-                            )}
                         </div>
                         <dl className="mt-4 grid grid-cols-3 gap-4 text-sm">
                             <div>
@@ -294,22 +271,6 @@ export function KoraOrgDetailSheet({
                                         </div>
                                         {permissions.canManage && (
                                             <div className="flex shrink-0 items-center gap-1">
-                                                {permissions.canManageTerms && (
-                                                    <button
-                                                        type="button"
-                                                        className="btn btn-ghost btn-xs"
-                                                        title="Conditions du point"
-                                                        onClick={() =>
-                                                            setTermsTarget({
-                                                                type: 'point',
-                                                                uuid: sp.uuid,
-                                                                label: sp.name,
-                                                            })
-                                                        }
-                                                    >
-                                                        <Coins className="size-3.5" />
-                                                    </button>
-                                                )}
                                                 <button
                                                     type="button"
                                                     className="btn btn-ghost btn-xs"
@@ -408,27 +369,6 @@ export function KoraOrgDetailSheet({
                     )}
                 </div>
             </SheetContent>
-
-            <KoraTermsDialog
-                open={termsTarget !== null}
-                target={termsTarget}
-                values={
-                    termsTarget?.type === 'organization'
-                        ? {
-                              commission_basis_points:
-                                  organization.commission_basis_points,
-                              ceiling_amount: organization.ceiling_amount,
-                              settlement_calendar:
-                                  organization.settlement_calendar,
-                          }
-                        : null
-                }
-                onOpenChange={(open) => {
-                    if (!open) {
-                        setTermsTarget(null);
-                    }
-                }}
-            />
         </Sheet>
     );
 }

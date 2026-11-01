@@ -10,6 +10,8 @@ import {
     Store,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { KoraFilterBar } from '@/components/kora-filter-bar';
+import type { FilterConfig } from '@/components/kora-filter-bar';
 import type {
     AdminOrganization,
     AdminPermissions,
@@ -56,6 +58,19 @@ const frequencyLabels: Record<number, string> = {
     7: 'Hebdomadaire',
     30: 'Mensuel',
 };
+
+const filterConfigs: FilterConfig[] = [
+    {
+        name: 'status',
+        label: 'Statut',
+        placeholder: 'Tous les statuts',
+        options: [
+            { value: 'active', label: 'Actives' },
+            { value: 'suspended', label: 'Suspendues' },
+            { value: 'closed', label: 'Clôturées' },
+        ],
+    },
+];
 
 export default function KoraPointOrganizationsIndexPage({
     organizations,
@@ -315,6 +330,13 @@ export default function KoraPointOrganizationsIndexPage({
                 />
             </section>
 
+            <KoraFilterBar
+                route="/kora-points/organizations"
+                searchPlaceholder="Rechercher par code, nom ou adresse…"
+                filters={filterConfigs}
+            />
+
+            <div className="mt-4">
             <KoraTable
                 title="Matrice des organisations"
                 subtitle={`${organizations.total} organisation${organizations.total > 1 ? 's' : ''} partenaire${organizations.total > 1 ? 's' : ''}`}
@@ -328,6 +350,7 @@ export default function KoraPointOrganizationsIndexPage({
                 emptyIcon={Building2}
                 pagination={pagination}
             />
+            </div>
 
             <KoraOrgFormDialog
                 open={formOpen}

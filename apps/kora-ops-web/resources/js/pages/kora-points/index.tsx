@@ -82,6 +82,16 @@ export default function KoraPointsIndexPage({
         return { totalExposure, totalMonthlySales, alertCount };
     }, [points.data]);
 
+    const orgBadgeByUuid = useMemo(() => {
+        const map = new Map<string, string>();
+
+        organizations.forEach((org) => {
+            map.set(org.uuid, org.code.slice(0, 3).toUpperCase());
+        });
+
+        return map;
+    }, [organizations]);
+
     const filterConfigs: FilterConfig[] = [
         {
             name: 'type',
@@ -200,21 +210,40 @@ export default function KoraPointsIndexPage({
         {
             key: 'point',
             header: 'Point de vente',
-            render: (point) => (
-                <div className="flex items-center gap-3">
-                    <span className="grid size-9 place-items-center rounded-[0.65rem] bg-gold/12 text-[0.6875rem] font-black text-[var(--kora)]">
-                        {point.code.slice(0, 3)}
-                    </span>
-                    <div>
-                        <strong className="block font-bold text-foreground">
-                            {point.name}
-                        </strong>
-                        <span className="text-xs font-semibold tracking-[0.08em] text-muted-foreground uppercase">
-                            {point.code} · {point.city}
+            render: (point) => {
+                const attachedOrgBadge = point.organization_uuid
+                    ? orgBadgeByUuid.get(point.organization_uuid)
+                    : null;
+                const badgeLabel =
+                    attachedOrgBadge ?? point.code.slice(0, 3).toUpperCase();
+
+                return (
+                    <div className="flex items-center gap-3">
+                        <span
+                            className={
+                                attachedOrgBadge
+                                    ? 'grid size-9 place-items-center rounded-[0.65rem] bg-kora text-[0.6875rem] font-black text-white'
+                                    : 'grid size-9 place-items-center rounded-[0.65rem] bg-gold/12 text-[0.6875rem] font-black text-[var(--kora)]'
+                            }
+                            title={
+                                attachedOrgBadge
+                                    ? `Rattaché à ${point.organization_name}`
+                                    : 'Point autonome'
+                            }
+                        >
+                            {badgeLabel}
                         </span>
+                        <div>
+                            <strong className="block font-bold text-foreground">
+                                {point.name}
+                            </strong>
+                            <span className="text-xs font-semibold tracking-[0.08em] text-muted-foreground uppercase">
+                                {point.code} · {point.city}
+                            </span>
+                        </div>
                     </div>
-                </div>
-            ),
+                );
+            },
         },
         {
             key: 'manager',

@@ -4,6 +4,7 @@ namespace App\Modules\KoraPoints\Http\Requests;
 
 use App\Modules\IdentityAccess\Data\UserStatus;
 use App\Modules\KoraPoints\Models\KoraPointOrganization;
+use App\Modules\KoraPoints\Services\KoraPointTermsService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -27,7 +28,7 @@ class SaveKoraPointOrganizationRequest extends FormRequest
         $subject = $this->route('organization');
         $ignoredId = $subject instanceof KoraPointOrganization ? $subject->id : null;
 
-        return [
+        $rules = [
             'code' => ['sometimes', 'nullable', 'string', 'max:80', Rule::unique('kora_point_organizations', 'code')->ignore($ignoredId)],
             'name' => ['required', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:40'],
@@ -44,5 +45,7 @@ class SaveKoraPointOrganizationRequest extends FormRequest
             'points.*.latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'points.*.longitude' => ['nullable', 'numeric', 'between:-180,180'],
         ];
+
+        return $rules + KoraPointTermsService::rules();
     }
 }

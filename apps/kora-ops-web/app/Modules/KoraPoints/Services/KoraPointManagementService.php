@@ -88,7 +88,7 @@ class KoraPointManagementService
             }
             $organization = $creating ? new KoraPointOrganization(['status' => 'active']) : KoraPointOrganization::query()->lockForUpdate()->whereKey($organization->getKey())->firstOrFail();
             $before = $organization->getAttributes();
-            $organization->fill(Arr::only($data, ['code', 'name', 'phone', 'address']));
+            $organization->fill(Arr::only($data, ['code', 'name', 'phone', 'address', 'commission_basis_points', 'ceiling_amount', 'settlement_calendar']));
             $organization->save();
             foreach ($data['points'] ?? [] as $pointData) {
                 $this->savePoint($actor, $pointData + ['organization_uuid' => $organization->uuid]);

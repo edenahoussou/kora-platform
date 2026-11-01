@@ -37,6 +37,22 @@ class KoraPointOrganizationController extends Controller
             $query->whereKey($actor->hasRole('kora_point_agent') ? 0 : ($actor->kora_point_organization_id ?? 0));
         }
 
+        $search = (string) $request->input('q', '');
+        if ($search !== '') {
+            $like = '%'.mb_strtolower($search).'%';
+            $query->where(function ($q) use ($like): void {
+                $q->whereRaw('LOWER(name) LIKE ?', [$like])
+                    ->orWhereRaw('LOWER(code) LIKE ?', [$like])
+                    ->orWhereRaw('LOWER(address) LIKE ?', [$like])
+                    ->orWhereRaw('LOWER(phone) LIKE ?', [$like]);
+            });
+        }
+
+        $status = (string) $request->input('status', '');
+        if (in_array($status, ['active', 'suspended', 'closed'], true)) {
+            $query->where('status', $status);
+        }
+
         $organizations = $query->latest('id')->paginate(30)->through(fn (KoraPointOrganization $org): array => $this->organization($org));
 
         $subpoints = KoraPoint::query()
