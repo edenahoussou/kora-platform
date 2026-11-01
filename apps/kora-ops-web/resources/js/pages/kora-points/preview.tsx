@@ -6,8 +6,8 @@ import { KoraPointAgentDashboard } from '@/components/kora-points/agent-dashboar
 import { KoraPointCashView } from '@/components/kora-points/cash/kora-point-cash-view';
 import { KoraPointCommissionsView } from '@/components/kora-points/commissions/kora-point-commissions-view';
 import { KoraPointDemoBanner } from '@/components/kora-points/common/kora-point-demo-banner';
-import type { KoraPointActivePage } from '@/components/kora-points/common/kora-point-shell';
 import { KoraPointShell } from '@/components/kora-points/common/kora-point-shell';
+import type { KoraPointActivePage } from '@/components/kora-points/common/kora-point-shell';
 import { KoraFinanceReconciliationView } from '@/components/kora-points/finance/kora-finance-reconciliation-view';
 import { MOCK_PERSONAS } from '@/components/kora-points/mock/kora-point-mock-data';
 import type { KoraPointUserRole } from '@/components/kora-points/mock/kora-point-mock-data';
@@ -49,6 +49,7 @@ export default function KoraPointPreviewPage() {
             <Head title="KORA POINT VOYAGE — Démonstration UI (MEZ-157)" />
 
             <KoraPointShell
+                standalone={true}
                 point={demo.point}
                 health={demo.health}
                 activePage={activePage}

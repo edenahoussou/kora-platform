@@ -224,6 +224,8 @@ export function KoraPointSettlementDetailDrawer({
                                             'BANK_TRANSFER' &&
                                             'Virement bancaire'}
                                         {settlement.payment_method ===
+                                            'CHECK' && 'Chèque bancaire'}
+                                        {settlement.payment_method ===
                                             'MOBILE_MONEY' &&
                                             'Mobile Money B2B'}
                                     </span>

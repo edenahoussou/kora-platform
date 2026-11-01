@@ -72,6 +72,12 @@ class KoraPointSale extends KoraModel
         return $this->hasMany(KoraPointRefund::class, 'sale_id');
     }
 
+    /** @return HasMany<KoraPointRemittanceLine, $this> */
+    public function remittanceLines(): HasMany
+    {
+        return $this->hasMany(KoraPointRemittanceLine::class, 'sale_id');
+    }
+
     /** Freezes sale terms after creation and forbids deletion. */
     protected static function booted(): void
     {

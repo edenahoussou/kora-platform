@@ -1,5 +1,13 @@
-import { FileSpreadsheet, FileText, Info } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import {
+    Coins,
+    FileSpreadsheet,
+    FileText,
+    Info,
+    RotateCcw,
+    TrendingUp,
+    Wallet,
+} from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { cn } from '@/lib/utils';
 import type {
@@ -70,56 +78,60 @@ export function KoraPointCommissionsView({
             />
 
             {/* Header */}
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="kora-page-head cash-reveal mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                    <div className="flex items-center gap-2">
-                        <span className="text-[0.625rem] font-black tracking-wider text-slate-500 uppercase">
-                            Revenus & Rémunération du Point
-                        </span>
+                    <div className="kora-breadcrumb mb-2 text-[0.6875rem] text-muted-foreground">
+                        KORA POINT / Espace Agent / Commissions
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                        <h1 className="text-[clamp(1.8rem,3vw,2.65rem)] font-extrabold tracking-[-0.055em] text-foreground">
+                            Suivi des Commissions Partenaire
+                        </h1>
                         <KoraStatusBadge
                             label={`Taux effectif : ${ratePercent} %`}
                             tone="gold"
                             variant="solid"
                         />
                     </div>
-                    <h1 className="text-xl font-black text-slate-900 sm:text-2xl dark:text-white">
-                        Suivi des Commissions Partenaire
-                    </h1>
+                    <p className="mt-1.5 text-[0.8125rem] leading-6 text-muted-foreground">
+                        Rémunération contractuelle conservée directement à la
+                        source sur chaque encaissement.
+                    </p>
                 </div>
 
                 {/* Export Buttons */}
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2.5">
                     <button
                         type="button"
                         onClick={() => setExportModalType('EXCEL')}
-                        className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                        className="btn btn-ghost"
                     >
                         <FileSpreadsheet className="size-4 text-emerald-600" />
-                        <span>Export Excel (Démo)</span>
+                        <span>Export Excel</span>
                     </button>
 
                     <button
                         type="button"
                         onClick={() => setExportModalType('PDF')}
-                        className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                        className="btn btn-ghost"
                     >
                         <FileText className="size-4 text-rose-600" />
-                        <span>Relevé PDF (Démo)</span>
+                        <span>Relevé PDF</span>
                     </button>
                 </div>
             </div>
 
             {/* Permanent Callout: Retained at the Source */}
-            <div className="rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50/90 to-indigo-50/70 p-4.5 text-xs text-blue-950 dark:border-blue-900/40 dark:from-slate-900 dark:to-slate-900 dark:text-blue-200">
+            <div className="rounded-2xl border border-blue-500/20 bg-blue-500/10 p-4 text-xs text-foreground">
                 <div className="flex items-start gap-3">
-                    <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-blue-600 text-white shadow-sm">
+                    <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-digital text-white shadow-sm">
                         <Info className="size-4" />
                     </div>
                     <div className="space-y-1">
-                        <strong className="block text-sm font-extrabold text-blue-900 dark:text-blue-100">
+                        <strong className="block text-sm font-extrabold text-foreground">
                             Principe de retenue à la source des commissions
                         </strong>
-                        <p className="text-xs leading-relaxed text-blue-800/90 dark:text-blue-300">
+                        <p className="text-xs leading-relaxed text-muted-foreground">
                             Votre commission ({ratePercent} %) est{' '}
                             <strong>
                                 déjà conservée directement dans votre caisse ou
@@ -136,61 +148,104 @@ export function KoraPointCommissionsView({
             </div>
 
             {/* 4 Financial Summary Cards */}
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                    <span className="text-[0.625rem] font-bold text-slate-400 uppercase">
-                        1. Assiette totale encaissée
-                    </span>
-                    <strong className="mt-1 block font-mono text-lg font-black text-slate-900 sm:text-xl dark:text-white">
-                        {totals.grossSales.toLocaleString('fr-FR')} FCFA
-                    </strong>
-                    <span className="text-[0.6875rem] text-slate-500">
-                        Base de calcul des ventes
-                    </span>
-                </div>
+            <div className="cash-ledger-grid cash-reveal cash-reveal-delay-1 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <article className="cash-ledger-card cash-ledger-card-cash">
+                    <div className="cash-ledger-head">
+                        <div className="cash-ledger-identity">
+                            <span className="cash-ledger-brand bg-digital/10 text-digital">
+                                <Wallet className="size-4" strokeWidth={1.7} />
+                            </span>
+                            <div>
+                                <span className="cash-ledger-title">
+                                    Assiette encaissée
+                                </span>
+                                <small>Base de calcul brute</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="cash-ledger-balance">
+                        <span>Total</span>
+                        <strong>
+                            {totals.grossSales.toLocaleString('fr-FR')} FCFA
+                        </strong>
+                    </div>
+                </article>
 
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                    <span className="text-[0.625rem] font-bold text-slate-400 uppercase">
-                        2. Commissions initiales ({ratePercent} %)
-                    </span>
-                    <strong className="mt-1 block font-mono text-lg font-black text-emerald-600 sm:text-xl dark:text-emerald-400">
-                        +{totals.initialComm.toLocaleString('fr-FR')} FCFA
-                    </strong>
-                    <span className="text-[0.6875rem] text-slate-500">
-                        Taux historique figé
-                    </span>
-                </div>
+                <article className="cash-ledger-card cash-ledger-card-cash">
+                    <div className="cash-ledger-head">
+                        <div className="cash-ledger-identity">
+                            <span className="cash-ledger-brand bg-emerald-500/10 text-emerald-600">
+                                <TrendingUp
+                                    className="size-4"
+                                    strokeWidth={1.7}
+                                />
+                            </span>
+                            <div>
+                                <span className="cash-ledger-title">
+                                    Commissions ({ratePercent} %)
+                                </span>
+                                <small>Taux contractuel</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="cash-ledger-balance">
+                        <span>Total</span>
+                        <strong>
+                            +{totals.initialComm.toLocaleString('fr-FR')} FCFA
+                        </strong>
+                    </div>
+                </article>
 
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                    <span className="text-[0.625rem] font-bold text-slate-400 uppercase">
-                        3. Corrections remboursements
-                    </span>
-                    <strong
-                        className={cn(
-                            'mt-1 block font-mono text-lg font-black sm:text-xl',
-                            totals.corrections < 0
-                                ? 'text-rose-600 dark:text-rose-400'
-                                : 'text-slate-400',
-                        )}
-                    >
-                        {totals.corrections.toLocaleString('fr-FR')} FCFA
-                    </strong>
-                    <span className="text-[0.6875rem] text-slate-500">
-                        Reprises sur annulations
-                    </span>
-                </div>
+                <article className="cash-ledger-card cash-ledger-card-cash">
+                    <div className="cash-ledger-head">
+                        <div className="cash-ledger-identity">
+                            <span className="cash-ledger-brand bg-destructive/10 text-destructive">
+                                <RotateCcw
+                                    className="size-4"
+                                    strokeWidth={1.7}
+                                />
+                            </span>
+                            <div>
+                                <span className="cash-ledger-title">
+                                    Reprises annulations
+                                </span>
+                                <small>Remboursements</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="cash-ledger-balance">
+                        <span>Total</span>
+                        <strong
+                            className={
+                                totals.corrections !== 0 ? 'text-rose-600' : ''
+                            }
+                        >
+                            {totals.corrections.toLocaleString('fr-FR')} FCFA
+                        </strong>
+                    </div>
+                </article>
 
-                <div className="rounded-2xl border border-gold/40 bg-gold/5 p-4 shadow-sm dark:border-gold/30 dark:bg-gold/10">
-                    <span className="text-[0.625rem] font-bold text-kora uppercase dark:text-gold">
-                        4. Commission nette acquise
-                    </span>
-                    <strong className="mt-1 block font-mono text-lg font-black text-kora sm:text-xl dark:text-gold">
-                        +{totals.netComm.toLocaleString('fr-FR')} FCFA
-                    </strong>
-                    <span className="text-[0.6875rem] text-slate-600 dark:text-slate-300">
-                        Revenu net définitif conservé
-                    </span>
-                </div>
+                <article className="cash-ledger-card cash-ledger-card-cash">
+                    <div className="cash-ledger-head">
+                        <div className="cash-ledger-identity">
+                            <span className="cash-ledger-brand bg-gold/15 text-gold">
+                                <Coins className="size-4" strokeWidth={1.7} />
+                            </span>
+                            <div>
+                                <span className="cash-ledger-title">
+                                    Commission nette
+                                </span>
+                                <small>Revenu net conservé</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="cash-ledger-balance">
+                        <span>Total</span>
+                        <strong className="text-emerald-600">
+                            +{totals.netComm.toLocaleString('fr-FR')} FCFA
+                        </strong>
+                    </div>
+                </article>
             </div>
 
             {/* Filter bar by period */}

@@ -71,17 +71,17 @@ class CounterSaleController extends Controller
      *
      * @var array<string, mixed>
      */
-    private array $requestCache = [];
+    protected array $requestCache = [];
 
     /**
      * @phpstan-type SaleContext array{itinerary_quote_uuid: string|null, reservation_uuid: string|null}
      */
     public function __construct(
-        private BusCatalogService $catalog,
-        private BuildCounterSaleSeatAvailabilityAction $counterSaleSeatAvailability,
-        private CompanyAccountCatalogService $companyAccounts,
-        private ItinerarySearchService $itinerarySearch,
-        private DepartureStopTimeResolver $stopTimeResolver,
+        protected BusCatalogService $catalog,
+        protected BuildCounterSaleSeatAvailabilityAction $counterSaleSeatAvailability,
+        protected CompanyAccountCatalogService $companyAccounts,
+        protected ItinerarySearchService $itinerarySearch,
+        protected DepartureStopTimeResolver $stopTimeResolver,
     ) {}
 
     public function index(CounterSaleSearchRequest $request): Response|RedirectResponse
@@ -448,13 +448,13 @@ class CounterSaleController extends Controller
      * @param  list<ItineraryData>  $itineraries
      * @return list<array<string, mixed>>
      */
-    private function serializeItineraries(array $itineraries, string $direction = 'outbound'): array
+    protected function serializeItineraries(array $itineraries, string $direction = 'outbound'): array
     {
         return array_map(fn (ItineraryData $itinerary): array => $this->serializeItinerary($itinerary, $direction), $itineraries);
     }
 
     /** @return array<string, mixed> */
-    private function serializeItinerary(ItineraryData $itinerary, string $direction = 'outbound'): array
+    protected function serializeItinerary(ItineraryData $itinerary, string $direction = 'outbound'): array
     {
         return [
             'direction' => $direction,
@@ -470,7 +470,7 @@ class CounterSaleController extends Controller
     }
 
     /** @return array<string, mixed> */
-    private function serializeItineraryLeg(ItineraryLegData $leg, string $direction = 'outbound'): array
+    protected function serializeItineraryLeg(ItineraryLegData $leg, string $direction = 'outbound'): array
     {
         return [
             'legOrder' => $leg->legOrder,
@@ -517,7 +517,7 @@ class CounterSaleController extends Controller
     }
 
     /** @param array{itinerary_quote_uuid?: string|null} $context */
-    private function selectedItineraryQuote(array $context): ?ItineraryQuote
+    protected function selectedItineraryQuote(array $context): ?ItineraryQuote
     {
         if (($context['itinerary_quote_uuid'] ?? null) === null) {
             return null;
@@ -533,7 +533,7 @@ class CounterSaleController extends Controller
     /**
      * @return list<array{legOrder: int, direction: string, departureUuid: string, seats: list<array<string, mixed>>}>
      */
-    private function serializeItineraryLegSeats(?ItineraryQuote $quote): array
+    protected function serializeItineraryLegSeats(?ItineraryQuote $quote): array
     {
         if ($quote === null) {
             return [];
@@ -556,7 +556,7 @@ class CounterSaleController extends Controller
      * @param  array{outbound_legs: list<array{departure_uuid: string, origin_stop_uuid: string, destination_stop_uuid: string}>, inbound_legs: list<array{departure_uuid: string, origin_stop_uuid: string, destination_stop_uuid: string}>}  $legsData
      * @return list<array{legOrder: int, direction: string, departureUuid: string, grid: array{rows: int, cols: int, cells: list<array<string, mixed>>}|null, seats: list<array<string, mixed>>}>
      */
-    private function buildSeatAvailabilityFromLegs(array $legsData): array
+    protected function buildSeatAvailabilityFromLegs(array $legsData): array
     {
         $allLegs = [
             ...array_map(fn (array $leg): array => [...$leg, 'direction' => 'outbound'], $legsData['outbound_legs']),
@@ -605,7 +605,7 @@ class CounterSaleController extends Controller
      * @param  list<array{departure_uuid: string, origin_stop_uuid: string, destination_stop_uuid: string}>  $inboundLegs
      * @return list<ItineraryLegQuoteRequest>
      */
-    private function buildItineraryLegs(array $outboundLegs, array $inboundLegs): array
+    protected function buildItineraryLegs(array $outboundLegs, array $inboundLegs): array
     {
         $allLegs = [
             ...array_map(fn (array $leg): array => [...$leg, 'direction' => 'outbound'], $outboundLegs),
@@ -645,7 +645,7 @@ class CounterSaleController extends Controller
      * @param  list<string>  $uuids
      * @return Collection<string, Departure>
      */
-    private function batchFetchDepartures(array $uuids): Collection
+    protected function batchFetchDepartures(array $uuids): Collection
     {
         return Departure::query()
             ->whereIn('uuid', $uuids)
@@ -658,7 +658,7 @@ class CounterSaleController extends Controller
      * @param  list<string>  $uuids
      * @return Collection<string, Stop>
      */
-    private function batchFetchStops(array $uuids): Collection
+    protected function batchFetchStops(array $uuids): Collection
     {
         return Stop::query()
             ->whereIn('uuid', $uuids)
@@ -667,7 +667,7 @@ class CounterSaleController extends Controller
     }
 
     /** @return array<string, mixed>|null */
-    private function serializeItineraryQuote(?ItineraryQuote $quote): ?array
+    protected function serializeItineraryQuote(?ItineraryQuote $quote): ?array
     {
         if ($quote === null) {
             return null;
@@ -703,7 +703,7 @@ class CounterSaleController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function serializeItineraryQuoteLeg(ItineraryQuoteLeg $leg, string $currency): array
+    protected function serializeItineraryQuoteLeg(ItineraryQuoteLeg $leg, string $currency): array
     {
         $departure = $leg->departure;
         $priceQuote = $leg->priceQuote;
@@ -763,7 +763,7 @@ class CounterSaleController extends Controller
     /**
      * @param  array{departure_uuid: string|null, origin_stop_uuid: string|null, destination_stop_uuid: string|null, quote_uuid: string|null, reservation_uuid: string|null}  $context
      */
-    private function selectedReservation(array $context): ?Reservation
+    protected function selectedReservation(array $context): ?Reservation
     {
         if ($context['reservation_uuid'] === null) {
             return null;
@@ -791,7 +791,7 @@ class CounterSaleController extends Controller
         return $reservation;
     }
 
-    private function latestActiveCounterSale(): ?Reservation
+    protected function latestActiveCounterSale(): ?Reservation
     {
         $user = auth()->user();
 
@@ -819,7 +819,7 @@ class CounterSaleController extends Controller
     }
 
     /** @return array<string, string> */
-    private function saleQueryFromReservation(Reservation $reservation): array
+    protected function saleQueryFromReservation(Reservation $reservation): array
     {
         $segment = $reservation->segments->first();
 
@@ -835,7 +835,7 @@ class CounterSaleController extends Controller
      * @param  Collection<int, array{city: string, country: string, physical_stops: array<int, array{uuid: string, name: string}>}>  $cities
      * @return list<array{city: string, country: string, physicalStops: array<int, array{uuid: string, name: string}>}>
      */
-    private function serializeCities(Collection $cities): array
+    protected function serializeCities(Collection $cities): array
     {
         return array_values($cities->map(fn (array $city): array => [
             'city' => $city['city'],
@@ -848,7 +848,7 @@ class CounterSaleController extends Controller
     }
 
     /** @return array{uuid: string, name: string, city: string, country: string, stopOrder: int} */
-    private function serializeStop(Stop $stop): array
+    protected function serializeStop(Stop $stop): array
     {
         return [
             'uuid' => $stop->uuid,
@@ -863,7 +863,7 @@ class CounterSaleController extends Controller
      * @param  Collection<int, CounterSaleSeatAvailabilityData>  $seats
      * @return list<array<string, mixed>>
      */
-    private function serializeSeats(Collection $seats): array
+    protected function serializeSeats(Collection $seats): array
     {
         return array_values($seats->map(fn (CounterSaleSeatAvailabilityData $seat): array => [
             'uuid' => $seat->seat->uuid,
@@ -876,7 +876,7 @@ class CounterSaleController extends Controller
     }
 
     /** @return array<string, mixed>|null */
-    private function serializeReservation(?Reservation $reservation): ?array
+    protected function serializeReservation(?Reservation $reservation): ?array
     {
         if ($reservation === null) {
             return null;
@@ -1061,7 +1061,7 @@ class CounterSaleController extends Controller
     /**
      * @return array{subtotalAmount: int, totalDiscount: int, label: string|null, promotionCode: string|null, companyDiscountAmount: int, groupDiscountAmount: int, promotionDiscountAmount: int}|null
      */
-    private function serializeDiscounts(Reservation $reservation): ?array
+    protected function serializeDiscounts(Reservation $reservation): ?array
     {
         $snapshot = is_array($reservation->total_snapshot) ? $reservation->total_snapshot : [];
         $promotionDiscount = (int) $reservation->promotion_discount_amount;
@@ -1092,7 +1092,7 @@ class CounterSaleController extends Controller
      *
      * @return array<string, mixed>
      */
-    private function serializeTicket(Ticket $ticket, Reservation $reservation, ?FiscalInvoice $fiscalInvoice): array
+    protected function serializeTicket(Ticket $ticket, Reservation $reservation, ?FiscalInvoice $fiscalInvoice): array
     {
         $passenger = $ticket->reservationPassenger;
 
@@ -1133,7 +1133,7 @@ class CounterSaleController extends Controller
     }
 
     /** @return list<array<string, mixed>> */
-    private function serializeCompanyAccounts(): array
+    protected function serializeCompanyAccounts(): array
     {
         $user = auth()->user();
         if (! $user instanceof User || $user->isKoraPointUser() || ! $user->can('createCounterSale', Reservation::class)) {
@@ -1144,7 +1144,7 @@ class CounterSaleController extends Controller
     }
 
     /** @return array{minimumPassengers: int, maximumPassengers: int} */
-    private function serializeGroupBookingSettings(): array
+    protected function serializeGroupBookingSettings(): array
     {
         $settings = GroupBookingSetting::current();
 
@@ -1155,7 +1155,7 @@ class CounterSaleController extends Controller
     }
 
     /** @return array{isOpen: bool, canOpen: bool, uuid: string|null, businessDate: string|null, totalCash: int, totalMobileMoney: int, cashRegisters: array<int, array{uuid: string, code: string, label: string}>} */
-    private function serializeCashSession(): array
+    protected function serializeCashSession(): array
     {
         $session = $this->resolveOpenCashSession();
 
@@ -1184,7 +1184,7 @@ class CounterSaleController extends Controller
     }
 
     /** @return array<int, array{uuid: string, code: string, label: string}> */
-    private function serializeCashRegisters(): array
+    protected function serializeCashRegisters(): array
     {
         $user = auth()->user();
         if ($user?->agency_id === null) {
@@ -1210,7 +1210,7 @@ class CounterSaleController extends Controller
             ->all();
     }
 
-    private function resolveOpenCashSession(): ?CashSession
+    protected function resolveOpenCashSession(): ?CashSession
     {
         if (array_key_exists('openCashSession', $this->requestCache)) {
             return $this->requestCache['openCashSession'];
@@ -1231,7 +1231,7 @@ class CounterSaleController extends Controller
     }
 
     /** @return list<array{uuid: string, network: string, label: string, accountIdentifier: string}> */
-    private function serializeMobileMoneyAccounts(): array
+    protected function serializeMobileMoneyAccounts(): array
     {
         $user = auth()->user();
         if ($user?->agency_id === null) {
@@ -1257,14 +1257,14 @@ class CounterSaleController extends Controller
         return array_values($accounts);
     }
 
-    private function ledgerUuidForAccount(?CashSession $session, string $accountUuid): ?string
+    protected function ledgerUuidForAccount(?CashSession $session, string $accountUuid): ?string
     {
         return $session?->ledgers
             ->first(fn ($ledger): bool => $ledger->kind === CashLedgerKind::MobileMoney && $ledger->ledger_key === $accountUuid)
             ?->uuid;
     }
 
-    private function maskAccountIdentifier(string $identifier): string
+    protected function maskAccountIdentifier(string $identifier): string
     {
         $length = mb_strlen($identifier);
         if ($length <= 4) {

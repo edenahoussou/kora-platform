@@ -32,6 +32,7 @@ createInertiaApp({
     layout: (name) => {
         switch (true) {
             case name === 'welcome':
+            case name === 'kora-points/preview':
                 return null;
             case name.startsWith('public/'):
                 return PublicLegalLayout;

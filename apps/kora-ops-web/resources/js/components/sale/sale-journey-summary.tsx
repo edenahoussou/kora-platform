@@ -55,6 +55,7 @@ type Props = {
     mobileChecklistDone?: number;
     selectedNetwork?: { label: string; color: string } | null | undefined;
     selectedAccount?: SaleMobileMoneyAccount | null | undefined;
+    isPartner?: boolean;
 };
 
 const DIRECTION_LABEL: Record<string, string> = {
@@ -171,6 +172,7 @@ export function SaleJourneySummary({
     mobileChecklistDone,
     selectedNetwork,
     selectedAccount,
+    isPartner = false,
 }: Props) {
     const holdCountdown = useHoldCountdown(
         reservation.expiresAt,
@@ -501,6 +503,14 @@ export function SaleJourneySummary({
                             Le montant sera imputé au plafond mensuel du compte.
                             Aucun mouvement de caisse.
                         </p>
+                    </div>
+                ) : isPartner ? (
+                    <div className="summary-callout success">
+                        <div>
+                            <ShieldCheck className="size-4" />
+                            Point partenaire KORA
+                        </div>
+                        <p>Encaissement autonome · Imputation sur encours.</p>
                     </div>
                 ) : cashSession?.isOpen ? (
                     <div className="summary-callout success">

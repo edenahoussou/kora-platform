@@ -339,7 +339,7 @@ it('records partner debt atomically with the existing counter payment and reject
     app(KoraPointManagementService::class)->updateTerms($this->commercial, $point, ['ceiling_amount' => 10670]);
     $result = app(RecordCounterSalePaymentAction::class)->execute($reservation, $scenario['agent'], $payload);
     app(RecordCounterSalePaymentAction::class)->execute($reservation, $scenario['agent'], $payload);
-    expect(KoraPointSale::query()->sole()->commission_amount)->toBe(330)->and(app(KoraPointLedgerService::class)->balance($point))->toBe(10670)->and(CashSession::query()->sole()->total_cash)->toBe(11000)->and($result['reservation']->origin_kora_point_id)->toBe($point->id);
+    expect(KoraPointSale::query()->sole()->commission_amount)->toBe(330)->and(app(KoraPointLedgerService::class)->balance($point))->toBe(10670)->and(CashMovement::query()->count())->toBe(0)->and($result['reservation']->origin_kora_point_id)->toBe($point->id);
 });
 
 it('rejects incomplete calendars without altering the effective calendar', function (): void {

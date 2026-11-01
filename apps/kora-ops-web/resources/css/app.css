@@ -11060,3 +11060,10 @@
         background: color-mix(in srgb, var(--gold) 12%, var(--card));
     }
 }
+
+@media print {
+    .no-print,
+    .ticket-screen-only {
+        display: none !important;
+    }
+}

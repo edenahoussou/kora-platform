@@ -1017,7 +1017,7 @@ export type PointSettlementStatus =
     'DRAFT' | 'DECLARED' | 'VALIDATED' | 'REJECTED' | 'PARTIALLY_VALIDATED';
 
 export type PointSettlementMethod =
-    'BANK_TRANSFER' | 'BANK_DEPOSIT' | 'MOBILE_MONEY';
+    'BANK_TRANSFER' | 'BANK_DEPOSIT' | 'CHECK' | 'MOBILE_MONEY';
 
 export type PointSettlementRecord = {
     uuid: string;
@@ -1539,7 +1539,7 @@ export type GroupSettlementRecord = {
     total_amount_expected: number;
     total_amount_declared: number;
     amount_validated?: number;
-    payment_method: 'BANK_TRANSFER' | 'BANK_DEPOSIT' | 'MOBILE_MONEY';
+    payment_method: PointSettlementMethod;
     payment_reference: string;
     proof_file_name?: string;
     status: 'DECLARED' | 'VALIDATED' | 'REJECTED';

@@ -44,13 +44,13 @@ class StoreCounterSalePaymentRequest extends JsonValidationRequest
             'agency_payment_account_uuid' => [
                 'nullable',
                 'uuid',
-                Rule::requiredIf(fn (): bool => $this->input('method') === PaymentMethod::MobileMoney->value),
+                Rule::requiredIf(fn (): bool => ! ($this->user()?->isKoraPointUser() ?? false) && $this->input('method') === PaymentMethod::MobileMoney->value),
             ],
             'payer_phone' => [
                 'nullable',
                 'string',
                 'max:32',
-                Rule::requiredIf(fn (): bool => $this->input('method') === PaymentMethod::MobileMoney->value),
+                Rule::requiredIf(fn (): bool => ($this->user()?->isKoraPointUser() ?? false) || $this->input('method') === PaymentMethod::MobileMoney->value),
             ],
             'payer_name' => [
                 'nullable',
@@ -65,8 +65,11 @@ class StoreCounterSalePaymentRequest extends JsonValidationRequest
                 Rule::requiredIf(fn (): bool => $this->input('method') === PaymentMethod::MobileMoney->value),
             ],
             'verified_manually' => [
-                'accepted',
-                Rule::requiredIf(fn (): bool => $this->input('method') === PaymentMethod::MobileMoney->value),
+                Rule::when(
+                    $this->input('method') === PaymentMethod::MobileMoney->value,
+                    ['required', 'accepted'],
+                    ['nullable', 'boolean'],
+                ),
             ],
         ];
     }

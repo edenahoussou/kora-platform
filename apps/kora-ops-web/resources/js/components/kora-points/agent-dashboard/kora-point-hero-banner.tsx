@@ -1,7 +1,8 @@
-import { Ticket, ArrowRight, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { CircleCheck, ReceiptText, Ticket } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import type {
-    KoraPointProfile,
     FinancialHealth,
+    KoraPointProfile,
 } from '../mock/kora-point-mock-data';
 
 type Props = {
@@ -10,13 +11,6 @@ type Props = {
     onStartSale: () => void;
     onViewSettlements: () => void;
 };
-
-const LONG_DATE_FORMATTER = new Intl.DateTimeFormat('fr-FR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-});
 
 function greetingFor(hour: number): string {
     if (hour < 18) {
@@ -33,110 +27,144 @@ export function KoraPointHeroBanner({
     onViewSettlements,
 }: Props) {
     const now = new Date();
-    const dateStr = LONG_DATE_FORMATTER.format(now);
     const greeting = greetingFor(now.getHours());
-    const firstName = point.manager_name.split(' ')[0];
+    const firstName = point.manager_name
+        ? point.manager_name.split(' ')[0]
+        : 'Agent';
+    const usage = Math.min(100, Math.max(0, health.usage_percentage));
 
     return (
         <section
             aria-label="Bandeau d'accueil KORA POINT"
-            className="relative isolate min-h-[17rem] overflow-hidden rounded-[1.75rem] bg-[var(--kora)] px-6 py-7 text-white shadow-xl ring-1 ring-black/10 sm:px-8 sm:py-8 lg:grid lg:grid-cols-[1.4fr_0.6fr] lg:items-center lg:gap-8 lg:px-10 dark:ring-white/10"
+            className="kora-dashboard-hero relative isolate overflow-hidden rounded-[1.75rem] bg-[var(--kora)] px-6 py-7 text-white shadow-[0_28px_65px_rgba(0,29,78,0.22)] ring-1 ring-black/10 sm:px-8 sm:py-8 lg:grid lg:grid-cols-[minmax(0,1.3fr)_minmax(22rem,0.7fr)] lg:items-center lg:gap-8 lg:px-10 dark:ring-white/10"
         >
-            {/* Background Ornaments */}
-            <div className="pointer-events-none absolute -right-24 -bottom-40 -z-10 size-[32rem] rounded-full border border-gold/20" />
-            <div className="pointer-events-none absolute top-4 -right-8 -z-10 size-52 rounded-full border border-white/10" />
+            {/* Background Ornaments (Style Admin Dashboard) */}
+            <div className="pointer-events-none absolute -right-28 -bottom-48 -z-10 size-[34rem] rounded-full border border-gold/20 sm:-right-20" />
+            <div className="pointer-events-none absolute top-8 -right-8 -z-10 size-56 rounded-full border border-white/10" />
 
-            {/* Left Content */}
+            {/* Left Content: Welcome, Subtitle & Actions */}
             <div className="relative z-10 flex flex-col justify-between gap-6">
                 <div>
-                    <div className="mb-2 flex flex-wrap items-center gap-2">
-                        <span className="text-[0.625rem] font-black tracking-[0.2em] text-gold uppercase">
-                            KORA POINT · {dateStr}
-                        </span>
-                        <span className="rounded-full bg-white/10 px-2 py-0.5 text-[0.625rem] font-bold text-white/80">
-                            {point.name}
-                        </span>
-                    </div>
+                    {/* Golden Kicker - High Contrast Accessible Gold (No blue class) */}
+                    <span className="mb-3 block text-[0.625rem] font-black tracking-[0.18em] text-gold uppercase">
+                        POINT VOYAGE · {point.code} · {point.name}
+                        {point.organization
+                            ? ` · Réseau ${point.organization.name}`
+                            : ' · Autonome'}
+                    </span>
 
-                    <h1 className="text-[clamp(1.75rem,3.2vw,2.75rem)] leading-[1.08] font-black tracking-tight text-white">
-                        {greeting} {firstName},<br />
-                        <span className="font-serif font-normal text-gold italic">
+                    {/* Title with Contrasting Font Weights (Style Admin Dashboard) */}
+                    <h1 className="text-[clamp(1.85rem,3.2vw,2.75rem)] leading-[1.05] font-extrabold tracking-[-0.045em] text-white">
+                        {greeting} {firstName},
+                        <br />
+                        <em className="font-normal text-gold not-italic">
                             {health.sales_allowed
                                 ? 'votre guichet de vente est prêt.'
                                 : 'ventes actuellement suspendues.'}
-                        </span>
+                        </em>
                     </h1>
 
-                    <p className="mt-3 max-w-xl text-xs leading-relaxed text-white/75 sm:text-sm">
+                    <p className="mt-3.5 max-w-[37.5rem] text-sm leading-[1.6] text-white">
                         Émettez les billets Bus KORA, encaissez les voyageurs et
-                        suivez vos commissions acquises en temps réel.
+                        suivez vos commissions acquises en temps réel. Votre
+                        fond de roulement et vos encaissements physiques sont
+                        tracés en direct.
                     </p>
                 </div>
 
-                {/* Primary Action Buttons */}
-                <div className="flex flex-wrap items-center gap-3">
+                {/* Action Buttons styled like Ops Admin Dashboard Hero */}
+                <div className="flex flex-wrap items-center gap-2.5 pt-1">
                     <button
                         type="button"
                         onClick={onStartSale}
                         disabled={!health.sales_allowed}
-                        className="inline-flex h-11 items-center gap-2 rounded-xl bg-gold px-5 text-xs font-black tracking-wider text-kora uppercase shadow-lg transition hover:bg-gold/90 focus:ring-2 focus:ring-gold focus:ring-offset-2 focus:ring-offset-kora focus:outline-none disabled:cursor-not-allowed disabled:opacity-40"
+                        className="group inline-flex min-h-11 items-center gap-2 rounded-[0.75rem] bg-gold px-4 text-[0.75rem] font-extrabold text-[var(--kora)] shadow-[0_10px_24px_rgba(246,176,0,0.2)] transition-transform duration-300 hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--kora)] disabled:pointer-events-none disabled:opacity-50"
                     >
-                        <Ticket className="size-4" />
-                        <span>Vendre un billet</span>
-                        <ArrowRight className="size-3.5" />
+                        <Ticket className="size-4" /> Vendre un billet
                     </button>
 
                     <button
                         type="button"
                         onClick={onViewSettlements}
-                        className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 text-xs font-bold text-white backdrop-blur-sm transition hover:bg-white/20"
+                        className="inline-flex min-h-11 items-center gap-2 rounded-[0.75rem] border border-white/20 bg-white/[0.08] px-4 text-[0.75rem] font-extrabold text-white transition-colors duration-300 hover:border-white/40 hover:bg-white/15 focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--kora)]"
                     >
-                        <span>Situation reversements</span>
+                        <ReceiptText className="size-4 text-gold" /> Situation
+                        reversements
                     </button>
                 </div>
             </div>
 
-            {/* Right Status Card */}
-            <div className="mt-6 rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur-md lg:mt-0">
-                <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                    <span className="text-xs font-extrabold tracking-wider text-white/70 uppercase">
-                        État du guichet
+            {/* Right Status Card: Pure White High-Contrast Financial Snapshot */}
+            <div className="relative z-10 mt-6 overflow-hidden rounded-[1.375rem] border border-white/20 bg-white/[0.08] p-6 shadow-[inset_0_1px_rgba(255,255,255,0.15)] backdrop-blur-md lg:mt-0">
+                <div className="flex items-center justify-between gap-3 border-b border-white/20 pb-3">
+                    <span className="text-[0.6875rem] font-black tracking-[0.14em] text-white uppercase">
+                        Santé financière
                     </span>
-                    {health.sales_allowed ? (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/25 px-2.5 py-0.5 text-[0.625rem] font-black text-emerald-300">
-                            <ShieldCheck className="size-3" />
-                            Opérationnel
-                        </span>
-                    ) : (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/30 px-2.5 py-0.5 text-[0.625rem] font-black text-rose-200">
-                            <AlertTriangle className="size-3" />
-                            Bloqué
-                        </span>
-                    )}
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-bold text-white">
+                        <CircleCheck
+                            className={cn(
+                                'size-3.5',
+                                health.sales_allowed
+                                    ? 'text-emerald-400'
+                                    : 'text-rose-400',
+                            )}
+                        />
+                        {health.sales_allowed ? 'Opérationnel' : 'Bloqué'}
+                    </span>
                 </div>
 
-                <div className="mt-3 space-y-2.5 text-xs">
-                    <div className="flex items-center justify-between">
-                        <span className="text-white/70">Plafond accordé :</span>
-                        <strong className="font-mono text-white">
+                <div className="mt-3.5">
+                    <span className="block text-xs font-bold text-white">
+                        Solde disponible
+                    </span>
+                    <strong className="mt-1 block font-mono text-3xl font-black tracking-tight text-emerald-400">
+                        {health.available_balance.toLocaleString('fr-FR')} FCFA
+                    </strong>
+                </div>
+
+                <div className="mt-3.5 grid grid-cols-2 gap-3 border-t border-white/20 pt-3 text-xs">
+                    <div>
+                        <span className="block text-[0.6875rem] font-bold tracking-wider text-white uppercase">
+                            Plafond accordé
+                        </span>
+                        <strong className="mt-1 block font-mono text-base font-black text-white">
                             {health.credit_limit.toLocaleString('fr-FR')} FCFA
                         </strong>
                     </div>
-                    <div className="flex items-center justify-between">
-                        <span className="text-white/70">Encours courant :</span>
-                        <strong className="font-mono text-gold">
+                    <div>
+                        <span className="block text-[0.6875rem] font-bold tracking-wider text-white uppercase">
+                            Encours net
+                        </span>
+                        <strong className="mt-1 block font-mono text-base font-black text-gold">
                             {health.current_exposure.toLocaleString('fr-FR')}{' '}
                             FCFA
                         </strong>
                     </div>
-                    <div className="flex items-center justify-between border-t border-white/10 pt-2">
-                        <span className="text-white/70">
-                            Disponible restant :
+                </div>
+
+                <div className="mt-3.5 border-t border-white/20 pt-3">
+                    <div className="flex items-center justify-between text-xs font-bold text-white">
+                        <span>Consommation ({usage} %)</span>
+                        <span className="text-white">
+                            {health.next_due_label}
                         </span>
-                        <strong className="font-mono text-emerald-400">
-                            {health.available_balance.toLocaleString('fr-FR')}{' '}
-                            FCFA
-                        </strong>
+                    </div>
+                    <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-white/25">
+                        <div
+                            className={cn(
+                                'h-full rounded-full transition-all duration-500',
+                                usage >= 100
+                                    ? 'bg-rose-500'
+                                    : usage >= 80
+                                      ? 'bg-amber-400'
+                                      : 'bg-gold',
+                            )}
+                            style={{ width: `${usage}%` }}
+                        />
+                    </div>
+                    <div className="mt-1.5 flex items-center justify-between text-[0.625rem] font-bold text-white">
+                        <span>Alerte 80 %</span>
+                        <span>Blocage 100 %</span>
                     </div>
                 </div>
             </div>

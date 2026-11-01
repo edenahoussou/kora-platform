@@ -7,6 +7,7 @@ use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\IdentityAccess\Data\OtpChallengeStatus;
 use App\Modules\IdentityAccess\Data\OtpPurpose;
 use App\Modules\IdentityAccess\Models\AuthOtpChallenge;
+use App\Modules\Notifications\Jobs\SendPassengerDepartureReminderJob;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -31,6 +32,7 @@ pest()->extend(TestCase::class)
         Queue::fake([
             FiscalizeReservationInvoiceJob::class,
             SendReservationWhatsAppNotificationJob::class,
+            SendPassengerDepartureReminderJob::class,
         ]);
     })
     ->in('Feature');

@@ -1,15 +1,15 @@
-import { Check, HelpCircle, X, ArrowRight } from 'lucide-react';
+import { ArrowRight, Check, HelpCircle, X } from 'lucide-react';
 import { useState } from 'react';
 import type {
-    KoraPointProfile,
-    FinancialHealth,
     DailyMetrics,
+    FinancialHealth,
+    KoraPointProfile,
     PointPriorityAlert,
 } from '../mock/kora-point-mock-data';
 import { KoraPointActivityChart } from './kora-point-activity-chart';
-import { KoraPointFinancialHealth } from './kora-point-financial-health';
 import { KoraPointHeroBanner } from './kora-point-hero-banner';
 import { KoraPointKpiGrid } from './kora-point-kpi-grid';
+import { KoraPointQuickActions } from './kora-point-quick-actions';
 
 type Props = {
     point: KoraPointProfile;
@@ -49,7 +49,7 @@ export function KoraPointAgentDashboard({
             title: 'Surveillez votre santé financière',
             description:
                 'La jauge d’encours vous indique le disponible restant avant le plafond de crédit. Une alerte se déclenche à 80 % et les ventes se bloquent à 100 % jusqu’à validation de votre versement.',
-            highlight: 'health',
+            highlight: 'hero',
         },
         {
             step: 3,
@@ -138,7 +138,7 @@ export function KoraPointAgentDashboard({
                 </div>
             )}
 
-            {/* Hero Banner */}
+            {/* Unified Hero Banner with integrated Financial Health Overview */}
             <div id="tour-hero">
                 <KoraPointHeroBanner
                     point={point}
@@ -148,16 +148,7 @@ export function KoraPointAgentDashboard({
                 />
             </div>
 
-            {/* Financial Health Ribbon */}
-            <div id="tour-health">
-                <KoraPointFinancialHealth
-                    point={point}
-                    health={health}
-                    onPrepareSettlement={onViewSettlements}
-                />
-            </div>
-
-            {/* KPI Grid */}
+            {/* Daily Operational KPIs Grid */}
             <KoraPointKpiGrid
                 metrics={metrics}
                 terms={point.terms}
@@ -172,7 +163,10 @@ export function KoraPointAgentDashboard({
                 }}
             />
 
-            {/* Activity Chart & Priorities */}
+            {/* Quick Actions Shortcuts */}
+            <KoraPointQuickActions onNavigate={onNavigate} />
+
+            {/* 7-Day Activity Chart & Operational Priorities */}
             <KoraPointActivityChart
                 activity7d={metrics.activity_7d}
                 priorities={priorities}

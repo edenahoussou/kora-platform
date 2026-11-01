@@ -1,14 +1,11 @@
 import {
-    MapPin,
-    Phone,
-    User,
-    Shield,
     Calendar,
-    Percent,
-    FileText,
-    Download,
     Clock,
+    Download,
     FileCheck,
+    FileText,
+    Percent,
+    Shield,
 } from 'lucide-react';
 import { useState } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
@@ -58,87 +55,63 @@ export function KoraPointProfileView({
 
     return (
         <div className="space-y-6">
-            {/* Header Identity Card */}
-            <header className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="flex items-start gap-4">
-                        <div className="grid size-14 shrink-0 place-items-center rounded-2xl bg-gold text-xl font-black text-kora shadow-md">
-                            KP
-                        </div>
-
-                        <div>
-                            <div className="flex flex-wrap items-center gap-2">
-                                <span className="font-mono text-xs font-black text-gold">
-                                    {point.code}
-                                </span>
-                                <KoraStatusBadge
-                                    label={
-                                        point.organization
-                                            ? `Réseau : ${point.organization.name}`
-                                            : 'Point autonome'
-                                    }
-                                    tone={
-                                        point.organization ? 'blue' : 'emerald'
-                                    }
-                                    variant="solid"
-                                />
-                                <KoraStatusBadge
-                                    label={
-                                        health.sales_allowed
-                                            ? 'Actif'
-                                            : 'Bloqué / Suspendu'
-                                    }
-                                    tone={
-                                        health.sales_allowed
-                                            ? 'emerald'
-                                            : 'destructive'
-                                    }
-                                    variant="solid"
-                                />
-                            </div>
-
-                            <h1 className="mt-1 text-xl font-black text-slate-900 sm:text-2xl dark:text-white">
-                                {point.name}
-                            </h1>
-
-                            <div className="mt-2 flex flex-wrap items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
-                                <span className="flex items-center gap-1.5">
-                                    <MapPin className="size-3.5 text-slate-400" />
-                                    <span>
-                                        {point.address}, {point.city} (
-                                        {point.country})
-                                    </span>
-                                </span>
-                                <span className="flex items-center gap-1.5">
-                                    <User className="size-3.5 text-slate-400" />
-                                    <span>Gérant : {point.manager_name}</span>
-                                </span>
-                                <span className="flex items-center gap-1.5">
-                                    <Phone className="size-3.5 text-slate-400" />
-                                    <span>{point.manager_phone}</span>
-                                </span>
-                            </div>
-                        </div>
+            {/* Page Header */}
+            <div className="kora-page-head cash-reveal mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                    <div className="kora-breadcrumb mb-2 text-[0.6875rem] text-muted-foreground">
+                        KORA POINT / Espace Agent / Mon Point
                     </div>
+                    <div className="flex items-center gap-2.5">
+                        <h1 className="text-[clamp(1.8rem,3vw,2.65rem)] font-extrabold tracking-[-0.055em] text-foreground">
+                            {point.name}
+                        </h1>
+                        <KoraStatusBadge
+                            label={
+                                point.organization
+                                    ? `Réseau : ${point.organization.name}`
+                                    : 'Point autonome'
+                            }
+                            tone={point.organization ? 'blue' : 'emerald'}
+                            variant="solid"
+                        />
+                        <KoraStatusBadge
+                            label={
+                                health.sales_allowed
+                                    ? 'Actif'
+                                    : 'Bloqué / Suspendu'
+                            }
+                            tone={
+                                health.sales_allowed ? 'emerald' : 'destructive'
+                            }
+                            variant="solid"
+                        />
+                    </div>
+                    <p className="mt-1.5 text-[0.8125rem] leading-6 text-muted-foreground">
+                        Code guichet : {point.code} · {point.address},{' '}
+                        {point.city} · Gérant : {point.manager_name} (
+                        {point.manager_phone})
+                    </p>
+                </div>
 
+                <div className="flex flex-wrap items-center gap-2.5">
                     <button
                         type="button"
                         onClick={() =>
                             triggerDownload(`Fiche_Synthese_${point.code}.pdf`)
                         }
-                        className="inline-flex h-10 shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                        className="btn btn-primary"
                     >
-                        <Download className="size-4 text-slate-500" />
-                        <span>Exporter fiche de synthèse (PDF)</span>
+                        <Download className="size-4" />
+                        <span>Télécharger la fiche</span>
                     </button>
                 </div>
+            </div>
 
-                {downloadMsg && (
-                    <div className="mt-4 animate-in rounded-xl bg-blue-50 p-2.5 text-center text-xs font-semibold text-blue-700 fade-in dark:bg-blue-950/40 dark:text-blue-300">
-                        {downloadMsg}
-                    </div>
-                )}
-            </header>
+            {downloadMsg && (
+                <div className="animate-in rounded-xl bg-blue-500/10 p-2.5 text-center text-xs font-semibold text-digital fade-in">
+                    {downloadMsg}
+                </div>
+            )}
 
             {/* Navigation Tabs */}
             <div className="border-b border-slate-200 dark:border-slate-800">

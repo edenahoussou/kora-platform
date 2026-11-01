@@ -11,6 +11,7 @@ import type {
     PointDocument,
     PointAssignedUser,
     PointCommissionRecord,
+    PointSettlementMethod,
     PointSettlementRecord,
     PointRefundRecord,
     OrganizationSubPoint,
@@ -300,10 +301,13 @@ export function useKoraPointDemo(
 
     const createSettlementDeclaration = useCallback(
         (data: {
-            amountDeclared: number;
-            paymentMethod: 'BANK_TRANSFER' | 'BANK_DEPOSIT' | 'MOBILE_MONEY';
+            amountDeclared?: number;
+            saleUuids?: string[];
+            paymentMethod: PointSettlementMethod;
             paymentReference: string;
+            proofFile?: File;
             proofFileName?: string;
+            bankName?: string;
             notes?: string;
         }) => {
             const newRef = `REV-2026-00${Math.floor(45 + Math.random() * 50)}`;
@@ -327,11 +331,16 @@ export function useKoraPointDemo(
                 created_at: `${dateStr} ${timeStr}`,
                 declared_at: `${dateStr} ${timeStr}`,
                 amount_expected: health.current_exposure,
-                amount_declared: data.amountDeclared,
+                amount_declared: data.amountDeclared ?? health.current_exposure,
                 payment_method: data.paymentMethod,
                 payment_reference: data.paymentReference,
-                proof_file_name: data.proofFileName || 'preuve_versement.pdf',
-                proof_file_size: '340 Ko',
+                proof_file_name:
+                    data.proofFile?.name ||
+                    data.proofFileName ||
+                    'preuve_versement.pdf',
+                proof_file_size: data.proofFile
+                    ? `${Math.round(data.proofFile.size / 1024)} Ko`
+                    : '340 Ko',
                 status: 'DECLARED',
                 sales_count: sales.filter((s) => s.settlement_status === 'open')
                     .length,
@@ -344,7 +353,7 @@ export function useKoraPointDemo(
                         step: 'Déclaration transmise par le partenaire',
                         date_label: `${dateStr} ${timeStr}`,
                         actor: `${point.manager_name} (Agent)`,
-                        comment: `Montant déclaré : ${data.amountDeclared.toLocaleString()} FCFA (${data.paymentReference})`,
+                        comment: `Montant déclaré : ${(data.amountDeclared ?? health.current_exposure).toLocaleString()} FCFA (${data.paymentReference})`,
                     },
                     {
                         step: 'Contrôle et validation Finance KORA',
@@ -358,7 +367,8 @@ export function useKoraPointDemo(
             // Simulating exposure reduction in demo
             const newExposure = Math.max(
                 0,
-                health.current_exposure - data.amountDeclared,
+                health.current_exposure -
+                    (data.amountDeclared ?? health.current_exposure),
             );
             const newAvailable = Math.max(0, health.credit_limit - newExposure);
             const newPercentage = Math.round(
@@ -531,7 +541,7 @@ export function useKoraPointDemo(
                         step: 'Espèces remises au voyageur',
                         date_label: `${dateStr} ${timeStr}`,
                         actor: `${point.manager_name} (Agent)`,
-                        detail: `${targetRefund.refund_amount.toLocaleString()} FCFA remis en main propre à ${signatoryName}. Quittance d'émargement générée.${receiptNote ? ` ${receiptNote}` : ''}`,
+                        detail: `${targetRefund.refund_amount.toLocaleString()} FCFA remis en main propre à ${signatoryName}. Quittance d'émargement générée.${receiptNote ? ` Note : ${receiptNote}` : ''}`,
                     },
                 ],
             };
@@ -575,7 +585,7 @@ export function useKoraPointDemo(
     const createGroupSettlementDeclaration = useCallback(
         (data: {
             totalAmountDeclared: number;
-            paymentMethod: 'BANK_TRANSFER' | 'BANK_DEPOSIT' | 'MOBILE_MONEY';
+            paymentMethod: PointSettlementMethod;
             paymentReference: string;
             proofFileName?: string;
             breakdown: GroupSettlementBreakdown[];

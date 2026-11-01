@@ -1,4 +1,4 @@
-import { RotateCcw, Sparkles, HelpCircle } from 'lucide-react';
+import { HelpCircle, RotateCcw, Sparkles } from 'lucide-react';
 import type {
     DemoScenarioId,
     KoraPointUserRole,
