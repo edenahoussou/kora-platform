@@ -16,7 +16,6 @@ import PhoneInput, {
     parsePhoneNumber,
 } from 'react-phone-number-input';
 import phoneLabels from 'react-phone-number-input/locale/fr.json';
-import { cn } from '@/lib/utils';
 import organizationRoutes from '@/routes/kora-points/organizations';
 import type { AdminOrganization } from './kora-admin-ui';
 
@@ -332,8 +331,8 @@ export function KoraOrgFormDialog({
                                     </small>
                                 ) : (
                                     <small className="text-muted-foreground">
-                                        Part du prix du billet conservée par le
-                                        partenaire sur chaque vente.
+                                        Pourcentage conservé par le partenaire
+                                        sur chaque vente.
                                     </small>
                                 )}
                             </label>
@@ -365,8 +364,8 @@ export function KoraOrgFormDialog({
                                     </small>
                                 ) : (
                                     <small className="text-muted-foreground">
-                                        Montant maximal que l’organisation peut
-                                        devoir à KORA avant blocage des ventes.
+                                        Montant maximal dû à KORA avant blocage
+                                        des ventes.
                                     </small>
                                 )}
                             </label>
@@ -378,7 +377,7 @@ export function KoraOrgFormDialog({
                                 Reversements
                             </span>
                             <div
-                                className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4"
+                                className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2"
                                 role="radiogroup"
                                 aria-label="Fréquence de reversement"
                             >
@@ -386,23 +385,19 @@ export function KoraOrgFormDialog({
                                     [
                                         {
                                             value: '',
-                                            label: 'Hérité',
-                                            hint: 'Réglage global KORA POINT',
+                                            label: 'Valeur par défaut',
                                         },
                                         {
                                             value: 'daily',
                                             label: 'Quotidien',
-                                            hint: 'Versement chaque jour',
                                         },
                                         {
                                             value: 'weekly',
                                             label: 'Hebdomadaire',
-                                            hint: 'Chaque semaine',
                                         },
                                         {
                                             value: 'monthly',
                                             label: 'Mensuel',
-                                            hint: 'Chaque mois',
                                         },
                                     ] as const
                                 ).map((option) => {
@@ -411,56 +406,42 @@ export function KoraOrgFormDialog({
                                             ?.frequency ?? '') === option.value;
 
                                     return (
-                                        <button
-                                            key={option.value || 'inherited'}
-                                            type="button"
-                                            role="radio"
-                                            aria-checked={selected}
-                                            onClick={() =>
-                                                form.setData(
-                                                    'settlement_calendar',
-                                                    option.value
-                                                        ? {
-                                                              frequency:
-                                                                  option.value,
-                                                              time: '18:00',
-                                                              timezone:
-                                                                  'Africa/Porto-Novo',
-                                                              weekday:
-                                                                  option.value ===
-                                                                  'weekly'
-                                                                      ? 1
-                                                                      : null,
-                                                              day:
-                                                                  option.value ===
-                                                                  'monthly'
-                                                                      ? 1
-                                                                      : null,
-                                                          }
-                                                        : null,
-                                                )
-                                            }
-                                            className={cn(
-                                                'rounded-lg border px-2.5 py-2 text-center transition-colors',
-                                                selected
-                                                    ? 'border-[var(--kora)] bg-[var(--kora)] text-white'
-                                                    : 'border-border bg-card text-muted-foreground hover:border-gold/60 hover:text-foreground',
-                                            )}
+                                        <label
+                                            key={option.value || 'default'}
+                                            className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-foreground"
                                         >
-                                            <span className="block text-[11px] font-bold">
-                                                {option.label}
-                                            </span>
-                                            <span
-                                                className={cn(
-                                                    'mt-0.5 block text-[9.5px] leading-tight',
-                                                    selected
-                                                        ? 'text-white/75'
-                                                        : 'text-muted-foreground',
-                                                )}
-                                            >
-                                                {option.hint}
-                                            </span>
-                                        </button>
+                                            <input
+                                                type="radio"
+                                                name="settlement_frequency"
+                                                checked={selected}
+                                                onChange={() =>
+                                                    form.setData(
+                                                        'settlement_calendar',
+                                                        option.value
+                                                            ? {
+                                                                  frequency:
+                                                                      option.value,
+                                                                  time: '18:00',
+                                                                  timezone:
+                                                                      'Africa/Porto-Novo',
+                                                                  weekday:
+                                                                      option.value ===
+                                                                      'weekly'
+                                                                          ? 1
+                                                                          : null,
+                                                                  day:
+                                                                      option.value ===
+                                                                      'monthly'
+                                                                          ? 1
+                                                                          : null,
+                                                              }
+                                                            : null,
+                                                    )
+                                                }
+                                                className="size-3.5 accent-[var(--kora)]"
+                                            />
+                                            {option.label}
+                                        </label>
                                     );
                                 })}
                             </div>
@@ -470,8 +451,8 @@ export function KoraOrgFormDialog({
                                 </small>
                             ) : (
                                 <small className="text-muted-foreground">
-                                    Rythme auquel l’organisation reverse à KORA
-                                    les ventes encaissées par ses points.
+                                    Rythme de reversement des encaissements à
+                                    KORA.
                                 </small>
                             )}
                         </div>
