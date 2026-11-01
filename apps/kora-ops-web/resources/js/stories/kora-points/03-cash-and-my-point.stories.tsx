@@ -54,7 +54,7 @@ function CashStoryWrapper({
                               status: 'CLOSED',
                               closed_at: '2026-08-16 20:30',
                               actual_closing_cash: 125000,
-                              cash_variance: 0,
+                              variance_amount: 0,
                           }
                         : demo.cashSession
                 }
@@ -126,11 +126,10 @@ export const CashClosingModalPreview: Story = {
                 <KoraPointCashSessionDialog
                     isOpen={isOpen}
                     mode="CLOSE"
-                    currentSession={{
-                        id: 'cs-demo',
+                    session={{
                         status: 'OPEN',
                         opened_at: '2026-08-17 07:45',
-                        opened_by_name: 'Bio Kora Agent',
+                        operator_name: 'Bio Kora Agent',
                         opening_amount: 50000,
                         cash_collected: 85000,
                         mobile_money_collected: 20000,
@@ -138,7 +137,8 @@ export const CashClosingModalPreview: Story = {
                         movements: [],
                     }}
                     onClose={() => setIsOpen(false)}
-                    onSubmit={(amt, note) => {
+                    onConfirmOpen={() => {}}
+                    onConfirmClose={(amt, note) => {
                         alert(`Session clôturée avec montant compté: ${amt.toLocaleString()} FCFA. Note: ${note || 'Aucune'}`);
                         setIsOpen(false);
                     }}

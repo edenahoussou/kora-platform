@@ -15,6 +15,9 @@ import {
     X,
     ChevronRight,
     LogOut,
+    Coins,
+    Landmark,
+    Search,
 } from 'lucide-react';
 import { KoraPointProfile, FinancialHealth } from '../mock/kora-point-mock-data';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
@@ -30,6 +33,7 @@ export type KoraPointActivePage =
     | 'settlements'
     | 'refunds'
     | 'notifications'
+    | 'finance'
     | 'org-supervision'
     | 'org-treasury'
     | 'admin-network'
@@ -42,6 +46,8 @@ type Props = {
     onNavigate: (page: KoraPointActivePage) => void;
     children: ReactNode;
     bannerSlot?: ReactNode;
+    unreadNotificationsCount?: number;
+    onOpenSearch?: () => void;
 };
 
 export function KoraPointShell({
@@ -51,6 +57,8 @@ export function KoraPointShell({
     onNavigate,
     children,
     bannerSlot,
+    unreadNotificationsCount,
+    onOpenSearch,
 }: Props) {
     const [mobileNavOpen, setMobileNavOpen] = useState(false);
     const isAutonomous = !point.organization;
@@ -147,6 +155,13 @@ export function KoraPointShell({
             label: 'Organisations & Contrats',
             icon: Building2,
             badge: null,
+        },
+        {
+            id: 'finance' as KoraPointActivePage,
+            label: 'Finance KORA & Rapprochements',
+            icon: Landmark,
+            badge: 'Pôle Finance',
+            badgeTone: 'emerald' as const,
         },
     ];
 
@@ -419,6 +434,42 @@ export function KoraPointShell({
 
                         {/* Topbar Right Context */}
                         <div className="flex items-center gap-2 sm:gap-3">
+                            {/* Quick Search Trigger */}
+                            {onOpenSearch && (
+                                <button
+                                    type="button"
+                                    onClick={onOpenSearch}
+                                    className="hidden sm:inline-flex items-center gap-2 rounded-xl border border-slate-200/80 bg-slate-50 px-3 py-1.5 text-xs text-slate-500 transition hover:border-slate-300 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-800/60 dark:text-slate-400 dark:hover:bg-slate-800"
+                                    aria-label="Recherche globale"
+                                >
+                                    <Search className="size-3.5 text-slate-400" />
+                                    <span>Recherche rapide...</span>
+                                    <kbd className="rounded bg-white px-1.5 py-0.5 text-[0.625rem] font-bold text-slate-500 shadow-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
+                                        Ctrl K
+                                    </kbd>
+                                </button>
+                            )}
+
+                            {/* Notifications Bell */}
+                            <button
+                                type="button"
+                                onClick={() => handleNavClick('notifications')}
+                                className={cn(
+                                    'relative grid size-9 place-items-center rounded-xl border transition',
+                                    activePage === 'notifications'
+                                        ? 'border-gold bg-gold/15 text-kora dark:text-gold'
+                                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800',
+                                )}
+                                aria-label="Notifications"
+                            >
+                                <Bell className="size-4" />
+                                {(unreadNotificationsCount ?? 0) > 0 && (
+                                    <span className="absolute -top-1 -right-1 grid size-4 place-items-center rounded-full bg-amber-500 text-[0.5625rem] font-black text-white shadow-sm">
+                                        {unreadNotificationsCount}
+                                    </span>
+                                )}
+                            </button>
+
                             <div className="text-right">
                                 <div className="text-xs font-black text-slate-900 dark:text-white">
                                     {health.sales_allowed ? (

@@ -7,7 +7,7 @@ import { KoraPointTicketDetailDrawer } from '@/components/kora-points/tickets/ko
 import { KoraPointShell, KoraPointActivePage } from '@/components/kora-points/common/kora-point-shell';
 import { KoraPointDemoBanner } from '@/components/kora-points/common/kora-point-demo-banner';
 import { useKoraPointDemo } from '@/components/kora-points/mock/use-kora-point-demo';
-import { MOCK_POINT_SALES } from '@/components/kora-points/mock/kora-point-mock-data';
+import { MOCK_POINT_SALES, DemoScenarioId } from '@/components/kora-points/mock/kora-point-mock-data';
 
 const meta: Meta = {
     title: 'KORA POINT / 02 - Guichet, Vente & Billets',
@@ -21,7 +21,7 @@ export default meta;
 type Story = StoryObj;
 
 // Interactive Sale Journey Wrapper
-function SaleInteractiveStory({ initialScenario = 'autonomous_healthy' as const }) {
+function SaleInteractiveStory({ initialScenario = 'autonomous_healthy' }: { initialScenario?: DemoScenarioId }) {
     const demo = useKoraPointDemo(initialScenario);
     const [activePage, setActivePage] = useState<KoraPointActivePage>('sale');
 

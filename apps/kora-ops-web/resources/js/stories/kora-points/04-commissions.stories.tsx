@@ -101,7 +101,7 @@ export const ExportExcelAndPdfModalPreview: Story = {
                 </div>
                 <KoraPointExportDemoDialog
                     isOpen={exportType !== null}
-                    type={exportType || 'EXCEL'}
+                    exportType={exportType || 'EXCEL'}
                     periodLabel="Août 2026 (En cours)"
                     pointName="Point Service Akpakpa"
                     onClose={() => setExportType(null)}

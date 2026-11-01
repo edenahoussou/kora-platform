@@ -102,7 +102,7 @@ export function KoraPointAgentDashboard({
                             </button>
 
                             <div className="flex items-center gap-2">
-                                {tourStep < tourSteps.length ? (
+                                {tourStep !== null && tourStep < tourSteps.length ? (
                                     <button
                                         type="button"
                                         onClick={() => setTourStep(tourStep + 1)}

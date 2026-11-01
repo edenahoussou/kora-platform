@@ -12,6 +12,9 @@ import { KoraOrgSupervisionView } from '@/components/kora-points/organization/ko
 import { KoraOrgTreasuryView } from '@/components/kora-points/organization/kora-org-treasury-view';
 import { KoraAdminNetworkView } from '@/components/kora-points/admin/kora-admin-network-view';
 import { KoraAdminOrganizationsView } from '@/components/kora-points/admin/kora-admin-organizations-view';
+import { KoraFinanceReconciliationView } from '@/components/kora-points/finance/kora-finance-reconciliation-view';
+import { KoraNotificationsView } from '@/components/kora-points/notifications/kora-notifications-view';
+import { KoraGlobalSearchDialog } from '@/components/kora-points/search/kora-global-search-dialog';
 import { KoraPointShell, KoraPointActivePage } from '@/components/kora-points/common/kora-point-shell';
 import { KoraPointDemoBanner } from '@/components/kora-points/common/kora-point-demo-banner';
 import { useKoraPointDemo } from '@/components/kora-points/mock/use-kora-point-demo';
@@ -20,6 +23,9 @@ export default function KoraPointPreviewPage() {
     const demo = useKoraPointDemo('autonomous_healthy');
     const [activePage, setActivePage] = useState<KoraPointActivePage>('dashboard');
     const [tourKey, setTourKey] = useState(0);
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+    const unreadNotificationsCount = demo.notifications.filter((n) => !n.read).length;
 
     return (
         <>
@@ -30,6 +36,8 @@ export default function KoraPointPreviewPage() {
                 health={demo.health}
                 activePage={activePage}
                 onNavigate={(page) => setActivePage(page)}
+                unreadNotificationsCount={unreadNotificationsCount}
+                onOpenSearch={() => setIsSearchOpen(true)}
                 bannerSlot={
                     <KoraPointDemoBanner
                         currentScenario={demo.scenarioId}
@@ -159,38 +167,47 @@ export default function KoraPointPreviewPage() {
                     />
                 )}
 
-                {activePage !== 'dashboard' &&
-                    activePage !== 'sale' &&
-                    activePage !== 'cash' &&
-                    activePage !== 'tickets' &&
-                    activePage !== 'my-point' &&
-                    activePage !== 'commissions' &&
-                    activePage !== 'settlements' &&
-                    activePage !== 'refunds' &&
-                    activePage !== 'org-supervision' &&
-                    activePage !== 'org-treasury' &&
-                    activePage !== 'admin-network' &&
-                    activePage !== 'admin-organizations' && (
-                        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center dark:border-slate-700 dark:bg-slate-900">
-                            <span className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-black uppercase text-amber-800 dark:text-amber-300">
-                                Prévu pour les lots suivants
-                            </span>
-                            <h2 className="mt-3 text-lg font-black text-slate-900 dark:text-white">
-                                Module « {activePage} » en cours de développement
-                            </h2>
-                            <p className="mt-2 text-xs text-slate-500 max-w-md mx-auto">
-                                Les Lots 1 à 5 couvrent l'intégralité du quotidien agent, caisse, commissions, reversements, remboursements, la supervision/trésorerie d'organisation et l'administration réseau KORA. Le Lot 6 couvrira le pôle Finance KORA et la recherche transversale.
-                            </p>
-                            <button
-                                type="button"
-                                onClick={() => setActivePage('dashboard')}
-                                className="mt-4 rounded-xl bg-gold px-4 py-2 text-xs font-black uppercase text-kora"
-                            >
-                                Retour à l'accueil
-                            </button>
-                        </div>
-                    )}
+                {activePage === 'finance' && (
+                    <KoraFinanceReconciliationView
+                        settlements={demo.settlements}
+                        refunds={demo.refunds}
+                        groupSettlements={demo.groupSettlements}
+                        onReconcileSettlement={(uuid, params) =>
+                            demo.reconcileSettlement(uuid, params)
+                        }
+                        onRejectSettlement={(uuid, params) =>
+                            demo.rejectSettlement(uuid, params)
+                        }
+                        onApproveRefund={(uuid, params) =>
+                            demo.approveRefund(uuid, params)
+                        }
+                        onRejectRefund={(uuid, params) =>
+                            demo.rejectRefund(uuid, params)
+                        }
+                    />
+                )}
+
+                {activePage === 'notifications' && (
+                    <KoraNotificationsView
+                        notifications={demo.notifications}
+                        onMarkAsRead={(uuid) => demo.markNotificationAsRead(uuid)}
+                        onMarkAllAsRead={() => demo.markAllNotificationsAsRead()}
+                        onTriggerTestNotification={() => demo.addTestNotification()}
+                        onNavigate={(page) => setActivePage(page)}
+                    />
+                )}
             </KoraPointShell>
+
+            {/* Global Spotlight Command Palette (Ctrl+K) */}
+            <KoraGlobalSearchDialog
+                isOpen={isSearchOpen}
+                onClose={() => setIsSearchOpen(false)}
+                sales={demo.sales}
+                points={demo.adminNetworkPoints}
+                organizations={demo.adminOrganizations}
+                settlements={demo.settlements}
+                onNavigate={(page) => setActivePage(page)}
+            />
         </>
     );
 }

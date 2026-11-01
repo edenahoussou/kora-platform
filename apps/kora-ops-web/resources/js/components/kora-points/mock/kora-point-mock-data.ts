@@ -2000,6 +2000,104 @@ export const MOCK_ADMIN_ORGANIZATIONS: AdminOrganization[] = [
     },
 ];
 
+// -------------------------------------------------------------
+// LOT 6 DATA EXTENSIONS : NOTIFICATIONS & RECHERCHE GLOBALE
+// -------------------------------------------------------------
+
+export type KoraNotificationCategory = 'FINANCE' | 'SALES' | 'THRESHOLD' | 'SYSTEM';
+
+export type KoraNotificationItem = {
+    uuid: string;
+    category: KoraNotificationCategory;
+    level: 'info' | 'warning' | 'critical' | 'success';
+    title: string;
+    description: string;
+    created_at: string;
+    date_label: string;
+    read: boolean;
+    action_label?: string;
+    action_target?: string;
+};
+
+export const MOCK_NOTIFICATIONS: KoraNotificationItem[] = [
+    {
+        uuid: 'notif-01',
+        category: 'THRESHOLD',
+        level: 'warning',
+        title: 'Seuil d’alerte encours atteint (86%)',
+        description:
+            'Le Bureau de Poste Akpakpa a atteint 430 000 FCFA d’encours sur un plafond de 500 000 FCFA.',
+        created_at: '2026-08-01 10:15',
+        date_label: 'Il y a 30 minutes',
+        read: false,
+        action_label: 'Voir la trésorerie',
+        action_target: 'org-treasury',
+    },
+    {
+        uuid: 'notif-02',
+        category: 'FINANCE',
+        level: 'info',
+        title: 'Bordereau déclaré à rapprocher',
+        description:
+            'Point Akpakpa : versement espèces Ecobank de 120 000 FCFA (REV-2026-0043) en attente de vérification Finance.',
+        created_at: '2026-08-01 09:30',
+        date_label: 'Il y a 1 heure',
+        read: false,
+        action_label: 'Rapprocher',
+        action_target: 'finance',
+    },
+    {
+        uuid: 'notif-03',
+        category: 'FINANCE',
+        level: 'success',
+        title: 'Reversement groupé La Poste validé',
+        description:
+            'Le virement de 2 800 000 FCFA (REV-ORG-2026-0005) a été rapproché et apuré sur les 5 bureaux auxiliaires.',
+        created_at: '2026-07-31 16:20',
+        date_label: 'Hier à 16:20',
+        read: true,
+        action_label: 'Consulter',
+        action_target: 'settlements',
+    },
+    {
+        uuid: 'notif-04',
+        category: 'SALES',
+        level: 'info',
+        title: 'Nouvelle vente de billet VIP',
+        description:
+            'Billet TK-AKP-260801-03 émis pour David Hounsa (Cotonou → Parakou, 12 000 FCFA).',
+        created_at: '2026-08-01 10:05',
+        date_label: 'Il y a 45 minutes',
+        read: false,
+        action_label: 'Voir le billet',
+        action_target: 'tickets',
+    },
+    {
+        uuid: 'notif-05',
+        category: 'FINANCE',
+        level: 'warning',
+        title: 'Demande de remboursement approuvée',
+        description:
+            'Dossier REM-2026-0007 (9 000 FCFA) approuvé par la Finance pour restitution au voyageur en agence.',
+        created_at: '2026-08-01 08:15',
+        date_label: 'Aujourd’hui 08:15',
+        read: false,
+        action_label: 'Restituer',
+        action_target: 'refunds',
+    },
+    {
+        uuid: 'notif-06',
+        category: 'SYSTEM',
+        level: 'info',
+        title: 'Barème standard de commission maintenu',
+        description:
+            'Le taux de commission standard de 300 bps (3.0%) reste d’application pour l’ensemble des points Bus.',
+        created_at: '2026-07-25 09:00',
+        date_label: '25 juillet',
+        read: true,
+    },
+];
+
 
 
 

@@ -30,6 +30,8 @@ import {
     MOCK_ADMIN_NETWORK_POINTS,
     AdminOrganization,
     MOCK_ADMIN_ORGANIZATIONS,
+    KoraNotificationItem,
+    MOCK_NOTIFICATIONS,
 } from './kora-point-mock-data';
 
 export type DemoState = {
@@ -50,6 +52,7 @@ export type DemoState = {
     groupSettlements: GroupSettlementRecord[];
     adminNetworkPoints: AdminNetworkPoint[];
     adminOrganizations: AdminOrganization[];
+    notifications: KoraNotificationItem[];
 };
 
 export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_healthy') {
@@ -77,6 +80,7 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
         stateOverride?.adminNetworkPoints ?? MOCK_ADMIN_NETWORK_POINTS;
     const adminOrganizations =
         stateOverride?.adminOrganizations ?? MOCK_ADMIN_ORGANIZATIONS;
+    const notifications = stateOverride?.notifications ?? MOCK_NOTIFICATIONS;
 
     const changeScenario = useCallback((newScenario: DemoScenarioId) => {
         setScenarioId(newScenario);
@@ -488,7 +492,7 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
                     time_label: timeStr,
                     label: `Restitution remboursement ${targetRefund.reference} (${targetRefund.passenger_name})`,
                     amount: -targetRefund.refund_amount,
-                    type: 'WITHDRAWAL' as const,
+                    type: 'EXPENSE' as const,
                     method: 'CASH' as const,
                     balance_after: newExpectedCash,
                 };
@@ -674,6 +678,264 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
         [adminOrganizations],
     );
 
+    const reconcileSettlement = useCallback(
+        (
+            settlementUuid: string,
+            params: {
+                bankAmount: number;
+                valueDate: string;
+                bankReference?: string;
+                notes?: string;
+            },
+        ) => {
+            const target = settlements.find((s) => s.uuid === settlementUuid);
+            if (!target) return;
+
+            const isGroup = target.reference.startsWith('REV-ORG');
+            const updatedSettlements = settlements.map((s) => {
+                if (s.uuid !== settlementUuid) return s;
+                return {
+                    ...s,
+                    status: 'VALIDATED' as const,
+                    amount_validated: params.bankAmount,
+                    timeline: [
+                        ...s.timeline,
+                        {
+                            step: 'Fonds crédités et rapprochés',
+                            date_label: 'À l’instant',
+                            actor: 'Clarisse Mensah (Finance KORA)',
+                            comment: `Date de valeur : ${params.valueDate}. Montant constaté : ${params.bankAmount.toLocaleString('fr-FR')} FCFA. ${params.notes || ''}`.trim(),
+                        },
+                    ],
+                };
+            });
+
+            // Adjust health exposure if autonomous point
+            const delta = params.bankAmount;
+            const newExposure = Math.max(0, health.current_exposure - delta);
+            const newAvailable = Math.max(0, health.credit_limit - newExposure);
+            const newUsage = Math.round((newExposure / health.credit_limit) * 100);
+
+            const newNotification: KoraNotificationItem = {
+                uuid: `notif-rec-${Date.now()}`,
+                category: 'FINANCE',
+                level: 'success',
+                title: `Rapprochement validé : ${target.reference}`,
+                description: `Bordereau rapproché pour ${params.bankAmount.toLocaleString('fr-FR')} FCFA (date valeur : ${params.valueDate}).`,
+                created_at: new Date().toISOString(),
+                date_label: 'À l’instant',
+                read: false,
+                action_label: 'Voir reversements',
+                action_target: 'settlements',
+            };
+
+            setStateOverride((prev) => ({
+                ...prev,
+                settlements: updatedSettlements,
+                health: {
+                    ...health,
+                    current_exposure: newExposure,
+                    available_balance: newAvailable,
+                    usage_percentage: newUsage,
+                    sales_allowed: newExposure < health.credit_limit,
+                    block_reason: newExposure >= health.credit_limit ? health.block_reason : null,
+                },
+                notifications: [newNotification, ...notifications],
+            }));
+        },
+        [settlements, health, notifications],
+    );
+
+    const rejectSettlement = useCallback(
+        (settlementUuid: string, params: { reason: string }) => {
+            const target = settlements.find((s) => s.uuid === settlementUuid);
+            if (!target) return;
+
+            const updatedSettlements = settlements.map((s) => {
+                if (s.uuid !== settlementUuid) return s;
+                return {
+                    ...s,
+                    status: 'REJECTED' as const,
+                    rejection_reason: params.reason,
+                    timeline: [
+                        ...s.timeline,
+                        {
+                            step: 'Bordereau rejeté par la Finance KORA',
+                            date_label: 'À l’instant',
+                            actor: 'Clarisse Mensah (Finance KORA)',
+                            comment: `Motif du rejet : ${params.reason}`,
+                        },
+                    ],
+                };
+            });
+
+            const newNotification: KoraNotificationItem = {
+                uuid: `notif-rej-${Date.now()}`,
+                category: 'FINANCE',
+                level: 'critical',
+                title: `Reversement rejeté : ${target.reference}`,
+                description: `Motif : ${params.reason}`,
+                created_at: new Date().toISOString(),
+                date_label: 'À l’instant',
+                read: false,
+                action_label: 'Consulter',
+                action_target: 'settlements',
+            };
+
+            setStateOverride((prev) => ({
+                ...prev,
+                settlements: updatedSettlements,
+                notifications: [newNotification, ...notifications],
+            }));
+        },
+        [settlements, notifications],
+    );
+
+    const approveRefund = useCallback(
+        (refundUuid: string, params: { payoutMode: 'POINT_CASH' | 'KORA_DIRECT'; notes?: string }) => {
+            const target = refunds.find((r) => r.uuid === refundUuid);
+            if (!target) return;
+
+            const nextStatus =
+                params.payoutMode === 'POINT_CASH'
+                    ? ('APPROVED_BY_FINANCE' as const)
+                    : ('FUNDS_RESTITUTED' as const);
+
+            const detailMsg =
+                params.payoutMode === 'POINT_CASH'
+                    ? 'Approbation Finance : restitution espèces autorisée au guichet du Point.'
+                    : 'Approbation Finance : remboursement direct émis par KORA (Virement / MoMo).';
+
+            const updatedRefunds = refunds.map((r) => {
+                if (r.uuid !== refundUuid) return r;
+                return {
+                    ...r,
+                    status: nextStatus,
+                    approved_at: 'Aujourd’hui',
+                    approved_by: 'Clarisse Mensah (Finance KORA)',
+                    restituted_at: params.payoutMode === 'KORA_DIRECT' ? 'Aujourd’hui' : undefined,
+                    restituted_by: params.payoutMode === 'KORA_DIRECT' ? 'Clarisse Mensah (Finance KORA)' : undefined,
+                    timeline: [
+                        ...r.timeline,
+                        {
+                            step: 'Instruction & Accord Finance KORA',
+                            date_label: 'À l’instant',
+                            actor: 'Clarisse Mensah (Finance KORA)',
+                            detail: `${detailMsg} ${params.notes || ''}`.trim(),
+                        },
+                    ],
+                };
+            });
+
+            const newNotification: KoraNotificationItem = {
+                uuid: `notif-ref-${Date.now()}`,
+                category: 'FINANCE',
+                level: 'info',
+                title: `Remboursement instruit : ${target.reference}`,
+                description: `Dossier approuvé (${target.refund_amount.toLocaleString('fr-FR')} FCFA) — Mode : ${
+                    params.payoutMode === 'POINT_CASH' ? 'Espèces au Point' : 'Direct KORA'
+                }.`,
+                created_at: new Date().toISOString(),
+                date_label: 'À l’instant',
+                read: false,
+                action_label: 'Voir remboursements',
+                action_target: 'refunds',
+            };
+
+            setStateOverride((prev) => ({
+                ...prev,
+                refunds: updatedRefunds,
+                notifications: [newNotification, ...notifications],
+            }));
+        },
+        [refunds, notifications],
+    );
+
+    const rejectRefund = useCallback(
+        (refundUuid: string, params: { reason: string }) => {
+            const target = refunds.find((r) => r.uuid === refundUuid);
+            if (!target) return;
+
+            const updatedRefunds = refunds.map((r) => {
+                if (r.uuid !== refundUuid) return r;
+                return {
+                    ...r,
+                    status: 'REJECTED' as const,
+                    rejection_reason: params.reason,
+                    timeline: [
+                        ...r.timeline,
+                        {
+                            step: 'Dossier rejeté par la Finance',
+                            date_label: 'À l’instant',
+                            actor: 'Clarisse Mensah (Finance KORA)',
+                            detail: `Motif d’invalidation : ${params.reason}`,
+                        },
+                    ],
+                };
+            });
+
+            const newNotification: KoraNotificationItem = {
+                uuid: `notif-refrej-${Date.now()}`,
+                category: 'FINANCE',
+                level: 'warning',
+                title: `Remboursement refusé : ${target.reference}`,
+                description: `Le dossier a été invalidé. Motif : ${params.reason}`,
+                created_at: new Date().toISOString(),
+                date_label: 'À l’instant',
+                read: false,
+                action_label: 'Consulter',
+                action_target: 'refunds',
+            };
+
+            setStateOverride((prev) => ({
+                ...prev,
+                refunds: updatedRefunds,
+                notifications: [newNotification, ...notifications],
+            }));
+        },
+        [refunds, notifications],
+    );
+
+    const markNotificationAsRead = useCallback(
+        (notificationUuid: string) => {
+            setStateOverride((prev) => ({
+                ...prev,
+                notifications: notifications.map((n) =>
+                    n.uuid === notificationUuid ? { ...n, read: true } : n,
+                ),
+            }));
+        },
+        [notifications],
+    );
+
+    const markAllNotificationsAsRead = useCallback(() => {
+        setStateOverride((prev) => ({
+            ...prev,
+            notifications: notifications.map((n) => ({ ...n, read: true })),
+        }));
+    }, [notifications]);
+
+    const addTestNotification = useCallback(() => {
+        const testItem: KoraNotificationItem = {
+            uuid: `notif-test-${Date.now()}`,
+            category: 'FINANCE',
+            level: 'info',
+            title: 'Simulation d’alerte système KORA',
+            description:
+                'Test de notification push navigateur réussi. Le système de synchronisation est opérationnel.',
+            created_at: new Date().toISOString(),
+            date_label: 'À l’instant',
+            read: false,
+            action_label: 'Voir l’activité',
+            action_target: 'dashboard',
+        };
+
+        setStateOverride((prev) => ({
+            ...prev,
+            notifications: [testItem, ...notifications],
+        }));
+    }, [notifications]);
+
     return {
         scenarioId,
         changeScenario,
@@ -694,6 +956,7 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
         groupSettlements,
         adminNetworkPoints,
         adminOrganizations,
+        notifications,
         openCashSession,
         closeCashSession,
         recordSimulatedSale,
@@ -704,5 +967,12 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
         createNetworkPoint,
         updatePointTermsOverride,
         toggleUserStatus,
+        reconcileSettlement,
+        rejectSettlement,
+        approveRefund,
+        rejectRefund,
+        markNotificationAsRead,
+        markAllNotificationsAsRead,
+        addTestNotification,
     };
 }

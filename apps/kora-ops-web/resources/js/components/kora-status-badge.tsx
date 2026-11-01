@@ -1,3 +1,4 @@
+import { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 type StatusTone =
@@ -12,9 +13,12 @@ type StatusTone =
 type StatusVariant = 'subtle' | 'solid';
 
 type Props = {
-    label: string;
+    label?: string;
+    children?: ReactNode;
     tone?: StatusTone;
+    colorScheme?: string;
     variant?: StatusVariant;
+    icon?: ReactNode;
     className?: string;
 };
 
@@ -58,28 +62,50 @@ const solidDotStyles: Record<StatusTone, string> = {
     amber: 'bg-amber-950',
 };
 
+function normalizeTone(tone?: StatusTone, colorScheme?: string): StatusTone {
+    if (tone) return tone;
+    if (!colorScheme) return 'blue';
+    if (colorScheme === 'green' || colorScheme === 'emerald' || colorScheme === 'success') return 'emerald';
+    if (colorScheme === 'red' || colorScheme === 'destructive' || colorScheme === 'danger') return 'destructive';
+    if (colorScheme === 'yellow' || colorScheme === 'amber' || colorScheme === 'warning') return 'amber';
+    if (colorScheme === 'navy' || colorScheme === 'kora') return 'navy';
+    if (colorScheme === 'gold') return 'gold';
+    if (colorScheme === 'muted' || colorScheme === 'gray') return 'muted';
+    return 'blue';
+}
+
 export function KoraStatusBadge({
     label,
-    tone = 'blue',
+    children,
+    tone,
+    colorScheme,
     variant = 'subtle',
+    icon,
     className,
 }: Props) {
     const isSolid = variant === 'solid';
+    const resolvedTone = normalizeTone(tone, colorScheme);
+    const content = label ?? children;
+
     return (
         <span
             className={cn(
                 'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.5625rem] font-extrabold tracking-[0.02em]',
-                isSolid ? solidToneStyles[tone] : subtleToneStyles[tone],
+                isSolid ? solidToneStyles[resolvedTone] : subtleToneStyles[resolvedTone],
                 className,
             )}
         >
-            <span
-                className={cn(
-                    'size-1.5 rounded-full shrink-0',
-                    isSolid ? solidDotStyles[tone] : dotStyles[tone],
-                )}
-            />
-            <span>{label}</span>
+            {icon ? (
+                <span className="shrink-0">{icon}</span>
+            ) : (
+                <span
+                    className={cn(
+                        'size-1.5 rounded-full shrink-0',
+                        isSolid ? solidDotStyles[resolvedTone] : dotStyles[resolvedTone],
+                    )}
+                />
+            )}
+            {content && <span>{content}</span>}
         </span>
     );
 }
