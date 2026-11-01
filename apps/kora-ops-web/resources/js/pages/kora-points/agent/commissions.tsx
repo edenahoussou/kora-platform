@@ -23,7 +23,7 @@ type Props = {
 
 function CommissionsSkeleton() {
     return (
-        <div className="space-y-4 animate-pulse">
+        <div className="animate-pulse space-y-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <Skeleton className="h-24 rounded-2xl" />
                 <Skeleton className="h-24 rounded-2xl" />
@@ -63,7 +63,9 @@ export default function AgentCommissionsPage({ point, commissions }: Props) {
                         <KoraPointCommissionsView
                             point={point}
                             commissions={commissions.data}
-                            onViewRefundDetail={() => handleAgentNavigate('refunds')}
+                            onViewRefundDetail={() =>
+                                handleAgentNavigate('refunds')
+                            }
                         />
                     ) : (
                         <CommissionsSkeleton />

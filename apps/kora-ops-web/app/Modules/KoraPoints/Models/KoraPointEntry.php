@@ -12,11 +12,13 @@ class KoraPointEntry extends KoraModel
 
     protected $fillable = ['point_id', 'sale_id', 'actor_id', 'event_key', 'type', 'amount', 'commission_delta', 'uuid'];
 
+    /** @return array<string, string> */
     protected function casts(): array
     {
         return ['amount' => 'integer', 'commission_delta' => 'integer'];
     }
 
+    /** Enforces ledger immutability on updates and deletes. */
     protected static function booted(): void
     {
         static::updating(fn () => throw new \LogicException('Le journal partenaire est immuable.'));

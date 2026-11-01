@@ -33,7 +33,7 @@ type Props = {
 
 function RefundsSkeleton() {
     return (
-        <div className="space-y-4 animate-pulse">
+        <div className="animate-pulse space-y-4">
             <div className="flex items-center justify-between">
                 <Skeleton className="h-10 w-64 rounded-xl" />
                 <Skeleton className="h-10 w-44 rounded-xl" />
@@ -60,7 +60,9 @@ export default function AgentRefundsPage({
     }) => {
         // Find matching sale if available
         const matchedSale = sales?.data.find(
-            (s) => s.ticket_number === data.ticketNumber || s.short_code === data.ticketNumber,
+            (s) =>
+                s.ticket_number === data.ticketNumber ||
+                s.short_code === data.ticketNumber,
         );
 
         if (matchedSale) {
@@ -91,7 +93,10 @@ export default function AgentRefundsPage({
                 activePage="refunds"
                 onNavigate={handleAgentNavigate}
             >
-                <Deferred data={['refunds', 'sales']} fallback={<RefundsSkeleton />}>
+                <Deferred
+                    data={['refunds', 'sales']}
+                    fallback={<RefundsSkeleton />}
+                >
                     {refunds && sales ? (
                         <KoraPointRefundListView
                             point={point}

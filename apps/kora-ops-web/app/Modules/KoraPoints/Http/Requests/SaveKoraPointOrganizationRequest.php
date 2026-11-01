@@ -9,12 +9,19 @@ use Illuminate\Validation\Rule;
 
 class SaveKoraPointOrganizationRequest extends FormRequest
 {
+    /**
+     * Grants access when the actor is active and holds the related permission.
+     */
     public function authorize(): bool
     {
         return $this->user() !== null && $this->user()->status === UserStatus::Active && $this->user()->can('kora-points.manage');
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * Returns the payload validation rules.
+     *
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         $subject = $this->route('organization');

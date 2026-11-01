@@ -82,12 +82,7 @@ function formatDate(iso: string | null): string {
 }
 
 /** Formulaire modal de gestion de grille tarifaire (style caisse unifié). */
-export function FareFormDialog({
-    open,
-    fare,
-    lines,
-    onOpenChange,
-}: Props) {
+export function FareFormDialog({ open, fare, lines, onOpenChange }: Props) {
     const editing = Boolean(fare);
     const form = editing
         ? fares.update.form({ fare: fare!.uuid })
@@ -102,8 +97,8 @@ export function FareFormDialog({
     const [selectedOriginUuid, setSelectedOriginUuid] = useState<string>(
         fare?.originName
             ? (lines
-                .flatMap((l) => l.stops)
-                .find((s) => s.name === fare.originName)?.uuid ?? '')
+                  .flatMap((l) => l.stops)
+                  .find((s) => s.name === fare.originName)?.uuid ?? '')
             : '',
     );
 
@@ -111,8 +106,8 @@ export function FareFormDialog({
         useState<string>(
             fare?.destinationName
                 ? (lines
-                    .flatMap((l) => l.stops)
-                    .find((s) => s.name === fare.destinationName)?.uuid ?? '')
+                      .flatMap((l) => l.stops)
+                      .find((s) => s.name === fare.destinationName)?.uuid ?? '')
                 : '',
         );
 
@@ -153,8 +148,7 @@ export function FareFormDialog({
 
     const originStops = useMemo(() => availableStops, [availableStops]);
 
-    const previewLineCode =
-        selectedLine?.code ?? fare?.lineCode ?? '';
+    const previewLineCode = selectedLine?.code ?? fare?.lineCode ?? '';
     const previewOriginName =
         availableStops.find((s) => s.uuid === selectedOriginUuid)?.name ??
         fare?.originName ??
@@ -238,7 +232,13 @@ export function FareFormDialog({
                                             Création en mode brouillon
                                         </strong>
                                         <p className="text-[11px] leading-relaxed text-muted-foreground">
-                                            Définissez la ligne, le tronçon Origine → Destination, le prix unitaire et la période d'effet. La grille sera créée en <strong>brouillon</strong> et devra être activée explicitement pour être vendable au guichet.
+                                            Définissez la ligne, le tronçon
+                                            Origine → Destination, le prix
+                                            unitaire et la période d'effet. La
+                                            grille sera créée en{' '}
+                                            <strong>brouillon</strong> et devra
+                                            être activée explicitement pour être
+                                            vendable au guichet.
                                         </p>
                                     </div>
                                 </div>
@@ -333,7 +333,8 @@ export function FareFormDialog({
                                                         key={line.uuid}
                                                         value={line.uuid}
                                                     >
-                                                        {line.code} · {line.name}
+                                                        {line.code} ·{' '}
+                                                        {line.name}
                                                     </option>
                                                 ))}
                                             </select>
@@ -443,7 +444,9 @@ export function FareFormDialog({
                                                         (stop) => (
                                                             <option
                                                                 key={stop.uuid}
-                                                                value={stop.uuid}
+                                                                value={
+                                                                    stop.uuid
+                                                                }
                                                             >
                                                                 {stop.name}
                                                             </option>
@@ -502,7 +505,9 @@ export function FareFormDialog({
                                                 inputMode="numeric"
                                                 value={baseAmount}
                                                 onChange={(e) =>
-                                                    setBaseAmount(e.target.value)
+                                                    setBaseAmount(
+                                                        e.target.value,
+                                                    )
                                                 }
                                                 required
                                                 placeholder="ex: 8500"

@@ -425,26 +425,31 @@ export function useKoraPointSale(props: KoraPointSaleProps) {
         );
     };
 
-    const releaseHold = useCallback((reservationUuid: string, onSuccess?: () => void) => {
-        releaseForm.post(
-            koraPoint.sale.release.url({ reservation: reservationUuid }),
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    toast.success('Réservation annulée et places libérées.');
-                    onSuccess?.();
+    const releaseHold = useCallback(
+        (reservationUuid: string, onSuccess?: () => void) => {
+            releaseForm.post(
+                koraPoint.sale.release.url({ reservation: reservationUuid }),
+                {
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        toast.success(
+                            'Réservation annulée et places libérées.',
+                        );
+                        onSuccess?.();
+                    },
+                    onError: (errors) => {
+                        toast.error(
+                            firstErrorMessage(
+                                errors as Record<string, string>,
+                                'Impossible de libérer cette réservation.',
+                            ),
+                        );
+                    },
                 },
-                onError: (errors) => {
-                    toast.error(
-                        firstErrorMessage(
-                            errors as Record<string, string>,
-                            'Impossible de libérer cette réservation.',
-                        ),
-                    );
-                },
-            },
-        );
-    }, [releaseForm]);
+            );
+        },
+        [releaseForm],
+    );
 
     const retryTicketIssuance = (reservationUuid: string) => {
         router.post(

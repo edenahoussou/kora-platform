@@ -15,7 +15,7 @@ import {
     SlidersHorizontal,
     Smartphone,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { KoraTooltip } from '@/components/kora-tooltip';
 import { cn } from '@/lib/utils';
 import type {
@@ -62,17 +62,20 @@ const getTodayStr = () => new Date().toISOString().split('T')[0];
 const getYesterdayStr = () => {
     const d = new Date();
     d.setDate(d.getDate() - 1);
+
     return d.toISOString().split('T')[0];
 };
 
 const get7DaysAgoStr = () => {
     const d = new Date();
     d.setDate(d.getDate() - 6);
+
     return d.toISOString().split('T')[0];
 };
 
 const getMonthStartStr = () => {
     const d = new Date();
+
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
 };
 
@@ -91,16 +94,25 @@ export function KoraPointCashView({
     const [toDate, setToDate] = useState(filters?.to ?? todayStr);
     const [channel, setChannel] = useState(filters?.channel ?? 'all');
 
-    useEffect(() => {
+    const [prevFilters, setPrevFilters] = useState(filters);
+
+    if (filters !== prevFilters) {
+        setPrevFilters(filters);
+
         if (filters) {
             setQuery(filters.q ?? '');
             setFromDate(filters.from ?? todayStr);
             setToDate(filters.to ?? todayStr);
             setChannel(filters.channel ?? 'all');
         }
-    }, [filters, todayStr]);
+    }
 
-    const applyFilters = (f = fromDate, t = toDate, c = channel, qVal = query) => {
+    const applyFilters = (
+        f = fromDate,
+        t = toDate,
+        c = channel,
+        qVal = query,
+    ) => {
         router.get(
             '/kora-point/cash',
             {
@@ -266,7 +278,9 @@ export function KoraPointCashView({
                         </span>
                     </div>
                     <p className="mt-1 text-[0.8125rem] leading-6 text-muted-foreground">
-                        Journal des flux perçus (Espèces et Mobile Money) au guichet {point.name} ({point.code}). Encaissement autonome sans clôture de caisse imposée.
+                        Journal des flux perçus (Espèces et Mobile Money) au
+                        guichet {point.name} ({point.code}). Encaissement
+                        autonome sans clôture de caisse imposée.
                     </p>
                 </div>
 
@@ -309,12 +323,20 @@ export function KoraPointCashView({
                                 <div className="cash-ledger-head">
                                     <div className="cash-ledger-identity">
                                         <span className="cash-ledger-brand">
-                                            <Icon className="size-4" strokeWidth={1.8} />
+                                            <Icon
+                                                className="size-4"
+                                                strokeWidth={1.8}
+                                            />
                                         </span>
                                         <div>
                                             <div className="flex items-center gap-1.5">
-                                                <span className="cash-ledger-title">{kpi.label}</span>
-                                                <KoraTooltip content={kpi.formula} side="top">
+                                                <span className="cash-ledger-title">
+                                                    {kpi.label}
+                                                </span>
+                                                <KoraTooltip
+                                                    content={kpi.formula}
+                                                    side="top"
+                                                >
                                                     <button
                                                         type="button"
                                                         aria-label={`Explication du calcul : ${kpi.label}`}
@@ -340,7 +362,7 @@ export function KoraPointCashView({
             </section>
 
             {/* Financial Health & Credit Exposure Reminder Banner */}
-            <div className="rounded-2xl border border-border/80 bg-gradient-to-r from-muted/50 via-card to-card p-4 sm:p-5 shadow-sm print:hidden">
+            <div className="rounded-2xl border border-border/80 bg-gradient-to-r from-muted/50 via-card to-card p-4 shadow-sm sm:p-5 print:hidden">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="space-y-1">
                         <div className="flex items-center gap-2">
@@ -355,25 +377,35 @@ export function KoraPointCashView({
                         <p className="text-xs text-muted-foreground">
                             Encours actuel :{' '}
                             <strong className="font-mono text-foreground">
-                                {health.current_exposure.toLocaleString('fr-FR')} FCFA
+                                {health.current_exposure.toLocaleString(
+                                    'fr-FR',
+                                )}{' '}
+                                FCFA
                             </strong>{' '}
                             sur un plafond autorisé de{' '}
                             <span className="font-mono">
-                                {health.credit_limit.toLocaleString('fr-FR')} FCFA
+                                {health.credit_limit.toLocaleString('fr-FR')}{' '}
+                                FCFA
                             </span>
                             . Disponible :{' '}
                             <strong className="font-mono text-emerald-600 dark:text-emerald-400">
-                                {health.available_balance.toLocaleString('fr-FR')} FCFA
+                                {health.available_balance.toLocaleString(
+                                    'fr-FR',
+                                )}{' '}
+                                FCFA
                             </strong>
                             .
                         </p>
                     </div>
 
-                    <div className="flex items-center gap-3 shrink-0">
+                    <div className="flex shrink-0 items-center gap-3">
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                             <Clock className="size-3.5 text-gold" />
                             <span>
-                                Échéance : <strong className="text-foreground">{health.next_due_label}</strong>
+                                Échéance :{' '}
+                                <strong className="text-foreground">
+                                    {health.next_due_label}
+                                </strong>
                             </span>
                         </div>
                         {isAutonomous && onNavigateToSettlements && (
@@ -394,7 +426,7 @@ export function KoraPointCashView({
             <div className="space-y-2.5 print:hidden">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                        <span className="text-[0.6875rem] font-black tracking-wider uppercase text-muted-foreground mr-1">
+                        <span className="mr-1 text-[0.6875rem] font-black tracking-wider text-muted-foreground uppercase">
                             Période :
                         </span>
                         <button
@@ -414,7 +446,8 @@ export function KoraPointCashView({
                             onClick={() => handlePreset('yesterday')}
                             className={cn(
                                 'rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors',
-                                fromDate === getYesterdayStr() && toDate === getYesterdayStr()
+                                fromDate === getYesterdayStr() &&
+                                    toDate === getYesterdayStr()
                                     ? 'bg-primary text-primary-foreground shadow-sm'
                                     : 'bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground',
                             )}
@@ -426,7 +459,8 @@ export function KoraPointCashView({
                             onClick={() => handlePreset('7d')}
                             className={cn(
                                 'rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors',
-                                fromDate === get7DaysAgoStr() && toDate === todayStr
+                                fromDate === get7DaysAgoStr() &&
+                                    toDate === todayStr
                                     ? 'bg-primary text-primary-foreground shadow-sm'
                                     : 'bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground',
                             )}
@@ -438,7 +472,8 @@ export function KoraPointCashView({
                             onClick={() => handlePreset('month')}
                             className={cn(
                                 'rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors',
-                                fromDate === getMonthStartStr() && toDate === todayStr
+                                fromDate === getMonthStartStr() &&
+                                    toDate === todayStr
                                     ? 'bg-primary text-primary-foreground shadow-sm'
                                     : 'bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground',
                             )}
@@ -447,11 +482,14 @@ export function KoraPointCashView({
                         </button>
                     </div>
 
-                    {(query || channel !== 'all' || fromDate !== todayStr || toDate !== todayStr) && (
+                    {(query ||
+                        channel !== 'all' ||
+                        fromDate !== todayStr ||
+                        toDate !== todayStr) && (
                         <button
                             type="button"
                             onClick={handleReset}
-                            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                            className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
                         >
                             <RotateCcw className="size-3" />
                             <span>Réinitialiser les filtres</span>
@@ -475,8 +513,10 @@ export function KoraPointCashView({
                         className="cash-filter-search"
                     />
 
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
-                        <span className="font-bold text-[0.6875rem] uppercase">Du</span>
+                    <div className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
+                        <span className="text-[0.6875rem] font-bold uppercase">
+                            Du
+                        </span>
                         <input
                             type="date"
                             value={fromDate}
@@ -486,8 +526,10 @@ export function KoraPointCashView({
                         />
                     </div>
 
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
-                        <span className="font-bold text-[0.6875rem] uppercase">Au</span>
+                    <div className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
+                        <span className="text-[0.6875rem] font-bold uppercase">
+                            Au
+                        </span>
                         <input
                             type="date"
                             value={toDate}
@@ -509,28 +551,44 @@ export function KoraPointCashView({
                     >
                         <option value="all">Tous les canaux</option>
                         <option value="cash">💵 Espèces</option>
-                        <option value="mobile_money">📱 Tout Mobile Money</option>
+                        <option value="mobile_money">
+                            📱 Tout Mobile Money
+                        </option>
                         <optgroup label="Bénin 🇧🇯">
                             <option value="mtn_momo">MTN MoMo (Bénin)</option>
-                            <option value="moov_flooz">Moov Flooz (Bénin)</option>
-                            <option value="celtiis_cash">Celtiis Cash (Bénin)</option>
+                            <option value="moov_flooz">
+                                Moov Flooz (Bénin)
+                            </option>
+                            <option value="celtiis_cash">
+                                Celtiis Cash (Bénin)
+                            </option>
                         </optgroup>
                         <optgroup label="Togo 🇹🇬">
                             <option value="tmoney_tg">T-Money (Togo)</option>
-                            <option value="moov_flooz_tg">Moov Togo (Togo)</option>
+                            <option value="moov_flooz_tg">
+                                Moov Togo (Togo)
+                            </option>
                         </optgroup>
                         <optgroup label="Côte d’Ivoire 🇨🇮">
-                            <option value="wave_ci">Wave CI (Côte d’Ivoire)</option>
-                            <option value="orange_money_ci">Orange Money (Côte d’Ivoire)</option>
-                            <option value="mtn_momo_ci">MTN CI (Côte d’Ivoire)</option>
-                            <option value="moov_flooz_ci">Moov CI (Côte d’Ivoire)</option>
+                            <option value="wave_ci">
+                                Wave CI (Côte d’Ivoire)
+                            </option>
+                            <option value="orange_money_ci">
+                                Orange Money (Côte d’Ivoire)
+                            </option>
+                            <option value="mtn_momo_ci">
+                                MTN CI (Côte d’Ivoire)
+                            </option>
+                            <option value="moov_flooz_ci">
+                                Moov CI (Côte d’Ivoire)
+                            </option>
                         </optgroup>
                     </select>
 
                     <button
                         type="button"
                         onClick={() => applyFilters()}
-                        className="btn btn-navy flex items-center gap-1.5 shrink-0"
+                        className="btn btn-navy flex shrink-0 items-center gap-1.5"
                     >
                         <SlidersHorizontal className="size-3.5" />
                         <span>Filtrer</span>
@@ -540,13 +598,14 @@ export function KoraPointCashView({
 
             {/* Table: Chronological Movements (Cash System Style) */}
             <div className="cash-table-card print:border-none print:shadow-none">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-border/60 px-5 py-4">
+                <div className="flex flex-col gap-2 border-b border-border/60 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h2 className="text-sm font-extrabold text-foreground">
                             Journal chronologique des encaissements
                         </h2>
                         <span className="text-xs text-muted-foreground">
-                            {data.date_label} · {data.movements.length} opération(s) enregistrée(s)
+                            {data.date_label} · {data.movements.length}{' '}
+                            opération(s) enregistrée(s)
                         </span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -558,16 +617,20 @@ export function KoraPointCashView({
 
                 {data.movements.length === 0 ? (
                     <div className="flex flex-col items-center justify-center p-12 text-center">
-                        <div className="grid size-12 place-items-center rounded-2xl bg-muted text-muted-foreground mb-3">
+                        <div className="mb-3 grid size-12 place-items-center rounded-2xl bg-muted text-muted-foreground">
                             <Banknote className="size-6" />
                         </div>
                         <h3 className="text-sm font-bold text-foreground">
                             Aucun encaissement pour cette sélection
                         </h3>
-                        <p className="mt-1 text-xs text-muted-foreground max-w-sm">
-                            Aucun mouvement ne correspond aux filtres appliqués (période, canal ou recherche).
+                        <p className="mt-1 max-w-sm text-xs text-muted-foreground">
+                            Aucun mouvement ne correspond aux filtres appliqués
+                            (période, canal ou recherche).
                         </p>
-                        {(query || channel !== 'all' || fromDate !== todayStr || toDate !== todayStr) && (
+                        {(query ||
+                            channel !== 'all' ||
+                            fromDate !== todayStr ||
+                            toDate !== todayStr) && (
                             <button
                                 type="button"
                                 onClick={handleReset}
@@ -590,15 +653,23 @@ export function KoraPointCashView({
                 ) : (
                     <div className="cash-table-scroll overflow-x-auto">
                         <table className="w-full min-w-[850px] text-left">
-                            <thead className="bg-muted/45 text-[0.625rem] font-black tracking-[0.14em] text-muted-foreground uppercase border-b border-border/60">
+                            <thead className="border-b border-border/60 bg-muted/45 text-[0.625rem] font-black tracking-[0.14em] text-muted-foreground uppercase">
                                 <tr>
                                     <th className="px-4 py-3">Date & heure</th>
                                     <th className="px-4 py-3">Billet / Réf</th>
                                     <th className="px-4 py-3">Voyageur</th>
-                                    <th className="px-4 py-3">Canal de paiement</th>
-                                    <th className="px-4 py-3 text-right">Brut encaissé</th>
-                                    <th className="px-4 py-3 text-right">Commission</th>
-                                    <th className="px-4 py-3 text-right">Net dû KORA</th>
+                                    <th className="px-4 py-3">
+                                        Canal de paiement
+                                    </th>
+                                    <th className="px-4 py-3 text-right">
+                                        Brut encaissé
+                                    </th>
+                                    <th className="px-4 py-3 text-right">
+                                        Commission
+                                    </th>
+                                    <th className="px-4 py-3 text-right">
+                                        Net dû KORA
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border/40 text-xs">
@@ -611,7 +682,7 @@ export function KoraPointCashView({
                                     return (
                                         <tr
                                             key={m.id}
-                                            className="hover:bg-muted/30 transition-colors"
+                                            className="transition-colors hover:bg-muted/30"
                                         >
                                             <td className="px-4 py-3.5 whitespace-nowrap">
                                                 <p className="font-mono text-xs font-black text-foreground">
@@ -622,7 +693,7 @@ export function KoraPointCashView({
                                                 </p>
                                             </td>
                                             <td className="px-4 py-3.5 whitespace-nowrap">
-                                                <span className="font-mono font-bold text-foreground bg-muted/60 px-2 py-0.5 rounded text-xs border border-border/50">
+                                                <span className="rounded border border-border/50 bg-muted/60 px-2 py-0.5 font-mono text-xs font-bold text-foreground">
                                                     {m.ticket_reference}
                                                 </span>
                                             </td>
@@ -630,7 +701,7 @@ export function KoraPointCashView({
                                                 <div className="font-bold text-foreground">
                                                     {m.passenger_name}
                                                 </div>
-                                                <div className="text-[0.6875rem] text-muted-foreground font-mono">
+                                                <div className="font-mono text-[0.6875rem] text-muted-foreground">
                                                     {m.passenger_phone}
                                                 </div>
                                             </td>
@@ -644,7 +715,10 @@ export function KoraPointCashView({
                                                     <div className="inline-flex flex-col items-start gap-0.5">
                                                         <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:text-blue-400">
                                                             <Smartphone className="size-3" />
-                                                            <span>{netInfo?.flag ?? '📱'}</span>
+                                                            <span>
+                                                                {netInfo?.flag ??
+                                                                    '📱'}
+                                                            </span>
                                                             <span>
                                                                 {netInfo?.label ??
                                                                     m.network_label ??
@@ -652,28 +726,32 @@ export function KoraPointCashView({
                                                             </span>
                                                         </span>
                                                         {m.reference &&
-                                                            m.reference !== '—' && (
+                                                            m.reference !==
+                                                                '—' && (
                                                                 <span className="font-mono text-[0.625rem] text-muted-foreground">
-                                                                    Réf: {m.reference}
+                                                                    Réf:{' '}
+                                                                    {
+                                                                        m.reference
+                                                                    }
                                                                 </span>
                                                             )}
                                                     </div>
                                                 )}
                                             </td>
-                                            <td className="px-4 py-3.5 text-right font-mono text-xs font-black text-foreground whitespace-nowrap">
+                                            <td className="px-4 py-3.5 text-right font-mono text-xs font-black whitespace-nowrap text-foreground">
                                                 {m.gross_amount.toLocaleString(
                                                     'fr-FR',
                                                 )}{' '}
                                                 FCFA
                                             </td>
-                                            <td className="px-4 py-3.5 text-right font-mono text-xs font-bold text-gold whitespace-nowrap">
+                                            <td className="px-4 py-3.5 text-right font-mono text-xs font-bold whitespace-nowrap text-gold">
                                                 +
                                                 {m.commission_amount.toLocaleString(
                                                     'fr-FR',
                                                 )}{' '}
                                                 FCFA
                                             </td>
-                                            <td className="px-4 py-3.5 text-right font-mono text-xs font-bold text-foreground whitespace-nowrap">
+                                            <td className="px-4 py-3.5 text-right font-mono text-xs font-bold whitespace-nowrap text-foreground">
                                                 {m.net_amount.toLocaleString(
                                                     'fr-FR',
                                                 )}{' '}
@@ -689,25 +767,24 @@ export function KoraPointCashView({
                                         colSpan={4}
                                         className="px-4 py-3 text-right text-xs font-black text-foreground"
                                     >
-                                        Totaux consolidés ({data.movements.length} billet(s)) :
+                                        Totaux consolidés (
+                                        {data.movements.length} billet(s)) :
                                     </td>
-                                    <td className="px-4 py-3 text-right font-mono text-xs font-black text-foreground whitespace-nowrap">
+                                    <td className="px-4 py-3 text-right font-mono text-xs font-black whitespace-nowrap text-foreground">
                                         {data.gross_total.toLocaleString(
                                             'fr-FR',
                                         )}{' '}
                                         FCFA
                                     </td>
-                                    <td className="px-4 py-3 text-right font-mono text-xs font-black text-gold whitespace-nowrap">
+                                    <td className="px-4 py-3 text-right font-mono text-xs font-black whitespace-nowrap text-gold">
                                         +
                                         {data.commission_total.toLocaleString(
                                             'fr-FR',
                                         )}{' '}
                                         FCFA
                                     </td>
-                                    <td className="px-4 py-3 text-right font-mono text-xs font-black text-foreground whitespace-nowrap">
-                                        {data.net_total.toLocaleString(
-                                            'fr-FR',
-                                        )}{' '}
+                                    <td className="px-4 py-3 text-right font-mono text-xs font-black whitespace-nowrap text-foreground">
+                                        {data.net_total.toLocaleString('fr-FR')}{' '}
                                         FCFA
                                     </td>
                                 </tr>
@@ -718,8 +795,9 @@ export function KoraPointCashView({
             </div>
 
             {/* Print Footer Notice */}
-            <div className="hidden print:block text-center text-xs text-slate-500 pt-6 border-t border-slate-200">
-                Document généré pour {point.name} ({point.code}) · KORA EXPRESS Bus Platform · {data.date_label}
+            <div className="hidden border-t border-slate-200 pt-6 text-center text-xs text-slate-500 print:block">
+                Document généré pour {point.name} ({point.code}) · KORA EXPRESS
+                Bus Platform · {data.date_label}
             </div>
         </div>
     );

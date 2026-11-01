@@ -36,6 +36,7 @@ class KoraPointSale extends KoraModel
 
     protected $fillable = ['point_id', 'organization_id', 'reservation_id', 'payment_id', 'seller_id', 'status', 'gross_amount', 'commission_amount', 'net_amount', 'outstanding_amount', 'refunded_amount', 'commission_reversed', 'terms_snapshot', 'paid_at', 'due_at', 'settled_at', 'uuid'];
 
+    /** @return array<string, string> */
     protected function casts(): array
     {
         return ['terms_snapshot' => 'array', 'gross_amount' => 'integer', 'commission_amount' => 'integer', 'net_amount' => 'integer', 'outstanding_amount' => 'integer', 'refunded_amount' => 'integer', 'commission_reversed' => 'integer', 'paid_at' => 'immutable_datetime', 'due_at' => 'immutable_datetime', 'settled_at' => 'immutable_datetime'];
@@ -77,6 +78,7 @@ class KoraPointSale extends KoraModel
         return $this->hasMany(KoraPointRemittanceLine::class, 'sale_id');
     }
 
+    /** Freezes sale terms after creation and forbids deletion. */
     protected static function booted(): void
     {
         static::updating(function (self $sale): void {

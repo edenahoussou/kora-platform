@@ -22,6 +22,7 @@ import 'package:kora_app_passenger/features/auth/presentation/bloc/auth_bloc.dar
 import 'package:kora_app_passenger/features/language/data/datasources/language_local_data_source.dart';
 import 'package:kora_app_passenger/features/language/data/repositories/language_repository_impl.dart';
 import 'package:kora_app_passenger/features/language/presentation/bloc/language_bloc.dart';
+import 'package:kora_app_passenger/features/profil/presentation/pages/account_deletion_page.dart';
 import 'package:kora_app_passenger/features/profil/presentation/pages/preferences_page.dart';
 import 'package:kora_app_passenger/features/profil/presentation/pages/profile_edit_page.dart';
 import 'package:kora_app_passenger/features/profil/presentation/pages/security_page.dart';
@@ -303,6 +304,150 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Réessayer'), findsOneWidget);
+    });
+
+    // Apple l'exige (règle 5.1.1(v)) : une app qui crée des comptes doit
+    // permettre d'en demander la suppression depuis l'app elle-même.
+    testWidgets('mène à la suppression du compte', (tester) async {
+      repository = _DevicesRepository();
+      var opened = 0;
+      await pump(tester, SecurityPage(onDeleteAccount: () => opened++));
+
+      await tester.scrollUntilVisible(find.text('Supprimer mon compte'), 200);
+      await tester.tap(find.text('Supprimer mon compte'));
+      await tester.pumpAndSettle();
+
+      expect(opened, 1);
+    });
+  });
+
+  group('Suppression du compte', () {
+    Future<void> enterPin(WidgetTester tester, String pin) async {
+      for (final digit in pin.split('')) {
+        await tester.tap(find.text(digit));
+        await tester.pump();
+      }
+    }
+
+    testWidgets('explique, demande le PIN, envoie et déconnecte', (
+      tester,
+    ) async {
+      await pump(tester, const AccountDeletionPage());
+
+      // Le délai est dit avant tout geste : la demande n'efface rien
+      // sur-le-champ.
+      expect(find.textContaining('sous 30 jours'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), 'Je ne voyage plus.');
+      await tester.tap(find.text('Continuer'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Confirmez avec votre PIN'), findsOneWidget);
+
+      await enterPin(tester, '1234');
+      await tester.tap(find.text('Supprimer mon compte'));
+      await tester.pumpAndSettle();
+
+      // La confirmation explicite, juste avant l'envoi : le PIN prouve
+      // qui tape, pas qu'on veut vraiment partir.
+      expect(find.text('Envoyer la demande de suppression ?'), findsOneWidget);
+      await tester.tap(find.text('Envoyer la demande'));
+      // Le bouton garde son indicateur : dans l'app, la déconnexion fait
+      // quitter l'écran. Pas de `pumpAndSettle`, donc : on avance le temps
+      // le long du toast — entrée, attente, sortie.
+      for (final step in const [
+        Duration.zero,
+        Duration(milliseconds: 500),
+        Duration(milliseconds: 500),
+        Duration(seconds: 3),
+        Duration(milliseconds: 500),
+      ]) {
+        await tester.pump(step);
+      }
+
+      // Le serveur garde la session ouverte : c'est l'app qui ferme.
+      expect(repository.calls, [
+        'requestAccountDeletion:1234:Je ne voyage plus.',
+        'logout',
+      ]);
+    });
+
+    testWidgets('dit ce qui est supprimé et ce qui est conservé', (
+      tester,
+    ) async {
+      // Apple (5.1.1(v)) veut que le voyageur sache ce qu'il perd avant
+      // de confirmer. Les mêmes termes que la page publique, pour que
+      // l'app et le web ne promettent pas deux choses différentes.
+      await pump(tester, const AccountDeletionPage());
+
+      expect(find.text('Ce que la suppression implique'), findsOneWidget);
+      // Les lignes du récapitulatif mêlent gras et texte courant dans un
+      // même paragraphe : sans `findRichText`, le chercheur ne voit que
+      // les `Text` d'un seul morceau et passe à côté.
+      expect(
+        find.textContaining('appareils de confiance', findRichText: true),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('pendant 10 ans', findRichText: true),
+        findsOneWidget,
+      );
+      expect(find.textContaining('sous 30 jours'), findsOneWidget);
+    });
+
+    testWidgets('une confirmation refusée n’envoie rien', (tester) async {
+      await pump(tester, const AccountDeletionPage());
+
+      await tester.tap(find.text('Continuer'));
+      await tester.pumpAndSettle();
+      await enterPin(tester, '1234');
+      await tester.tap(find.text('Supprimer mon compte'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Annuler'));
+      await tester.pumpAndSettle();
+
+      // Rien n'est parti, et le PIN reste saisi : on peut confirmer
+      // ensuite sans tout retaper.
+      expect(repository.calls, isEmpty);
+      expect(find.text('Confirmez avec votre PIN'), findsOneWidget);
+    });
+
+    testWidgets('un PIN refusé ne déconnecte pas et garde le motif', (
+      tester,
+    ) async {
+      repository = StubAuthRepository(
+        failure: const ValidationFailure('Le code PIN est incorrect.'),
+      );
+      await pump(tester, const AccountDeletionPage());
+
+      await tester.enterText(find.byType(TextField), 'Doublon');
+      await tester.tap(find.text('Continuer'));
+      await tester.pumpAndSettle();
+
+      await enterPin(tester, '9999');
+      await tester.tap(find.text('Supprimer mon compte'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Envoyer la demande'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Le code PIN est incorrect.'), findsOneWidget);
+      expect(repository.calls, ['requestAccountDeletion:9999:Doublon']);
+    });
+
+    testWidgets('refuse un PIN incomplet sans appeler le serveur', (
+      tester,
+    ) async {
+      await pump(tester, const AccountDeletionPage());
+
+      await tester.tap(find.text('Continuer'));
+      await tester.pumpAndSettle();
+
+      await enterPin(tester, '12');
+      await tester.tap(find.text('Supprimer mon compte'));
+      await tester.pumpAndSettle();
+
+      expect(repository.calls, isEmpty);
     });
   });
 

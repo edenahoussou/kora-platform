@@ -1,12 +1,5 @@
+import { Download, FileSpreadsheet, FileText, X, Check } from 'lucide-react';
 import { useState } from 'react';
-import {
-    Download,
-    FileSpreadsheet,
-    FileText,
-    X,
-    Check,
-    Sparkles,
-} from 'lucide-react';
 
 type Props = {
     isOpen: boolean;
@@ -26,7 +19,9 @@ export function KoraPointExportDemoDialog({
     const [downloading, setDownloading] = useState(false);
     const [downloadDone, setDownloadDone] = useState(false);
 
-    if (!isOpen) return null;
+    if (!isOpen) {
+        return null;
+    }
 
     const fileName =
         exportType === 'EXCEL'
@@ -50,9 +45,9 @@ export function KoraPointExportDemoDialog({
             role="dialog"
             aria-modal="true"
             aria-label="Export de démonstration"
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in"
+            className="fixed inset-0 z-50 flex animate-in items-center justify-center bg-black/60 p-4 backdrop-blur-md fade-in"
         >
-            <div className="relative w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900 sm:p-7">
+            <div className="relative w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl sm:p-7 dark:border-slate-800 dark:bg-slate-900">
                 {/* Close Button */}
                 <button
                     type="button"
@@ -74,7 +69,7 @@ export function KoraPointExportDemoDialog({
                     </div>
                     <div>
                         <div className="flex items-center gap-1.5">
-                            <span className="rounded-full bg-amber-500/20 px-2 py-0.2 text-[0.625rem] font-black uppercase text-amber-900 dark:text-amber-200">
+                            <span className="py-0.2 rounded-full bg-amber-500/20 px-2 text-[0.625rem] font-black text-amber-900 uppercase dark:text-amber-200">
                                 Exemple de démonstration
                             </span>
                         </div>
@@ -87,14 +82,20 @@ export function KoraPointExportDemoDialog({
                 </div>
 
                 {/* Preview Details */}
-                <div className="my-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs dark:border-slate-800 dark:bg-slate-950 space-y-2.5">
+                <div className="my-5 space-y-2.5 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs dark:border-slate-800 dark:bg-slate-950">
                     <div className="flex justify-between">
                         <span className="text-slate-500">Périmètre :</span>
-                        <strong className="text-slate-900 dark:text-white">{pointName}</strong>
+                        <strong className="text-slate-900 dark:text-white">
+                            {pointName}
+                        </strong>
                     </div>
                     <div className="flex justify-between">
-                        <span className="text-slate-500">Période exportée :</span>
-                        <strong className="text-slate-900 dark:text-white">{periodLabel}</strong>
+                        <span className="text-slate-500">
+                            Période exportée :
+                        </span>
+                        <strong className="text-slate-900 dark:text-white">
+                            {periodLabel}
+                        </strong>
                     </div>
                     <div className="flex justify-between">
                         <span className="text-slate-500">Nom du fichier :</span>
@@ -103,7 +104,9 @@ export function KoraPointExportDemoDialog({
                         </span>
                     </div>
                     <div className="border-t border-slate-200 pt-2 text-[0.6875rem] text-slate-400 dark:border-slate-800">
-                        Le fichier généré inclut la ventilation par vente, les taux historiques figés, les déductions sur remboursements et la synthèse nette.
+                        Le fichier généré inclut la ventilation par vente, les
+                        taux historiques figés, les déductions sur
+                        remboursements et la synthèse nette.
                     </div>
                 </div>
 
@@ -121,7 +124,7 @@ export function KoraPointExportDemoDialog({
                         type="button"
                         onClick={handleDownload}
                         disabled={downloading || downloadDone}
-                        className="inline-flex items-center gap-2 rounded-xl bg-gold px-5 py-2 text-xs font-black uppercase tracking-wider text-kora shadow-md transition hover:bg-gold/90 disabled:opacity-50"
+                        className="inline-flex items-center gap-2 rounded-xl bg-gold px-5 py-2 text-xs font-black tracking-wider text-kora uppercase shadow-md transition hover:bg-gold/90 disabled:opacity-50"
                     >
                         {downloadDone ? (
                             <>

@@ -199,4 +199,10 @@ class StubAuthRepository implements AuthRepository {
   @override
   Future<Either<Failure, void>> revokeDevice(String uuid) async =>
       _answer('revokeDevice:$uuid', null);
+
+  @override
+  Future<Either<Failure, void>> requestAccountDeletion({
+    required String pin,
+    String? reason,
+  }) async => _answer('requestAccountDeletion:$pin:${reason ?? ''}', null);
 }

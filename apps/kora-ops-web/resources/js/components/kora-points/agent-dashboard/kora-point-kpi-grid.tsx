@@ -7,12 +7,17 @@ import {
 } from 'lucide-react';
 import { KoraTooltip } from '@/components/kora-tooltip';
 import { cn } from '@/lib/utils';
-import type { DailyMetrics, KoraPointTerms } from '../mock/kora-point-mock-data';
+import type {
+    DailyMetrics,
+    KoraPointTerms,
+} from '../mock/kora-point-mock-data';
 
 type Props = {
     metrics: DailyMetrics;
     terms: KoraPointTerms;
-    onKpiClick?: (type: 'sales' | 'tickets' | 'commissions' | 'settlement') => void;
+    onKpiClick?: (
+        type: 'sales' | 'tickets' | 'commissions' | 'settlement',
+    ) => void;
 };
 
 const kpiVariants = {
@@ -30,14 +35,23 @@ function normalizeSpark(values: number[]): number[] {
 }
 
 export function KoraPointKpiGrid({ metrics, terms, onKpiClick }: Props) {
-    const ratePercent = (terms.commission_rate_bps / 100).toLocaleString('fr-FR', {
-        minimumFractionDigits: 1,
-        maximumFractionDigits: 2,
-    });
+    const ratePercent = (terms.commission_rate_bps / 100).toLocaleString(
+        'fr-FR',
+        {
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 2,
+        },
+    );
 
-    const salesSpark = normalizeSpark(metrics.activity_7d.map((d) => d.sales_amount));
-    const ticketsSpark = normalizeSpark(metrics.activity_7d.map((d) => d.tickets_count));
-    const commissionSpark = normalizeSpark(metrics.activity_7d.map((d) => d.commission_amount));
+    const salesSpark = normalizeSpark(
+        metrics.activity_7d.map((d) => d.sales_amount),
+    );
+    const ticketsSpark = normalizeSpark(
+        metrics.activity_7d.map((d) => d.tickets_count),
+    );
+    const commissionSpark = normalizeSpark(
+        metrics.activity_7d.map((d) => d.commission_amount),
+    );
 
     const kpis = [
         {
@@ -55,7 +69,7 @@ export function KoraPointKpiGrid({ metrics, terms, onKpiClick }: Props) {
         {
             id: 'tickets' as const,
             label: 'Billets émis',
-            hint: "Passagers du jour",
+            hint: 'Passagers du jour',
             value: `${metrics.today_tickets_count}`,
             trend: 'Départs actifs',
             tone: 'gold' as const,
@@ -130,18 +144,26 @@ export function KoraPointKpiGrid({ metrics, terms, onKpiClick }: Props) {
                             <div className="cash-ledger-head">
                                 <div className="cash-ledger-identity">
                                     <span className="cash-ledger-brand">
-                                        <Icon className="size-4" strokeWidth={1.8} />
+                                        <Icon
+                                            className="size-4"
+                                            strokeWidth={1.8}
+                                        />
                                     </span>
                                     <div>
                                         <div className="flex items-center gap-1.5">
                                             <span className="cash-ledger-title">
                                                 {kpi.label}
                                             </span>
-                                            <KoraTooltip content={kpi.formula} side="top">
+                                            <KoraTooltip
+                                                content={kpi.formula}
+                                                side="top"
+                                            >
                                                 <button
                                                     type="button"
                                                     aria-label={`Explication du calcul : ${kpi.label}`}
-                                                    onClick={(e) => e.stopPropagation()}
+                                                    onClick={(e) =>
+                                                        e.stopPropagation()
+                                                    }
                                                     className="opacity-70 transition-opacity hover:opacity-100 focus:outline-none"
                                                 >
                                                     <HelpCircle className="size-3.5" />
@@ -159,13 +181,14 @@ export function KoraPointKpiGrid({ metrics, terms, onKpiClick }: Props) {
                                                 key={`${kpi.id}-${index}`}
                                                 className={cn(
                                                     'block w-1.5 rounded-full',
-                                                    index >= kpi.spark.length - 2
+                                                    index >=
+                                                        kpi.spark.length - 2
                                                         ? onGold
                                                             ? 'bg-[var(--kora)]'
                                                             : 'bg-gold'
                                                         : onGold
-                                                        ? 'bg-[var(--kora)]/25'
-                                                        : 'bg-white/25',
+                                                          ? 'bg-[var(--kora)]/25'
+                                                          : 'bg-white/25',
                                                 )}
                                                 style={{ height: `${height}%` }}
                                             />

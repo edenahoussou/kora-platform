@@ -23,7 +23,7 @@ type Props = {
 
 function TicketsSkeleton() {
     return (
-        <div className="space-y-4 animate-pulse">
+        <div className="animate-pulse space-y-4">
             <div className="flex items-center justify-between">
                 <Skeleton className="h-10 w-64 rounded-xl" />
                 <Skeleton className="h-10 w-36 rounded-xl" />
@@ -63,7 +63,9 @@ export default function AgentTicketsPage({ point, sales }: Props) {
                         <KoraPointTicketListView
                             sales={sales.data}
                             onStartNewSale={() => handleAgentNavigate('sale')}
-                            onRequestRefund={() => handleAgentNavigate('refunds')}
+                            onRequestRefund={() =>
+                                handleAgentNavigate('refunds')
+                            }
                         />
                     ) : (
                         <TicketsSkeleton />

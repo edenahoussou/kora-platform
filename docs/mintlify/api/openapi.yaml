@@ -7763,7 +7763,7 @@ paths:
                 birth_date:
                   type: string
                   description: 'Date de naissance (Y-m-d). Must be a valid date in the format <code>Y-m-d</code>. Le champ value doit être une date antérieure ou égale à <code>today</code>.'
-                  example: '2022-11-25'
+                  example: '2022-11-26'
                   nullable: true
                 yellow_fever_vaccinated:
                   type: boolean
@@ -8681,7 +8681,7 @@ paths:
                 type: object
                 example:
                   data:
-                    session_uuid: ...
+                    session_uuid: '...'
                     accepted: 1
                     duplicate: 0
                     rejected: 0
@@ -8692,7 +8692,7 @@ paths:
                     properties:
                       session_uuid:
                         type: string
-                        example: ...
+                        example: '...'
                       accepted:
                         type: integer
                         example: 1

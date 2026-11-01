@@ -10,11 +10,17 @@ use Illuminate\Support\Facades\DB;
 
 class KoraPointLedgerService
 {
+    /**
+     * Returns the point outstanding ledger balance in XOF.
+     */
     public function balance(KoraPoint $point): int
     {
         return (int) KoraPointEntry::query()->where('point_id', $point->getKey())->sum('amount');
     }
 
+    /**
+     * Writes an idempotent ledger entry for a sale and refreshes its outstanding amount; must run inside a transaction.
+     */
     public function post(KoraPointSale $sale, User $actor, string $key, string $type, int $amount, int $commissionDelta = 0): void
     {
         if (DB::transactionLevel() === 0) {

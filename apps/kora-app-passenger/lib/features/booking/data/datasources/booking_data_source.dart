@@ -3,7 +3,7 @@ import '../../domain/entities/departure.dart';
 import '../../domain/entities/departure_search.dart';
 import '../../domain/entities/line_stop.dart';
 import '../../domain/entities/search_criteria.dart';
-import '../../domain/entities/seat.dart';
+import '../../domain/entities/seat_plan.dart';
 import '../../domain/entities/ticket.dart';
 import '../../domain/entities/upcoming_trip.dart';
 import 'booking_mock_data.dart';
@@ -38,8 +38,9 @@ abstract class BookingDataSource {
   /// de détail affiche déjà par ailleurs.
   Future<List<LineStop>> getLineStops(String lineId);
 
-  /// Plan des sièges d'un départ, dans l'ordre de lecture du bus.
-  Future<List<Seat>> getSeats(Departure departure);
+  /// Plan des sièges d'un départ : l'état de chaque place, et la
+  /// géométrie de la cabine quand le bus a un gabarit.
+  Future<SeatPlan> getSeats(Departure departure);
 
   Future<UpcomingTrip?> getNextTrip();
 
@@ -127,9 +128,12 @@ class BookingMockDataSource implements BookingDataSource {
   }
 
   @override
-  Future<List<Seat>> getSeats(Departure departure) async {
+  Future<SeatPlan> getSeats(Departure departure) async {
     await Future<void>.delayed(latency);
-    return mockSeatsFor(departure);
+    // Le plan de démonstration n'a pas de gabarit : l'écran retombe sur
+    // le rendu déduit des codes, exactement comme pour un vrai bus qui
+    // n'en aurait pas.
+    return SeatPlan.flat(mockSeatsFor(departure));
   }
 
   @override

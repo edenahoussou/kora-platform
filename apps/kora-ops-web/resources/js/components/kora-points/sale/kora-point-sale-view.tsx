@@ -16,10 +16,9 @@ import type {
     FinancialHealth,
     KoraPointProfile,
     PointSaleRecord,
-    SaleDepartureMock} from '../mock/kora-point-mock-data';
-import {
-    MOCK_DEPARTURES
+    SaleDepartureMock,
 } from '../mock/kora-point-mock-data';
+import { MOCK_DEPARTURES } from '../mock/kora-point-mock-data';
 import { KoraPointSaleCapacityCard } from './kora-point-sale-capacity-card';
 import { KoraPointSaleSuccessDialog } from './kora-point-sale-success-dialog';
 
@@ -54,9 +53,8 @@ export function KoraPointSaleView({
     const [selectedOrigin, setSelectedOrigin] = useState('Cotonou');
     const [selectedDestination, setSelectedDestination] = useState('Parakou');
     const [travelDate, setTravelDate] = useState('2026-08-01');
-    const [selectedDeparture, setSelectedDeparture] = useState<SaleDepartureMock>(
-        MOCK_DEPARTURES[0],
-    );
+    const [selectedDeparture, setSelectedDeparture] =
+        useState<SaleDepartureMock>(MOCK_DEPARTURES[0]);
 
     // Step 2: Seat selection
     const [selectedSeats, setSelectedSeats] = useState<string[]>(['12']);
@@ -69,17 +67,32 @@ export function KoraPointSaleView({
     const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
 
     // Step 4: Payment
-    const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'MOBILE_MONEY'>('CASH');
+    const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'MOBILE_MONEY'>(
+        'CASH',
+    );
     const [receivedAmount, setReceivedAmount] = useState('10000');
     const [mobileMoneyRef, setMobileMoneyRef] = useState('');
-    const [completedSale, setCompletedSale] = useState<PointSaleRecord | null>(null);
+    const [completedSale, setCompletedSale] = useState<PointSaleRecord | null>(
+        null,
+    );
 
     const passengerCount = selectedSeats.length;
     const totalAmount = selectedDeparture.unit_price * passengerCount;
-    const isExceeded = totalAmount > health.available_balance || !health.sales_allowed;
+    const isExceeded =
+        totalAmount > health.available_balance || !health.sales_allowed;
 
     // Available seat options
-    const availableSeatOptions = ['04', '08', '11', '12', '14', '18', '22', '24', '28'];
+    const availableSeatOptions = [
+        '04',
+        '08',
+        '11',
+        '12',
+        '14',
+        '18',
+        '22',
+        '24',
+        '28',
+    ];
 
     const handleSeatToggle = (seat: string) => {
         if (selectedSeats.includes(seat)) {
@@ -95,11 +108,13 @@ export function KoraPointSaleView({
         const errors: { [key: string]: string } = {};
 
         if (!passengerName.trim()) {
-            errors.passengerName = 'Le prénom et nom du voyageur sont obligatoires.';
+            errors.passengerName =
+                'Le prénom et nom du voyageur sont obligatoires.';
         }
 
         if (!passengerPhone.trim()) {
-            errors.passengerPhone = 'Le numéro de téléphone est obligatoire pour le billet.';
+            errors.passengerPhone =
+                'Le numéro de téléphone est obligatoire pour le billet.';
         }
 
         setFormErrors(errors);
@@ -115,8 +130,8 @@ export function KoraPointSaleView({
 
     const handleConfirmSale = () => {
         if (isExceeded) {
-return;
-}
+            return;
+        }
 
         const record = onSaleCompleted({
             passengerName: passengerName || 'Passager Guichet',
@@ -162,7 +177,8 @@ return;
                         Vente au guichet
                     </h1>
                     <p className="mt-1.5 text-[0.8125rem] leading-6 text-muted-foreground">
-                        Émission de billets, attribution des sièges et encaissement direct.
+                        Émission de billets, attribution des sièges et
+                        encaissement direct.
                     </p>
                 </div>
 
@@ -185,7 +201,9 @@ return;
                         <span className="section-kicker text-gold">
                             Guichet Partenaire
                         </span>
-                        <span className="text-xs text-muted-foreground">Étape {step} sur 4</span>
+                        <span className="text-xs text-muted-foreground">
+                            Étape {step} sur 4
+                        </span>
                     </div>
                     <h2 className="text-base font-extrabold text-foreground">
                         {step === 1 && '1. Choix du voyage et départ'}
@@ -206,15 +224,17 @@ return;
                         <button
                             key={s.num}
                             type="button"
-                            onClick={() => s.num < step && setStep(s.num as any)}
+                            onClick={() =>
+                                s.num < step && setStep(s.num as any)
+                            }
                             disabled={s.num > step}
                             className={cn(
                                 'btn btn-sm',
                                 step === s.num
                                     ? 'btn-navy'
                                     : s.num < step
-                                    ? 'btn-ghost text-emerald-600'
-                                    : 'btn-ghost opacity-40 cursor-not-allowed',
+                                      ? 'btn-ghost text-emerald-600'
+                                      : 'btn-ghost cursor-not-allowed opacity-40',
                             )}
                         >
                             <span>{s.num < step ? '✓' : s.num}</span>
@@ -233,7 +253,7 @@ return;
                         <div className="space-y-5">
                             {/* Route Search Inputs */}
                             <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                                <span className="text-[0.625rem] font-black uppercase tracking-wider text-slate-500">
+                                <span className="text-[0.625rem] font-black tracking-wider text-slate-500 uppercase">
                                     Recherche par segment
                                 </span>
                                 <h3 className="mt-1 text-sm font-bold text-slate-900 dark:text-white">
@@ -248,12 +268,22 @@ return;
                                         </label>
                                         <select
                                             value={selectedOrigin}
-                                            onChange={(e) => setSelectedOrigin(e.target.value)}
+                                            onChange={(e) =>
+                                                setSelectedOrigin(
+                                                    e.target.value,
+                                                )
+                                            }
                                             className="mt-1.5 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-900 shadow-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                                         >
-                                            <option value="Cotonou">Cotonou (Siège)</option>
-                                            <option value="Allada">Allada</option>
-                                            <option value="Bohicon">Bohicon</option>
+                                            <option value="Cotonou">
+                                                Cotonou (Siège)
+                                            </option>
+                                            <option value="Allada">
+                                                Allada
+                                            </option>
+                                            <option value="Bohicon">
+                                                Bohicon
+                                            </option>
                                         </select>
                                     </div>
 
@@ -264,12 +294,20 @@ return;
                                         </label>
                                         <select
                                             value={selectedDestination}
-                                            onChange={(e) => setSelectedDestination(e.target.value)}
+                                            onChange={(e) =>
+                                                setSelectedDestination(
+                                                    e.target.value,
+                                                )
+                                            }
                                             className="mt-1.5 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-900 shadow-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                                         >
-                                            <option value="Parakou">Parakou</option>
+                                            <option value="Parakou">
+                                                Parakou
+                                            </option>
                                             <option value="Kandi">Kandi</option>
-                                            <option value="Malanville">Malanville</option>
+                                            <option value="Malanville">
+                                                Malanville
+                                            </option>
                                         </select>
                                     </div>
 
@@ -281,7 +319,9 @@ return;
                                         <input
                                             type="date"
                                             value={travelDate}
-                                            onChange={(e) => setTravelDate(e.target.value)}
+                                            onChange={(e) =>
+                                                setTravelDate(e.target.value)
+                                            }
                                             className="mt-1.5 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-900 shadow-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                                         />
                                     </div>
@@ -291,7 +331,7 @@ return;
                             {/* Departure Cards */}
                             <div className="space-y-3">
                                 <div className="flex items-center justify-between">
-                                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                                    <h3 className="text-xs font-bold tracking-wider text-slate-500 uppercase">
                                         3 départs disponibles aujourd'hui
                                     </h3>
                                     <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
@@ -300,13 +340,16 @@ return;
                                 </div>
 
                                 {MOCK_DEPARTURES.map((dep) => {
-                                    const isSelected = selectedDeparture.uuid === dep.uuid;
+                                    const isSelected =
+                                        selectedDeparture.uuid === dep.uuid;
 
                                     return (
                                         <button
                                             key={dep.uuid}
                                             type="button"
-                                            onClick={() => setSelectedDeparture(dep)}
+                                            onClick={() =>
+                                                setSelectedDeparture(dep)
+                                            }
                                             className={cn(
                                                 'flex w-full flex-col justify-between rounded-2xl border p-4 text-left transition sm:flex-row sm:items-center',
                                                 isSelected
@@ -320,7 +363,8 @@ return;
                                                         {dep.departure_time}
                                                     </span>
                                                     <span className="block text-[0.625rem] text-slate-400">
-                                                        Arrivée {dep.arrival_time}
+                                                        Arrivée{' '}
+                                                        {dep.arrival_time}
                                                     </span>
                                                 </div>
 
@@ -334,7 +378,9 @@ return;
                                                         </span>
                                                     </div>
                                                     <div className="mt-1 text-xs text-slate-500">
-                                                        {dep.origin} → {dep.destination} ({dep.duration})
+                                                        {dep.origin} →{' '}
+                                                        {dep.destination} (
+                                                        {dep.duration})
                                                     </div>
                                                 </div>
                                             </div>
@@ -342,10 +388,14 @@ return;
                                             <div className="mt-3 flex items-center justify-between sm:mt-0 sm:flex-col sm:items-end">
                                                 <div className="text-right">
                                                     <span className="font-mono text-base font-black text-slate-900 dark:text-white">
-                                                        {dep.unit_price.toLocaleString('fr-FR')} FCFA
+                                                        {dep.unit_price.toLocaleString(
+                                                            'fr-FR',
+                                                        )}{' '}
+                                                        FCFA
                                                     </span>
                                                     <span className="block text-[0.625rem] text-emerald-600 dark:text-emerald-400">
-                                                        {dep.available_seats} places libres
+                                                        {dep.available_seats}{' '}
+                                                        places libres
                                                     </span>
                                                 </div>
 
@@ -358,7 +408,9 @@ return;
                                                                 : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
                                                         )}
                                                     >
-                                                        {isSelected ? 'Sélectionné' : 'Choisir'}
+                                                        {isSelected
+                                                            ? 'Sélectionné'
+                                                            : 'Choisir'}
                                                     </span>
                                                 </div>
                                             </div>
@@ -382,16 +434,19 @@ return;
 
                     {/* STEP 2: Seat Map Selection */}
                     {step === 2 && (
-                        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-5">
+                        <div className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                             <div>
-                                <span className="text-[0.625rem] font-black uppercase tracking-wider text-slate-500">
+                                <span className="text-[0.625rem] font-black tracking-wider text-slate-500 uppercase">
                                     Plan de bus · {selectedDeparture.ref}
                                 </span>
                                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                                     Sélectionnez les sièges pour ce voyage
                                 </h3>
                                 <p className="text-xs text-slate-500">
-                                    {selectedSeats.length} place{selectedSeats.length > 1 ? 's' : ''} sélectionnée{selectedSeats.length > 1 ? 's' : ''} :{' '}
+                                    {selectedSeats.length} place
+                                    {selectedSeats.length > 1 ? 's' : ''}{' '}
+                                    sélectionnée
+                                    {selectedSeats.length > 1 ? 's' : ''} :{' '}
                                     <strong className="font-mono text-slate-900 dark:text-white">
                                         {selectedSeats.join(', ')}
                                     </strong>
@@ -400,23 +455,26 @@ return;
 
                             {/* Simplified Responsive Seat Grid */}
                             <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-6 dark:border-slate-800 dark:bg-slate-950">
-                                <div className="mb-4 text-center text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                <div className="mb-4 text-center text-xs font-bold tracking-widest text-slate-400 uppercase">
                                     Avant du car (Chauffeur)
                                 </div>
 
-                                <div className="grid grid-cols-4 gap-3 max-w-xs mx-auto">
+                                <div className="mx-auto grid max-w-xs grid-cols-4 gap-3">
                                     {availableSeatOptions.map((seat) => {
-                                        const isSelected = selectedSeats.includes(seat);
+                                        const isSelected =
+                                            selectedSeats.includes(seat);
 
                                         return (
                                             <button
                                                 key={seat}
                                                 type="button"
-                                                onClick={() => handleSeatToggle(seat)}
+                                                onClick={() =>
+                                                    handleSeatToggle(seat)
+                                                }
                                                 className={cn(
                                                     'grid h-12 place-items-center rounded-xl border font-mono text-xs font-extrabold transition',
                                                     isSelected
-                                                        ? 'border-gold bg-gold text-kora shadow-md font-black'
+                                                        ? 'border-gold bg-gold font-black text-kora shadow-md'
                                                         : 'border-slate-200 bg-white text-slate-700 hover:border-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200',
                                                 )}
                                             >
@@ -461,16 +519,19 @@ return;
 
                     {/* STEP 3: Passenger Information */}
                     {step === 3 && (
-                        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-5">
+                        <div className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                             <div>
-                                <span className="text-[0.625rem] font-black uppercase tracking-wider text-slate-500">
+                                <span className="text-[0.625rem] font-black tracking-wider text-slate-500 uppercase">
                                     Coordonnées obligatoires
                                 </span>
                                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                                    Informations du voyageur principal (Siège {selectedSeats[0]})
+                                    Informations du voyageur principal (Siège{' '}
+                                    {selectedSeats[0]})
                                 </h3>
                                 <p className="text-xs text-slate-500">
-                                    Le nom et le téléphone sont obligatoires pour l'embarquement et la réception du code court.
+                                    Le nom et le téléphone sont obligatoires
+                                    pour l'embarquement et la réception du code
+                                    court.
                                 </p>
                             </div>
 
@@ -479,7 +540,10 @@ return;
                                     <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
                                         <User className="size-3.5 text-slate-400" />
                                         <span>Nom et prénom du voyageur</span>
-                                        <span className="text-rose-500" title="Champ obligatoire">
+                                        <span
+                                            className="text-rose-500"
+                                            title="Champ obligatoire"
+                                        >
                                             *
                                         </span>
                                     </label>
@@ -491,7 +555,10 @@ return;
                                             setPassengerName(e.target.value);
 
                                             if (formErrors.passengerName) {
-                                                setFormErrors({ ...formErrors, passengerName: '' });
+                                                setFormErrors({
+                                                    ...formErrors,
+                                                    passengerName: '',
+                                                });
                                             }
                                         }}
                                         className={cn(
@@ -512,7 +579,10 @@ return;
                                     <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
                                         <Phone className="size-3.5 text-slate-400" />
                                         <span>Téléphone (Mobile)</span>
-                                        <span className="text-rose-500" title="Champ obligatoire">
+                                        <span
+                                            className="text-rose-500"
+                                            title="Champ obligatoire"
+                                        >
                                             *
                                         </span>
                                     </label>
@@ -524,7 +594,10 @@ return;
                                             setPassengerPhone(e.target.value);
 
                                             if (formErrors.passengerPhone) {
-                                                setFormErrors({ ...formErrors, passengerPhone: '' });
+                                                setFormErrors({
+                                                    ...formErrors,
+                                                    passengerPhone: '',
+                                                });
                                             }
                                         }}
                                         className={cn(
@@ -545,16 +618,26 @@ return;
                                     <div>
                                         <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
                                             <FileBadge className="size-3.5 text-slate-400" />
-                                            <span>Type de document (Optionnel)</span>
+                                            <span>
+                                                Type de document (Optionnel)
+                                            </span>
                                         </label>
                                         <select
                                             value={documentType}
-                                            onChange={(e) => setDocumentType(e.target.value)}
+                                            onChange={(e) =>
+                                                setDocumentType(e.target.value)
+                                            }
                                             className="mt-1.5 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-900 shadow-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                                         >
-                                            <option value="CNI">Carte d'Identité Nationale (CNI)</option>
-                                            <option value="Passeport">Passeport</option>
-                                            <option value="CIP">Certificat CIP</option>
+                                            <option value="CNI">
+                                                Carte d'Identité Nationale (CNI)
+                                            </option>
+                                            <option value="Passeport">
+                                                Passeport
+                                            </option>
+                                            <option value="CIP">
+                                                Certificat CIP
+                                            </option>
                                         </select>
                                     </div>
 
@@ -566,7 +649,11 @@ return;
                                             type="text"
                                             placeholder="Ex: 012345678"
                                             value={documentNumber}
-                                            onChange={(e) => setDocumentNumber(e.target.value)}
+                                            onChange={(e) =>
+                                                setDocumentNumber(
+                                                    e.target.value,
+                                                )
+                                            }
                                             className="mt-1.5 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-900 shadow-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                                         />
                                     </div>
@@ -596,9 +683,9 @@ return;
 
                     {/* STEP 4: Counter Payment */}
                     {step === 4 && (
-                        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-5">
+                        <div className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                             <div>
-                                <span className="text-[0.625rem] font-black uppercase tracking-wider text-slate-500">
+                                <span className="text-[0.625rem] font-black tracking-wider text-slate-500 uppercase">
                                     Encaissement immédiat
                                 </span>
                                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">
@@ -607,7 +694,8 @@ return;
                                 <p className="text-xs text-slate-500">
                                     Montant à percevoir :{' '}
                                     <strong className="font-mono text-sm text-slate-900 dark:text-white">
-                                        {totalAmount.toLocaleString('fr-FR')} FCFA
+                                        {totalAmount.toLocaleString('fr-FR')}{' '}
+                                        FCFA
                                     </strong>
                                 </p>
                             </div>
@@ -626,14 +714,20 @@ return;
                                 >
                                     <Banknote className="size-5 shrink-0" />
                                     <div>
-                                        <div className="text-xs font-black">Espèces</div>
-                                        <div className="text-[0.625rem] text-slate-500">Paiement guichet</div>
+                                        <div className="text-xs font-black">
+                                            Espèces
+                                        </div>
+                                        <div className="text-[0.625rem] text-slate-500">
+                                            Paiement guichet
+                                        </div>
                                     </div>
                                 </button>
 
                                 <button
                                     type="button"
-                                    onClick={() => setPaymentMethod('MOBILE_MONEY')}
+                                    onClick={() =>
+                                        setPaymentMethod('MOBILE_MONEY')
+                                    }
                                     className={cn(
                                         'flex items-center gap-3 rounded-2xl border p-4 text-left transition',
                                         paymentMethod === 'MOBILE_MONEY'
@@ -643,15 +737,19 @@ return;
                                 >
                                     <Smartphone className="size-5 shrink-0" />
                                     <div>
-                                        <div className="text-xs font-black">Mobile Money</div>
-                                        <div className="text-[0.625rem] text-slate-500">MTN / Moov Money</div>
+                                        <div className="text-xs font-black">
+                                            Mobile Money
+                                        </div>
+                                        <div className="text-[0.625rem] text-slate-500">
+                                            MTN / Moov Money
+                                        </div>
                                     </div>
                                 </button>
                             </div>
 
                             {/* Payment specific details */}
                             {paymentMethod === 'CASH' ? (
-                                <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-950 space-y-3">
+                                <div className="space-y-3 rounded-xl bg-slate-50 p-4 dark:bg-slate-950">
                                     <div className="grid grid-cols-2 gap-3">
                                         <div>
                                             <label className="text-[0.6875rem] font-bold text-slate-600 dark:text-slate-300">
@@ -660,7 +758,11 @@ return;
                                             <input
                                                 type="number"
                                                 value={receivedAmount}
-                                                onChange={(e) => setReceivedAmount(e.target.value)}
+                                                onChange={(e) =>
+                                                    setReceivedAmount(
+                                                        e.target.value,
+                                                    )
+                                                }
                                                 className="mt-1 h-9 w-full rounded-lg border border-slate-200 px-3 font-mono text-xs font-bold text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                                             />
                                         </div>
@@ -671,7 +773,9 @@ return;
                                             <div className="mt-1 flex h-9 items-center rounded-lg bg-white px-3 font-mono text-xs font-black text-emerald-600 shadow-inner dark:bg-slate-900 dark:text-emerald-400">
                                                 {Math.max(
                                                     0,
-                                                    Number(receivedAmount || 0) - totalAmount,
+                                                    Number(
+                                                        receivedAmount || 0,
+                                                    ) - totalAmount,
                                                 ).toLocaleString('fr-FR')}{' '}
                                                 FCFA
                                             </div>
@@ -679,25 +783,29 @@ return;
                                     </div>
                                 </div>
                             ) : (
-                                <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-950 space-y-2">
+                                <div className="space-y-2 rounded-xl bg-slate-50 p-4 dark:bg-slate-950">
                                     <label className="text-[0.6875rem] font-bold text-slate-600 dark:text-slate-300">
-                                        Référence de la transaction Mobile Money :
+                                        Référence de la transaction Mobile Money
+                                        :
                                     </label>
                                     <input
                                         type="text"
                                         placeholder="Ex: MPX-260801-987654"
                                         value={mobileMoneyRef}
-                                        onChange={(e) => setMobileMoneyRef(e.target.value)}
+                                        onChange={(e) =>
+                                            setMobileMoneyRef(e.target.value)
+                                        }
                                         className="h-9 w-full rounded-lg border border-slate-200 px-3 font-mono text-xs font-bold text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                                     />
                                     <p className="text-[0.6875rem] text-slate-500">
-                                        Contrôle visuel obligatoire du SMS de confirmation sur le terminal du Point.
+                                        Contrôle visuel obligatoire du SMS de
+                                        confirmation sur le terminal du Point.
                                     </p>
                                 </div>
                             )}
 
                             {/* Final Action */}
-                            <div className="flex items-center justify-between pt-3 border-t border-border/60">
+                            <div className="flex items-center justify-between border-t border-border/60 pt-3">
                                 <button
                                     type="button"
                                     onClick={() => setStep(3)}
@@ -723,16 +831,17 @@ return;
                 {/* Right Column: Journey Summary & Capacity Card */}
                 <div className="space-y-5">
                     {/* Journey recap */}
-                    <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 text-xs space-y-3">
+                    <div className="space-y-3 rounded-2xl border border-slate-200/90 bg-white p-5 text-xs shadow-sm dark:border-slate-800 dark:bg-slate-900">
                         <div className="border-b border-slate-100 pb-2 dark:border-slate-800">
-                            <span className="text-[0.625rem] font-black uppercase tracking-wider text-slate-400">
+                            <span className="text-[0.625rem] font-black tracking-wider text-slate-400 uppercase">
                                 Récapitulatif voyage
                             </span>
-                            <div className="font-extrabold text-sm text-slate-900 dark:text-white">
+                            <div className="text-sm font-extrabold text-slate-900 dark:text-white">
                                 {selectedOrigin} → {selectedDestination}
                             </div>
                             <div className="text-[0.6875rem] text-slate-500">
-                                {travelDate} · Départ {selectedDeparture.departure_time}
+                                {travelDate} · Départ{' '}
+                                {selectedDeparture.departure_time}
                             </div>
                         </div>
 
@@ -740,24 +849,30 @@ return;
                             <div className="flex justify-between">
                                 <span>Départ :</span>
                                 <strong className="text-slate-900 dark:text-white">
-                                    {selectedDeparture.ref} ({selectedDeparture.service_class})
+                                    {selectedDeparture.ref} (
+                                    {selectedDeparture.service_class})
                                 </strong>
                             </div>
                             <div className="flex justify-between">
                                 <span>Places :</span>
                                 <strong className="font-mono text-slate-900 dark:text-white">
-                                    {selectedSeats.join(', ')} ({selectedSeats.length} passager{selectedSeats.length > 1 ? 's' : ''})
+                                    {selectedSeats.join(', ')} (
+                                    {selectedSeats.length} passager
+                                    {selectedSeats.length > 1 ? 's' : ''})
                                 </strong>
                             </div>
                             <div className="flex justify-between">
                                 <span>Prix unitaire :</span>
                                 <span className="font-mono">
-                                    {selectedDeparture.unit_price.toLocaleString('fr-FR')} FCFA
+                                    {selectedDeparture.unit_price.toLocaleString(
+                                        'fr-FR',
+                                    )}{' '}
+                                    FCFA
                                 </span>
                             </div>
                         </div>
 
-                        <div className="border-t border-slate-100 pt-2 flex items-center justify-between text-sm font-black text-slate-900 dark:text-white dark:border-slate-800">
+                        <div className="flex items-center justify-between border-t border-slate-100 pt-2 text-sm font-black text-slate-900 dark:border-slate-800 dark:text-white">
                             <span>Total à payer :</span>
                             <span className="font-mono text-base text-gold">
                                 {totalAmount.toLocaleString('fr-FR')} FCFA

@@ -438,12 +438,11 @@ export function ExpenseFormDialog({
                                         }
                                     >
                                         <option value="none">
-                                            Dépense générale (aucun rattachement)
+                                            Dépense générale (aucun
+                                            rattachement)
                                         </option>
                                         <option value="bus">Un bus</option>
-                                        <option value="line">
-                                            Une ligne
-                                        </option>
+                                        <option value="line">Une ligne</option>
                                         <option value="departure">
                                             Un départ
                                         </option>
@@ -457,7 +456,8 @@ export function ExpenseFormDialog({
                                 {form.data.center_type !== 'none' && (
                                     <label className="field">
                                         <span className="field-label">
-                                            {form.data.center_type === 'bus' && (
+                                            {form.data.center_type ===
+                                                'bus' && (
                                                 <BusFront className="size-3.5" />
                                             )}
                                             {form.data.center_type ===
@@ -757,7 +757,9 @@ export function ExpenseFormDialog({
                                     </small>
                                 ) : (
                                     <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                                        <span>Montant total en Francs CFA.</span>
+                                        <span>
+                                            Montant total en Francs CFA.
+                                        </span>
                                         {form.data.amount &&
                                             !isNaN(Number(form.data.amount)) &&
                                             Number(form.data.amount) > 0 && (
@@ -993,7 +995,10 @@ export function ExpenseFormDialog({
                                                 </div>
                                                 <div className="min-w-0">
                                                     <strong className="block truncate text-xs font-bold text-foreground">
-                                                        {form.data.evidence.name}
+                                                        {
+                                                            form.data.evidence
+                                                                .name
+                                                        }
                                                     </strong>
                                                     <span className="text-[11px] text-muted-foreground">
                                                         {form.processing &&

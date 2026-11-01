@@ -82,10 +82,10 @@ export default function AgentSalePage(props: KoraPointSaleProps) {
 
     const logicalPassengerCount = reservation
         ? new Set(
-            reservation.segments.map(
-                (segment, index) => segment.passengerIndex ?? index,
-            ),
-        ).size
+              reservation.segments.map(
+                  (segment, index) => segment.passengerIndex ?? index,
+              ),
+          ).size
         : 0;
     const [paymentStepReservationUuid, setPaymentStepReservationUuid] =
         useState<string | null>(() =>
@@ -97,7 +97,8 @@ export default function AgentSalePage(props: KoraPointSaleProps) {
         );
 
     const isPaymentStepOpen = reservation?.uuid === paymentStepReservationUuid;
-    const isSaleCompleted = reservation !== null && reservation.payment !== null;
+    const isSaleCompleted =
+        reservation !== null && reservation.payment !== null;
 
     const {
         searchForm,
@@ -121,11 +122,11 @@ export default function AgentSalePage(props: KoraPointSaleProps) {
         ? isSaleCompleted
             ? 'tickets'
             : isPaymentStepOpen
-                ? 'payment'
-                : 'passengers'
+              ? 'payment'
+              : 'passengers'
         : selectedOutbound
-            ? 'seats'
-            : 'search';
+          ? 'seats'
+          : 'search';
 
     const onSearch = (event: SyntheticEvent<HTMLFormElement>) => {
         submitSearch(event);
@@ -146,7 +147,7 @@ export default function AgentSalePage(props: KoraPointSaleProps) {
             outboundDepartureAt &&
             inboundDepartureAt &&
             new Date(inboundDepartureAt).getTime() <=
-            new Date(outboundDepartureAt).getTime()
+                new Date(outboundDepartureAt).getTime()
         ) {
             setSelectedInbound(null);
         }
@@ -180,7 +181,7 @@ export default function AgentSalePage(props: KoraPointSaleProps) {
             return (
                 inboundDepartureAt !== undefined &&
                 new Date(inboundDepartureAt).getTime() >
-                outboundArrivalTimestamp
+                    outboundArrivalTimestamp
             );
         });
     }, [inboundItineraries, selectedOutbound]);
@@ -357,13 +358,17 @@ export default function AgentSalePage(props: KoraPointSaleProps) {
                                         : 'text-rose-600',
                                 )}
                             >
-                                {health.available_balance.toLocaleString('fr-FR')} FCFA
+                                {health.available_balance.toLocaleString(
+                                    'fr-FR',
+                                )}{' '}
+                                FCFA
                             </strong>
                         </span>
                         <span>
                             Plafond :{' '}
                             <strong className="font-mono text-foreground">
-                                {health.credit_limit.toLocaleString('fr-FR')} FCFA
+                                {health.credit_limit.toLocaleString('fr-FR')}{' '}
+                                FCFA
                             </strong>
                         </span>
                         <span>
@@ -387,7 +392,9 @@ export default function AgentSalePage(props: KoraPointSaleProps) {
 
                 <SaleProgress stage={stage} channelLabel="Guichet Partenaire" />
 
-                <div className={isSaleCompleted ? undefined : 'grid gap-5 mt-5'}>
+                <div
+                    className={isSaleCompleted ? undefined : 'mt-5 grid gap-5'}
+                >
                     {!isSaleCompleted && (
                         <RouteSearch
                             cities={cities}
@@ -405,20 +412,27 @@ export default function AgentSalePage(props: KoraPointSaleProps) {
                         <div className="mt-4">
                             {/* Agent-only commission notification banner (strictly hidden on print/PDF) */}
                             {commissionEarned && (
-                                <div className="no-print print:hidden mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+                                <div className="no-print mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 print:hidden">
                                     <div className="flex items-center gap-3">
                                         <span className="flex size-9 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
                                             <Coins className="size-5" />
                                         </span>
                                         <div>
                                             <strong className="block text-sm font-black text-foreground">
-                                                Vente guichet enregistrée avec succès !
+                                                Vente guichet enregistrée avec
+                                                succès !
                                             </strong>
                                             <span className="text-xs text-muted-foreground">
-                                                Votre commission partenaire sur cette vente s'élève à{' '}
+                                                Votre commission partenaire sur
+                                                cette vente s'élève à{' '}
                                                 <strong className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                                                    +{commissionEarned.commission_amount.toLocaleString('fr-FR')} FCFA
-                                                </strong>.
+                                                    +
+                                                    {commissionEarned.commission_amount.toLocaleString(
+                                                        'fr-FR',
+                                                    )}{' '}
+                                                    FCFA
+                                                </strong>
+                                                .
                                             </span>
                                         </div>
                                     </div>
@@ -427,13 +441,18 @@ export default function AgentSalePage(props: KoraPointSaleProps) {
                                             Montant net imputé sur l'encours :
                                         </span>
                                         <strong className="font-mono text-sm font-bold text-foreground">
-                                            {commissionEarned.net_amount.toLocaleString('fr-FR')} FCFA
+                                            {commissionEarned.net_amount.toLocaleString(
+                                                'fr-FR',
+                                            )}{' '}
+                                            FCFA
                                         </strong>
                                     </div>
                                 </div>
                             )}
 
-                            <Suspense fallback={<div className="sale-skeleton" />}>
+                            <Suspense
+                                fallback={<div className="sale-skeleton" />}
+                            >
                                 <CounterSaleSuccess
                                     departure={null}
                                     reservation={reservation}
@@ -523,8 +542,8 @@ export default function AgentSalePage(props: KoraPointSaleProps) {
                                             selectedLegsKey={
                                                 selectedInbound
                                                     ? itineraryKey(
-                                                        selectedInbound,
-                                                    )
+                                                          selectedInbound,
+                                                      )
                                                     : null
                                             }
                                             onSelect={onSelectInboundItinerary}

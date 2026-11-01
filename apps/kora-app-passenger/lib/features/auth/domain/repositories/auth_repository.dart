@@ -136,4 +136,14 @@ abstract class AuthRepository {
 
   /// Retire la confiance accordée à un appareil.
   Future<Either<Failure, void>> revokeDevice(String uuid);
+
+  /// Demande la suppression du compte, confirmée par le PIN.
+  ///
+  /// La suppression est **asynchrone** : le serveur enregistre la demande,
+  /// que l'équipe KORA traite sous 30 jours. La session reste valide
+  /// après l'appel — c'est à l'app de déconnecter le voyageur.
+  Future<Either<Failure, void>> requestAccountDeletion({
+    required String pin,
+    String? reason,
+  });
 }

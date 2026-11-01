@@ -220,7 +220,9 @@ export default function FaresPage({
                 <div className="flex items-center gap-1.5 font-medium text-foreground">
                     <span className="text-foreground">{fare.originName}</span>
                     <ArrowRight className="size-3 text-muted-foreground" />
-                    <span className="text-foreground">{fare.destinationName}</span>
+                    <span className="text-foreground">
+                        {fare.destinationName}
+                    </span>
                 </div>
             ),
         },

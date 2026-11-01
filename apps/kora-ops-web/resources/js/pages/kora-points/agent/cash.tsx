@@ -18,7 +18,13 @@ type Props = {
     cashSession?: PointCashSession;
 };
 
-export default function AgentCashPage({ point, health, brouillard, filters, cashSession }: Props) {
+export default function AgentCashPage({
+    point,
+    health,
+    brouillard,
+    filters,
+    cashSession,
+}: Props) {
     return (
         <>
             <Head title="Brouillard d’encaissement — KORA POINT" />
@@ -35,7 +41,9 @@ export default function AgentCashPage({ point, health, brouillard, filters, cash
                     filters={filters}
                     cashSession={cashSession}
                     onNavigateToSale={() => handleAgentNavigate('sale')}
-                    onNavigateToSettlements={() => handleAgentNavigate('settlements')}
+                    onNavigateToSettlements={() =>
+                        handleAgentNavigate('settlements')
+                    }
                 />
             </KoraPointShell>
         </>

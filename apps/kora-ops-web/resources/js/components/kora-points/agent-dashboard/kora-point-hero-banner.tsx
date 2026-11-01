@@ -1,10 +1,9 @@
-import {
-    CircleCheck,
-    ReceiptText,
-    Ticket,
-} from 'lucide-react';
+import { CircleCheck, ReceiptText, Ticket } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { FinancialHealth, KoraPointProfile } from '../mock/kora-point-mock-data';
+import type {
+    FinancialHealth,
+    KoraPointProfile,
+} from '../mock/kora-point-mock-data';
 
 type Props = {
     point: KoraPointProfile;
@@ -29,7 +28,9 @@ export function KoraPointHeroBanner({
 }: Props) {
     const now = new Date();
     const greeting = greetingFor(now.getHours());
-    const firstName = point.manager_name ? point.manager_name.split(' ')[0] : 'Agent';
+    const firstName = point.manager_name
+        ? point.manager_name.split(' ')[0]
+        : 'Agent';
     const usage = Math.min(100, Math.max(0, health.usage_percentage));
 
     return (
@@ -47,7 +48,9 @@ export function KoraPointHeroBanner({
                     {/* Golden Kicker - High Contrast Accessible Gold (No blue class) */}
                     <span className="mb-3 block text-[0.625rem] font-black tracking-[0.18em] text-gold uppercase">
                         POINT VOYAGE · {point.code} · {point.name}
-                        {point.organization ? ` · Réseau ${point.organization.name}` : ' · Autonome'}
+                        {point.organization
+                            ? ` · Réseau ${point.organization.name}`
+                            : ' · Autonome'}
                     </span>
 
                     {/* Title with Contrasting Font Weights (Style Admin Dashboard) */}
@@ -62,8 +65,10 @@ export function KoraPointHeroBanner({
                     </h1>
 
                     <p className="mt-3.5 max-w-[37.5rem] text-sm leading-[1.6] text-white">
-                        Émettez les billets Bus KORA, encaissez les voyageurs et suivez vos commissions acquises en temps réel.
-                        Votre fond de roulement et vos encaissements physiques sont tracés en direct.
+                        Émettez les billets Bus KORA, encaissez les voyageurs et
+                        suivez vos commissions acquises en temps réel. Votre
+                        fond de roulement et vos encaissements physiques sont
+                        tracés en direct.
                     </p>
                 </div>
 
@@ -73,7 +78,7 @@ export function KoraPointHeroBanner({
                         type="button"
                         onClick={onStartSale}
                         disabled={!health.sales_allowed}
-                        className="group inline-flex min-h-11 items-center gap-2 rounded-[0.75rem] bg-gold px-4 text-[0.75rem] font-extrabold text-[var(--kora)] shadow-[0_10px_24px_rgba(246,176,0,0.2)] transition-transform duration-300 hover:-translate-y-0.5 disabled:opacity-50 disabled:pointer-events-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--kora)]"
+                        className="group inline-flex min-h-11 items-center gap-2 rounded-[0.75rem] bg-gold px-4 text-[0.75rem] font-extrabold text-[var(--kora)] shadow-[0_10px_24px_rgba(246,176,0,0.2)] transition-transform duration-300 hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--kora)] disabled:pointer-events-none disabled:opacity-50"
                     >
                         <Ticket className="size-4" /> Vendre un billet
                     </button>
@@ -83,7 +88,8 @@ export function KoraPointHeroBanner({
                         onClick={onViewSettlements}
                         className="inline-flex min-h-11 items-center gap-2 rounded-[0.75rem] border border-white/20 bg-white/[0.08] px-4 text-[0.75rem] font-extrabold text-white transition-colors duration-300 hover:border-white/40 hover:bg-white/15 focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--kora)]"
                     >
-                        <ReceiptText className="size-4 text-gold" /> Situation reversements
+                        <ReceiptText className="size-4 text-gold" /> Situation
+                        reversements
                     </button>
                 </div>
             </div>
@@ -98,7 +104,9 @@ export function KoraPointHeroBanner({
                         <CircleCheck
                             className={cn(
                                 'size-3.5',
-                                health.sales_allowed ? 'text-emerald-400' : 'text-rose-400',
+                                health.sales_allowed
+                                    ? 'text-emerald-400'
+                                    : 'text-rose-400',
                             )}
                         />
                         {health.sales_allowed ? 'Opérationnel' : 'Bloqué'}
@@ -116,7 +124,7 @@ export function KoraPointHeroBanner({
 
                 <div className="mt-3.5 grid grid-cols-2 gap-3 border-t border-white/20 pt-3 text-xs">
                     <div>
-                        <span className="block text-[0.6875rem] font-bold text-white uppercase tracking-wider">
+                        <span className="block text-[0.6875rem] font-bold tracking-wider text-white uppercase">
                             Plafond accordé
                         </span>
                         <strong className="mt-1 block font-mono text-base font-black text-white">
@@ -124,11 +132,12 @@ export function KoraPointHeroBanner({
                         </strong>
                     </div>
                     <div>
-                        <span className="block text-[0.6875rem] font-bold text-white uppercase tracking-wider">
+                        <span className="block text-[0.6875rem] font-bold tracking-wider text-white uppercase">
                             Encours net
                         </span>
                         <strong className="mt-1 block font-mono text-base font-black text-gold">
-                            {health.current_exposure.toLocaleString('fr-FR')} FCFA
+                            {health.current_exposure.toLocaleString('fr-FR')}{' '}
+                            FCFA
                         </strong>
                     </div>
                 </div>
@@ -136,7 +145,9 @@ export function KoraPointHeroBanner({
                 <div className="mt-3.5 border-t border-white/20 pt-3">
                     <div className="flex items-center justify-between text-xs font-bold text-white">
                         <span>Consommation ({usage} %)</span>
-                        <span className="text-white">{health.next_due_label}</span>
+                        <span className="text-white">
+                            {health.next_due_label}
+                        </span>
                     </div>
                     <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-white/25">
                         <div
@@ -145,8 +156,8 @@ export function KoraPointHeroBanner({
                                 usage >= 100
                                     ? 'bg-rose-500'
                                     : usage >= 80
-                                    ? 'bg-amber-400'
-                                    : 'bg-gold',
+                                      ? 'bg-amber-400'
+                                      : 'bg-gold',
                             )}
                             style={{ width: `${usage}%` }}
                         />

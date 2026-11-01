@@ -27,7 +27,7 @@ type Props = {
 
 function SettlementsSkeleton() {
     return (
-        <div className="space-y-4 animate-pulse">
+        <div className="animate-pulse space-y-4">
             <div className="flex items-center justify-between">
                 <Skeleton className="h-10 w-64 rounded-xl" />
                 <Skeleton className="h-10 w-44 rounded-xl" />
@@ -62,12 +62,17 @@ export default function AgentSettlementsPage({
 
         const formData = new FormData();
         data.saleUuids.forEach((uuid) => formData.append('sale_uuids[]', uuid));
-        formData.append('method', methodMap[data.paymentMethod] ?? 'bank_transfer');
+        formData.append(
+            'method',
+            methodMap[data.paymentMethod] ?? 'bank_transfer',
+        );
         formData.append('reference', data.paymentReference);
         formData.append('proof', data.proofFile);
+
         if (data.bankName) {
             formData.append('bank_name', data.bankName);
         }
+
         if (data.notes) {
             formData.append('notes', data.notes);
         }

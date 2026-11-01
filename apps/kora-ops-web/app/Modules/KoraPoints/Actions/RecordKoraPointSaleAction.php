@@ -21,11 +21,17 @@ class RecordKoraPointSaleAction
 {
     public function __construct(private readonly KoraPointTermsService $terms, private readonly KoraPointLedgerService $ledger, private readonly KoraPointAccess $access) {}
 
+    /**
+     * Records a partner sale for a confirmed counter payment; returns null when the seller has no point.
+     */
     public function execute(Reservation $reservation, Payment $payment, User $seller): ?KoraPointSale
     {
         return DB::transaction(fn (): ?KoraPointSale => $this->record($reservation, $payment, $seller), 3);
     }
 
+    /**
+     * Applies the partner sale invariants then writes the sale and its ledger entry.
+     */
     private function record(Reservation $reservation, Payment $payment, User $seller): ?KoraPointSale
     {
         $point = KoraPoint::query()->where('agency_id', $seller->agency_id ?? 0)->lockForUpdate()->first();

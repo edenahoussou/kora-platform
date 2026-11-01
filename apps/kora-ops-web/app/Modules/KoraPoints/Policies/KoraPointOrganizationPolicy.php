@@ -10,6 +10,9 @@ class KoraPointOrganizationPolicy
 {
     public function __construct(private readonly KoraPointAccess $access) {}
 
+    /**
+     * Tells whether the actor may see the given organization.
+     */
     public function view(User $user, KoraPointOrganization $organization): bool
     {
         return $this->access->viewOrganization($user, $organization);

@@ -16,6 +16,7 @@ class KoraPointRemittanceLine extends KoraModel
 
     protected $fillable = ['remittance_id', 'sale_id', 'claimed_sale_id', 'amount', 'uuid'];
 
+    /** @return array<string, string> */
     protected function casts(): array
     {
         return ['amount' => 'integer'];
@@ -33,6 +34,7 @@ class KoraPointRemittanceLine extends KoraModel
         return $this->belongsTo(KoraPointRemittance::class, 'remittance_id');
     }
 
+    /** Forbids deleting a remittance line. */
     protected static function booted(): void
     {
         static::deleting(fn () => throw new \LogicException('Une ligne de reversement ne peut pas être supprimée.'));

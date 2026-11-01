@@ -20,7 +20,7 @@ type Props = {
 
 function DashboardSkeleton() {
     return (
-        <div className="space-y-6 animate-pulse">
+        <div className="animate-pulse space-y-6">
             <Skeleton className="h-44 w-full rounded-3xl" />
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <Skeleton className="h-28 rounded-2xl" />
@@ -75,7 +75,10 @@ export default function AgentDashboardPage({
                     </div>
                 </div>
 
-                <Deferred data={['metrics', 'priorities']} fallback={<DashboardSkeleton />}>
+                <Deferred
+                    data={['metrics', 'priorities']}
+                    fallback={<DashboardSkeleton />}
+                >
                     {metrics && priorities ? (
                         <KoraPointAgentDashboard
                             point={point}
@@ -83,7 +86,9 @@ export default function AgentDashboardPage({
                             metrics={metrics}
                             priorities={priorities}
                             onStartSale={() => handleAgentNavigate('sale')}
-                            onViewSettlements={() => handleAgentNavigate('settlements')}
+                            onViewSettlements={() =>
+                                handleAgentNavigate('settlements')
+                            }
                             onNavigate={handleAgentNavigate}
                         />
                     ) : (

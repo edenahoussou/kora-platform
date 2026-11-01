@@ -70,13 +70,16 @@ export function KoraPointAgentDashboard({
                     role="dialog"
                     aria-modal="true"
                     aria-label="Guide de bienvenue KORA POINT"
-                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-md animate-in fade-in"
+                    className="fixed inset-0 z-50 flex animate-in items-center justify-center bg-black/50 p-4 backdrop-blur-md fade-in"
                 >
                     <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900">
                         <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
-                            <span className="flex items-center gap-1.5 text-[0.6875rem] font-black uppercase tracking-wider text-gold">
+                            <span className="flex items-center gap-1.5 text-[0.6875rem] font-black tracking-wider text-gold uppercase">
                                 <HelpCircle className="size-4" />
-                                Guide du guichetier · Étape {currentTour.step} sur {tourSteps.length}
+                                Guide du guichetier · Étape {
+                                    currentTour.step
+                                }{' '}
+                                sur {tourSteps.length}
                             </span>
                             <button
                                 type="button"
@@ -107,10 +110,13 @@ export function KoraPointAgentDashboard({
                             </button>
 
                             <div className="flex items-center gap-2">
-                                {tourStep !== null && tourStep < tourSteps.length ? (
+                                {tourStep !== null &&
+                                tourStep < tourSteps.length ? (
                                     <button
                                         type="button"
-                                        onClick={() => setTourStep(tourStep + 1)}
+                                        onClick={() =>
+                                            setTourStep(tourStep + 1)
+                                        }
                                         className="inline-flex items-center gap-1.5 rounded-xl bg-gold px-4 py-2 text-xs font-bold text-kora shadow-md transition hover:bg-gold/90"
                                     >
                                         <span>Suivant</span>

@@ -1,28 +1,20 @@
-import { useState, useMemo } from 'react';
 import {
     Store,
     Building2,
     Search,
-    Filter,
     Plus,
     Clock,
     CheckCircle2,
     AlertTriangle,
-    Coins,
-    TrendingUp,
-    MapPin,
-    Phone,
-    Shield,
-    Eye,
-    ChevronRight,
 } from 'lucide-react';
-import {
+import { useState, useMemo } from 'react';
+import { KoraStatusBadge } from '@/components/kora-status-badge';
+import { cn } from '@/lib/utils';
+import type {
     AdminNetworkPoint,
     AdminOrganization,
 } from '../mock/kora-point-mock-data';
 import { KoraAdminPointWizardDialog } from './kora-admin-point-wizard-dialog';
-import { KoraStatusBadge } from '@/components/kora-status-badge';
-import { cn } from '@/lib/utils';
 
 type Props = {
     points: AdminNetworkPoint[];
@@ -36,7 +28,9 @@ export function KoraAdminNetworkView({
     onCreatePoint,
 }: Props) {
     const [searchQuery, setSearchQuery] = useState('');
-    const [typeFilter, setTypeFilter] = useState<'ALL' | 'AUTONOMOUS' | 'ORGANIZATION_ATTACHED'>('ALL');
+    const [typeFilter, setTypeFilter] = useState<
+        'ALL' | 'AUTONOMOUS' | 'ORGANIZATION_ATTACHED'
+    >('ALL');
     const [statusFilter, setStatusFilter] = useState<string>('ALL');
     const [departmentFilter, setDepartmentFilter] = useState<string>('ALL');
     const [isWizardOpen, setIsWizardOpen] = useState(false);
@@ -48,11 +42,16 @@ export function KoraAdminNetworkView({
                 pt.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 pt.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 pt.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                pt.manager_name.toLowerCase().includes(searchQuery.toLowerCase());
+                pt.manager_name
+                    .toLowerCase()
+                    .includes(searchQuery.toLowerCase());
 
             const matchesType = typeFilter === 'ALL' || pt.type === typeFilter;
-            const matchesStatus = statusFilter === 'ALL' || pt.status === statusFilter;
-            const matchesDept = departmentFilter === 'ALL' || pt.department === departmentFilter;
+            const matchesStatus =
+                statusFilter === 'ALL' || pt.status === statusFilter;
+            const matchesDept =
+                departmentFilter === 'ALL' ||
+                pt.department === departmentFilter;
 
             return matchesSearch && matchesType && matchesStatus && matchesDept;
         });
@@ -68,8 +67,16 @@ export function KoraAdminNetworkView({
         points.forEach((pt) => {
             totalMonthlySales += pt.monthly_sales_amount;
             totalExposure += pt.current_exposure;
-            if (pt.status === 'ACTIVE') activeCount += 1;
-            if (pt.status === 'WARNING_THRESHOLD' || pt.status === 'LIMIT_REACHED' || pt.status === 'SUSPENDED') {
+
+            if (pt.status === 'ACTIVE') {
+                activeCount += 1;
+            }
+
+            if (
+                pt.status === 'WARNING_THRESHOLD' ||
+                pt.status === 'LIMIT_REACHED' ||
+                pt.status === 'SUSPENDED'
+            ) {
                 alertCount += 1;
             }
         });
@@ -131,19 +138,20 @@ export function KoraAdminNetworkView({
             {/* Header */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-                        <Store className="h-6 w-6 text-gold-dark dark:text-gold" />
+                    <h1 className="flex items-center gap-2 text-xl font-black text-slate-900 dark:text-white">
+                        <Store className="text-gold-dark h-6 w-6 dark:text-gold" />
                         Réseau Commercial KORA POINT
                     </h1>
-                    <p className="text-xs text-slate-500 mt-1">
-                        Administration globale des Points de vente Bus partenaires (autonomes et réseaux rattachés)
+                    <p className="mt-1 text-xs text-slate-500">
+                        Administration globale des Points de vente Bus
+                        partenaires (autonomes et réseaux rattachés)
                     </p>
                 </div>
 
                 <button
                     type="button"
                     onClick={() => setIsWizardOpen(true)}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-gold px-5 py-2.5 text-xs font-black uppercase tracking-wider text-kora shadow-sm hover:bg-gold-light focus:outline-none focus:ring-2 focus:ring-gold"
+                    className="hover:bg-gold-light inline-flex items-center justify-center gap-2 rounded-xl bg-gold px-5 py-2.5 text-xs font-black tracking-wider text-kora uppercase shadow-sm focus:ring-2 focus:ring-gold focus:outline-none"
                 >
                     <Plus className="h-4 w-4" />
                     Créer un nouveau Point +
@@ -153,66 +161,72 @@ export function KoraAdminNetworkView({
             {/* KPI Banner */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    <span className="text-xs font-bold tracking-wider text-slate-500 uppercase">
                         Points du réseau
                     </span>
                     <div className="mt-3">
                         <span className="text-2xl font-black text-slate-900 dark:text-white">
                             {points.length} Points
                         </span>
-                        <p className="text-xs text-emerald-600 font-bold mt-1">
+                        <p className="mt-1 text-xs font-bold text-emerald-600">
                             {stats.activeCount} opérationnels
                         </p>
                     </div>
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    <span className="text-xs font-bold tracking-wider text-slate-500 uppercase">
                         Volume mensuel réseau
                     </span>
                     <div className="mt-3">
                         <span className="text-2xl font-black text-slate-900 dark:text-white">
                             {stats.totalMonthlySales.toLocaleString()} FCFA
                         </span>
-                        <p className="text-xs text-slate-500 mt-1">Recettes brutes billetterie</p>
+                        <p className="mt-1 text-xs text-slate-500">
+                            Recettes brutes billetterie
+                        </p>
                     </div>
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    <span className="text-xs font-bold tracking-wider text-slate-500 uppercase">
                         Encours global à recouvrer
                     </span>
                     <div className="mt-3">
                         <span className="text-2xl font-black text-amber-600 dark:text-amber-400">
                             {stats.totalExposure.toLocaleString()} FCFA
                         </span>
-                        <p className="text-xs text-slate-500 mt-1">Dettes nettes en circulation</p>
+                        <p className="mt-1 text-xs text-slate-500">
+                            Dettes nettes en circulation
+                        </p>
                     </div>
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    <span className="text-xs font-bold tracking-wider text-slate-500 uppercase">
                         Points sous alerte
                     </span>
                     <div className="mt-3">
                         <span className="text-2xl font-black text-rose-600 dark:text-rose-400">
                             {stats.alertCount} Point(s)
                         </span>
-                        <p className="text-xs text-slate-500 mt-1">Plafond ou seuil dépassé</p>
+                        <p className="mt-1 text-xs text-slate-500">
+                            Plafond ou seuil dépassé
+                        </p>
                     </div>
                 </div>
             </div>
 
             {/* Filter Bar */}
-            <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between dark:border-slate-800 dark:bg-slate-900">
                 <div className="relative flex-1">
-                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                    <Search className="absolute top-2.5 left-3 h-4 w-4 text-slate-400" />
                     <input
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Rechercher par nom, code, ville, gérant..."
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-4 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:border-gold focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pr-4 pl-9 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:border-gold focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                     />
                 </div>
 
@@ -225,7 +239,9 @@ export function KoraAdminNetworkView({
                     >
                         <option value="ALL">Tous types</option>
                         <option value="AUTONOMOUS">Points Autonomes</option>
-                        <option value="ORGANIZATION_ATTACHED">Rattachés Organisation</option>
+                        <option value="ORGANIZATION_ATTACHED">
+                            Rattachés Organisation
+                        </option>
                     </select>
 
                     {/* Statut Filter */}
@@ -236,7 +252,9 @@ export function KoraAdminNetworkView({
                     >
                         <option value="ALL">Tous statuts</option>
                         <option value="ACTIVE">Opérationnels</option>
-                        <option value="WARNING_THRESHOLD">Alerte seuil 80%</option>
+                        <option value="WARNING_THRESHOLD">
+                            Alerte seuil 80%
+                        </option>
                         <option value="LIMIT_REACHED">Plafond 100%</option>
                         <option value="SUSPENDED">Suspendus</option>
                     </select>
@@ -265,32 +283,33 @@ export function KoraAdminNetworkView({
                         Aucun Point trouvé
                     </h3>
                     <p className="mt-1 text-xs text-slate-500">
-                        Modifiez vos filtres de recherche ou créez un nouveau Point.
+                        Modifiez vos filtres de recherche ou créez un nouveau
+                        Point.
                     </p>
                 </div>
             ) : (
                 <>
                     {/* Desktop Table View */}
-                    <div className="hidden lg:block overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                    <div className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm lg:block dark:border-slate-800 dark:bg-slate-900">
                         <table className="w-full text-left text-xs">
                             <thead className="border-b border-slate-100 bg-slate-50/75 text-slate-500 dark:border-slate-800 dark:bg-slate-800/40">
                                 <tr>
-                                    <th className="px-5 py-3.5 font-bold uppercase tracking-wider">
+                                    <th className="px-5 py-3.5 font-bold tracking-wider uppercase">
                                         Point & Code
                                     </th>
-                                    <th className="px-5 py-3.5 font-bold uppercase tracking-wider">
+                                    <th className="px-5 py-3.5 font-bold tracking-wider uppercase">
                                         Type & Organisation
                                     </th>
-                                    <th className="px-5 py-3.5 font-bold uppercase tracking-wider">
+                                    <th className="px-5 py-3.5 font-bold tracking-wider uppercase">
                                         Localisation & Gérant
                                     </th>
-                                    <th className="px-5 py-3.5 font-bold uppercase tracking-wider">
+                                    <th className="px-5 py-3.5 font-bold tracking-wider uppercase">
                                         Statut
                                     </th>
-                                    <th className="px-5 py-3.5 font-bold uppercase tracking-wider text-right">
+                                    <th className="px-5 py-3.5 text-right font-bold tracking-wider uppercase">
                                         Encours / Plafond
                                     </th>
-                                    <th className="px-5 py-3.5 font-bold uppercase tracking-wider text-right">
+                                    <th className="px-5 py-3.5 text-right font-bold tracking-wider uppercase">
                                         Commission
                                     </th>
                                 </tr>
@@ -302,69 +321,83 @@ export function KoraAdminNetworkView({
                                         className="transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/30"
                                     >
                                         <td className="px-5 py-4">
-                                            <span className="font-bold text-slate-900 dark:text-white block">
+                                            <span className="block font-bold text-slate-900 dark:text-white">
                                                 {pt.name}
                                             </span>
                                             <span className="font-mono text-[11px] text-slate-400">
-                                                {pt.code} · Créé le {pt.created_at}
+                                                {pt.code} · Créé le{' '}
+                                                {pt.created_at}
                                             </span>
                                         </td>
                                         <td className="px-5 py-4">
                                             {pt.type === 'AUTONOMOUS' ? (
                                                 <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                                                    <Store className="h-3 w-3" /> Autonome
+                                                    <Store className="h-3 w-3" />{' '}
+                                                    Autonome
                                                 </span>
                                             ) : (
                                                 <div className="space-y-0.5">
                                                     <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
-                                                        <Building2 className="h-3 w-3" /> Rattaché
+                                                        <Building2 className="h-3 w-3" />{' '}
+                                                        Rattaché
                                                     </span>
-                                                    <span className="text-[11px] text-slate-500 block truncate max-w-xs">
+                                                    <span className="block max-w-xs truncate text-[11px] text-slate-500">
                                                         {pt.organization_name}
                                                     </span>
                                                 </div>
                                             )}
                                         </td>
                                         <td className="px-5 py-4">
-                                            <span className="font-semibold text-slate-800 dark:text-slate-200 block">
+                                            <span className="block font-semibold text-slate-800 dark:text-slate-200">
                                                 {pt.city} ({pt.department})
                                             </span>
                                             <span className="text-[11px] text-slate-500">
                                                 {pt.manager_name} · {pt.phone}
                                             </span>
                                         </td>
-                                        <td className="px-5 py-4">{getStatusBadge(pt.status)}</td>
+                                        <td className="px-5 py-4">
+                                            {getStatusBadge(pt.status)}
+                                        </td>
                                         <td className="px-5 py-4 text-right">
                                             <div className="space-y-1">
-                                                <span className="font-black text-slate-900 dark:text-white block">
-                                                    {pt.current_exposure.toLocaleString()} FCFA
+                                                <span className="block font-black text-slate-900 dark:text-white">
+                                                    {pt.current_exposure.toLocaleString()}{' '}
+                                                    FCFA
                                                 </span>
-                                                <div className="h-1.5 w-24 ml-auto rounded-full bg-slate-100 overflow-hidden dark:bg-slate-700">
+                                                <div className="ml-auto h-1.5 w-24 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
                                                     <div
                                                         className={cn(
                                                             'h-full rounded-full',
-                                                            pt.usage_percentage >= 100
+                                                            pt.usage_percentage >=
+                                                                100
                                                                 ? 'bg-rose-600'
-                                                                : pt.usage_percentage >= 80
-                                                                ? 'bg-amber-500'
-                                                                : 'bg-emerald-500',
+                                                                : pt.usage_percentage >=
+                                                                    80
+                                                                  ? 'bg-amber-500'
+                                                                  : 'bg-emerald-500',
                                                         )}
                                                         style={{
                                                             width: `${Math.min(100, pt.usage_percentage)}%`,
                                                         }}
                                                     />
                                                 </div>
-                                                <span className="text-[10px] text-slate-400 block">
-                                                    {pt.usage_percentage}% de {pt.credit_limit.toLocaleString()} FCFA
+                                                <span className="block text-[10px] text-slate-400">
+                                                    {pt.usage_percentage}% de{' '}
+                                                    {pt.credit_limit.toLocaleString()}{' '}
+                                                    FCFA
                                                 </span>
                                             </div>
                                         </td>
                                         <td className="px-5 py-4 text-right">
-                                            <span className="font-bold text-gold-dark dark:text-gold block">
-                                                {(pt.commission_rate_bps / 100).toFixed(2)} %
+                                            <span className="text-gold-dark block font-bold dark:text-gold">
+                                                {(
+                                                    pt.commission_rate_bps / 100
+                                                ).toFixed(2)}{' '}
+                                                %
                                             </span>
                                             <span className="text-[10px] text-slate-400">
-                                                {pt.settlement_frequency_days}j reversement
+                                                {pt.settlement_frequency_days}j
+                                                reversement
                                             </span>
                                         </td>
                                     </tr>
@@ -378,11 +411,11 @@ export function KoraAdminNetworkView({
                         {filteredPoints.map((pt) => (
                             <div
                                 key={pt.uuid}
-                                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-3"
+                                className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
                             >
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <span className="font-bold text-sm text-slate-900 dark:text-white block">
+                                        <span className="block text-sm font-bold text-slate-900 dark:text-white">
                                             {pt.name}
                                         </span>
                                         <span className="font-mono text-[11px] text-slate-400">
@@ -392,17 +425,25 @@ export function KoraAdminNetworkView({
                                     {getStatusBadge(pt.status)}
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-slate-100 dark:border-slate-800">
+                                <div className="grid grid-cols-2 gap-2 border-t border-slate-100 pt-1 text-xs dark:border-slate-800">
                                     <div>
-                                        <span className="text-[11px] text-slate-400 block">Encours</span>
+                                        <span className="block text-[11px] text-slate-400">
+                                            Encours
+                                        </span>
                                         <span className="font-black text-slate-900 dark:text-white">
-                                            {pt.current_exposure.toLocaleString()} FCFA
+                                            {pt.current_exposure.toLocaleString()}{' '}
+                                            FCFA
                                         </span>
                                     </div>
                                     <div>
-                                        <span className="text-[11px] text-slate-400 block">Commission</span>
-                                        <span className="font-bold text-gold-dark dark:text-gold">
-                                            {(pt.commission_rate_bps / 100).toFixed(2)} %
+                                        <span className="block text-[11px] text-slate-400">
+                                            Commission
+                                        </span>
+                                        <span className="text-gold-dark font-bold dark:text-gold">
+                                            {(
+                                                pt.commission_rate_bps / 100
+                                            ).toFixed(2)}{' '}
+                                            %
                                         </span>
                                     </div>
                                 </div>

@@ -13,6 +13,7 @@ import '../../../../core/widgets/screen_header.dart';
 import '../../domain/entities/departure.dart';
 import '../../domain/entities/price.dart';
 import '../../domain/entities/seat.dart';
+import '../../domain/entities/seat_plan.dart';
 import '../bloc/group_quote_cubit.dart';
 import '../bloc/seat_hold_bloc.dart';
 import '../bloc/seats_bloc.dart';
@@ -247,6 +248,9 @@ class _SeatsContent extends StatelessWidget {
                 status: _statusOf(seat, isSelected: state.isSelected(seat)),
               ),
           ],
+          // La vraie cabine quand le serveur la connaît ; sans elle, le
+          // plan reste découpé en rangées de quatre.
+          grid: _cabin(state),
           onSeatTap: (koraSeat) {
             // `SeatMap` rend des sièges d'affichage ; on retrouve le siège
             // métier correspondant par son libellé, unique dans un bus.
@@ -258,6 +262,70 @@ class _SeatsContent extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.lg),
       ],
+    );
+  }
+
+  /// La cabine à dessiner, ou `null` quand le bus n'a pas de gabarit.
+  ///
+  /// Les deux moitiés du plan se recollent ici : la grille dit **où**
+  /// est chaque case, la liste plate dit **dans quel état** se trouve
+  /// chaque siège, et le code du siège est la jointure. Une case dont
+  /// l'inventaire ne dit rien reste un trou plutôt qu'un siège inventé.
+  KoraCabinGrid? _cabin(SeatsState state) {
+    final grid = state.grid;
+    if (!state.hasGrid || grid == null) return null;
+
+    final byLabel = {for (final seat in state.seats) seat.label: seat};
+
+    return KoraCabinGrid(
+      rows: grid.rows,
+      cols: grid.cols,
+      cells: [
+        for (final cell in grid.cells)
+          KoraSeatCell(
+            kind: _kindOf(cell.kind),
+            x: cell.x,
+            y: cell.y,
+            seat: _seatOf(cell, byLabel[cell.code], state),
+          ),
+      ],
+    );
+  }
+
+  KoraCellKind _kindOf(SeatCellKind kind) => switch (kind) {
+    SeatCellKind.seat => KoraCellKind.seat,
+    SeatCellKind.aisle => KoraCellKind.aisle,
+    SeatCellKind.door => KoraCellKind.door,
+    SeatCellKind.driver => KoraCellKind.driver,
+    SeatCellKind.empty => KoraCellKind.empty,
+  };
+
+  /// Le siège d'une case, prêt à être dessiné.
+  ///
+  /// Un siège d'équipage ou hors service se montre **grisé et
+  /// intouchable**, quoi qu'en dise sa disponibilité : la place existe à
+  /// bord, elle ne se vend pas. Le serveur l'annonce déjà invendable
+  /// dans la liste plate, mais la grille est la seule à dire *pourquoi*,
+  /// et à le dire pour un siège que l'inventaire n'aurait pas renvoyé.
+  KoraSeat? _seatOf(SeatCell cell, Seat? seat, SeatsState state) {
+    if (cell.kind != SeatCellKind.seat) return null;
+
+    final label = seat?.label ?? cell.code;
+    if (label == null) return null;
+
+    if (!cell.isBookableSeat) {
+      return KoraSeat(label: label, status: KoraSeatStatus.blocked);
+    }
+
+    // Une case annoncée vendable mais absente de l'inventaire : on ne
+    // l'offre pas, faute de connaître sa disponibilité.
+    if (seat == null) {
+      return KoraSeat(label: label, status: KoraSeatStatus.blocked);
+    }
+
+    return KoraSeat(
+      label: label,
+      status: _statusOf(seat, isSelected: state.isSelected(seat)),
     );
   }
 

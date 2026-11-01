@@ -1,33 +1,23 @@
-import { useState, useMemo } from 'react';
 import {
     Receipt,
     RotateCcw,
     CheckCircle2,
     Clock,
-    AlertCircle,
     Search,
-    Filter,
-    ArrowUpRight,
-    Building2,
     FileText,
-    Calendar,
-    Banknote,
-    TrendingUp,
-    Check,
     Eye,
     ShieldCheck,
-    Layers,
     UserCheck,
-    DollarSign,
 } from 'lucide-react';
-import {
+import { useState, useMemo } from 'react';
+import { KoraStatusBadge } from '@/components/kora-status-badge';
+import type {
     PointSettlementRecord,
     PointRefundRecord,
     GroupSettlementRecord,
 } from '../mock/kora-point-mock-data';
-import { KoraStatusBadge } from '@/components/kora-status-badge';
-import { KoraFinanceSettlementActionDialog } from './kora-finance-settlement-action-dialog';
 import { KoraFinanceRefundActionDialog } from './kora-finance-refund-action-dialog';
+import { KoraFinanceSettlementActionDialog } from './kora-finance-settlement-action-dialog';
 
 type Props = {
     settlements: PointSettlementRecord[];
@@ -42,7 +32,10 @@ type Props = {
             notes?: string;
         },
     ) => void;
-    onRejectSettlement: (settlementUuid: string, params: { reason: string }) => void;
+    onRejectSettlement: (
+        settlementUuid: string,
+        params: { reason: string },
+    ) => void;
     onApproveRefund: (
         refundUuid: string,
         params: {
@@ -56,19 +49,22 @@ type Props = {
 export function KoraFinanceReconciliationView({
     settlements,
     refunds,
-    groupSettlements = [],
     onReconcileSettlement,
     onRejectSettlement,
     onApproveRefund,
     onRejectRefund,
 }: Props) {
-    const [activeTab, setActiveTab] = useState<'SETTLEMENTS' | 'REFUNDS' | 'HISTORY'>('SETTLEMENTS');
+    const [activeTab, setActiveTab] = useState<
+        'SETTLEMENTS' | 'REFUNDS' | 'HISTORY'
+    >('SETTLEMENTS');
     const [searchQuery, setSearchQuery] = useState('');
     const [methodFilter, setMethodFilter] = useState<string>('ALL');
 
     // Modals state
-    const [selectedSettlement, setSelectedSettlement] = useState<PointSettlementRecord | null>(null);
-    const [selectedRefund, setSelectedRefund] = useState<PointRefundRecord | null>(null);
+    const [selectedSettlement, setSelectedSettlement] =
+        useState<PointSettlementRecord | null>(null);
+    const [selectedRefund, setSelectedRefund] =
+        useState<PointRefundRecord | null>(null);
 
     // Compute metrics
     const pendingSettlements = useMemo(
@@ -97,17 +93,24 @@ export function KoraFinanceReconciliationView({
     );
 
     const validatedSettlementsTotal = useMemo(
-        () => validatedSettlements.reduce((sum, s) => sum + (s.amount_validated ?? s.amount_declared), 0),
+        () =>
+            validatedSettlements.reduce(
+                (sum, s) => sum + (s.amount_validated ?? s.amount_declared),
+                0,
+            ),
         [validatedSettlements],
     );
 
     // Filter settlements
     const filteredSettlements = useMemo(() => {
         let list = settlements;
+
         if (activeTab === 'SETTLEMENTS') {
             list = list.filter((s) => s.status === 'DECLARED');
         } else if (activeTab === 'HISTORY') {
-            list = list.filter((s) => s.status === 'VALIDATED' || s.status === 'REJECTED');
+            list = list.filter(
+                (s) => s.status === 'VALIDATED' || s.status === 'REJECTED',
+            );
         }
 
         if (searchQuery.trim()) {
@@ -131,6 +134,7 @@ export function KoraFinanceReconciliationView({
     // Filter refunds
     const filteredRefunds = useMemo(() => {
         let list = refunds;
+
         if (searchQuery.trim()) {
             const q = searchQuery.toLowerCase();
             list = list.filter(
@@ -141,6 +145,7 @@ export function KoraFinanceReconciliationView({
                     r.route_label.toLowerCase().includes(q),
             );
         }
+
         return list;
     }, [refunds, searchQuery]);
 
@@ -161,7 +166,9 @@ export function KoraFinanceReconciliationView({
                         />
                     </div>
                     <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                        Vérification interbancaire des déclarations de reversement, saisie des dates de valeur et arbitrage des remboursements passagers.
+                        Vérification interbancaire des déclarations de
+                        reversement, saisie des dates de valeur et arbitrage des
+                        remboursements passagers.
                     </p>
                 </div>
             </div>
@@ -171,61 +178,76 @@ export function KoraFinanceReconciliationView({
                 {/* Pending Settlements */}
                 <div className="rounded-2xl border border-amber-200/80 bg-gradient-to-br from-amber-50 to-white p-5 shadow-sm dark:border-amber-900/40 dark:from-slate-900 dark:to-slate-900">
                     <div className="flex items-center justify-between text-amber-700 dark:text-amber-400">
-                        <span className="text-xs font-black uppercase tracking-wider">
+                        <span className="text-xs font-black tracking-wider uppercase">
                             À Rapprocher en banque
                         </span>
                         <Clock className="size-4" />
                     </div>
                     <div className="mt-3 font-mono text-xl font-black text-slate-900 sm:text-2xl dark:text-white">
                         {pendingSettlementsTotal.toLocaleString('fr-FR')}{' '}
-                        <span className="text-xs font-bold text-slate-500">FCFA</span>
+                        <span className="text-xs font-bold text-slate-500">
+                            FCFA
+                        </span>
                     </div>
-                    <div className="mt-1 flex items-center gap-1.5 text-xs text-amber-800 dark:text-amber-300 font-semibold">
+                    <div className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-amber-800 dark:text-amber-300">
                         <span className="size-1.5 rounded-full bg-amber-500" />
-                        <span>{pendingSettlements.length} bordereaux en attente d'imputation</span>
+                        <span>
+                            {pendingSettlements.length} bordereaux en attente
+                            d'imputation
+                        </span>
                     </div>
                 </div>
 
                 {/* Pending Refunds */}
                 <div className="rounded-2xl border border-blue-200/80 bg-gradient-to-br from-blue-50 to-white p-5 shadow-sm dark:border-blue-900/40 dark:from-slate-900 dark:to-slate-900">
                     <div className="flex items-center justify-between text-blue-700 dark:text-blue-400">
-                        <span className="text-xs font-black uppercase tracking-wider">
+                        <span className="text-xs font-black tracking-wider uppercase">
                             Remboursements à instruire
                         </span>
                         <RotateCcw className="size-4" />
                     </div>
                     <div className="mt-3 font-mono text-xl font-black text-slate-900 sm:text-2xl dark:text-white">
                         {pendingRefundsTotal.toLocaleString('fr-FR')}{' '}
-                        <span className="text-xs font-bold text-slate-500">FCFA</span>
+                        <span className="text-xs font-bold text-slate-500">
+                            FCFA
+                        </span>
                     </div>
-                    <div className="mt-1 flex items-center gap-1.5 text-xs text-blue-800 dark:text-blue-300 font-semibold">
+                    <div className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-blue-800 dark:text-blue-300">
                         <span className="size-1.5 rounded-full bg-blue-500" />
-                        <span>{pendingRefunds.length} dossiers passagers en arbitrage</span>
+                        <span>
+                            {pendingRefunds.length} dossiers passagers en
+                            arbitrage
+                        </span>
                     </div>
                 </div>
 
                 {/* Validated Settlements */}
                 <div className="rounded-2xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50 to-white p-5 shadow-sm dark:border-emerald-900/40 dark:from-slate-900 dark:to-slate-900">
                     <div className="flex items-center justify-between text-emerald-700 dark:text-emerald-400">
-                        <span className="text-xs font-black uppercase tracking-wider">
+                        <span className="text-xs font-black tracking-wider uppercase">
                             Reversements validés
                         </span>
                         <CheckCircle2 className="size-4" />
                     </div>
                     <div className="mt-3 font-mono text-xl font-black text-slate-900 sm:text-2xl dark:text-white">
                         {validatedSettlementsTotal.toLocaleString('fr-FR')}{' '}
-                        <span className="text-xs font-bold text-slate-500">FCFA</span>
+                        <span className="text-xs font-bold text-slate-500">
+                            FCFA
+                        </span>
                     </div>
-                    <div className="mt-1 flex items-center gap-1.5 text-xs text-emerald-800 dark:text-emerald-300 font-semibold">
+                    <div className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
                         <span className="size-1.5 rounded-full bg-emerald-500" />
-                        <span>{validatedSettlements.length} bordereaux apurés ce mois</span>
+                        <span>
+                            {validatedSettlements.length} bordereaux apurés ce
+                            mois
+                        </span>
                     </div>
                 </div>
 
                 {/* Audit & Compliance */}
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                     <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-                        <span className="text-xs font-black uppercase tracking-wider">
+                        <span className="text-xs font-black tracking-wider uppercase">
                             Rapprochement bancaire
                         </span>
                         <ShieldCheck className="size-4 text-emerald-500" />
@@ -293,9 +315,9 @@ export function KoraFinanceReconciliationView({
                 </div>
 
                 {/* Filter and Search Input */}
-                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
                     <div className="relative flex-1 sm:w-64">
-                        <Search className="absolute left-3 top-2.5 size-4 text-slate-400" />
+                        <Search className="absolute top-2.5 left-3 size-4 text-slate-400" />
                         <input
                             type="text"
                             value={searchQuery}
@@ -305,7 +327,7 @@ export function KoraFinanceReconciliationView({
                                     ? 'Rechercher passager, billet...'
                                     : 'Rechercher bordereau, point...'
                             }
-                            className="w-full rounded-xl border border-slate-300 bg-white pl-9 pr-3 py-2 text-xs font-medium text-slate-900 shadow-sm focus:border-gold focus:outline-none focus:ring-1 focus:ring-gold dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                            className="w-full rounded-xl border border-slate-300 bg-white py-2 pr-3 pl-9 text-xs font-medium text-slate-900 shadow-sm focus:border-gold focus:ring-1 focus:ring-gold focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                         />
                     </div>
 
@@ -316,9 +338,15 @@ export function KoraFinanceReconciliationView({
                             className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm focus:border-gold focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
                         >
                             <option value="ALL">Tous les modes</option>
-                            <option value="BANK_TRANSFER">Virement bancaire</option>
-                            <option value="BANK_DEPOSIT">Versement espèces</option>
-                            <option value="MOBILE_MONEY">Mobile Money B2B</option>
+                            <option value="BANK_TRANSFER">
+                                Virement bancaire
+                            </option>
+                            <option value="BANK_DEPOSIT">
+                                Versement espèces
+                            </option>
+                            <option value="MOBILE_MONEY">
+                                Mobile Money B2B
+                            </option>
                         </select>
                     )}
                 </div>
@@ -334,24 +362,41 @@ export function KoraFinanceReconciliationView({
                                 Aucun bordereau de reversement trouvé
                             </h3>
                             <p className="mt-1 text-xs text-slate-500">
-                                Aucun enregistrement ne correspond aux filtres de recherche sélectionnés.
+                                Aucun enregistrement ne correspond aux filtres
+                                de recherche sélectionnés.
                             </p>
                         </div>
                     ) : (
                         <>
                             {/* Desktop Table View */}
-                            <div className="hidden lg:block overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                            <div className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm lg:block dark:border-slate-800 dark:bg-slate-900">
                                 <table className="w-full text-left text-xs">
-                                    <thead className="border-b border-slate-200 bg-slate-50/75 text-[0.6875rem] font-black uppercase tracking-wider text-slate-500 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400">
+                                    <thead className="border-b border-slate-200 bg-slate-50/75 text-[0.6875rem] font-black tracking-wider text-slate-500 uppercase dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400">
                                         <tr>
-                                            <th className="px-5 py-3.5">Référence</th>
-                                            <th className="px-4 py-3.5">Émetteur & Réseau</th>
-                                            <th className="px-4 py-3.5">Date déclaration</th>
-                                            <th className="px-4 py-3.5">Canal de versement</th>
-                                            <th className="px-4 py-3.5">Montant déclaré</th>
-                                            <th className="px-4 py-3.5">Justificatif</th>
-                                            <th className="px-4 py-3.5">Statut</th>
-                                            <th className="px-5 py-3.5 text-right">Action</th>
+                                            <th className="px-5 py-3.5">
+                                                Référence
+                                            </th>
+                                            <th className="px-4 py-3.5">
+                                                Émetteur & Réseau
+                                            </th>
+                                            <th className="px-4 py-3.5">
+                                                Date déclaration
+                                            </th>
+                                            <th className="px-4 py-3.5">
+                                                Canal de versement
+                                            </th>
+                                            <th className="px-4 py-3.5">
+                                                Montant déclaré
+                                            </th>
+                                            <th className="px-4 py-3.5">
+                                                Justificatif
+                                            </th>
+                                            <th className="px-4 py-3.5">
+                                                Statut
+                                            </th>
+                                            <th className="px-5 py-3.5 text-right">
+                                                Action
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -368,42 +413,59 @@ export function KoraFinanceReconciliationView({
                                                         {s.point_name}
                                                     </div>
                                                     <div className="text-[0.6875rem] text-slate-500">
-                                                        Déclaré par {s.created_by_name}
+                                                        Déclaré par{' '}
+                                                        {s.created_by_name}
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-4 text-slate-600 dark:text-slate-300">
-                                                    {s.declared_at || s.created_at}
+                                                    {s.declared_at ||
+                                                        s.created_at}
                                                 </td>
                                                 <td className="px-4 py-4">
                                                     <div className="font-semibold text-slate-800 dark:text-slate-200">
-                                                        {s.payment_method === 'BANK_TRANSFER'
+                                                        {s.payment_method ===
+                                                        'BANK_TRANSFER'
                                                             ? 'Virement bancaire'
-                                                            : s.payment_method === 'BANK_DEPOSIT'
-                                                            ? 'Versement espèces'
-                                                            : 'Mobile Money B2B'}
+                                                            : s.payment_method ===
+                                                                'BANK_DEPOSIT'
+                                                              ? 'Versement espèces'
+                                                              : 'Mobile Money B2B'}
                                                     </div>
                                                     <div className="font-mono text-[0.625rem] text-slate-400">
-                                                        {s.payment_reference || 'Sans réf'}
+                                                        {s.payment_reference ||
+                                                            'Sans réf'}
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-4 font-mono font-black text-slate-900 dark:text-white">
-                                                    {s.amount_declared.toLocaleString('fr-FR')} FCFA
-                                                    {s.amount_validated !== undefined && s.amount_validated !== s.amount_declared && (
-                                                        <div className="text-[0.625rem] text-amber-600 font-bold">
-                                                            Validé : {s.amount_validated.toLocaleString('fr-FR')} FCFA
-                                                        </div>
-                                                    )}
+                                                    {s.amount_declared.toLocaleString(
+                                                        'fr-FR',
+                                                    )}{' '}
+                                                    FCFA
+                                                    {s.amount_validated !==
+                                                        undefined &&
+                                                        s.amount_validated !==
+                                                            s.amount_declared && (
+                                                            <div className="text-[0.625rem] font-bold text-amber-600">
+                                                                Validé :{' '}
+                                                                {s.amount_validated.toLocaleString(
+                                                                    'fr-FR',
+                                                                )}{' '}
+                                                                FCFA
+                                                            </div>
+                                                        )}
                                                 </td>
                                                 <td className="px-4 py-4">
                                                     {s.proof_file_name ? (
                                                         <span className="inline-flex items-center gap-1 text-[0.6875rem] font-bold text-blue-600 dark:text-blue-400">
                                                             <FileText className="size-3.5" />
                                                             <span className="max-w-[120px] truncate">
-                                                                {s.proof_file_name}
+                                                                {
+                                                                    s.proof_file_name
+                                                                }
                                                             </span>
                                                         </span>
                                                     ) : (
-                                                        <span className="text-slate-400 text-[0.625rem]">
+                                                        <span className="text-[0.625rem] text-slate-400">
                                                             Aucun fichier
                                                         </span>
                                                     )}
@@ -411,22 +473,28 @@ export function KoraFinanceReconciliationView({
                                                 <td className="px-4 py-4">
                                                     <KoraStatusBadge
                                                         label={
-                                                            s.status === 'DECLARED'
+                                                            s.status ===
+                                                            'DECLARED'
                                                                 ? 'À rapprocher'
-                                                                : s.status === 'VALIDATED'
-                                                                ? 'Validé & Apuré'
-                                                                : s.status === 'REJECTED'
-                                                                ? 'Rejeté'
-                                                                : 'Brouillon'
+                                                                : s.status ===
+                                                                    'VALIDATED'
+                                                                  ? 'Validé & Apuré'
+                                                                  : s.status ===
+                                                                      'REJECTED'
+                                                                    ? 'Rejeté'
+                                                                    : 'Brouillon'
                                                         }
                                                         tone={
-                                                            s.status === 'DECLARED'
+                                                            s.status ===
+                                                            'DECLARED'
                                                                 ? 'amber'
-                                                                : s.status === 'VALIDATED'
-                                                                ? 'emerald'
-                                                                : s.status === 'REJECTED'
-                                                                ? 'destructive'
-                                                                : 'muted'
+                                                                : s.status ===
+                                                                    'VALIDATED'
+                                                                  ? 'emerald'
+                                                                  : s.status ===
+                                                                      'REJECTED'
+                                                                    ? 'destructive'
+                                                                    : 'muted'
                                                         }
                                                         variant="solid"
                                                     />
@@ -435,20 +503,32 @@ export function KoraFinanceReconciliationView({
                                                     {s.status === 'DECLARED' ? (
                                                         <button
                                                             type="button"
-                                                            onClick={() => setSelectedSettlement(s)}
-                                                            className="inline-flex items-center gap-1.5 rounded-xl bg-gold px-3 py-1.5 text-xs font-black text-kora shadow-sm hover:bg-gold/90 transition"
+                                                            onClick={() =>
+                                                                setSelectedSettlement(
+                                                                    s,
+                                                                )
+                                                            }
+                                                            className="inline-flex items-center gap-1.5 rounded-xl bg-gold px-3 py-1.5 text-xs font-black text-kora shadow-sm transition hover:bg-gold/90"
                                                         >
                                                             <ShieldCheck className="size-3.5" />
-                                                            <span>Rapprocher</span>
+                                                            <span>
+                                                                Rapprocher
+                                                            </span>
                                                         </button>
                                                     ) : (
                                                         <button
                                                             type="button"
-                                                            onClick={() => setSelectedSettlement(s)}
-                                                            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 transition"
+                                                            onClick={() =>
+                                                                setSelectedSettlement(
+                                                                    s,
+                                                                )
+                                                            }
+                                                            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                                                         >
                                                             <Eye className="size-3.5" />
-                                                            <span>Consulter</span>
+                                                            <span>
+                                                                Consulter
+                                                            </span>
                                                         </button>
                                                     )}
                                                 </td>
@@ -473,20 +553,24 @@ export function KoraFinanceReconciliationView({
                                                 label={
                                                     s.status === 'DECLARED'
                                                         ? 'À rapprocher'
-                                                        : s.status === 'VALIDATED'
-                                                        ? 'Validé'
-                                                        : s.status === 'REJECTED'
-                                                        ? 'Rejeté'
-                                                        : 'Brouillon'
+                                                        : s.status ===
+                                                            'VALIDATED'
+                                                          ? 'Validé'
+                                                          : s.status ===
+                                                              'REJECTED'
+                                                            ? 'Rejeté'
+                                                            : 'Brouillon'
                                                 }
                                                 tone={
                                                     s.status === 'DECLARED'
                                                         ? 'amber'
-                                                        : s.status === 'VALIDATED'
-                                                        ? 'emerald'
-                                                        : s.status === 'REJECTED'
-                                                        ? 'destructive'
-                                                        : 'muted'
+                                                        : s.status ===
+                                                            'VALIDATED'
+                                                          ? 'emerald'
+                                                          : s.status ===
+                                                              'REJECTED'
+                                                            ? 'destructive'
+                                                            : 'muted'
                                                 }
                                                 variant="solid"
                                             />
@@ -496,23 +580,29 @@ export function KoraFinanceReconciliationView({
                                             {s.point_name}
                                         </div>
                                         <div className="text-[0.6875rem] text-slate-500">
-                                            Déclaré par {s.created_by_name} le {s.declared_at || s.created_at}
+                                            Déclaré par {s.created_by_name} le{' '}
+                                            {s.declared_at || s.created_at}
                                         </div>
 
                                         <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-slate-800">
                                             <div>
-                                                <span className="block text-[0.625rem] uppercase text-slate-400">
+                                                <span className="block text-[0.625rem] text-slate-400 uppercase">
                                                     Montant déclaré
                                                 </span>
                                                 <span className="font-mono text-sm font-black text-slate-900 dark:text-white">
-                                                    {s.amount_declared.toLocaleString('fr-FR')} FCFA
+                                                    {s.amount_declared.toLocaleString(
+                                                        'fr-FR',
+                                                    )}{' '}
+                                                    FCFA
                                                 </span>
                                             </div>
 
                                             {s.status === 'DECLARED' ? (
                                                 <button
                                                     type="button"
-                                                    onClick={() => setSelectedSettlement(s)}
+                                                    onClick={() =>
+                                                        setSelectedSettlement(s)
+                                                    }
                                                     className="inline-flex items-center gap-1.5 rounded-xl bg-gold px-4 py-2 text-xs font-black text-kora shadow-md"
                                                 >
                                                     <ShieldCheck className="size-3.5" />
@@ -521,7 +611,9 @@ export function KoraFinanceReconciliationView({
                                             ) : (
                                                 <button
                                                     type="button"
-                                                    onClick={() => setSelectedSettlement(s)}
+                                                    onClick={() =>
+                                                        setSelectedSettlement(s)
+                                                    }
                                                     className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
                                                 >
                                                     <Eye className="size-3.5" />
@@ -547,24 +639,42 @@ export function KoraFinanceReconciliationView({
                                 Aucun dossier de remboursement trouvé
                             </h3>
                             <p className="mt-1 text-xs text-slate-500">
-                                Toutes les demandes de remboursement passagers ont été traitées ou aucune ne correspond à la recherche.
+                                Toutes les demandes de remboursement passagers
+                                ont été traitées ou aucune ne correspond à la
+                                recherche.
                             </p>
                         </div>
                     ) : (
                         <>
                             {/* Desktop Table View */}
-                            <div className="hidden lg:block overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                            <div className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm lg:block dark:border-slate-800 dark:bg-slate-900">
                                 <table className="w-full text-left text-xs">
-                                    <thead className="border-b border-slate-200 bg-slate-50/75 text-[0.6875rem] font-black uppercase tracking-wider text-slate-500 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400">
+                                    <thead className="border-b border-slate-200 bg-slate-50/75 text-[0.6875rem] font-black tracking-wider text-slate-500 uppercase dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400">
                                         <tr>
-                                            <th className="px-5 py-3.5">Réf. Dossier</th>
-                                            <th className="px-4 py-3.5">Passager & Billet</th>
-                                            <th className="px-4 py-3.5">Trajet Bus</th>
-                                            <th className="px-4 py-3.5">Motif</th>
-                                            <th className="px-4 py-3.5">Montant restitution</th>
-                                            <th className="px-4 py-3.5">Reprise com.</th>
-                                            <th className="px-4 py-3.5">Statut</th>
-                                            <th className="px-5 py-3.5 text-right">Action</th>
+                                            <th className="px-5 py-3.5">
+                                                Réf. Dossier
+                                            </th>
+                                            <th className="px-4 py-3.5">
+                                                Passager & Billet
+                                            </th>
+                                            <th className="px-4 py-3.5">
+                                                Trajet Bus
+                                            </th>
+                                            <th className="px-4 py-3.5">
+                                                Motif
+                                            </th>
+                                            <th className="px-4 py-3.5">
+                                                Montant restitution
+                                            </th>
+                                            <th className="px-4 py-3.5">
+                                                Reprise com.
+                                            </th>
+                                            <th className="px-4 py-3.5">
+                                                Statut
+                                            </th>
+                                            <th className="px-5 py-3.5 text-right">
+                                                Action
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -585,18 +695,23 @@ export function KoraFinanceReconciliationView({
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-4 text-slate-700 dark:text-slate-300">
-                                                    <div className="font-medium">{r.route_label}</div>
+                                                    <div className="font-medium">
+                                                        {r.route_label}
+                                                    </div>
                                                     <div className="font-mono text-[0.625rem] text-slate-400">
                                                         {r.departure_ref}
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-4">
-                                                    <span className="text-xs text-amber-800 dark:text-amber-300 font-medium">
+                                                    <span className="text-xs font-medium text-amber-800 dark:text-amber-300">
                                                         {r.reason_label}
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-4 font-mono font-black text-emerald-600 dark:text-emerald-400">
-                                                    {r.refund_amount.toLocaleString('fr-FR')} FCFA
+                                                    {r.refund_amount.toLocaleString(
+                                                        'fr-FR',
+                                                    )}{' '}
+                                                    FCFA
                                                 </td>
                                                 <td className="px-4 py-4 font-mono text-xs font-bold text-rose-600 dark:text-rose-400">
                                                     {r.commission_clawback} FCFA
@@ -604,41 +719,58 @@ export function KoraFinanceReconciliationView({
                                                 <td className="px-4 py-4">
                                                     <KoraStatusBadge
                                                         label={
-                                                            r.status === 'REQUESTED'
+                                                            r.status ===
+                                                            'REQUESTED'
                                                                 ? 'À instruire'
-                                                                : r.status === 'APPROVED_BY_FINANCE'
-                                                                ? 'Approuvé'
-                                                                : r.status === 'FUNDS_RESTITUTED'
-                                                                ? 'Restitué'
-                                                                : 'Refusé'
+                                                                : r.status ===
+                                                                    'APPROVED_BY_FINANCE'
+                                                                  ? 'Approuvé'
+                                                                  : r.status ===
+                                                                      'FUNDS_RESTITUTED'
+                                                                    ? 'Restitué'
+                                                                    : 'Refusé'
                                                         }
                                                         tone={
-                                                            r.status === 'REQUESTED'
+                                                            r.status ===
+                                                            'REQUESTED'
                                                                 ? 'blue'
-                                                                : r.status === 'APPROVED_BY_FINANCE'
-                                                                ? 'amber'
-                                                                : r.status === 'FUNDS_RESTITUTED'
-                                                                ? 'emerald'
-                                                                : 'destructive'
+                                                                : r.status ===
+                                                                    'APPROVED_BY_FINANCE'
+                                                                  ? 'amber'
+                                                                  : r.status ===
+                                                                      'FUNDS_RESTITUTED'
+                                                                    ? 'emerald'
+                                                                    : 'destructive'
                                                         }
                                                         variant="solid"
                                                     />
                                                 </td>
                                                 <td className="px-5 py-4 text-right">
-                                                    {r.status === 'REQUESTED' ? (
+                                                    {r.status ===
+                                                    'REQUESTED' ? (
                                                         <button
                                                             type="button"
-                                                            onClick={() => setSelectedRefund(r)}
-                                                            className="inline-flex items-center gap-1.5 rounded-xl bg-gold px-3 py-1.5 text-xs font-black text-kora shadow-sm hover:bg-gold/90 transition"
+                                                            onClick={() =>
+                                                                setSelectedRefund(
+                                                                    r,
+                                                                )
+                                                            }
+                                                            className="inline-flex items-center gap-1.5 rounded-xl bg-gold px-3 py-1.5 text-xs font-black text-kora shadow-sm transition hover:bg-gold/90"
                                                         >
                                                             <UserCheck className="size-3.5" />
-                                                            <span>Instruire</span>
+                                                            <span>
+                                                                Instruire
+                                                            </span>
                                                         </button>
                                                     ) : (
                                                         <button
                                                             type="button"
-                                                            onClick={() => setSelectedRefund(r)}
-                                                            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 transition"
+                                                            onClick={() =>
+                                                                setSelectedRefund(
+                                                                    r,
+                                                                )
+                                                            }
+                                                            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                                                         >
                                                             <Eye className="size-3.5" />
                                                             <span>Détail</span>
@@ -666,20 +798,24 @@ export function KoraFinanceReconciliationView({
                                                 label={
                                                     r.status === 'REQUESTED'
                                                         ? 'À instruire'
-                                                        : r.status === 'APPROVED_BY_FINANCE'
-                                                        ? 'Approuvé'
-                                                        : r.status === 'FUNDS_RESTITUTED'
-                                                        ? 'Restitué'
-                                                        : 'Refusé'
+                                                        : r.status ===
+                                                            'APPROVED_BY_FINANCE'
+                                                          ? 'Approuvé'
+                                                          : r.status ===
+                                                              'FUNDS_RESTITUTED'
+                                                            ? 'Restitué'
+                                                            : 'Refusé'
                                                 }
                                                 tone={
                                                     r.status === 'REQUESTED'
                                                         ? 'blue'
-                                                        : r.status === 'APPROVED_BY_FINANCE'
-                                                        ? 'amber'
-                                                        : r.status === 'FUNDS_RESTITUTED'
-                                                        ? 'emerald'
-                                                        : 'destructive'
+                                                        : r.status ===
+                                                            'APPROVED_BY_FINANCE'
+                                                          ? 'amber'
+                                                          : r.status ===
+                                                              'FUNDS_RESTITUTED'
+                                                            ? 'emerald'
+                                                            : 'destructive'
                                                 }
                                                 variant="solid"
                                             />
@@ -689,23 +825,29 @@ export function KoraFinanceReconciliationView({
                                             {r.passenger_name}
                                         </div>
                                         <div className="font-mono text-[0.6875rem] text-slate-500">
-                                            Billet {r.ticket_number} • {r.route_label}
+                                            Billet {r.ticket_number} •{' '}
+                                            {r.route_label}
                                         </div>
 
                                         <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-slate-800">
                                             <div>
-                                                <span className="block text-[0.625rem] uppercase text-slate-400">
+                                                <span className="block text-[0.625rem] text-slate-400 uppercase">
                                                     Restitution
                                                 </span>
                                                 <span className="font-mono text-sm font-black text-emerald-600 dark:text-emerald-400">
-                                                    {r.refund_amount.toLocaleString('fr-FR')} FCFA
+                                                    {r.refund_amount.toLocaleString(
+                                                        'fr-FR',
+                                                    )}{' '}
+                                                    FCFA
                                                 </span>
                                             </div>
 
                                             {r.status === 'REQUESTED' ? (
                                                 <button
                                                     type="button"
-                                                    onClick={() => setSelectedRefund(r)}
+                                                    onClick={() =>
+                                                        setSelectedRefund(r)
+                                                    }
                                                     className="inline-flex items-center gap-1.5 rounded-xl bg-gold px-4 py-2 text-xs font-black text-kora shadow-md"
                                                 >
                                                     <UserCheck className="size-3.5" />
@@ -714,7 +856,9 @@ export function KoraFinanceReconciliationView({
                                             ) : (
                                                 <button
                                                     type="button"
-                                                    onClick={() => setSelectedRefund(r)}
+                                                    onClick={() =>
+                                                        setSelectedRefund(r)
+                                                    }
                                                     className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
                                                 >
                                                     <Eye className="size-3.5" />

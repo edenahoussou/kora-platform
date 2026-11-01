@@ -155,14 +155,51 @@ class _Body extends StatelessWidget {
     }
 
     if (state.isEmpty) {
+      // Une carte, et non une ligne de gris perdue en haut de page : sur
+      // un écran par ailleurs vide, un texte seul se lit comme un
+      // chargement qui n'a pas abouti. La carte dit que l'écran a bien
+      // répondu, et ce qui viendra s'y poser.
+      //
+      // Elle reste dans une liste déroulante pour que le geste de
+      // rafraîchir fonctionne ici aussi — c'est le premier réflexe quand
+      // on attend une notification qui tarde.
       return RefreshIndicator(
         onRefresh: cubit.load,
         child: ListView(
           children: [
             const SizedBox(height: AppSpacing.xl),
-            Text(
-              l10n.notificationsEmpty,
-              style: AppTextStyles.lead(koraColors.textMuted),
+            KoraCard(
+              variant: KoraCardVariant.mist,
+              child: Column(
+                children: [
+                  Container(
+                    width: 54,
+                    height: 54,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: AppColors.gold.withValues(alpha: 0.16),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.notifications_none_rounded,
+                      size: 26,
+                      color: AppColors.kora,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    l10n.notificationsEmpty,
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.titleMedium(context.koraTitleColor),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    l10n.notificationsEmptyLead,
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.body(koraColors.textMuted),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

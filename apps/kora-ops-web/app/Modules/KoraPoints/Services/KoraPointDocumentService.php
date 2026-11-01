@@ -18,6 +18,11 @@ class KoraPointDocumentService
     public function __construct(private readonly KoraPointAccess $access, private readonly KoraPointRemittanceService $remittances, private readonly KoraPointRefundService $refunds) {}
 
     /** @param array<string, mixed> $data */
+    /**
+     * Stores a partner document and its uploaded proof file under the subject business rules.
+     *
+     * @param  array<string, mixed>  $data
+     */
     public function store(User $actor, KoraPoint|KoraPointOrganization|KoraPointRemittance|KoraPointRefund $subject, array $data, UploadedFile $file): KoraPartnerDocument
     {
         return DB::transaction(function () use ($actor, $subject, $data, $file): KoraPartnerDocument {
@@ -55,6 +60,9 @@ class KoraPointDocumentService
         });
     }
 
+    /**
+     * Guards document download through the ownership chain (refund, remittance, point, organization).
+     */
     public function authorizeDownload(User $actor, KoraPartnerDocument $document): void
     {
         if ($document->refund_id !== null) {

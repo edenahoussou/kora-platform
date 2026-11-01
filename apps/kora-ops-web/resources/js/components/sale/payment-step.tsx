@@ -237,18 +237,26 @@ export function PaymentStep({
 
     // For partner points (and general convenience), prefill payer information
     // with primary passenger if available.
-    useEffect(() => {
-        if (reservation.passengers && reservation.passengers.length > 0) {
-            const primary = reservation.passengers[0];
+    const [prevPassengers, setPrevPassengers] = useState(
+        reservation.passengers,
+    );
+
+    if (reservation.passengers !== prevPassengers) {
+        setPrevPassengers(reservation.passengers);
+        const primary = reservation.passengers?.[0];
+
+        if (primary) {
             const name = `${primary.firstName} ${primary.lastName}`.trim();
+
             if (!payerName && name) {
                 setPayerName(name);
             }
+
             if (!payerPhone && primary.phone) {
                 setPayerPhone(primary.phone);
             }
         }
-    }, [reservation.passengers]);
+    }
 
     const total = reservation.totalAmount;
     const received = Number(cashReceived) || 0;
@@ -400,33 +408,38 @@ export function PaymentStep({
                         </div>
                     </div>
 
-                    {!isPartner && !cashSession.isOpen && method !== 'company_credit' && (
-                        <div className="cash-required-card" role="status">
-                            <span className="cash-required-icon">
-                                <Banknote className="size-5" />
-                            </span>
-                            <div className="cash-required-copy">
-                                <strong>Votre caisse est encore fermée</strong>
-                                <p>
-                                    Ouvrez la session du jour avec votre fond de
-                                    caisse pour pouvoir enregistrer cette vente.
-                                </p>
-                            </div>
-                            {cashSession.canOpen ? (
-                                <button
-                                    type="button"
-                                    onClick={() => setCashModalOpen(true)}
-                                    className="cash-required-action"
-                                >
-                                    Ouvrir la caisse
-                                </button>
-                            ) : (
-                                <span className="cash-required-help">
-                                    Contactez votre responsable
+                    {!isPartner &&
+                        !cashSession.isOpen &&
+                        method !== 'company_credit' && (
+                            <div className="cash-required-card" role="status">
+                                <span className="cash-required-icon">
+                                    <Banknote className="size-5" />
                                 </span>
-                            )}
-                        </div>
-                    )}
+                                <div className="cash-required-copy">
+                                    <strong>
+                                        Votre caisse est encore fermée
+                                    </strong>
+                                    <p>
+                                        Ouvrez la session du jour avec votre
+                                        fond de caisse pour pouvoir enregistrer
+                                        cette vente.
+                                    </p>
+                                </div>
+                                {cashSession.canOpen ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => setCashModalOpen(true)}
+                                        className="cash-required-action"
+                                    >
+                                        Ouvrir la caisse
+                                    </button>
+                                ) : (
+                                    <span className="cash-required-help">
+                                        Contactez votre responsable
+                                    </span>
+                                )}
+                            </div>
+                        )}
 
                     {errors.reservation && (
                         <div
@@ -881,11 +894,11 @@ function MobileMoneyFields({
                     </span>
                 </div>
                 <div className="mm-step-body">
-                    <div className="flex flex-wrap items-center gap-1.5 mb-3 border-b border-border/50 pb-2 text-xs">
+                    <div className="mb-3 flex flex-wrap items-center gap-1.5 border-b border-border/50 pb-2 text-xs">
                         <button
                             type="button"
                             className={cn(
-                                'px-2.5 py-1 rounded-md text-xs font-medium transition',
+                                'rounded-md px-2.5 py-1 text-xs font-medium transition',
                                 countryFilter === 'all'
                                     ? 'bg-primary text-primary-foreground shadow-sm'
                                     : 'text-muted-foreground hover:bg-muted/80',
@@ -897,7 +910,7 @@ function MobileMoneyFields({
                         <button
                             type="button"
                             className={cn(
-                                'px-2.5 py-1 rounded-md text-xs font-medium transition flex items-center gap-1',
+                                'flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition',
                                 countryFilter === 'bj'
                                     ? 'bg-primary text-primary-foreground shadow-sm'
                                     : 'text-muted-foreground hover:bg-muted/80',
@@ -909,7 +922,7 @@ function MobileMoneyFields({
                         <button
                             type="button"
                             className={cn(
-                                'px-2.5 py-1 rounded-md text-xs font-medium transition flex items-center gap-1',
+                                'flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition',
                                 countryFilter === 'tg'
                                     ? 'bg-primary text-primary-foreground shadow-sm'
                                     : 'text-muted-foreground hover:bg-muted/80',
@@ -921,7 +934,7 @@ function MobileMoneyFields({
                         <button
                             type="button"
                             className={cn(
-                                'px-2.5 py-1 rounded-md text-xs font-medium transition flex items-center gap-1',
+                                'flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition',
                                 countryFilter === 'ci'
                                     ? 'bg-primary text-primary-foreground shadow-sm'
                                     : 'text-muted-foreground hover:bg-muted/80',
@@ -933,13 +946,12 @@ function MobileMoneyFields({
                     </div>
 
                     <div className="mm-network-grid">
-                        {(
-                            Object.keys(networkMeta) as SaleMobileMoneyNetwork[]
-                        )
+                        {(Object.keys(networkMeta) as SaleMobileMoneyNetwork[])
                             .filter(
                                 (value) =>
                                     countryFilter === 'all' ||
-                                    networkMeta[value].country === countryFilter,
+                                    networkMeta[value].country ===
+                                        countryFilter,
                             )
                             .map((value) => {
                                 const meta = networkMeta[value];
@@ -998,22 +1010,22 @@ function MobileMoneyFields({
                             })}
                     </div>
                     {isPartner ? (
-                        <div className="mt-3 rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs text-foreground/80 flex items-start gap-2.5">
-                            <ShieldCheck className="size-4 text-primary shrink-0 mt-0.5" />
+                        <div className="mt-3 flex items-start gap-2.5 rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs text-foreground/80">
+                            <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
                             <div className="space-y-0.5">
                                 <p className="font-semibold text-foreground">
                                     Encaissement direct partenaire KORA
                                 </p>
-                                <p className="text-muted-foreground leading-relaxed">
-                                    Vous encaissez directement le montant sur votre
-                                    propre téléphone ou compte marchand{' '}
+                                <p className="leading-relaxed text-muted-foreground">
+                                    Vous encaissez directement le montant sur
+                                    votre propre téléphone ou compte marchand{' '}
                                     <strong>
                                         {network
                                             ? networkMeta[network].label
                                             : 'Mobile Money'}
                                     </strong>
-                                    . Le montant net sera déduit de votre disponible
-                                    KORA.
+                                    . Le montant net sera déduit de votre
+                                    disponible KORA.
                                 </p>
                             </div>
                         </div>

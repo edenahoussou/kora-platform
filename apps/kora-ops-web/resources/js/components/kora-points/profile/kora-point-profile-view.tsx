@@ -34,16 +34,19 @@ export function KoraPointProfileView({
     documents,
     assignedUsers,
 }: Props) {
-    const [activeTab, setActiveTab] = useState<'overview' | 'terms' | 'documents' | 'users'>(
-        'overview',
-    );
+    const [activeTab, setActiveTab] = useState<
+        'overview' | 'terms' | 'documents' | 'users'
+    >('overview');
     const [downloadMsg, setDownloadMsg] = useState<string | null>(null);
 
     const isAutonomous = !point.organization;
-    const ratePercent = (point.terms.commission_rate_bps / 100).toLocaleString('fr-FR', {
-        minimumFractionDigits: 1,
-        maximumFractionDigits: 2,
-    });
+    const ratePercent = (point.terms.commission_rate_bps / 100).toLocaleString(
+        'fr-FR',
+        {
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 2,
+        },
+    );
 
     const triggerDownload = (fileName: string) => {
         setDownloadMsg(`Téléchargement simulé de : ${fileName}`);
@@ -72,20 +75,30 @@ export function KoraPointProfileView({
                             variant="solid"
                         />
                         <KoraStatusBadge
-                            label={health.sales_allowed ? 'Actif' : 'Bloqué / Suspendu'}
-                            tone={health.sales_allowed ? 'emerald' : 'destructive'}
+                            label={
+                                health.sales_allowed
+                                    ? 'Actif'
+                                    : 'Bloqué / Suspendu'
+                            }
+                            tone={
+                                health.sales_allowed ? 'emerald' : 'destructive'
+                            }
                             variant="solid"
                         />
                     </div>
                     <p className="mt-1.5 text-[0.8125rem] leading-6 text-muted-foreground">
-                        Code guichet : {point.code} · {point.address}, {point.city} · Gérant : {point.manager_name} ({point.manager_phone})
+                        Code guichet : {point.code} · {point.address},{' '}
+                        {point.city} · Gérant : {point.manager_name} (
+                        {point.manager_phone})
                     </p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2.5">
                     <button
                         type="button"
-                        onClick={() => triggerDownload(`Fiche_Synthese_${point.code}.pdf`)}
+                        onClick={() =>
+                            triggerDownload(`Fiche_Synthese_${point.code}.pdf`)
+                        }
                         className="btn btn-primary"
                     >
                         <Download className="size-4" />
@@ -95,14 +108,17 @@ export function KoraPointProfileView({
             </div>
 
             {downloadMsg && (
-                <div className="rounded-xl bg-blue-500/10 p-2.5 text-center text-xs font-semibold text-digital animate-in fade-in">
+                <div className="animate-in rounded-xl bg-blue-500/10 p-2.5 text-center text-xs font-semibold text-digital fade-in">
                     {downloadMsg}
                 </div>
             )}
 
             {/* Navigation Tabs */}
             <div className="border-b border-slate-200 dark:border-slate-800">
-                <nav className="flex space-x-6 text-xs font-extrabold uppercase tracking-wider" aria-label="Onglets Mon Point">
+                <nav
+                    className="flex space-x-6 text-xs font-extrabold tracking-wider uppercase"
+                    aria-label="Onglets Mon Point"
+                >
                     {[
                         { id: 'overview', label: 'Activité & Synthèse' },
                         { id: 'terms', label: 'Conditions contractuelles' },
@@ -114,9 +130,9 @@ export function KoraPointProfileView({
                             type="button"
                             onClick={() => setActiveTab(tab.id as any)}
                             className={cn(
-                                'pb-3.5 border-b-2 transition font-bold',
+                                'border-b-2 pb-3.5 font-bold transition',
                                 activeTab === tab.id
-                                    ? 'border-gold text-kora dark:text-gold dark:border-gold'
+                                    ? 'border-gold text-kora dark:border-gold dark:text-gold'
                                     : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200',
                             )}
                         >
@@ -128,15 +144,18 @@ export function KoraPointProfileView({
 
             {/* TAB 1: OVERVIEW */}
             {activeTab === 'overview' && (
-                <div className="space-y-6 animate-in fade-in">
+                <div className="animate-in space-y-6 fade-in">
                     {/* Financial Summary */}
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                            <span className="text-[0.625rem] font-bold uppercase text-slate-400">
+                            <span className="text-[0.625rem] font-bold text-slate-400 uppercase">
                                 Encours actuel à reverser
                             </span>
                             <strong className="mt-1 block font-mono text-2xl font-black text-slate-900 dark:text-white">
-                                {health.current_exposure.toLocaleString('fr-FR')} FCFA
+                                {health.current_exposure.toLocaleString(
+                                    'fr-FR',
+                                )}{' '}
+                                FCFA
                             </strong>
                             <span className="mt-1 block text-xs text-slate-500">
                                 {health.usage_percentage} % du plafond consommé
@@ -144,11 +163,12 @@ export function KoraPointProfileView({
                         </div>
 
                         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                            <span className="text-[0.625rem] font-bold uppercase text-slate-400">
+                            <span className="text-[0.625rem] font-bold text-slate-400 uppercase">
                                 Plafond de crédit accordé
                             </span>
                             <strong className="mt-1 block font-mono text-2xl font-black text-slate-900 dark:text-white">
-                                {health.credit_limit.toLocaleString('fr-FR')} FCFA
+                                {health.credit_limit.toLocaleString('fr-FR')}{' '}
+                                FCFA
                             </strong>
                             <span className="mt-1 block text-xs text-slate-500">
                                 Égalité admise, dépassement bloqué
@@ -156,25 +176,29 @@ export function KoraPointProfileView({
                         </div>
 
                         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                            <span className="text-[0.625rem] font-bold uppercase text-slate-400">
+                            <span className="text-[0.625rem] font-bold text-slate-400 uppercase">
                                 Prochaine échéance
                             </span>
                             <strong className="mt-1 block text-lg font-black text-slate-900 dark:text-white">
                                 {health.next_due_label}
                             </strong>
                             <span className="mt-1 block text-xs text-slate-500">
-                                Délai de grâce contractuel : {point.terms.grace_period_days} jours
+                                Délai de grâce contractuel :{' '}
+                                {point.terms.grace_period_days} jours
                             </span>
                         </div>
                     </div>
 
                     {/* Operational info */}
-                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-4">
+                    <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                         <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
                             Règles d’exploitation et périmètre Bus
                         </h3>
-                        <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                            Ce KORA POINT est habilité à la distribution des billets Bus sur l’inventaire centralisé du réseau. Il ne définit pas librement les prix et ne détient pas de stock indépendant.
+                        <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-300">
+                            Ce KORA POINT est habilité à la distribution des
+                            billets Bus sur l’inventaire centralisé du réseau.
+                            Il ne définit pas librement les prix et ne détient
+                            pas de stock indépendant.
                         </p>
                     </div>
                 </div>
@@ -182,14 +206,18 @@ export function KoraPointProfileView({
 
             {/* TAB 2: TERMS & CONDITIONS */}
             {activeTab === 'terms' && (
-                <div className="space-y-6 animate-in fade-in">
+                <div className="animate-in space-y-6 fade-in">
                     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                         <div className="border-b border-slate-100 pb-3 dark:border-slate-800">
                             <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
                                 Paramètres contractuels effectifs
                             </h3>
                             <p className="text-xs text-slate-500">
-                                Hiérarchie de résolution : <strong>Point → Organisation éventuelle → Exploitation KORA</strong>
+                                Hiérarchie de résolution :{' '}
+                                <strong>
+                                    Point → Organisation éventuelle →
+                                    Exploitation KORA
+                                </strong>
                             </p>
                         </div>
 
@@ -202,14 +230,18 @@ export function KoraPointProfileView({
                                         <span>Taux de commission</span>
                                     </span>
                                     <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[0.625rem] font-black text-emerald-700 dark:text-emerald-400">
-                                        {isAutonomous ? 'Propre au Point' : 'Hérité Organisation'}
+                                        {isAutonomous
+                                            ? 'Propre au Point'
+                                            : 'Hérité Organisation'}
                                     </span>
                                 </div>
                                 <strong className="mt-2 block font-mono text-2xl font-black text-slate-900 dark:text-white">
                                     {ratePercent} %
                                 </strong>
                                 <span className="text-[0.6875rem] text-slate-400">
-                                    Enregistré à {point.terms.commission_rate_bps} points de base. Retenu à la source.
+                                    Enregistré à{' '}
+                                    {point.terms.commission_rate_bps} points de
+                                    base. Retenu à la source.
                                 </span>
                             </div>
 
@@ -221,14 +253,20 @@ export function KoraPointProfileView({
                                         <span>Plafond d'encours</span>
                                     </span>
                                     <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[0.625rem] font-black text-emerald-700 dark:text-emerald-400">
-                                        {isAutonomous ? 'Propre au Point' : 'Hérité Organisation'}
+                                        {isAutonomous
+                                            ? 'Propre au Point'
+                                            : 'Hérité Organisation'}
                                     </span>
                                 </div>
                                 <strong className="mt-2 block font-mono text-2xl font-black text-slate-900 dark:text-white">
-                                    {point.terms.credit_limit_amount.toLocaleString('fr-FR')} FCFA
+                                    {point.terms.credit_limit_amount.toLocaleString(
+                                        'fr-FR',
+                                    )}{' '}
+                                    FCFA
                                 </strong>
                                 <span className="text-[0.6875rem] text-slate-400">
-                                    Blocage automatique de la billetterie en cas de dépassement.
+                                    Blocage automatique de la billetterie en cas
+                                    de dépassement.
                                 </span>
                             </div>
 
@@ -244,12 +282,14 @@ export function KoraPointProfileView({
                                     </span>
                                 </div>
                                 <strong className="mt-2 block text-base font-black text-slate-900 dark:text-white">
-                                    {point.terms.settlement_schedule.frequency === 'weekly'
+                                    {point.terms.settlement_schedule
+                                        .frequency === 'weekly'
                                         ? 'Hebdomadaire (Chaque lundi à 18:00)'
                                         : 'Mensuel (Le 28 du mois à 17:00)'}
                                 </strong>
                                 <span className="text-[0.6875rem] text-slate-400">
-                                    Fuseau horaire : {point.terms.settlement_schedule.timezone}
+                                    Fuseau horaire :{' '}
+                                    {point.terms.settlement_schedule.timezone}
                                 </span>
                             </div>
 
@@ -268,7 +308,8 @@ export function KoraPointProfileView({
                                     {point.terms.grace_period_days} jours ouvrés
                                 </strong>
                                 <span className="text-[0.6875rem] text-slate-400">
-                                    Suspension automatique si aucun bordereau validé après expiration du délai.
+                                    Suspension automatique si aucun bordereau
+                                    validé après expiration du délai.
                                 </span>
                             </div>
                         </div>
@@ -278,16 +319,16 @@ export function KoraPointProfileView({
 
             {/* TAB 3: DOCUMENTS & CONVENTION */}
             {activeTab === 'documents' && (
-                <div className="space-y-6 animate-in fade-in">
+                <div className="animate-in space-y-6 fade-in">
                     {/* Convention Hero Card */}
                     <div className="rounded-3xl border-2 border-gold/40 bg-gradient-to-br from-gold/10 via-white to-gold/5 p-6 shadow-sm dark:border-gold/30 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950">
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-gold/20 pb-4">
+                        <div className="flex flex-col gap-4 border-b border-gold/20 pb-4 sm:flex-row sm:items-center sm:justify-between">
                             <div className="flex items-center gap-3">
-                                <div className="grid size-12 place-items-center rounded-2xl bg-gold text-kora font-black">
+                                <div className="grid size-12 place-items-center rounded-2xl bg-gold font-black text-kora">
                                     <FileCheck className="size-6" />
                                 </div>
                                 <div>
-                                    <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[0.625rem] font-black uppercase text-emerald-700 dark:text-emerald-400">
+                                    <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[0.625rem] font-black text-emerald-700 uppercase dark:text-emerald-400">
                                         Convention en vigueur
                                     </span>
                                     <h3 className="text-base font-black text-slate-900 dark:text-white">
@@ -301,35 +342,45 @@ export function KoraPointProfileView({
 
                             <button
                                 type="button"
-                                onClick={() => triggerDownload(convention.file_name)}
-                                className="inline-flex items-center gap-1.5 rounded-xl bg-gold px-4 py-2 text-xs font-black uppercase tracking-wider text-kora shadow-md hover:bg-gold/90 shrink-0"
+                                onClick={() =>
+                                    triggerDownload(convention.file_name)
+                                }
+                                className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-gold px-4 py-2 text-xs font-black tracking-wider text-kora uppercase shadow-md hover:bg-gold/90"
                             >
                                 <Download className="size-4" />
                                 <span>Télécharger l'accord</span>
                             </button>
                         </div>
 
-                        <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4 text-xs">
+                        <div className="mt-4 grid grid-cols-2 gap-4 text-xs sm:grid-cols-4">
                             <div>
-                                <span className="text-slate-400">Signée le :</span>
+                                <span className="text-slate-400">
+                                    Signée le :
+                                </span>
                                 <div className="font-bold text-slate-800 dark:text-slate-200">
                                     {convention.signed_at}
                                 </div>
                             </div>
                             <div>
-                                <span className="text-slate-400">Expire le :</span>
+                                <span className="text-slate-400">
+                                    Expire le :
+                                </span>
                                 <div className="font-bold text-slate-800 dark:text-slate-200">
                                     {convention.expires_at}
                                 </div>
                             </div>
                             <div>
-                                <span className="text-slate-400">Taux contractuel :</span>
+                                <span className="text-slate-400">
+                                    Taux contractuel :
+                                </span>
                                 <div className="font-bold text-slate-800 dark:text-slate-200">
                                     {ratePercent} %
                                 </div>
                             </div>
                             <div>
-                                <span className="text-slate-400">Fichier numérisé :</span>
+                                <span className="text-slate-400">
+                                    Fichier numérisé :
+                                </span>
                                 <div className="font-mono text-slate-600 dark:text-slate-300">
                                     {convention.file_size}
                                 </div>
@@ -355,13 +406,15 @@ export function KoraPointProfileView({
                                     className="flex items-center justify-between py-3 text-xs"
                                 >
                                     <div className="flex items-center gap-3">
-                                        <FileText className="size-5 text-slate-400 shrink-0" />
+                                        <FileText className="size-5 shrink-0 text-slate-400" />
                                         <div>
                                             <div className="font-bold text-slate-800 dark:text-slate-200">
                                                 {doc.title}
                                             </div>
-                                            <div className="text-[0.6875rem] text-slate-400 font-mono">
-                                                {doc.file_name} · {doc.file_size} · Ajouté le {doc.uploaded_at}
+                                            <div className="font-mono text-[0.6875rem] text-slate-400">
+                                                {doc.file_name} ·{' '}
+                                                {doc.file_size} · Ajouté le{' '}
+                                                {doc.uploaded_at}
                                             </div>
                                         </div>
                                     </div>
@@ -372,7 +425,9 @@ export function KoraPointProfileView({
                                         </span>
                                         <button
                                             type="button"
-                                            onClick={() => triggerDownload(doc.file_name)}
+                                            onClick={() =>
+                                                triggerDownload(doc.file_name)
+                                            }
                                             className="rounded-lg p-1 text-slate-400 hover:text-slate-700 dark:hover:text-white"
                                             title="Télécharger la pièce"
                                         >
@@ -388,7 +443,7 @@ export function KoraPointProfileView({
 
             {/* TAB 4: USERS */}
             {activeTab === 'users' && (
-                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-4 animate-in fade-in">
+                <div className="animate-in space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm fade-in dark:border-slate-800 dark:bg-slate-900">
                     <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
                         <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
                             Comptes et agents habilités au Point
@@ -402,7 +457,7 @@ export function KoraPointProfileView({
                         {assignedUsers.map((user) => (
                             <div
                                 key={user.uuid}
-                                className="flex flex-col gap-2 py-3.5 sm:flex-row sm:items-center sm:justify-between text-xs"
+                                className="flex flex-col gap-2 py-3.5 text-xs sm:flex-row sm:items-center sm:justify-between"
                             >
                                 <div className="flex items-center gap-3">
                                     <div className="grid size-9 place-items-center rounded-xl bg-slate-100 font-black text-slate-700 dark:bg-slate-800 dark:text-slate-200">
@@ -414,7 +469,7 @@ export function KoraPointProfileView({
                                                 {user.name}
                                             </strong>
                                             {user.is_primary && (
-                                                <span className="rounded bg-gold/25 px-1.5 py-0.2 text-[0.5625rem] font-black text-kora dark:text-gold uppercase">
+                                                <span className="py-0.2 rounded bg-gold/25 px-1.5 text-[0.5625rem] font-black text-kora uppercase dark:text-gold">
                                                     Gérant principal
                                                 </span>
                                             )}

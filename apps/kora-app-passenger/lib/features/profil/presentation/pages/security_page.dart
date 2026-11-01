@@ -18,10 +18,19 @@ import '../../../auth/presentation/bloc/auth_bloc.dart';
 /// sans révocation, un téléphone perdu garde un accès valide jusqu'à
 /// l'expiration de son token.
 class SecurityPage extends StatefulWidget {
-  const SecurityPage({super.key, this.onChangePin, this.onNewDevice});
+  const SecurityPage({
+    super.key,
+    this.onChangePin,
+    this.onNewDevice,
+    this.onDeleteAccount,
+  });
 
   final VoidCallback? onChangePin;
   final VoidCallback? onNewDevice;
+
+  /// Mène à la demande de suppression du compte. Apple exige qu'elle
+  /// puisse commencer dans l'app (règle 5.1.1(v)).
+  final VoidCallback? onDeleteAccount;
 
   @override
   State<SecurityPage> createState() => _SecurityPageState();
@@ -136,6 +145,17 @@ class _SecurityPageState extends State<SecurityPage> {
                     ),
                     const SizedBox(height: AppSpacing.md),
                     ..._deviceCards(context, currentUuid),
+                    const SizedBox(height: AppSpacing.lg),
+                    KoraMenuList(
+                      items: [
+                        KoraMenuItem(
+                          icon: Icons.delete_forever_rounded,
+                          title: l10n.securityDeleteAccount,
+                          subtitle: l10n.securityDeleteAccountSub,
+                          onTap: widget.onDeleteAccount,
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: AppSpacing.lg),
                   ],
                 ),

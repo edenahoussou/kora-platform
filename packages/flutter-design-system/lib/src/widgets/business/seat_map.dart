@@ -57,6 +57,48 @@ class KoraSeat {
   }
 }
 
+/// Ce qu'une case de la cabine occupe comme place.
+///
+/// Le plan d'un bus n'est pas qu'une suite de sièges : le couloir, la
+/// porte et le poste de conduite tiennent chacun une case. Les décrire
+/// permet de dessiner un véhicule qui n'est pas en 2+2.
+enum KoraCellKind { seat, aisle, empty, door, driver }
+
+/// Une case du plancher, à sa place exacte dans la grille.
+class KoraSeatCell {
+  const KoraSeatCell({
+    required this.kind,
+    required this.x,
+    required this.y,
+    this.seat,
+  });
+
+  final KoraCellKind kind;
+
+  /// Colonne et rangée, données telles quelles : le plan ne déduit plus
+  /// la position du libellé du siège.
+  final int x;
+  final int y;
+
+  /// Le siège à cette case, quand [kind] vaut [KoraCellKind.seat].
+  final KoraSeat? seat;
+}
+
+/// La géométrie d'une cabine.
+class KoraCabinGrid {
+  const KoraCabinGrid({
+    required this.rows,
+    required this.cols,
+    required this.cells,
+  });
+
+  final int rows;
+  final int cols;
+  final List<KoraSeatCell> cells;
+
+  bool get isUsable => rows > 0 && cols > 0 && cells.isNotEmpty;
+}
+
 /// Apparence résolue d'un état de siège — calculée une seule fois ici et
 /// réutilisée à la fois par [_SeatButton] (le vrai siège) et [_Legend]
 /// (sa pastille), pour que la légende représente *exactement* les
@@ -160,6 +202,7 @@ class SeatMap extends StatelessWidget {
   const SeatMap({
     super.key,
     required this.seats,
+    this.grid,
     this.columns = 4,
     this.showLegend = true,
     this.legendStatuses,
@@ -167,6 +210,15 @@ class SeatMap extends StatelessWidget {
   });
 
   final List<KoraSeat> seats;
+
+  /// La cabine telle que le serveur la décrit : chaque case à sa place,
+  /// couloir, porte et poste de conduite compris.
+  ///
+  /// `null`, ou vide, et le plan retombe sur [seats] découpé en rangées
+  /// de [columns] avec une allée au milieu — le seul rendu possible tant
+  /// que la réponse ne portait aucune coordonnée, et qui déforme le plan
+  /// dès que la numérotation sort de la convention 2+2.
+  final KoraCabinGrid? grid;
 
   /// Nombre de sièges par rangée. L'allée est insérée automatiquement au
   /// milieu (entre les colonnes `columns ~/ 2 - 1` et `columns ~/ 2`).
@@ -185,19 +237,9 @@ class SeatMap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final aisleAfter = columns ~/ 2 - 1;
-    final rows = <Widget>[];
-    for (var start = 0; start < seats.length; start += columns) {
-      if (rows.isNotEmpty) rows.add(const SizedBox(height: 8));
-      rows.add(
-        _SeatRow(
-          seats: seats.sublist(start, (start + columns).clamp(0, seats.length)),
-          columns: columns,
-          aisleAfter: aisleAfter,
-          onTap: onSeatTap,
-        ),
-      );
-    }
+    final plan = grid;
+    final fromGrid = plan != null && plan.isUsable;
+    final rows = fromGrid ? _gridRows(plan) : _chunkedRows();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -223,7 +265,14 @@ class SeatMap extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const _BusFront(),
+              // Le volant et la porte sont dessinés en dur au-dessus du
+              // plan tant qu'on ne sait pas où ils sont. Dès que la
+              // grille les porte comme des cases, ils reprennent leur
+              // vraie place et l'en-tête se réduit à l'orientation.
+              if (fromGrid)
+                const _BusLabel('AVANT DU BUS')
+              else
+                const _BusFront(),
               const SizedBox(height: AppSpacing.md),
               ...rows,
               const SizedBox(height: 10),
@@ -233,6 +282,107 @@ class SeatMap extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  /// Le plan historique : les sièges débités en rangées, allée au milieu.
+  List<Widget> _chunkedRows() {
+    final aisleAfter = columns ~/ 2 - 1;
+    final rows = <Widget>[];
+
+    for (var start = 0; start < seats.length; start += columns) {
+      if (rows.isNotEmpty) rows.add(const SizedBox(height: 8));
+      rows.add(
+        _SeatRow(
+          seats: seats.sublist(start, (start + columns).clamp(0, seats.length)),
+          columns: columns,
+          aisleAfter: aisleAfter,
+          onTap: onSeatTap,
+        ),
+      );
+    }
+
+    return rows;
+  }
+
+  /// Le plan tel que le serveur l'a calculé : une case par coordonnée.
+  ///
+  /// Aucune logique de placement ici — c'est tout l'intérêt. Une case
+  /// absente de la grille reste un trou, ce qui est la bonne réponse
+  /// pour un bus dont le plancher n'est pas plein.
+  List<Widget> _gridRows(KoraCabinGrid plan) {
+    final byPosition = <int, KoraSeatCell>{
+      for (final cell in plan.cells) cell.y * plan.cols + cell.x: cell,
+    };
+
+    final rows = <Widget>[];
+    for (var y = 0; y < plan.rows; y++) {
+      if (rows.isNotEmpty) rows.add(const SizedBox(height: 8));
+      rows.add(
+        _CabinRow(
+          cells: [
+            for (var x = 0; x < plan.cols; x++) byPosition[y * plan.cols + x],
+          ],
+          onTap: onSeatTap,
+        ),
+      );
+    }
+
+    return rows;
+  }
+}
+
+/// Une rangée de la cabine, une case par colonne.
+///
+/// Les cases gardent une largeur égale — y compris le couloir, qui est
+/// une colonne à part entière et non un écart entre deux sièges.
+class _CabinRow extends StatelessWidget {
+  const _CabinRow({required this.cells, this.onTap});
+
+  final List<KoraSeatCell?> cells;
+  final ValueChanged<KoraSeat>? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        for (var i = 0; i < cells.length; i++) ...[
+          if (i != 0) const SizedBox(width: 8),
+          Expanded(
+            child: AspectRatio(
+              aspectRatio: 1,
+              child: _CabinCell(cell: cells[i], onTap: onTap),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Ce qu'on dessine à une case : un siège, un repère de carrosserie, ou
+/// rien du tout.
+class _CabinCell extends StatelessWidget {
+  const _CabinCell({required this.cell, this.onTap});
+
+  final KoraSeatCell? cell;
+  final ValueChanged<KoraSeat>? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final cell = this.cell;
+    if (cell == null) return const SizedBox();
+
+    return switch (cell.kind) {
+      KoraCellKind.seat when cell.seat != null => _SeatButton(
+        seat: cell.seat!,
+        onTap: onTap,
+      ),
+      KoraCellKind.driver => const Center(child: _DriverWheel()),
+      KoraCellKind.door => const Center(child: _BusDoor()),
+      // Le couloir, le vide, et un siège que l'inventaire ne connaît
+      // pas : la case existe, elle ne porte rien.
+      _ => const SizedBox(),
+    };
   }
 }
 
@@ -244,38 +394,60 @@ class _BusFront extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return const Row(
       children: [
-        // `.driver-wheel` : un cercle dans un cercle.
-        Container(
-          width: 25,
-          height: 25,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: AppColors.mist,
-            border: Border.all(color: AppColors.seatBorderLight),
-          ),
-          child: Container(
-            width: 11,
-            height: 11,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.kora, width: 1.5),
-            ),
-          ),
-        ),
-        const Expanded(child: _BusLabel('AVANT DU BUS')),
-        // `.bus-door`
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(5),
-            border: Border.all(color: AppColors.seatBorderLight),
-          ),
-          child: const _BusLabel('SORTIE', size: 6),
-        ),
+        _DriverWheel(),
+        Expanded(child: _BusLabel('AVANT DU BUS')),
+        _BusDoor(),
       ],
+    );
+  }
+}
+
+/// `.driver-wheel` : un cercle dans un cercle.
+///
+/// Dessiné dans l'en-tête tant que le plan ignore où se trouve le poste
+/// de conduite, et posé à sa vraie case dès que la grille le situe.
+class _DriverWheel extends StatelessWidget {
+  const _DriverWheel();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 25,
+      height: 25,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: AppColors.mist,
+        border: Border.all(color: AppColors.seatBorderLight),
+      ),
+      child: Container(
+        width: 11,
+        height: 11,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: AppColors.kora, width: 1.5),
+        ),
+      ),
+    );
+  }
+}
+
+/// `.bus-door` : la porte, en en-tête ou à sa case selon ce que le plan
+/// sait de la cabine.
+class _BusDoor extends StatelessWidget {
+  const _BusDoor();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(5),
+        border: Border.all(color: AppColors.seatBorderLight),
+      ),
+      child: const _BusLabel('SORTIE', size: 6),
     );
   }
 }

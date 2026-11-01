@@ -17,6 +17,11 @@ class KoraPointRemittanceService
     public function __construct(private readonly KoraPointAccess $access, private readonly KoraPointLedgerService $ledger) {}
 
     /** @param list<string> $saleUuids */
+    /**
+     * Groups eligible outstanding sales into a draft remittance slip with claimed lines.
+     *
+     * @param  list<string>  $saleUuids
+     */
     public function create(User $actor, array $saleUuids, string $method, string $reference): KoraPointRemittance
     {
         $this->access->authorize($actor, 'kora-points.remit');
@@ -51,6 +56,9 @@ class KoraPointRemittanceService
         }, 3);
     }
 
+    /**
+     * Submits a draft remittance for finance control once its proof document is attached.
+     */
     public function submit(User $actor, KoraPointRemittance $remittance): void
     {
         DB::transaction(function () use ($actor, $remittance): void {
@@ -74,6 +82,9 @@ class KoraPointRemittanceService
         });
     }
 
+    /**
+     * Finance reception: validates exact amounts, flags discrepancies for reconciliation, or rejects.
+     */
     public function receive(User $actor, KoraPointRemittance $remittance, int $received, bool $reject = false, ?string $note = null): void
     {
         $this->access->authorize($actor, 'kora-points.finance');
@@ -112,6 +123,9 @@ class KoraPointRemittanceService
         }, 3);
     }
 
+    /**
+     * Throws an authorization error when any covered sale is outside the actor visibility scope.
+     */
     public function requireView(User $actor, KoraPointRemittance $remittance): void
     {
         $lines = $remittance->lines()->with('sale.point')->get();
@@ -123,6 +137,9 @@ class KoraPointRemittanceService
         }
     }
 
+    /**
+     * Writes an audit activity entry for a remittance lifecycle event.
+     */
     private function audit(User $actor, KoraPointRemittance $remittance, string $event): void
     {
         activity('kora-points')->performedOn($remittance)->causedBy($actor)->withProperties(['amount' => $remittance->amount, 'received_amount' => $remittance->received_amount])->log($event);

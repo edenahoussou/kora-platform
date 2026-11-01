@@ -18,6 +18,9 @@ class SendKoraPointReminderJob implements ShouldQueue
 
     public function __construct(public int $reminderId) {}
 
+    /**
+     * Sends the overdue-settlement reminder once to point agents, organization officers and finance.
+     */
     public function handle(): void
     {
         DB::transaction(function (): void {

@@ -3,6 +3,7 @@
 use App\Modules\KoraPoints\Http\Controllers\KoraPartnerDocumentController;
 use App\Modules\KoraPoints\Http\Controllers\KoraPointAgentController;
 use App\Modules\KoraPoints\Http\Controllers\KoraPointController;
+use App\Modules\KoraPoints\Http\Controllers\KoraPointFinanceController;
 use App\Modules\KoraPoints\Http\Controllers\KoraPointOrganizationController;
 use App\Modules\KoraPoints\Http\Controllers\KoraPointRefundController;
 use App\Modules\KoraPoints\Http\Controllers\KoraPointRemittanceController;
@@ -43,6 +44,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     });
 
     Route::prefix('kora-points')->name('kora-points.')->group(function (): void {
+        Route::get('finance', [KoraPointFinanceController::class, 'index'])->name('finance');
         Route::post('/', [KoraPointController::class, 'store'])->name('store');
         Route::patch('defaults', [KoraPointController::class, 'defaults'])->name('defaults');
         Route::prefix('organizations')->name('organizations.')->group(function (): void {

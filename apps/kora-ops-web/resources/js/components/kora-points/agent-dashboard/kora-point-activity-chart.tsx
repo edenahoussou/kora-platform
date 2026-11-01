@@ -1,6 +1,9 @@
 import { Bell, Calendar, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { DailyActivity, PointPriorityAlert } from '../mock/kora-point-mock-data';
+import type {
+    DailyActivity,
+    PointPriorityAlert,
+} from '../mock/kora-point-mock-data';
 
 type Props = {
     activity7d: DailyActivity[];
@@ -40,22 +43,32 @@ export function KoraPointActivityChart({
                 {/* Histogram Bars */}
                 <div className="my-6 flex h-48 items-end justify-between gap-2 px-2 sm:gap-4 sm:px-4">
                     {activity7d.map((item) => {
-                        const heightPct = Math.round((item.sales_amount / maxSales) * 100);
+                        const heightPct = Math.round(
+                            (item.sales_amount / maxSales) * 100,
+                        );
 
                         return (
                             <div
                                 key={item.date}
-                                className="group flex flex-1 flex-col items-center gap-2 h-full justify-end"
+                                className="group flex h-full flex-1 flex-col items-center justify-end gap-2"
                             >
                                 {/* Tooltip on hover */}
-                                <div className="pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity rounded-md bg-slate-900 px-2 py-1 text-[0.625rem] font-bold text-white shadow-md dark:bg-slate-100 dark:text-slate-900 text-center whitespace-nowrap mb-1">
-                                    <div>{item.sales_amount.toLocaleString('fr-FR')} FCFA</div>
-                                    <div className="text-gold font-normal">
-                                        Comm. +{item.commission_amount.toLocaleString('fr-FR')}
+                                <div className="pointer-events-none mb-1 rounded-md bg-slate-900 px-2 py-1 text-center text-[0.625rem] font-bold whitespace-nowrap text-white opacity-0 shadow-md transition-opacity group-hover:opacity-100 dark:bg-slate-100 dark:text-slate-900">
+                                    <div>
+                                        {item.sales_amount.toLocaleString(
+                                            'fr-FR',
+                                        )}{' '}
+                                        FCFA
+                                    </div>
+                                    <div className="font-normal text-gold">
+                                        Comm. +
+                                        {item.commission_amount.toLocaleString(
+                                            'fr-FR',
+                                        )}
                                     </div>
                                 </div>
 
-                                <div className="relative w-full max-w-[2.75rem] h-full flex items-end">
+                                <div className="relative flex h-full w-full max-w-[2.75rem] items-end">
                                     <div
                                         style={{ height: `${heightPct}%` }}
                                         className={cn(
@@ -117,14 +130,17 @@ export function KoraPointActivityChart({
                                 À suivre maintenant
                             </h2>
                         </div>
-                        <span className="text-[0.625rem] font-black uppercase text-muted-foreground">
+                        <span className="text-[0.625rem] font-black text-muted-foreground uppercase">
                             {priorities.length} éléments
                         </span>
                     </div>
 
                     <div className="mt-3 divide-y divide-border/60">
                         {priorities.map((alert) => (
-                            <div key={alert.id} className="py-2.5 first:pt-1 last:pb-1">
+                            <div
+                                key={alert.id}
+                                className="py-2.5 first:pt-1 last:pb-1"
+                            >
                                 <div className="flex items-start justify-between gap-2">
                                     <strong className="text-xs font-bold text-foreground">
                                         {alert.title}
@@ -139,7 +155,9 @@ export function KoraPointActivityChart({
                                 {alert.action_label && alert.action_target && (
                                     <button
                                         type="button"
-                                        onClick={() => onQuickAction(alert.action_target!)}
+                                        onClick={() =>
+                                            onQuickAction(alert.action_target!)
+                                        }
                                         className="mt-1.5 inline-flex items-center gap-1 text-[0.6875rem] font-bold text-digital hover:underline"
                                     >
                                         <span>{alert.action_label}</span>

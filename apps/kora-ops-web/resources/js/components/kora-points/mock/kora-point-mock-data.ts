@@ -244,7 +244,8 @@ export const MOCK_PRIORITIES: PointPriorityAlert[] = [
         id: 'p-1',
         level: 'warning',
         title: 'Échéance de reversement hebdomadaire',
-        description: 'Prochaine échéance le lundi 3 août à 18:00 (dans 2 jours).',
+        description:
+            'Prochaine échéance le lundi 3 août à 18:00 (dans 2 jours).',
         time_label: 'Il y a 25 min',
         action_label: 'Préparer',
         action_target: 'settlements',
@@ -253,7 +254,8 @@ export const MOCK_PRIORITIES: PointPriorityAlert[] = [
         id: 'p-2',
         level: 'info',
         title: 'Seuil d’encours sous surveillance',
-        description: 'Vous êtes à 64 % de votre plafond autorisé (960 000 / 1 500 000 FCFA).',
+        description:
+            'Vous êtes à 64 % de votre plafond autorisé (960 000 / 1 500 000 FCFA).',
         time_label: 'Aujourd’hui 08:30',
     },
     {
@@ -504,6 +506,7 @@ export function getScenarioData(scenarioId: DemoScenarioId): {
             ...MOCK_DAILY_METRICS,
             total_due_amount: 1850000,
         };
+
         return {
             point,
             health,
@@ -514,7 +517,10 @@ export function getScenarioData(scenarioId: DemoScenarioId): {
     }
 
     if (scenarioId === 'autonomous_warning_80') {
-        const point = { ...MOCK_POINT_AUTONOMOUS, status: 'warning_threshold' as PointStatus };
+        const point = {
+            ...MOCK_POINT_AUTONOMOUS,
+            status: 'warning_threshold' as PointStatus,
+        };
         const health: FinancialHealth = {
             credit_limit: point.terms.credit_limit_amount,
             current_exposure: 1290000,
@@ -524,12 +530,14 @@ export function getScenarioData(scenarioId: DemoScenarioId): {
             next_due_label: 'Lundi 3 août à 18:00',
             is_overdue: false,
             sales_allowed: true,
-            block_reason: 'Attention : le seuil d’alerte de 80 % est atteint. Pensez à verser les recettes.',
+            block_reason:
+                'Attention : le seuil d’alerte de 80 % est atteint. Pensez à verser les recettes.',
         };
         const metrics: DailyMetrics = {
             ...MOCK_DAILY_METRICS,
             total_due_amount: 1290000,
         };
+
         return {
             point,
             health,
@@ -539,7 +547,8 @@ export function getScenarioData(scenarioId: DemoScenarioId): {
                     id: 'w-1',
                     level: 'warning',
                     title: 'Seuil d’alerte de 80 % dépassé',
-                    description: 'Encours à 86 % du plafond. Les ventes seront bloquées si l’encours atteint 1 500 000 FCFA.',
+                    description:
+                        'Encours à 86 % du plafond. Les ventes seront bloquées si l’encours atteint 1 500 000 FCFA.',
                     time_label: 'Il y a 5 min',
                     action_label: 'Préparer un reversement',
                     action_target: 'settlements',
@@ -551,7 +560,10 @@ export function getScenarioData(scenarioId: DemoScenarioId): {
     }
 
     if (scenarioId === 'autonomous_limit_reached') {
-        const point = { ...MOCK_POINT_AUTONOMOUS, status: 'limit_reached' as PointStatus };
+        const point = {
+            ...MOCK_POINT_AUTONOMOUS,
+            status: 'limit_reached' as PointStatus,
+        };
         const health: FinancialHealth = {
             credit_limit: point.terms.credit_limit_amount,
             current_exposure: 1500000,
@@ -561,12 +573,14 @@ export function getScenarioData(scenarioId: DemoScenarioId): {
             next_due_label: 'Lundi 3 août à 18:00',
             is_overdue: false,
             sales_allowed: false,
-            block_reason: 'Ventes bloquées : le plafond de crédit (1 500 000 FCFA) est atteint. Un reversement validé est nécessaire pour débloquer les ventes.',
+            block_reason:
+                'Ventes bloquées : le plafond de crédit (1 500 000 FCFA) est atteint. Un reversement validé est nécessaire pour débloquer les ventes.',
         };
         const metrics: DailyMetrics = {
             ...MOCK_DAILY_METRICS,
             total_due_amount: 1500000,
         };
+
         return {
             point,
             health,
@@ -576,7 +590,8 @@ export function getScenarioData(scenarioId: DemoScenarioId): {
                     id: 'b-1',
                     level: 'critical',
                     title: 'Ventes temporairement bloquées',
-                    description: 'Plafond atteint (1 500 000 FCFA). Effectuez un reversement pour libérer du disponible.',
+                    description:
+                        'Plafond atteint (1 500 000 FCFA). Effectuez un reversement pour libérer du disponible.',
                     time_label: 'Actif',
                     action_label: 'Déclarer un reversement',
                     action_target: 'settlements',
@@ -588,7 +603,10 @@ export function getScenarioData(scenarioId: DemoScenarioId): {
     }
 
     if (scenarioId === 'autonomous_overdue') {
-        const point = { ...MOCK_POINT_AUTONOMOUS, status: 'overdue' as PointStatus };
+        const point = {
+            ...MOCK_POINT_AUTONOMOUS,
+            status: 'overdue' as PointStatus,
+        };
         const health: FinancialHealth = {
             credit_limit: point.terms.credit_limit_amount,
             current_exposure: 820000,
@@ -598,12 +616,14 @@ export function getScenarioData(scenarioId: DemoScenarioId): {
             next_due_label: 'Lundi 27 juillet (Échue depuis 5 jours)',
             is_overdue: true,
             sales_allowed: false,
-            block_reason: 'Ventes suspendues : retard de reversement au-delà du délai de grâce (échéance du 27 juillet non réglée).',
+            block_reason:
+                'Ventes suspendues : retard de reversement au-delà du délai de grâce (échéance du 27 juillet non réglée).',
         };
         const metrics: DailyMetrics = {
             ...MOCK_DAILY_METRICS,
             total_due_amount: 820000,
         };
+
         return {
             point,
             health,
@@ -613,7 +633,8 @@ export function getScenarioData(scenarioId: DemoScenarioId): {
                     id: 'o-1',
                     level: 'critical',
                     title: 'Délai de grâce dépassé — Ventes suspendues',
-                    description: 'Reversement hebdomadaire en retard depuis plus de 48 heures.',
+                    description:
+                        'Reversement hebdomadaire en retard depuis plus de 48 heures.',
                     time_label: 'Retard de 5 jours',
                     action_label: 'Régulariser immédiatement',
                     action_target: 'settlements',
@@ -637,6 +658,7 @@ export function getScenarioData(scenarioId: DemoScenarioId): {
         sales_allowed: true,
         block_reason: null,
     };
+
     return {
         point,
         health,
@@ -938,7 +960,8 @@ export const MOCK_COMMISSION_RECORDS: PointCommissionRecord[] = [
         settlement_status: 'open',
         has_refund_correction: true,
         refund_ref: 'REM-2026-0004',
-        refund_reason: 'Annulation voyageur autorisée par KORA Finance. Reprise de commission effectuée.',
+        refund_reason:
+            'Annulation voyageur autorisée par KORA Finance. Reprise de commission effectuée.',
     },
     {
         uuid: 'com-05',
@@ -991,13 +1014,10 @@ export const MOCK_COMMISSION_RECORDS: PointCommissionRecord[] = [
 ];
 
 export type PointSettlementStatus =
-    | 'DRAFT'
-    | 'DECLARED'
-    | 'VALIDATED'
-    | 'REJECTED'
-    | 'PARTIALLY_VALIDATED';
+    'DRAFT' | 'DECLARED' | 'VALIDATED' | 'REJECTED' | 'PARTIALLY_VALIDATED';
 
-export type PointSettlementMethod = 'BANK_TRANSFER' | 'BANK_DEPOSIT' | 'CHECK' | 'MOBILE_MONEY';
+export type PointSettlementMethod =
+    'BANK_TRANSFER' | 'BANK_DEPOSIT' | 'CHECK' | 'MOBILE_MONEY';
 
 export type PointSettlementRecord = {
     uuid: string;
@@ -1099,7 +1119,11 @@ export const MOCK_POINT_SETTLEMENTS: PointSettlementRecord[] = [
         proof_file_size: '285 Ko',
         status: 'VALIDATED',
         sales_count: 22,
-        tickets_covered: ['TK-AKP-260730-01', 'TK-AKP-260730-02', 'TK-AKP-260727-08'],
+        tickets_covered: [
+            'TK-AKP-260730-01',
+            'TK-AKP-260730-02',
+            'TK-AKP-260727-08',
+        ],
         notes: 'Virement bancaire compte principal BOA KORA Exploitation.',
         timeline: [
             {
@@ -1116,7 +1140,8 @@ export const MOCK_POINT_SETTLEMENTS: PointSettlementRecord[] = [
                 step: 'Fonds crédités et rapprochés',
                 date_label: '29 juil. 09:30',
                 actor: 'Clarisse Mensah (Finance KORA)',
-                comment: 'Reçu bancaire conforme, encours apuré de 185 000 FCFA.',
+                comment:
+                    'Reçu bancaire conforme, encours apuré de 185 000 FCFA.',
             },
         ],
     },
@@ -1193,10 +1218,7 @@ export const MOCK_POINT_SETTLEMENTS: PointSettlementRecord[] = [
 ];
 
 export type PointRefundStatus =
-    | 'REQUESTED'
-    | 'APPROVED_BY_FINANCE'
-    | 'FUNDS_RESTITUTED'
-    | 'REJECTED';
+    'REQUESTED' | 'APPROVED_BY_FINANCE' | 'FUNDS_RESTITUTED' | 'REJECTED';
 
 export type PointRefundReason =
     | 'TRIP_CANCELLED'
@@ -1332,7 +1354,8 @@ export const MOCK_POINT_REFUNDS: PointRefundRecord[] = [
         refund_amount: 8100,
         commission_clawback: -270,
         reason: 'SCHEDULE_CHANGE',
-        reason_label: 'Changement de date demandé par le voyageur (retenue 10%)',
+        reason_label:
+            'Changement de date demandé par le voyageur (retenue 10%)',
         status: 'REQUESTED',
         requested_at: '2026-08-01 09:40',
         requested_by: 'Bio Kora Agent',
@@ -1645,7 +1668,8 @@ export const MOCK_GROUP_SETTLEMENTS: GroupSettlementRecord[] = [
                 step: 'Fonds reçus et rapprochés par KORA',
                 date_label: '29 juil. 09:15',
                 actor: 'Clarisse Mensah (Finance KORA)',
-                comment: 'Rapprochement 100% conforme sur les 5 comptes auxiliaires.',
+                comment:
+                    'Rapprochement 100% conforme sur les 5 comptes auxiliaires.',
             },
         ],
     },
@@ -2004,7 +2028,8 @@ export const MOCK_ADMIN_ORGANIZATIONS: AdminOrganization[] = [
 // LOT 6 DATA EXTENSIONS : NOTIFICATIONS & RECHERCHE GLOBALE
 // -------------------------------------------------------------
 
-export type KoraNotificationCategory = 'FINANCE' | 'SALES' | 'THRESHOLD' | 'SYSTEM';
+export type KoraNotificationCategory =
+    'FINANCE' | 'SALES' | 'THRESHOLD' | 'SYSTEM';
 
 export type KoraNotificationItem = {
     uuid: string;
@@ -2166,7 +2191,3 @@ export const MOCK_PERSONAS: Record<KoraPointUserRole, KoraPersona> = {
         defaultPage: 'finance',
     },
 };
-
-
-
-

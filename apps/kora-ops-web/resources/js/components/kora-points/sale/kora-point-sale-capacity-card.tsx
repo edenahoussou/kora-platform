@@ -1,6 +1,14 @@
-import { ShieldCheck, AlertTriangle, Wallet, TrendingUp, AlertCircle } from 'lucide-react';
-import { FinancialHealth, KoraPointProfile } from '../mock/kora-point-mock-data';
+import {
+    ShieldCheck,
+    AlertTriangle,
+    TrendingUp,
+    AlertCircle,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
+import type {
+    FinancialHealth,
+    KoraPointProfile,
+} from '../mock/kora-point-mock-data';
 
 type Props = {
     point: KoraPointProfile;
@@ -17,14 +25,20 @@ export function KoraPointSaleCapacityCard({
 }: Props) {
     const isExceeded = totalSaleAmount > health.available_balance;
     const projectedExposure = health.current_exposure + totalSaleAmount;
-    const projectedAvailable = Math.max(0, health.credit_limit - projectedExposure);
+    const projectedAvailable = Math.max(
+        0,
+        health.credit_limit - projectedExposure,
+    );
     const commissionAmount = Math.round(
         (totalSaleAmount * point.terms.commission_rate_bps) / 10000,
     );
-    const ratePercent = (point.terms.commission_rate_bps / 100).toLocaleString('fr-FR', {
-        minimumFractionDigits: 1,
-        maximumFractionDigits: 2,
-    });
+    const ratePercent = (point.terms.commission_rate_bps / 100).toLocaleString(
+        'fr-FR',
+        {
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 2,
+        },
+    );
 
     return (
         <aside
@@ -32,7 +46,7 @@ export function KoraPointSaleCapacityCard({
             className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"
         >
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
-                <span className="text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <span className="text-xs font-extrabold tracking-wider text-slate-500 uppercase dark:text-slate-400">
                     Capacité du Point
                 </span>
                 {health.sales_allowed && !isExceeded ? (
@@ -51,14 +65,18 @@ export function KoraPointSaleCapacityCard({
             {/* Balances recap */}
             <div className="mt-3 space-y-2 text-xs">
                 <div className="flex items-center justify-between">
-                    <span className="text-slate-500 dark:text-slate-400">Plafond de crédit :</span>
+                    <span className="text-slate-500 dark:text-slate-400">
+                        Plafond de crédit :
+                    </span>
                     <strong className="font-mono text-slate-700 dark:text-slate-300">
                         {health.credit_limit.toLocaleString('fr-FR')} FCFA
                     </strong>
                 </div>
 
                 <div className="flex items-center justify-between">
-                    <span className="text-slate-500 dark:text-slate-400">Disponible actuel :</span>
+                    <span className="text-slate-500 dark:text-slate-400">
+                        Disponible actuel :
+                    </span>
                     <strong className="font-mono text-emerald-600 dark:text-emerald-400">
                         {health.available_balance.toLocaleString('fr-FR')} FCFA
                     </strong>
@@ -66,7 +84,8 @@ export function KoraPointSaleCapacityCard({
 
                 <div className="flex items-center justify-between border-t border-slate-100 pt-2 font-bold dark:border-slate-800">
                     <span className="text-slate-900 dark:text-white">
-                        Total panier ({passengerCount} place{passengerCount > 1 ? 's' : ''}) :
+                        Total panier ({passengerCount} place
+                        {passengerCount > 1 ? 's' : ''}) :
                     </span>
                     <strong className="font-mono text-sm text-slate-900 dark:text-white">
                         {totalSaleAmount.toLocaleString('fr-FR')} FCFA
@@ -86,7 +105,7 @@ export function KoraPointSaleCapacityCard({
                         className={cn(
                             'font-mono',
                             isExceeded
-                                ? 'text-rose-600 font-black'
+                                ? 'font-black text-rose-600'
                                 : 'text-slate-700 dark:text-slate-300',
                         )}
                     >
@@ -107,7 +126,8 @@ export function KoraPointSaleCapacityCard({
                     </strong>
                 </div>
                 <p className="mt-1 text-[0.6875rem] text-amber-900/70 dark:text-amber-200/70">
-                    Montant retenu directement par le Point sur le montant encaissé.
+                    Montant retenu directement par le Point sur le montant
+                    encaissé.
                 </p>
             </div>
 
@@ -121,9 +141,13 @@ export function KoraPointSaleCapacityCard({
                     <p className="mt-1 text-[0.6875rem] leading-relaxed">
                         Le panier dépasse votre plafond disponible de{' '}
                         <strong>
-                            {(totalSaleAmount - health.available_balance).toLocaleString('fr-FR')} FCFA
+                            {(
+                                totalSaleAmount - health.available_balance
+                            ).toLocaleString('fr-FR')}{' '}
+                            FCFA
                         </strong>
-                        . Effectuez ou faites valider un reversement pour libérer du disponible.
+                        . Effectuez ou faites valider un reversement pour
+                        libérer du disponible.
                     </p>
                 </div>
             )}

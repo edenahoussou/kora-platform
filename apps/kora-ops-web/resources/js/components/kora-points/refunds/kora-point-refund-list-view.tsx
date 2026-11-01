@@ -26,7 +26,11 @@ type Props = {
     refunds: PointRefundRecord[];
     sales: PointSaleRecord[];
     onInitiateRefund: (data: any) => void;
-    onConfirmRestitution: (refundUuid: string, signatoryName: string, receiptNote?: string) => void;
+    onConfirmRestitution: (
+        refundUuid: string,
+        signatoryName: string,
+        receiptNote?: string,
+    ) => void;
 };
 
 export function KoraPointRefundListView({
@@ -37,21 +41,27 @@ export function KoraPointRefundListView({
     onConfirmRestitution,
 }: Props) {
     const [searchQuery, setSearchQuery] = useState('');
-    const [statusFilter, setStatusFilter] = useState<'ALL' | PointRefundStatus>('ALL');
-    const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
-    const [activeRestitutionRefund, setActiveRestitutionRefund] = useState<PointRefundRecord | null>(
-        null,
+    const [statusFilter, setStatusFilter] = useState<'ALL' | PointRefundStatus>(
+        'ALL',
     );
+    const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+    const [activeRestitutionRefund, setActiveRestitutionRefund] =
+        useState<PointRefundRecord | null>(null);
 
     // Filtered refunds
     const filteredRefunds = useMemo(() => {
         return refunds.filter((r) => {
             const matchesSearch =
                 r.reference.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                r.ticket_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                r.passenger_name.toLowerCase().includes(searchQuery.toLowerCase());
+                r.ticket_number
+                    .toLowerCase()
+                    .includes(searchQuery.toLowerCase()) ||
+                r.passenger_name
+                    .toLowerCase()
+                    .includes(searchQuery.toLowerCase());
 
-            const matchesStatus = statusFilter === 'ALL' || r.status === statusFilter;
+            const matchesStatus =
+                statusFilter === 'ALL' || r.status === statusFilter;
 
             return matchesSearch && matchesStatus;
         });
@@ -66,12 +76,12 @@ export function KoraPointRefundListView({
 
         refunds.forEach((r) => {
             if (r.status === 'REQUESTED') {
-pendingFinance += 1;
-}
+                pendingFinance += 1;
+            }
 
             if (r.status === 'APPROVED_BY_FINANCE') {
-readyForRestitution += 1;
-}
+                readyForRestitution += 1;
+            }
 
             if (r.status === 'FUNDS_RESTITUTED') {
                 totalRefunded += r.refund_amount;
@@ -79,7 +89,12 @@ readyForRestitution += 1;
             }
         });
 
-        return { pendingFinance, readyForRestitution, totalRefunded, totalClawback };
+        return {
+            pendingFinance,
+            readyForRestitution,
+            totalRefunded,
+            totalClawback,
+        };
     }, [refunds]);
 
     const getStatusBadge = (status: PointRefundStatus) => {
@@ -160,7 +175,8 @@ readyForRestitution += 1;
                         Remboursements & Restitutions passagers
                     </h1>
                     <p className="mt-1.5 text-[0.8125rem] leading-6 text-muted-foreground">
-                        Gestion des annulations, décomposition des reprises de commissions et quittances d'émargement.
+                        Gestion des annulations, décomposition des reprises de
+                        commissions et quittances d'émargement.
                     </p>
                 </div>
 
@@ -185,14 +201,18 @@ readyForRestitution += 1;
                                 <Coins className="size-4" strokeWidth={1.7} />
                             </span>
                             <div>
-                                <span className="cash-ledger-title">À restituer</span>
+                                <span className="cash-ledger-title">
+                                    À restituer
+                                </span>
                                 <small>Accord Finance KORA obtenu</small>
                             </div>
                         </div>
                     </div>
                     <div className="cash-ledger-balance">
                         <span>Dossiers</span>
-                        <strong className="text-gold">{metrics.readyForRestitution} dossier(s)</strong>
+                        <strong className="text-gold">
+                            {metrics.readyForRestitution} dossier(s)
+                        </strong>
                     </div>
                 </article>
 
@@ -203,14 +223,18 @@ readyForRestitution += 1;
                                 <Clock className="size-4" strokeWidth={1.7} />
                             </span>
                             <div>
-                                <span className="cash-ledger-title">En instruction</span>
+                                <span className="cash-ledger-title">
+                                    En instruction
+                                </span>
                                 <small>Vérification des justificatifs</small>
                             </div>
                         </div>
                     </div>
                     <div className="cash-ledger-balance">
                         <span>Dossiers</span>
-                        <strong className="text-digital">{metrics.pendingFinance} dossier(s)</strong>
+                        <strong className="text-digital">
+                            {metrics.pendingFinance} dossier(s)
+                        </strong>
                     </div>
                 </article>
 
@@ -218,17 +242,24 @@ readyForRestitution += 1;
                     <div className="cash-ledger-head">
                         <div className="cash-ledger-identity">
                             <span className="cash-ledger-brand bg-emerald-500/10 text-emerald-600">
-                                <CheckCircle2 className="size-4" strokeWidth={1.7} />
+                                <CheckCircle2
+                                    className="size-4"
+                                    strokeWidth={1.7}
+                                />
                             </span>
                             <div>
-                                <span className="cash-ledger-title">Fonds restitués</span>
+                                <span className="cash-ledger-title">
+                                    Fonds restitués
+                                </span>
                                 <small>Remis en mains propres</small>
                             </div>
                         </div>
                     </div>
                     <div className="cash-ledger-balance">
                         <span>Total</span>
-                        <strong className="text-emerald-600">{metrics.totalRefunded.toLocaleString('fr-FR')} FCFA</strong>
+                        <strong className="text-emerald-600">
+                            {metrics.totalRefunded.toLocaleString('fr-FR')} FCFA
+                        </strong>
                     </div>
                 </article>
 
@@ -236,17 +267,25 @@ readyForRestitution += 1;
                     <div className="cash-ledger-head">
                         <div className="cash-ledger-identity">
                             <span className="cash-ledger-brand bg-destructive/10 text-destructive">
-                                <RotateCcw className="size-4" strokeWidth={1.7} />
+                                <RotateCcw
+                                    className="size-4"
+                                    strokeWidth={1.7}
+                                />
                             </span>
                             <div>
-                                <span className="cash-ledger-title">Commissions reprises</span>
+                                <span className="cash-ledger-title">
+                                    Commissions reprises
+                                </span>
                                 <small>Régularisées à la source</small>
                             </div>
                         </div>
                     </div>
                     <div className="cash-ledger-balance">
                         <span>Total</span>
-                        <strong className="text-destructive">- {metrics.totalClawback.toLocaleString('fr-FR')} FCFA</strong>
+                        <strong className="text-destructive">
+                            - {metrics.totalClawback.toLocaleString('fr-FR')}{' '}
+                            FCFA
+                        </strong>
                     </div>
                 </article>
             </div>
@@ -254,13 +293,13 @@ readyForRestitution += 1;
             {/* Filter Bar */}
             <div className="cash-filterbar cash-reveal cash-reveal-delay-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="relative flex-1">
-                    <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+                    <Search className="absolute top-2.5 left-3 size-4 text-muted-foreground" />
                     <input
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Rechercher par référence, n° de billet, nom du voyageur..."
-                        className="w-full rounded-xl border border-border bg-muted/40 py-2 pl-9 pr-4 text-xs font-medium text-foreground placeholder:text-muted-foreground focus:bg-card focus:border-gold focus:outline-none"
+                        className="w-full rounded-xl border border-border bg-muted/40 py-2 pr-4 pl-9 text-xs font-medium text-foreground placeholder:text-muted-foreground focus:border-gold focus:bg-card focus:outline-none"
                     />
                 </div>
 
@@ -280,7 +319,9 @@ readyForRestitution += 1;
                         onClick={() => setStatusFilter('APPROVED_BY_FINANCE')}
                         className={cn(
                             'btn btn-sm',
-                            statusFilter === 'APPROVED_BY_FINANCE' ? 'btn-navy' : 'btn-ghost',
+                            statusFilter === 'APPROVED_BY_FINANCE'
+                                ? 'btn-navy'
+                                : 'btn-ghost',
                         )}
                     >
                         Prêts pour restitution
@@ -290,7 +331,9 @@ readyForRestitution += 1;
                         onClick={() => setStatusFilter('REQUESTED')}
                         className={cn(
                             'btn btn-sm',
-                            statusFilter === 'REQUESTED' ? 'btn-navy' : 'btn-ghost',
+                            statusFilter === 'REQUESTED'
+                                ? 'btn-navy'
+                                : 'btn-ghost',
                         )}
                     >
                         En instruction
@@ -300,7 +343,9 @@ readyForRestitution += 1;
                         onClick={() => setStatusFilter('FUNDS_RESTITUTED')}
                         className={cn(
                             'btn btn-sm',
-                            statusFilter === 'FUNDS_RESTITUTED' ? 'btn-navy' : 'btn-ghost',
+                            statusFilter === 'FUNDS_RESTITUTED'
+                                ? 'btn-navy'
+                                : 'btn-ghost',
                         )}
                     >
                         Restitués
@@ -322,29 +367,29 @@ readyForRestitution += 1;
             ) : (
                 <>
                     {/* Desktop Table View */}
-                    <div className="hidden lg:block overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                    <div className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm lg:block dark:border-slate-800 dark:bg-slate-900">
                         <table className="w-full text-left text-xs">
                             <thead className="border-b border-slate-100 bg-slate-50/75 text-slate-500 dark:border-slate-800 dark:bg-slate-800/40">
                                 <tr>
-                                    <th className="px-5 py-3.5 font-bold uppercase tracking-wider">
+                                    <th className="px-5 py-3.5 font-bold tracking-wider uppercase">
                                         Dossier & Date
                                     </th>
-                                    <th className="px-5 py-3.5 font-bold uppercase tracking-wider">
+                                    <th className="px-5 py-3.5 font-bold tracking-wider uppercase">
                                         Billet & Passager
                                     </th>
-                                    <th className="px-5 py-3.5 font-bold uppercase tracking-wider">
+                                    <th className="px-5 py-3.5 font-bold tracking-wider uppercase">
                                         Motif
                                     </th>
-                                    <th className="px-5 py-3.5 font-bold uppercase tracking-wider text-right">
+                                    <th className="px-5 py-3.5 text-right font-bold tracking-wider uppercase">
                                         Net remboursé
                                     </th>
-                                    <th className="px-5 py-3.5 font-bold uppercase tracking-wider text-right">
+                                    <th className="px-5 py-3.5 text-right font-bold tracking-wider uppercase">
                                         Reprise com (-3%)
                                     </th>
-                                    <th className="px-5 py-3.5 font-bold uppercase tracking-wider">
+                                    <th className="px-5 py-3.5 font-bold tracking-wider uppercase">
                                         Statut
                                     </th>
-                                    <th className="px-5 py-3.5 font-bold uppercase tracking-wider text-right">
+                                    <th className="px-5 py-3.5 text-right font-bold tracking-wider uppercase">
                                         Action guichet
                                     </th>
                                 </tr>
@@ -356,7 +401,7 @@ readyForRestitution += 1;
                                         className="transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/30"
                                     >
                                         <td className="px-5 py-4">
-                                            <span className="font-mono font-bold text-slate-900 dark:text-white block">
+                                            <span className="block font-mono font-bold text-slate-900 dark:text-white">
                                                 {r.reference}
                                             </span>
                                             <span className="text-[11px] text-slate-500">
@@ -364,45 +409,61 @@ readyForRestitution += 1;
                                             </span>
                                         </td>
                                         <td className="px-5 py-4">
-                                            <span className="font-bold text-slate-800 dark:text-slate-200 block">
+                                            <span className="block font-bold text-slate-800 dark:text-slate-200">
                                                 {r.passenger_name}
                                             </span>
                                             <span className="font-mono text-[11px] text-slate-500">
-                                                {r.ticket_number} ({r.route_label})
+                                                {r.ticket_number} (
+                                                {r.route_label})
                                             </span>
                                         </td>
                                         <td className="px-5 py-4">
-                                            <span className="text-slate-700 dark:text-slate-300 line-clamp-1">
+                                            <span className="line-clamp-1 text-slate-700 dark:text-slate-300">
                                                 {r.reason_label}
                                             </span>
                                             {r.proof_document && (
-                                                <span className="text-[11px] text-blue-600 dark:text-blue-400 flex items-center gap-1 mt-0.5">
-                                                    <FileText className="h-3 w-3" /> Justificatif joint
+                                                <span className="mt-0.5 flex items-center gap-1 text-[11px] text-blue-600 dark:text-blue-400">
+                                                    <FileText className="h-3 w-3" />{' '}
+                                                    Justificatif joint
                                                 </span>
                                             )}
                                         </td>
                                         <td className="px-5 py-4 text-right font-black text-slate-900 dark:text-white">
-                                            {r.refund_amount.toLocaleString()} FCFA
+                                            {r.refund_amount.toLocaleString()}{' '}
+                                            FCFA
                                         </td>
                                         <td className="px-5 py-4 text-right font-black text-rose-600 dark:text-rose-400">
-                                            {r.commission_clawback.toLocaleString()} FCFA
+                                            {r.commission_clawback.toLocaleString()}{' '}
+                                            FCFA
                                         </td>
-                                        <td className="px-5 py-4">{getStatusBadge(r.status)}</td>
+                                        <td className="px-5 py-4">
+                                            {getStatusBadge(r.status)}
+                                        </td>
                                         <td className="px-5 py-4 text-right">
-                                            {r.status === 'APPROVED_BY_FINANCE' && (
+                                            {r.status ===
+                                                'APPROVED_BY_FINANCE' && (
                                                 <button
                                                     type="button"
-                                                    onClick={() => setActiveRestitutionRefund(r)}
-                                                    className="inline-flex items-center gap-1 rounded-xl bg-gold px-3 py-1.5 text-xs font-black uppercase text-kora shadow-sm hover:bg-gold-light"
+                                                    onClick={() =>
+                                                        setActiveRestitutionRefund(
+                                                            r,
+                                                        )
+                                                    }
+                                                    className="hover:bg-gold-light inline-flex items-center gap-1 rounded-xl bg-gold px-3 py-1.5 text-xs font-black text-kora uppercase shadow-sm"
                                                 >
                                                     <Coins className="h-3.5 w-3.5" />
                                                     Restituer espèces →
                                                 </button>
                                             )}
-                                            {r.status === 'FUNDS_RESTITUTED' && (
+                                            {r.status ===
+                                                'FUNDS_RESTITUTED' && (
                                                 <button
                                                     type="button"
-                                                    onClick={() => setActiveRestitutionRefund(r)}
+                                                    onClick={() =>
+                                                        setActiveRestitutionRefund(
+                                                            r,
+                                                        )
+                                                    }
                                                     className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
                                                 >
                                                     <Receipt className="h-3.5 w-3.5 text-emerald-600" />
@@ -415,7 +476,7 @@ readyForRestitution += 1;
                                                 </span>
                                             )}
                                             {r.status === 'REJECTED' && (
-                                                <span className="text-[11px] text-rose-500 font-bold">
+                                                <span className="text-[11px] font-bold text-rose-500">
                                                     Non éligible
                                                 </span>
                                             )}
@@ -431,11 +492,11 @@ readyForRestitution += 1;
                         {filteredRefunds.map((r) => (
                             <div
                                 key={r.uuid}
-                                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-3"
+                                className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
                             >
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <span className="font-mono text-xs font-black text-slate-900 dark:text-white block">
+                                        <span className="block font-mono text-xs font-black text-slate-900 dark:text-white">
                                             {r.reference}
                                         </span>
                                         <span className="text-[11px] text-slate-400">
@@ -445,44 +506,52 @@ readyForRestitution += 1;
                                     {getStatusBadge(r.status)}
                                 </div>
 
-                                <div className="text-xs space-y-1">
+                                <div className="space-y-1 text-xs">
                                     <p className="font-bold text-slate-900 dark:text-white">
                                         {r.passenger_name} ({r.route_label})
                                     </p>
-                                    <p className="text-slate-500 text-[11px]">{r.reason_label}</p>
+                                    <p className="text-[11px] text-slate-500">
+                                        {r.reason_label}
+                                    </p>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-slate-100 dark:border-slate-800">
+                                <div className="grid grid-cols-2 gap-2 border-t border-slate-100 pt-1 text-xs dark:border-slate-800">
                                     <div>
-                                        <span className="text-[11px] text-slate-400 block">
+                                        <span className="block text-[11px] text-slate-400">
                                             Net restitué passager
                                         </span>
                                         <span className="font-black text-slate-900 dark:text-white">
-                                            {r.refund_amount.toLocaleString()} FCFA
+                                            {r.refund_amount.toLocaleString()}{' '}
+                                            FCFA
                                         </span>
                                     </div>
                                     <div>
-                                        <span className="text-[11px] text-slate-400 block">
+                                        <span className="block text-[11px] text-slate-400">
                                             Reprise com (-3%)
                                         </span>
                                         <span className="font-black text-rose-600 dark:text-rose-400">
-                                            {r.commission_clawback.toLocaleString()} FCFA
+                                            {r.commission_clawback.toLocaleString()}{' '}
+                                            FCFA
                                         </span>
                                     </div>
                                 </div>
 
-                                {r.status === 'REJECTED' && r.rejection_reason && (
-                                    <div className="rounded-lg bg-rose-50 p-2.5 text-[11px] text-rose-800 dark:bg-rose-950/40 dark:text-rose-300">
-                                        <strong>Motif de rejet :</strong> {r.rejection_reason}
-                                    </div>
-                                )}
+                                {r.status === 'REJECTED' &&
+                                    r.rejection_reason && (
+                                        <div className="rounded-lg bg-rose-50 p-2.5 text-[11px] text-rose-800 dark:bg-rose-950/40 dark:text-rose-300">
+                                            <strong>Motif de rejet :</strong>{' '}
+                                            {r.rejection_reason}
+                                        </div>
+                                    )}
 
                                 <div className="flex justify-end pt-1">
                                     {r.status === 'APPROVED_BY_FINANCE' && (
                                         <button
                                             type="button"
-                                            onClick={() => setActiveRestitutionRefund(r)}
-                                            className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl bg-gold px-3 py-2 text-xs font-black uppercase text-kora"
+                                            onClick={() =>
+                                                setActiveRestitutionRefund(r)
+                                            }
+                                            className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-gold px-3 py-2 text-xs font-black text-kora uppercase"
                                         >
                                             <Coins className="h-4 w-4" />
                                             Restituer espèces →
@@ -491,7 +560,9 @@ readyForRestitution += 1;
                                     {r.status === 'FUNDS_RESTITUTED' && (
                                         <button
                                             type="button"
-                                            onClick={() => setActiveRestitutionRefund(r)}
+                                            onClick={() =>
+                                                setActiveRestitutionRefund(r)
+                                            }
                                             className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
                                         >
                                             <Receipt className="h-3.5 w-3.5 text-emerald-600" />

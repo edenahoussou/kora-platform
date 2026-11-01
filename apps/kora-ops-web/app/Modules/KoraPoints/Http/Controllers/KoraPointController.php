@@ -23,6 +23,9 @@ class KoraPointController extends Controller
 {
     public function __construct(private readonly KoraPointManagementService $management, private readonly KoraPointReadService $read) {}
 
+    /**
+     * Persists global default KORA Point terms in the audited settings store.
+     */
     public function defaults(UpdateKoraPointTermsRequest $request, DatabaseSettingsCoordinator $settings): RedirectResponse
     {
         $mapping = ['commission_basis_points' => 'koraPointCommissionBasisPoints', 'ceiling_amount' => 'koraPointCeilingAmount', 'settlement_calendar' => 'koraPointSettlementCalendar', 'grace_days' => 'koraPointGraceDays'];
@@ -39,6 +42,9 @@ class KoraPointController extends Controller
         return back();
     }
 
+    /**
+     * Streams a CSV export of the point sales within the actor visibility scope.
+     */
     public function export(Request $request, KoraPoint $point, KoraPointAccess $access): StreamedResponse
     {
         $access->requirePoint($request->user(), $point);
@@ -57,21 +63,33 @@ class KoraPointController extends Controller
         }, 'kora-point-'.$point->uuid.'.csv', ['Content-Type' => 'text/csv; charset=UTF-8', 'Cache-Control' => 'private, no-store']);
     }
 
+    /**
+     * Renders the commercial network admin screen.
+     */
     public function index(Request $request): Response
     {
         return Inertia::render('kora-points/index', $this->read->index($request->user()));
     }
 
+    /**
+     * Renders the commissions overview reusing the network props.
+     */
     public function commissions(Request $request): Response
     {
         return Inertia::render('kora-points/commissions', $this->read->index($request->user()));
     }
 
+    /**
+     * Renders a single point detail workspace.
+     */
     public function show(Request $request, KoraPoint $point): Response
     {
         return Inertia::render('kora-points/show', $this->read->show($request->user(), $point));
     }
 
+    /**
+     * Creates a KORA Point then redirects to its detail page.
+     */
     public function store(SaveKoraPointRequest $request): RedirectResponse
     {
         $point = $this->management->savePoint($request->user(), $request->validated());
@@ -80,6 +98,9 @@ class KoraPointController extends Controller
         return to_route('kora-points.show', $point->uuid);
     }
 
+    /**
+     * Updates an existing KORA Point.
+     */
     public function update(SaveKoraPointRequest $request, KoraPoint $point): RedirectResponse
     {
         $this->management->savePoint($request->user(), $request->validated(), $point);
@@ -88,6 +109,9 @@ class KoraPointController extends Controller
         return back();
     }
 
+    /**
+     * Overrides the financial terms of a single point.
+     */
     public function terms(UpdateKoraPointTermsRequest $request, KoraPoint $point): RedirectResponse
     {
         $this->management->updateTerms($request->user(), $point, $request->validated());
@@ -97,6 +121,9 @@ class KoraPointController extends Controller
         return back();
     }
 
+    /**
+     * Applies a lifecycle status change on a point.
+     */
     public function status(ChangeKoraPointStatusRequest $request, KoraPoint $point): RedirectResponse
     {
         $this->management->changeStatus($request->user(), $point, $request->validated('status'));
@@ -106,6 +133,9 @@ class KoraPointController extends Controller
         return back();
     }
 
+    /**
+     * Assigns an agent user to the point.
+     */
     public function assign(AssignKoraPointUserRequest $request, KoraPoint $point): RedirectResponse
     {
         $this->management->assign($request->user(), User::query()->where('uuid', $request->validated('user_uuid'))->firstOrFail(), $point, $request->validated('role'));

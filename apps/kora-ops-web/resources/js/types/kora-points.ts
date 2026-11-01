@@ -242,13 +242,10 @@ export type PointCommissionRecord = {
 };
 
 export type PointSettlementStatus =
-    | 'DRAFT'
-    | 'DECLARED'
-    | 'VALIDATED'
-    | 'REJECTED'
-    | 'PARTIALLY_VALIDATED';
+    'DRAFT' | 'DECLARED' | 'VALIDATED' | 'REJECTED' | 'PARTIALLY_VALIDATED';
 
-export type PointSettlementMethod = 'BANK_TRANSFER' | 'BANK_DEPOSIT' | 'CHECK' | 'MOBILE_MONEY';
+export type PointSettlementMethod =
+    'BANK_TRANSFER' | 'BANK_DEPOSIT' | 'CHECK' | 'MOBILE_MONEY';
 
 export type SettlementPeriodPreview = {
     from: string;
@@ -317,10 +314,7 @@ export type PointSettlementRecord = {
 };
 
 export type PointRefundStatus =
-    | 'REQUESTED'
-    | 'APPROVED_BY_FINANCE'
-    | 'FUNDS_RESTITUTED'
-    | 'REJECTED';
+    'REQUESTED' | 'APPROVED_BY_FINANCE' | 'FUNDS_RESTITUTED' | 'REJECTED';
 
 export type PointRefundReason =
     | 'TRIP_CANCELLED'
@@ -470,7 +464,8 @@ export type AdminOrganization = {
     }[];
 };
 
-export type KoraNotificationCategory = 'FINANCE' | 'SALES' | 'THRESHOLD' | 'SYSTEM';
+export type KoraNotificationCategory =
+    'FINANCE' | 'SALES' | 'THRESHOLD' | 'SYSTEM';
 
 export type KoraNotificationItem = {
     uuid: string;

@@ -1,5 +1,8 @@
 import { HelpCircle, RotateCcw, Sparkles } from 'lucide-react';
-import type { DemoScenarioId, KoraPointUserRole } from '../mock/kora-point-mock-data';
+import type {
+    DemoScenarioId,
+    KoraPointUserRole,
+} from '../mock/kora-point-mock-data';
 
 type Props = {
     currentScenario: DemoScenarioId;
@@ -54,7 +57,7 @@ export function KoraPointDemoBanner({
             <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 text-xs">
                 {/* Left: Indicator */}
                 <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/25 px-2.5 py-0.5 font-black uppercase tracking-wider text-[0.625rem] text-amber-900 dark:bg-amber-400/20 dark:text-amber-200">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/25 px-2.5 py-0.5 text-[0.625rem] font-black tracking-wider text-amber-900 uppercase dark:bg-amber-400/20 dark:text-amber-200">
                         <Sparkles className="size-3 text-amber-600 dark:text-amber-400" />
                         Mode Démonstration UI
                     </span>
@@ -73,14 +76,28 @@ export function KoraPointDemoBanner({
                             </span>
                             <select
                                 value={currentRole}
-                                onChange={(e) => onRoleChange(e.target.value as KoraPointUserRole)}
-                                className="h-8 rounded-lg border border-amber-300/60 bg-white/90 px-2 py-1 text-xs font-black text-amber-950 shadow-sm transition hover:bg-white focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-amber-500/40 dark:bg-slate-900/90 dark:text-amber-100"
+                                onChange={(e) =>
+                                    onRoleChange(
+                                        e.target.value as KoraPointUserRole,
+                                    )
+                                }
+                                className="h-8 rounded-lg border border-amber-300/60 bg-white/90 px-2 py-1 text-xs font-black text-amber-950 shadow-sm transition hover:bg-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 focus:outline-none dark:border-amber-500/40 dark:bg-slate-900/90 dark:text-amber-100"
                             >
-                                <option value="AGENT_POINT">Agent Point (Jean Dossou)</option>
-                                <option value="RESPONSABLE_ORG">Resp. Organisation (Paul H.)</option>
-                                <option value="TRESORIER_ORG">Trésorier Org. (Adolphe G.)</option>
-                                <option value="ADMIN_KORA">Admin Réseau (Éric L.)</option>
-                                <option value="FINANCE_KORA">Finance KORA (Clarisse M.)</option>
+                                <option value="AGENT_POINT">
+                                    Agent Point (Jean Dossou)
+                                </option>
+                                <option value="RESPONSABLE_ORG">
+                                    Resp. Organisation (Paul H.)
+                                </option>
+                                <option value="TRESORIER_ORG">
+                                    Trésorier Org. (Adolphe G.)
+                                </option>
+                                <option value="ADMIN_KORA">
+                                    Admin Réseau (Éric L.)
+                                </option>
+                                <option value="FINANCE_KORA">
+                                    Finance KORA (Clarisse M.)
+                                </option>
                             </select>
                         </label>
                     )}
@@ -89,8 +106,12 @@ export function KoraPointDemoBanner({
                         <span className="sr-only">Scénario de test :</span>
                         <select
                             value={currentScenario}
-                            onChange={(e) => onScenarioChange(e.target.value as DemoScenarioId)}
-                            className="h-8 rounded-lg border border-amber-300/60 bg-white/90 px-2.5 py-1 text-xs font-semibold text-amber-950 shadow-sm transition hover:bg-white focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-amber-500/40 dark:bg-slate-900/90 dark:text-amber-100"
+                            onChange={(e) =>
+                                onScenarioChange(
+                                    e.target.value as DemoScenarioId,
+                                )
+                            }
+                            className="h-8 rounded-lg border border-amber-300/60 bg-white/90 px-2.5 py-1 text-xs font-semibold text-amber-950 shadow-sm transition hover:bg-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 focus:outline-none dark:border-amber-500/40 dark:bg-slate-900/90 dark:text-amber-100"
                         >
                             {SCENARIOS.map((s) => (
                                 <option key={s.id} value={s.id}>

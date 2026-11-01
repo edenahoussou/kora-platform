@@ -1209,6 +1209,7 @@ class AppLocalization {
   String get notificationsMarkAll => translate('notifications_mark_all');
   String get notificationsMarked => translate('notifications_marked');
   String get notificationsEmpty => translate('notifications_empty');
+  String get notificationsEmptyLead => translate('notifications_empty_lead');
   String get notificationsSoon => translate('notifications_soon');
   String get notificationsErrorTitle => translate('notifications_error_title');
   String get notificationsErrorText => translate('notifications_error_text');
@@ -1244,7 +1245,42 @@ class AppLocalization {
   String get securityChangePinSub => translate('security_change_pin_sub');
   String get securityNewDevice => translate('security_new_device');
   String get securityNewDeviceSub => translate('security_new_device_sub');
+  String get securityDeleteAccount => translate('security_delete_account');
+  String get securityDeleteAccountSub =>
+      translate('security_delete_account_sub');
   String get securityDevices => translate('security_devices');
+
+  // --- Suppression du compte ---
+  String get accountDeletionEyebrow => translate('account_deletion_eyebrow');
+  String get accountDeletionTitle => translate('account_deletion_title');
+  String get accountDeletionLead => translate('account_deletion_lead');
+  String get accountDeletionEffectsTitle =>
+      translate('account_deletion_effects_title');
+  String get accountDeletionEffectsRemovedLabel =>
+      translate('account_deletion_effects_removed_label');
+  String get accountDeletionEffectsRemoved =>
+      translate('account_deletion_effects_removed');
+  String get accountDeletionEffectsKeptLabel =>
+      translate('account_deletion_effects_kept_label');
+  String get accountDeletionEffectsKept =>
+      translate('account_deletion_effects_kept');
+  String get accountDeletionEffectsPendingLabel =>
+      translate('account_deletion_effects_pending_label');
+  String get accountDeletionEffectsPending =>
+      translate('account_deletion_effects_pending');
+  String get accountDeletionConfirmTitle =>
+      translate('account_deletion_confirm_title');
+  String get accountDeletionConfirmText =>
+      translate('account_deletion_confirm_text');
+  String get accountDeletionConfirmCta =>
+      translate('account_deletion_confirm_cta');
+  String get accountDeletionReason => translate('account_deletion_reason');
+  String get accountDeletionReasonHint =>
+      translate('account_deletion_reason_hint');
+  String get accountDeletionPinTitle => translate('account_deletion_pin_title');
+  String get accountDeletionPinLead => translate('account_deletion_pin_lead');
+  String get accountDeletionSubmit => translate('account_deletion_submit');
+  String get accountDeletionDone => translate('account_deletion_done');
   String get securityDeviceCurrent => translate('security_device_current');
   String get securityDeviceActive => translate('security_device_active');
   String get securityDeviceRevoke => translate('security_device_revoke');

@@ -21,7 +21,7 @@ type Props = {
 
 function ProfileSkeleton() {
     return (
-        <div className="space-y-6 animate-pulse">
+        <div className="animate-pulse space-y-6">
             <Skeleton className="h-44 w-full rounded-3xl" />
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                 <Skeleton className="h-64 rounded-2xl" />

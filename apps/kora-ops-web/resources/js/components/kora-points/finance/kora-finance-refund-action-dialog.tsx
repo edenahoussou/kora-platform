@@ -1,22 +1,15 @@
-import { useState } from 'react';
 import {
     RotateCcw,
     X,
-    User,
-    Ticket,
-    Banknote,
     FileText,
     AlertCircle,
     CheckCircle2,
     CreditCard,
-    DollarSign,
     Store,
-    Smartphone,
     Building2,
-    Calendar,
 } from 'lucide-react';
-import { PointRefundRecord } from '../mock/kora-point-mock-data';
-import { KoraStatusBadge } from '@/components/kora-status-badge';
+import { useState } from 'react';
+import type { PointRefundRecord } from '../mock/kora-point-mock-data';
 
 type Props = {
     isOpen: boolean;
@@ -39,17 +32,25 @@ export function KoraFinanceRefundActionDialog({
     onApprove,
     onReject,
 }: Props) {
-    if (!isOpen || !refund) return null;
-
     const [mode, setMode] = useState<'APPROVE' | 'REJECT'>('APPROVE');
-    const [payoutMode, setPayoutMode] = useState<'POINT_CASH' | 'KORA_DIRECT'>('POINT_CASH');
+    const [payoutMode, setPayoutMode] = useState<'POINT_CASH' | 'KORA_DIRECT'>(
+        'POINT_CASH',
+    );
     const [notes, setNotes] = useState('');
     const [rejectionReason, setRejectionReason] = useState('');
 
+    if (!isOpen || !refund) {
+        return null;
+    }
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
         if (mode === 'REJECT') {
-            if (!rejectionReason.trim()) return;
+            if (!rejectionReason.trim()) {
+                return;
+            }
+
             onReject(refund.uuid, { reason: rejectionReason.trim() });
             onClose();
         } else {
@@ -62,7 +63,7 @@ export function KoraFinanceRefundActionDialog({
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in">
+        <div className="fixed inset-0 z-50 flex animate-in items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm fade-in">
             <div className="relative w-full max-w-xl overflow-hidden rounded-2xl bg-white text-slate-900 shadow-2xl dark:bg-slate-900 dark:text-slate-100">
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-slate-200 bg-[var(--kora)] px-6 py-4 text-white dark:border-slate-800">
@@ -96,12 +97,15 @@ export function KoraFinanceRefundActionDialog({
                 </div>
 
                 {/* Body Form */}
-                <form onSubmit={handleSubmit} className="max-h-[80vh] overflow-y-auto p-6 space-y-5">
+                <form
+                    onSubmit={handleSubmit}
+                    className="max-h-[80vh] space-y-5 overflow-y-auto p-6"
+                >
                     {/* Passenger & Ticket Card */}
                     <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/50">
                         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                             <div>
-                                <span className="block text-[0.625rem] font-bold uppercase text-slate-500">
+                                <span className="block text-[0.625rem] font-bold text-slate-500 uppercase">
                                     Passager
                                 </span>
                                 <span className="text-xs font-black text-slate-900 dark:text-white">
@@ -112,18 +116,18 @@ export function KoraFinanceRefundActionDialog({
                                 </span>
                             </div>
                             <div>
-                                <span className="block text-[0.625rem] font-bold uppercase text-slate-500">
+                                <span className="block text-[0.625rem] font-bold text-slate-500 uppercase">
                                     Trajet & Départ
                                 </span>
                                 <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
                                     {refund.route_label}
                                 </span>
-                                <span className="block text-[0.625rem] text-slate-500 font-mono">
+                                <span className="block font-mono text-[0.625rem] text-slate-500">
                                     {refund.departure_ref}
                                 </span>
                             </div>
                             <div>
-                                <span className="block text-[0.625rem] font-bold uppercase text-slate-500">
+                                <span className="block text-[0.625rem] font-bold text-slate-500 uppercase">
                                     Motif invoqué
                                 </span>
                                 <span className="text-xs font-bold text-amber-700 dark:text-amber-400">
@@ -135,23 +139,29 @@ export function KoraFinanceRefundActionDialog({
                         {/* Financial Impact Breakdown */}
                         <div className="mt-3 grid grid-cols-3 gap-2 border-t border-slate-200/80 pt-3 dark:border-slate-700">
                             <div>
-                                <span className="block text-[0.625rem] font-bold uppercase text-slate-500">
+                                <span className="block text-[0.625rem] font-bold text-slate-500 uppercase">
                                     Prix initial payé
                                 </span>
                                 <span className="font-mono text-xs font-bold text-slate-800 dark:text-slate-200">
-                                    {refund.original_amount.toLocaleString('fr-FR')} FCFA
+                                    {refund.original_amount.toLocaleString(
+                                        'fr-FR',
+                                    )}{' '}
+                                    FCFA
                                 </span>
                             </div>
                             <div>
-                                <span className="block text-[0.625rem] font-bold uppercase text-slate-500">
+                                <span className="block text-[0.625rem] font-bold text-slate-500 uppercase">
                                     Montant à restituer
                                 </span>
                                 <span className="font-mono text-xs font-black text-emerald-600 dark:text-emerald-400">
-                                    {refund.refund_amount.toLocaleString('fr-FR')} FCFA
+                                    {refund.refund_amount.toLocaleString(
+                                        'fr-FR',
+                                    )}{' '}
+                                    FCFA
                                 </span>
                             </div>
                             <div>
-                                <span className="block text-[0.625rem] font-bold uppercase text-slate-500">
+                                <span className="block text-[0.625rem] font-bold text-slate-500 uppercase">
                                     Reprise com. Point
                                 </span>
                                 <span className="font-mono text-xs font-black text-rose-600 dark:text-rose-400">
@@ -192,9 +202,13 @@ export function KoraFinanceRefundActionDialog({
                             {/* Payout Channel Selection */}
                             <div>
                                 <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
-                                    <CreditCard className="size-4 text-gold shrink-0" />
-                                    <span>Canal d'arbitrage de la restitution</span>
-                                    <span className="text-rose-500 font-black">*</span>
+                                    <CreditCard className="size-4 shrink-0 text-gold" />
+                                    <span>
+                                        Canal d'arbitrage de la restitution
+                                    </span>
+                                    <span className="font-black text-rose-500">
+                                        *
+                                    </span>
                                 </label>
 
                                 <div className="mt-2 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
@@ -209,17 +223,24 @@ export function KoraFinanceRefundActionDialog({
                                             <input
                                                 type="radio"
                                                 name="payout_mode"
-                                                checked={payoutMode === 'POINT_CASH'}
-                                                onChange={() => setPayoutMode('POINT_CASH')}
+                                                checked={
+                                                    payoutMode === 'POINT_CASH'
+                                                }
+                                                onChange={() =>
+                                                    setPayoutMode('POINT_CASH')
+                                                }
                                                 className="text-emerald-600 focus:ring-emerald-500"
                                             />
-                                            <Store className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                            <Store className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
                                             <span className="text-xs font-black text-slate-900 dark:text-white">
                                                 Restitution au guichet du Point
                                             </span>
                                         </div>
                                         <p className="mt-1 pl-6 text-[0.6875rem] text-slate-500 dark:text-slate-400">
-                                            L'agent du Point remettra les espèces au voyageur en agence. Le fond de caisse sera déduit et la commission reprise.
+                                            L'agent du Point remettra les
+                                            espèces au voyageur en agence. Le
+                                            fond de caisse sera déduit et la
+                                            commission reprise.
                                         </p>
                                     </label>
 
@@ -234,17 +255,24 @@ export function KoraFinanceRefundActionDialog({
                                             <input
                                                 type="radio"
                                                 name="payout_mode"
-                                                checked={payoutMode === 'KORA_DIRECT'}
-                                                onChange={() => setPayoutMode('KORA_DIRECT')}
+                                                checked={
+                                                    payoutMode === 'KORA_DIRECT'
+                                                }
+                                                onChange={() =>
+                                                    setPayoutMode('KORA_DIRECT')
+                                                }
                                                 className="text-blue-600 focus:ring-blue-500"
                                             />
-                                            <Building2 className="size-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                                            <Building2 className="size-4 shrink-0 text-blue-600 dark:text-blue-400" />
                                             <span className="text-xs font-black text-slate-900 dark:text-white">
                                                 Remboursement direct KORA
                                             </span>
                                         </div>
                                         <p className="mt-1 pl-6 text-[0.6875rem] text-slate-500 dark:text-slate-400">
-                                            La Trésorerie KORA procède au remboursement par virement ou Mobile Money direct. Sans impact sur la caisse du Point.
+                                            La Trésorerie KORA procède au
+                                            remboursement par virement ou Mobile
+                                            Money direct. Sans impact sur la
+                                            caisse du Point.
                                         </p>
                                     </label>
                                 </div>
@@ -253,22 +281,24 @@ export function KoraFinanceRefundActionDialog({
                             {/* Consignes / Notes */}
                             <div>
                                 <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
-                                    <FileText className="size-4 text-gold shrink-0" />
-                                    <span>Consignes ou motif d'accord préalable</span>
+                                    <FileText className="size-4 shrink-0 text-gold" />
+                                    <span>
+                                        Consignes ou motif d'accord préalable
+                                    </span>
                                 </label>
                                 <textarea
                                     rows={2}
                                     value={notes}
                                     onChange={(e) => setNotes(e.target.value)}
                                     placeholder="Ex: Accord accordé sous réserve de présentation de la CNI originale et signature de la quittance..."
-                                    className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-xs font-medium text-slate-900 shadow-sm focus:border-gold focus:outline-none focus:ring-1 focus:ring-gold dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                                    className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-xs font-medium text-slate-900 shadow-sm focus:border-gold focus:ring-1 focus:ring-gold focus:outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                                 />
                             </div>
                         </>
                     ) : (
                         /* REJECT MODE */
                         <div className="space-y-4">
-                            <div className="rounded-xl bg-rose-500/10 p-4 border border-rose-500/20 text-rose-800 dark:text-rose-300">
+                            <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-4 text-rose-800 dark:text-rose-300">
                                 <div className="flex items-center gap-2">
                                     <AlertCircle className="size-5 shrink-0 text-rose-600 dark:text-rose-400" />
                                     <h4 className="text-xs font-black">
@@ -276,23 +306,31 @@ export function KoraFinanceRefundActionDialog({
                                     </h4>
                                 </div>
                                 <p className="mt-1 text-xs">
-                                    La demande sera classée sans suite. Le motif légal ou contractuel sera notifié au guichetier pour explication au passager.
+                                    La demande sera classée sans suite. Le motif
+                                    légal ou contractuel sera notifié au
+                                    guichetier pour explication au passager.
                                 </p>
                             </div>
 
                             <div>
                                 <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
-                                    <AlertCircle className="size-4 text-rose-500 shrink-0" />
-                                    <span>Motif obligatoire du refus passager</span>
-                                    <span className="text-rose-500 font-black">*</span>
+                                    <AlertCircle className="size-4 shrink-0 text-rose-500" />
+                                    <span>
+                                        Motif obligatoire du refus passager
+                                    </span>
+                                    <span className="font-black text-rose-500">
+                                        *
+                                    </span>
                                 </label>
                                 <textarea
                                     rows={3}
                                     required
                                     value={rejectionReason}
-                                    onChange={(e) => setRejectionReason(e.target.value)}
+                                    onChange={(e) =>
+                                        setRejectionReason(e.target.value)
+                                    }
                                     placeholder="Ex: Voyageur non présenté au départ sans annulation préalable dans les délais impartis (Article 7 des CGV KORA Bus)..."
-                                    className="mt-1.5 w-full rounded-xl border border-rose-300 bg-white px-3.5 py-2.5 text-xs font-medium text-slate-900 shadow-sm focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 dark:border-rose-900 dark:bg-slate-950 dark:text-slate-100"
+                                    className="mt-1.5 w-full rounded-xl border border-rose-300 bg-white px-3.5 py-2.5 text-xs font-medium text-slate-900 shadow-sm focus:border-rose-500 focus:ring-1 focus:ring-rose-500 focus:outline-none dark:border-rose-900 dark:bg-slate-950 dark:text-slate-100"
                                 />
                             </div>
                         </div>
@@ -311,7 +349,7 @@ export function KoraFinanceRefundActionDialog({
                         {mode === 'APPROVE' ? (
                             <button
                                 type="submit"
-                                className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2 text-xs font-black uppercase tracking-wider text-white shadow-md hover:bg-emerald-700 transition"
+                                className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2 text-xs font-black tracking-wider text-white uppercase shadow-md transition hover:bg-emerald-700"
                             >
                                 <CheckCircle2 className="size-4" />
                                 Valider l'accord
@@ -320,7 +358,7 @@ export function KoraFinanceRefundActionDialog({
                             <button
                                 type="submit"
                                 disabled={!rejectionReason.trim()}
-                                className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-5 py-2 text-xs font-black uppercase tracking-wider text-white shadow-md hover:bg-rose-700 transition disabled:opacity-50"
+                                className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-5 py-2 text-xs font-black tracking-wider text-white uppercase shadow-md transition hover:bg-rose-700 disabled:opacity-50"
                             >
                                 <AlertCircle className="size-4" />
                                 Confirmer le rejet
