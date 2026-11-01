@@ -6,6 +6,8 @@ import { KoraPointTicketListView } from '@/components/kora-points/tickets/kora-p
 import { KoraPointCashView } from '@/components/kora-points/cash/kora-point-cash-view';
 import { KoraPointProfileView } from '@/components/kora-points/profile/kora-point-profile-view';
 import { KoraPointCommissionsView } from '@/components/kora-points/commissions/kora-point-commissions-view';
+import { KoraPointSettlementListView } from '@/components/kora-points/settlements/kora-point-settlement-list-view';
+import { KoraPointRefundListView } from '@/components/kora-points/refunds/kora-point-refund-list-view';
 import { KoraPointShell, KoraPointActivePage } from '@/components/kora-points/common/kora-point-shell';
 import { KoraPointDemoBanner } from '@/components/kora-points/common/kora-point-demo-banner';
 import { useKoraPointDemo } from '@/components/kora-points/mock/use-kora-point-demo';
@@ -92,12 +94,35 @@ export default function KoraPointPreviewPage() {
                     />
                 )}
 
+                {activePage === 'settlements' && (
+                    <KoraPointSettlementListView
+                        point={demo.point}
+                        health={demo.health}
+                        settlements={demo.settlements}
+                        onDeclareSettlement={(data) => demo.createSettlementDeclaration(data)}
+                    />
+                )}
+
+                {activePage === 'refunds' && (
+                    <KoraPointRefundListView
+                        point={demo.point}
+                        refunds={demo.refunds}
+                        sales={demo.sales}
+                        onInitiateRefund={(data) => demo.initiateRefundRequest(data)}
+                        onConfirmRestitution={(uuid, signatory, note) =>
+                            demo.confirmRefundRestitution(uuid, signatory, note)
+                        }
+                    />
+                )}
+
                 {activePage !== 'dashboard' &&
                     activePage !== 'sale' &&
                     activePage !== 'cash' &&
                     activePage !== 'tickets' &&
                     activePage !== 'my-point' &&
-                    activePage !== 'commissions' && (
+                    activePage !== 'commissions' &&
+                    activePage !== 'settlements' &&
+                    activePage !== 'refunds' && (
                         <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center dark:border-slate-700 dark:bg-slate-900">
                             <span className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-black uppercase text-amber-800 dark:text-amber-300">
                                 Prévu pour les lots suivants
@@ -106,7 +131,7 @@ export default function KoraPointPreviewPage() {
                                 Module « {activePage} » en cours de développement
                             </h2>
                             <p className="mt-2 text-xs text-slate-500 max-w-md mx-auto">
-                                Les Lots 1 et 2 couvrent Accueil Agent (01), Vente & Billets (02), Caisse & Mon Point (03) et Commissions (04). Les Reversements (05) et Remboursements (06) seront disponibles dans le Lot 3.
+                                Les Lots 1, 2 et 3 couvrent Accueil, Vente, Billets, Caisse, Mon Point, Commissions, Reversements et Remboursements. Les modules d'administration et de supervision arriveront dans les Lots 4 et 5.
                             </p>
                             <button
                                 type="button"

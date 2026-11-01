@@ -990,3 +990,401 @@ export const MOCK_COMMISSION_RECORDS: PointCommissionRecord[] = [
     },
 ];
 
+export type PointSettlementStatus =
+    | 'DRAFT'
+    | 'DECLARED'
+    | 'VALIDATED'
+    | 'REJECTED'
+    | 'PARTIALLY_VALIDATED';
+
+export type PointSettlementMethod = 'BANK_TRANSFER' | 'BANK_DEPOSIT' | 'MOBILE_MONEY';
+
+export type PointSettlementRecord = {
+    uuid: string;
+    reference: string;
+    point_uuid: string;
+    point_name: string;
+    created_by_name: string;
+    period_start: string;
+    period_end: string;
+    created_at: string;
+    declared_at?: string;
+    validated_at?: string;
+    amount_expected: number;
+    amount_declared: number;
+    amount_validated?: number;
+    payment_method: PointSettlementMethod;
+    payment_reference: string;
+    proof_file_name?: string;
+    proof_file_size?: string;
+    status: PointSettlementStatus;
+    sales_count: number;
+    tickets_covered: string[];
+    notes?: string;
+    rejection_reason?: string;
+    timeline: {
+        step: string;
+        date_label: string;
+        actor: string;
+        comment?: string;
+    }[];
+};
+
+export const MOCK_POINT_SETTLEMENTS: PointSettlementRecord[] = [
+    {
+        uuid: 'set-01',
+        reference: 'REV-2026-0043',
+        point_uuid: 'pt-akpakpa',
+        point_name: 'Point Service Akpakpa',
+        created_by_name: 'Jean Dossou',
+        period_start: '2026-07-28',
+        period_end: '2026-07-31',
+        created_at: '2026-07-31 18:20',
+        declared_at: '2026-07-31 18:25',
+        amount_expected: 120000,
+        amount_declared: 120000,
+        amount_validated: undefined,
+        payment_method: 'BANK_DEPOSIT',
+        payment_reference: 'DEP-ECO-2026-8812',
+        proof_file_name: 'bordereau_versement_ecobank_31072026.pdf',
+        proof_file_size: '412 Ko',
+        status: 'DECLARED',
+        sales_count: 14,
+        tickets_covered: [
+            'TK-AKP-260731-15',
+            'TK-AKP-260731-16',
+            'TK-AKP-260731-10',
+            'TK-AKP-260731-11',
+            'TK-AKP-260731-12',
+        ],
+        notes: 'Versement espèces effectué à l’agence Ecobank Saint-Michel.',
+        timeline: [
+            {
+                step: 'Création du bordereau',
+                date_label: '31 juil. 18:20',
+                actor: 'Jean Dossou (Agent)',
+                comment: 'Bordereau préparé pour 14 billets.',
+            },
+            {
+                step: 'Preuve soumise & Déclaration',
+                date_label: '31 juil. 18:25',
+                actor: 'Jean Dossou (Agent)',
+                comment: 'Réf DEP-ECO-2026-8812 téléversée.',
+            },
+            {
+                step: 'En attente de vérification KORA',
+                date_label: 'En cours',
+                actor: 'Pôle Trésorerie KORA',
+                comment: 'Rapprochement bancaire sous 24-48h ouvrées.',
+            },
+        ],
+    },
+    {
+        uuid: 'set-02',
+        reference: 'REV-2026-0042',
+        point_uuid: 'pt-akpakpa',
+        point_name: 'Point Service Akpakpa',
+        created_by_name: 'Jean Dossou',
+        period_start: '2026-07-21',
+        period_end: '2026-07-27',
+        created_at: '2026-07-28 10:00',
+        declared_at: '2026-07-28 10:15',
+        validated_at: '2026-07-29 09:30',
+        amount_expected: 185000,
+        amount_declared: 185000,
+        amount_validated: 185000,
+        payment_method: 'BANK_TRANSFER',
+        payment_reference: 'VIR-BOA-992384',
+        proof_file_name: 'avis_operation_boa_28072026.pdf',
+        proof_file_size: '285 Ko',
+        status: 'VALIDATED',
+        sales_count: 22,
+        tickets_covered: ['TK-AKP-260730-01', 'TK-AKP-260730-02', 'TK-AKP-260727-08'],
+        notes: 'Virement bancaire compte principal BOA KORA Exploitation.',
+        timeline: [
+            {
+                step: 'Bordereau créé',
+                date_label: '28 juil. 10:00',
+                actor: 'Jean Dossou (Agent)',
+            },
+            {
+                step: 'Déclaration transmise',
+                date_label: '28 juil. 10:15',
+                actor: 'Jean Dossou (Agent)',
+            },
+            {
+                step: 'Fonds crédités et rapprochés',
+                date_label: '29 juil. 09:30',
+                actor: 'Clarisse Mensah (Finance KORA)',
+                comment: 'Reçu bancaire conforme, encours apuré de 185 000 FCFA.',
+            },
+        ],
+    },
+    {
+        uuid: 'set-03',
+        reference: 'REV-2026-0039',
+        point_uuid: 'pt-akpakpa',
+        point_name: 'Point Service Akpakpa',
+        created_by_name: 'Jean Dossou',
+        period_start: '2026-07-14',
+        period_end: '2026-07-20',
+        created_at: '2026-07-22 15:30',
+        declared_at: '2026-07-22 15:45',
+        amount_expected: 95000,
+        amount_declared: 95000,
+        payment_method: 'BANK_DEPOSIT',
+        payment_reference: 'DEP-BGFI-00219',
+        proof_file_name: 'photo_recu_floue.jpg',
+        proof_file_size: '1.2 Mo',
+        status: 'REJECTED',
+        sales_count: 11,
+        tickets_covered: ['TK-AKP-260720-03', 'TK-AKP-260720-04'],
+        rejection_reason:
+            'Bordereau illisible : date et tampon bancaire non reconnaissables. Merci de resoumettre une photo nette ou le duplicata bancaire.',
+        timeline: [
+            {
+                step: 'Déclaration transmise',
+                date_label: '22 juil. 15:45',
+                actor: 'Jean Dossou (Agent)',
+            },
+            {
+                step: 'Contrôle Finance KORA',
+                date_label: '23 juil. 11:20',
+                actor: 'Clarisse Mensah (Finance KORA)',
+                comment: 'Rejet : pièce non conforme.',
+            },
+        ],
+    },
+    {
+        uuid: 'set-04',
+        reference: 'REV-2026-0035',
+        point_uuid: 'pt-akpakpa',
+        point_name: 'Point Service Akpakpa',
+        created_by_name: 'Jean Dossou',
+        period_start: '2026-07-07',
+        period_end: '2026-07-13',
+        created_at: '2026-07-14 09:10',
+        declared_at: '2026-07-14 09:20',
+        validated_at: '2026-07-14 11:00',
+        amount_expected: 240000,
+        amount_declared: 240000,
+        amount_validated: 240000,
+        payment_method: 'MOBILE_MONEY',
+        payment_reference: 'MTN-MOMO-8837190',
+        proof_file_name: 'capture_momo_b2b.png',
+        proof_file_size: '520 Ko',
+        status: 'VALIDATED',
+        sales_count: 28,
+        tickets_covered: ['TK-AKP-260713-01', 'TK-AKP-260713-02'],
+        timeline: [
+            {
+                step: 'Déclaration MoMo B2B',
+                date_label: '14 juil. 09:20',
+                actor: 'Jean Dossou (Agent)',
+            },
+            {
+                step: 'Validation automatique API MoMo',
+                date_label: '14 juil. 11:00',
+                actor: 'Système KORA Trésorerie',
+                comment: 'Transaction vérifiée par webhook opérateur.',
+            },
+        ],
+    },
+];
+
+export type PointRefundStatus =
+    | 'REQUESTED'
+    | 'APPROVED_BY_FINANCE'
+    | 'FUNDS_RESTITUTED'
+    | 'REJECTED';
+
+export type PointRefundReason =
+    | 'TRIP_CANCELLED'
+    | 'PASSENGER_SICKNESS'
+    | 'DUPLICATE_PURCHASE'
+    | 'SCHEDULE_CHANGE';
+
+export type PointRefundRecord = {
+    uuid: string;
+    reference: string;
+    ticket_number: string;
+    sale_uuid: string;
+    passenger_name: string;
+    passenger_phone: string;
+    departure_ref: string;
+    route_label: string;
+    original_amount: number;
+    retained_fee: number;
+    refund_amount: number;
+    commission_clawback: number;
+    reason: PointRefundReason;
+    reason_label: string;
+    status: PointRefundStatus;
+    requested_at: string;
+    requested_by: string;
+    approved_at?: string;
+    approved_by?: string;
+    restituted_at?: string;
+    restituted_by?: string;
+    receipt_signed?: boolean;
+    rejection_reason?: string;
+    proof_document?: string;
+    timeline: {
+        step: string;
+        date_label: string;
+        actor: string;
+        detail?: string;
+    }[];
+};
+
+export const MOCK_POINT_REFUNDS: PointRefundRecord[] = [
+    {
+        uuid: 'ref-01',
+        reference: 'REM-2026-0004',
+        ticket_number: 'TK-AKP-260731-09',
+        sale_uuid: 'sale-890',
+        passenger_name: 'Marc Agossa',
+        passenger_phone: '+229 94 55 66 78',
+        departure_ref: 'KE 118',
+        route_label: 'Cotonou → Parakou',
+        original_amount: 9000,
+        retained_fee: 0,
+        refund_amount: 9000,
+        commission_clawback: -270,
+        reason: 'TRIP_CANCELLED',
+        reason_label: 'Départ annulé par la compagnie',
+        status: 'FUNDS_RESTITUTED',
+        requested_at: '2026-07-31 14:10',
+        requested_by: 'Jean Dossou (Agent Akpakpa)',
+        approved_at: '2026-07-31 14:40',
+        approved_by: 'Clarisse Mensah (Finance KORA)',
+        restituted_at: '2026-07-31 16:30',
+        restituted_by: 'Jean Dossou (Agent Akpakpa)',
+        receipt_signed: true,
+        timeline: [
+            {
+                step: 'Demande enregistrée au guichet',
+                date_label: '31 juil. 14:10',
+                actor: 'Jean Dossou (Agent)',
+                detail: 'Annulation autocar KE 118 pour incident technique.',
+            },
+            {
+                step: 'Validation Finance KORA',
+                date_label: '31 juil. 14:40',
+                actor: 'Clarisse Mensah (Finance)',
+                detail: 'Remboursement intégral autorisé (frais 0%). Reprise com -270 FCFA.',
+            },
+            {
+                step: 'Espèces remises au voyageur',
+                date_label: '31 juil. 16:30',
+                actor: 'Jean Dossou (Agent)',
+                detail: '9 000 FCFA remis en main propre. Quittance émargée signée.',
+            },
+        ],
+    },
+    {
+        uuid: 'ref-02',
+        reference: 'REM-2026-0007',
+        ticket_number: 'TK-AKP-260801-01',
+        sale_uuid: 'sale-901',
+        passenger_name: 'Amina Bello',
+        passenger_phone: '+229 97 12 34 56',
+        departure_ref: 'KE 118 Express',
+        route_label: 'Cotonou → Parakou',
+        original_amount: 9000,
+        retained_fee: 0,
+        refund_amount: 9000,
+        commission_clawback: -270,
+        reason: 'PASSENGER_SICKNESS',
+        reason_label: 'Incapacité médicale subite (justificatif fourni)',
+        status: 'APPROVED_BY_FINANCE',
+        requested_at: '2026-08-01 07:30',
+        requested_by: 'Bio Kora Agent',
+        approved_at: '2026-08-01 08:15',
+        approved_by: 'Clarisse Mensah (Finance KORA)',
+        proof_document: 'certificat_medical_chu_0108.pdf',
+        timeline: [
+            {
+                step: 'Demande soumise avec certificat médical',
+                date_label: '01 août 07:30',
+                actor: 'Bio Kora Agent',
+                detail: 'Passagère hospitalisée avant le départ.',
+            },
+            {
+                step: 'Accord préalable accordé par Finance KORA',
+                date_label: '01 août 08:15',
+                actor: 'Clarisse Mensah (Finance)',
+                detail: 'Dossier approuvé. Le Point peut remettre les 9 000 FCFA à la présentation de la pièce d’identité.',
+            },
+        ],
+    },
+    {
+        uuid: 'ref-03',
+        reference: 'REM-2026-0009',
+        ticket_number: 'TK-AKP-260801-02',
+        sale_uuid: 'sale-902',
+        passenger_name: 'Dossou Marcel',
+        passenger_phone: '+229 95 67 89 01',
+        departure_ref: 'KE 120 Confort',
+        route_label: 'Cotonou → Bohicon',
+        original_amount: 9000,
+        retained_fee: 900,
+        refund_amount: 8100,
+        commission_clawback: -270,
+        reason: 'SCHEDULE_CHANGE',
+        reason_label: 'Changement de date demandé par le voyageur (retenue 10%)',
+        status: 'REQUESTED',
+        requested_at: '2026-08-01 09:40',
+        requested_by: 'Bio Kora Agent',
+        timeline: [
+            {
+                step: 'Demande enregistrée au guichet',
+                date_label: '01 août 09:40',
+                actor: 'Bio Kora Agent',
+                detail: 'Billet acheté ce matin, voyageur souhaite annuler suite à report de réunion.',
+            },
+            {
+                step: 'En attente d’instruction Finance KORA',
+                date_label: 'En attente',
+                actor: 'Service Contrôle Billetterie',
+                detail: 'Vérification des conditions tarifaires (retenue standard 10%).',
+            },
+        ],
+    },
+    {
+        uuid: 'ref-04',
+        reference: 'REM-2026-0002',
+        ticket_number: 'TK-AKP-260725-04',
+        sale_uuid: 'sale-880',
+        passenger_name: 'Raoul Kpodan',
+        passenger_phone: '+229 90 11 22 33',
+        departure_ref: 'KE 124 VIP',
+        route_label: 'Cotonou → Parakou',
+        original_amount: 12000,
+        retained_fee: 12000,
+        refund_amount: 0,
+        commission_clawback: 0,
+        reason: 'TRIP_CANCELLED',
+        reason_label: 'No-show voyageur (non présenté au départ)',
+        status: 'REJECTED',
+        requested_at: '2026-07-26 10:00',
+        requested_by: 'Jean Dossou',
+        rejection_reason:
+            'Non présentation sans avis préalable. Conformément aux conditions générales KORA Bus, les départs manqués ne sont pas remboursables.',
+        timeline: [
+            {
+                step: 'Demande soumise',
+                date_label: '26 juil. 10:00',
+                actor: 'Jean Dossou',
+            },
+            {
+                step: 'Dossier rejeté par la Finance',
+                date_label: '26 juil. 14:00',
+                actor: 'Clarisse Mensah (Finance)',
+                detail: 'Règle tarifaire appliquée : no-show non éligible.',
+            },
+        ],
+    },
+];
+
+
