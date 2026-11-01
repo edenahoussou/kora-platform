@@ -14,6 +14,7 @@ import {
 import { useMemo, useState } from 'react';
 import { KoraFilterBar } from '@/components/kora-filter-bar';
 import type { FilterConfig } from '@/components/kora-filter-bar';
+import { KoraAdminPointWizardDialog } from '@/components/kora-points/admin/kora-admin-point-wizard-dialog';
 import type {
     AdminOrganization,
     AdminPermissions,
@@ -60,7 +61,7 @@ export default function KoraPointsIndexPage({
     organizations,
     permissions,
 }: Props) {
-    const [formOpen, setFormOpen] = useState(false);
+    const [wizardOpen, setWizardOpen] = useState(false);
     const [editingPoint, setEditingPoint] = useState<AdminPoint | null>(null);
     const [attachPoint, setAttachPoint] = useState<AdminPoint | null>(null);
 
@@ -116,13 +117,62 @@ export default function KoraPointsIndexPage({
     };
 
     const openCreate = () => {
-        setEditingPoint(null);
-        setFormOpen(true);
+        setWizardOpen(true);
     };
 
     const openEdit = (point: AdminPoint) => {
         setEditingPoint(point);
-        setFormOpen(true);
+    };
+
+    const handleWizardSubmit = (data: {
+        name: string;
+        type: 'AUTONOMOUS' | 'ORGANIZATION_ATTACHED';
+        organizationName?: string;
+        organizationUuid?: string;
+        city: string;
+        department: string;
+        managerName: string;
+        phone: string;
+        creditLimit: number;
+        commissionRateBps: number;
+        settlementFrequencyDays: number;
+        gracePeriodDays: number;
+    }) => {
+        const frequencyMap: Record<number, string> = {
+            1: 'daily',
+            7: 'weekly',
+            30: 'monthly',
+        };
+        const frequency = frequencyMap[data.settlementFrequencyDays];
+
+        router.post(
+            koraPoints.store.url(),
+            {
+                name: data.name,
+                city: data.city,
+                country: 'BJ',
+                responsible_name: data.managerName,
+                phone: data.phone,
+                organization_uuid:
+                    data.type === 'ORGANIZATION_ATTACHED'
+                        ? data.organizationUuid
+                        : null,
+                commission_basis_points: data.commissionRateBps,
+                ceiling_amount: data.creditLimit,
+                ...(frequency
+                    ? {
+                          settlement_calendar: {
+                              frequency,
+                              time: '18:00',
+                              timezone: 'Africa/Porto-Novo',
+                              ...(frequency === 'weekly' ? { weekday: 1 } : {}),
+                              ...(frequency === 'monthly' ? { day: 1 } : {}),
+                          },
+                      }
+                    : {}),
+            },
+            { preserveScroll: true },
+        );
     };
 
     const changeStatus = (
@@ -390,11 +440,22 @@ export default function KoraPointsIndexPage({
                 />
             </div>
 
+            <KoraAdminPointWizardDialog
+                isOpen={wizardOpen}
+                organizations={organizations}
+                onClose={() => setWizardOpen(false)}
+                onSubmit={handleWizardSubmit}
+            />
+
             <KoraPointFormDialog
-                open={formOpen}
+                open={editingPoint !== null}
                 point={editingPoint}
                 organizations={organizations}
-                onOpenChange={setFormOpen}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setEditingPoint(null);
+                    }
+                }}
             />
 
             <KoraPointAttachDialog

@@ -1,5 +1,6 @@
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { cn } from '@/lib/utils';
+import type { AdminOrganization as MockAdminOrganization } from '../mock/kora-point-mock-data';
 
 export type AdminPoint = {
     uuid: string;
@@ -40,10 +41,7 @@ export type AdminPoint = {
     created_at: string;
 };
 
-export type AdminOrganization = {
-    uuid: string;
-    code: string;
-    name: string;
+export type AdminOrganization = MockAdminOrganization & {
     status: string;
     phone: string | null;
     address: string | null;
@@ -56,32 +54,6 @@ export type AdminOrganization = {
         weekday?: number | null;
         day?: number | null;
     } | null;
-    points_count: number;
-    active_points_count: number;
-    total_monthly_sales: number;
-    total_exposure: number;
-    credit_limit: number;
-    default_terms: {
-        commission_rate_bps: number;
-        credit_limit: number;
-        settlement_frequency_days: number;
-        grace_period_days: number;
-    };
-    users: {
-        uuid: string;
-        name: string;
-        role: string;
-        role_label: string;
-        email: string;
-        status: string;
-    }[];
-    documents: {
-        uuid: string;
-        name: string;
-        type: string;
-        uploaded_at: string;
-        url: string;
-    }[];
 };
 
 export type OrgSubPoint = {
