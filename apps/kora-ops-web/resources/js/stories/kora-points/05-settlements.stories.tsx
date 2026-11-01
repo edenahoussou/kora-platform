@@ -90,7 +90,7 @@ function SettlementDeclarationStory() {
                 onSubmit={(data) => {
                     demo.createSettlementDeclaration(data);
                     alert(
-                        `Déclaration transmise : ${data.amountDeclared.toLocaleString()} FCFA (${data.paymentReference})`,
+                        `Déclaration transmise : ${data.saleUuids.length} vente(s) (${data.paymentReference})`,
                     );
                     setIsOpen(false);
                 }}

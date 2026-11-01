@@ -372,6 +372,7 @@ export type OrganizationSubPoint = {
     commission_rate_bps: number;
     monthly_commission_earned: number;
     last_settlement_date: string;
+    organization_uuid?: string;
 };
 
 export type GroupSettlementBreakdown = {
