@@ -1651,5 +1651,355 @@ export const MOCK_GROUP_SETTLEMENTS: GroupSettlementRecord[] = [
     },
 ];
 
+export type AdminNetworkPoint = {
+    uuid: string;
+    code: string;
+    name: string;
+    type: 'AUTONOMOUS' | 'ORGANIZATION_ATTACHED';
+    organization_name?: string;
+    city: string;
+    department: string;
+    manager_name: string;
+    phone: string;
+    status: 'ACTIVE' | 'WARNING_THRESHOLD' | 'LIMIT_REACHED' | 'SUSPENDED';
+    daily_sales_amount: number;
+    monthly_sales_amount: number;
+    current_exposure: number;
+    credit_limit: number;
+    usage_percentage: number;
+    commission_rate_bps: number;
+    settlement_frequency_days: number;
+    grace_period_days: number;
+    created_at: string;
+};
+
+export const MOCK_ADMIN_NETWORK_POINTS: AdminNetworkPoint[] = [
+    {
+        uuid: 'pt-01',
+        code: 'PT-AKP-01',
+        name: 'Point Service Akpakpa',
+        type: 'AUTONOMOUS',
+        city: 'Cotonou (Akpakpa)',
+        department: 'Littoral',
+        manager_name: 'Jean Dossou',
+        phone: '+229 97 12 34 56',
+        status: 'ACTIVE',
+        daily_sales_amount: 81000,
+        monthly_sales_amount: 1850000,
+        current_exposure: 120000,
+        credit_limit: 500000,
+        usage_percentage: 24,
+        commission_rate_bps: 300,
+        settlement_frequency_days: 7,
+        grace_period_days: 3,
+        created_at: '15 janv. 2026',
+    },
+    {
+        uuid: 'pt-02',
+        code: 'PT-MEN-02',
+        name: 'Kiosque Voyage Ménontin',
+        type: 'AUTONOMOUS',
+        city: 'Cotonou (Ménontin)',
+        department: 'Littoral',
+        manager_name: 'Fidèle Kiki',
+        phone: '+229 95 22 33 44',
+        status: 'WARNING_THRESHOLD',
+        daily_sales_amount: 54000,
+        monthly_sales_amount: 1200000,
+        current_exposure: 430000,
+        credit_limit: 500000,
+        usage_percentage: 86,
+        commission_rate_bps: 300,
+        settlement_frequency_days: 7,
+        grace_period_days: 3,
+        created_at: '20 févr. 2026',
+    },
+    {
+        uuid: 'pt-03',
+        code: 'LP-COT-01',
+        name: 'Agence Centrale Cotonou (La Poste)',
+        type: 'ORGANIZATION_ATTACHED',
+        organization_name: 'La Poste du Bénin SA',
+        city: 'Cotonou (Ganhi)',
+        department: 'Littoral',
+        manager_name: 'Marcellin Houndéto',
+        phone: '+229 97 10 20 30',
+        status: 'ACTIVE',
+        daily_sales_amount: 145000,
+        monthly_sales_amount: 3200000,
+        current_exposure: 650000,
+        credit_limit: 1500000,
+        usage_percentage: 43,
+        commission_rate_bps: 300,
+        settlement_frequency_days: 30,
+        grace_period_days: 7,
+        created_at: '01 mars 2026',
+    },
+    {
+        uuid: 'pt-04',
+        code: 'LP-AKP-02',
+        name: 'Bureau de Poste Akpakpa',
+        type: 'ORGANIZATION_ATTACHED',
+        organization_name: 'La Poste du Bénin SA',
+        city: 'Cotonou (Akpakpa)',
+        department: 'Littoral',
+        manager_name: 'Jean Dossou',
+        phone: '+229 97 12 34 56',
+        status: 'WARNING_THRESHOLD',
+        daily_sales_amount: 81000,
+        monthly_sales_amount: 1850000,
+        current_exposure: 430000,
+        credit_limit: 500000,
+        usage_percentage: 86,
+        commission_rate_bps: 300,
+        settlement_frequency_days: 30,
+        grace_period_days: 7,
+        created_at: '01 mars 2026',
+    },
+    {
+        uuid: 'pt-05',
+        code: 'LP-PAR-03',
+        name: 'Agence Principale Parakou (La Poste)',
+        type: 'ORGANIZATION_ATTACHED',
+        organization_name: 'La Poste du Bénin SA',
+        city: 'Parakou',
+        department: 'Borgou',
+        manager_name: 'Fadilatou Saka',
+        phone: '+229 96 44 55 66',
+        status: 'ACTIVE',
+        daily_sales_amount: 112000,
+        monthly_sales_amount: 2400000,
+        current_exposure: 380000,
+        credit_limit: 1000000,
+        usage_percentage: 38,
+        commission_rate_bps: 300,
+        settlement_frequency_days: 30,
+        grace_period_days: 7,
+        created_at: '10 mars 2026',
+    },
+    {
+        uuid: 'pt-06',
+        code: 'LP-POR-04',
+        name: 'Bureau de Poste Porto-Novo',
+        type: 'ORGANIZATION_ATTACHED',
+        organization_name: 'La Poste du Bénin SA',
+        city: 'Porto-Novo',
+        department: 'Ouémé',
+        manager_name: 'Gérard Agbo',
+        phone: '+229 95 77 88 99',
+        status: 'LIMIT_REACHED',
+        daily_sales_amount: 0,
+        monthly_sales_amount: 1250000,
+        current_exposure: 500000,
+        credit_limit: 500000,
+        usage_percentage: 100,
+        commission_rate_bps: 300,
+        settlement_frequency_days: 30,
+        grace_period_days: 7,
+        created_at: '15 mars 2026',
+    },
+    {
+        uuid: 'pt-07',
+        code: 'PT-BOH-03',
+        name: 'Point Relais Carrefour Bohicon',
+        type: 'AUTONOMOUS',
+        city: 'Bohicon',
+        department: 'Zou',
+        manager_name: 'Blaise Agbossou',
+        phone: '+229 97 88 99 00',
+        status: 'ACTIVE',
+        daily_sales_amount: 72000,
+        monthly_sales_amount: 1600000,
+        current_exposure: 150000,
+        credit_limit: 600000,
+        usage_percentage: 25,
+        commission_rate_bps: 350,
+        settlement_frequency_days: 7,
+        grace_period_days: 3,
+        created_at: '05 avr. 2026',
+    },
+    {
+        uuid: 'pt-08',
+        code: 'PT-CAL-04',
+        name: 'Guichet Voyage Kpota Calavi',
+        type: 'AUTONOMOUS',
+        city: 'Abomey-Calavi',
+        department: 'Atlantique',
+        manager_name: 'Honorine Tossou',
+        phone: '+229 94 11 22 33',
+        status: 'SUSPENDED',
+        daily_sales_amount: 0,
+        monthly_sales_amount: 900000,
+        current_exposure: 450000,
+        credit_limit: 400000,
+        usage_percentage: 112,
+        commission_rate_bps: 300,
+        settlement_frequency_days: 7,
+        grace_period_days: 3,
+        created_at: '12 mai 2026',
+    },
+];
+
+export type AdminOrganization = {
+    uuid: string;
+    code: string;
+    name: string;
+    legal_name: string;
+    headquarters_city: string;
+    rccm: string;
+    ifu: string;
+    points_count: number;
+    active_points_count: number;
+    total_monthly_sales: number;
+    total_exposure: number;
+    credit_limit: number;
+    default_terms: {
+        commission_rate_bps: number;
+        credit_limit: number;
+        settlement_frequency_days: number;
+        grace_period_days: number;
+    };
+    users: {
+        uuid: string;
+        name: string;
+        role: 'ORG_MANAGER' | 'ORG_TREASURER' | 'ORG_CONTROLLER';
+        role_label: string;
+        email: string;
+        phone: string;
+        status: 'ACTIVE' | 'SUSPENDED';
+    }[];
+    documents: {
+        uuid: string;
+        name: string;
+        type: 'CONVENTION' | 'RCCM' | 'IFU' | 'AMENDMENT';
+        uploaded_at: string;
+        size: string;
+        url?: string;
+    }[];
+};
+
+export const MOCK_ADMIN_ORGANIZATIONS: AdminOrganization[] = [
+    {
+        uuid: 'org-01',
+        code: 'ORG-LAPOSTE-BJ',
+        name: 'La Poste du Bénin SA',
+        legal_name: 'Société des Postes du Bénin SA',
+        headquarters_city: 'Cotonou (Ganhi)',
+        rccm: 'RB/COT/14 B 11842',
+        ifu: '3201400293841',
+        points_count: 5,
+        active_points_count: 4,
+        total_monthly_sales: 10100000,
+        total_exposure: 2150000,
+        credit_limit: 4300000,
+        default_terms: {
+            commission_rate_bps: 300,
+            credit_limit: 5000000,
+            settlement_frequency_days: 30,
+            grace_period_days: 7,
+        },
+        users: [
+            {
+                uuid: 'usr-org-01',
+                name: 'Koffi Paul Hounkpatin',
+                role: 'ORG_MANAGER',
+                role_label: 'Directeur Commercial & Réseau',
+                email: 'paul.hounkpatin@laposte.bj',
+                phone: '+229 97 00 11 22',
+                status: 'ACTIVE',
+            },
+            {
+                uuid: 'usr-org-02',
+                name: 'Adolphe Gbaguidi',
+                role: 'ORG_TREASURER',
+                role_label: 'Trésorier Général',
+                email: 'adolphe.gbaguidi@laposte.bj',
+                phone: '+229 97 33 44 55',
+                status: 'ACTIVE',
+            },
+            {
+                uuid: 'usr-org-03',
+                name: 'Chantal Agboton',
+                role: 'ORG_CONTROLLER',
+                role_label: 'Contrôleur de Gestion Billetterie',
+                email: 'chantal.agboton@laposte.bj',
+                phone: '+229 96 11 00 99',
+                status: 'ACTIVE',
+            },
+        ],
+        documents: [
+            {
+                uuid: 'doc-org-01',
+                name: 'convention_cadre_distribution_laposte_2026.pdf',
+                type: 'CONVENTION',
+                uploaded_at: '15 janv. 2026',
+                size: '2.4 Mo',
+            },
+            {
+                uuid: 'doc-org-02',
+                name: 'registre_commerce_laposte_rccm.pdf',
+                type: 'RCCM',
+                uploaded_at: '15 janv. 2026',
+                size: '890 Ko',
+            },
+            {
+                uuid: 'doc-org-03',
+                name: 'attestation_fiscale_ifu_laposte.pdf',
+                type: 'IFU',
+                uploaded_at: '15 janv. 2026',
+                size: '410 Ko',
+            },
+            {
+                uuid: 'doc-org-04',
+                name: 'avenant_extension_parakou_mai2026.pdf',
+                type: 'AMENDMENT',
+                uploaded_at: '20 mai 2026',
+                size: '620 Ko',
+            },
+        ],
+    },
+    {
+        uuid: 'org-02',
+        code: 'ORG-RELAIS-BJ',
+        name: 'Réseau Express Relais Bénin',
+        legal_name: 'Relais Distribution Services SARL',
+        headquarters_city: 'Cotonou (Sainte-Rita)',
+        rccm: 'RB/COT/20 B 29481',
+        ifu: '3202000849201',
+        points_count: 3,
+        active_points_count: 3,
+        total_monthly_sales: 3800000,
+        total_exposure: 780000,
+        credit_limit: 2000000,
+        default_terms: {
+            commission_rate_bps: 350,
+            credit_limit: 2000000,
+            settlement_frequency_days: 14,
+            grace_period_days: 5,
+        },
+        users: [
+            {
+                uuid: 'usr-org-04',
+                name: 'Sylvestre Tossavi',
+                role: 'ORG_MANAGER',
+                role_label: 'Gérant Réseau',
+                email: 'sylvestre@relais-benin.com',
+                phone: '+229 90 44 55 66',
+                status: 'ACTIVE',
+            },
+        ],
+        documents: [
+            {
+                uuid: 'doc-org-05',
+                name: 'convention_partenaire_relais_benin.pdf',
+                type: 'CONVENTION',
+                uploaded_at: '10 févr. 2026',
+                size: '1.8 Mo',
+            },
+        ],
+    },
+];
+
+
 
 

@@ -31,7 +31,9 @@ export type KoraPointActivePage =
     | 'refunds'
     | 'notifications'
     | 'org-supervision'
-    | 'org-treasury';
+    | 'org-treasury'
+    | 'admin-network'
+    | 'admin-organizations';
 
 type Props = {
     point: KoraPointProfile;
@@ -129,6 +131,22 @@ export function KoraPointShell({
             icon: Coins,
             badge: 'Trésorier',
             badgeTone: 'gold' as const,
+        },
+    ];
+
+    const adminNavItems = [
+        {
+            id: 'admin-network' as KoraPointActivePage,
+            label: 'Réseau commercial',
+            icon: Store,
+            badge: 'Admin',
+            badgeTone: 'gold' as const,
+        },
+        {
+            id: 'admin-organizations' as KoraPointActivePage,
+            label: 'Organisations & Contrats',
+            icon: Building2,
+            badge: null,
         },
     ];
 
@@ -291,6 +309,54 @@ export function KoraPointShell({
                                 })}
                             </div>
                         )}
+
+                        {/* Administration Réseau Section */}
+                        <div className="pt-4 mt-2 border-t border-white/10">
+                            <div className="px-3 pb-2 text-[0.625rem] font-black uppercase tracking-wider text-white/40">
+                                Administration Réseau KORA
+                            </div>
+                            {adminNavItems.map((item) => {
+                                const Icon = item.icon;
+                                const isActive = activePage === item.id;
+                                return (
+                                    <button
+                                        key={item.id}
+                                        type="button"
+                                        onClick={() => handleNavClick(item.id)}
+                                        className={cn(
+                                            'group flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition',
+                                            isActive
+                                                ? 'bg-gold text-kora font-black shadow-md'
+                                                : 'text-white/80 hover:bg-white/10 hover:text-white',
+                                        )}
+                                    >
+                                        <div className="flex items-center gap-2.5 truncate">
+                                            <Icon
+                                                className={cn(
+                                                    'size-4 shrink-0',
+                                                    isActive
+                                                        ? 'text-kora'
+                                                        : 'text-white/70 group-hover:text-white',
+                                                )}
+                                            />
+                                            <span className="truncate">{item.label}</span>
+                                        </div>
+                                        {item.badge && (
+                                            <span
+                                                className={cn(
+                                                    'rounded-full px-2 py-0.5 text-[0.625rem] font-extrabold',
+                                                    isActive
+                                                        ? 'bg-kora text-white'
+                                                        : 'bg-gold/25 text-gold',
+                                                )}
+                                            >
+                                                {item.badge}
+                                            </span>
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </nav>
 
                     {/* Footer User Menu */}
@@ -455,6 +521,39 @@ export function KoraPointShell({
                                             })}
                                         </div>
                                     )}
+
+                                    <div className="pt-3 mt-2 border-t border-white/10">
+                                        <div className="px-3 pb-2 text-xs font-black uppercase tracking-wider text-white/40">
+                                            Administration Réseau KORA
+                                        </div>
+                                        {adminNavItems.map((item) => {
+                                            const Icon = item.icon;
+                                            const isActive = activePage === item.id;
+                                            return (
+                                                <button
+                                                    key={item.id}
+                                                    type="button"
+                                                    onClick={() => handleNavClick(item.id)}
+                                                    className={cn(
+                                                        'flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition',
+                                                        isActive
+                                                            ? 'bg-gold text-kora font-black shadow-md'
+                                                            : 'text-white/80 hover:bg-white/10 hover:text-white',
+                                                    )}
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <Icon className="size-4 shrink-0" />
+                                                        <span>{item.label}</span>
+                                                    </div>
+                                                    {item.badge && (
+                                                        <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold">
+                                                            {item.badge}
+                                                        </span>
+                                                    )}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
                                 </nav>
                             </div>
                         </div>

@@ -26,6 +26,10 @@ import {
     GroupSettlementRecord,
     MOCK_GROUP_SETTLEMENTS,
     GroupSettlementBreakdown,
+    AdminNetworkPoint,
+    MOCK_ADMIN_NETWORK_POINTS,
+    AdminOrganization,
+    MOCK_ADMIN_ORGANIZATIONS,
 } from './kora-point-mock-data';
 
 export type DemoState = {
@@ -44,6 +48,8 @@ export type DemoState = {
     refunds: PointRefundRecord[];
     organizationSubPoints: OrganizationSubPoint[];
     groupSettlements: GroupSettlementRecord[];
+    adminNetworkPoints: AdminNetworkPoint[];
+    adminOrganizations: AdminOrganization[];
 };
 
 export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_healthy') {
@@ -67,6 +73,10 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
     const organizationSubPoints =
         stateOverride?.organizationSubPoints ?? MOCK_ORGANIZATION_SUBPOINTS;
     const groupSettlements = stateOverride?.groupSettlements ?? MOCK_GROUP_SETTLEMENTS;
+    const adminNetworkPoints =
+        stateOverride?.adminNetworkPoints ?? MOCK_ADMIN_NETWORK_POINTS;
+    const adminOrganizations =
+        stateOverride?.adminOrganizations ?? MOCK_ADMIN_ORGANIZATIONS;
 
     const changeScenario = useCallback((newScenario: DemoScenarioId) => {
         setScenarioId(newScenario);
@@ -584,6 +594,86 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
         [point, organizationSubPoints, groupSettlements],
     );
 
+    const createNetworkPoint = useCallback(
+        (data: {
+            name: string;
+            type: 'AUTONOMOUS' | 'ORGANIZATION_ATTACHED';
+            organizationName?: string;
+            city: string;
+            department: string;
+            managerName: string;
+            phone: string;
+            creditLimit: number;
+            commissionRateBps: number;
+            settlementFrequencyDays: number;
+            gracePeriodDays: number;
+        }) => {
+            const nextIndex = adminNetworkPoints.length + 1;
+            const prefix = data.type === 'ORGANIZATION_ATTACHED' ? 'LP' : 'PT';
+            const cityCode = data.city.slice(0, 3).toUpperCase();
+            const code = `${prefix}-${cityCode}-0${nextIndex}`;
+
+            const newPoint: AdminNetworkPoint = {
+                uuid: `pt-new-${Date.now()}`,
+                code,
+                name: data.name,
+                type: data.type,
+                organization_name: data.organizationName,
+                city: data.city,
+                department: data.department,
+                manager_name: data.managerName,
+                phone: data.phone,
+                status: 'ACTIVE',
+                daily_sales_amount: 0,
+                monthly_sales_amount: 0,
+                current_exposure: 0,
+                credit_limit: data.creditLimit,
+                usage_percentage: 0,
+                commission_rate_bps: data.commissionRateBps,
+                settlement_frequency_days: data.settlementFrequencyDays,
+                grace_period_days: data.gracePeriodDays,
+                created_at: 'Aujourd’hui',
+            };
+
+            setStateOverride((prev) => ({
+                ...prev,
+                adminNetworkPoints: [newPoint, ...adminNetworkPoints],
+            }));
+
+            return newPoint;
+        },
+        [adminNetworkPoints],
+    );
+
+    const updatePointTermsOverride = useCallback(
+        (pointUuid: string, terms: Partial<{ commission_rate_bps: number; credit_limit: number; settlement_frequency_days: number }>) => {
+            setStateOverride((prev) => ({
+                ...prev,
+                adminNetworkPoints: adminNetworkPoints.map((pt) =>
+                    pt.uuid === pointUuid ? { ...pt, ...terms } : pt,
+                ),
+            }));
+        },
+        [adminNetworkPoints],
+    );
+
+    const toggleUserStatus = useCallback(
+        (userUuid: string) => {
+            setStateOverride((prev) => ({
+                ...prev,
+                adminOrganizations: adminOrganizations.map((org) => ({
+                    ...org,
+                    users: org.users.map((u) =>
+                        u.uuid === userUuid
+                            ? { ...u, status: u.status === 'ACTIVE' ? ('SUSPENDED' as const) : ('ACTIVE' as const) }
+                            : u,
+                    ),
+                })),
+            }));
+        },
+        [adminOrganizations],
+    );
+
     return {
         scenarioId,
         changeScenario,
@@ -602,6 +692,8 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
         refunds,
         organizationSubPoints,
         groupSettlements,
+        adminNetworkPoints,
+        adminOrganizations,
         openCashSession,
         closeCashSession,
         recordSimulatedSale,
@@ -609,5 +701,8 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
         initiateRefundRequest,
         confirmRefundRestitution,
         createGroupSettlementDeclaration,
+        createNetworkPoint,
+        updatePointTermsOverride,
+        toggleUserStatus,
     };
 }
