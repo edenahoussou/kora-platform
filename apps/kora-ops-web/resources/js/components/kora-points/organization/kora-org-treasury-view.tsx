@@ -1,4 +1,3 @@
-import { useState, useMemo } from 'react';
 import {
     Coins,
     Building2,
@@ -16,14 +15,15 @@ import {
     ChevronUp,
     Shield,
 } from 'lucide-react';
-import {
+import { useState, useMemo } from 'react';
+import { KoraStatusBadge } from '@/components/kora-status-badge';
+import { cn } from '@/lib/utils';
+import type {
     GroupSettlementRecord,
     OrganizationSubPoint,
     PointRefundRecord,
 } from '../mock/kora-point-mock-data';
 import { KoraOrgGroupSettlementDialog } from './kora-org-group-settlement-dialog';
-import { KoraStatusBadge } from '@/components/kora-status-badge';
-import { cn } from '@/lib/utils';
 
 type Props = {
     organizationName: string;
@@ -53,7 +53,10 @@ export function KoraOrgTreasuryView({
         subpoints.forEach((sp) => {
             totalExposure += sp.current_exposure;
             totalLimit += sp.credit_limit;
-            if (sp.current_exposure > 0) activeDebtsCount += 1;
+
+            if (sp.current_exposure > 0) {
+activeDebtsCount += 1;
+}
         });
 
         const availableBalance = Math.max(0, totalLimit - totalExposure);

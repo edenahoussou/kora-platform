@@ -1,4 +1,3 @@
-import { useState, useMemo } from 'react';
 import {
     Coins,
     Search,
@@ -16,16 +15,17 @@ import {
     TrendingUp,
     FileText,
 } from 'lucide-react';
-import {
+import { useState, useMemo } from 'react';
+import { KoraStatusBadge } from '@/components/kora-status-badge';
+import { cn } from '@/lib/utils';
+import type {
     FinancialHealth,
     KoraPointProfile,
     PointSettlementRecord,
     PointSettlementStatus,
 } from '../mock/kora-point-mock-data';
-import { KoraPointSettlementDialog } from './kora-point-settlement-dialog';
 import { KoraPointSettlementDetailDrawer } from './kora-point-settlement-detail-drawer';
-import { KoraStatusBadge } from '@/components/kora-status-badge';
-import { cn } from '@/lib/utils';
+import { KoraPointSettlementDialog } from './kora-point-settlement-dialog';
 
 type Props = {
     point: KoraPointProfile;
@@ -75,6 +75,7 @@ export function KoraPointSettlementListView({
             if (s.status === 'DECLARED') {
                 declaredPending += s.amount_declared;
             }
+
             if (s.status === 'VALIDATED') {
                 validatedTotal += s.amount_validated ?? s.amount_declared;
             }

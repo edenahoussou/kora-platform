@@ -1,4 +1,3 @@
-import { useState, useMemo } from 'react';
 import {
     Search,
     Filter,
@@ -11,10 +10,11 @@ import {
     User,
     Wallet,
 } from 'lucide-react';
-import { PointSaleRecord, SettlementStatus } from '../mock/kora-point-mock-data';
-import { KoraPointTicketDetailDrawer } from './kora-point-ticket-detail-drawer';
+import { useState, useMemo } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { cn } from '@/lib/utils';
+import type { PointSaleRecord, SettlementStatus } from '../mock/kora-point-mock-data';
+import { KoraPointTicketDetailDrawer } from './kora-point-ticket-detail-drawer';
 
 type Props = {
     sales: PointSaleRecord[];

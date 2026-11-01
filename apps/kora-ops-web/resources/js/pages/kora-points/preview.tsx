@@ -1,24 +1,25 @@
-import { useState } from 'react';
 import { Head } from '@inertiajs/react';
-import { KoraPointAgentDashboard } from '@/components/kora-points/agent-dashboard/kora-point-agent-dashboard';
-import { KoraPointSaleView } from '@/components/kora-points/sale/kora-point-sale-view';
-import { KoraPointTicketListView } from '@/components/kora-points/tickets/kora-point-ticket-list-view';
-import { KoraPointCashView } from '@/components/kora-points/cash/kora-point-cash-view';
-import { KoraPointProfileView } from '@/components/kora-points/profile/kora-point-profile-view';
-import { KoraPointCommissionsView } from '@/components/kora-points/commissions/kora-point-commissions-view';
-import { KoraPointSettlementListView } from '@/components/kora-points/settlements/kora-point-settlement-list-view';
-import { KoraPointRefundListView } from '@/components/kora-points/refunds/kora-point-refund-list-view';
-import { KoraOrgSupervisionView } from '@/components/kora-points/organization/kora-org-supervision-view';
-import { KoraOrgTreasuryView } from '@/components/kora-points/organization/kora-org-treasury-view';
+import { useState } from 'react';
 import { KoraAdminNetworkView } from '@/components/kora-points/admin/kora-admin-network-view';
 import { KoraAdminOrganizationsView } from '@/components/kora-points/admin/kora-admin-organizations-view';
+import { KoraPointAgentDashboard } from '@/components/kora-points/agent-dashboard/kora-point-agent-dashboard';
+import { KoraPointCashView } from '@/components/kora-points/cash/kora-point-cash-view';
+import { KoraPointCommissionsView } from '@/components/kora-points/commissions/kora-point-commissions-view';
 import { KoraFinanceReconciliationView } from '@/components/kora-points/finance/kora-finance-reconciliation-view';
-import { KoraNotificationsView } from '@/components/kora-points/notifications/kora-notifications-view';
-import { KoraGlobalSearchDialog } from '@/components/kora-points/search/kora-global-search-dialog';
-import { KoraPointShell, KoraPointActivePage } from '@/components/kora-points/common/kora-point-shell';
+import type { KoraPointActivePage } from '@/components/kora-points/common/kora-point-shell';
+import { KoraPointShell } from '@/components/kora-points/common/kora-point-shell';
 import { KoraPointDemoBanner } from '@/components/kora-points/common/kora-point-demo-banner';
-import { useKoraPointDemo } from '@/components/kora-points/mock/use-kora-point-demo';
 import { KoraPointUserRole, MOCK_PERSONAS } from '@/components/kora-points/mock/kora-point-mock-data';
+import { useKoraPointDemo } from '@/components/kora-points/mock/use-kora-point-demo';
+import { KoraNotificationsView } from '@/components/kora-points/notifications/kora-notifications-view';
+import { KoraOrgSupervisionView } from '@/components/kora-points/organization/kora-org-supervision-view';
+import { KoraOrgTreasuryView } from '@/components/kora-points/organization/kora-org-treasury-view';
+import { KoraPointProfileView } from '@/components/kora-points/profile/kora-point-profile-view';
+import { KoraPointRefundListView } from '@/components/kora-points/refunds/kora-point-refund-list-view';
+import { KoraPointSaleView } from '@/components/kora-points/sale/kora-point-sale-view';
+import { KoraGlobalSearchDialog } from '@/components/kora-points/search/kora-global-search-dialog';
+import { KoraPointSettlementListView } from '@/components/kora-points/settlements/kora-point-settlement-list-view';
+import { KoraPointTicketListView } from '@/components/kora-points/tickets/kora-point-ticket-list-view';
 
 export default function KoraPointPreviewPage() {
     const demo = useKoraPointDemo('autonomous_healthy');
@@ -30,6 +31,7 @@ export default function KoraPointPreviewPage() {
     const handleRoleChange = (newRole: KoraPointUserRole) => {
         setCurrentRole(newRole);
         const persona = MOCK_PERSONAS[newRole];
+
         if (persona) {
             setActivePage(persona.defaultPage as KoraPointActivePage);
         }

@@ -1,4 +1,3 @@
-import { useState, ReactNode } from 'react';
 import {
     LayoutDashboard,
     Ticket,
@@ -20,14 +19,17 @@ import {
     Search,
     UserCheck,
 } from 'lucide-react';
-import {
-    KoraPointProfile,
-    FinancialHealth,
-    KoraPointUserRole,
-    MOCK_PERSONAS,
-} from '../mock/kora-point-mock-data';
+import type { ReactNode } from 'react';
+import { useState, useMemo } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { cn } from '@/lib/utils';
+import type {
+    KoraPointProfile,
+    FinancialHealth,
+    KoraPointUserRole} from '../mock/kora-point-mock-data';
+import {
+    MOCK_PERSONAS,
+} from '../mock/kora-point-mock-data';
 
 export type KoraPointActivePage =
     | 'dashboard'
@@ -44,6 +46,19 @@ export type KoraPointActivePage =
     | 'org-treasury'
     | 'admin-network'
     | 'admin-organizations';
+
+type NavItem = {
+    id: KoraPointActivePage;
+    label: string;
+    icon: any;
+    badge: string | null;
+    badgeTone?: 'gold' | 'amber' | 'emerald' | 'destructive' | 'navy' | 'muted';
+};
+
+type NavGroup = {
+    title: string;
+    items: NavItem[];
+};
 
 type Props = {
     point: KoraPointProfile;
@@ -72,7 +87,7 @@ export function KoraPointShell({
     const isAutonomous = !point.organization;
     const persona = MOCK_PERSONAS[currentRole] || MOCK_PERSONAS.AGENT_POINT;
 
-    const navGroups = useMemo(() => {
+    const navGroups: NavGroup[] = useMemo(() => {
         if (currentRole === 'RESPONSABLE_ORG') {
             return [
                 {
@@ -221,6 +236,7 @@ export function KoraPointShell({
                                 {group.items.map((item) => {
                                     const Icon = item.icon;
                                     const isActive = activePage === item.id;
+
                                     return (
                                         <button
                                             key={item.id}
@@ -418,6 +434,7 @@ export function KoraPointShell({
                                             {group.items.map((item) => {
                                                 const Icon = item.icon;
                                                 const isActive = activePage === item.id;
+
                                                 return (
                                                     <button
                                                         key={item.id}

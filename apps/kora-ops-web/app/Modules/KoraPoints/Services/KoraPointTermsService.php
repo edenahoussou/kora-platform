@@ -12,6 +12,11 @@ class KoraPointTermsService
     public function __construct(private readonly OperationsSettings $settings) {}
 
     /** @return array<string, mixed> */
+    /**
+     * Resolves the point effective terms with inheritance sources (point, organization, operations defaults).
+     *
+     * @return array<string, mixed>
+     */
     public function resolve(KoraPoint $point): array
     {
         $point->loadMissing('organization');
@@ -27,6 +32,11 @@ class KoraPointTermsService
     }
 
     /** @return array<string, mixed> */
+    /**
+     * Returns the operations-level default terms (commission, ceiling, settlement calendar).
+     *
+     * @return array<string, mixed>
+     */
     public function defaults(): array
     {
         $this->settings->refresh();
@@ -37,6 +47,11 @@ class KoraPointTermsService
     }
 
     /** @return array<string, mixed> */
+    /**
+     * Returns resolved terms or throws when a required term is missing before selling.
+     *
+     * @return array<string, mixed>
+     */
     public function required(KoraPoint $point): array
     {
         $terms = $this->resolve($point);
@@ -50,6 +65,11 @@ class KoraPointTermsService
     }
 
     /** @param array<string, mixed> $calendar */
+    /**
+     * Computes the next settlement due date in UTC from a settlement calendar and a payment instant.
+     *
+     * @param  array<string, mixed>  $calendar
+     */
     public function dueAt(array $calendar, CarbonImmutable $paidAt): CarbonImmutable
     {
         $local = $paidAt->setTimezone($calendar['timezone']);
@@ -72,7 +92,11 @@ class KoraPointTermsService
         return $due->utc();
     }
 
-    /** @return array<string, list<string>> */
+    /**
+     * Returns the validation rules for term payloads, optionally prefixed for nested shapes.
+     *
+     * @return array<string, list<string>>
+     */
     public static function rules(string $prefix = ''): array
     {
         return [
@@ -87,6 +111,9 @@ class KoraPointTermsService
         ];
     }
 
+    /**
+     * Returns the configured grace days before a due settlement counts as overdue.
+     */
     public function graceDays(): int
     {
         $this->settings->refresh();

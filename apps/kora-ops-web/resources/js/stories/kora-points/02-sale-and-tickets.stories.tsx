@@ -1,13 +1,15 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
-import { KoraPointSaleView } from '@/components/kora-points/sale/kora-point-sale-view';
-import { KoraPointSaleSuccessDialog } from '@/components/kora-points/sale/kora-point-sale-success-dialog';
-import { KoraPointTicketListView } from '@/components/kora-points/tickets/kora-point-ticket-list-view';
-import { KoraPointTicketDetailDrawer } from '@/components/kora-points/tickets/kora-point-ticket-detail-drawer';
-import { KoraPointShell, KoraPointActivePage } from '@/components/kora-points/common/kora-point-shell';
 import { KoraPointDemoBanner } from '@/components/kora-points/common/kora-point-demo-banner';
+import type { KoraPointActivePage } from '@/components/kora-points/common/kora-point-shell';
+import { KoraPointShell } from '@/components/kora-points/common/kora-point-shell';
+import type { DemoScenarioId } from '@/components/kora-points/mock/kora-point-mock-data';
+import { MOCK_POINT_SALES } from '@/components/kora-points/mock/kora-point-mock-data';
 import { useKoraPointDemo } from '@/components/kora-points/mock/use-kora-point-demo';
-import { MOCK_POINT_SALES, DemoScenarioId } from '@/components/kora-points/mock/kora-point-mock-data';
+import { KoraPointSaleSuccessDialog } from '@/components/kora-points/sale/kora-point-sale-success-dialog';
+import { KoraPointSaleView } from '@/components/kora-points/sale/kora-point-sale-view';
+import { KoraPointTicketDetailDrawer } from '@/components/kora-points/tickets/kora-point-ticket-detail-drawer';
+import { KoraPointTicketListView } from '@/components/kora-points/tickets/kora-point-ticket-list-view';
 
 const meta: Meta = {
     title: 'KORA POINT / 02 - Guichet, Vente & Billets',
@@ -97,6 +99,7 @@ export const SaleSuccessConfirmationModal: Story = {
     name: '03. Reçu de vente & Billet thermique simulé (Exemple démo)',
     render: () => {
         const [isOpen, setIsOpen] = useState(true);
+
         return (
             <div className="p-8">
                 <button
@@ -127,6 +130,7 @@ export const TicketDetailDrawerPreview: Story = {
     name: '05. Tiroir de détail du billet sélectionné',
     render: () => {
         const [selectedSale, setSelectedSale] = useState<any>(MOCK_POINT_SALES[0]);
+
         return (
             <div className="p-8">
                 <button

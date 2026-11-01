@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
     X,
     Coins,
@@ -19,9 +18,10 @@ import {
     User,
     ArrowUpRight,
 } from 'lucide-react';
-import { PointSettlementRecord } from '../mock/kora-point-mock-data';
+import { useState } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { cn } from '@/lib/utils';
+import type { PointSettlementRecord } from '../mock/kora-point-mock-data';
 
 type Props = {
     settlement: PointSettlementRecord | null;
@@ -36,7 +36,9 @@ export function KoraPointSettlementDetailDrawer({
     onClose,
     onResubmit,
 }: Props) {
-    if (!isOpen || !settlement) return null;
+    if (!isOpen || !settlement) {
+return null;
+}
 
     const [isTicketsExpanded, setIsTicketsExpanded] = useState(false);
     const [isProofModalOpen, setIsProofModalOpen] = useState(false);

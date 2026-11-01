@@ -22,6 +22,7 @@ class KoraPoint extends KoraModel
     /** @use HasFactory<KoraPointFactory> */
     use HasFactory;
 
+    /** Returns the bound model factory. */
     protected static function newFactory(): KoraPointFactory
     {
         return KoraPointFactory::new();
@@ -39,6 +40,7 @@ class KoraPoint extends KoraModel
         return $this->hasMany(KoraPointEntry::class, 'point_id');
     }
 
+    /** @return array<string, string> */
     protected function casts(): array
     {
         return ['settlement_calendar' => 'array', 'commission_basis_points' => 'integer', 'ceiling_amount' => 'integer'];

@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
     Store,
     MapPin,
@@ -19,15 +18,16 @@ import {
     FileCheck,
     ArrowUpRight,
 } from 'lucide-react';
-import {
+import { useState } from 'react';
+import { KoraStatusBadge } from '@/components/kora-status-badge';
+import { cn } from '@/lib/utils';
+import type {
     FinancialHealth,
     KoraPointProfile,
     PointAssignedUser,
     PointConvention,
     PointDocument,
 } from '../mock/kora-point-mock-data';
-import { KoraStatusBadge } from '@/components/kora-status-badge';
-import { cn } from '@/lib/utils';
 
 type Props = {
     point: KoraPointProfile;

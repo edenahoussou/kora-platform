@@ -1,4 +1,3 @@
-import { useState, useRef } from 'react';
 import {
     X,
     Coins,
@@ -16,8 +15,9 @@ import {
     Hash,
     Trash2,
 } from 'lucide-react';
-import { FinancialHealth, PointSettlementMethod } from '../mock/kora-point-mock-data';
+import { useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
+import type { FinancialHealth, PointSettlementMethod } from '../mock/kora-point-mock-data';
 
 type Props = {
     isOpen: boolean;
@@ -40,7 +40,9 @@ export function KoraPointSettlementDialog({
     onClose,
     onSubmit,
 }: Props) {
-    if (!isOpen) return null;
+    if (!isOpen) {
+return null;
+}
 
     const [amountDeclared, setAmountDeclared] = useState<number>(health.current_exposure || 100000);
     const [paymentMethod, setPaymentMethod] = useState<PointSettlementMethod>('BANK_DEPOSIT');
@@ -87,16 +89,19 @@ export function KoraPointSettlementDialog({
 
         if (!amountDeclared || amountDeclared <= 0) {
             setError('Veuillez indiquer un montant supérieur à 0 FCFA.');
+
             return;
         }
 
         if (!paymentReference.trim()) {
             setError('Veuillez renseigner le numéro d’opération ou la référence bancaire.');
+
             return;
         }
 
         if (!proofFile) {
             setError('Le téléversement du justificatif de paiement ou bordereau est obligatoire.');
+
             return;
         }
 

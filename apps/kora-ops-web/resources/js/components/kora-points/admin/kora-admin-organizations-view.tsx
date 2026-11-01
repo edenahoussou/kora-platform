@@ -1,31 +1,19 @@
-import { useState } from 'react';
 import {
     Building2,
     Store,
     Users,
     FileText,
     Coins,
-    Calendar,
-    Clock,
-    CheckCircle2,
-    AlertTriangle,
-    Shield,
-    UploadCloud,
-    Eye,
     KeyRound,
-    UserX,
-    UserCheck,
-    Lock,
-    Unlock,
-    RotateCcw,
     Edit3,
 } from 'lucide-react';
-import {
+import { useState } from 'react';
+import { KoraStatusBadge } from '@/components/kora-status-badge';
+import { cn } from '@/lib/utils';
+import type {
     AdminOrganization,
     OrganizationSubPoint,
 } from '../mock/kora-point-mock-data';
-import { KoraStatusBadge } from '@/components/kora-status-badge';
-import { cn } from '@/lib/utils';
 
 type Props = {
     organizations: AdminOrganization[];
@@ -38,6 +26,7 @@ export function KoraAdminOrganizationsView({
     organizations,
     subpoints,
     onToggleUserStatus,
+    onUpdateTermsOverride,
 }: Props) {
     const [selectedOrgUuid, setSelectedOrgUuid] = useState<string>(
         organizations[0]?.uuid || '',
@@ -45,11 +34,13 @@ export function KoraAdminOrganizationsView({
     const [activeTab, setActiveTab] = useState<'points' | 'terms' | 'documents' | 'users'>('points');
 
     const activeOrg = organizations.find((o) => o.uuid === selectedOrgUuid) || organizations[0];
-    const orgSubpoints = subpoints; // in demo, La Poste has subpoints
+    const orgSubpoints = subpoints.filter(
+        (sp) => !sp.organization_uuid || !activeOrg?.uuid || sp.organization_uuid === activeOrg.uuid,
+    );
 
     // Simulated overrides for demonstration of contract inheritance
     const [overrides, setOverrides] = useState<{ [subpointUuid: string]: { commission_rate_bps?: number; credit_limit?: number } }>({
-        'sub-01': { credit_limit: 1500000 }, // Cotonou Ganhi has custom higher limit
+        'sub-01': { credit_limit: 1500000 },
     });
 
     const handleToggleOverride = (subpointUuid: string) => {
@@ -57,11 +48,15 @@ export function KoraAdminOrganizationsView({
             if (prev[subpointUuid]) {
                 const copy = { ...prev };
                 delete copy[subpointUuid];
+                onUpdateTermsOverride?.(subpointUuid, { commission_basis_points: null });
+
                 return copy;
             } else {
+                onUpdateTermsOverride?.(subpointUuid, { commission_basis_points: 350 });
+
                 return {
                     ...prev,
-                    [subpointUuid]: { commission_rate_bps: 350 }, // 3.5% custom
+                    [subpointUuid]: { commission_rate_bps: 350 },
                 };
             }
         });

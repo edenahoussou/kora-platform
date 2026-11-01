@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
     CheckCircle2,
     Printer,
@@ -9,7 +8,8 @@ import {
     Ticket,
     ShieldCheck,
 } from 'lucide-react';
-import { PointSaleRecord } from '../mock/kora-point-mock-data';
+import { useState } from 'react';
+import type { PointSaleRecord } from '../mock/kora-point-mock-data';
 
 type Props = {
     saleRecord: PointSaleRecord | null;
@@ -24,7 +24,9 @@ export function KoraPointSaleSuccessDialog({
 }: Props) {
     const [actionMessage, setActionMessage] = useState<string | null>(null);
 
-    if (!saleRecord) return null;
+    if (!saleRecord) {
+return null;
+}
 
     const handlePrint = () => {
         setActionMessage('Impression thermique simulée : reçu envoyé à l’imprimante du guichet.');

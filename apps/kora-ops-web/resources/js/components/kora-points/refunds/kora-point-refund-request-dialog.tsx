@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
     X,
     RotateCcw,
@@ -15,12 +14,13 @@ import {
     Trash2,
     HelpCircle,
 } from 'lucide-react';
-import {
+import { useState } from 'react';
+import { cn } from '@/lib/utils';
+import type {
     PointRefundReason,
     PointSaleRecord,
     KoraPointProfile,
 } from '../mock/kora-point-mock-data';
-import { cn } from '@/lib/utils';
 
 type Props = {
     isOpen: boolean;
@@ -46,7 +46,9 @@ export function KoraPointRefundRequestDialog({
     onClose,
     onSubmit,
 }: Props) {
-    if (!isOpen) return null;
+    if (!isOpen) {
+return null;
+}
 
     const [selectedTicketNumber, setSelectedTicketNumber] = useState<string>(
         eligibleSales[0]?.ticket_number || '',
@@ -91,6 +93,7 @@ export function KoraPointRefundRequestDialog({
 
         if (!selectedTicketNumber) {
             setError('Veuillez sélectionner un billet valide.');
+
             return;
         }
 

@@ -1,12 +1,13 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
-import { KoraPointCashView } from '@/components/kora-points/cash/kora-point-cash-view';
 import { KoraPointCashSessionDialog } from '@/components/kora-points/cash/kora-point-cash-session-dialog';
-import { KoraPointProfileView } from '@/components/kora-points/profile/kora-point-profile-view';
-import { KoraPointShell, KoraPointActivePage } from '@/components/kora-points/common/kora-point-shell';
+import { KoraPointCashView } from '@/components/kora-points/cash/kora-point-cash-view';
 import { KoraPointDemoBanner } from '@/components/kora-points/common/kora-point-demo-banner';
+import type { KoraPointActivePage } from '@/components/kora-points/common/kora-point-shell';
+import { KoraPointShell } from '@/components/kora-points/common/kora-point-shell';
+import type { DemoScenarioId } from '@/components/kora-points/mock/kora-point-mock-data';
 import { useKoraPointDemo } from '@/components/kora-points/mock/use-kora-point-demo';
-import { DemoScenarioId } from '@/components/kora-points/mock/kora-point-mock-data';
+import { KoraPointProfileView } from '@/components/kora-points/profile/kora-point-profile-view';
 
 const meta: Meta = {
     title: 'KORA POINT / 03 - Caisse & Fiche Mon Point',
@@ -114,6 +115,7 @@ export const CashClosingModalPreview: Story = {
     name: '03. Caisse — Dialogue de clôture avec calcul d’écart automatique',
     render: () => {
         const [isOpen, setIsOpen] = useState(true);
+
         return (
             <div className="p-8 bg-slate-900 min-h-screen text-white flex items-center justify-center">
                 <button

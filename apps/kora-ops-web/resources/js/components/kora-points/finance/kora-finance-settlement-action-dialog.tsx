@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
     Calendar,
     Banknote,
@@ -13,8 +12,9 @@ import {
     AlertTriangle,
     Eye,
 } from 'lucide-react';
-import { PointSettlementRecord } from '../mock/kora-point-mock-data';
+import { useState } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
+import type { PointSettlementRecord } from '../mock/kora-point-mock-data';
 
 type Props = {
     isOpen: boolean;
@@ -39,7 +39,9 @@ export function KoraFinanceSettlementActionDialog({
     onReconcile,
     onReject,
 }: Props) {
-    if (!isOpen || !settlement) return null;
+    if (!isOpen || !settlement) {
+return null;
+}
 
     const [valueDate, setValueDate] = useState(() => new Date().toISOString().slice(0, 10));
     const [bankAmount, setBankAmount] = useState<number>(settlement.amount_declared);
@@ -55,8 +57,12 @@ export function KoraFinanceSettlementActionDialog({
 
     const handleFormSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
         if (mode === 'REJECT') {
-            if (!rejectionReason.trim()) return;
+            if (!rejectionReason.trim()) {
+return;
+}
+
             onReject(settlement.uuid, { reason: rejectionReason.trim() });
             onClose();
         } else {

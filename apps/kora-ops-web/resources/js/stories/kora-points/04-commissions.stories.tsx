@@ -2,10 +2,11 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
 import { KoraPointCommissionsView } from '@/components/kora-points/commissions/kora-point-commissions-view';
 import { KoraPointExportDemoDialog } from '@/components/kora-points/commissions/kora-point-export-demo-dialog';
-import { KoraPointShell, KoraPointActivePage } from '@/components/kora-points/common/kora-point-shell';
 import { KoraPointDemoBanner } from '@/components/kora-points/common/kora-point-demo-banner';
+import type { KoraPointActivePage } from '@/components/kora-points/common/kora-point-shell';
+import { KoraPointShell } from '@/components/kora-points/common/kora-point-shell';
+import type { DemoScenarioId } from '@/components/kora-points/mock/kora-point-mock-data';
 import { useKoraPointDemo } from '@/components/kora-points/mock/use-kora-point-demo';
-import { DemoScenarioId } from '@/components/kora-points/mock/kora-point-mock-data';
 
 const meta: Meta = {
     title: 'KORA POINT / 04 - Commissions & Rémunération',
@@ -81,6 +82,7 @@ export const ExportExcelAndPdfModalPreview: Story = {
     name: '03. Modals d’export démo — Bordereau Excel & Relevé officiel PDF',
     render: () => {
         const [exportType, setExportType] = useState<'EXCEL' | 'PDF' | null>('EXCEL');
+
         return (
             <div className="p-8 bg-slate-900 min-h-screen text-white flex flex-col items-center justify-center gap-4">
                 <div className="flex gap-2">

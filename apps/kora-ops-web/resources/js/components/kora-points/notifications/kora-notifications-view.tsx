@@ -1,4 +1,3 @@
-import { useState, useMemo } from 'react';
 import {
     Bell,
     CheckCheck,
@@ -15,9 +14,11 @@ import {
     Radio,
     Sparkles,
 } from 'lucide-react';
-import { KoraNotificationItem, KoraNotificationCategory } from '../mock/kora-point-mock-data';
-import { KoraPointActivePage } from '../common/kora-point-shell';
+import { useState, useMemo } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
+import type { KoraPointActivePage } from '../common/kora-point-shell';
+import type { KoraNotificationItem} from '../mock/kora-point-mock-data';
+import { KoraNotificationCategory } from '../mock/kora-point-mock-data';
 
 type Props = {
     notifications: KoraNotificationItem[];
@@ -48,12 +49,15 @@ export function KoraNotificationsView({
     // Filter notifications
     const filteredNotifications = useMemo(() => {
         let list = notifications;
+
         if (unreadOnly) {
             list = list.filter((n) => !n.read);
         }
+
         if (selectedCategory !== 'ALL') {
             list = list.filter((n) => n.category === selectedCategory);
         }
+
         return list;
     }, [notifications, unreadOnly, selectedCategory]);
 
@@ -308,6 +312,7 @@ export function KoraNotificationsView({
                 ) : (
                     filteredNotifications.map((notif) => {
                         const isUnread = !notif.read;
+
                         return (
                             <div
                                 key={notif.uuid}

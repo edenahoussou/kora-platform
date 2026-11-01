@@ -1,10 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
 import { KoraPointAgentDashboard } from '@/components/kora-points/agent-dashboard/kora-point-agent-dashboard';
-import { KoraPointShell, KoraPointActivePage } from '@/components/kora-points/common/kora-point-shell';
 import { KoraPointDemoBanner } from '@/components/kora-points/common/kora-point-demo-banner';
+import type { KoraPointActivePage } from '@/components/kora-points/common/kora-point-shell';
+import { KoraPointShell } from '@/components/kora-points/common/kora-point-shell';
+import type { DemoScenarioId } from '@/components/kora-points/mock/kora-point-mock-data';
 import { useKoraPointDemo } from '@/components/kora-points/mock/use-kora-point-demo';
-import { DemoScenarioId } from '@/components/kora-points/mock/kora-point-mock-data';
 
 const meta: Meta = {
     title: 'KORA POINT / 01 - Accueil Agent & Navigation',

@@ -23,6 +23,7 @@ class KoraPointRemittance extends KoraModel
 
     protected $fillable = ['organization_id', 'declared_by', 'validated_by', 'status', 'amount', 'received_amount', 'method', 'reference', 'note', 'submitted_at', 'validated_at', 'uuid'];
 
+    /** @return array<string, string> */
     protected function casts(): array
     {
         return ['amount' => 'integer', 'received_amount' => 'integer', 'submitted_at' => 'immutable_datetime', 'validated_at' => 'immutable_datetime'];
@@ -34,6 +35,7 @@ class KoraPointRemittance extends KoraModel
         return $this->hasMany(KoraPointRemittanceLine::class, 'remittance_id');
     }
 
+    /** Forbids deleting a remittance slip. */
     protected static function booted(): void
     {
         static::deleting(fn () => throw new \LogicException('Un bordereau de reversement ne peut pas être supprimé.'));

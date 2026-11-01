@@ -1,10 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
-import { KoraOrgTreasuryView } from '@/components/kora-points/organization/kora-org-treasury-view';
-import { KoraOrgGroupSettlementDialog } from '@/components/kora-points/organization/kora-org-group-settlement-dialog';
-import { KoraPointShell, KoraPointActivePage } from '@/components/kora-points/common/kora-point-shell';
 import { KoraPointDemoBanner } from '@/components/kora-points/common/kora-point-demo-banner';
+import type { KoraPointActivePage } from '@/components/kora-points/common/kora-point-shell';
+import { KoraPointShell } from '@/components/kora-points/common/kora-point-shell';
 import { useKoraPointDemo } from '@/components/kora-points/mock/use-kora-point-demo';
+import { KoraOrgGroupSettlementDialog } from '@/components/kora-points/organization/kora-org-group-settlement-dialog';
+import { KoraOrgTreasuryView } from '@/components/kora-points/organization/kora-org-treasury-view';
 
 const meta: Meta = {
     title: 'KORA POINT / 08 - Trésorier d’Organisation (La Poste)',

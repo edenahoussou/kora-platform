@@ -1,4 +1,3 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
 import {
     Search,
     X,
@@ -12,15 +11,16 @@ import {
     User,
     Check,
 } from 'lucide-react';
-import {
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { KoraStatusBadge } from '@/components/kora-status-badge';
+import type { KoraPointActivePage } from '../common/kora-point-shell';
+import type {
     PointSaleRecord,
     AdminNetworkPoint,
     AdminOrganization,
     PointSettlementRecord,
     KoraPointUserRole,
 } from '../mock/kora-point-mock-data';
-import { KoraPointActivePage } from '../common/kora-point-shell';
-import { KoraStatusBadge } from '@/components/kora-status-badge';
 
 type Props = {
     isOpen: boolean;
@@ -74,6 +74,7 @@ export function KoraGlobalSearchDialog({
         const handleKeyDown = (e: KeyboardEvent) => {
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
                 e.preventDefault();
+
                 if (isOpen) {
                     onClose();
                 } else {
@@ -86,6 +87,7 @@ export function KoraGlobalSearchDialog({
         };
 
         window.addEventListener('keydown', handleKeyDown);
+
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isOpen, onClose]);
 
@@ -94,6 +96,7 @@ export function KoraGlobalSearchDialog({
         if (currentRole === 'AGENT_POINT') {
             return sales.filter((s) => s.seller_name.includes('Jean Dossou') || s.ticket_number.includes('AKP'));
         }
+
         return sales;
     }, [sales, currentRole]);
 
@@ -101,17 +104,23 @@ export function KoraGlobalSearchDialog({
         if (currentRole === 'AGENT_POINT') {
             return points.filter((p) => p.code.includes('AKP'));
         }
+
         if (currentRole === 'RESPONSABLE_ORG' || currentRole === 'TRESORIER_ORG') {
             return points.filter((p) => p.organization_name?.includes('La Poste'));
         }
+
         return points;
     }, [points, currentRole]);
 
     const accessibleOrgs = useMemo(() => {
-        if (currentRole === 'AGENT_POINT') return [];
+        if (currentRole === 'AGENT_POINT') {
+return [];
+}
+
         if (currentRole === 'RESPONSABLE_ORG' || currentRole === 'TRESORIER_ORG') {
             return organizations.filter((o) => o.code.includes('LAPOSTE'));
         }
+
         return organizations;
     }, [organizations, currentRole]);
 
@@ -119,9 +128,11 @@ export function KoraGlobalSearchDialog({
         if (currentRole === 'AGENT_POINT') {
             return settlements.filter((s) => s.point_name.includes('Akpakpa'));
         }
+
         if (currentRole === 'RESPONSABLE_ORG' || currentRole === 'TRESORIER_ORG') {
             return settlements.filter((s) => s.reference.includes('ORG') || s.point_name.includes('Akpakpa') || s.point_name.includes('Poste'));
         }
+
         return settlements;
     }, [settlements, currentRole]);
 
@@ -230,7 +241,10 @@ export function KoraGlobalSearchDialog({
 
     // Filter by selected category chip
     const filteredResults = useMemo(() => {
-        if (activeCategory === 'ALL') return allResults;
+        if (activeCategory === 'ALL') {
+return allResults;
+}
+
         return allResults.filter((item) => item.category === activeCategory);
     }, [allResults, activeCategory]);
 
@@ -250,13 +264,16 @@ export function KoraGlobalSearchDialog({
             setSelectedIndex((prev) => (prev > 0 ? prev - 1 : filteredResults.length - 1));
         } else if (e.key === 'Enter') {
             e.preventDefault();
+
             if (filteredResults[selectedIndex]) {
                 handleSelectResult(filteredResults[selectedIndex]);
             }
         }
     };
 
-    if (!isOpen) return null;
+    if (!isOpen) {
+return null;
+}
 
     return (
         <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-16 sm:pt-24 bg-slate-950/60 backdrop-blur-sm animate-in fade-in">
@@ -391,6 +408,7 @@ export function KoraGlobalSearchDialog({
                         <div className="space-y-1">
                             {filteredResults.map((item, index) => {
                                 const isSelected = index === selectedIndex;
+
                                 return (
                                     <div
                                         key={item.id}

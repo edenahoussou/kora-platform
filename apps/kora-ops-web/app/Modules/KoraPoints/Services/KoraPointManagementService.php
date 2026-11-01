@@ -18,12 +18,30 @@ class KoraPointManagementService
     public function __construct(private readonly KoraPointAccess $access, private readonly KoraPointLedgerService $ledger) {}
 
     /** @param array<string, mixed> $data */
+    /**
+     * Creates or updates a point inside a transaction; auto-generates a unique agency code when absent.
+     *
+     * @param  array<string, mixed>  $data
+     */
     public function savePoint(User $actor, array $data, ?KoraPoint $point = null): KoraPoint
     {
         $this->access->authorize($actor, 'kora-points.manage');
 
         return DB::transaction(function () use ($actor, $data, $point): KoraPoint {
             $organization = isset($data['organization_uuid']) ? KoraPointOrganization::query()->where('uuid', $data['organization_uuid'])->lockForUpdate()->firstOrFail() : null;
+            if (empty($data['code'])) {
+                $cityPrefix = strtoupper(substr(preg_replace('/[^A-Za-z]/', '', (string) ($data['city'] ?? 'KP')), 0, 3));
+                if ($cityPrefix === '') {
+                    $cityPrefix = 'KP';
+                }
+                do {
+                    $candidateCode = sprintf('KP-%s-%04d', $cityPrefix, random_int(1000, 9999));
+                } while (Agency::query()->where('code', $candidateCode)->exists());
+                $data['code'] = $candidateCode;
+            }
+            if (empty($data['country'])) {
+                $data['country'] = 'BJ';
+            }
             if ($point !== null) {
                 $point = KoraPoint::query()->lockForUpdate()->whereKey($point->getKey())->firstOrFail();
                 if (array_key_exists('organization_uuid', $data) && $point->organization_id !== $organization?->getKey()) {
@@ -39,7 +57,7 @@ class KoraPointManagementService
                 $point = new KoraPoint(['agency_id' => $agency->getKey(), 'status' => 'active']);
             }
             $before = $point->exists ? $point->getAttributes() : [];
-            $point->fill(Arr::only($data, ['responsible_name', 'phone', 'address', 'latitude', 'longitude']));
+            $point->fill(Arr::only($data, ['responsible_name', 'phone', 'address', 'latitude', 'longitude', 'commission_basis_points', 'ceiling_amount', 'settlement_calendar']));
             if (array_key_exists('organization_uuid', $data)) {
                 $point->organization_id = $organization?->getKey();
             }
@@ -51,6 +69,11 @@ class KoraPointManagementService
     }
 
     /** @param array<string, mixed> $data */
+    /**
+     * Creates or updates a partner organization and optionally batches its points atomically.
+     *
+     * @param  array<string, mixed>  $data
+     */
     public function saveOrganization(User $actor, array $data, ?KoraPointOrganization $organization = null): KoraPointOrganization
     {
         $this->access->authorize($actor, 'kora-points.manage');
@@ -74,6 +97,11 @@ class KoraPointManagementService
     }
 
     /** @param array<string, mixed> $data */
+    /**
+     * Persists validated financial terms (commission, ceiling, calendar) on a point or organization.
+     *
+     * @param  array<string, mixed>  $data
+     */
     public function updateTerms(User $actor, KoraPoint|KoraPointOrganization $subject, array $data): void
     {
         $this->access->authorize($actor, 'kora-points.terms');
@@ -86,6 +114,9 @@ class KoraPointManagementService
         });
     }
 
+    /**
+     * Applies a lifecycle status change (active, suspended, closed) on a point or organization.
+     */
     public function changeStatus(User $actor, KoraPoint|KoraPointOrganization $subject, string $status): void
     {
         $this->access->authorize($actor, 'kora-points.manage');
@@ -98,6 +129,9 @@ class KoraPointManagementService
         });
     }
 
+    /**
+     * Binds a partner user to a point or organization with the matching role, rejecting internal accounts.
+     */
     public function assign(User $actor, User $user, KoraPoint|KoraPointOrganization $subject, string $role): void
     {
         $this->access->authorize($actor, 'users.manage');
@@ -119,6 +153,11 @@ class KoraPointManagementService
     }
 
     /** @param array<string, mixed> $before */
+    /**
+     * Writes an audit activity entry capturing before and after attribute snapshots.
+     *
+     * @param  array<string, mixed>  $before
+     */
     private function audit(User $actor, KoraPoint|KoraPointOrganization $subject, string $event, array $before): void
     {
         activity('kora-points')->performedOn($subject)->causedBy($actor)->withProperties(['before' => $before, 'after' => $subject->getAttributes()])->log($event);

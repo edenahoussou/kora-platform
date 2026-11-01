@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
     Wallet,
     X,
@@ -8,8 +7,9 @@ import {
     MessageSquare,
     Calculator,
 } from 'lucide-react';
-import { PointCashSession } from '../mock/kora-point-mock-data';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import type { PointCashSession } from '../mock/kora-point-mock-data';
 
 type Props = {
     isOpen: boolean;
@@ -35,7 +35,9 @@ export function KoraPointCashSessionDialog({
     const [varianceComment, setVarianceComment] = useState('');
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-    if (!isOpen) return null;
+    if (!isOpen) {
+return null;
+}
 
     const expectedCash = session.expected_closing_cash;
     const actualCashNum = Number(countedCash || 0);
@@ -44,22 +46,28 @@ export function KoraPointCashSessionDialog({
     const handleOpenSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const num = Number(openingAmount);
+
         if (isNaN(num) || num < 0) {
             setErrorMessage('Le montant du fond de caisse doit être un nombre valide.');
+
             return;
         }
+
         onConfirmOpen(num);
         onClose();
     };
 
     const handleCloseSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
         if (variance !== 0 && !varianceComment.trim()) {
             setErrorMessage(
                 'Un écart de caisse est constaté. Un motif explicatif est obligatoire pour clôturer.',
             );
+
             return;
         }
+
         onConfirmClose(actualCashNum, varianceComment);
         onClose();
     };

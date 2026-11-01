@@ -1,12 +1,13 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
+import { KoraPointDemoBanner } from '@/components/kora-points/common/kora-point-demo-banner';
+import type { KoraPointActivePage } from '@/components/kora-points/common/kora-point-shell';
+import { KoraPointShell } from '@/components/kora-points/common/kora-point-shell';
+import type { DemoScenarioId } from '@/components/kora-points/mock/kora-point-mock-data';
+import { useKoraPointDemo } from '@/components/kora-points/mock/use-kora-point-demo';
 import { KoraPointRefundListView } from '@/components/kora-points/refunds/kora-point-refund-list-view';
 import { KoraPointRefundRequestDialog } from '@/components/kora-points/refunds/kora-point-refund-request-dialog';
 import { KoraPointRefundRestitutionDialog } from '@/components/kora-points/refunds/kora-point-refund-restitution-dialog';
-import { KoraPointShell, KoraPointActivePage } from '@/components/kora-points/common/kora-point-shell';
-import { KoraPointDemoBanner } from '@/components/kora-points/common/kora-point-demo-banner';
-import { useKoraPointDemo } from '@/components/kora-points/mock/use-kora-point-demo';
-import { DemoScenarioId } from '@/components/kora-points/mock/kora-point-mock-data';
 
 const meta: Meta = {
     title: 'KORA POINT / 06 - Remboursements & Restitutions',

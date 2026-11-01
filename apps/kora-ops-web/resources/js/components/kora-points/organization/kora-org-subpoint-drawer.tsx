@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
     X,
     Building2,
@@ -15,9 +14,10 @@ import {
     Info,
     TrendingUp,
 } from 'lucide-react';
-import { OrganizationSubPoint } from '../mock/kora-point-mock-data';
+import { useState } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { cn } from '@/lib/utils';
+import type { OrganizationSubPoint } from '../mock/kora-point-mock-data';
 
 type Props = {
     subpoint: OrganizationSubPoint | null;
@@ -26,7 +26,9 @@ type Props = {
 };
 
 export function KoraOrgSubPointDrawer({ subpoint, isOpen, onClose }: Props) {
-    if (!isOpen || !subpoint) return null;
+    if (!isOpen || !subpoint) {
+return null;
+}
 
     const getStatusBadge = (status: OrganizationSubPoint['status']) => {
         switch (status) {

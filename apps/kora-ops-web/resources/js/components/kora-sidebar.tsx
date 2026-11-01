@@ -213,6 +213,8 @@ const navItems: NavEntry[] = [
             'pricing.manage',
             'company-accounts.view',
             'company-accounts.manage',
+            'kora-points.view',
+            'kora-points.finance',
         ],
         children: [
             {
@@ -229,6 +231,21 @@ const navItems: NavEntry[] = [
                 title: 'Comptes entreprises',
                 href: '/companies',
                 permission: 'company-accounts.view',
+            },
+            {
+                title: 'Points de vente',
+                href: '/kora-points',
+                permission: 'kora-points.view',
+            },
+            {
+                title: 'Organisations partenaires',
+                href: '/kora-points/organizations',
+                permission: 'kora-points.view',
+            },
+            {
+                title: 'Rapprochement & Finance',
+                href: '/kora-points/finance',
+                permission: 'kora-points.finance',
             },
         ],
     },

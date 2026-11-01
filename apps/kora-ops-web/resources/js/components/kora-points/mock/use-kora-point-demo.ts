@@ -1,36 +1,37 @@
 import { useState, useCallback, useMemo } from 'react';
-import {
+import type {
     DemoScenarioId,
     FinancialHealth,
-    getScenarioData,
     KoraPointProfile,
     PointPriorityAlert,
     PointSaleRecord,
     DailyMetrics,
     PointCashSession,
-    MOCK_CASH_SESSION_OPEN,
     PointConvention,
-    MOCK_CONVENTION,
     PointDocument,
-    MOCK_DOCUMENTS,
     PointAssignedUser,
-    MOCK_POINT_USERS,
     PointCommissionRecord,
-    MOCK_COMMISSION_RECORDS,
     PointSettlementRecord,
-    MOCK_POINT_SETTLEMENTS,
     PointRefundRecord,
-    MOCK_POINT_REFUNDS,
     OrganizationSubPoint,
-    MOCK_ORGANIZATION_SUBPOINTS,
     GroupSettlementRecord,
-    MOCK_GROUP_SETTLEMENTS,
     GroupSettlementBreakdown,
     AdminNetworkPoint,
-    MOCK_ADMIN_NETWORK_POINTS,
     AdminOrganization,
+    KoraNotificationItem} from './kora-point-mock-data';
+import {
+    getScenarioData,
+    MOCK_CASH_SESSION_OPEN,
+    MOCK_CONVENTION,
+    MOCK_DOCUMENTS,
+    MOCK_POINT_USERS,
+    MOCK_COMMISSION_RECORDS,
+    MOCK_POINT_SETTLEMENTS,
+    MOCK_POINT_REFUNDS,
+    MOCK_ORGANIZATION_SUBPOINTS,
+    MOCK_GROUP_SETTLEMENTS,
+    MOCK_ADMIN_NETWORK_POINTS,
     MOCK_ADMIN_ORGANIZATIONS,
-    KoraNotificationItem,
     MOCK_NOTIFICATIONS,
 } from './kora-point-mock-data';
 
@@ -227,6 +228,7 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
 
             // Update cash session movements if open
             let updatedCashSession = cashSession;
+
             if (cashSession.status === 'OPEN') {
                 const isCash = sale.paymentMethod === 'CASH';
                 const newCashCollected = cashSession.cash_collected + (isCash ? sale.amountPaid : 0);
@@ -461,7 +463,10 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
             });
 
             const targetRefund = refunds.find((r) => r.uuid === refundUuid);
-            if (!targetRefund) return;
+
+            if (!targetRefund) {
+return;
+}
 
             const updatedRefund: PointRefundRecord = {
                 ...targetRefund,
@@ -482,6 +487,7 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
 
             // Deduct cash from till if cash session is open
             let updatedCashSession = cashSession;
+
             if (cashSession.status === 'OPEN') {
                 const newExpectedCash = Math.max(
                     0,
@@ -569,9 +575,11 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
             // Update subpoints exposure in demo
             const updatedSubPoints = organizationSubPoints.map((sp) => {
                 const alloc = data.breakdown.find((b) => b.subpoint_uuid === sp.uuid);
+
                 if (alloc) {
                     const newExposure = Math.max(0, sp.current_exposure - alloc.amount_allocated);
                     const newUsage = Math.round((newExposure / sp.credit_limit) * 100);
+
                     return {
                         ...sp,
                         current_exposure: newExposure,
@@ -584,6 +592,7 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
                                 : ('ACTIVE' as const),
                     };
                 }
+
                 return sp;
             });
 
@@ -689,11 +698,17 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
             },
         ) => {
             const target = settlements.find((s) => s.uuid === settlementUuid);
-            if (!target) return;
+
+            if (!target) {
+return;
+}
 
             const isGroup = target.reference.startsWith('REV-ORG');
             const updatedSettlements = settlements.map((s) => {
-                if (s.uuid !== settlementUuid) return s;
+                if (s.uuid !== settlementUuid) {
+return s;
+}
+
                 return {
                     ...s,
                     status: 'VALIDATED' as const,
@@ -749,10 +764,16 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
     const rejectSettlement = useCallback(
         (settlementUuid: string, params: { reason: string }) => {
             const target = settlements.find((s) => s.uuid === settlementUuid);
-            if (!target) return;
+
+            if (!target) {
+return;
+}
 
             const updatedSettlements = settlements.map((s) => {
-                if (s.uuid !== settlementUuid) return s;
+                if (s.uuid !== settlementUuid) {
+return s;
+}
+
                 return {
                     ...s,
                     status: 'REJECTED' as const,
@@ -794,7 +815,10 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
     const approveRefund = useCallback(
         (refundUuid: string, params: { payoutMode: 'POINT_CASH' | 'KORA_DIRECT'; notes?: string }) => {
             const target = refunds.find((r) => r.uuid === refundUuid);
-            if (!target) return;
+
+            if (!target) {
+return;
+}
 
             const nextStatus =
                 params.payoutMode === 'POINT_CASH'
@@ -807,7 +831,10 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
                     : 'Approbation Finance : remboursement direct émis par KORA (Virement / MoMo).';
 
             const updatedRefunds = refunds.map((r) => {
-                if (r.uuid !== refundUuid) return r;
+                if (r.uuid !== refundUuid) {
+return r;
+}
+
                 return {
                     ...r,
                     status: nextStatus,
@@ -854,10 +881,16 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
     const rejectRefund = useCallback(
         (refundUuid: string, params: { reason: string }) => {
             const target = refunds.find((r) => r.uuid === refundUuid);
-            if (!target) return;
+
+            if (!target) {
+return;
+}
 
             const updatedRefunds = refunds.map((r) => {
-                if (r.uuid !== refundUuid) return r;
+                if (r.uuid !== refundUuid) {
+return r;
+}
+
                 return {
                     ...r,
                     status: 'REJECTED' as const,

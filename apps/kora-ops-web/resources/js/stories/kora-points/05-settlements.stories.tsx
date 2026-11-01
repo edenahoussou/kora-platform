@@ -1,12 +1,13 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
-import { KoraPointSettlementListView } from '@/components/kora-points/settlements/kora-point-settlement-list-view';
-import { KoraPointSettlementDialog } from '@/components/kora-points/settlements/kora-point-settlement-dialog';
-import { KoraPointSettlementDetailDrawer } from '@/components/kora-points/settlements/kora-point-settlement-detail-drawer';
-import { KoraPointShell, KoraPointActivePage } from '@/components/kora-points/common/kora-point-shell';
 import { KoraPointDemoBanner } from '@/components/kora-points/common/kora-point-demo-banner';
+import type { KoraPointActivePage } from '@/components/kora-points/common/kora-point-shell';
+import { KoraPointShell } from '@/components/kora-points/common/kora-point-shell';
+import type { DemoScenarioId } from '@/components/kora-points/mock/kora-point-mock-data';
 import { useKoraPointDemo } from '@/components/kora-points/mock/use-kora-point-demo';
-import { DemoScenarioId } from '@/components/kora-points/mock/kora-point-mock-data';
+import { KoraPointSettlementDetailDrawer } from '@/components/kora-points/settlements/kora-point-settlement-detail-drawer';
+import { KoraPointSettlementDialog } from '@/components/kora-points/settlements/kora-point-settlement-dialog';
+import { KoraPointSettlementListView } from '@/components/kora-points/settlements/kora-point-settlement-list-view';
 
 const meta: Meta = {
     title: 'KORA POINT / 05 - Reversements Partenaires',

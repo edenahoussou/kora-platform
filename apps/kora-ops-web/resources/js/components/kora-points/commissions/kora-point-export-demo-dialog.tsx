@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
     Download,
     FileSpreadsheet,
@@ -7,6 +6,7 @@ import {
     Check,
     Sparkles,
 } from 'lucide-react';
+import { useState } from 'react';
 
 type Props = {
     isOpen: boolean;
@@ -26,7 +26,9 @@ export function KoraPointExportDemoDialog({
     const [downloading, setDownloading] = useState(false);
     const [downloadDone, setDownloadDone] = useState(false);
 
-    if (!isOpen) return null;
+    if (!isOpen) {
+return null;
+}
 
     const fileName =
         exportType === 'EXCEL'

@@ -18,6 +18,9 @@ class KoraPointRefundController extends Controller
 {
     public function __construct(private readonly KoraPointRefundService $service, private readonly KoraPointAccess $access) {}
 
+    /**
+     * Renders a single refund detail page.
+     */
     public function show(Request $request, KoraPointRefund $refund): Response
     {
         $this->access->requireSale($request->user(), $refund->sale);
@@ -29,6 +32,9 @@ class KoraPointRefundController extends Controller
         ]]);
     }
 
+    /**
+     * Files a refund request on a sale then redirects to the refund detail.
+     */
     public function store(RequestKoraPointRefundRequest $request, KoraPointSale $sale): RedirectResponse
     {
         $refund = $this->service->request($request->user(), $sale, $request->validated('reason'), $request->validated('passenger_uuid'));
@@ -37,6 +43,9 @@ class KoraPointRefundController extends Controller
         return to_route('kora-points.refunds.show', $refund->uuid);
     }
 
+    /**
+     * Finance approves the refund for restitution.
+     */
     public function authorizeRefund(Request $request, KoraPointRefund $refund): RedirectResponse
     {
         $this->service->authorize($request->user(), $refund);
@@ -46,6 +55,9 @@ class KoraPointRefundController extends Controller
         return back();
     }
 
+    /**
+     * Finance rejects the refund request.
+     */
     public function reject(Request $request, KoraPointRefund $refund): RedirectResponse
     {
         $this->service->authorize($request->user(), $refund, true);
@@ -55,6 +67,9 @@ class KoraPointRefundController extends Controller
         return back();
     }
 
+    /**
+     * Declares the effective restitution of funds to the beneficiary.
+     */
     public function execute(ExecuteKoraPointRefundRequest $request, KoraPointRefund $refund): RedirectResponse
     {
         $this->service->execute($request->user(), $refund, $request->validated());
@@ -64,6 +79,9 @@ class KoraPointRefundController extends Controller
         return back();
     }
 
+    /**
+     * Confirms the restitution and posts the ledger reversal.
+     */
     public function confirm(Request $request, KoraPointRefund $refund): RedirectResponse
     {
         $this->service->confirm($request->user(), $refund);

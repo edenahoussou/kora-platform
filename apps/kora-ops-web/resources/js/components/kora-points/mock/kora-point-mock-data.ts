@@ -504,6 +504,7 @@ export function getScenarioData(scenarioId: DemoScenarioId): {
             ...MOCK_DAILY_METRICS,
             total_due_amount: 1850000,
         };
+
         return {
             point,
             health,
@@ -530,6 +531,7 @@ export function getScenarioData(scenarioId: DemoScenarioId): {
             ...MOCK_DAILY_METRICS,
             total_due_amount: 1290000,
         };
+
         return {
             point,
             health,
@@ -567,6 +569,7 @@ export function getScenarioData(scenarioId: DemoScenarioId): {
             ...MOCK_DAILY_METRICS,
             total_due_amount: 1500000,
         };
+
         return {
             point,
             health,
@@ -604,6 +607,7 @@ export function getScenarioData(scenarioId: DemoScenarioId): {
             ...MOCK_DAILY_METRICS,
             total_due_amount: 820000,
         };
+
         return {
             point,
             health,
@@ -637,6 +641,7 @@ export function getScenarioData(scenarioId: DemoScenarioId): {
         sales_allowed: true,
         block_reason: null,
     };
+
     return {
         point,
         health,
@@ -1404,6 +1409,7 @@ export type OrganizationSubPoint = {
     commission_rate_bps: number;
     monthly_commission_earned: number;
     last_settlement_date: string;
+    organization_uuid?: string;
 };
 
 export const MOCK_ORGANIZATION_SUBPOINTS: OrganizationSubPoint[] = [

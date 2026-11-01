@@ -1,5 +1,5 @@
 import { Ticket, TrendingUp, Wallet, ReceiptText, ArrowUpRight } from 'lucide-react';
-import { DailyMetrics, KoraPointTerms } from '../mock/kora-point-mock-data';
+import type { DailyMetrics, KoraPointTerms } from '../mock/kora-point-mock-data';
 
 type Props = {
     metrics: DailyMetrics;
@@ -72,6 +72,7 @@ export function KoraPointKpiGrid({ metrics, terms, onKpiClick }: Props) {
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {kpis.map((kpi) => {
                     const Icon = kpi.icon;
+
                     return (
                         <button
                             key={kpi.id}

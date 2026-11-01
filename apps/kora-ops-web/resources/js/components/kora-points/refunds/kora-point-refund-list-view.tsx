@@ -1,4 +1,3 @@
-import { useState, useMemo } from 'react';
 import {
     RotateCcw,
     Search,
@@ -14,7 +13,10 @@ import {
     FileText,
     ArrowUpRight,
 } from 'lucide-react';
-import {
+import { useState, useMemo } from 'react';
+import { KoraStatusBadge } from '@/components/kora-status-badge';
+import { cn } from '@/lib/utils';
+import type {
     KoraPointProfile,
     PointRefundRecord,
     PointRefundStatus,
@@ -22,8 +24,6 @@ import {
 } from '../mock/kora-point-mock-data';
 import { KoraPointRefundRequestDialog } from './kora-point-refund-request-dialog';
 import { KoraPointRefundRestitutionDialog } from './kora-point-refund-restitution-dialog';
-import { KoraStatusBadge } from '@/components/kora-status-badge';
-import { cn } from '@/lib/utils';
 
 type Props = {
     point: KoraPointProfile;
@@ -69,8 +69,14 @@ export function KoraPointRefundListView({
         let totalClawback = 0;
 
         refunds.forEach((r) => {
-            if (r.status === 'REQUESTED') pendingFinance += 1;
-            if (r.status === 'APPROVED_BY_FINANCE') readyForRestitution += 1;
+            if (r.status === 'REQUESTED') {
+pendingFinance += 1;
+}
+
+            if (r.status === 'APPROVED_BY_FINANCE') {
+readyForRestitution += 1;
+}
+
             if (r.status === 'FUNDS_RESTITUTED') {
                 totalRefunded += r.refund_amount;
                 totalClawback += Math.abs(r.commission_clawback);

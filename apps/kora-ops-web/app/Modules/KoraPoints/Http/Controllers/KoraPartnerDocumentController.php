@@ -19,6 +19,9 @@ class KoraPartnerDocumentController extends Controller
 {
     public function __construct(private readonly KoraPointDocumentService $service) {}
 
+    /**
+     * Stores a document attached to a point.
+     */
     public function point(StoreKoraPartnerDocumentRequest $request, KoraPoint $point): RedirectResponse
     {
         $this->service->store($request->user(), $point, $request->validated(), $request->file('file'));
@@ -28,6 +31,9 @@ class KoraPartnerDocumentController extends Controller
         return back();
     }
 
+    /**
+     * Stores a document attached to an organization.
+     */
     public function organization(StoreKoraPartnerDocumentRequest $request, KoraPointOrganization $organization): RedirectResponse
     {
         $this->service->store($request->user(), $organization, $request->validated(), $request->file('file'));
@@ -37,6 +43,9 @@ class KoraPartnerDocumentController extends Controller
         return back();
     }
 
+    /**
+     * Stores the proof file attached to a remittance slip.
+     */
     public function remittance(StoreKoraPartnerDocumentRequest $request, KoraPointRemittance $remittance): RedirectResponse
     {
         $this->service->store($request->user(), $remittance, $request->validated(), $request->file('file'));
@@ -46,6 +55,9 @@ class KoraPartnerDocumentController extends Controller
         return back();
     }
 
+    /**
+     * Stores the proof file attached to a refund request.
+     */
     public function refund(StoreKoraPartnerDocumentRequest $request, KoraPointRefund $refund): RedirectResponse
     {
         $this->service->store($request->user(), $refund, $request->validated(), $request->file('file'));
@@ -55,6 +67,9 @@ class KoraPartnerDocumentController extends Controller
         return back();
     }
 
+    /**
+     * Streams the document file after checking the actor visibility rights.
+     */
     public function download(Request $request, KoraPartnerDocument $document): BinaryFileResponse
     {
         $this->service->authorizeDownload($request->user(), $document);

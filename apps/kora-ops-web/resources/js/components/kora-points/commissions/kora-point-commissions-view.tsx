@@ -1,4 +1,3 @@
-import { useState, useMemo } from 'react';
 import {
     TrendingUp,
     Download,
@@ -12,13 +11,14 @@ import {
     ArrowUpRight,
     CheckCircle2,
 } from 'lucide-react';
-import {
+import { useState, useMemo } from 'react';
+import { KoraStatusBadge } from '@/components/kora-status-badge';
+import { cn } from '@/lib/utils';
+import type {
     KoraPointProfile,
     PointCommissionRecord,
 } from '../mock/kora-point-mock-data';
 import { KoraPointExportDemoDialog } from './kora-point-export-demo-dialog';
-import { KoraStatusBadge } from '@/components/kora-status-badge';
-import { cn } from '@/lib/utils';
 
 type Props = {
     point: KoraPointProfile;

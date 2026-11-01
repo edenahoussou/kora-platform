@@ -23,6 +23,7 @@ class KoraPartnerDocument extends KoraModel implements HasMedia
 
     protected $fillable = ['point_id', 'organization_id', 'uploaded_by', 'remittance_id', 'refund_id', 'kind', 'title', 'reference', 'signed_at', 'expires_at', 'uuid'];
 
+    /** @return array<string, string> */
     protected function casts(): array
     {
         return ['signed_at' => 'immutable_date', 'expires_at' => 'immutable_date'];
@@ -52,11 +53,13 @@ class KoraPartnerDocument extends KoraModel implements HasMedia
         return $this->belongsTo(KoraPointRemittance::class, 'remittance_id');
     }
 
+    /** Declares the single-file proof media collection. */
     public function registerMediaCollections(): void
     {
         $this->addMediaCollection('proof')->useDisk('local')->singleFile();
     }
 
+    /** Forbids deleting a partner document. */
     protected static function booted(): void
     {
         static::deleting(fn () => throw new \LogicException('Une pièce partenaire ne peut pas être supprimée.'));

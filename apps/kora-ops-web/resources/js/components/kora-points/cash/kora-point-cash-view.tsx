@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
     Wallet,
     Banknote,
@@ -14,14 +13,15 @@ import {
     CheckCircle2,
     Calendar,
 } from 'lucide-react';
-import {
+import { useState } from 'react';
+import { KoraStatusBadge } from '@/components/kora-status-badge';
+import { cn } from '@/lib/utils';
+import type {
     FinancialHealth,
     KoraPointProfile,
     PointCashSession,
 } from '../mock/kora-point-mock-data';
 import { KoraPointCashSessionDialog } from './kora-point-cash-session-dialog';
-import { KoraStatusBadge } from '@/components/kora-status-badge';
-import { cn } from '@/lib/utils';
 
 type Props = {
     point: KoraPointProfile;

@@ -1,4 +1,3 @@
-import { useState, useMemo } from 'react';
 import {
     Building2,
     Store,
@@ -16,14 +15,15 @@ import {
     ArrowUpRight,
     Filter,
 } from 'lucide-react';
-import {
+import { useState, useMemo } from 'react';
+import { KoraStatusBadge } from '@/components/kora-status-badge';
+import { cn } from '@/lib/utils';
+import type {
     OrganizationSubPoint,
     PointSaleRecord,
     PointRefundRecord,
 } from '../mock/kora-point-mock-data';
 import { KoraOrgSubPointDrawer } from './kora-org-subpoint-drawer';
-import { KoraStatusBadge } from '@/components/kora-status-badge';
-import { cn } from '@/lib/utils';
 
 type Props = {
     organizationName: string;
@@ -73,6 +73,7 @@ export function KoraOrgSupervisionView({
             totalCommission += sp.monthly_commission_earned;
             totalExposure += sp.current_exposure;
             totalCreditLimit += sp.credit_limit;
+
             if (sp.status === 'WARNING_THRESHOLD' || sp.status === 'LIMIT_REACHED') {
                 alertPointsCount += 1;
             }

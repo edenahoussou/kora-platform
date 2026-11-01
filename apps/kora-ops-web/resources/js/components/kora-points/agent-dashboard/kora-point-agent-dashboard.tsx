@@ -1,10 +1,10 @@
-import { useState } from 'react';
-import { KoraPointProfile, FinancialHealth, DailyMetrics, PointPriorityAlert } from '../mock/kora-point-mock-data';
-import { KoraPointHeroBanner } from './kora-point-hero-banner';
-import { KoraPointFinancialHealth } from './kora-point-financial-health';
-import { KoraPointKpiGrid } from './kora-point-kpi-grid';
-import { KoraPointActivityChart } from './kora-point-activity-chart';
 import { Check, HelpCircle, X, ArrowRight } from 'lucide-react';
+import { useState } from 'react';
+import type { KoraPointProfile, FinancialHealth, DailyMetrics, PointPriorityAlert } from '../mock/kora-point-mock-data';
+import { KoraPointActivityChart } from './kora-point-activity-chart';
+import { KoraPointFinancialHealth } from './kora-point-financial-health';
+import { KoraPointHeroBanner } from './kora-point-hero-banner';
+import { KoraPointKpiGrid } from './kora-point-kpi-grid';
 
 type Props = {
     point: KoraPointProfile;
@@ -151,9 +151,13 @@ export function KoraPointAgentDashboard({
                 metrics={metrics}
                 terms={point.terms}
                 onKpiClick={(type) => {
-                    if (type === 'sales' || type === 'tickets') onNavigate('tickets');
-                    else if (type === 'commissions') onNavigate('commissions');
-                    else if (type === 'settlement') onNavigate('settlements');
+                    if (type === 'sales' || type === 'tickets') {
+onNavigate('tickets');
+} else if (type === 'commissions') {
+onNavigate('commissions');
+} else if (type === 'settlement') {
+onNavigate('settlements');
+}
                 }}
             />
 

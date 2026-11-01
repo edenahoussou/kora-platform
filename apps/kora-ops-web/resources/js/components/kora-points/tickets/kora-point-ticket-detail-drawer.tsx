@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
     X,
     Ticket,
@@ -13,8 +12,9 @@ import {
     AlertCircle,
     TrendingUp,
 } from 'lucide-react';
-import { PointSaleRecord } from '../mock/kora-point-mock-data';
+import { useState } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
+import type { PointSaleRecord } from '../mock/kora-point-mock-data';
 
 type Props = {
     sale: PointSaleRecord | null;
@@ -29,7 +29,9 @@ export function KoraPointTicketDetailDrawer({
 }: Props) {
     const [actionMsg, setActionMsg] = useState<string | null>(null);
 
-    if (!sale) return null;
+    if (!sale) {
+return null;
+}
 
     const handlePrint = () => {
         setActionMsg('Billet envoyé à l’imprimante thermique (simulation).');

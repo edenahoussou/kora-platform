@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
     X,
     Store,
@@ -19,8 +18,9 @@ import {
     ArrowLeft,
     Shield,
 } from 'lucide-react';
-import { AdminOrganization } from '../mock/kora-point-mock-data';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import type { AdminOrganization } from '../mock/kora-point-mock-data';
 
 type Props = {
     isOpen: boolean;
@@ -30,6 +30,7 @@ type Props = {
         name: string;
         type: 'AUTONOMOUS' | 'ORGANIZATION_ATTACHED';
         organizationName?: string;
+        organizationUuid?: string;
         city: string;
         department: string;
         managerName: string;
@@ -47,7 +48,9 @@ export function KoraAdminPointWizardDialog({
     onClose,
     onSubmit,
 }: Props) {
-    if (!isOpen) return null;
+    if (!isOpen) {
+return null;
+}
 
     const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
 
@@ -82,6 +85,7 @@ export function KoraAdminPointWizardDialog({
     const handleOrgChange = (orgUuid: string) => {
         setSelectedOrgUuid(orgUuid);
         const org = organizations.find((o) => o.uuid === orgUuid);
+
         if (org) {
             setCommissionRateBps(org.default_terms.commission_rate_bps);
             setCreditLimit(org.default_terms.credit_limit / 5); // Default per-subpoint share
@@ -92,26 +96,34 @@ export function KoraAdminPointWizardDialog({
 
     const handleNext = () => {
         setError(null);
+
         if (step === 1) {
             if (!name.trim()) {
                 setError('Veuillez renseigner le nom commercial du Point.');
+
                 return;
             }
+
             if (!city.trim()) {
                 setError('Veuillez préciser la ville d’implantation.');
+
                 return;
             }
+
             setStep(2);
         } else if (step === 2) {
             if (pointType === 'ORGANIZATION_ATTACHED' && selectedOrgUuid) {
                 handleOrgChange(selectedOrgUuid);
             }
+
             setStep(3);
         } else if (step === 3) {
             if (creditLimit <= 0) {
                 setError('Le plafond de crédit doit être supérieur à 0 FCFA.');
+
                 return;
             }
+
             setStep(4);
         }
     };
@@ -122,11 +134,13 @@ export function KoraAdminPointWizardDialog({
 
         if (!managerName.trim()) {
             setError('Le nom du gérant ou responsable de bureau est requis.');
+
             return;
         }
 
         if (!phone.trim() || phone.length < 8) {
             setError('Un numéro de téléphone valide est requis.');
+
             return;
         }
 
@@ -136,6 +150,7 @@ export function KoraAdminPointWizardDialog({
             name: name.trim(),
             type: pointType,
             organizationName: pointType === 'ORGANIZATION_ATTACHED' ? org?.name : undefined,
+            organizationUuid: pointType === 'ORGANIZATION_ATTACHED' ? selectedOrgUuid : undefined,
             city: city.trim(),
             department,
             managerName: managerName.trim(),

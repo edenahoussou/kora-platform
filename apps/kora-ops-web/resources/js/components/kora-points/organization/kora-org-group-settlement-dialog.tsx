@@ -1,4 +1,3 @@
-import { useState, useMemo } from 'react';
 import {
     X,
     Coins,
@@ -16,12 +15,13 @@ import {
     Calculator,
     Check,
 } from 'lucide-react';
-import {
+import { useState, useMemo } from 'react';
+import { cn } from '@/lib/utils';
+import type {
     GroupSettlementBreakdown,
     OrganizationSubPoint,
     PointSettlementMethod,
 } from '../mock/kora-point-mock-data';
-import { cn } from '@/lib/utils';
 
 type Props = {
     isOpen: boolean;
@@ -45,7 +45,9 @@ export function KoraOrgGroupSettlementDialog({
     onClose,
     onSubmit,
 }: Props) {
-    if (!isOpen) return null;
+    if (!isOpen) {
+return null;
+}
 
     // Step state: 1: Selection & Ventilation, 2: Payment & Proof
     const [step, setStep] = useState<1 | 2>(1);
@@ -71,6 +73,7 @@ export function KoraOrgGroupSettlementDialog({
         subpoints.forEach((sp) => {
             initial[sp.uuid] = sp.current_exposure;
         });
+
         return initial;
     });
 
@@ -97,7 +100,9 @@ export function KoraOrgGroupSettlementDialog({
 
     // Handler for automatic prorated ventilation
     const handleProrateVentilation = () => {
-        if (totalSelectedDebt <= 0 || totalDeclared <= 0) return;
+        if (totalSelectedDebt <= 0 || totalDeclared <= 0) {
+return;
+}
 
         const newAllocations: { [uuid: string]: number } = { ...allocations };
         let distributedSoFar = 0;
@@ -142,11 +147,13 @@ export function KoraOrgGroupSettlementDialog({
             setError(
                 `La répartition n'est pas équilibrée. Veuillez ajuster les montants pour résorber l'écart de ${balanceDelta.toLocaleString()} FCFA.`,
             );
+
             return;
         }
 
         if (!paymentReference.trim()) {
             setError('Veuillez renseigner la référence bancaire ou le n° d’ordre de virement.');
+
             return;
         }
 

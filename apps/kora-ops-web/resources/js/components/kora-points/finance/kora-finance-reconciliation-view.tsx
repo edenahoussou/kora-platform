@@ -1,4 +1,3 @@
-import { useState, useMemo } from 'react';
 import {
     Receipt,
     RotateCcw,
@@ -20,14 +19,15 @@ import {
     UserCheck,
     DollarSign,
 } from 'lucide-react';
-import {
+import { useState, useMemo } from 'react';
+import { KoraStatusBadge } from '@/components/kora-status-badge';
+import type {
     PointSettlementRecord,
     PointRefundRecord,
     GroupSettlementRecord,
 } from '../mock/kora-point-mock-data';
-import { KoraStatusBadge } from '@/components/kora-status-badge';
-import { KoraFinanceSettlementActionDialog } from './kora-finance-settlement-action-dialog';
 import { KoraFinanceRefundActionDialog } from './kora-finance-refund-action-dialog';
+import { KoraFinanceSettlementActionDialog } from './kora-finance-settlement-action-dialog';
 
 type Props = {
     settlements: PointSettlementRecord[];
@@ -104,6 +104,7 @@ export function KoraFinanceReconciliationView({
     // Filter settlements
     const filteredSettlements = useMemo(() => {
         let list = settlements;
+
         if (activeTab === 'SETTLEMENTS') {
             list = list.filter((s) => s.status === 'DECLARED');
         } else if (activeTab === 'HISTORY') {
@@ -131,6 +132,7 @@ export function KoraFinanceReconciliationView({
     // Filter refunds
     const filteredRefunds = useMemo(() => {
         let list = refunds;
+
         if (searchQuery.trim()) {
             const q = searchQuery.toLowerCase();
             list = list.filter(
@@ -141,6 +143,7 @@ export function KoraFinanceReconciliationView({
                     r.route_label.toLowerCase().includes(q),
             );
         }
+
         return list;
     }, [refunds, searchQuery]);
 
@@ -484,7 +487,7 @@ export function KoraFinanceReconciliationView({
                                                         ? 'amber'
                                                         : s.status === 'VALIDATED'
                                                         ? 'emerald'
-                                                        : s.status === 'destructive'
+                                                        : s.status === 'REJECTED'
                                                         ? 'destructive'
                                                         : 'muted'
                                                 }

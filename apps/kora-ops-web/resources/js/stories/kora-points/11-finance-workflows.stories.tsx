@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { useState } from 'react';
 import { KoraFinanceReconciliationView } from '@/components/kora-points/finance/kora-finance-reconciliation-view';
-import { KoraFinanceSettlementActionDialog } from '@/components/kora-points/finance/kora-finance-settlement-action-dialog';
 import { KoraFinanceRefundActionDialog } from '@/components/kora-points/finance/kora-finance-refund-action-dialog';
+import { KoraFinanceSettlementActionDialog } from '@/components/kora-points/finance/kora-finance-settlement-action-dialog';
 import {
     MOCK_POINT_SETTLEMENTS,
     MOCK_POINT_REFUNDS,

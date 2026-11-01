@@ -1,5 +1,5 @@
 import { Ticket, ArrowRight, Store, ShieldCheck, AlertTriangle } from 'lucide-react';
-import { KoraPointProfile, FinancialHealth } from '../mock/kora-point-mock-data';
+import type { KoraPointProfile, FinancialHealth } from '../mock/kora-point-mock-data';
 
 type Props = {
     point: KoraPointProfile;
@@ -19,6 +19,7 @@ function greetingFor(hour: number): string {
     if (hour < 18) {
         return 'Bonjour';
     }
+
     return 'Bonsoir';
 }
 

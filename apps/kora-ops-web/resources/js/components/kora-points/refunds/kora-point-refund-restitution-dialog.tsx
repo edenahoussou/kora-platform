@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
     X,
     Coins,
@@ -12,8 +11,9 @@ import {
     Receipt,
     Shield,
 } from 'lucide-react';
-import { PointRefundRecord } from '../mock/kora-point-mock-data';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import type { PointRefundRecord } from '../mock/kora-point-mock-data';
 
 type Props = {
     isOpen: boolean;
@@ -32,7 +32,9 @@ export function KoraPointRefundRestitutionDialog({
     onClose,
     onConfirmRestitution,
 }: Props) {
-    if (!isOpen || !refund) return null;
+    if (!isOpen || !refund) {
+return null;
+}
 
     const [signatoryName, setSignatoryName] = useState(refund.passenger_name);
     const [idCardNumber, setIdCardNumber] = useState('CNI-BJ-2021-99821');
@@ -46,11 +48,13 @@ export function KoraPointRefundRestitutionDialog({
 
         if (!signatoryName.trim()) {
             setError('Le nom du signataire / bénéficiaire est requis.');
+
             return;
         }
 
         if (!isConfirmedCashGiven) {
             setError('Veuillez cocher la confirmation de remise effective des espèces.');
+
             return;
         }
 

@@ -24,6 +24,7 @@ class KoraPointRefund extends KoraModel
 
     protected $fillable = ['sale_id', 'passenger_id', 'payment_refund_id', 'requested_by', 'authorized_by', 'executed_by', 'confirmed_by', 'status', 'executor', 'amount', 'method', 'reference', 'beneficiary', 'reason', 'executed_at', 'confirmed_at', 'uuid'];
 
+    /** @return array<string, string> */
     protected function casts(): array
     {
         return ['amount' => 'integer', 'executed_at' => 'immutable_datetime', 'confirmed_at' => 'immutable_datetime'];
@@ -41,6 +42,7 @@ class KoraPointRefund extends KoraModel
         return $this->belongsTo(PaymentRefund::class, 'payment_refund_id');
     }
 
+    /** Forbids deleting a partner refund request. */
     protected static function booted(): void
     {
         static::deleting(fn () => throw new \LogicException('Une demande de remboursement partenaire ne peut pas être supprimée.'));

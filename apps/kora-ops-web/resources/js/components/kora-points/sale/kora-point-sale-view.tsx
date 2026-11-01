@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
     MapPin,
     Calendar,
@@ -16,16 +15,18 @@ import {
     Clock,
     AlertCircle,
 } from 'lucide-react';
-import {
+import { useState } from 'react';
+import { cn } from '@/lib/utils';
+import type {
     FinancialHealth,
     KoraPointProfile,
-    MOCK_DEPARTURES,
     PointSaleRecord,
-    SaleDepartureMock,
+    SaleDepartureMock} from '../mock/kora-point-mock-data';
+import {
+    MOCK_DEPARTURES
 } from '../mock/kora-point-mock-data';
 import { KoraPointSaleCapacityCard } from './kora-point-sale-capacity-card';
 import { KoraPointSaleSuccessDialog } from './kora-point-sale-success-dialog';
-import { cn } from '@/lib/utils';
 
 type Props = {
     point: KoraPointProfile;
@@ -97,13 +98,17 @@ export function KoraPointSaleView({
 
     const validatePassengerStep = () => {
         const errors: { [key: string]: string } = {};
+
         if (!passengerName.trim()) {
             errors.passengerName = 'Le prénom et nom du voyageur sont obligatoires.';
         }
+
         if (!passengerPhone.trim()) {
             errors.passengerPhone = 'Le numéro de téléphone est obligatoire pour le billet.';
         }
+
         setFormErrors(errors);
+
         return Object.keys(errors).length === 0;
     };
 
@@ -114,7 +119,9 @@ export function KoraPointSaleView({
     };
 
     const handleConfirmSale = () => {
-        if (isExceeded) return;
+        if (isExceeded) {
+return;
+}
 
         const record = onSaleCompleted({
             passengerName: passengerName || 'Passager Guichet',
@@ -283,6 +290,7 @@ export function KoraPointSaleView({
 
                                 {MOCK_DEPARTURES.map((dep) => {
                                     const isSelected = selectedDeparture.uuid === dep.uuid;
+
                                     return (
                                         <button
                                             key={dep.uuid}
@@ -388,6 +396,7 @@ export function KoraPointSaleView({
                                 <div className="grid grid-cols-4 gap-3 max-w-xs mx-auto">
                                     {availableSeatOptions.map((seat) => {
                                         const isSelected = selectedSeats.includes(seat);
+
                                         return (
                                             <button
                                                 key={seat}
@@ -469,6 +478,7 @@ export function KoraPointSaleView({
                                         value={passengerName}
                                         onChange={(e) => {
                                             setPassengerName(e.target.value);
+
                                             if (formErrors.passengerName) {
                                                 setFormErrors({ ...formErrors, passengerName: '' });
                                             }
@@ -501,6 +511,7 @@ export function KoraPointSaleView({
                                         value={passengerPhone}
                                         onChange={(e) => {
                                             setPassengerPhone(e.target.value);
+
                                             if (formErrors.passengerPhone) {
                                                 setFormErrors({ ...formErrors, passengerPhone: '' });
                                             }

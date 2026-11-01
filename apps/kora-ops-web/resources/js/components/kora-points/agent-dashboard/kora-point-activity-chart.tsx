@@ -1,6 +1,6 @@
 import { ArrowRight, Bell, Calendar, ChevronRight, Zap } from 'lucide-react';
-import { DailyActivity, PointPriorityAlert } from '../mock/kora-point-mock-data';
 import { cn } from '@/lib/utils';
+import type { DailyActivity, PointPriorityAlert } from '../mock/kora-point-mock-data';
 
 type Props = {
     activity7d: DailyActivity[];
@@ -68,6 +68,7 @@ export function KoraPointActivityChart({
                 <div className="my-6 flex h-48 items-end justify-between gap-2 px-2 sm:gap-4 sm:px-4">
                     {activity7d.map((item) => {
                         const heightPct = Math.round((item.sales_amount / maxSales) * 100);
+
                         return (
                             <div
                                 key={item.date}

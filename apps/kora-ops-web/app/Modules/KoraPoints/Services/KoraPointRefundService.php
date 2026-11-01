@@ -22,6 +22,9 @@ class KoraPointRefundService
 {
     public function __construct(private readonly KoraPointAccess $access, private readonly CancelReservationAction $cancel, private readonly KoraPointLedgerService $ledger, private readonly KoraPointTermsService $terms) {}
 
+    /**
+     * Files a refund request on a sale, optionally scoped to a single passenger.
+     */
     public function request(User $actor, KoraPointSale $sale, string $reason, ?string $passengerUuid = null): KoraPointRefund
     {
         $this->access->authorize($actor, 'kora-points.refund-request');
@@ -40,6 +43,9 @@ class KoraPointRefundService
         }, 3);
     }
 
+    /**
+     * Finance approval or rejection of a refund, computing allocation and choosing the executor.
+     */
     public function authorize(User $actor, KoraPointRefund $refund, bool $reject = false): void
     {
         $this->access->authorize($actor, 'kora-points.finance');
@@ -85,6 +91,11 @@ class KoraPointRefundService
     }
 
     /** @param array<string, mixed> $data */
+    /**
+     * Declares the effective restitution to the beneficiary using the original payment method.
+     *
+     * @param  array<string, mixed>  $data
+     */
     public function execute(User $actor, KoraPointRefund $refund, array $data): void
     {
         DB::transaction(function () use ($actor, $refund, $data): void {
@@ -115,6 +126,9 @@ class KoraPointRefundService
         }, 3);
     }
 
+    /**
+     * Confirms a restitution and posts the ledger reversal with commission clawback.
+     */
     public function confirm(User $actor, KoraPointRefund $refund): void
     {
         $this->access->authorize($actor, 'kora-points.finance');
@@ -146,6 +160,9 @@ class KoraPointRefundService
         }, 3);
     }
 
+    /**
+     * Checks the actor is the legitimate executor (point agent or KORA finance) for the refund.
+     */
     public function requireExecutor(User $actor, KoraPointRefund $refund): void
     {
         if ($refund->executor === 'point') {
@@ -159,6 +176,9 @@ class KoraPointRefundService
         }
     }
 
+    /**
+     * Locks the sale, its reservation and point in a consistent order and rejects contested sales.
+     */
     private function lockSale(KoraPointSale $sale): KoraPointSale
     {
         Reservation::query()->whereKey($sale->reservation_id)->lockForUpdate()->firstOrFail();
@@ -171,6 +191,9 @@ class KoraPointRefundService
         return $sale;
     }
 
+    /**
+     * Writes an audit activity entry for a refund lifecycle event.
+     */
     private function audit(User $actor, KoraPointRefund $refund, string $event): void
     {
         activity('kora-points')->performedOn($refund)->causedBy($actor)->withProperties(['amount' => $refund->amount, 'executor' => $refund->executor])->log($event);

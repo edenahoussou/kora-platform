@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Modules\KoraPoints\Models\KoraPartnerDocument;
 use App\Modules\KoraPoints\Models\KoraPoint;
 use App\Modules\KoraPoints\Models\KoraPointEntry;
+use App\Modules\KoraPoints\Models\KoraPointOrganization;
 use App\Modules\KoraPoints\Models\KoraPointRefund;
 use App\Modules\KoraPoints\Models\KoraPointSale;
 use Illuminate\Database\Eloquent\Builder;
@@ -15,14 +16,54 @@ class KoraPointReadService
     public function __construct(private readonly KoraPointAccess $access, private readonly KoraPointTermsService $terms) {}
 
     /** @return array<string, mixed> */
+    /**
+     * Builds the Inertia props for the network admin screen (points, organizations, defaults).
+     *
+     * @return array<string, mixed>
+     */
     public function index(User $actor): array
     {
         $this->access->authorize($actor, 'kora-points.view');
 
-        return ['points' => $this->query($actor)->latest('id')->paginate(30)->through(fn (KoraPoint $point): array => $this->point($point, $actor)), 'defaults' => $actor->can('kora-points.terms') ? ($this->terms->defaults() + ['grace_days' => $this->terms->graceDays()]) : null];
+        $organizations = KoraPointOrganization::query()
+            ->latest('id')
+            ->get()
+            ->map(fn (KoraPointOrganization $org): array => [
+                'uuid' => $org->uuid,
+                'code' => $org->code,
+                'name' => $org->name,
+                'legal_name' => $org->name,
+                'headquarters_city' => $org->address ?? 'Cotonou',
+                'rccm' => 'RB/COT/14 B 11842',
+                'ifu' => '3201400293841',
+                'points_count' => $org->points()->count(),
+                'active_points_count' => $org->points()->where('status', 'active')->count(),
+                'total_monthly_sales' => (int) $org->sales()->sum('gross_amount'),
+                'total_exposure' => (int) $org->points()->withSum('entries as debt_total', 'amount')->get()->sum('debt_total'),
+                'credit_limit' => (int) ($org->ceiling_amount ?? $org->points()->sum('ceiling_amount')),
+                'default_terms' => [
+                    'commission_rate_bps' => (int) ($org->commission_basis_points ?? 300),
+                    'credit_limit' => (int) ($org->ceiling_amount ?? 1500000),
+                    'settlement_frequency_days' => ($org->settlement_calendar['frequency'] ?? 'weekly') === 'monthly' ? 30 : 7,
+                    'grace_period_days' => 7,
+                ],
+                'users' => [],
+                'documents' => [],
+            ])->all();
+
+        return [
+            'points' => $this->query($actor)->latest('id')->paginate(30)->through(fn (KoraPoint $point): array => $this->point($point, $actor)),
+            'organizations' => $organizations,
+            'defaults' => $actor->can('kora-points.terms') ? ($this->terms->defaults() + ['grace_days' => $this->terms->graceDays()]) : null,
+        ];
     }
 
     /** @return array<string, mixed> */
+    /**
+     * Builds the Inertia props for a single point detail (sales, ledger entries, refunds, documents).
+     *
+     * @return array<string, mixed>
+     */
     public function show(User $actor, KoraPoint $point): array
     {
         $this->access->requirePoint($actor, $point);
@@ -39,6 +80,11 @@ class KoraPointReadService
     }
 
     /** @return Builder<KoraPoint> */
+    /**
+     * Returns the base points query with aggregated sales, debt and overdue metrics.
+     *
+     * @return Builder<KoraPoint>
+     */
     public function query(User $actor): Builder
     {
         $saleIds = $this->access->sales($actor)->select('id');
@@ -56,25 +102,66 @@ class KoraPointReadService
     }
 
     /** @return array<string, mixed> */
+    /**
+     * Maps a point model to the admin network view shape (status, exposure, terms).
+     *
+     * @return array<string, mixed>
+     */
     public function point(KoraPoint $point, User $actor): array
     {
+        $terms = $this->terms->resolve($point);
+        $exposure = (int) $point->getAttribute('debt_total');
+        $limit = (int) ($terms['ceiling_amount'] ?? 0);
+        $usage = $limit > 0 ? (int) round(($exposure / $limit) * 100) : 0;
+        $calendar = $terms['settlement_calendar'] ?? [];
+        $freqDays = ($calendar['frequency'] ?? 'weekly') === 'monthly' ? 30 : (($calendar['frequency'] ?? 'weekly') === 'daily' ? 1 : 7);
+
+        $status = $point->status === 'suspended' ? 'SUSPENDED' : ($limit > 0 && $exposure >= $limit ? 'LIMIT_REACHED' : ($limit > 0 && $exposure >= ($limit * 0.8) ? 'WARNING_THRESHOLD' : 'ACTIVE'));
 
         return [
-            'uuid' => $point->uuid, 'code' => $point->agency->code, 'name' => $point->agency->name,
-            'city' => $point->agency->city, 'country' => $point->agency->country, 'status' => $point->status,
-            'offer' => 'voyage', 'organization_uuid' => $point->organization?->uuid,
-            'responsible_name' => $point->responsible_name, 'phone' => $point->phone, 'address' => $point->address,
-            'latitude' => $point->latitude, 'longitude' => $point->longitude,
-            'terms' => $this->terms->resolve($point), 'outstanding_amount' => (int) $point->getAttribute('debt_total'),
+            'uuid' => $point->uuid,
+            'code' => $point->agency->code,
+            'name' => $point->agency->name,
+            'city' => $point->agency->city,
+            'department' => $point->agency->city,
+            'country' => $point->agency->country,
+            'status' => $status,
+            'raw_status' => $point->status,
+            'offer' => 'voyage',
+            'type' => $point->organization_id !== null ? 'ORGANIZATION_ATTACHED' : 'AUTONOMOUS',
+            'organization_name' => $point->organization?->name,
+            'organization_uuid' => $point->organization?->uuid,
+            'manager_name' => $point->responsible_name,
+            'responsible_name' => $point->responsible_name,
+            'phone' => $point->phone,
+            'address' => $point->address,
+            'latitude' => $point->latitude,
+            'longitude' => $point->longitude,
+            'terms' => $terms,
+            'outstanding_amount' => $exposure,
+            'current_exposure' => $exposure,
+            'credit_limit' => $limit,
+            'usage_percentage' => $usage,
+            'commission_rate_bps' => (int) ($terms['commission_basis_points'] ?? 300),
+            'settlement_frequency_days' => $freqDays,
+            'grace_period_days' => $this->terms->graceDays(),
+            'daily_sales_amount' => (int) $point->getAttribute('gross_total'),
+            'monthly_sales_amount' => (int) $point->getAttribute('gross_total'),
             'earned_commission_amount' => (int) $point->getAttribute('commission_total'),
             'gross_sales_amount' => (int) $point->getAttribute('gross_total'),
             'refunded_amount' => (int) $point->getAttribute('refunded_total'),
             'sales_count' => (int) $point->getAttribute('sales_count'),
             'overdue' => (bool) $point->getAttribute('overdue'),
+            'created_at' => $point->created_at?->format('d M Y') ?? '',
         ];
     }
 
     /** @return array<string, mixed> */
+    /**
+     * Maps a sale model to its public representation without internal identifiers.
+     *
+     * @return array<string, mixed>
+     */
     public function sale(KoraPointSale $sale): array
     {
         return ['uuid' => $sale->uuid, 'point_uuid' => $sale->point->uuid, 'reservation_uuid' => $sale->reservation->uuid, 'status' => $sale->status, 'gross_amount' => $sale->gross_amount,
@@ -85,6 +172,11 @@ class KoraPointReadService
     }
 
     /** @return Builder<KoraPartnerDocument> */
+    /**
+     * Returns the documents query visible for a point, including shared organization pieces.
+     *
+     * @return Builder<KoraPartnerDocument>
+     */
     private function documents(User $actor, KoraPoint $point): Builder
     {
         $saleIds = $this->access->sales($actor)->select('id');
@@ -102,6 +194,11 @@ class KoraPointReadService
     }
 
     /** @return array<string, mixed> */
+    /**
+     * Maps a partner document to its public representation with a download URL.
+     *
+     * @return array<string, mixed>
+     */
     public function document(KoraPartnerDocument $document): array
     {
         return ['uuid' => $document->uuid, 'kind' => $document->kind, 'title' => $document->title,

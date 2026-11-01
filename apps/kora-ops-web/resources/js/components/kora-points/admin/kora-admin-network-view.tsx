@@ -1,28 +1,20 @@
-import { useState, useMemo } from 'react';
 import {
     Store,
     Building2,
     Search,
-    Filter,
     Plus,
     Clock,
     CheckCircle2,
     AlertTriangle,
-    Coins,
-    TrendingUp,
-    MapPin,
-    Phone,
-    Shield,
-    Eye,
-    ChevronRight,
 } from 'lucide-react';
-import {
+import { useState, useMemo } from 'react';
+import { KoraStatusBadge } from '@/components/kora-status-badge';
+import { cn } from '@/lib/utils';
+import type {
     AdminNetworkPoint,
     AdminOrganization,
 } from '../mock/kora-point-mock-data';
 import { KoraAdminPointWizardDialog } from './kora-admin-point-wizard-dialog';
-import { KoraStatusBadge } from '@/components/kora-status-badge';
-import { cn } from '@/lib/utils';
 
 type Props = {
     points: AdminNetworkPoint[];
@@ -68,7 +60,11 @@ export function KoraAdminNetworkView({
         points.forEach((pt) => {
             totalMonthlySales += pt.monthly_sales_amount;
             totalExposure += pt.current_exposure;
-            if (pt.status === 'ACTIVE') activeCount += 1;
+
+            if (pt.status === 'ACTIVE') {
+activeCount += 1;
+}
+
             if (pt.status === 'WARNING_THRESHOLD' || pt.status === 'LIMIT_REACHED' || pt.status === 'SUSPENDED') {
                 alertCount += 1;
             }

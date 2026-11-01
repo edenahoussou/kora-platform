@@ -1,7 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { useState } from 'react';
-import { KoraNotificationsView } from '@/components/kora-points/notifications/kora-notifications-view';
-import { KoraGlobalSearchDialog } from '@/components/kora-points/search/kora-global-search-dialog';
 import {
     MOCK_NOTIFICATIONS,
     MOCK_POINT_SALES,
@@ -9,6 +7,8 @@ import {
     MOCK_ADMIN_ORGANIZATIONS,
     MOCK_POINT_SETTLEMENTS,
 } from '@/components/kora-points/mock/kora-point-mock-data';
+import { KoraNotificationsView } from '@/components/kora-points/notifications/kora-notifications-view';
+import { KoraGlobalSearchDialog } from '@/components/kora-points/search/kora-global-search-dialog';
 
 const meta: Meta<typeof KoraNotificationsView> = {
     title: 'KORA POINT VOYAGE / 12 — Recherche Globale & Notifications',

@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 type StatusTone =
@@ -63,14 +63,38 @@ const solidDotStyles: Record<StatusTone, string> = {
 };
 
 function normalizeTone(tone?: StatusTone, colorScheme?: string): StatusTone {
-    if (tone) return tone;
-    if (!colorScheme) return 'blue';
-    if (colorScheme === 'green' || colorScheme === 'emerald' || colorScheme === 'success') return 'emerald';
-    if (colorScheme === 'red' || colorScheme === 'destructive' || colorScheme === 'danger') return 'destructive';
-    if (colorScheme === 'yellow' || colorScheme === 'amber' || colorScheme === 'warning') return 'amber';
-    if (colorScheme === 'navy' || colorScheme === 'kora') return 'navy';
-    if (colorScheme === 'gold') return 'gold';
-    if (colorScheme === 'muted' || colorScheme === 'gray') return 'muted';
+    if (tone) {
+return tone;
+}
+
+    if (!colorScheme) {
+return 'blue';
+}
+
+    if (colorScheme === 'green' || colorScheme === 'emerald' || colorScheme === 'success') {
+return 'emerald';
+}
+
+    if (colorScheme === 'red' || colorScheme === 'destructive' || colorScheme === 'danger') {
+return 'destructive';
+}
+
+    if (colorScheme === 'yellow' || colorScheme === 'amber' || colorScheme === 'warning') {
+return 'amber';
+}
+
+    if (colorScheme === 'navy' || colorScheme === 'kora') {
+return 'navy';
+}
+
+    if (colorScheme === 'gold') {
+return 'gold';
+}
+
+    if (colorScheme === 'muted' || colorScheme === 'gray') {
+return 'muted';
+}
+
     return 'blue';
 }
 
