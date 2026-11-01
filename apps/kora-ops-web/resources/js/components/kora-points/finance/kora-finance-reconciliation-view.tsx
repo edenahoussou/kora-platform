@@ -484,7 +484,7 @@ export function KoraFinanceReconciliationView({
                                                         ? 'amber'
                                                         : s.status === 'VALIDATED'
                                                         ? 'emerald'
-                                                        : s.status === 'destructive'
+                                                        : s.status === 'REJECTED'
                                                         ? 'destructive'
                                                         : 'muted'
                                                 }

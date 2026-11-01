@@ -1,5 +1,13 @@
-import { Ticket, TrendingUp, Wallet, ReceiptText, ArrowUpRight } from 'lucide-react';
-import { DailyMetrics, KoraPointTerms } from '../mock/kora-point-mock-data';
+import {
+    HelpCircle,
+    ReceiptText,
+    Ticket,
+    TrendingUp,
+    Wallet,
+} from 'lucide-react';
+import { KoraTooltip } from '@/components/kora-tooltip';
+import { cn } from '@/lib/utils';
+import type { DailyMetrics, KoraPointTerms } from '../mock/kora-point-mock-data';
 
 type Props = {
     metrics: DailyMetrics;
@@ -7,103 +15,170 @@ type Props = {
     onKpiClick?: (type: 'sales' | 'tickets' | 'commissions' | 'settlement') => void;
 };
 
+const kpiVariants = {
+    blue: 'cash-ledger-card-kpi-digital',
+    gold: 'cash-ledger-card-kpi-gold',
+    emerald: 'cash-ledger-card-kpi-emerald',
+    navy: 'cash-ledger-card-kpi-navy',
+};
+
+/** Normalise une série d'activité en pourcentages de hauteur pour les sparklines. */
+function normalizeSpark(values: number[]): number[] {
+    const max = Math.max(...values, 1);
+
+    return values.map((value) => Math.max(10, Math.round((value / max) * 100)));
+}
+
 export function KoraPointKpiGrid({ metrics, terms, onKpiClick }: Props) {
     const ratePercent = (terms.commission_rate_bps / 100).toLocaleString('fr-FR', {
         minimumFractionDigits: 1,
         maximumFractionDigits: 2,
     });
 
+    const salesSpark = normalizeSpark(metrics.activity_7d.map((d) => d.sales_amount));
+    const ticketsSpark = normalizeSpark(metrics.activity_7d.map((d) => d.tickets_count));
+    const commissionSpark = normalizeSpark(metrics.activity_7d.map((d) => d.commission_amount));
+
     const kpis = [
         {
             id: 'sales' as const,
-            title: 'Ventes du jour',
+            label: 'Ventes du jour',
+            hint: 'Recettes brutes encaissées',
             value: `${metrics.today_sales_amount.toLocaleString('fr-FR')} FCFA`,
-            subtitle: 'Recettes guichet encaissées aujourd’hui',
-            trend: '+ 9,4 %',
+            trend: "Aujourd'hui",
+            tone: 'blue' as const,
             icon: Wallet,
-            accent: 'border-l-4 border-l-blue-500',
-            iconBg: 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400',
+            spark: salesSpark,
+            formula:
+                'Somme cumulée des règlements confirmés (espèces et mobile money) perçus pour des réservations de billets Bus aujourd’hui.',
         },
         {
             id: 'tickets' as const,
-            title: 'Billets émis',
+            label: 'Billets émis',
+            hint: "Passagers du jour",
             value: `${metrics.today_tickets_count}`,
-            subtitle: 'Voyageurs enregistrés sur départs actifs',
-            trend: '18 aujourd’hui',
+            trend: 'Départs actifs',
+            tone: 'gold' as const,
             icon: Ticket,
-            accent: 'border-l-4 border-l-gold',
-            iconBg: 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400',
+            spark: ticketsSpark,
+            formula:
+                'Nombre total de titres de transport émis aujourd’hui avec attribution de sièges confirmée par votre guichet.',
         },
         {
             id: 'commissions' as const,
-            title: 'Commission du jour',
+            label: 'Commission du jour',
+            hint: `Taux effectif : ${ratePercent} %`,
             value: `${metrics.today_commission_amount.toLocaleString('fr-FR')} FCFA`,
-            subtitle: `Taux contractuel effectif : ${ratePercent} %`,
-            trend: '+ 7,2 %',
+            trend: 'Acquise en direct',
+            tone: 'emerald' as const,
             icon: TrendingUp,
-            accent: 'border-l-4 border-l-emerald-500',
-            iconBg: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400',
+            spark: commissionSpark,
+            formula: `Commission nette acquise = Ventes du jour × Taux contractuel (${ratePercent} %). Ce montant est déduit de votre versement dû à KORA.`,
         },
         {
             id: 'settlement' as const,
-            title: 'Encours total à reverser',
+            label: 'Encours à reverser',
+            hint: 'Dette nette non soldée',
             value: `${metrics.total_due_amount.toLocaleString('fr-FR')} FCFA`,
-            subtitle: 'Dette nette cumulée non soldée',
-            trend: 'Fenêtre globale',
+            trend: 'Dû à KORA',
+            tone: 'navy' as const,
             icon: ReceiptText,
-            accent: 'border-l-4 border-l-kora',
-            iconBg: 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200',
+            spark: [] as number[],
+            formula:
+                'Montant net à reverser à KORA = Ventes brutes − Commissions acquises − Versements déjà validés.',
         },
     ];
 
     return (
-        <section aria-label="Indicateurs de performance du Point">
-            <div className="mb-3 flex items-center justify-between">
+        <section aria-labelledby="point-performance-title">
+            <div className="mb-3.5 flex items-end justify-between">
                 <div>
-                    <span className="text-[0.625rem] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                        Aujourd'hui vs Encours global
+                    <span className="mb-0.5 block text-[0.5625rem] font-black tracking-[0.15em] text-gold uppercase">
+                        Activité temps réel
                     </span>
-                    <h2 className="text-sm font-extrabold text-slate-900 dark:text-white sm:text-base">
-                        Performance instantanée
+                    <h2
+                        id="point-performance-title"
+                        className="text-[1.125rem] font-extrabold tracking-[-0.03em] text-foreground sm:text-[1.25rem]"
+                    >
+                        Performance instantanée du guichet
                     </h2>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-flow-row-dense grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
                 {kpis.map((kpi) => {
                     const Icon = kpi.icon;
+                    const onGold = kpi.tone === 'gold';
+
                     return (
-                        <button
+                        <article
                             key={kpi.id}
-                            type="button"
+                            tabIndex={0}
+                            role="button"
                             onClick={() => onKpiClick?.(kpi.id)}
-                            className={`group relative flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 ${kpi.accent}`}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    onKpiClick?.(kpi.id);
+                                }
+                            }}
+                            className={cn(
+                                'cash-ledger-card group cursor-pointer transition-[transform,box-shadow] duration-300 hover:-translate-y-1.5 hover:shadow-[0_25px_55px_rgba(0,29,78,0.14)] focus:outline-none focus-visible:ring-2 focus-visible:ring-gold',
+                                kpiVariants[kpi.tone],
+                            )}
                         >
-                            <div className="flex items-center justify-between">
-                                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                                    {kpi.title}
-                                </span>
-                                <div className={`grid size-8 place-items-center rounded-lg ${kpi.iconBg}`}>
-                                    <Icon className="size-4" />
+                            <div className="cash-ledger-head">
+                                <div className="cash-ledger-identity">
+                                    <span className="cash-ledger-brand">
+                                        <Icon className="size-4" strokeWidth={1.8} />
+                                    </span>
+                                    <div>
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="cash-ledger-title">
+                                                {kpi.label}
+                                            </span>
+                                            <KoraTooltip content={kpi.formula} side="top">
+                                                <button
+                                                    type="button"
+                                                    aria-label={`Explication du calcul : ${kpi.label}`}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className="opacity-70 transition-opacity hover:opacity-100 focus:outline-none"
+                                                >
+                                                    <HelpCircle className="size-3.5" />
+                                                </button>
+                                            </KoraTooltip>
+                                        </div>
+                                        <small>{kpi.hint}</small>
+                                    </div>
                                 </div>
+
+                                {kpi.spark.length > 0 && (
+                                    <span className="flex h-7 items-end gap-1 opacity-90 transition-transform duration-500 group-hover:scale-110">
+                                        {kpi.spark.map((height, index) => (
+                                            <i
+                                                key={`${kpi.id}-${index}`}
+                                                className={cn(
+                                                    'block w-1.5 rounded-full',
+                                                    index >= kpi.spark.length - 2
+                                                        ? onGold
+                                                            ? 'bg-[var(--kora)]'
+                                                            : 'bg-gold'
+                                                        : onGold
+                                                        ? 'bg-[var(--kora)]/25'
+                                                        : 'bg-white/25',
+                                                )}
+                                                style={{ height: `${height}%` }}
+                                            />
+                                        ))}
+                                    </span>
+                                )}
                             </div>
 
-                            <div className="my-3">
-                                <strong className="font-mono text-xl font-black tracking-tight text-slate-900 sm:text-2xl dark:text-white">
-                                    {kpi.value}
-                                </strong>
-                                <p className="mt-1 line-clamp-1 text-[0.6875rem] text-slate-500 dark:text-slate-400">
-                                    {kpi.subtitle}
-                                </p>
-                            </div>
-
-                            <div className="flex items-center justify-between border-t border-slate-100 pt-2 text-[0.6875rem] font-semibold text-slate-400 dark:border-slate-800/80">
+                            <div className="cash-ledger-balance mb-0">
                                 <span>{kpi.trend}</span>
-                                <span className="flex items-center gap-0.5 text-slate-600 transition group-hover:text-slate-900 dark:text-slate-300 dark:group-hover:text-white">
-                                    Détails <ArrowUpRight className="size-3" />
-                                </span>
+                                <strong>{kpi.value}</strong>
                             </div>
-                        </button>
+                        </article>
                     );
                 })}
             </div>

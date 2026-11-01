@@ -1,319 +1,726 @@
-import { useState } from 'react';
+import { router } from '@inertiajs/react';
 import {
-    Wallet,
-    Banknote,
-    Smartphone,
     ArrowRight,
+    Banknote,
     Clock,
-    Lock,
-    Unlock,
+    Coins,
+    HandCoins,
+    HelpCircle,
+    PlusCircle,
+    Printer,
     ReceiptText,
-    TrendingUp,
-    ShieldAlert,
-    AlertCircle,
-    CheckCircle2,
-    Calendar,
+    RotateCcw,
+    Search,
+    ShieldCheck,
+    SlidersHorizontal,
+    Smartphone,
 } from 'lucide-react';
-import {
+import { useEffect, useMemo, useState } from 'react';
+import { KoraTooltip } from '@/components/kora-tooltip';
+import { cn } from '@/lib/utils';
+import type {
+    CashBrouillardFilters,
+    DailyCashBrouillard,
     FinancialHealth,
     KoraPointProfile,
     PointCashSession,
-} from '../mock/kora-point-mock-data';
-import { KoraPointCashSessionDialog } from './kora-point-cash-session-dialog';
-import { KoraStatusBadge } from '@/components/kora-status-badge';
-import { cn } from '@/lib/utils';
+} from '@/types/kora-points';
 
 type Props = {
     point: KoraPointProfile;
     health: FinancialHealth;
-    cashSession: PointCashSession;
-    onOpenSession: (amount: number) => void;
-    onCloseSession: (actualCash: number, note?: string) => void;
-    onNavigateToSettlements: () => void;
+    brouillard?: DailyCashBrouillard;
+    filters?: CashBrouillardFilters;
+    cashSession?: PointCashSession;
+    onOpenSession?: (amount: number) => void;
+    onCloseSession?: (actualCash: number, note?: string) => void;
+    onNavigateToSale?: () => void;
+    onNavigateToSettlements?: () => void;
+};
+
+const NETWORK_FLAGS: Record<string, { label: string; flag: string }> = {
+    mtn_momo: { label: 'MTN MoMo', flag: '🇧🇯' },
+    moov_flooz: { label: 'Moov Flooz', flag: '🇧🇯' },
+    celtiis_cash: { label: 'Celtiis Cash', flag: '🇧🇯' },
+    tmoney_tg: { label: 'T-Money', flag: '🇹🇬' },
+    moov_flooz_tg: { label: 'Moov Togo', flag: '🇹🇬' },
+    wave_ci: { label: 'Wave CI', flag: '🇨🇮' },
+    orange_money_ci: { label: 'Orange Money', flag: '🇨🇮' },
+    mtn_momo_ci: { label: 'MTN CI', flag: '🇨🇮' },
+    moov_flooz_ci: { label: 'Moov CI', flag: '🇨🇮' },
+};
+
+const kpiVariants = {
+    blue: 'cash-ledger-card-kpi-digital',
+    gold: 'cash-ledger-card-kpi-gold',
+    emerald: 'cash-ledger-card-kpi-emerald',
+    navy: 'cash-ledger-card-kpi-navy',
+};
+
+const getTodayStr = () => new Date().toISOString().split('T')[0];
+
+const getYesterdayStr = () => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d.toISOString().split('T')[0];
+};
+
+const get7DaysAgoStr = () => {
+    const d = new Date();
+    d.setDate(d.getDate() - 6);
+    return d.toISOString().split('T')[0];
+};
+
+const getMonthStartStr = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
 };
 
 export function KoraPointCashView({
     point,
     health,
+    brouillard,
+    filters,
     cashSession,
-    onOpenSession,
-    onCloseSession,
+    onNavigateToSale,
     onNavigateToSettlements,
 }: Props) {
-    const [dialogMode, setDialogMode] = useState<'OPEN' | 'CLOSE' | null>(null);
-    const isOpen = cashSession.status === 'OPEN';
+    const todayStr = useMemo(() => getTodayStr(), []);
+    const [query, setQuery] = useState(filters?.q ?? '');
+    const [fromDate, setFromDate] = useState(filters?.from ?? todayStr);
+    const [toDate, setToDate] = useState(filters?.to ?? todayStr);
+    const [channel, setChannel] = useState(filters?.channel ?? 'all');
+
+    useEffect(() => {
+        if (filters) {
+            setQuery(filters.q ?? '');
+            setFromDate(filters.from ?? todayStr);
+            setToDate(filters.to ?? todayStr);
+            setChannel(filters.channel ?? 'all');
+        }
+    }, [filters, todayStr]);
+
+    const applyFilters = (f = fromDate, t = toDate, c = channel, qVal = query) => {
+        router.get(
+            '/kora-point/cash',
+            {
+                from: f,
+                to: t,
+                channel: c,
+                q: qVal.trim(),
+            },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            },
+        );
+    };
+
+    const handlePreset = (preset: 'today' | 'yesterday' | '7d' | 'month') => {
+        let newFrom = todayStr;
+        let newTo = todayStr;
+
+        if (preset === 'today') {
+            newFrom = todayStr;
+            newTo = todayStr;
+        } else if (preset === 'yesterday') {
+            newFrom = getYesterdayStr();
+            newTo = newFrom;
+        } else if (preset === '7d') {
+            newFrom = get7DaysAgoStr();
+            newTo = todayStr;
+        } else if (preset === 'month') {
+            newFrom = getMonthStartStr();
+            newTo = todayStr;
+        }
+
+        setFromDate(newFrom);
+        setToDate(newTo);
+        applyFilters(newFrom, newTo, channel, query);
+    };
+
+    const handleReset = () => {
+        setQuery('');
+        setFromDate(todayStr);
+        setToDate(todayStr);
+        setChannel('all');
+        router.get(
+            '/kora-point/cash',
+            {},
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            },
+        );
+    };
+
+    const data: DailyCashBrouillard = useMemo(() => {
+        if (brouillard) {
+            return brouillard;
+        }
+
+        const fallbackCash = cashSession?.cash_collected ?? 0;
+        const fallbackMoMo = cashSession?.mobile_money_collected ?? 0;
+        const total = fallbackCash + fallbackMoMo;
+
+        return {
+            date_label: new Date().toLocaleDateString('fr-FR', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+            }),
+            gross_total: total,
+            commission_total: Math.round(total * 0.05),
+            net_total: Math.round(total * 0.95),
+            cash_total: fallbackCash,
+            mobile_money_total: fallbackMoMo,
+            tickets_count:
+                cashSession?.movements.filter((m) => m.type !== 'OPENING')
+                    .length ?? 0,
+            movements: (cashSession?.movements ?? [])
+                .filter((m) => m.type !== 'OPENING')
+                .map((m) => ({
+                    id: String(m.id),
+                    date_label: new Date().toLocaleDateString('fr-FR'),
+                    time_label: m.time_label,
+                    ticket_reference: 'BILLET',
+                    passenger_name: 'Client',
+                    passenger_phone: '—',
+                    method: m.method === 'CASH' ? 'cash' : 'mobile_money',
+                    network: null,
+                    network_label: m.method === 'CASH' ? null : 'Mobile Money',
+                    reference: '—',
+                    gross_amount: m.amount,
+                    commission_amount: Math.round(m.amount * 0.05),
+                    net_amount: Math.round(m.amount * 0.95),
+                })),
+        };
+    }, [brouillard, cashSession]);
+
     const isAutonomous = !point.organization;
+
+    const kpis = [
+        {
+            id: 'gross',
+            label: 'Total encaissé',
+            hint: 'Recettes brutes globales',
+            value: `${data.gross_total.toLocaleString('fr-FR')} FCFA`,
+            trend: `${data.tickets_count} billet(s) émis`,
+            tone: 'blue' as const,
+            icon: Coins,
+            formula:
+                'Somme totale brute encaissée (espèces et mobile money) sur la période sélectionnée.',
+        },
+        {
+            id: 'cash',
+            label: 'Espèces en caisse',
+            hint: 'Liquidités physiques',
+            value: `${data.cash_total.toLocaleString('fr-FR')} FCFA`,
+            trend: 'Perçu au guichet',
+            tone: 'emerald' as const,
+            icon: HandCoins,
+            formula:
+                'Montant cumulé perçu en liquide physique au guichet sur la période sélectionnée.',
+        },
+        {
+            id: 'mobile_money',
+            label: 'Mobile Money',
+            hint: 'Bénin · Togo · Côte d’Ivoire',
+            value: `${data.mobile_money_total.toLocaleString('fr-FR')} FCFA`,
+            trend: 'Règlements mobiles',
+            tone: 'gold' as const,
+            icon: Smartphone,
+            formula:
+                'Montant total encaissé via transferts électroniques (MTN, Moov, Celtiis, Wave, Orange, T-Money).',
+        },
+        {
+            id: 'net',
+            label: 'Net dû KORA',
+            hint: `Dont +${data.commission_total.toLocaleString('fr-FR')} FCFA commission`,
+            value: `${data.net_total.toLocaleString('fr-FR')} FCFA`,
+            trend: 'À reverser à KORA',
+            tone: 'navy' as const,
+            icon: ReceiptText,
+            formula:
+                'Net à reverser à KORA = Ventes brutes − Commissions acquises déduites. Votre commission reste acquise.',
+        },
+    ];
 
     return (
         <div className="space-y-6">
-            {/* Modal Open/Close */}
-            <KoraPointCashSessionDialog
-                isOpen={dialogMode !== null}
-                mode={dialogMode || 'OPEN'}
-                session={cashSession}
-                onClose={() => setDialogMode(null)}
-                onConfirmOpen={onOpenSession}
-                onConfirmClose={onCloseSession}
-            />
-
             {/* Header */}
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="kora-page-head flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between print:mb-4">
                 <div>
-                    <div className="flex items-center gap-2">
-                        <span className="text-[0.625rem] font-black uppercase tracking-wider text-slate-500">
-                            Gestion financière locale
-                        </span>
-                        <KoraStatusBadge
-                            label={isOpen ? 'Session ouverte' : 'Session clôturée'}
-                            tone={isOpen ? 'emerald' : 'muted'}
-                            variant="solid"
-                        />
+                    <div className="kora-breadcrumb mb-2 text-[0.6875rem] text-muted-foreground print:hidden">
+                        KORA POINT / Espace Agent / Brouillard d'encaissement
                     </div>
-                    <h1 className="text-xl font-black text-slate-900 dark:text-white sm:text-2xl">
-                        Caisse du Guichet & Dette de Reversement
-                    </h1>
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-[clamp(1.75rem,2.8vw,2.5rem)] font-extrabold tracking-[-0.04em] text-foreground">
+                            Brouillard d’encaissement
+                        </h1>
+                        <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary capitalize">
+                            {data.date_label}
+                        </span>
+                    </div>
+                    <p className="mt-1 text-[0.8125rem] leading-6 text-muted-foreground">
+                        Journal des flux perçus (Espèces et Mobile Money) au guichet {point.name} ({point.code}). Encaissement autonome sans clôture de caisse imposée.
+                    </p>
                 </div>
 
-                {isOpen ? (
+                <div className="flex flex-wrap items-center gap-2.5 print:hidden">
                     <button
                         type="button"
-                        onClick={() => setDialogMode('CLOSE')}
-                        className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-xs font-bold text-slate-800 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 shrink-0"
+                        onClick={() => window.print()}
+                        className="btn btn-outline"
                     >
-                        <Lock className="size-4 text-rose-500" />
-                        <span>Clôturer la caisse</span>
+                        <Printer className="size-4" />
+                        <span>Imprimer le brouillard</span>
                     </button>
-                ) : (
-                    <button
-                        type="button"
-                        onClick={() => setDialogMode('OPEN')}
-                        className="inline-flex h-10 items-center gap-2 rounded-xl bg-gold px-4 text-xs font-black uppercase tracking-wider text-kora shadow-md transition hover:bg-gold/90 shrink-0"
-                    >
-                        <Unlock className="size-4" />
-                        <span>Ouvrir une session de caisse</span>
-                    </button>
-                )}
+                    {onNavigateToSale && (
+                        <button
+                            type="button"
+                            onClick={onNavigateToSale}
+                            className="btn btn-primary"
+                        >
+                            <PlusCircle className="size-4" />
+                            <span>Nouvelle vente</span>
+                        </button>
+                    )}
+                </div>
             </div>
 
-            {/* Dual Panel Layout: Local Cash Till vs KORA Remittance Debt */}
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                {/* LEFT: Local Physical Cash Session */}
-                <section
-                    aria-label="Session de caisse guichet"
-                    className="flex flex-col justify-between rounded-3xl border border-slate-200/90 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900"
-                >
-                    <div>
-                        <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
-                            <div className="flex items-center gap-2.5">
-                                <div className="grid size-9 place-items-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
-                                    <Wallet className="size-5" />
-                                </div>
-                                <div>
-                                    <h2 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                                        Session de caisse guichet (Tiroir physique)
-                                    </h2>
-                                    <span className="text-[0.6875rem] text-slate-400">
-                                        {cashSession.opened_at} · Opérateur : {cashSession.operator_name}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
+            {/* Exactly 4 KPIs with Colored Backgrounds (Dashboard Style) */}
+            <section aria-label="Indicateurs de caisse">
+                <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
+                    {kpis.map((kpi) => {
+                        const Icon = kpi.icon;
 
-                        {/* Breakdown Cards */}
-                        <div className="mt-5 grid grid-cols-2 gap-3">
-                            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
-                                <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                                    <Banknote className="size-4 text-slate-400" />
-                                    <span>Fond de caisse initial</span>
+                        return (
+                            <article
+                                key={kpi.id}
+                                className={cn(
+                                    'cash-ledger-card transition-[transform,box-shadow] duration-300 hover:-translate-y-1 hover:shadow-lg',
+                                    kpiVariants[kpi.tone],
+                                )}
+                            >
+                                <div className="cash-ledger-head">
+                                    <div className="cash-ledger-identity">
+                                        <span className="cash-ledger-brand">
+                                            <Icon className="size-4" strokeWidth={1.8} />
+                                        </span>
+                                        <div>
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="cash-ledger-title">{kpi.label}</span>
+                                                <KoraTooltip content={kpi.formula} side="top">
+                                                    <button
+                                                        type="button"
+                                                        aria-label={`Explication du calcul : ${kpi.label}`}
+                                                        className="opacity-70 transition-opacity hover:opacity-100 focus:outline-none"
+                                                    >
+                                                        <HelpCircle className="size-3.5" />
+                                                    </button>
+                                                </KoraTooltip>
+                                            </div>
+                                            <small>{kpi.hint}</small>
+                                        </div>
+                                    </div>
                                 </div>
-                                <strong className="mt-2 block font-mono text-lg font-black text-slate-900 dark:text-white">
-                                    {cashSession.opening_amount.toLocaleString('fr-FR')} FCFA
-                                </strong>
-                            </div>
 
-                            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
-                                <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-bold">
-                                    <TrendingUp className="size-4" />
-                                    <span>Espèces perçues (Ventes)</span>
+                                <div className="cash-ledger-balance mb-0">
+                                    <span>{kpi.trend}</span>
+                                    <strong>{kpi.value}</strong>
                                 </div>
-                                <strong className="mt-2 block font-mono text-lg font-black text-emerald-600 dark:text-emerald-400">
-                                    +{cashSession.cash_collected.toLocaleString('fr-FR')} FCFA
-                                </strong>
-                            </div>
-                        </div>
+                            </article>
+                        );
+                    })}
+                </div>
+            </section>
 
-                        {/* Total in Register */}
-                        <div className="mt-4 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 p-5 text-white shadow-md">
-                            <span className="block text-[0.625rem] font-bold text-slate-400 uppercase tracking-wider">
-                                Espèces théoriques dans le tiroir
-                            </span>
-                            <div className="mt-1 flex items-baseline justify-between">
-                                <strong className="font-mono text-2xl font-black text-gold sm:text-3xl">
-                                    {cashSession.expected_closing_cash.toLocaleString('fr-FR')}{' '}
-                                    <span className="text-sm font-normal text-white">FCFA</span>
-                                </strong>
-                                <span className="text-xs text-slate-400">
-                                    Mobile Money : {cashSession.mobile_money_collected.toLocaleString('fr-FR')} FCFA
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="mt-5 border-t border-slate-100 pt-3 text-xs text-slate-500 dark:border-slate-800">
-                        Cette caisse enregistre les flux de paiement physiques des billets du jour pour le rendu de monnaie.
-                    </div>
-                </section>
-
-                {/* RIGHT: KORA Remittance Debt */}
-                <section
-                    aria-label="Dette de reversement KORA"
-                    className="flex flex-col justify-between rounded-3xl border border-amber-200/80 bg-gradient-to-br from-amber-500/5 via-white to-amber-500/10 p-6 shadow-sm dark:border-amber-500/20 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900"
-                >
-                    <div>
-                        <div className="flex items-center justify-between border-b border-amber-200/40 pb-3 dark:border-slate-800">
-                            <div className="flex items-center gap-2.5">
-                                <div className="grid size-9 place-items-center rounded-xl bg-gold text-kora font-black">
-                                    <ReceiptText className="size-5" />
-                                </div>
-                                <div>
-                                    <h2 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                                        Solde de reversement dû à KORA
-                                    </h2>
-                                    <span className="text-[0.6875rem] text-slate-500 dark:text-slate-400">
-                                        Dette contractuelle cumulée nette de commissions
-                                    </span>
-                                </div>
-                            </div>
-
-                            <span className="rounded-full bg-gold/25 px-2.5 py-0.5 text-xs font-black text-kora dark:text-gold">
+            {/* Financial Health & Credit Exposure Reminder Banner */}
+            <div className="rounded-2xl border border-border/80 bg-gradient-to-r from-muted/50 via-card to-card p-4 sm:p-5 shadow-sm print:hidden">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                            <ShieldCheck className="size-4 text-primary" />
+                            <strong className="text-sm font-bold text-foreground">
+                                Situation d'encours KORA
+                            </strong>
+                            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[0.6875rem] font-bold text-primary">
                                 {health.usage_percentage} % du plafond
                             </span>
                         </div>
-
-                        {/* Financial Debt Figures */}
-                        <div className="mt-5 space-y-3">
-                            <div className="flex items-center justify-between">
-                                <span className="text-xs text-slate-600 dark:text-slate-300">
-                                    Encours total net à reverser :
-                                </span>
-                                <strong className="font-mono text-xl font-black text-slate-900 dark:text-white">
-                                    {health.current_exposure.toLocaleString('fr-FR')} FCFA
-                                </strong>
-                            </div>
-
-                            <div className="flex items-center justify-between text-xs">
-                                <span className="text-slate-500">Plafond contractuel :</span>
-                                <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
-                                    {health.credit_limit.toLocaleString('fr-FR')} FCFA
-                                </span>
-                            </div>
-
-                            <div className="flex items-center justify-between text-xs">
-                                <span className="text-slate-500">Disponible avant blocage :</span>
-                                <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                                    {health.available_balance.toLocaleString('fr-FR')} FCFA
-                                </span>
-                            </div>
-
-                            <div className="flex items-center justify-between rounded-xl bg-white p-3 border border-amber-200/60 dark:border-slate-800 dark:bg-slate-800/80 text-xs">
-                                <span className="flex items-center gap-1.5 font-bold text-slate-700 dark:text-slate-200">
-                                    <Clock className="size-3.5 text-gold" />
-                                    <span>Échéance de reversement :</span>
-                                </span>
-                                <span className="font-bold text-slate-900 dark:text-white">
-                                    {health.next_due_label}
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* Clarification Callout */}
-                        <div className="mt-4 rounded-xl border border-blue-200/80 bg-blue-50/70 p-3 text-xs text-blue-900 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-300 leading-relaxed">
-                            <strong className="block font-bold">Règle de séparation des comptes :</strong>
-                            Les recettes encaissées restent dans vos comptes ou dans votre coffre local jusqu'à l'exécution d'un bordereau de reversement vers KORA.
-                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            Encours actuel :{' '}
+                            <strong className="font-mono text-foreground">
+                                {health.current_exposure.toLocaleString('fr-FR')} FCFA
+                            </strong>{' '}
+                            sur un plafond autorisé de{' '}
+                            <span className="font-mono">
+                                {health.credit_limit.toLocaleString('fr-FR')} FCFA
+                            </span>
+                            . Disponible :{' '}
+                            <strong className="font-mono text-emerald-600 dark:text-emerald-400">
+                                {health.available_balance.toLocaleString('fr-FR')} FCFA
+                            </strong>
+                            .
+                        </p>
                     </div>
 
-                    <div className="mt-5 flex justify-end border-t border-amber-200/40 pt-3 dark:border-slate-800">
-                        {isAutonomous ? (
+                    <div className="flex items-center gap-3 shrink-0">
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <Clock className="size-3.5 text-gold" />
+                            <span>
+                                Échéance : <strong className="text-foreground">{health.next_due_label}</strong>
+                            </span>
+                        </div>
+                        {isAutonomous && onNavigateToSettlements && (
                             <button
                                 type="button"
                                 onClick={onNavigateToSettlements}
-                                className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-slate-800 dark:bg-white dark:text-slate-900"
+                                className="btn btn-outline btn-sm text-xs"
                             >
-                                <span>Préparer le reversement périodique</span>
-                                <ArrowRight className="size-3.5" />
+                                <span>Déclarer versement</span>
+                                <ArrowRight className="size-3" />
                             </button>
-                        ) : (
-                            <span className="text-xs text-slate-500 italic">
-                                Reversement groupé supervisé par le trésorier de l’organisation.
-                            </span>
                         )}
                     </div>
-                </section>
+                </div>
             </div>
 
-            {/* Cash Movements Ledger */}
-            <section
-                aria-label="Mouvements de caisse de la journée"
-                className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900"
-            >
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
-                    <div>
-                        <span className="text-[0.625rem] font-black uppercase tracking-wider text-slate-400">
-                            Journal de caisse
+            {/* Filter Bar with Search, Period & Channel (Cash style) */}
+            <div className="space-y-2.5 print:hidden">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                        <span className="text-[0.6875rem] font-black tracking-wider uppercase text-muted-foreground mr-1">
+                            Période :
                         </span>
-                        <h3 className="text-sm font-extrabold text-slate-900 dark:text-white sm:text-base">
-                            Mouvements enregistrés aujourd'hui
-                        </h3>
-                    </div>
-                    <span className="text-xs font-semibold text-slate-500">
-                        {cashSession.movements.length} opérations
-                    </span>
-                </div>
-
-                <div className="mt-4 divide-y divide-slate-100 dark:divide-slate-800">
-                    {cashSession.movements.map((m) => (
-                        <div
-                            key={m.id}
-                            className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between text-xs"
+                        <button
+                            type="button"
+                            onClick={() => handlePreset('today')}
+                            className={cn(
+                                'rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors',
+                                fromDate === todayStr && toDate === todayStr
+                                    ? 'bg-primary text-primary-foreground shadow-sm'
+                                    : 'bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground',
+                            )}
                         >
-                            <div className="flex items-center gap-3">
-                                <span className="font-mono text-xs font-bold text-slate-400">
-                                    {m.time_label}
-                                </span>
-                                <div>
-                                    <div className="font-bold text-slate-800 dark:text-slate-200">
-                                        {m.label}
-                                    </div>
-                                    <div className="text-[0.6875rem] text-slate-400">
-                                        Moyen : {m.method === 'CASH' ? 'Espèces guichet' : 'Mobile Money'}
-                                    </div>
-                                </div>
-                            </div>
+                            Aujourd’hui
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handlePreset('yesterday')}
+                            className={cn(
+                                'rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors',
+                                fromDate === getYesterdayStr() && toDate === getYesterdayStr()
+                                    ? 'bg-primary text-primary-foreground shadow-sm'
+                                    : 'bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground',
+                            )}
+                        >
+                            Hier
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handlePreset('7d')}
+                            className={cn(
+                                'rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors',
+                                fromDate === get7DaysAgoStr() && toDate === todayStr
+                                    ? 'bg-primary text-primary-foreground shadow-sm'
+                                    : 'bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground',
+                            )}
+                        >
+                            7 derniers jours
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handlePreset('month')}
+                            className={cn(
+                                'rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors',
+                                fromDate === getMonthStartStr() && toDate === todayStr
+                                    ? 'bg-primary text-primary-foreground shadow-sm'
+                                    : 'bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground',
+                            )}
+                        >
+                            Ce mois
+                        </button>
+                    </div>
 
-                            <div className="flex items-center justify-between gap-4 sm:justify-end">
-                                <div className="text-right">
-                                    <span
-                                        className={cn(
-                                            'font-mono font-black',
-                                            m.type === 'OPENING'
-                                                ? 'text-slate-700 dark:text-slate-300'
-                                                : m.method === 'CASH'
-                                                ? 'text-emerald-600 dark:text-emerald-400'
-                                                : 'text-blue-600 dark:text-blue-400',
-                                        )}
-                                    >
-                                        +{m.amount.toLocaleString('fr-FR')} FCFA
-                                    </span>
-                                    <span className="block text-[0.625rem] text-slate-400 font-mono">
-                                        Solde caisse : {m.balance_after.toLocaleString('fr-FR')} FCFA
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
+                    {(query || channel !== 'all' || fromDate !== todayStr || toDate !== todayStr) && (
+                        <button
+                            type="button"
+                            onClick={handleReset}
+                            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                            <RotateCcw className="size-3" />
+                            <span>Réinitialiser les filtres</span>
+                        </button>
+                    )}
                 </div>
-            </section>
+
+                <div className="cash-filterbar flex-wrap">
+                    <Search className="cash-filter-icon size-4" />
+                    <input
+                        type="text"
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                applyFilters();
+                            }
+                        }}
+                        placeholder="Rechercher voyageur, téléphone, réf. billet…"
+                        aria-label="Rechercher une opération"
+                        className="cash-filter-search"
+                    />
+
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
+                        <span className="font-bold text-[0.6875rem] uppercase">Du</span>
+                        <input
+                            type="date"
+                            value={fromDate}
+                            onChange={(e) => setFromDate(e.target.value)}
+                            aria-label="Date de début"
+                            className="cash-filter-select h-10 rounded-xl px-2.5 text-xs font-medium"
+                        />
+                    </div>
+
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
+                        <span className="font-bold text-[0.6875rem] uppercase">Au</span>
+                        <input
+                            type="date"
+                            value={toDate}
+                            onChange={(e) => setToDate(e.target.value)}
+                            aria-label="Date de fin"
+                            className="cash-filter-select h-10 rounded-xl px-2.5 text-xs font-medium"
+                        />
+                    </div>
+
+                    <select
+                        value={channel}
+                        onChange={(e) => {
+                            const nextChannel = e.target.value;
+                            setChannel(nextChannel);
+                            applyFilters(fromDate, toDate, nextChannel, query);
+                        }}
+                        aria-label="Canal de paiement"
+                        className="cash-filter-select h-10 rounded-xl px-2.5 text-xs font-medium"
+                    >
+                        <option value="all">Tous les canaux</option>
+                        <option value="cash">💵 Espèces</option>
+                        <option value="mobile_money">📱 Tout Mobile Money</option>
+                        <optgroup label="Bénin 🇧🇯">
+                            <option value="mtn_momo">MTN MoMo (Bénin)</option>
+                            <option value="moov_flooz">Moov Flooz (Bénin)</option>
+                            <option value="celtiis_cash">Celtiis Cash (Bénin)</option>
+                        </optgroup>
+                        <optgroup label="Togo 🇹🇬">
+                            <option value="tmoney_tg">T-Money (Togo)</option>
+                            <option value="moov_flooz_tg">Moov Togo (Togo)</option>
+                        </optgroup>
+                        <optgroup label="Côte d’Ivoire 🇨🇮">
+                            <option value="wave_ci">Wave CI (Côte d’Ivoire)</option>
+                            <option value="orange_money_ci">Orange Money (Côte d’Ivoire)</option>
+                            <option value="mtn_momo_ci">MTN CI (Côte d’Ivoire)</option>
+                            <option value="moov_flooz_ci">Moov CI (Côte d’Ivoire)</option>
+                        </optgroup>
+                    </select>
+
+                    <button
+                        type="button"
+                        onClick={() => applyFilters()}
+                        className="btn btn-navy flex items-center gap-1.5 shrink-0"
+                    >
+                        <SlidersHorizontal className="size-3.5" />
+                        <span>Filtrer</span>
+                    </button>
+                </div>
+            </div>
+
+            {/* Table: Chronological Movements (Cash System Style) */}
+            <div className="cash-table-card print:border-none print:shadow-none">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-border/60 px-5 py-4">
+                    <div>
+                        <h2 className="text-sm font-extrabold text-foreground">
+                            Journal chronologique des encaissements
+                        </h2>
+                        <span className="text-xs text-muted-foreground">
+                            {data.date_label} · {data.movements.length} opération(s) enregistrée(s)
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="rounded-full bg-muted/70 px-2.5 py-1 text-xs font-bold text-foreground">
+                            {data.movements.length} ligne(s)
+                        </span>
+                    </div>
+                </div>
+
+                {data.movements.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center p-12 text-center">
+                        <div className="grid size-12 place-items-center rounded-2xl bg-muted text-muted-foreground mb-3">
+                            <Banknote className="size-6" />
+                        </div>
+                        <h3 className="text-sm font-bold text-foreground">
+                            Aucun encaissement pour cette sélection
+                        </h3>
+                        <p className="mt-1 text-xs text-muted-foreground max-w-sm">
+                            Aucun mouvement ne correspond aux filtres appliqués (période, canal ou recherche).
+                        </p>
+                        {(query || channel !== 'all' || fromDate !== todayStr || toDate !== todayStr) && (
+                            <button
+                                type="button"
+                                onClick={handleReset}
+                                className="btn btn-outline btn-sm mt-4"
+                            >
+                                Réinitialiser les filtres
+                            </button>
+                        )}
+                        {onNavigateToSale && (
+                            <button
+                                type="button"
+                                onClick={onNavigateToSale}
+                                className="btn btn-primary btn-sm mt-4 ml-2"
+                            >
+                                <PlusCircle className="size-4" />
+                                <span>Nouvelle vente</span>
+                            </button>
+                        )}
+                    </div>
+                ) : (
+                    <div className="cash-table-scroll overflow-x-auto">
+                        <table className="w-full min-w-[850px] text-left">
+                            <thead className="bg-muted/45 text-[0.625rem] font-black tracking-[0.14em] text-muted-foreground uppercase border-b border-border/60">
+                                <tr>
+                                    <th className="px-4 py-3">Date & heure</th>
+                                    <th className="px-4 py-3">Billet / Réf</th>
+                                    <th className="px-4 py-3">Voyageur</th>
+                                    <th className="px-4 py-3">Canal de paiement</th>
+                                    <th className="px-4 py-3 text-right">Brut encaissé</th>
+                                    <th className="px-4 py-3 text-right">Commission</th>
+                                    <th className="px-4 py-3 text-right">Net dû KORA</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border/40 text-xs">
+                                {data.movements.map((m) => {
+                                    const netInfo = m.network
+                                        ? NETWORK_FLAGS[m.network]
+                                        : null;
+                                    const isCash = m.method === 'cash';
+
+                                    return (
+                                        <tr
+                                            key={m.id}
+                                            className="hover:bg-muted/30 transition-colors"
+                                        >
+                                            <td className="px-4 py-3.5 whitespace-nowrap">
+                                                <p className="font-mono text-xs font-black text-foreground">
+                                                    {m.time_label}
+                                                </p>
+                                                <p className="mt-0.5 text-[0.6875rem] text-muted-foreground">
+                                                    {m.date_label ?? ''}
+                                                </p>
+                                            </td>
+                                            <td className="px-4 py-3.5 whitespace-nowrap">
+                                                <span className="font-mono font-bold text-foreground bg-muted/60 px-2 py-0.5 rounded text-xs border border-border/50">
+                                                    {m.ticket_reference}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3.5">
+                                                <div className="font-bold text-foreground">
+                                                    {m.passenger_name}
+                                                </div>
+                                                <div className="text-[0.6875rem] text-muted-foreground font-mono">
+                                                    {m.passenger_phone}
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-3.5 whitespace-nowrap">
+                                                {isCash ? (
+                                                    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                                                        <HandCoins className="size-3" />
+                                                        <span>Espèces</span>
+                                                    </span>
+                                                ) : (
+                                                    <div className="inline-flex flex-col items-start gap-0.5">
+                                                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:text-blue-400">
+                                                            <Smartphone className="size-3" />
+                                                            <span>{netInfo?.flag ?? '📱'}</span>
+                                                            <span>
+                                                                {netInfo?.label ??
+                                                                    m.network_label ??
+                                                                    'Mobile Money'}
+                                                            </span>
+                                                        </span>
+                                                        {m.reference &&
+                                                            m.reference !== '—' && (
+                                                                <span className="font-mono text-[0.625rem] text-muted-foreground">
+                                                                    Réf: {m.reference}
+                                                                </span>
+                                                            )}
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-3.5 text-right font-mono text-xs font-black text-foreground whitespace-nowrap">
+                                                {m.gross_amount.toLocaleString(
+                                                    'fr-FR',
+                                                )}{' '}
+                                                FCFA
+                                            </td>
+                                            <td className="px-4 py-3.5 text-right font-mono text-xs font-bold text-gold whitespace-nowrap">
+                                                +
+                                                {m.commission_amount.toLocaleString(
+                                                    'fr-FR',
+                                                )}{' '}
+                                                FCFA
+                                            </td>
+                                            <td className="px-4 py-3.5 text-right font-mono text-xs font-bold text-foreground whitespace-nowrap">
+                                                {m.net_amount.toLocaleString(
+                                                    'fr-FR',
+                                                )}{' '}
+                                                FCFA
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                            <tfoot className="border-t-2 border-border/80 bg-muted/40 font-bold">
+                                <tr>
+                                    <td
+                                        colSpan={4}
+                                        className="px-4 py-3 text-right text-xs font-black text-foreground"
+                                    >
+                                        Totaux consolidés ({data.movements.length} billet(s)) :
+                                    </td>
+                                    <td className="px-4 py-3 text-right font-mono text-xs font-black text-foreground whitespace-nowrap">
+                                        {data.gross_total.toLocaleString(
+                                            'fr-FR',
+                                        )}{' '}
+                                        FCFA
+                                    </td>
+                                    <td className="px-4 py-3 text-right font-mono text-xs font-black text-gold whitespace-nowrap">
+                                        +
+                                        {data.commission_total.toLocaleString(
+                                            'fr-FR',
+                                        )}{' '}
+                                        FCFA
+                                    </td>
+                                    <td className="px-4 py-3 text-right font-mono text-xs font-black text-foreground whitespace-nowrap">
+                                        {data.net_total.toLocaleString(
+                                            'fr-FR',
+                                        )}{' '}
+                                        FCFA
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                )}
+            </div>
+
+            {/* Print Footer Notice */}
+            <div className="hidden print:block text-center text-xs text-slate-500 pt-6 border-t border-slate-200">
+                Document généré pour {point.name} ({point.code}) · KORA EXPRESS Bus Platform · {data.date_label}
+            </div>
         </div>
     );
 }

@@ -1,7 +1,7 @@
-import { AlertCircle, AlertTriangle, ArrowRight, CheckCircle2, Clock, ShieldAlert } from 'lucide-react';
-import { FinancialHealth, KoraPointProfile } from '../mock/kora-point-mock-data';
+import { AlertCircle, ArrowRight, CheckCircle2, Clock } from 'lucide-react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { cn } from '@/lib/utils';
+import type { FinancialHealth, KoraPointProfile } from '../mock/kora-point-mock-data';
 
 type Props = {
     point: KoraPointProfile;

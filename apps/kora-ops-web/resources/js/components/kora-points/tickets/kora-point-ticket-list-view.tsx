@@ -1,20 +1,17 @@
-import { useState, useMemo } from 'react';
 import {
-    Search,
-    Filter,
-    Calendar,
-    Ticket,
-    Download,
-    Eye,
     ChevronRight,
-    MapPin,
-    User,
+    Eye,
+    ReceiptText,
+    Search,
+    Ticket,
+    TrendingUp,
     Wallet,
 } from 'lucide-react';
-import { PointSaleRecord, SettlementStatus } from '../mock/kora-point-mock-data';
-import { KoraPointTicketDetailDrawer } from './kora-point-ticket-detail-drawer';
+import { useMemo, useState } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { cn } from '@/lib/utils';
+import type { PointSaleRecord, SettlementStatus } from '../mock/kora-point-mock-data';
+import { KoraPointTicketDetailDrawer } from './kora-point-ticket-detail-drawer';
 
 type Props = {
     sales: PointSaleRecord[];
@@ -64,76 +61,117 @@ export function KoraPointTicketListView({
             />
 
             {/* Header */}
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="kora-page-head cash-reveal mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                    <span className="text-[0.625rem] font-black uppercase tracking-wider text-slate-500">
-                        Journal des ventes du Point
-                    </span>
-                    <h1 className="text-xl font-black text-slate-900 dark:text-white sm:text-2xl">
+                    <div className="kora-breadcrumb mb-2 text-[0.6875rem] text-muted-foreground">
+                        KORA POINT / Espace Agent / Billets
+                    </div>
+                    <h1 className="text-[clamp(1.8rem,3vw,2.65rem)] font-extrabold tracking-[-0.055em] text-foreground">
                         Billets & Activité
                     </h1>
+                    <p className="mt-1.5 text-[0.8125rem] leading-6 text-muted-foreground">
+                        Historique des titres de transport émis, statuts d'apurement et détail passagers.
+                    </p>
                 </div>
 
-                <button
-                    type="button"
-                    onClick={onStartNewSale}
-                    className="inline-flex h-10 items-center gap-2 rounded-xl bg-gold px-4 text-xs font-black uppercase tracking-wider text-kora shadow-md transition hover:bg-gold/90 shrink-0"
-                >
-                    <Ticket className="size-4" />
-                    <span>Nouvelle vente</span>
-                </button>
+                <div className="flex flex-wrap items-center gap-2.5">
+                    <button
+                        type="button"
+                        onClick={onStartNewSale}
+                        className="btn btn-primary"
+                    >
+                        <Ticket className="size-4" />
+                        <span>Nouvelle vente</span>
+                    </button>
+                </div>
             </div>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                    <span className="text-[0.625rem] font-bold text-slate-400 uppercase">
-                        Billets affichés
-                    </span>
-                    <strong className="mt-1 block font-mono text-xl font-black text-slate-900 dark:text-white">
-                        {filteredSales.length}
-                    </strong>
-                </div>
+            <div className="cash-ledger-grid cash-reveal cash-reveal-delay-1 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <article className="cash-ledger-card cash-ledger-card-cash">
+                    <div className="cash-ledger-head">
+                        <div className="cash-ledger-identity">
+                            <span className="cash-ledger-brand bg-digital/10 text-digital">
+                                <Ticket className="size-4" strokeWidth={1.7} />
+                            </span>
+                            <div>
+                                <span className="cash-ledger-title">Billets émis</span>
+                                <small>Volume filtré</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="cash-ledger-balance">
+                        <span>Total</span>
+                        <strong>{filteredSales.length}</strong>
+                    </div>
+                </article>
 
-                <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                    <span className="text-[0.625rem] font-bold text-slate-400 uppercase">
-                        Recettes totales
-                    </span>
-                    <strong className="mt-1 block font-mono text-xl font-black text-slate-900 dark:text-white">
-                        {totalAmount.toLocaleString('fr-FR')} FCFA
-                    </strong>
-                </div>
+                <article className="cash-ledger-card cash-ledger-card-cash">
+                    <div className="cash-ledger-head">
+                        <div className="cash-ledger-identity">
+                            <span className="cash-ledger-brand bg-kora text-white dark:bg-gold/20 dark:text-gold">
+                                <Wallet className="size-4" strokeWidth={1.7} />
+                            </span>
+                            <div>
+                                <span className="cash-ledger-title">Recettes totales</span>
+                                <small>Montant brut</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="cash-ledger-balance">
+                        <span>Total</span>
+                        <strong>{totalAmount.toLocaleString('fr-FR')} FCFA</strong>
+                    </div>
+                </article>
 
-                <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                    <span className="text-[0.625rem] font-bold text-slate-400 uppercase">
-                        Commissions acquises
-                    </span>
-                    <strong className="mt-1 block font-mono text-xl font-black text-emerald-600 dark:text-emerald-400">
-                        +{totalCommission.toLocaleString('fr-FR')} FCFA
-                    </strong>
-                </div>
+                <article className="cash-ledger-card cash-ledger-card-cash">
+                    <div className="cash-ledger-head">
+                        <div className="cash-ledger-identity">
+                            <span className="cash-ledger-brand bg-emerald-500/10 text-emerald-600">
+                                <TrendingUp className="size-4" strokeWidth={1.7} />
+                            </span>
+                            <div>
+                                <span className="cash-ledger-title">Commissions</span>
+                                <small>Acquises en direct</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="cash-ledger-balance">
+                        <span>Total</span>
+                        <strong>+{totalCommission.toLocaleString('fr-FR')} FCFA</strong>
+                    </div>
+                </article>
 
-                <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                    <span className="text-[0.625rem] font-bold text-slate-400 uppercase">
-                        À reverser net
-                    </span>
-                    <strong className="mt-1 block font-mono text-xl font-black text-gold">
-                        {(totalAmount - totalCommission).toLocaleString('fr-FR')} FCFA
-                    </strong>
-                </div>
+                <article className="cash-ledger-card cash-ledger-card-cash">
+                    <div className="cash-ledger-head">
+                        <div className="cash-ledger-identity">
+                            <span className="cash-ledger-brand bg-gold/15 text-gold">
+                                <ReceiptText className="size-4" strokeWidth={1.7} />
+                            </span>
+                            <div>
+                                <span className="cash-ledger-title">À reverser</span>
+                                <small>Dette nette KORA</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="cash-ledger-balance">
+                        <span>Total</span>
+                        <strong>{(totalAmount - totalCommission).toLocaleString('fr-FR')} FCFA</strong>
+                    </div>
+                </article>
             </div>
 
             {/* Filter Bar */}
-            <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:border-slate-800 dark:bg-slate-900">
+            <div className="cash-filterbar cash-reveal cash-reveal-delay-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 {/* Search */}
                 <div className="relative flex-1 max-w-md">
-                    <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                    <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                     <input
                         type="text"
                         placeholder="Rechercher par billet N°, code court, voyageur..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-4 text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-gold dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                        className="h-10 w-full rounded-xl border border-border bg-muted/40 pl-10 pr-4 text-xs font-semibold text-foreground placeholder:text-muted-foreground focus:bg-card focus:outline-none focus:ring-1 focus:ring-gold"
                     />
                 </div>
 
@@ -150,10 +188,8 @@ export function KoraPointTicketListView({
                             type="button"
                             onClick={() => setStatusFilter(tab.id as any)}
                             className={cn(
-                                'rounded-xl px-3 py-1.5 text-xs font-bold transition',
-                                statusFilter === tab.id
-                                    ? 'bg-[var(--kora)] text-white dark:bg-digital dark:text-kora shadow-sm'
-                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700',
+                                'btn btn-sm',
+                                statusFilter === tab.id ? 'btn-navy' : 'btn-ghost',
                             )}
                         >
                             {tab.label}

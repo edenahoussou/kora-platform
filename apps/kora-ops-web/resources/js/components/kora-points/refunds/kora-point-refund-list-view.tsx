@@ -1,20 +1,18 @@
-import { useState, useMemo } from 'react';
 import {
+    AlertTriangle,
+    CheckCircle2,
+    Clock,
+    Coins,
+    FileText,
+    Plus,
+    Receipt,
     RotateCcw,
     Search,
-    Plus,
-    Clock,
-    CheckCircle2,
-    AlertTriangle,
-    Coins,
-    Ticket,
-    Receipt,
-    Eye,
-    UserCheck,
-    FileText,
-    ArrowUpRight,
 } from 'lucide-react';
-import {
+import { useState, useMemo } from 'react';
+import { KoraStatusBadge } from '@/components/kora-status-badge';
+import { cn } from '@/lib/utils';
+import type {
     KoraPointProfile,
     PointRefundRecord,
     PointRefundStatus,
@@ -22,8 +20,6 @@ import {
 } from '../mock/kora-point-mock-data';
 import { KoraPointRefundRequestDialog } from './kora-point-refund-request-dialog';
 import { KoraPointRefundRestitutionDialog } from './kora-point-refund-restitution-dialog';
-import { KoraStatusBadge } from '@/components/kora-status-badge';
-import { cn } from '@/lib/utils';
 
 type Props = {
     point: KoraPointProfile;
@@ -69,8 +65,14 @@ export function KoraPointRefundListView({
         let totalClawback = 0;
 
         refunds.forEach((r) => {
-            if (r.status === 'REQUESTED') pendingFinance += 1;
-            if (r.status === 'APPROVED_BY_FINANCE') readyForRestitution += 1;
+            if (r.status === 'REQUESTED') {
+pendingFinance += 1;
+}
+
+            if (r.status === 'APPROVED_BY_FINANCE') {
+readyForRestitution += 1;
+}
+
             if (r.status === 'FUNDS_RESTITUTED') {
                 totalRefunded += r.refund_amount;
                 totalClawback += Math.abs(r.commission_clawback);
@@ -149,120 +151,116 @@ export function KoraPointRefundListView({
             />
 
             {/* Header */}
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="kora-page-head cash-reveal mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                    <h1 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-                        <RotateCcw className="h-6 w-6 text-gold-dark dark:text-gold" />
+                    <div className="kora-breadcrumb mb-2 text-[0.6875rem] text-muted-foreground">
+                        KORA POINT / Espace Agent / Remboursements
+                    </div>
+                    <h1 className="text-[clamp(1.8rem,3vw,2.65rem)] font-extrabold tracking-[-0.055em] text-foreground">
                         Remboursements & Restitutions passagers
                     </h1>
-                    <p className="text-xs text-slate-500 mt-1">
-                        Gestion des annulations, décomposition des reprises de commissions et quittances d'émargement
+                    <p className="mt-1.5 text-[0.8125rem] leading-6 text-muted-foreground">
+                        Gestion des annulations, décomposition des reprises de commissions et quittances d'émargement.
                     </p>
                 </div>
 
-                <button
-                    type="button"
-                    onClick={() => setIsRequestModalOpen(true)}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-gold px-5 py-2.5 text-xs font-black uppercase tracking-wider text-kora shadow-sm hover:bg-gold-light focus:outline-none focus:ring-2 focus:ring-gold"
-                >
-                    <Plus className="h-4 w-4" />
-                    Initier un remboursement +
-                </button>
+                <div className="flex flex-wrap items-center gap-2.5">
+                    <button
+                        type="button"
+                        onClick={() => setIsRequestModalOpen(true)}
+                        className="btn btn-primary"
+                    >
+                        <Plus className="size-4" />
+                        <span>Initier un remboursement</span>
+                    </button>
+                </div>
             </div>
 
             {/* Top KPI Cards */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
-                {/* Prêt pour restitution (Action immédiate) */}
-                <div className="rounded-2xl border-2 border-amber-500/30 bg-amber-50/50 p-5 shadow-sm dark:border-amber-500/20 dark:bg-amber-950/20">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider">
-                            À restituer au guichet
-                        </span>
-                        <div className="rounded-lg bg-amber-500/20 p-2 text-amber-700 dark:text-amber-300">
-                            <Coins className="h-4 w-4" />
+            <div className="cash-ledger-grid cash-reveal cash-reveal-delay-1 grid grid-cols-1 gap-4 sm:grid-cols-4">
+                <article className="cash-ledger-card cash-ledger-card-cash">
+                    <div className="cash-ledger-head">
+                        <div className="cash-ledger-identity">
+                            <span className="cash-ledger-brand bg-gold/15 text-gold">
+                                <Coins className="size-4" strokeWidth={1.7} />
+                            </span>
+                            <div>
+                                <span className="cash-ledger-title">À restituer</span>
+                                <small>Accord Finance KORA obtenu</small>
+                            </div>
                         </div>
                     </div>
-                    <div className="mt-3">
-                        <span className="text-2xl font-black text-amber-700 dark:text-amber-300">
-                            {metrics.readyForRestitution} dossier(s)
-                        </span>
-                        <p className="text-[11px] text-amber-800/80 dark:text-amber-400 mt-1">
-                            Accord Finance KORA obtenu · Espèces prêtes à verser
-                        </p>
+                    <div className="cash-ledger-balance">
+                        <span>Dossiers</span>
+                        <strong className="text-gold">{metrics.readyForRestitution} dossier(s)</strong>
                     </div>
-                </div>
+                </article>
 
-                {/* En attente Finance */}
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                            En cours d'instruction
-                        </span>
-                        <div className="rounded-lg bg-blue-500/10 p-2 text-blue-600 dark:text-blue-400">
-                            <Clock className="h-4 w-4" />
+                <article className="cash-ledger-card cash-ledger-card-cash">
+                    <div className="cash-ledger-head">
+                        <div className="cash-ledger-identity">
+                            <span className="cash-ledger-brand bg-digital/10 text-digital">
+                                <Clock className="size-4" strokeWidth={1.7} />
+                            </span>
+                            <div>
+                                <span className="cash-ledger-title">En instruction</span>
+                                <small>Vérification des justificatifs</small>
+                            </div>
                         </div>
                     </div>
-                    <div className="mt-3">
-                        <span className="text-2xl font-black text-slate-900 dark:text-white">
-                            {metrics.pendingFinance} dossier(s)
-                        </span>
-                        <p className="text-[11px] text-slate-500 mt-1">
-                            Vérification des justificatifs par KORA
-                        </p>
+                    <div className="cash-ledger-balance">
+                        <span>Dossiers</span>
+                        <strong className="text-digital">{metrics.pendingFinance} dossier(s)</strong>
                     </div>
-                </div>
+                </article>
 
-                {/* Total restitué */}
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                            Fonds restitués
-                        </span>
-                        <div className="rounded-lg bg-emerald-500/10 p-2 text-emerald-600 dark:text-emerald-400">
-                            <CheckCircle2 className="h-4 w-4" />
+                <article className="cash-ledger-card cash-ledger-card-cash">
+                    <div className="cash-ledger-head">
+                        <div className="cash-ledger-identity">
+                            <span className="cash-ledger-brand bg-emerald-500/10 text-emerald-600">
+                                <CheckCircle2 className="size-4" strokeWidth={1.7} />
+                            </span>
+                            <div>
+                                <span className="cash-ledger-title">Fonds restitués</span>
+                                <small>Remis en mains propres</small>
+                            </div>
                         </div>
                     </div>
-                    <div className="mt-3">
-                        <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
-                            {metrics.totalRefunded.toLocaleString()} FCFA
-                        </span>
-                        <p className="text-[11px] text-slate-500 mt-1">
-                            Remis en mains propres aux voyageurs
-                        </p>
+                    <div className="cash-ledger-balance">
+                        <span>Total</span>
+                        <strong className="text-emerald-600">{metrics.totalRefunded.toLocaleString('fr-FR')} FCFA</strong>
                     </div>
-                </div>
+                </article>
 
-                {/* Reprise de commissions */}
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                            Commissions régularisées
-                        </span>
-                        <div className="rounded-lg bg-slate-100 p-2 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-                            <RotateCcw className="h-4 w-4" />
+                <article className="cash-ledger-card cash-ledger-card-cash">
+                    <div className="cash-ledger-head">
+                        <div className="cash-ledger-identity">
+                            <span className="cash-ledger-brand bg-destructive/10 text-destructive">
+                                <RotateCcw className="size-4" strokeWidth={1.7} />
+                            </span>
+                            <div>
+                                <span className="cash-ledger-title">Commissions reprises</span>
+                                <small>Régularisées à la source</small>
+                            </div>
                         </div>
                     </div>
-                    <div className="mt-3">
-                        <span className="text-2xl font-black text-rose-600 dark:text-rose-400">
-                            - {metrics.totalClawback.toLocaleString()} FCFA
-                        </span>
-                        <p className="text-[11px] text-slate-500 mt-1">
-                            Reprise à 3 % déduite des commissions nettes
-                        </p>
+                    <div className="cash-ledger-balance">
+                        <span>Total</span>
+                        <strong className="text-destructive">- {metrics.totalClawback.toLocaleString('fr-FR')} FCFA</strong>
                     </div>
-                </div>
+                </article>
             </div>
 
             {/* Filter Bar */}
-            <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-between">
+            <div className="cash-filterbar cash-reveal cash-reveal-delay-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="relative flex-1">
-                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                    <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
                     <input
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Rechercher par référence, n° de billet, nom du voyageur..."
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-4 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:border-gold focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                        className="w-full rounded-xl border border-border bg-muted/40 py-2 pl-9 pr-4 text-xs font-medium text-foreground placeholder:text-muted-foreground focus:bg-card focus:border-gold focus:outline-none"
                     />
                 </div>
 
@@ -271,10 +269,8 @@ export function KoraPointRefundListView({
                         type="button"
                         onClick={() => setStatusFilter('ALL')}
                         className={cn(
-                            'rounded-xl px-3 py-1.5 text-xs font-bold transition-colors',
-                            statusFilter === 'ALL'
-                                ? 'bg-navy text-white dark:bg-gold dark:text-kora'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300',
+                            'btn btn-sm',
+                            statusFilter === 'ALL' ? 'btn-navy' : 'btn-ghost',
                         )}
                     >
                         Tous ({refunds.length})
@@ -283,10 +279,8 @@ export function KoraPointRefundListView({
                         type="button"
                         onClick={() => setStatusFilter('APPROVED_BY_FINANCE')}
                         className={cn(
-                            'rounded-xl px-3 py-1.5 text-xs font-bold transition-colors',
-                            statusFilter === 'APPROVED_BY_FINANCE'
-                                ? 'bg-amber-600 text-white'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300',
+                            'btn btn-sm',
+                            statusFilter === 'APPROVED_BY_FINANCE' ? 'btn-navy' : 'btn-ghost',
                         )}
                     >
                         Prêts pour restitution
@@ -295,10 +289,8 @@ export function KoraPointRefundListView({
                         type="button"
                         onClick={() => setStatusFilter('REQUESTED')}
                         className={cn(
-                            'rounded-xl px-3 py-1.5 text-xs font-bold transition-colors',
-                            statusFilter === 'REQUESTED'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300',
+                            'btn btn-sm',
+                            statusFilter === 'REQUESTED' ? 'btn-navy' : 'btn-ghost',
                         )}
                     >
                         En instruction
@@ -307,10 +299,8 @@ export function KoraPointRefundListView({
                         type="button"
                         onClick={() => setStatusFilter('FUNDS_RESTITUTED')}
                         className={cn(
-                            'rounded-xl px-3 py-1.5 text-xs font-bold transition-colors',
-                            statusFilter === 'FUNDS_RESTITUTED'
-                                ? 'bg-emerald-600 text-white'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300',
+                            'btn btn-sm',
+                            statusFilter === 'FUNDS_RESTITUTED' ? 'btn-navy' : 'btn-ghost',
                         )}
                     >
                         Restitués
