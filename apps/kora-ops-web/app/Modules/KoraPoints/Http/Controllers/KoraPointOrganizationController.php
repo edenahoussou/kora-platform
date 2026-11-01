@@ -67,12 +67,39 @@ class KoraPointOrganizationController extends Controller
                     'monthly_commission_earned' => (int) $point->entries()->whereMonth('created_at', now()->month)->sum('commission_delta'),
                     'last_settlement_date' => $point->created_at?->format('d M Y') ?? 'Aucun',
                     'organization_uuid' => $point->organization?->uuid,
+                    'organization_name' => $point->organization?->name,
+                    'responsible_name' => $point->responsible_name,
+                    'address' => $point->address,
+                    'country' => $point->agency->country ?? 'BJ',
+                    'settlement_calendar' => $point->settlement_calendar,
                 ];
             })->all();
+
+        $unattachedPoints = KoraPoint::query()
+            ->whereNull('organization_id')
+            ->with('agency')
+            ->get()
+            ->map(fn (KoraPoint $point): array => [
+                'uuid' => $point->uuid,
+                'code' => $point->agency->code,
+                'name' => $point->agency->name,
+                'city' => $point->agency->city,
+                'country' => $point->agency->country ?? 'BJ',
+                'responsible_name' => $point->responsible_name,
+                'phone' => $point->phone,
+                'address' => $point->address,
+                'latitude' => $point->latitude,
+                'longitude' => $point->longitude,
+            ])->all();
 
         return Inertia::render('kora-points/organizations/index', [
             'organizations' => $organizations,
             'subpoints' => $subpoints,
+            'unattached_points' => $unattachedPoints,
+            'permissions' => [
+                'canManage' => $actor->can('kora-points.manage'),
+                'canManageTerms' => $actor->can('kora-points.terms'),
+            ],
         ]);
     }
 
@@ -99,7 +126,7 @@ class KoraPointOrganizationController extends Controller
         $organization = $this->management->saveOrganization($request->user(), $request->validated());
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Organisation partenaire créée.']);
 
-        return to_route('kora-points.organizations.show', $organization->uuid);
+        return to_route('kora-points.organizations.index');
     }
 
     /**

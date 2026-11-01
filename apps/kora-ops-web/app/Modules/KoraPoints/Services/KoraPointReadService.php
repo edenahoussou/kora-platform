@@ -19,9 +19,10 @@ class KoraPointReadService
     /**
      * Builds the Inertia props for the network admin screen (points, organizations, defaults).
      *
+     * @param  array{q?: string, type?: string, state?: string}  $filters
      * @return array<string, mixed>
      */
-    public function index(User $actor): array
+    public function index(User $actor, array $filters = []): array
     {
         $this->access->authorize($actor, 'kora-points.view');
 
@@ -51,10 +52,34 @@ class KoraPointReadService
                 'documents' => [],
             ])->all();
 
+        $pointsQuery = $this->query($actor)->latest('id');
+        $search = mb_strtolower(trim((string) ($filters['q'] ?? '')));
+
+        if ($search !== '') {
+            $like = '%'.$search.'%';
+            $pointsQuery->whereHas('agency', fn ($agency) => $agency->whereRaw('LOWER(name) LIKE ?', [$like])->orWhereRaw('LOWER(code) LIKE ?', [$like])->orWhereRaw('LOWER(city) LIKE ?', [$like]));
+        }
+
+        if (($filters['type'] ?? '') === 'AUTONOMOUS') {
+            $pointsQuery->whereNull('organization_id');
+        }
+
+        if (($filters['type'] ?? '') === 'ORGANIZATION_ATTACHED') {
+            $pointsQuery->whereNotNull('organization_id');
+        }
+
+        if (in_array($filters['state'] ?? '', ['active', 'suspended'], true)) {
+            $pointsQuery->where('status', $filters['state']);
+        }
+
         return [
-            'points' => $this->query($actor)->latest('id')->paginate(30)->through(fn (KoraPoint $point): array => $this->point($point, $actor)),
+            'points' => $pointsQuery->paginate(30)->withQueryString()->through(fn (KoraPoint $point): array => $this->point($point, $actor)),
             'organizations' => $organizations,
             'defaults' => $actor->can('kora-points.terms') ? ($this->terms->defaults() + ['grace_days' => $this->terms->graceDays()]) : null,
+            'permissions' => [
+                'canManage' => $actor->can('kora-points.manage'),
+                'canManageTerms' => $actor->can('kora-points.terms'),
+            ],
         ];
     }
 
