@@ -1,7 +1,10 @@
-import { AlertCircle, ArrowRight, CheckCircle2, Clock, } from 'lucide-react';
+import { AlertCircle, ArrowRight, CheckCircle2, Clock } from 'lucide-react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { cn } from '@/lib/utils';
-import type { FinancialHealth, KoraPointProfile } from '../mock/kora-point-mock-data';
+import type {
+    FinancialHealth,
+    KoraPointProfile,
+} from '../mock/kora-point-mock-data';
 
 type Props = {
     point: KoraPointProfile;
@@ -20,7 +23,8 @@ export function KoraPointFinancialHealth({
     // Determine status badge and visual tone
     let statusTone: 'emerald' | 'amber' | 'destructive' = 'emerald';
     let statusLabel = 'Prêt à vendre';
-    let statusDescription = 'Encours normal. Vous pouvez émettre des billets sans restriction.';
+    let statusDescription =
+        'Encours normal. Vous pouvez émettre des billets sans restriction.';
 
     if (health.is_overdue) {
         statusTone = 'destructive';
@@ -47,7 +51,7 @@ export function KoraPointFinancialHealth({
             <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                 <div>
                     <div className="flex items-center gap-2">
-                        <span className="text-[0.625rem] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        <span className="text-[0.625rem] font-black tracking-wider text-slate-500 uppercase dark:text-slate-400">
                             Disponibilité des ventes & Encours
                         </span>
                         <KoraStatusBadge
@@ -56,14 +60,14 @@ export function KoraPointFinancialHealth({
                             variant="solid"
                         />
                     </div>
-                    <h2 className="mt-1 text-base font-extrabold text-slate-900 dark:text-white sm:text-lg">
+                    <h2 className="mt-1 text-base font-extrabold text-slate-900 sm:text-lg dark:text-white">
                         Situation financière du Point
                     </h2>
                 </div>
 
                 {/* Next due date */}
                 <div className="flex items-center gap-2 rounded-xl bg-slate-100/80 px-3.5 py-2 text-xs font-semibold text-slate-700 dark:bg-slate-800/80 dark:text-slate-200">
-                    <Clock className="size-4 text-slate-500 dark:text-slate-400 shrink-0" />
+                    <Clock className="size-4 shrink-0 text-slate-500 dark:text-slate-400" />
                     <div>
                         <div className="text-[0.625rem] font-bold text-slate-400 uppercase">
                             Prochaine échéance
@@ -97,8 +101,8 @@ export function KoraPointFinancialHealth({
                                 usage >= 100
                                     ? 'bg-rose-500'
                                     : usage >= 80
-                                    ? 'bg-amber-500'
-                                    : 'bg-emerald-500',
+                                      ? 'bg-amber-500'
+                                      : 'bg-emerald-500',
                             )}
                         />
                         {/* 80% marker */}
@@ -123,7 +127,9 @@ export function KoraPointFinancialHealth({
                         <strong className="mt-0.5 block font-mono text-xs font-black text-slate-900 sm:text-sm dark:text-white">
                             {health.current_exposure.toLocaleString('fr-FR')}
                         </strong>
-                        <small className="text-[0.5625rem] text-slate-400">FCFA</small>
+                        <small className="text-[0.5625rem] text-slate-400">
+                            FCFA
+                        </small>
                     </div>
 
                     <div className="border-x border-slate-200/60 dark:border-slate-700/60">
@@ -133,7 +139,9 @@ export function KoraPointFinancialHealth({
                         <strong className="mt-0.5 block font-mono text-xs font-black text-slate-700 sm:text-sm dark:text-slate-300">
                             {health.credit_limit.toLocaleString('fr-FR')}
                         </strong>
-                        <small className="text-[0.5625rem] text-slate-400">FCFA</small>
+                        <small className="text-[0.5625rem] text-slate-400">
+                            FCFA
+                        </small>
                     </div>
 
                     <div>
@@ -150,7 +158,9 @@ export function KoraPointFinancialHealth({
                         >
                             {health.available_balance.toLocaleString('fr-FR')}
                         </strong>
-                        <small className="text-[0.5625rem] text-slate-400">FCFA</small>
+                        <small className="text-[0.5625rem] text-slate-400">
+                            FCFA
+                        </small>
                     </div>
                 </div>
             </div>
@@ -160,16 +170,20 @@ export function KoraPointFinancialHealth({
                 <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                     {isAutonomous ? (
                         <>
-                            <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
+                            <CheckCircle2 className="size-4 shrink-0 text-emerald-500" />
                             <span>
-                                Point autonome : vous préparez et déclarez directement vos reversements de recettes.
+                                Point autonome : vous préparez et déclarez
+                                directement vos reversements de recettes.
                             </span>
                         </>
                     ) : (
                         <>
-                            <AlertCircle className="size-4 text-slate-400 shrink-0" />
+                            <AlertCircle className="size-4 shrink-0 text-slate-400" />
                             <span>
-                                Bureau rattaché à <strong>{point.organization?.name}</strong> : les reversements sont groupés et traités par le trésorier.
+                                Bureau rattaché à{' '}
+                                <strong>{point.organization?.name}</strong> :
+                                les reversements sont groupés et traités par le
+                                trésorier.
                             </span>
                         </>
                     )}
@@ -179,7 +193,7 @@ export function KoraPointFinancialHealth({
                     <button
                         type="button"
                         onClick={onPrepareSettlement}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3.5 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 shrink-0"
+                        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-slate-900 px-3.5 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
                     >
                         <span>Préparer un reversement</span>
                         <ArrowRight className="size-3" />
@@ -188,7 +202,7 @@ export function KoraPointFinancialHealth({
                     <button
                         type="button"
                         onClick={onPrepareSettlement}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 shrink-0"
+                        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
                     >
                         <span>Consulter les dossiers</span>
                         <ArrowRight className="size-3" />

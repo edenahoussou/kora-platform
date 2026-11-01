@@ -20,7 +20,8 @@ type Story = StoryObj;
 
 function TreasuryStoryWrapper() {
     const demo = useKoraPointDemo('org_attached_healthy');
-    const [activePage, setActivePage] = useState<KoraPointActivePage>('org-treasury');
+    const [activePage, setActivePage] =
+        useState<KoraPointActivePage>('org-treasury');
 
     return (
         <KoraPointShell
@@ -41,7 +42,9 @@ function TreasuryStoryWrapper() {
                 subpoints={demo.organizationSubPoints}
                 groupSettlements={demo.groupSettlements}
                 refunds={demo.refunds}
-                onDeclareGroupSettlement={(data) => demo.createGroupSettlementDeclaration(data)}
+                onDeclareGroupSettlement={(data) =>
+                    demo.createGroupSettlementDeclaration(data)
+                }
             />
         </KoraPointShell>
     );
@@ -57,26 +60,28 @@ function GroupSettlementStory() {
     const [isOpen, setIsOpen] = useState(true);
 
     return (
-            <div className="p-8 bg-slate-900 min-h-screen text-white flex items-center justify-center">
-                <button
-                    type="button"
-                    onClick={() => setIsOpen(true)}
-                    className="rounded-xl bg-gold px-4 py-2 text-xs font-black uppercase text-kora"
-                >
-                    Ouvrir le formulaire de reversement groupé
-                </button>
-                <KoraOrgGroupSettlementDialog
-                    isOpen={isOpen}
-                    organizationName="La Poste du Bénin SA"
-                    subpoints={demo.organizationSubPoints}
-                    onClose={() => setIsOpen(false)}
-                    onSubmit={(data) => {
-                        demo.createGroupSettlementDeclaration(data);
-                        alert(`Reversement groupé soumis : ${data.totalAmountDeclared.toLocaleString()} FCFA sur ${data.breakdown.length} bureaux. Réf: ${data.paymentReference}`);
-                        setIsOpen(false);
-                    }}
-                />
-            </div>
+        <div className="flex min-h-screen items-center justify-center bg-slate-900 p-8 text-white">
+            <button
+                type="button"
+                onClick={() => setIsOpen(true)}
+                className="rounded-xl bg-gold px-4 py-2 text-xs font-black text-kora uppercase"
+            >
+                Ouvrir le formulaire de reversement groupé
+            </button>
+            <KoraOrgGroupSettlementDialog
+                isOpen={isOpen}
+                organizationName="La Poste du Bénin SA"
+                subpoints={demo.organizationSubPoints}
+                onClose={() => setIsOpen(false)}
+                onSubmit={(data) => {
+                    demo.createGroupSettlementDeclaration(data);
+                    alert(
+                        `Reversement groupé soumis : ${data.totalAmountDeclared.toLocaleString()} FCFA sur ${data.breakdown.length} bureaux. Réf: ${data.paymentReference}`,
+                    );
+                    setIsOpen(false);
+                }}
+            />
+        </div>
     );
 }
 

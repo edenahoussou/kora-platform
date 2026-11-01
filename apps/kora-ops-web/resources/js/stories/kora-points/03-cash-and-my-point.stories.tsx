@@ -74,7 +74,8 @@ function ProfileStoryWrapper({
     initialScenario?: DemoScenarioId;
 }) {
     const demo = useKoraPointDemo(initialScenario);
-    const [activePage, setActivePage] = useState<KoraPointActivePage>('my-point');
+    const [activePage, setActivePage] =
+        useState<KoraPointActivePage>('my-point');
 
     return (
         <KoraPointShell
@@ -108,42 +109,49 @@ export const CashSessionOpen: Story = {
 
 export const CashSessionClosed: Story = {
     name: '02. Caisse fermée — Écran d’invitation à l’ouverture',
-    render: () => <CashStoryWrapper initialScenario="autonomous_healthy" startClosed={true} />,
+    render: () => (
+        <CashStoryWrapper
+            initialScenario="autonomous_healthy"
+            startClosed={true}
+        />
+    ),
 };
 
 function CashClosingStory() {
     const [isOpen, setIsOpen] = useState(true);
 
     return (
-            <div className="p-8 bg-slate-900 min-h-screen text-white flex items-center justify-center">
-                <button
-                    type="button"
-                    onClick={() => setIsOpen(true)}
-                    className="rounded-xl bg-gold px-4 py-2 text-xs font-black uppercase text-kora"
-                >
-                    Rouvrir le modal de clôture
-                </button>
-                <KoraPointCashSessionDialog
-                    isOpen={isOpen}
-                    mode="CLOSE"
-                    session={{
-                        status: 'OPEN',
-                        opened_at: '2026-08-17 07:45',
-                        operator_name: 'Bio Kora Agent',
-                        opening_amount: 50000,
-                        cash_collected: 85000,
-                        mobile_money_collected: 20000,
-                        expected_closing_cash: 135000,
-                        movements: [],
-                    }}
-                    onClose={() => setIsOpen(false)}
-                    onConfirmOpen={() => {}}
-                    onConfirmClose={(amt, note) => {
-                        alert(`Session clôturée avec montant compté: ${amt.toLocaleString()} FCFA. Note: ${note || 'Aucune'}`);
-                        setIsOpen(false);
-                    }}
-                />
-            </div>
+        <div className="flex min-h-screen items-center justify-center bg-slate-900 p-8 text-white">
+            <button
+                type="button"
+                onClick={() => setIsOpen(true)}
+                className="rounded-xl bg-gold px-4 py-2 text-xs font-black text-kora uppercase"
+            >
+                Rouvrir le modal de clôture
+            </button>
+            <KoraPointCashSessionDialog
+                isOpen={isOpen}
+                mode="CLOSE"
+                session={{
+                    status: 'OPEN',
+                    opened_at: '2026-08-17 07:45',
+                    operator_name: 'Bio Kora Agent',
+                    opening_amount: 50000,
+                    cash_collected: 85000,
+                    mobile_money_collected: 20000,
+                    expected_closing_cash: 135000,
+                    movements: [],
+                }}
+                onClose={() => setIsOpen(false)}
+                onConfirmOpen={() => {}}
+                onConfirmClose={(amt, note) => {
+                    alert(
+                        `Session clôturée avec montant compté: ${amt.toLocaleString()} FCFA. Note: ${note || 'Aucune'}`,
+                    );
+                    setIsOpen(false);
+                }}
+            />
+        </div>
     );
 }
 
@@ -159,5 +167,7 @@ export const MyPointAutonomous: Story = {
 
 export const MyPointOrganizationAttached: Story = {
     name: '05. Fiche Mon Point — Bureau rattaché avec héritage (La Poste Bénin)',
-    render: () => <ProfileStoryWrapper initialScenario="org_attached_healthy" />,
+    render: () => (
+        <ProfileStoryWrapper initialScenario="org_attached_healthy" />
+    ),
 };

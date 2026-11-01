@@ -34,17 +34,21 @@ export function KoraOrgSupervisionView({
 }: Props) {
     const [selectedSubpointId, setSelectedSubpointId] = useState<string>('ALL');
     const [searchQuery, setSearchQuery] = useState('');
-    const [activeDrawerSubpoint, setActiveDrawerSubpoint] = useState<OrganizationSubPoint | null>(null);
+    const [activeDrawerSubpoint, setActiveDrawerSubpoint] =
+        useState<OrganizationSubPoint | null>(null);
 
     // Filtered subpoints
     const filteredSubpoints = useMemo(() => {
         return subpoints.filter((sp) => {
-            const matchesScope = selectedSubpointId === 'ALL' || sp.uuid === selectedSubpointId;
+            const matchesScope =
+                selectedSubpointId === 'ALL' || sp.uuid === selectedSubpointId;
             const matchesSearch =
                 sp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 sp.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 sp.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                sp.manager_name.toLowerCase().includes(searchQuery.toLowerCase());
+                sp.manager_name
+                    .toLowerCase()
+                    .includes(searchQuery.toLowerCase());
 
             return matchesScope && matchesSearch;
         });
@@ -68,13 +72,18 @@ export function KoraOrgSupervisionView({
             totalExposure += sp.current_exposure;
             totalCreditLimit += sp.credit_limit;
 
-            if (sp.status === 'WARNING_THRESHOLD' || sp.status === 'LIMIT_REACHED') {
+            if (
+                sp.status === 'WARNING_THRESHOLD' ||
+                sp.status === 'LIMIT_REACHED'
+            ) {
                 alertPointsCount += 1;
             }
         });
 
         const overallUsagePercentage =
-            totalCreditLimit > 0 ? Math.round((totalExposure / totalCreditLimit) * 100) : 0;
+            totalCreditLimit > 0
+                ? Math.round((totalExposure / totalCreditLimit) * 100)
+                : 0;
 
         return {
             totalMonthlySales,
@@ -139,39 +148,45 @@ export function KoraOrgSupervisionView({
             />
 
             {/* Grand bandeau d'accueil de supervision */}
-            <div className="relative overflow-hidden rounded-3xl bg-navy p-6 sm:p-8 text-white shadow-xl">
+            <div className="bg-navy relative overflow-hidden rounded-3xl p-6 text-white shadow-xl sm:p-8">
                 <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                     <div>
-                        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gold">
+                        <div className="flex items-center gap-2 text-xs font-bold tracking-wider text-gold uppercase">
                             <Building2 className="h-4 w-4" />
                             Portail de supervision partenaire · KORA BUS
                         </div>
-                        <h1 className="mt-2 text-2xl sm:text-3xl font-black text-white">
+                        <h1 className="mt-2 text-2xl font-black text-white sm:text-3xl">
                             {organizationName}
                         </h1>
-                        <p className="mt-1 text-xs sm:text-sm text-slate-300 max-w-xl">
-                            Supervision consolidée du réseau de distribution billetterie ({subpoints.length} bureaux de poste partenaires connectés).
+                        <p className="mt-1 max-w-xl text-xs text-slate-300 sm:text-sm">
+                            Supervision consolidée du réseau de distribution
+                            billetterie ({subpoints.length} bureaux de poste
+                            partenaires connectés).
                         </p>
                     </div>
 
                     {/* Scope Switcher in Header */}
-                    <div className="rounded-2xl bg-white/10 p-4 backdrop-blur-md border border-white/10 min-w-[280px]">
-                        <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block mb-1">
+                    <div className="min-w-[280px] rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-md">
+                        <span className="mb-1 block text-[11px] font-bold tracking-wider text-slate-300 uppercase">
                             Périmètre de consultation
                         </span>
                         <select
                             value={selectedSubpointId}
-                            onChange={(e) => setSelectedSubpointId(e.target.value)}
-                            className="w-full rounded-xl bg-navy-light px-3 py-2 text-xs font-bold text-white border border-white/20 focus:outline-none focus:border-gold"
+                            onChange={(e) =>
+                                setSelectedSubpointId(e.target.value)
+                            }
+                            className="bg-navy-light w-full rounded-xl border border-white/20 px-3 py-2 text-xs font-bold text-white focus:border-gold focus:outline-none"
                         >
-                            <option value="ALL">Réseau consolidé (Tous les 5 bureaux)</option>
+                            <option value="ALL">
+                                Réseau consolidé (Tous les 5 bureaux)
+                            </option>
                             {subpoints.map((sp) => (
                                 <option key={sp.uuid} value={sp.uuid}>
                                     {sp.name} ({sp.city})
                                 </option>
                             ))}
                         </select>
-                        <span className="text-[10px] text-slate-400 mt-1 block">
+                        <span className="mt-1 block text-[10px] text-slate-400">
                             Rôle : Responsable Organisation (Lecture seule)
                         </span>
                     </div>
@@ -182,13 +197,17 @@ export function KoraOrgSupervisionView({
             {networkMetrics.alertPointsCount > 0 && (
                 <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-xs dark:border-amber-900/60 dark:bg-amber-950/40">
                     <div className="flex items-start gap-3">
-                        <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" />
+                        <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
                         <div>
                             <p className="font-bold text-amber-900 dark:text-amber-200">
-                                {networkMetrics.alertPointsCount} bureau(x) nécessitent l'attention du Trésorier
+                                {networkMetrics.alertPointsCount} bureau(x)
+                                nécessitent l'attention du Trésorier
                             </p>
-                            <p className="text-amber-800 dark:text-amber-300 mt-0.5">
-                                Des bureaux ont dépassé 80 % ou atteint 100 % de leur plafond de crédit. Un reversement groupé doit être préparé par la trésorerie pour réactiver les émissions de billets.
+                            <p className="mt-0.5 text-amber-800 dark:text-amber-300">
+                                Des bureaux ont dépassé 80 % ou atteint 100 % de
+                                leur plafond de crédit. Un reversement groupé
+                                doit être préparé par la trésorerie pour
+                                réactiver les émissions de billets.
                             </p>
                         </div>
                     </div>
@@ -200,7 +219,7 @@ export function KoraOrgSupervisionView({
                 {/* Volume Ventes Réseau */}
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                     <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        <span className="text-xs font-bold tracking-wider text-slate-500 uppercase">
                             Volume Ventes Réseau (Mois)
                         </span>
                         <div className="rounded-lg bg-emerald-500/10 p-2 text-emerald-600 dark:text-emerald-400">
@@ -209,10 +228,13 @@ export function KoraOrgSupervisionView({
                     </div>
                     <div className="mt-3">
                         <span className="text-2xl font-black text-slate-900 dark:text-white">
-                            {networkMetrics.totalMonthlySales.toLocaleString()} FCFA
+                            {networkMetrics.totalMonthlySales.toLocaleString()}{' '}
+                            FCFA
                         </span>
-                        <p className="text-xs text-slate-500 mt-1">
-                            Aujourd'hui : {networkMetrics.totalDailySales.toLocaleString()} FCFA
+                        <p className="mt-1 text-xs text-slate-500">
+                            Aujourd'hui :{' '}
+                            {networkMetrics.totalDailySales.toLocaleString()}{' '}
+                            FCFA
                         </p>
                     </div>
                 </div>
@@ -220,10 +242,10 @@ export function KoraOrgSupervisionView({
                 {/* Billets émis */}
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                     <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        <span className="text-xs font-bold tracking-wider text-slate-500 uppercase">
                             Billets émis (Aujourd'hui)
                         </span>
-                        <div className="rounded-lg bg-navy/10 p-2 text-navy dark:bg-gold/15 dark:text-gold">
+                        <div className="bg-navy/10 text-navy rounded-lg p-2 dark:bg-gold/15 dark:text-gold">
                             <Ticket className="h-4 w-4" />
                         </div>
                     </div>
@@ -231,7 +253,7 @@ export function KoraOrgSupervisionView({
                         <span className="text-2xl font-black text-slate-900 dark:text-white">
                             {networkMetrics.totalDailyTickets} billets
                         </span>
-                        <p className="text-xs text-slate-500 mt-1">
+                        <p className="mt-1 text-xs text-slate-500">
                             Sur l'ensemble des 5 agences postales
                         </p>
                     </div>
@@ -240,18 +262,19 @@ export function KoraOrgSupervisionView({
                 {/* Commissions acquises */}
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                     <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        <span className="text-xs font-bold tracking-wider text-slate-500 uppercase">
                             Commissions acquises (3 %)
                         </span>
-                        <div className="rounded-lg bg-gold/15 p-2 text-gold-dark dark:text-gold">
+                        <div className="text-gold-dark rounded-lg bg-gold/15 p-2 dark:text-gold">
                             <Coins className="h-4 w-4" />
                         </div>
                     </div>
                     <div className="mt-3">
-                        <span className="text-2xl font-black text-gold-dark dark:text-gold">
-                            {networkMetrics.totalCommission.toLocaleString()} FCFA
+                        <span className="text-gold-dark text-2xl font-black dark:text-gold">
+                            {networkMetrics.totalCommission.toLocaleString()}{' '}
+                            FCFA
                         </span>
-                        <p className="text-xs text-slate-500 mt-1">
+                        <p className="mt-1 text-xs text-slate-500">
                             Rémunération conservée à la source
                         </p>
                     </div>
@@ -260,7 +283,7 @@ export function KoraOrgSupervisionView({
                 {/* Encours consolidé */}
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                     <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        <span className="text-xs font-bold tracking-wider text-slate-500 uppercase">
                             Encours consolidé réseau
                         </span>
                         <div className="rounded-lg bg-amber-500/10 p-2 text-amber-600 dark:text-amber-400">
@@ -271,8 +294,10 @@ export function KoraOrgSupervisionView({
                         <span className="text-2xl font-black text-slate-900 dark:text-white">
                             {networkMetrics.totalExposure.toLocaleString()} FCFA
                         </span>
-                        <p className="text-xs text-slate-500 mt-1">
-                            Plafond global : {networkMetrics.totalCreditLimit.toLocaleString()} FCFA ({networkMetrics.overallUsagePercentage} %)
+                        <p className="mt-1 text-xs text-slate-500">
+                            Plafond global :{' '}
+                            {networkMetrics.totalCreditLimit.toLocaleString()}{' '}
+                            FCFA ({networkMetrics.overallUsagePercentage} %)
                         </p>
                     </div>
                 </div>
@@ -282,23 +307,24 @@ export function KoraOrgSupervisionView({
             <div className="space-y-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <h2 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
-                            <Store className="h-5 w-5 text-gold-dark dark:text-gold" />
+                        <h2 className="flex items-center gap-2 text-base font-black text-slate-900 dark:text-white">
+                            <Store className="text-gold-dark h-5 w-5 dark:text-gold" />
                             Réseau des bureaux rattachés
                         </h2>
                         <p className="text-xs text-slate-500">
-                            Suivi opérationnel, taux d'utilisation des plafonds et responsables locaux
+                            Suivi opérationnel, taux d'utilisation des plafonds
+                            et responsables locaux
                         </p>
                     </div>
 
                     <div className="relative w-full sm:w-72">
-                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                        <Search className="absolute top-2.5 left-3 h-4 w-4 text-slate-400" />
                         <input
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Filtrer bureau, ville, responsable..."
-                            className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:border-gold focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                            className="w-full rounded-xl border border-slate-200 bg-white py-2 pr-3 pl-9 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:border-gold focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                         />
                     </div>
                 </div>
@@ -308,22 +334,22 @@ export function KoraOrgSupervisionView({
                     <table className="w-full text-left text-xs">
                         <thead className="border-b border-slate-100 bg-slate-50/75 text-slate-500 dark:border-slate-800 dark:bg-slate-800/40">
                             <tr>
-                                <th className="px-5 py-3.5 font-bold uppercase tracking-wider">
+                                <th className="px-5 py-3.5 font-bold tracking-wider uppercase">
                                     Bureau & Code
                                 </th>
-                                <th className="px-5 py-3.5 font-bold uppercase tracking-wider">
+                                <th className="px-5 py-3.5 font-bold tracking-wider uppercase">
                                     Localisation & Contact
                                 </th>
-                                <th className="px-5 py-3.5 font-bold uppercase tracking-wider">
+                                <th className="px-5 py-3.5 font-bold tracking-wider uppercase">
                                     Statut
                                 </th>
-                                <th className="px-5 py-3.5 font-bold uppercase tracking-wider text-right">
+                                <th className="px-5 py-3.5 text-right font-bold tracking-wider uppercase">
                                     Ventes du mois
                                 </th>
-                                <th className="px-5 py-3.5 font-bold uppercase tracking-wider text-right">
+                                <th className="px-5 py-3.5 text-right font-bold tracking-wider uppercase">
                                     Encours / Plafond
                                 </th>
-                                <th className="px-5 py-3.5 font-bold uppercase tracking-wider text-right">
+                                <th className="px-5 py-3.5 text-right font-bold tracking-wider uppercase">
                                     Action
                                 </th>
                             </tr>
@@ -336,7 +362,7 @@ export function KoraOrgSupervisionView({
                                     className="cursor-pointer transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/30"
                                 >
                                     <td className="px-5 py-4">
-                                        <span className="font-bold text-slate-900 dark:text-white block">
+                                        <span className="block font-bold text-slate-900 dark:text-white">
                                             {sp.name}
                                         </span>
                                         <span className="font-mono text-[11px] text-slate-400">
@@ -344,44 +370,54 @@ export function KoraOrgSupervisionView({
                                         </span>
                                     </td>
                                     <td className="px-5 py-4">
-                                        <span className="font-semibold text-slate-800 dark:text-slate-200 block">
+                                        <span className="block font-semibold text-slate-800 dark:text-slate-200">
                                             {sp.city}
                                         </span>
                                         <span className="text-[11px] text-slate-500">
                                             {sp.manager_name} ({sp.phone})
                                         </span>
                                     </td>
-                                    <td className="px-5 py-4">{getStatusBadge(sp.status)}</td>
+                                    <td className="px-5 py-4">
+                                        {getStatusBadge(sp.status)}
+                                    </td>
                                     <td className="px-5 py-4 text-right">
-                                        <span className="font-black text-slate-900 dark:text-white block">
-                                            {sp.monthly_sales_amount.toLocaleString()} FCFA
+                                        <span className="block font-black text-slate-900 dark:text-white">
+                                            {sp.monthly_sales_amount.toLocaleString()}{' '}
+                                            FCFA
                                         </span>
                                         <span className="text-[11px] text-emerald-600 dark:text-emerald-400">
-                                            Com : {sp.monthly_commission_earned.toLocaleString()} FCFA
+                                            Com :{' '}
+                                            {sp.monthly_commission_earned.toLocaleString()}{' '}
+                                            FCFA
                                         </span>
                                     </td>
                                     <td className="px-5 py-4 text-right">
                                         <div className="space-y-1">
-                                            <span className="font-black text-slate-900 dark:text-white block">
-                                                {sp.current_exposure.toLocaleString()} FCFA
+                                            <span className="block font-black text-slate-900 dark:text-white">
+                                                {sp.current_exposure.toLocaleString()}{' '}
+                                                FCFA
                                             </span>
-                                            <div className="h-1.5 w-24 ml-auto rounded-full bg-slate-100 overflow-hidden dark:bg-slate-700">
+                                            <div className="ml-auto h-1.5 w-24 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
                                                 <div
                                                     className={cn(
                                                         'h-full rounded-full',
-                                                        sp.usage_percentage >= 100
+                                                        sp.usage_percentage >=
+                                                            100
                                                             ? 'bg-rose-600'
-                                                            : sp.usage_percentage >= 80
-                                                            ? 'bg-amber-500'
-                                                            : 'bg-emerald-500',
+                                                            : sp.usage_percentage >=
+                                                                80
+                                                              ? 'bg-amber-500'
+                                                              : 'bg-emerald-500',
                                                     )}
                                                     style={{
                                                         width: `${Math.min(100, sp.usage_percentage)}%`,
                                                     }}
                                                 />
                                             </div>
-                                            <span className="text-[10px] text-slate-400 block">
-                                                {sp.usage_percentage}% de {sp.credit_limit.toLocaleString()} FCFA
+                                            <span className="block text-[10px] text-slate-400">
+                                                {sp.usage_percentage}% de{' '}
+                                                {sp.credit_limit.toLocaleString()}{' '}
+                                                FCFA
                                             </span>
                                         </div>
                                     </td>
@@ -407,30 +443,33 @@ export function KoraOrgSupervisionView({
 
             {/* Consolidated Network Activity Stream */}
             <div className="space-y-3">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                    Flux d'activité consolidé en direct (Ventes & Remboursements du réseau)
+                <h3 className="text-xs font-bold tracking-wider text-slate-400 uppercase">
+                    Flux d'activité consolidé en direct (Ventes & Remboursements
+                    du réseau)
                 </h3>
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-3">
+                <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                     {recentSales.slice(0, 5).map((sale) => (
                         <div
                             key={sale.uuid}
-                            className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0 dark:border-slate-800 text-xs"
+                            className="flex items-center justify-between border-b border-slate-100 py-2 text-xs last:border-0 dark:border-slate-800"
                         >
                             <div className="flex items-center gap-3">
-                                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-navy/10 text-navy dark:bg-gold/15 dark:text-gold">
+                                <div className="bg-navy/10 text-navy flex h-8 w-8 items-center justify-center rounded-lg dark:bg-gold/15 dark:text-gold">
                                     <Ticket className="h-4 w-4" />
                                 </div>
                                 <div>
                                     <p className="font-bold text-slate-900 dark:text-white">
-                                        {sale.ticket_number} · {sale.passenger_name}
+                                        {sale.ticket_number} ·{' '}
+                                        {sale.passenger_name}
                                     </p>
                                     <span className="text-[11px] text-slate-500">
-                                        {sale.route_label} · Bureau Akpakpa ({sale.date_label})
+                                        {sale.route_label} · Bureau Akpakpa (
+                                        {sale.date_label})
                                     </span>
                                 </div>
                             </div>
                             <div className="text-right">
-                                <span className="font-black text-slate-900 dark:text-white block">
+                                <span className="block font-black text-slate-900 dark:text-white">
                                     {sale.amount_paid.toLocaleString()} FCFA
                                 </span>
                                 <span className="text-[11px] text-emerald-600 dark:text-emerald-400">

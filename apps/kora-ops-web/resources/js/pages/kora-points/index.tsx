@@ -43,10 +43,14 @@ export default function KoraPointsIndexPage({
                 department: data.department,
                 responsible_name: data.managerName || data.manager_name,
                 phone: data.phone,
-                organization_uuid: data.organizationUuid || data.organization_uuid,
-                commission_basis_points: data.commissionRateBps || data.commission_basis_points,
+                organization_uuid:
+                    data.organizationUuid || data.organization_uuid,
+                commission_basis_points:
+                    data.commissionRateBps || data.commission_basis_points,
                 ceiling_amount: data.creditLimit || data.ceiling_amount,
-                settlement_frequency_days: data.settlementFrequencyDays || data.settlement_frequency_days,
+                settlement_frequency_days:
+                    data.settlementFrequencyDays ||
+                    data.settlement_frequency_days,
                 country: 'BJ',
             },
             {
@@ -58,7 +62,7 @@ export default function KoraPointsIndexPage({
     return (
         <>
             <Head title="Points de vente KORA POINT - Réseau commercial" />
-            <div className="py-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+            <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
                 <KoraAdminNetworkView
                     points={pointsList}
                     organizations={organizations}

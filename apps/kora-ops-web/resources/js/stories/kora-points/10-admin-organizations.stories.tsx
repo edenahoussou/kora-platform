@@ -19,7 +19,9 @@ type Story = StoryObj;
 
 function AdminOrganizationsStoryWrapper() {
     const demo = useKoraPointDemo('org_attached_healthy');
-    const [activePage, setActivePage] = useState<KoraPointActivePage>('admin-organizations');
+    const [activePage, setActivePage] = useState<KoraPointActivePage>(
+        'admin-organizations',
+    );
 
     return (
         <KoraPointShell
@@ -39,7 +41,9 @@ function AdminOrganizationsStoryWrapper() {
                 organizations={demo.adminOrganizations}
                 subpoints={demo.organizationSubPoints}
                 onToggleUserStatus={(uuid) => demo.toggleUserStatus(uuid)}
-                onUpdateTermsOverride={(uuid, terms) => demo.updatePointTermsOverride(uuid, terms)}
+                onUpdateTermsOverride={(uuid, terms) =>
+                    demo.updatePointTermsOverride(uuid, terms)
+                }
             />
         </KoraPointShell>
     );

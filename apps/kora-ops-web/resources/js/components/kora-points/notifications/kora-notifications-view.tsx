@@ -15,7 +15,7 @@ import {
 import { useState, useMemo } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import type { KoraPointActivePage } from '../common/kora-point-shell';
-import type { KoraNotificationItem} from '../mock/kora-point-mock-data';
+import type { KoraNotificationItem } from '../mock/kora-point-mock-data';
 
 type Props = {
     notifications: KoraNotificationItem[];
@@ -34,8 +34,11 @@ export function KoraNotificationsView({
 }: Props) {
     const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
     const [unreadOnly, setUnreadOnly] = useState(false);
-    const [browserPushPermission, setBrowserPushPermission] = useState<'granted' | 'default' | 'denied'>('default');
-    const [mockPushToast, setMockPushToast] = useState<KoraNotificationItem | null>(null);
+    const [browserPushPermission, setBrowserPushPermission] = useState<
+        'granted' | 'default' | 'denied'
+    >('default');
+    const [mockPushToast, setMockPushToast] =
+        useState<KoraNotificationItem | null>(null);
 
     // Compute counts
     const unreadCount = useMemo(
@@ -103,7 +106,8 @@ export function KoraNotificationsView({
                         </h1>
                         {unreadCount > 0 ? (
                             <span className="rounded-full bg-amber-500 px-2.5 py-0.5 text-xs font-black text-white">
-                                {unreadCount} non lue{unreadCount > 1 ? 's' : ''}
+                                {unreadCount} non lue
+                                {unreadCount > 1 ? 's' : ''}
                             </span>
                         ) : (
                             <KoraStatusBadge
@@ -115,7 +119,8 @@ export function KoraNotificationsView({
                         )}
                     </div>
                     <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                        Flux en direct des événements de réseau : réceptions de versements, seuils de plafond, ventes et remboursements.
+                        Flux en direct des événements de réseau : réceptions de
+                        versements, seuils de plafond, ventes et remboursements.
                     </p>
                 </div>
 
@@ -124,7 +129,7 @@ export function KoraNotificationsView({
                         type="button"
                         onClick={onMarkAllAsRead}
                         disabled={unreadCount === 0}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 transition disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
                     >
                         <CheckCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
                         <span>Tout marquer comme lu</span>
@@ -136,7 +141,7 @@ export function KoraNotificationsView({
             <div className="relative overflow-hidden rounded-2xl border border-gold/30 bg-gradient-to-r from-[var(--kora)] to-slate-900 p-5 text-white shadow-md">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-start gap-3.5">
-                        <div className="grid size-11 place-items-center rounded-xl bg-gold font-black text-kora shrink-0">
+                        <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-gold font-black text-kora">
                             <Radio className="size-5" />
                         </div>
                         <div>
@@ -157,17 +162,20 @@ export function KoraNotificationsView({
                                 </span>
                             </div>
                             <p className="mt-1 max-w-xl text-xs text-white/70">
-                                Activez les alertes navigateur pour être immédiatement averti lors des dépassements de plafonds d’encours, des validations de reversement ou des litiges passagers.
+                                Activez les alertes navigateur pour être
+                                immédiatement averti lors des dépassements de
+                                plafonds d’encours, des validations de
+                                reversement ou des litiges passagers.
                             </p>
                         </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2 shrink-0">
+                    <div className="flex shrink-0 flex-wrap items-center gap-2">
                         {browserPushPermission !== 'granted' ? (
                             <button
                                 type="button"
                                 onClick={handleEnableBrowserPush}
-                                className="inline-flex items-center gap-2 rounded-xl bg-gold px-4 py-2 text-xs font-black uppercase tracking-wider text-kora shadow-md transition hover:bg-gold/90"
+                                className="inline-flex items-center gap-2 rounded-xl bg-gold px-4 py-2 text-xs font-black tracking-wider text-kora uppercase shadow-md transition hover:bg-gold/90"
                             >
                                 <Bell className="size-3.5" />
                                 <span>Activer sur ce poste</span>
@@ -192,9 +200,9 @@ export function KoraNotificationsView({
 
                 {/* Simulated Floating Browser Toast */}
                 {mockPushToast && (
-                    <div className="mt-4 flex items-center justify-between rounded-xl border border-gold/40 bg-slate-900/90 p-3 text-white backdrop-blur-md animate-in slide-in-from-top">
+                    <div className="mt-4 flex animate-in items-center justify-between rounded-xl border border-gold/40 bg-slate-900/90 p-3 text-white backdrop-blur-md slide-in-from-top">
                         <div className="flex items-center gap-2.5">
-                            <Sparkles className="size-4 text-gold shrink-0 animate-pulse" />
+                            <Sparkles className="size-4 shrink-0 animate-pulse text-gold" />
                             <div className="text-xs">
                                 <strong className="font-bold text-gold">
                                     [Push Navigateur Démo] {mockPushToast.title}
@@ -283,7 +291,7 @@ export function KoraNotificationsView({
                     </button>
                 </div>
 
-                <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700 dark:text-slate-300">
+                <label className="flex cursor-pointer items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300">
                     <input
                         type="checkbox"
                         checked={unreadOnly}
@@ -322,14 +330,14 @@ export function KoraNotificationsView({
                                 <div className="flex items-start gap-3.5">
                                     {/* Icon */}
                                     <div
-                                        className={`grid size-10 place-items-center rounded-xl shrink-0 ${
+                                        className={`grid size-10 shrink-0 place-items-center rounded-xl ${
                                             notif.level === 'critical'
                                                 ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
                                                 : notif.level === 'warning'
-                                                ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
-                                                : notif.level === 'success'
-                                                ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                                                : 'bg-blue-500/15 text-blue-600 dark:text-blue-400'
+                                                  ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                                                  : notif.level === 'success'
+                                                    ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                                    : 'bg-blue-500/15 text-blue-600 dark:text-blue-400'
                                         }`}
                                     >
                                         {notif.category === 'FINANCE' ? (
@@ -347,7 +355,7 @@ export function KoraNotificationsView({
                                     <div>
                                         <div className="flex items-center gap-2">
                                             {isUnread && (
-                                                <span className="size-2 rounded-full bg-amber-500 shrink-0" />
+                                                <span className="size-2 shrink-0 rounded-full bg-amber-500" />
                                             )}
                                             <h4 className="text-xs font-black text-slate-900 dark:text-white">
                                                 {notif.title}
@@ -363,25 +371,32 @@ export function KoraNotificationsView({
                                 </div>
 
                                 {/* Actions */}
-                                <div className="flex items-center gap-2 pl-13 sm:pl-0 shrink-0">
-                                    {notif.action_label && notif.action_target && (
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                onMarkAsRead(notif.uuid);
-                                                onNavigate(notif.action_target as KoraPointActivePage);
-                                            }}
-                                            className="inline-flex items-center gap-1.5 rounded-xl bg-gold px-3 py-1.5 text-xs font-black text-kora shadow-sm hover:bg-gold/90 transition"
-                                        >
-                                            <span>{notif.action_label}</span>
-                                            <ExternalLink className="size-3" />
-                                        </button>
-                                    )}
+                                <div className="flex shrink-0 items-center gap-2 pl-13 sm:pl-0">
+                                    {notif.action_label &&
+                                        notif.action_target && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    onMarkAsRead(notif.uuid);
+                                                    onNavigate(
+                                                        notif.action_target as KoraPointActivePage,
+                                                    );
+                                                }}
+                                                className="inline-flex items-center gap-1.5 rounded-xl bg-gold px-3 py-1.5 text-xs font-black text-kora shadow-sm transition hover:bg-gold/90"
+                                            >
+                                                <span>
+                                                    {notif.action_label}
+                                                </span>
+                                                <ExternalLink className="size-3" />
+                                            </button>
+                                        )}
 
                                     {isUnread && (
                                         <button
                                             type="button"
-                                            onClick={() => onMarkAsRead(notif.uuid)}
+                                            onClick={() =>
+                                                onMarkAsRead(notif.uuid)
+                                            }
                                             className="rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-[0.6875rem] font-bold text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
                                         >
                                             Marquer lu

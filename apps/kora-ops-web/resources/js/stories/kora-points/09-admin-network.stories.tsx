@@ -20,7 +20,8 @@ type Story = StoryObj;
 
 function AdminNetworkStoryWrapper() {
     const demo = useKoraPointDemo('autonomous_healthy');
-    const [activePage, setActivePage] = useState<KoraPointActivePage>('admin-network');
+    const [activePage, setActivePage] =
+        useState<KoraPointActivePage>('admin-network');
 
     return (
         <KoraPointShell
@@ -55,25 +56,27 @@ function CreatePointWizardStory() {
     const [isOpen, setIsOpen] = useState(true);
 
     return (
-            <div className="p-8 bg-slate-900 min-h-screen text-white flex items-center justify-center">
-                <button
-                    type="button"
-                    onClick={() => setIsOpen(true)}
-                    className="rounded-xl bg-gold px-4 py-2 text-xs font-black uppercase text-kora"
-                >
-                    Rouvrir le formulaire de création
-                </button>
-                <KoraAdminPointWizardDialog
-                    isOpen={isOpen}
-                    organizations={demo.adminOrganizations}
-                    onClose={() => setIsOpen(false)}
-                    onSubmit={(data) => {
-                        demo.createNetworkPoint(data);
-                        alert(`Point "${data.name}" déployé avec succès avec plafond de ${data.creditLimit.toLocaleString()} FCFA.`);
-                        setIsOpen(false);
-                    }}
-                />
-            </div>
+        <div className="flex min-h-screen items-center justify-center bg-slate-900 p-8 text-white">
+            <button
+                type="button"
+                onClick={() => setIsOpen(true)}
+                className="rounded-xl bg-gold px-4 py-2 text-xs font-black text-kora uppercase"
+            >
+                Rouvrir le formulaire de création
+            </button>
+            <KoraAdminPointWizardDialog
+                isOpen={isOpen}
+                organizations={demo.adminOrganizations}
+                onClose={() => setIsOpen(false)}
+                onSubmit={(data) => {
+                    demo.createNetworkPoint(data);
+                    alert(
+                        `Point "${data.name}" déployé avec succès avec plafond de ${data.creditLimit.toLocaleString()} FCFA.`,
+                    );
+                    setIsOpen(false);
+                }}
+            />
+        </div>
     );
 }
 

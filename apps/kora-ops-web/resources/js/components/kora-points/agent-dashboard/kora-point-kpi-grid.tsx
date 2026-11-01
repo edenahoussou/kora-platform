@@ -1,17 +1,31 @@
-import { Ticket, TrendingUp, Wallet, ReceiptText, ArrowUpRight } from 'lucide-react';
-import type { DailyMetrics, KoraPointTerms } from '../mock/kora-point-mock-data';
+import {
+    Ticket,
+    TrendingUp,
+    Wallet,
+    ReceiptText,
+    ArrowUpRight,
+} from 'lucide-react';
+import type {
+    DailyMetrics,
+    KoraPointTerms,
+} from '../mock/kora-point-mock-data';
 
 type Props = {
     metrics: DailyMetrics;
     terms: KoraPointTerms;
-    onKpiClick?: (type: 'sales' | 'tickets' | 'commissions' | 'settlement') => void;
+    onKpiClick?: (
+        type: 'sales' | 'tickets' | 'commissions' | 'settlement',
+    ) => void;
 };
 
 export function KoraPointKpiGrid({ metrics, terms, onKpiClick }: Props) {
-    const ratePercent = (terms.commission_rate_bps / 100).toLocaleString('fr-FR', {
-        minimumFractionDigits: 1,
-        maximumFractionDigits: 2,
-    });
+    const ratePercent = (terms.commission_rate_bps / 100).toLocaleString(
+        'fr-FR',
+        {
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 2,
+        },
+    );
 
     const kpis = [
         {
@@ -60,10 +74,10 @@ export function KoraPointKpiGrid({ metrics, terms, onKpiClick }: Props) {
         <section aria-label="Indicateurs de performance du Point">
             <div className="mb-3 flex items-center justify-between">
                 <div>
-                    <span className="text-[0.625rem] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    <span className="text-[0.625rem] font-black tracking-wider text-slate-500 uppercase dark:text-slate-400">
                         Aujourd'hui vs Encours global
                     </span>
-                    <h2 className="text-sm font-extrabold text-slate-900 dark:text-white sm:text-base">
+                    <h2 className="text-sm font-extrabold text-slate-900 sm:text-base dark:text-white">
                         Performance instantanée
                     </h2>
                 </div>
@@ -84,7 +98,9 @@ export function KoraPointKpiGrid({ metrics, terms, onKpiClick }: Props) {
                                 <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
                                     {kpi.title}
                                 </span>
-                                <div className={`grid size-8 place-items-center rounded-lg ${kpi.iconBg}`}>
+                                <div
+                                    className={`grid size-8 place-items-center rounded-lg ${kpi.iconBg}`}
+                                >
                                     <Icon className="size-4" />
                                 </div>
                             </div>

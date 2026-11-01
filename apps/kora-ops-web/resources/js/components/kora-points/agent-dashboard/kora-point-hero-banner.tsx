@@ -1,5 +1,8 @@
 import { Ticket, ArrowRight, ShieldCheck, AlertTriangle } from 'lucide-react';
-import type { KoraPointProfile, FinancialHealth } from '../mock/kora-point-mock-data';
+import type {
+    KoraPointProfile,
+    FinancialHealth,
+} from '../mock/kora-point-mock-data';
 
 type Props = {
     point: KoraPointProfile;
@@ -55,17 +58,18 @@ export function KoraPointHeroBanner({
                         </span>
                     </div>
 
-                    <h1 className="text-[clamp(1.75rem,3.2vw,2.75rem)] font-black leading-[1.08] tracking-tight text-white">
+                    <h1 className="text-[clamp(1.75rem,3.2vw,2.75rem)] leading-[1.08] font-black tracking-tight text-white">
                         {greeting} {firstName},<br />
-                        <span className="text-gold italic font-serif font-normal">
+                        <span className="font-serif font-normal text-gold italic">
                             {health.sales_allowed
                                 ? 'votre guichet de vente est prêt.'
                                 : 'ventes actuellement suspendues.'}
                         </span>
                     </h1>
 
-                    <p className="mt-3 max-w-xl text-xs sm:text-sm text-white/75 leading-relaxed">
-                        Émettez les billets Bus KORA, encaissez les voyageurs et suivez vos commissions acquises en temps réel.
+                    <p className="mt-3 max-w-xl text-xs leading-relaxed text-white/75 sm:text-sm">
+                        Émettez les billets Bus KORA, encaissez les voyageurs et
+                        suivez vos commissions acquises en temps réel.
                     </p>
                 </div>
 
@@ -75,7 +79,7 @@ export function KoraPointHeroBanner({
                         type="button"
                         onClick={onStartSale}
                         disabled={!health.sales_allowed}
-                        className="inline-flex h-11 items-center gap-2 rounded-xl bg-gold px-5 text-xs font-black uppercase tracking-wider text-kora shadow-lg transition hover:bg-gold/90 focus:outline-none focus:ring-2 focus:ring-gold focus:ring-offset-2 focus:ring-offset-kora disabled:cursor-not-allowed disabled:opacity-40"
+                        className="inline-flex h-11 items-center gap-2 rounded-xl bg-gold px-5 text-xs font-black tracking-wider text-kora uppercase shadow-lg transition hover:bg-gold/90 focus:ring-2 focus:ring-gold focus:ring-offset-2 focus:ring-offset-kora focus:outline-none disabled:cursor-not-allowed disabled:opacity-40"
                     >
                         <Ticket className="size-4" />
                         <span>Vendre un billet</span>
@@ -95,7 +99,7 @@ export function KoraPointHeroBanner({
             {/* Right Status Card */}
             <div className="mt-6 rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur-md lg:mt-0">
                 <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                    <span className="text-xs font-extrabold uppercase tracking-wider text-white/70">
+                    <span className="text-xs font-extrabold tracking-wider text-white/70 uppercase">
                         État du guichet
                     </span>
                     {health.sales_allowed ? (
@@ -121,13 +125,17 @@ export function KoraPointHeroBanner({
                     <div className="flex items-center justify-between">
                         <span className="text-white/70">Encours courant :</span>
                         <strong className="font-mono text-gold">
-                            {health.current_exposure.toLocaleString('fr-FR')} FCFA
+                            {health.current_exposure.toLocaleString('fr-FR')}{' '}
+                            FCFA
                         </strong>
                     </div>
                     <div className="flex items-center justify-between border-t border-white/10 pt-2">
-                        <span className="text-white/70">Disponible restant :</span>
+                        <span className="text-white/70">
+                            Disponible restant :
+                        </span>
                         <strong className="font-mono text-emerald-400">
-                            {health.available_balance.toLocaleString('fr-FR')} FCFA
+                            {health.available_balance.toLocaleString('fr-FR')}{' '}
+                            FCFA
                         </strong>
                     </div>
                 </div>

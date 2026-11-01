@@ -24,7 +24,10 @@ export default function KoraPointOrganizationsIndexPage({
 
     const handleUpdateTermsOverride = (
         pointUuid: string,
-        terms: { commission_basis_points?: number | null; ceiling_amount?: number | null },
+        terms: {
+            commission_basis_points?: number | null;
+            ceiling_amount?: number | null;
+        },
     ) => {
         router.patch(`/kora-points/${pointUuid}/terms`, terms, {
             preserveScroll: true,
@@ -34,7 +37,7 @@ export default function KoraPointOrganizationsIndexPage({
     return (
         <>
             <Head title="Organisations partenaires KORA POINT - Réseau commercial" />
-            <div className="py-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+            <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
                 <KoraAdminOrganizationsView
                     organizations={orgsList}
                     subpoints={subpoints}

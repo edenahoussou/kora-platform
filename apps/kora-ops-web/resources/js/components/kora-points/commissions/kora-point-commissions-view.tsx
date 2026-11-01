@@ -1,8 +1,4 @@
-import {
-    FileSpreadsheet,
-    FileText,
-    Info,
-} from 'lucide-react';
+import { FileSpreadsheet, FileText, Info } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { cn } from '@/lib/utils';
@@ -23,17 +19,19 @@ export function KoraPointCommissionsView({
     commissions,
     onViewRefundDetail,
 }: Props) {
-    const [periodFilter, setPeriodFilter] = useState<'current_month' | 'last_month' | 'all'>(
-        'current_month',
-    );
-    const [exportModalType, setExportModalType] = useState<'EXCEL' | 'PDF' | null>(null);
+    const [periodFilter, setPeriodFilter] = useState<
+        'current_month' | 'last_month' | 'all'
+    >('current_month');
+    const [exportModalType, setExportModalType] = useState<
+        'EXCEL' | 'PDF' | null
+    >(null);
 
     const periodLabel =
         periodFilter === 'current_month'
             ? 'Août 2026 (En cours)'
             : periodFilter === 'last_month'
-            ? 'Juillet 2026'
-            : 'Toutes les périodes';
+              ? 'Juillet 2026'
+              : 'Toutes les périodes';
 
     // Summary calculations
     const totals = useMemo(() => {
@@ -52,10 +50,13 @@ export function KoraPointCommissionsView({
         return { grossSales, initialComm, corrections, netComm };
     }, [commissions]);
 
-    const ratePercent = (point.terms.commission_rate_bps / 100).toLocaleString('fr-FR', {
-        minimumFractionDigits: 1,
-        maximumFractionDigits: 2,
-    });
+    const ratePercent = (point.terms.commission_rate_bps / 100).toLocaleString(
+        'fr-FR',
+        {
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 2,
+        },
+    );
 
     return (
         <div className="space-y-6">
@@ -72,7 +73,7 @@ export function KoraPointCommissionsView({
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <div className="flex items-center gap-2">
-                        <span className="text-[0.625rem] font-black uppercase tracking-wider text-slate-500">
+                        <span className="text-[0.625rem] font-black tracking-wider text-slate-500 uppercase">
                             Revenus & Rémunération du Point
                         </span>
                         <KoraStatusBadge
@@ -81,13 +82,13 @@ export function KoraPointCommissionsView({
                             variant="solid"
                         />
                     </div>
-                    <h1 className="text-xl font-black text-slate-900 dark:text-white sm:text-2xl">
+                    <h1 className="text-xl font-black text-slate-900 sm:text-2xl dark:text-white">
                         Suivi des Commissions Partenaire
                     </h1>
                 </div>
 
                 {/* Export Buttons */}
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex shrink-0 items-center gap-2">
                     <button
                         type="button"
                         onClick={() => setExportModalType('EXCEL')}
@@ -111,7 +112,7 @@ export function KoraPointCommissionsView({
             {/* Permanent Callout: Retained at the Source */}
             <div className="rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50/90 to-indigo-50/70 p-4.5 text-xs text-blue-950 dark:border-blue-900/40 dark:from-slate-900 dark:to-slate-900 dark:text-blue-200">
                 <div className="flex items-start gap-3">
-                    <div className="grid size-8 place-items-center rounded-xl bg-blue-600 text-white shrink-0 shadow-sm">
+                    <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-blue-600 text-white shadow-sm">
                         <Info className="size-4" />
                     </div>
                     <div className="space-y-1">
@@ -119,7 +120,16 @@ export function KoraPointCommissionsView({
                             Principe de retenue à la source des commissions
                         </strong>
                         <p className="text-xs leading-relaxed text-blue-800/90 dark:text-blue-300">
-                            Votre commission ({ratePercent} %) est <strong>déjà conservée directement dans votre caisse ou compte</strong> au moment où vous encaissez le voyageur. Par conséquent, KORA ne vous verse pas de commission une seconde fois : votre dette de reversement correspond strictement au prix payé diminué de votre commission acquise.
+                            Votre commission ({ratePercent} %) est{' '}
+                            <strong>
+                                déjà conservée directement dans votre caisse ou
+                                compte
+                            </strong>{' '}
+                            au moment où vous encaissez le voyageur. Par
+                            conséquent, KORA ne vous verse pas de commission une
+                            seconde fois : votre dette de reversement correspond
+                            strictement au prix payé diminué de votre commission
+                            acquise.
                         </p>
                     </div>
                 </div>
@@ -128,10 +138,10 @@ export function KoraPointCommissionsView({
             {/* 4 Financial Summary Cards */}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                    <span className="text-[0.625rem] font-bold uppercase text-slate-400">
+                    <span className="text-[0.625rem] font-bold text-slate-400 uppercase">
                         1. Assiette totale encaissée
                     </span>
-                    <strong className="mt-1 block font-mono text-lg font-black text-slate-900 dark:text-white sm:text-xl">
+                    <strong className="mt-1 block font-mono text-lg font-black text-slate-900 sm:text-xl dark:text-white">
                         {totals.grossSales.toLocaleString('fr-FR')} FCFA
                     </strong>
                     <span className="text-[0.6875rem] text-slate-500">
@@ -140,10 +150,10 @@ export function KoraPointCommissionsView({
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                    <span className="text-[0.625rem] font-bold uppercase text-slate-400">
+                    <span className="text-[0.625rem] font-bold text-slate-400 uppercase">
                         2. Commissions initiales ({ratePercent} %)
                     </span>
-                    <strong className="mt-1 block font-mono text-lg font-black text-emerald-600 dark:text-emerald-400 sm:text-xl">
+                    <strong className="mt-1 block font-mono text-lg font-black text-emerald-600 sm:text-xl dark:text-emerald-400">
                         +{totals.initialComm.toLocaleString('fr-FR')} FCFA
                     </strong>
                     <span className="text-[0.6875rem] text-slate-500">
@@ -152,7 +162,7 @@ export function KoraPointCommissionsView({
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                    <span className="text-[0.625rem] font-bold uppercase text-slate-400">
+                    <span className="text-[0.625rem] font-bold text-slate-400 uppercase">
                         3. Corrections remboursements
                     </span>
                     <strong
@@ -171,10 +181,10 @@ export function KoraPointCommissionsView({
                 </div>
 
                 <div className="rounded-2xl border border-gold/40 bg-gold/5 p-4 shadow-sm dark:border-gold/30 dark:bg-gold/10">
-                    <span className="text-[0.625rem] font-bold uppercase text-kora dark:text-gold">
+                    <span className="text-[0.625rem] font-bold text-kora uppercase dark:text-gold">
                         4. Commission nette acquise
                     </span>
-                    <strong className="mt-1 block font-mono text-lg font-black text-kora dark:text-gold sm:text-xl">
+                    <strong className="mt-1 block font-mono text-lg font-black text-kora sm:text-xl dark:text-gold">
                         +{totals.netComm.toLocaleString('fr-FR')} FCFA
                     </strong>
                     <span className="text-[0.6875rem] text-slate-600 dark:text-slate-300">
@@ -186,11 +196,16 @@ export function KoraPointCommissionsView({
             {/* Filter bar by period */}
             <div className="flex items-center justify-between border-b border-slate-200 pb-3 dark:border-slate-800">
                 <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-500">Période :</span>
+                    <span className="text-xs font-bold text-slate-500">
+                        Période :
+                    </span>
                     <div className="flex items-center gap-1.5">
                         {[
                             { id: 'current_month', label: 'Ce mois-ci (Août)' },
-                            { id: 'last_month', label: 'Mois dernier (Juillet)' },
+                            {
+                                id: 'last_month',
+                                label: 'Mois dernier (Juillet)',
+                            },
                             { id: 'all', label: 'Toutes les dates' },
                         ].map((t) => (
                             <button
@@ -200,7 +215,7 @@ export function KoraPointCommissionsView({
                                 className={cn(
                                     'rounded-xl px-3 py-1 text-xs font-bold transition',
                                     periodFilter === t.id
-                                        ? 'bg-[var(--kora)] text-white dark:bg-digital dark:text-kora shadow-sm'
+                                        ? 'bg-[var(--kora)] text-white shadow-sm dark:bg-digital dark:text-kora'
                                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300',
                                 )}
                             >
@@ -216,18 +231,26 @@ export function KoraPointCommissionsView({
             </div>
 
             {/* Detailed Commissions Table (Desktop) */}
-            <div className="hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:block overflow-hidden dark:border-slate-800 dark:bg-slate-900">
-                <table className="w-full text-left text-xs border-collapse">
+            <div className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:block dark:border-slate-800 dark:bg-slate-900">
+                <table className="w-full border-collapse text-left text-xs">
                     <thead>
-                        <tr className="border-b border-slate-200 bg-slate-50 text-[0.625rem] font-black uppercase tracking-wider text-slate-400 dark:border-slate-800 dark:bg-slate-950">
-                            <th className="py-3.5 pl-5 pr-3">Billet & Date</th>
-                            <th className="py-3.5 px-3">Trajet / Vendeur</th>
-                            <th className="py-3.5 px-3 text-right">Prix Payé</th>
-                            <th className="py-3.5 px-3 text-center">Taux</th>
-                            <th className="py-3.5 px-3 text-right">Comm. Initiale</th>
-                            <th className="py-3.5 px-3 text-right">Correction</th>
-                            <th className="py-3.5 px-3 text-right">Commission Nette</th>
-                            <th className="py-3.5 pl-3 pr-5">Statut</th>
+                        <tr className="border-b border-slate-200 bg-slate-50 text-[0.625rem] font-black tracking-wider text-slate-400 uppercase dark:border-slate-800 dark:bg-slate-950">
+                            <th className="py-3.5 pr-3 pl-5">Billet & Date</th>
+                            <th className="px-3 py-3.5">Trajet / Vendeur</th>
+                            <th className="px-3 py-3.5 text-right">
+                                Prix Payé
+                            </th>
+                            <th className="px-3 py-3.5 text-center">Taux</th>
+                            <th className="px-3 py-3.5 text-right">
+                                Comm. Initiale
+                            </th>
+                            <th className="px-3 py-3.5 text-right">
+                                Correction
+                            </th>
+                            <th className="px-3 py-3.5 text-right">
+                                Commission Nette
+                            </th>
+                            <th className="py-3.5 pr-5 pl-3">Statut</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -241,7 +264,7 @@ export function KoraPointCommissionsView({
                                         : 'hover:bg-slate-50 dark:hover:bg-slate-800/50',
                                 )}
                             >
-                                <td className="py-3.5 pl-5 pr-3">
+                                <td className="py-3.5 pr-3 pl-5">
                                     <div className="font-mono font-bold text-slate-900 dark:text-white">
                                         {row.ticket_number}
                                     </div>
@@ -250,7 +273,7 @@ export function KoraPointCommissionsView({
                                     </span>
                                 </td>
 
-                                <td className="py-3.5 px-3">
+                                <td className="px-3 py-3.5">
                                     <div className="font-semibold text-slate-800 dark:text-slate-200">
                                         {row.route_label}
                                     </div>
@@ -259,31 +282,42 @@ export function KoraPointCommissionsView({
                                     </div>
                                 </td>
 
-                                <td className="py-3.5 px-3 text-right font-mono font-bold text-slate-900 dark:text-white">
-                                    {row.amount_paid.toLocaleString('fr-FR')} FCFA
+                                <td className="px-3 py-3.5 text-right font-mono font-bold text-slate-900 dark:text-white">
+                                    {row.amount_paid.toLocaleString('fr-FR')}{' '}
+                                    FCFA
                                 </td>
 
-                                <td className="py-3.5 px-3 text-center font-mono text-slate-600 dark:text-slate-300">
-                                    {(row.commission_rate_bps / 100).toFixed(1)} %
+                                <td className="px-3 py-3.5 text-center font-mono text-slate-600 dark:text-slate-300">
+                                    {(row.commission_rate_bps / 100).toFixed(1)}{' '}
+                                    %
                                 </td>
 
-                                <td className="py-3.5 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                                    +{row.initial_commission.toLocaleString('fr-FR')} FCFA
+                                <td className="px-3 py-3.5 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                                    +
+                                    {row.initial_commission.toLocaleString(
+                                        'fr-FR',
+                                    )}{' '}
+                                    FCFA
                                 </td>
 
-                                <td className="py-3.5 px-3 text-right">
+                                <td className="px-3 py-3.5 text-right">
                                     {row.has_refund_correction ? (
                                         <div>
                                             <span className="font-mono font-bold text-rose-600 dark:text-rose-400">
-                                                {row.correction_amount.toLocaleString('fr-FR')} FCFA
+                                                {row.correction_amount.toLocaleString(
+                                                    'fr-FR',
+                                                )}{' '}
+                                                FCFA
                                             </span>
                                             {row.refund_ref && (
                                                 <button
                                                     type="button"
                                                     onClick={() =>
-                                                        onViewRefundDetail?.(row.refund_ref!)
+                                                        onViewRefundDetail?.(
+                                                            row.refund_ref!,
+                                                        )
                                                     }
-                                                    className="mt-0.5 block text-[0.625rem] font-bold text-blue-600 hover:underline dark:text-blue-400 ml-auto"
+                                                    className="mt-0.5 ml-auto block text-[0.625rem] font-bold text-blue-600 hover:underline dark:text-blue-400"
                                                     title={row.refund_reason}
                                                 >
                                                     {row.refund_ref} →
@@ -291,18 +325,20 @@ export function KoraPointCommissionsView({
                                             )}
                                         </div>
                                     ) : (
-                                        <span className="text-slate-300 dark:text-slate-600">—</span>
+                                        <span className="text-slate-300 dark:text-slate-600">
+                                            —
+                                        </span>
                                     )}
                                 </td>
 
-                                <td className="py-3.5 px-3 text-right font-mono font-black text-slate-900 dark:text-white">
+                                <td className="px-3 py-3.5 text-right font-mono font-black text-slate-900 dark:text-white">
                                     {row.net_commission > 0
                                         ? `+${row.net_commission.toLocaleString('fr-FR')}`
                                         : '0'}{' '}
                                     FCFA
                                 </td>
 
-                                <td className="py-3.5 pl-3 pr-5">
+                                <td className="py-3.5 pr-5 pl-3">
                                     {row.has_refund_correction ? (
                                         <KoraStatusBadge
                                             label="Annulé / Repris"
@@ -335,7 +371,7 @@ export function KoraPointCommissionsView({
                     <article
                         key={row.uuid}
                         className={cn(
-                            'rounded-2xl border p-4 shadow-sm text-xs',
+                            'rounded-2xl border p-4 text-xs shadow-sm',
                             row.has_refund_correction
                                 ? 'border-rose-200 bg-rose-50/50 dark:border-rose-900/40 dark:bg-rose-950/20'
                                 : 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900',
@@ -351,9 +387,17 @@ export function KoraPointCommissionsView({
                                 </span>
                             </div>
                             {row.has_refund_correction ? (
-                                <KoraStatusBadge label="Annulé / Repris" tone="destructive" variant="solid" />
+                                <KoraStatusBadge
+                                    label="Annulé / Repris"
+                                    tone="destructive"
+                                    variant="solid"
+                                />
                             ) : (
-                                <KoraStatusBadge label="Acquis" tone="emerald" variant="solid" />
+                                <KoraStatusBadge
+                                    label="Acquis"
+                                    tone="emerald"
+                                    variant="solid"
+                                />
                             )}
                         </div>
 
@@ -365,24 +409,42 @@ export function KoraPointCommissionsView({
                                 </span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-slate-400">Montant payé :</span>
+                                <span className="text-slate-400">
+                                    Montant payé :
+                                </span>
                                 <span className="font-mono font-bold text-slate-900 dark:text-white">
-                                    {row.amount_paid.toLocaleString('fr-FR')} FCFA
+                                    {row.amount_paid.toLocaleString('fr-FR')}{' '}
+                                    FCFA
                                 </span>
                             </div>
-                            <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-bold">
+                            <div className="flex justify-between font-bold text-emerald-600 dark:text-emerald-400">
                                 <span>Commission brute (3 %) :</span>
-                                <span>+{row.initial_commission.toLocaleString('fr-FR')} FCFA</span>
+                                <span>
+                                    +
+                                    {row.initial_commission.toLocaleString(
+                                        'fr-FR',
+                                    )}{' '}
+                                    FCFA
+                                </span>
                             </div>
                             {row.has_refund_correction && (
-                                <div className="flex justify-between text-rose-600 font-bold">
+                                <div className="flex justify-between font-bold text-rose-600">
                                     <span>Correction remboursement :</span>
-                                    <span>{row.correction_amount.toLocaleString('fr-FR')} FCFA</span>
+                                    <span>
+                                        {row.correction_amount.toLocaleString(
+                                            'fr-FR',
+                                        )}{' '}
+                                        FCFA
+                                    </span>
                                 </div>
                             )}
                             <div className="flex justify-between border-t border-slate-100 pt-1.5 font-black text-slate-900 dark:border-slate-800 dark:text-white">
                                 <span>Commission nette finale :</span>
-                                <span>+{row.net_commission.toLocaleString('fr-FR')} FCFA</span>
+                                <span>
+                                    +
+                                    {row.net_commission.toLocaleString('fr-FR')}{' '}
+                                    FCFA
+                                </span>
                             </div>
                         </div>
                     </article>

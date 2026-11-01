@@ -23,7 +23,11 @@ export default meta;
 type Story = StoryObj;
 
 // Interactive Sale Journey Wrapper
-function SaleInteractiveStory({ initialScenario = 'autonomous_healthy' }: { initialScenario?: DemoScenarioId }) {
+function SaleInteractiveStory({
+    initialScenario = 'autonomous_healthy',
+}: {
+    initialScenario?: DemoScenarioId;
+}) {
     const demo = useKoraPointDemo(initialScenario);
     const [activePage, setActivePage] = useState<KoraPointActivePage>('sale');
 
@@ -45,7 +49,9 @@ function SaleInteractiveStory({ initialScenario = 'autonomous_healthy' }: { init
                 <KoraPointSaleView
                     point={demo.point}
                     health={demo.health}
-                    onSaleCompleted={(saleData) => demo.recordSimulatedSale(saleData)}
+                    onSaleCompleted={(saleData) =>
+                        demo.recordSimulatedSale(saleData)
+                    }
                     onBackToDashboard={() => setActivePage('dashboard')}
                 />
             ) : (
@@ -61,7 +67,8 @@ function SaleInteractiveStory({ initialScenario = 'autonomous_healthy' }: { init
 // Tickets Journal Interactive Story
 function TicketsInteractiveStory() {
     const demo = useKoraPointDemo('autonomous_healthy');
-    const [activePage, setActivePage] = useState<KoraPointActivePage>('tickets');
+    const [activePage, setActivePage] =
+        useState<KoraPointActivePage>('tickets');
 
     return (
         <KoraPointShell
@@ -92,7 +99,9 @@ export const SaleJourneyInteractive: Story = {
 
 export const SaleBlockedByLimit: Story = {
     name: '02. Vente bloquée par dépassement de plafond (Plafond atteint)',
-    render: () => <SaleInteractiveStory initialScenario="autonomous_limit_reached" />,
+    render: () => (
+        <SaleInteractiveStory initialScenario="autonomous_limit_reached" />
+    ),
 };
 
 function SaleSuccessStory() {
@@ -140,7 +149,10 @@ function TicketDetailDrawerStory() {
             >
                 Ouvrir le détail du billet TK-AKP-260801-01
             </button>
-            <KoraPointTicketDetailDrawer sale={selectedSale} onClose={() => setSelectedSale(null)} />
+            <KoraPointTicketDetailDrawer
+                sale={selectedSale}
+                onClose={() => setSelectedSale(null)}
+            />
         </div>
     );
 }

@@ -24,8 +24,10 @@ import { KoraPointTicketListView } from '@/components/kora-points/tickets/kora-p
 
 export default function KoraPointPreviewPage() {
     const demo = useKoraPointDemo('autonomous_healthy');
-    const [currentRole, setCurrentRole] = useState<KoraPointUserRole>('AGENT_POINT');
-    const [activePage, setActivePage] = useState<KoraPointActivePage>('dashboard');
+    const [currentRole, setCurrentRole] =
+        useState<KoraPointUserRole>('AGENT_POINT');
+    const [activePage, setActivePage] =
+        useState<KoraPointActivePage>('dashboard');
     const [tourKey, setTourKey] = useState(0);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
 
@@ -38,7 +40,9 @@ export default function KoraPointPreviewPage() {
         }
     };
 
-    const unreadNotificationsCount = demo.notifications.filter((n) => !n.read).length;
+    const unreadNotificationsCount = demo.notifications.filter(
+        (n) => !n.read,
+    ).length;
 
     return (
         <>
@@ -81,7 +85,9 @@ export default function KoraPointPreviewPage() {
                     <KoraPointSaleView
                         point={demo.point}
                         health={demo.health}
-                        onSaleCompleted={(saleData) => demo.recordSimulatedSale(saleData)}
+                        onSaleCompleted={(saleData) =>
+                            demo.recordSimulatedSale(saleData)
+                        }
                         onBackToDashboard={() => setActivePage('dashboard')}
                     />
                 )}
@@ -93,7 +99,9 @@ export default function KoraPointPreviewPage() {
                         cashSession={demo.cashSession}
                         onOpenSession={demo.openCashSession}
                         onCloseSession={demo.closeCashSession}
-                        onNavigateToSettlements={() => setActivePage('settlements')}
+                        onNavigateToSettlements={() =>
+                            setActivePage('settlements')
+                        }
                     />
                 )}
 
@@ -127,7 +135,9 @@ export default function KoraPointPreviewPage() {
                         point={demo.point}
                         health={demo.health}
                         settlements={demo.settlements}
-                        onDeclareSettlement={(data) => demo.createSettlementDeclaration(data)}
+                        onDeclareSettlement={(data) =>
+                            demo.createSettlementDeclaration(data)
+                        }
                     />
                 )}
 
@@ -136,7 +146,9 @@ export default function KoraPointPreviewPage() {
                         point={demo.point}
                         refunds={demo.refunds}
                         sales={demo.sales}
-                        onInitiateRefund={(data) => demo.initiateRefundRequest(data)}
+                        onInitiateRefund={(data) =>
+                            demo.initiateRefundRequest(data)
+                        }
                         onConfirmRestitution={(uuid, signatory, note) =>
                             demo.confirmRefundRestitution(uuid, signatory, note)
                         }
@@ -145,7 +157,10 @@ export default function KoraPointPreviewPage() {
 
                 {activePage === 'org-supervision' && (
                     <KoraOrgSupervisionView
-                        organizationName={demo.point.organization?.name || 'La Poste du Bénin SA'}
+                        organizationName={
+                            demo.point.organization?.name ||
+                            'La Poste du Bénin SA'
+                        }
                         subpoints={demo.organizationSubPoints}
                         recentSales={demo.sales}
                         recentRefunds={demo.refunds}
@@ -154,7 +169,10 @@ export default function KoraPointPreviewPage() {
 
                 {activePage === 'org-treasury' && (
                     <KoraOrgTreasuryView
-                        organizationName={demo.point.organization?.name || 'La Poste du Bénin SA'}
+                        organizationName={
+                            demo.point.organization?.name ||
+                            'La Poste du Bénin SA'
+                        }
                         subpoints={demo.organizationSubPoints}
                         groupSettlements={demo.groupSettlements}
                         refunds={demo.refunds}
@@ -176,7 +194,9 @@ export default function KoraPointPreviewPage() {
                     <KoraAdminOrganizationsView
                         organizations={demo.adminOrganizations}
                         subpoints={demo.organizationSubPoints}
-                        onToggleUserStatus={(userUuid) => demo.toggleUserStatus(userUuid)}
+                        onToggleUserStatus={(userUuid) =>
+                            demo.toggleUserStatus(userUuid)
+                        }
                         onUpdateTermsOverride={(pointUuid, terms) =>
                             demo.updatePointTermsOverride(pointUuid, terms)
                         }
@@ -206,9 +226,15 @@ export default function KoraPointPreviewPage() {
                 {activePage === 'notifications' && (
                     <KoraNotificationsView
                         notifications={demo.notifications}
-                        onMarkAsRead={(uuid) => demo.markNotificationAsRead(uuid)}
-                        onMarkAllAsRead={() => demo.markAllNotificationsAsRead()}
-                        onTriggerTestNotification={() => demo.addTestNotification()}
+                        onMarkAsRead={(uuid) =>
+                            demo.markNotificationAsRead(uuid)
+                        }
+                        onMarkAllAsRead={() =>
+                            demo.markAllNotificationsAsRead()
+                        }
+                        onTriggerTestNotification={() =>
+                            demo.addTestNotification()
+                        }
                         onNavigate={(page) => setActivePage(page)}
                     />
                 )}

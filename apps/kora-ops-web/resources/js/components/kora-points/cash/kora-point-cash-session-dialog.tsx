@@ -36,8 +36,8 @@ export function KoraPointCashSessionDialog({
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     if (!isOpen) {
-return null;
-}
+        return null;
+    }
 
     const expectedCash = session.expected_closing_cash;
     const actualCashNum = Number(countedCash || 0);
@@ -48,7 +48,9 @@ return null;
         const num = Number(openingAmount);
 
         if (isNaN(num) || num < 0) {
-            setErrorMessage('Le montant du fond de caisse doit être un nombre valide.');
+            setErrorMessage(
+                'Le montant du fond de caisse doit être un nombre valide.',
+            );
 
             return;
         }
@@ -76,10 +78,12 @@ return null;
         <div
             role="dialog"
             aria-modal="true"
-            aria-label={mode === 'OPEN' ? 'Ouverture de caisse' : 'Clôture de caisse'}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in"
+            aria-label={
+                mode === 'OPEN' ? 'Ouverture de caisse' : 'Clôture de caisse'
+            }
+            className="fixed inset-0 z-50 flex animate-in items-center justify-center bg-black/60 p-4 backdrop-blur-md fade-in"
         >
-            <div className="relative w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900 sm:p-7">
+            <div className="relative w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl sm:p-7 dark:border-slate-800 dark:bg-slate-900">
                 {/* Close Button */}
                 <button
                     type="button"
@@ -96,7 +100,7 @@ return null;
                         <Wallet className="size-6" />
                     </div>
                     <div>
-                        <span className="text-[0.625rem] font-black uppercase tracking-wider text-slate-400">
+                        <span className="text-[0.625rem] font-black tracking-wider text-slate-400 uppercase">
                             Caisse physique du Point
                         </span>
                         <h2 className="text-lg font-black text-slate-900 dark:text-white">
@@ -116,12 +120,18 @@ return null;
 
                 {/* MODE OPEN */}
                 {mode === 'OPEN' ? (
-                    <form onSubmit={handleOpenSubmit} className="mt-5 space-y-4">
+                    <form
+                        onSubmit={handleOpenSubmit}
+                        className="mt-5 space-y-4"
+                    >
                         <div>
                             <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
                                 <Banknote className="size-4 text-slate-400" />
                                 <span>Fond de caisse initial (Espèces)</span>
-                                <span className="text-rose-500" title="Champ obligatoire">
+                                <span
+                                    className="text-rose-500"
+                                    title="Champ obligatoire"
+                                >
                                     *
                                 </span>
                             </label>
@@ -133,15 +143,17 @@ return null;
                                     setOpeningAmount(e.target.value);
                                     setErrorMessage(null);
                                 }}
-                                className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 font-mono text-sm font-bold text-slate-900 shadow-sm focus:border-gold focus:outline-none focus:ring-1 focus:ring-gold dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                                className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 font-mono text-sm font-bold text-slate-900 shadow-sm focus:border-gold focus:ring-1 focus:ring-gold focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                             />
                             <p className="mt-1 text-[0.6875rem] text-slate-500">
-                                Montant physique compté dans le tiroir avant la première vente du jour.
+                                Montant physique compté dans le tiroir avant la
+                                première vente du jour.
                             </p>
                         </div>
 
                         <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-600 dark:bg-slate-800/60 dark:text-slate-300">
-                            Opérateur déclarant : <strong>{session.operator_name}</strong>
+                            Opérateur déclarant :{' '}
+                            <strong>{session.operator_name}</strong>
                         </div>
 
                         <div className="flex items-center justify-end gap-2.5 pt-3">
@@ -154,7 +166,7 @@ return null;
                             </button>
                             <button
                                 type="submit"
-                                className="inline-flex items-center gap-2 rounded-xl bg-gold px-5 py-2 text-xs font-black uppercase tracking-wider text-kora shadow-md hover:bg-gold/90"
+                                className="inline-flex items-center gap-2 rounded-xl bg-gold px-5 py-2 text-xs font-black tracking-wider text-kora uppercase shadow-md hover:bg-gold/90"
                             >
                                 <Check className="size-4" />
                                 <span>Ouvrir la caisse</span>
@@ -163,19 +175,33 @@ return null;
                     </form>
                 ) : (
                     /* MODE CLOSE */
-                    <form onSubmit={handleCloseSubmit} className="mt-5 space-y-4">
+                    <form
+                        onSubmit={handleCloseSubmit}
+                        className="mt-5 space-y-4"
+                    >
                         {/* Summary of Expected amounts */}
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs dark:border-slate-800 dark:bg-slate-950 space-y-2">
+                        <div className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs dark:border-slate-800 dark:bg-slate-950">
                             <div className="flex justify-between">
-                                <span className="text-slate-500">Fond initial :</span>
+                                <span className="text-slate-500">
+                                    Fond initial :
+                                </span>
                                 <span className="font-mono font-bold">
-                                    {session.opening_amount.toLocaleString('fr-FR')} FCFA
+                                    {session.opening_amount.toLocaleString(
+                                        'fr-FR',
+                                    )}{' '}
+                                    FCFA
                                 </span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-slate-500">Recettes espèces du jour :</span>
+                                <span className="text-slate-500">
+                                    Recettes espèces du jour :
+                                </span>
                                 <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                                    +{session.cash_collected.toLocaleString('fr-FR')} FCFA
+                                    +
+                                    {session.cash_collected.toLocaleString(
+                                        'fr-FR',
+                                    )}{' '}
+                                    FCFA
                                 </span>
                             </div>
                             <div className="flex justify-between border-t border-slate-200 pt-1.5 font-bold text-slate-900 dark:border-slate-800 dark:text-white">
@@ -190,8 +216,13 @@ return null;
                         <div>
                             <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
                                 <Calculator className="size-4 text-slate-400" />
-                                <span>Espèces physiques effectivement comptées</span>
-                                <span className="text-rose-500" title="Champ obligatoire">
+                                <span>
+                                    Espèces physiques effectivement comptées
+                                </span>
+                                <span
+                                    className="text-rose-500"
+                                    title="Champ obligatoire"
+                                >
                                     *
                                 </span>
                             </label>
@@ -203,27 +234,27 @@ return null;
                                     setCountedCash(e.target.value);
                                     setErrorMessage(null);
                                 }}
-                                className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 font-mono text-sm font-bold text-slate-900 shadow-sm focus:border-gold focus:outline-none focus:ring-1 focus:ring-gold dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                                className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 font-mono text-sm font-bold text-slate-900 shadow-sm focus:border-gold focus:ring-1 focus:ring-gold focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                             />
                         </div>
 
                         {/* Calculated Variance */}
                         <div
                             className={cn(
-                                'rounded-xl p-3 text-xs font-bold flex items-center justify-between',
+                                'flex items-center justify-between rounded-xl p-3 text-xs font-bold',
                                 variance === 0
                                     ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
                                     : variance > 0
-                                    ? 'bg-blue-50 text-blue-800 dark:bg-blue-950/40 dark:text-blue-300'
-                                    : 'bg-rose-50 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300',
+                                      ? 'bg-blue-50 text-blue-800 dark:bg-blue-950/40 dark:text-blue-300'
+                                      : 'bg-rose-50 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300',
                             )}
                         >
                             <span>
                                 {variance === 0
                                     ? 'Caisse conforme (aucun écart)'
                                     : variance > 0
-                                    ? 'Excédent de caisse constaté'
-                                    : 'Déficit de caisse constaté'}
+                                      ? 'Excédent de caisse constaté'
+                                      : 'Déficit de caisse constaté'}
                             </span>
                             <span className="font-mono text-sm">
                                 {variance > 0 ? `+${variance}` : variance} FCFA
@@ -235,7 +266,9 @@ return null;
                             <div>
                                 <label className="flex items-center gap-1.5 text-xs font-bold text-rose-700 dark:text-rose-400">
                                     <MessageSquare className="size-3.5" />
-                                    <span>Motif obligatoire de l'écart constaté</span>
+                                    <span>
+                                        Motif obligatoire de l'écart constaté
+                                    </span>
                                     <span className="text-rose-500">*</span>
                                 </label>
                                 <textarea
@@ -243,7 +276,9 @@ return null;
                                     rows={2}
                                     placeholder="Expliquez la cause de la différence constatée..."
                                     value={varianceComment}
-                                    onChange={(e) => setVarianceComment(e.target.value)}
+                                    onChange={(e) =>
+                                        setVarianceComment(e.target.value)
+                                    }
                                     className="mt-1.5 w-full rounded-xl border border-rose-300 bg-white p-2.5 text-xs text-slate-900 shadow-sm focus:border-rose-500 focus:outline-none dark:border-rose-800 dark:bg-slate-800 dark:text-white"
                                 />
                             </div>
@@ -259,7 +294,7 @@ return null;
                             </button>
                             <button
                                 type="submit"
-                                className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2 text-xs font-black uppercase tracking-wider text-white shadow-md hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
+                                className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2 text-xs font-black tracking-wider text-white uppercase shadow-md hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
                             >
                                 <Check className="size-4" />
                                 <span>Valider la clôture</span>

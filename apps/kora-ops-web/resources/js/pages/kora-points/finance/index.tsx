@@ -103,7 +103,7 @@ export default function KoraPointFinanceIndexPage({
     return (
         <>
             <Head title="Rapprochement et Finance KORA POINT - Réseau commercial" />
-            <div className="py-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+            <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
                 <KoraFinanceReconciliationView
                     settlements={settlements}
                     refunds={refunds}

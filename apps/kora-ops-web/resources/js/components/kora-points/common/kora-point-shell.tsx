@@ -24,10 +24,9 @@ import { cn } from '@/lib/utils';
 import type {
     KoraPointProfile,
     FinancialHealth,
-    KoraPointUserRole} from '../mock/kora-point-mock-data';
-import {
-    MOCK_PERSONAS,
+    KoraPointUserRole,
 } from '../mock/kora-point-mock-data';
+import { MOCK_PERSONAS } from '../mock/kora-point-mock-data';
 
 export type KoraPointActivePage =
     | 'dashboard'
@@ -91,12 +90,46 @@ export function KoraPointShell({
                 {
                     title: 'Supervision Organisation',
                     items: [
-                        { id: 'org-supervision' as KoraPointActivePage, label: 'Supervision réseau', icon: Building2, badge: 'Resp.', badgeTone: 'navy' as const },
-                        { id: 'admin-organizations' as KoraPointActivePage, label: 'Bureaux & Organisation', icon: Store, badge: null },
-                        { id: 'commissions' as KoraPointActivePage, label: 'Commissions réseau', icon: TrendingUp, badge: null },
-                        { id: 'tickets' as KoraPointActivePage, label: 'Ventes & Billets réseau', icon: FileText, badge: null },
-                        { id: 'settlements' as KoraPointActivePage, label: 'Dossiers financiers', icon: ReceiptText, badge: null },
-                        { id: 'notifications' as KoraPointActivePage, label: 'Notifications', icon: Bell, badge: unreadNotificationsCount ? String(unreadNotificationsCount) : null, badgeTone: 'amber' as const },
+                        {
+                            id: 'org-supervision' as KoraPointActivePage,
+                            label: 'Supervision réseau',
+                            icon: Building2,
+                            badge: 'Resp.',
+                            badgeTone: 'navy' as const,
+                        },
+                        {
+                            id: 'admin-organizations' as KoraPointActivePage,
+                            label: 'Bureaux & Organisation',
+                            icon: Store,
+                            badge: null,
+                        },
+                        {
+                            id: 'commissions' as KoraPointActivePage,
+                            label: 'Commissions réseau',
+                            icon: TrendingUp,
+                            badge: null,
+                        },
+                        {
+                            id: 'tickets' as KoraPointActivePage,
+                            label: 'Ventes & Billets réseau',
+                            icon: FileText,
+                            badge: null,
+                        },
+                        {
+                            id: 'settlements' as KoraPointActivePage,
+                            label: 'Dossiers financiers',
+                            icon: ReceiptText,
+                            badge: null,
+                        },
+                        {
+                            id: 'notifications' as KoraPointActivePage,
+                            label: 'Notifications',
+                            icon: Bell,
+                            badge: unreadNotificationsCount
+                                ? String(unreadNotificationsCount)
+                                : null,
+                            badgeTone: 'amber' as const,
+                        },
                     ],
                 },
             ];
@@ -107,12 +140,46 @@ export function KoraPointShell({
                 {
                     title: 'Trésorerie Organisation',
                     items: [
-                        { id: 'org-treasury' as KoraPointActivePage, label: 'Trésorerie groupée', icon: Coins, badge: 'Trésorier', badgeTone: 'gold' as const },
-                        { id: 'settlements' as KoraPointActivePage, label: 'Suivi des reversements', icon: ReceiptText, badge: null },
-                        { id: 'commissions' as KoraPointActivePage, label: 'Commissions réseau', icon: TrendingUp, badge: null },
-                        { id: 'refunds' as KoraPointActivePage, label: 'Consultation remboursements', icon: RotateCcw, badge: null },
-                        { id: 'admin-organizations' as KoraPointActivePage, label: 'Organisation & Bureaux', icon: Building2, badge: null },
-                        { id: 'notifications' as KoraPointActivePage, label: 'Notifications', icon: Bell, badge: unreadNotificationsCount ? String(unreadNotificationsCount) : null, badgeTone: 'amber' as const },
+                        {
+                            id: 'org-treasury' as KoraPointActivePage,
+                            label: 'Trésorerie groupée',
+                            icon: Coins,
+                            badge: 'Trésorier',
+                            badgeTone: 'gold' as const,
+                        },
+                        {
+                            id: 'settlements' as KoraPointActivePage,
+                            label: 'Suivi des reversements',
+                            icon: ReceiptText,
+                            badge: null,
+                        },
+                        {
+                            id: 'commissions' as KoraPointActivePage,
+                            label: 'Commissions réseau',
+                            icon: TrendingUp,
+                            badge: null,
+                        },
+                        {
+                            id: 'refunds' as KoraPointActivePage,
+                            label: 'Consultation remboursements',
+                            icon: RotateCcw,
+                            badge: null,
+                        },
+                        {
+                            id: 'admin-organizations' as KoraPointActivePage,
+                            label: 'Organisation & Bureaux',
+                            icon: Building2,
+                            badge: null,
+                        },
+                        {
+                            id: 'notifications' as KoraPointActivePage,
+                            label: 'Notifications',
+                            icon: Bell,
+                            badge: unreadNotificationsCount
+                                ? String(unreadNotificationsCount)
+                                : null,
+                            badgeTone: 'amber' as const,
+                        },
                     ],
                 },
             ];
@@ -123,11 +190,40 @@ export function KoraPointShell({
                 {
                     title: 'Administration Commerciale',
                     items: [
-                        { id: 'admin-network' as KoraPointActivePage, label: 'Réseau commercial', icon: Store, badge: 'Admin', badgeTone: 'gold' as const },
-                        { id: 'admin-organizations' as KoraPointActivePage, label: 'Organisations & Contrats', icon: Building2, badge: null },
-                        { id: 'tickets' as KoraPointActivePage, label: 'Billets & Contrôle', icon: FileText, badge: null },
-                        { id: 'settlements' as KoraPointActivePage, label: 'Reversements réseau', icon: ReceiptText, badge: null },
-                        { id: 'notifications' as KoraPointActivePage, label: 'Notifications', icon: Bell, badge: unreadNotificationsCount ? String(unreadNotificationsCount) : null, badgeTone: 'amber' as const },
+                        {
+                            id: 'admin-network' as KoraPointActivePage,
+                            label: 'Réseau commercial',
+                            icon: Store,
+                            badge: 'Admin',
+                            badgeTone: 'gold' as const,
+                        },
+                        {
+                            id: 'admin-organizations' as KoraPointActivePage,
+                            label: 'Organisations & Contrats',
+                            icon: Building2,
+                            badge: null,
+                        },
+                        {
+                            id: 'tickets' as KoraPointActivePage,
+                            label: 'Billets & Contrôle',
+                            icon: FileText,
+                            badge: null,
+                        },
+                        {
+                            id: 'settlements' as KoraPointActivePage,
+                            label: 'Reversements réseau',
+                            icon: ReceiptText,
+                            badge: null,
+                        },
+                        {
+                            id: 'notifications' as KoraPointActivePage,
+                            label: 'Notifications',
+                            icon: Bell,
+                            badge: unreadNotificationsCount
+                                ? String(unreadNotificationsCount)
+                                : null,
+                            badgeTone: 'amber' as const,
+                        },
                     ],
                 },
             ];
@@ -138,13 +234,52 @@ export function KoraPointShell({
                 {
                     title: 'Pôle Finance & Trésorerie',
                     items: [
-                        { id: 'finance' as KoraPointActivePage, label: 'Finance & Rapprochements', icon: Landmark, badge: 'Finance', badgeTone: 'emerald' as const },
-                        { id: 'settlements' as KoraPointActivePage, label: 'File des reversements', icon: ReceiptText, badge: null },
-                        { id: 'refunds' as KoraPointActivePage, label: 'Instruction remboursements', icon: RotateCcw, badge: null },
-                        { id: 'tickets' as KoraPointActivePage, label: 'Journal des ventes & audit', icon: FileText, badge: null },
-                        { id: 'commissions' as KoraPointActivePage, label: 'Commissions réseau', icon: TrendingUp, badge: null },
-                        { id: 'admin-network' as KoraPointActivePage, label: 'Réseau commercial', icon: Store, badge: null },
-                        { id: 'notifications' as KoraPointActivePage, label: 'Notifications', icon: Bell, badge: unreadNotificationsCount ? String(unreadNotificationsCount) : null, badgeTone: 'amber' as const },
+                        {
+                            id: 'finance' as KoraPointActivePage,
+                            label: 'Finance & Rapprochements',
+                            icon: Landmark,
+                            badge: 'Finance',
+                            badgeTone: 'emerald' as const,
+                        },
+                        {
+                            id: 'settlements' as KoraPointActivePage,
+                            label: 'File des reversements',
+                            icon: ReceiptText,
+                            badge: null,
+                        },
+                        {
+                            id: 'refunds' as KoraPointActivePage,
+                            label: 'Instruction remboursements',
+                            icon: RotateCcw,
+                            badge: null,
+                        },
+                        {
+                            id: 'tickets' as KoraPointActivePage,
+                            label: 'Journal des ventes & audit',
+                            icon: FileText,
+                            badge: null,
+                        },
+                        {
+                            id: 'commissions' as KoraPointActivePage,
+                            label: 'Commissions réseau',
+                            icon: TrendingUp,
+                            badge: null,
+                        },
+                        {
+                            id: 'admin-network' as KoraPointActivePage,
+                            label: 'Réseau commercial',
+                            icon: Store,
+                            badge: null,
+                        },
+                        {
+                            id: 'notifications' as KoraPointActivePage,
+                            label: 'Notifications',
+                            icon: Bell,
+                            badge: unreadNotificationsCount
+                                ? String(unreadNotificationsCount)
+                                : null,
+                            badgeTone: 'amber' as const,
+                        },
                     ],
                 },
             ];
@@ -155,19 +290,79 @@ export function KoraPointShell({
             {
                 title: 'Espace Agent Point',
                 items: [
-                    { id: 'dashboard' as KoraPointActivePage, label: 'Accueil agent', icon: LayoutDashboard, badge: null },
-                    { id: 'sale' as KoraPointActivePage, label: 'Vente guichet', icon: Ticket, badge: health.sales_allowed ? 'Prêt' : 'Bloqué', badgeTone: health.sales_allowed ? ('emerald' as const) : ('destructive' as const) },
-                    { id: 'cash' as KoraPointActivePage, label: 'Caisse', icon: Wallet, badge: null },
-                    { id: 'tickets' as KoraPointActivePage, label: 'Billets & Activité', icon: FileText, badge: null },
-                    { id: 'my-point' as KoraPointActivePage, label: 'Mon Point', icon: Store, badge: null },
-                    { id: 'commissions' as KoraPointActivePage, label: 'Commissions', icon: TrendingUp, badge: '3 %', badgeTone: 'gold' as const },
-                    { id: 'settlements' as KoraPointActivePage, label: 'Reversements', icon: ReceiptText, badge: isAutonomous ? 'Préparer' : 'Trésorier', badgeTone: isAutonomous ? ('navy' as const) : ('muted' as const) },
-                    { id: 'refunds' as KoraPointActivePage, label: 'Remboursements', icon: RotateCcw, badge: null },
-                    { id: 'notifications' as KoraPointActivePage, label: 'Notifications', icon: Bell, badge: unreadNotificationsCount ? String(unreadNotificationsCount) : null, badgeTone: 'amber' as const },
+                    {
+                        id: 'dashboard' as KoraPointActivePage,
+                        label: 'Accueil agent',
+                        icon: LayoutDashboard,
+                        badge: null,
+                    },
+                    {
+                        id: 'sale' as KoraPointActivePage,
+                        label: 'Vente guichet',
+                        icon: Ticket,
+                        badge: health.sales_allowed ? 'Prêt' : 'Bloqué',
+                        badgeTone: health.sales_allowed
+                            ? ('emerald' as const)
+                            : ('destructive' as const),
+                    },
+                    {
+                        id: 'cash' as KoraPointActivePage,
+                        label: 'Caisse',
+                        icon: Wallet,
+                        badge: null,
+                    },
+                    {
+                        id: 'tickets' as KoraPointActivePage,
+                        label: 'Billets & Activité',
+                        icon: FileText,
+                        badge: null,
+                    },
+                    {
+                        id: 'my-point' as KoraPointActivePage,
+                        label: 'Mon Point',
+                        icon: Store,
+                        badge: null,
+                    },
+                    {
+                        id: 'commissions' as KoraPointActivePage,
+                        label: 'Commissions',
+                        icon: TrendingUp,
+                        badge: '3 %',
+                        badgeTone: 'gold' as const,
+                    },
+                    {
+                        id: 'settlements' as KoraPointActivePage,
+                        label: 'Reversements',
+                        icon: ReceiptText,
+                        badge: isAutonomous ? 'Préparer' : 'Trésorier',
+                        badgeTone: isAutonomous
+                            ? ('navy' as const)
+                            : ('muted' as const),
+                    },
+                    {
+                        id: 'refunds' as KoraPointActivePage,
+                        label: 'Remboursements',
+                        icon: RotateCcw,
+                        badge: null,
+                    },
+                    {
+                        id: 'notifications' as KoraPointActivePage,
+                        label: 'Notifications',
+                        icon: Bell,
+                        badge: unreadNotificationsCount
+                            ? String(unreadNotificationsCount)
+                            : null,
+                        badgeTone: 'amber' as const,
+                    },
                 ],
             },
         ];
-    }, [currentRole, health.sales_allowed, isAutonomous, unreadNotificationsCount]);
+    }, [
+        currentRole,
+        health.sales_allowed,
+        isAutonomous,
+        unreadNotificationsCount,
+    ]);
 
     const handleNavClick = (pageId: KoraPointActivePage) => {
         onNavigate(pageId);
@@ -193,7 +388,7 @@ export function KoraPointShell({
                                 <strong className="block text-sm font-black tracking-wide text-white">
                                     KORA POINT
                                 </strong>
-                                <span className="block text-[0.625rem] font-extrabold uppercase tracking-widest text-gold">
+                                <span className="block text-[0.625rem] font-extrabold tracking-widest text-gold uppercase">
                                     Distribution Bus
                                 </span>
                             </div>
@@ -201,9 +396,11 @@ export function KoraPointShell({
 
                         {/* Active Point Card */}
                         <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-3">
-                            <div className="flex items-center justify-between gap-1 text-[0.625rem] font-bold uppercase tracking-wider text-white/60">
+                            <div className="flex items-center justify-between gap-1 text-[0.625rem] font-bold tracking-wider text-white/60 uppercase">
                                 <span>Point actif</span>
-                                <span className="font-mono text-gold">{point.code}</span>
+                                <span className="font-mono text-gold">
+                                    {point.code}
+                                </span>
                             </div>
                             <div className="mt-1 truncate text-xs font-extrabold text-white">
                                 {point.name}
@@ -211,12 +408,14 @@ export function KoraPointShell({
                             <div className="mt-1 flex items-center gap-1.5 text-[0.6875rem] text-white/70">
                                 {point.organization ? (
                                     <>
-                                        <Building2 className="size-3 text-gold shrink-0" />
-                                        <span className="truncate">{point.organization.name}</span>
+                                        <Building2 className="size-3 shrink-0 text-gold" />
+                                        <span className="truncate">
+                                            {point.organization.name}
+                                        </span>
                                     </>
                                 ) : (
                                     <>
-                                        <Shield className="size-3 text-emerald-400 shrink-0" />
+                                        <Shield className="size-3 shrink-0 text-emerald-400" />
                                         <span>Point autonome</span>
                                     </>
                                 )}
@@ -225,10 +424,13 @@ export function KoraPointShell({
                     </div>
 
                     {/* Navigation Menu */}
-                    <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-4" aria-label="Navigation partenaire">
+                    <nav
+                        className="flex-1 space-y-4 overflow-y-auto px-3 py-4"
+                        aria-label="Navigation partenaire"
+                    >
                         {navGroups.map((group) => (
                             <div key={group.title} className="space-y-1">
-                                <div className="px-3 pb-1 text-[0.625rem] font-black uppercase tracking-wider text-gold">
+                                <div className="px-3 pb-1 text-[0.625rem] font-black tracking-wider text-gold uppercase">
                                     {group.title}
                                 </div>
                                 {group.items.map((item) => {
@@ -239,11 +441,13 @@ export function KoraPointShell({
                                         <button
                                             key={item.id}
                                             type="button"
-                                            onClick={() => handleNavClick(item.id)}
+                                            onClick={() =>
+                                                handleNavClick(item.id)
+                                            }
                                             className={cn(
                                                 'group flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition',
                                                 isActive
-                                                    ? 'bg-gold text-kora font-black shadow-md'
+                                                    ? 'bg-gold font-black text-kora shadow-md'
                                                     : 'text-white/80 hover:bg-white/10 hover:text-white',
                                             )}
                                         >
@@ -251,10 +455,14 @@ export function KoraPointShell({
                                                 <Icon
                                                     className={cn(
                                                         'size-4 shrink-0',
-                                                        isActive ? 'text-kora' : 'text-white/70 group-hover:text-white',
+                                                        isActive
+                                                            ? 'text-kora'
+                                                            : 'text-white/70 group-hover:text-white',
                                                     )}
                                                 />
-                                                <span className="truncate">{item.label}</span>
+                                                <span className="truncate">
+                                                    {item.label}
+                                                </span>
                                             </div>
                                             {item.badge && (
                                                 <span
@@ -262,15 +470,19 @@ export function KoraPointShell({
                                                         'rounded-full px-2 py-0.5 text-[0.625rem] font-extrabold',
                                                         isActive
                                                             ? 'bg-kora text-white'
-                                                            : item.badgeTone === 'emerald'
-                                                            ? 'bg-emerald-500/20 text-emerald-300'
-                                                            : item.badgeTone === 'destructive'
-                                                            ? 'bg-rose-500/25 text-rose-300'
-                                                            : item.badgeTone === 'amber'
-                                                            ? 'bg-amber-500/25 text-amber-300'
-                                                            : item.badgeTone === 'gold'
-                                                            ? 'bg-gold/25 text-gold'
-                                                            : 'bg-white/10 text-white/70',
+                                                            : item.badgeTone ===
+                                                                'emerald'
+                                                              ? 'bg-emerald-500/20 text-emerald-300'
+                                                              : item.badgeTone ===
+                                                                  'destructive'
+                                                                ? 'bg-rose-500/25 text-rose-300'
+                                                                : item.badgeTone ===
+                                                                    'amber'
+                                                                  ? 'bg-amber-500/25 text-amber-300'
+                                                                  : item.badgeTone ===
+                                                                      'gold'
+                                                                    ? 'bg-gold/25 text-gold'
+                                                                    : 'bg-white/10 text-white/70',
                                                     )}
                                                 >
                                                     {item.badge}
@@ -287,14 +499,14 @@ export function KoraPointShell({
                     <div className="border-t border-white/10 p-4">
                         <div className="flex items-center justify-between gap-3">
                             <div className="flex items-center gap-2.5 truncate">
-                                <div className="grid size-8 place-items-center rounded-full bg-gold text-xs font-black text-kora shrink-0">
+                                <div className="grid size-8 shrink-0 place-items-center rounded-full bg-gold text-xs font-black text-kora">
                                     {persona.initials}
                                 </div>
                                 <div className="truncate">
                                     <div className="truncate text-xs font-bold text-white">
                                         {persona.name}
                                     </div>
-                                    <div className="text-[0.625rem] text-gold font-semibold truncate">
+                                    <div className="truncate text-[0.625rem] font-semibold text-gold">
                                         {persona.roleLabel}
                                     </div>
                                 </div>
@@ -314,12 +526,18 @@ export function KoraPointShell({
                                 className="grid size-9 place-items-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 lg:hidden dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800"
                                 aria-label="Menu mobile"
                             >
-                                {mobileNavOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+                                {mobileNavOpen ? (
+                                    <X className="size-5" />
+                                ) : (
+                                    <Menu className="size-5" />
+                                )}
                             </button>
 
                             <div className="flex flex-wrap items-center gap-2">
                                 <div className="flex items-center gap-2 text-xs font-bold text-slate-500 dark:text-slate-400">
-                                    <span className="hidden sm:inline">KORA OPS</span>
+                                    <span className="hidden sm:inline">
+                                        KORA OPS
+                                    </span>
                                     <ChevronRight className="hidden size-3.5 sm:inline" />
                                     <span className="font-extrabold text-slate-900 dark:text-white">
                                         {point.name}
@@ -332,7 +550,9 @@ export function KoraPointShell({
                                             ? `Réseau : ${point.organization.name}`
                                             : 'Point autonome'
                                     }
-                                    tone={point.organization ? 'blue' : 'emerald'}
+                                    tone={
+                                        point.organization ? 'blue' : 'emerald'
+                                    }
                                     variant="solid"
                                     className="hidden sm:inline-flex"
                                 />
@@ -353,12 +573,12 @@ export function KoraPointShell({
                                 <button
                                     type="button"
                                     onClick={onOpenSearch}
-                                    className="hidden sm:inline-flex items-center gap-2 rounded-xl border border-slate-200/80 bg-slate-50 px-3 py-1.5 text-xs text-slate-500 transition hover:border-slate-300 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-800/60 dark:text-slate-400 dark:hover:bg-slate-800"
+                                    className="hidden items-center gap-2 rounded-xl border border-slate-200/80 bg-slate-50 px-3 py-1.5 text-xs text-slate-500 transition hover:border-slate-300 hover:bg-slate-100 sm:inline-flex dark:border-slate-800 dark:bg-slate-800/60 dark:text-slate-400 dark:hover:bg-slate-800"
                                     aria-label="Recherche globale"
                                 >
                                     <Search className="size-3.5 text-slate-400" />
                                     <span>Recherche rapide...</span>
-                                    <kbd className="rounded bg-white px-1.5 py-0.5 text-[0.625rem] font-bold text-slate-500 shadow-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
+                                    <kbd className="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[0.625rem] font-bold text-slate-500 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
                                         Ctrl K
                                     </kbd>
                                 </button>
@@ -388,7 +608,7 @@ export function KoraPointShell({
                                 <div className="text-xs font-black text-slate-900 dark:text-white">
                                     {health.sales_allowed ? (
                                         <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
-                                            <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                                            <span className="size-2 animate-pulse rounded-full bg-emerald-500" />
                                             Ventes prêtes
                                         </span>
                                     ) : (
@@ -401,7 +621,10 @@ export function KoraPointShell({
                                 <div className="text-[0.625rem] text-slate-500 dark:text-slate-400">
                                     Plafond dispo :{' '}
                                     <strong className="font-bold text-slate-700 dark:text-slate-200">
-                                        {health.available_balance.toLocaleString('fr-FR')} FCFA
+                                        {health.available_balance.toLocaleString(
+                                            'fr-FR',
+                                        )}{' '}
+                                        FCFA
                                     </strong>
                                 </div>
                             </div>
@@ -413,7 +636,9 @@ export function KoraPointShell({
                         <div className="fixed inset-0 top-[6.75rem] z-50 bg-black/60 backdrop-blur-sm lg:hidden">
                             <div className="flex h-full w-72 flex-col bg-[var(--kora)] p-4 text-white shadow-xl">
                                 <div className="mb-4 flex items-center justify-between border-b border-white/10 pb-3">
-                                    <strong className="text-sm font-black text-white">Menu KORA POINT</strong>
+                                    <strong className="text-sm font-black text-white">
+                                        Menu KORA POINT
+                                    </strong>
                                     <button
                                         type="button"
                                         onClick={() => setMobileNavOpen(false)}
@@ -425,29 +650,39 @@ export function KoraPointShell({
 
                                 <nav className="flex-1 space-y-4 overflow-y-auto">
                                     {navGroups.map((group) => (
-                                        <div key={group.title} className="space-y-1">
-                                            <div className="px-3 pb-1 text-xs font-black uppercase tracking-wider text-gold">
+                                        <div
+                                            key={group.title}
+                                            className="space-y-1"
+                                        >
+                                            <div className="px-3 pb-1 text-xs font-black tracking-wider text-gold uppercase">
                                                 {group.title}
                                             </div>
                                             {group.items.map((item) => {
                                                 const Icon = item.icon;
-                                                const isActive = activePage === item.id;
+                                                const isActive =
+                                                    activePage === item.id;
 
                                                 return (
                                                     <button
                                                         key={item.id}
                                                         type="button"
-                                                        onClick={() => handleNavClick(item.id)}
+                                                        onClick={() =>
+                                                            handleNavClick(
+                                                                item.id,
+                                                            )
+                                                        }
                                                         className={cn(
                                                             'flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition',
                                                             isActive
-                                                                ? 'bg-gold text-kora font-black shadow-md'
+                                                                ? 'bg-gold font-black text-kora shadow-md'
                                                                 : 'text-white/80 hover:bg-white/10 hover:text-white',
                                                         )}
                                                     >
                                                         <div className="flex items-center gap-3">
                                                             <Icon className="size-4 shrink-0" />
-                                                            <span>{item.label}</span>
+                                                            <span>
+                                                                {item.label}
+                                                            </span>
                                                         </div>
                                                         {item.badge && (
                                                             <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold">

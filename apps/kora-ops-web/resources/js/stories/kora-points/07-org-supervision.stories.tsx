@@ -20,7 +20,8 @@ type Story = StoryObj;
 
 function SupervisionStoryWrapper() {
     const demo = useKoraPointDemo('org_attached_healthy');
-    const [activePage, setActivePage] = useState<KoraPointActivePage>('org-supervision');
+    const [activePage, setActivePage] =
+        useState<KoraPointActivePage>('org-supervision');
 
     return (
         <KoraPointShell
@@ -55,24 +56,25 @@ function SubPointDetailDrawerStory() {
     const demo = useKoraPointDemo('org_attached_healthy');
     const [isOpen, setIsOpen] = useState(true);
     const targetSubpoint =
-        demo.organizationSubPoints.find((sp) => sp.status === 'LIMIT_REACHED') ||
-        demo.organizationSubPoints[0];
+        demo.organizationSubPoints.find(
+            (sp) => sp.status === 'LIMIT_REACHED',
+        ) || demo.organizationSubPoints[0];
 
     return (
-            <div className="p-8 bg-slate-900 min-h-screen text-white flex items-center justify-center">
-                <button
-                    type="button"
-                    onClick={() => setIsOpen(true)}
-                    className="rounded-xl bg-gold px-4 py-2 text-xs font-black uppercase text-kora"
-                >
-                    Rouvrir le tiroir de consultation
-                </button>
-                <KoraOrgSubPointDrawer
-                    isOpen={isOpen}
-                    subpoint={targetSubpoint}
-                    onClose={() => setIsOpen(false)}
-                />
-            </div>
+        <div className="flex min-h-screen items-center justify-center bg-slate-900 p-8 text-white">
+            <button
+                type="button"
+                onClick={() => setIsOpen(true)}
+                className="rounded-xl bg-gold px-4 py-2 text-xs font-black text-kora uppercase"
+            >
+                Rouvrir le tiroir de consultation
+            </button>
+            <KoraOrgSubPointDrawer
+                isOpen={isOpen}
+                subpoint={targetSubpoint}
+                onClose={() => setIsOpen(false)}
+            />
+        </div>
     );
 }
 

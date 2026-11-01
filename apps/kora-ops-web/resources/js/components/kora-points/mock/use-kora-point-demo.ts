@@ -18,7 +18,8 @@ import type {
     GroupSettlementBreakdown,
     AdminNetworkPoint,
     AdminOrganization,
-    KoraNotificationItem} from './kora-point-mock-data';
+    KoraNotificationItem,
+} from './kora-point-mock-data';
 import {
     getScenarioData,
     MOCK_CASH_SESSION_OPEN,
@@ -56,9 +57,13 @@ export type DemoState = {
     notifications: KoraNotificationItem[];
 };
 
-export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_healthy') {
-    const [scenarioId, setScenarioId] = useState<DemoScenarioId>(initialScenario);
-    const [stateOverride, setStateOverride] = useState<Partial<DemoState> | null>(null);
+export function useKoraPointDemo(
+    initialScenario: DemoScenarioId = 'autonomous_healthy',
+) {
+    const [scenarioId, setScenarioId] =
+        useState<DemoScenarioId>(initialScenario);
+    const [stateOverride, setStateOverride] =
+        useState<Partial<DemoState> | null>(null);
 
     const baseData = useMemo(() => getScenarioData(scenarioId), [scenarioId]);
 
@@ -76,7 +81,8 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
     const refunds = stateOverride?.refunds ?? MOCK_POINT_REFUNDS;
     const organizationSubPoints =
         stateOverride?.organizationSubPoints ?? MOCK_ORGANIZATION_SUBPOINTS;
-    const groupSettlements = stateOverride?.groupSettlements ?? MOCK_GROUP_SETTLEMENTS;
+    const groupSettlements =
+        stateOverride?.groupSettlements ?? MOCK_GROUP_SETTLEMENTS;
     const adminNetworkPoints =
         stateOverride?.adminNetworkPoints ?? MOCK_ADMIN_NETWORK_POINTS;
     const adminOrganizations =
@@ -92,55 +98,61 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
         setStateOverride(null);
     }, []);
 
-    const openCashSession = useCallback((openingAmount: number) => {
-        const newSession: PointCashSession = {
-            status: 'OPEN',
-            opened_at: 'À l’instant',
-            operator_name: point.manager_name,
-            opening_amount: openingAmount,
-            cash_collected: 0,
-            mobile_money_collected: 0,
-            expected_closing_cash: openingAmount,
-            movements: [
-                {
-                    id: `m-${Date.now()}`,
-                    time_label: new Date().toLocaleTimeString('fr-FR', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                    }),
-                    label: 'Ouverture de session — Fond de caisse initial',
-                    amount: openingAmount,
-                    type: 'OPENING',
-                    method: 'CASH',
-                    balance_after: openingAmount,
-                },
-            ],
-        };
+    const openCashSession = useCallback(
+        (openingAmount: number) => {
+            const newSession: PointCashSession = {
+                status: 'OPEN',
+                opened_at: 'À l’instant',
+                operator_name: point.manager_name,
+                opening_amount: openingAmount,
+                cash_collected: 0,
+                mobile_money_collected: 0,
+                expected_closing_cash: openingAmount,
+                movements: [
+                    {
+                        id: `m-${Date.now()}`,
+                        time_label: new Date().toLocaleTimeString('fr-FR', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                        }),
+                        label: 'Ouverture de session — Fond de caisse initial',
+                        amount: openingAmount,
+                        type: 'OPENING',
+                        method: 'CASH',
+                        balance_after: openingAmount,
+                    },
+                ],
+            };
 
-        setStateOverride((prev) => ({
-            ...prev,
-            cashSession: newSession,
-        }));
-    }, [point]);
+            setStateOverride((prev) => ({
+                ...prev,
+                cashSession: newSession,
+            }));
+        },
+        [point],
+    );
 
-    const closeCashSession = useCallback((actualCash: number, closingNote?: string) => {
-        const expected = cashSession.expected_closing_cash;
-        const variance = actualCash - expected;
+    const closeCashSession = useCallback(
+        (actualCash: number, closingNote?: string) => {
+            const expected = cashSession.expected_closing_cash;
+            const variance = actualCash - expected;
 
-        const closedSession: PointCashSession = {
-            ...cashSession,
-            status: 'CLOSED',
-            closed_at: 'À l’instant',
-            actual_closing_cash: actualCash,
-            variance_amount: variance,
-            closing_note: closingNote,
-        };
+            const closedSession: PointCashSession = {
+                ...cashSession,
+                status: 'CLOSED',
+                closed_at: 'À l’instant',
+                actual_closing_cash: actualCash,
+                variance_amount: variance,
+                closing_note: closingNote,
+            };
 
-        setStateOverride((prev) => ({
-            ...prev,
-            cashSession: closedSession,
-        }));
-    }, [cashSession]);
+            setStateOverride((prev) => ({
+                ...prev,
+                cashSession: closedSession,
+            }));
+        },
+        [cashSession],
+    );
 
     const recordSimulatedSale = useCallback(
         (sale: {
@@ -157,7 +169,9 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
             paymentMethod: 'CASH' | 'MOBILE_MONEY';
         }) => {
             const commissionRateBps = point.terms.commission_rate_bps;
-            const commissionAmount = Math.round((sale.amountPaid * commissionRateBps) / 10000);
+            const commissionAmount = Math.round(
+                (sale.amountPaid * commissionRateBps) / 10000,
+            );
             const shortCode = String(Math.floor(1000 + Math.random() * 9000));
             const ticketNumber = `TK-AKP-${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-${shortCode}`;
 
@@ -165,7 +179,10 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
                 uuid: `sale-${Date.now()}`,
                 ticket_number: ticketNumber,
                 short_code: shortCode,
-                created_at: new Date().toISOString().slice(0, 16).replace('T', ' '),
+                created_at: new Date()
+                    .toISOString()
+                    .slice(0, 16)
+                    .replace('T', ' '),
                 date_label: 'À l’instant',
                 seller_name: point.manager_name,
                 departure_ref: sale.departureRef,
@@ -204,7 +221,10 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
 
             const newExposure = health.current_exposure + sale.amountPaid;
             const newAvailable = Math.max(0, health.credit_limit - newExposure);
-            const usagePct = Math.min(100, Math.round((newExposure / health.credit_limit) * 100));
+            const usagePct = Math.min(
+                100,
+                Math.round((newExposure / health.credit_limit) * 100),
+            );
 
             const updatedHealth: FinancialHealth = {
                 ...health,
@@ -220,9 +240,11 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
 
             const updatedMetrics: DailyMetrics = {
                 ...metrics,
-                today_sales_amount: metrics.today_sales_amount + sale.amountPaid,
+                today_sales_amount:
+                    metrics.today_sales_amount + sale.amountPaid,
                 today_tickets_count: metrics.today_tickets_count + 1,
-                today_commission_amount: metrics.today_commission_amount + commissionAmount,
+                today_commission_amount:
+                    metrics.today_commission_amount + commissionAmount,
                 total_due_amount: newExposure,
             };
 
@@ -231,9 +253,13 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
 
             if (cashSession.status === 'OPEN') {
                 const isCash = sale.paymentMethod === 'CASH';
-                const newCashCollected = cashSession.cash_collected + (isCash ? sale.amountPaid : 0);
-                const newMobileCollected = cashSession.mobile_money_collected + (isCash ? 0 : sale.amountPaid);
-                const newExpectedCash = cashSession.opening_amount + newCashCollected;
+                const newCashCollected =
+                    cashSession.cash_collected + (isCash ? sale.amountPaid : 0);
+                const newMobileCollected =
+                    cashSession.mobile_money_collected +
+                    (isCash ? 0 : sale.amountPaid);
+                const newExpectedCash =
+                    cashSession.opening_amount + newCashCollected;
                 const newMovement = {
                     id: `m-${Date.now()}`,
                     time_label: new Date().toLocaleTimeString('fr-FR', {
@@ -242,7 +268,9 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
                     }),
                     label: `Vente billet ${ticketNumber} (${sale.passengerName})`,
                     amount: sale.amountPaid,
-                    type: isCash ? ('SALE_CASH' as const) : ('SALE_MOBILE' as const),
+                    type: isCash
+                        ? ('SALE_CASH' as const)
+                        : ('SALE_MOBILE' as const),
                     method: sale.paymentMethod,
                     balance_after: newExpectedCash,
                 };
@@ -305,7 +333,8 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
                 proof_file_name: data.proofFileName || 'preuve_versement.pdf',
                 proof_file_size: '340 Ko',
                 status: 'DECLARED',
-                sales_count: sales.filter((s) => s.settlement_status === 'open').length,
+                sales_count: sales.filter((s) => s.settlement_status === 'open')
+                    .length,
                 tickets_covered: sales
                     .filter((s) => s.settlement_status === 'open')
                     .map((s) => s.ticket_number),
@@ -327,9 +356,14 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
             };
 
             // Simulating exposure reduction in demo
-            const newExposure = Math.max(0, health.current_exposure - data.amountDeclared);
+            const newExposure = Math.max(
+                0,
+                health.current_exposure - data.amountDeclared,
+            );
             const newAvailable = Math.max(0, health.credit_limit - newExposure);
-            const newPercentage = Math.round((newExposure / health.credit_limit) * 100);
+            const newPercentage = Math.round(
+                (newExposure / health.credit_limit) * 100,
+            );
 
             const updatedHealth: FinancialHealth = {
                 ...health,
@@ -342,7 +376,11 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
             // Update sales settlement status to in_settlement
             const updatedSales = sales.map((s) =>
                 s.settlement_status === 'open'
-                    ? { ...s, settlement_status: 'in_settlement' as const, settlement_ref: newRef }
+                    ? {
+                          ...s,
+                          settlement_status: 'in_settlement' as const,
+                          settlement_ref: newRef,
+                      }
                     : s,
             );
 
@@ -364,7 +402,11 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
             passengerName: string;
             passengerPhone: string;
             originalAmount: number;
-            reason: 'TRIP_CANCELLED' | 'PASSENGER_SICKNESS' | 'DUPLICATE_PURCHASE' | 'SCHEDULE_CHANGE';
+            reason:
+                | 'TRIP_CANCELLED'
+                | 'PASSENGER_SICKNESS'
+                | 'DUPLICATE_PURCHASE'
+                | 'SCHEDULE_CHANGE';
             reasonLabel: string;
             retainedFee?: number;
             proofDocumentName?: string;
@@ -381,9 +423,13 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
             const retainedFee = data.retainedFee ?? 0;
             const refundAmount = data.originalAmount - retainedFee;
             const commissionRateBps = point.terms.commission_rate_bps;
-            const commissionClawback = -Math.round((refundAmount * commissionRateBps) / 10000);
+            const commissionClawback = -Math.round(
+                (refundAmount * commissionRateBps) / 10000,
+            );
 
-            const matchedSale = sales.find((s) => s.ticket_number === data.ticketNumber);
+            const matchedSale = sales.find(
+                (s) => s.ticket_number === data.ticketNumber,
+            );
 
             const newRefund: PointRefundRecord = {
                 uuid: `ref-${Date.now()}`,
@@ -431,9 +477,14 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
                 seller_name: point.manager_name,
                 amount_paid: data.originalAmount,
                 commission_rate_bps: commissionRateBps,
-                initial_commission: Math.round((data.originalAmount * commissionRateBps) / 10000),
+                initial_commission: Math.round(
+                    (data.originalAmount * commissionRateBps) / 10000,
+                ),
                 correction_amount: commissionClawback,
-                net_commission: Math.round((data.originalAmount * commissionRateBps) / 10000) + commissionClawback,
+                net_commission:
+                    Math.round(
+                        (data.originalAmount * commissionRateBps) / 10000,
+                    ) + commissionClawback,
                 settlement_status: 'open',
                 has_refund_correction: true,
                 refund_ref: newRef,
@@ -465,8 +516,8 @@ export function useKoraPointDemo(initialScenario: DemoScenarioId = 'autonomous_h
             const targetRefund = refunds.find((r) => r.uuid === refundUuid);
 
             if (!targetRefund) {
-return;
-}
+                return;
+            }
 
             const updatedRefund: PointRefundRecord = {
                 ...targetRefund,
@@ -491,7 +542,8 @@ return;
             if (cashSession.status === 'OPEN') {
                 const newExpectedCash = Math.max(
                     0,
-                    cashSession.expected_closing_cash - targetRefund.refund_amount,
+                    cashSession.expected_closing_cash -
+                        targetRefund.refund_amount,
                 );
                 const movement = {
                     id: `m-${Date.now()}`,
@@ -511,7 +563,9 @@ return;
 
             setStateOverride((prev) => ({
                 ...prev,
-                refunds: refunds.map((r) => (r.uuid === refundUuid ? updatedRefund : r)),
+                refunds: refunds.map((r) =>
+                    r.uuid === refundUuid ? updatedRefund : r,
+                ),
                 cashSession: updatedCashSession,
             }));
         },
@@ -545,14 +599,16 @@ return;
             const newDeclaration: GroupSettlementRecord = {
                 uuid: `grp-${Date.now()}`,
                 reference: newRef,
-                organization_name: point.organization?.name || 'La Poste du Bénin SA',
+                organization_name:
+                    point.organization?.name || 'La Poste du Bénin SA',
                 created_by_name: `${point.manager_name} (Trésorier)`,
                 created_at: `${dateStr} à ${timeStr}`,
                 total_amount_expected: totalExpected,
                 total_amount_declared: data.totalAmountDeclared,
                 payment_method: data.paymentMethod,
                 payment_reference: data.paymentReference,
-                proof_file_name: data.proofFileName || 'ordre_virement_groupé.pdf',
+                proof_file_name:
+                    data.proofFileName || 'ordre_virement_groupé.pdf',
                 status: 'DECLARED',
                 breakdown: data.breakdown,
                 notes: data.notes,
@@ -567,18 +623,26 @@ return;
                         step: 'Rapprochement comptable KORA Trésorerie',
                         date_label: 'En cours',
                         actor: 'Pôle Trésorerie KORA',
-                        comment: 'Vérification de la conformité du virement bancaire sous 24-48h.',
+                        comment:
+                            'Vérification de la conformité du virement bancaire sous 24-48h.',
                     },
                 ],
             };
 
             // Update subpoints exposure in demo
             const updatedSubPoints = organizationSubPoints.map((sp) => {
-                const alloc = data.breakdown.find((b) => b.subpoint_uuid === sp.uuid);
+                const alloc = data.breakdown.find(
+                    (b) => b.subpoint_uuid === sp.uuid,
+                );
 
                 if (alloc) {
-                    const newExposure = Math.max(0, sp.current_exposure - alloc.amount_allocated);
-                    const newUsage = Math.round((newExposure / sp.credit_limit) * 100);
+                    const newExposure = Math.max(
+                        0,
+                        sp.current_exposure - alloc.amount_allocated,
+                    );
+                    const newUsage = Math.round(
+                        (newExposure / sp.credit_limit) * 100,
+                    );
 
                     return {
                         ...sp,
@@ -588,8 +652,8 @@ return;
                             newUsage >= 100
                                 ? ('LIMIT_REACHED' as const)
                                 : newUsage >= 80
-                                ? ('WARNING_THRESHOLD' as const)
-                                : ('ACTIVE' as const),
+                                  ? ('WARNING_THRESHOLD' as const)
+                                  : ('ACTIVE' as const),
                     };
                 }
 
@@ -659,7 +723,14 @@ return;
     );
 
     const updatePointTermsOverride = useCallback(
-        (pointUuid: string, terms: Partial<{ commission_rate_bps: number; credit_limit: number; settlement_frequency_days: number }>) => {
+        (
+            pointUuid: string,
+            terms: Partial<{
+                commission_rate_bps: number;
+                credit_limit: number;
+                settlement_frequency_days: number;
+            }>,
+        ) => {
             setStateOverride((prev) => ({
                 ...prev,
                 adminNetworkPoints: adminNetworkPoints.map((pt) =>
@@ -678,7 +749,13 @@ return;
                     ...org,
                     users: org.users.map((u) =>
                         u.uuid === userUuid
-                            ? { ...u, status: u.status === 'ACTIVE' ? ('SUSPENDED' as const) : ('ACTIVE' as const) }
+                            ? {
+                                  ...u,
+                                  status:
+                                      u.status === 'ACTIVE'
+                                          ? ('SUSPENDED' as const)
+                                          : ('ACTIVE' as const),
+                              }
                             : u,
                     ),
                 })),
@@ -700,13 +777,13 @@ return;
             const target = settlements.find((s) => s.uuid === settlementUuid);
 
             if (!target) {
-return;
-}
+                return;
+            }
 
             const updatedSettlements = settlements.map((s) => {
                 if (s.uuid !== settlementUuid) {
-return s;
-}
+                    return s;
+                }
 
                 return {
                     ...s,
@@ -718,7 +795,8 @@ return s;
                             step: 'Fonds crédités et rapprochés',
                             date_label: 'À l’instant',
                             actor: 'Clarisse Mensah (Finance KORA)',
-                            comment: `Date de valeur : ${params.valueDate}. Montant constaté : ${params.bankAmount.toLocaleString('fr-FR')} FCFA. ${params.notes || ''}`.trim(),
+                            comment:
+                                `Date de valeur : ${params.valueDate}. Montant constaté : ${params.bankAmount.toLocaleString('fr-FR')} FCFA. ${params.notes || ''}`.trim(),
                         },
                     ],
                 };
@@ -728,7 +806,9 @@ return s;
             const delta = params.bankAmount;
             const newExposure = Math.max(0, health.current_exposure - delta);
             const newAvailable = Math.max(0, health.credit_limit - newExposure);
-            const newUsage = Math.round((newExposure / health.credit_limit) * 100);
+            const newUsage = Math.round(
+                (newExposure / health.credit_limit) * 100,
+            );
 
             const newNotification: KoraNotificationItem = {
                 uuid: `notif-rec-${Date.now()}`,
@@ -752,7 +832,10 @@ return s;
                     available_balance: newAvailable,
                     usage_percentage: newUsage,
                     sales_allowed: newExposure < health.credit_limit,
-                    block_reason: newExposure >= health.credit_limit ? health.block_reason : null,
+                    block_reason:
+                        newExposure >= health.credit_limit
+                            ? health.block_reason
+                            : null,
                 },
                 notifications: [newNotification, ...notifications],
             }));
@@ -765,13 +848,13 @@ return s;
             const target = settlements.find((s) => s.uuid === settlementUuid);
 
             if (!target) {
-return;
-}
+                return;
+            }
 
             const updatedSettlements = settlements.map((s) => {
                 if (s.uuid !== settlementUuid) {
-return s;
-}
+                    return s;
+                }
 
                 return {
                     ...s,
@@ -812,12 +895,18 @@ return s;
     );
 
     const approveRefund = useCallback(
-        (refundUuid: string, params: { payoutMode: 'POINT_CASH' | 'KORA_DIRECT'; notes?: string }) => {
+        (
+            refundUuid: string,
+            params: {
+                payoutMode: 'POINT_CASH' | 'KORA_DIRECT';
+                notes?: string;
+            },
+        ) => {
             const target = refunds.find((r) => r.uuid === refundUuid);
 
             if (!target) {
-return;
-}
+                return;
+            }
 
             const nextStatus =
                 params.payoutMode === 'POINT_CASH'
@@ -831,16 +920,22 @@ return;
 
             const updatedRefunds = refunds.map((r) => {
                 if (r.uuid !== refundUuid) {
-return r;
-}
+                    return r;
+                }
 
                 return {
                     ...r,
                     status: nextStatus,
                     approved_at: 'Aujourd’hui',
                     approved_by: 'Clarisse Mensah (Finance KORA)',
-                    restituted_at: params.payoutMode === 'KORA_DIRECT' ? 'Aujourd’hui' : undefined,
-                    restituted_by: params.payoutMode === 'KORA_DIRECT' ? 'Clarisse Mensah (Finance KORA)' : undefined,
+                    restituted_at:
+                        params.payoutMode === 'KORA_DIRECT'
+                            ? 'Aujourd’hui'
+                            : undefined,
+                    restituted_by:
+                        params.payoutMode === 'KORA_DIRECT'
+                            ? 'Clarisse Mensah (Finance KORA)'
+                            : undefined,
                     timeline: [
                         ...r.timeline,
                         {
@@ -859,7 +954,9 @@ return r;
                 level: 'info',
                 title: `Remboursement instruit : ${target.reference}`,
                 description: `Dossier approuvé (${target.refund_amount.toLocaleString('fr-FR')} FCFA) — Mode : ${
-                    params.payoutMode === 'POINT_CASH' ? 'Espèces au Point' : 'Direct KORA'
+                    params.payoutMode === 'POINT_CASH'
+                        ? 'Espèces au Point'
+                        : 'Direct KORA'
                 }.`,
                 created_at: new Date().toISOString(),
                 date_label: 'À l’instant',
@@ -882,13 +979,13 @@ return r;
             const target = refunds.find((r) => r.uuid === refundUuid);
 
             if (!target) {
-return;
-}
+                return;
+            }
 
             const updatedRefunds = refunds.map((r) => {
                 if (r.uuid !== refundUuid) {
-return r;
-}
+                    return r;
+                }
 
                 return {
                     ...r,

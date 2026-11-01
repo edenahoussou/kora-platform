@@ -194,10 +194,11 @@ export default function FareDetailPage({
                     <button
                         key={key}
                         onClick={() => setTab(key)}
-                        className={`border-b-2 px-4 py-3 text-[0.6875rem] font-extrabold tracking-[0.035em] transition-colors ${tab === key
-                            ? 'border-gold text-foreground'
-                            : 'border-transparent text-muted-foreground hover:text-foreground'
-                            }`}
+                        className={`border-b-2 px-4 py-3 text-[0.6875rem] font-extrabold tracking-[0.035em] transition-colors ${
+                            tab === key
+                                ? 'border-gold text-foreground'
+                                : 'border-transparent text-muted-foreground hover:text-foreground'
+                        }`}
                     >
                         {label}
                     </button>
@@ -350,10 +351,11 @@ export default function FareDetailPage({
                                             {versions.map((version) => (
                                                 <tr
                                                     key={version.uuid}
-                                                    className={`border-b border-border/30 ${version.isCurrent
-                                                        ? 'bg-gold/5'
-                                                        : ''
-                                                        }`}
+                                                    className={`border-b border-border/30 ${
+                                                        version.isCurrent
+                                                            ? 'bg-gold/5'
+                                                            : ''
+                                                    }`}
                                                 >
                                                     <td className="py-3 pr-4 font-medium text-foreground">
                                                         {version.reference}
@@ -383,15 +385,15 @@ export default function FareDetailPage({
                                                         <KoraStatusBadge
                                                             label={
                                                                 statusLabels[
-                                                                version
-                                                                    .status
+                                                                    version
+                                                                        .status
                                                                 ] ??
                                                                 version.status
                                                             }
                                                             tone={
                                                                 statusTones[
-                                                                version
-                                                                    .status
+                                                                    version
+                                                                        .status
                                                                 ] ?? 'muted'
                                                             }
                                                         />

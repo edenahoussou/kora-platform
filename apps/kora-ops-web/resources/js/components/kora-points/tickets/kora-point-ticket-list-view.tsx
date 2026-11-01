@@ -1,13 +1,11 @@
-import {
-    Search,
-    Ticket,
-    Eye,
-    ChevronRight,
-} from 'lucide-react';
+import { Search, Ticket, Eye, ChevronRight } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { cn } from '@/lib/utils';
-import type { PointSaleRecord, SettlementStatus } from '../mock/kora-point-mock-data';
+import type {
+    PointSaleRecord,
+    SettlementStatus,
+} from '../mock/kora-point-mock-data';
 import { KoraPointTicketDetailDrawer } from './kora-point-ticket-detail-drawer';
 
 type Props = {
@@ -22,14 +20,19 @@ export function KoraPointTicketListView({
     onRequestRefund,
 }: Props) {
     const [searchQuery, setSearchQuery] = useState('');
-    const [statusFilter, setStatusFilter] = useState<'all' | SettlementStatus>('all');
-    const [selectedSale, setSelectedSale] = useState<PointSaleRecord | null>(null);
+    const [statusFilter, setStatusFilter] = useState<'all' | SettlementStatus>(
+        'all',
+    );
+    const [selectedSale, setSelectedSale] = useState<PointSaleRecord | null>(
+        null,
+    );
 
     // Filter logic
     const filteredSales = useMemo(() => {
         return sales.filter((sale) => {
             const matchesStatus =
-                statusFilter === 'all' || sale.settlement_status === statusFilter;
+                statusFilter === 'all' ||
+                sale.settlement_status === statusFilter;
 
             const q = searchQuery.toLowerCase().trim();
             const matchesSearch =
@@ -45,8 +48,14 @@ export function KoraPointTicketListView({
     }, [sales, statusFilter, searchQuery]);
 
     // Financial summaries based on current filtered view
-    const totalAmount = filteredSales.reduce((acc, s) => acc + s.amount_paid, 0);
-    const totalCommission = filteredSales.reduce((acc, s) => acc + s.commission_amount, 0);
+    const totalAmount = filteredSales.reduce(
+        (acc, s) => acc + s.amount_paid,
+        0,
+    );
+    const totalCommission = filteredSales.reduce(
+        (acc, s) => acc + s.commission_amount,
+        0,
+    );
 
     return (
         <div className="space-y-6">
@@ -60,10 +69,10 @@ export function KoraPointTicketListView({
             {/* Header */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <span className="text-[0.625rem] font-black uppercase tracking-wider text-slate-500">
+                    <span className="text-[0.625rem] font-black tracking-wider text-slate-500 uppercase">
                         Journal des ventes du Point
                     </span>
-                    <h1 className="text-xl font-black text-slate-900 dark:text-white sm:text-2xl">
+                    <h1 className="text-xl font-black text-slate-900 sm:text-2xl dark:text-white">
                         Billets & Activité
                     </h1>
                 </div>
@@ -71,7 +80,7 @@ export function KoraPointTicketListView({
                 <button
                     type="button"
                     onClick={onStartNewSale}
-                    className="inline-flex h-10 items-center gap-2 rounded-xl bg-gold px-4 text-xs font-black uppercase tracking-wider text-kora shadow-md transition hover:bg-gold/90 shrink-0"
+                    className="inline-flex h-10 shrink-0 items-center gap-2 rounded-xl bg-gold px-4 text-xs font-black tracking-wider text-kora uppercase shadow-md transition hover:bg-gold/90"
                 >
                     <Ticket className="size-4" />
                     <span>Nouvelle vente</span>
@@ -112,7 +121,10 @@ export function KoraPointTicketListView({
                         À reverser net
                     </span>
                     <strong className="mt-1 block font-mono text-xl font-black text-gold">
-                        {(totalAmount - totalCommission).toLocaleString('fr-FR')} FCFA
+                        {(totalAmount - totalCommission).toLocaleString(
+                            'fr-FR',
+                        )}{' '}
+                        FCFA
                     </strong>
                 </div>
             </div>
@@ -120,14 +132,14 @@ export function KoraPointTicketListView({
             {/* Filter Bar */}
             <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:border-slate-800 dark:bg-slate-900">
                 {/* Search */}
-                <div className="relative flex-1 max-w-md">
-                    <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                <div className="relative max-w-md flex-1">
+                    <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-slate-400" />
                     <input
                         type="text"
                         placeholder="Rechercher par billet N°, code court, voyageur..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-4 text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-gold dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                        className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pr-4 pl-10 text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-1 focus:ring-gold focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                     />
                 </div>
 
@@ -146,7 +158,7 @@ export function KoraPointTicketListView({
                             className={cn(
                                 'rounded-xl px-3 py-1.5 text-xs font-bold transition',
                                 statusFilter === tab.id
-                                    ? 'bg-[var(--kora)] text-white dark:bg-digital dark:text-kora shadow-sm'
+                                    ? 'bg-[var(--kora)] text-white shadow-sm dark:bg-digital dark:text-kora'
                                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700',
                             )}
                         >
@@ -157,18 +169,22 @@ export function KoraPointTicketListView({
             </div>
 
             {/* Desktop Table View */}
-            <div className="hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:block overflow-hidden dark:border-slate-800 dark:bg-slate-900">
-                <table className="w-full text-left text-xs border-collapse">
+            <div className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:block dark:border-slate-800 dark:bg-slate-900">
+                <table className="w-full border-collapse text-left text-xs">
                     <thead>
-                        <tr className="border-b border-slate-200 bg-slate-50 text-[0.625rem] font-black uppercase tracking-wider text-slate-400 dark:border-slate-800 dark:bg-slate-950">
-                            <th className="py-3.5 pl-5 pr-3">Billet & Code</th>
-                            <th className="py-3.5 px-3">Date & Heure</th>
-                            <th className="py-3.5 px-3">Voyageur</th>
-                            <th className="py-3.5 px-3">Trajet / Départ</th>
-                            <th className="py-3.5 px-3 text-right">Montant</th>
-                            <th className="py-3.5 px-3 text-right">Commission</th>
-                            <th className="py-3.5 px-3">Statut reversement</th>
-                            <th className="py-3.5 pl-3 pr-5 text-right">Action</th>
+                        <tr className="border-b border-slate-200 bg-slate-50 text-[0.625rem] font-black tracking-wider text-slate-400 uppercase dark:border-slate-800 dark:bg-slate-950">
+                            <th className="py-3.5 pr-3 pl-5">Billet & Code</th>
+                            <th className="px-3 py-3.5">Date & Heure</th>
+                            <th className="px-3 py-3.5">Voyageur</th>
+                            <th className="px-3 py-3.5">Trajet / Départ</th>
+                            <th className="px-3 py-3.5 text-right">Montant</th>
+                            <th className="px-3 py-3.5 text-right">
+                                Commission
+                            </th>
+                            <th className="px-3 py-3.5">Statut reversement</th>
+                            <th className="py-3.5 pr-5 pl-3 text-right">
+                                Action
+                            </th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -178,40 +194,46 @@ export function KoraPointTicketListView({
                                 onClick={() => setSelectedSale(sale)}
                                 className="group cursor-pointer transition hover:bg-slate-50 dark:hover:bg-slate-800/50"
                             >
-                                <td className="py-3 pl-5 pr-3">
+                                <td className="py-3 pr-3 pl-5">
                                     <div className="font-mono font-bold text-slate-900 dark:text-white">
                                         {sale.ticket_number}
                                     </div>
-                                    <span className="inline-block rounded bg-gold/20 px-1.5 py-0.2 font-mono text-[0.625rem] font-black text-kora dark:text-gold">
+                                    <span className="py-0.2 inline-block rounded bg-gold/20 px-1.5 font-mono text-[0.625rem] font-black text-kora dark:text-gold">
                                         Code {sale.short_code}
                                     </span>
                                 </td>
-                                <td className="py-3 px-3 text-slate-500 whitespace-nowrap">
+                                <td className="px-3 py-3 whitespace-nowrap text-slate-500">
                                     {sale.date_label}
                                 </td>
-                                <td className="py-3 px-3">
+                                <td className="px-3 py-3">
                                     <div className="font-bold text-slate-800 dark:text-slate-200">
                                         {sale.passenger_name}
                                     </div>
-                                    <div className="text-[0.6875rem] font-mono text-slate-400">
+                                    <div className="font-mono text-[0.6875rem] text-slate-400">
                                         {sale.passenger_phone}
                                     </div>
                                 </td>
-                                <td className="py-3 px-3">
+                                <td className="px-3 py-3">
                                     <div className="font-semibold text-slate-900 dark:text-white">
                                         {sale.route_label}
                                     </div>
                                     <div className="text-[0.6875rem] text-slate-400">
-                                        {sale.departure_ref} · Siège {sale.seat_number}
+                                        {sale.departure_ref} · Siège{' '}
+                                        {sale.seat_number}
                                     </div>
                                 </td>
-                                <td className="py-3 px-3 text-right font-mono font-bold text-slate-900 dark:text-white whitespace-nowrap">
-                                    {sale.amount_paid.toLocaleString('fr-FR')} FCFA
+                                <td className="px-3 py-3 text-right font-mono font-bold whitespace-nowrap text-slate-900 dark:text-white">
+                                    {sale.amount_paid.toLocaleString('fr-FR')}{' '}
+                                    FCFA
                                 </td>
-                                <td className="py-3 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
-                                    +{sale.commission_amount.toLocaleString('fr-FR')} FCFA
+                                <td className="px-3 py-3 text-right font-mono font-bold whitespace-nowrap text-emerald-600 dark:text-emerald-400">
+                                    +
+                                    {sale.commission_amount.toLocaleString(
+                                        'fr-FR',
+                                    )}{' '}
+                                    FCFA
                                 </td>
-                                <td className="py-3 px-3 whitespace-nowrap">
+                                <td className="px-3 py-3 whitespace-nowrap">
                                     {sale.settlement_status === 'open' && (
                                         <KoraStatusBadge
                                             label="À reverser"
@@ -219,7 +241,8 @@ export function KoraPointTicketListView({
                                             variant="solid"
                                         />
                                     )}
-                                    {sale.settlement_status === 'in_settlement' && (
+                                    {sale.settlement_status ===
+                                        'in_settlement' && (
                                         <KoraStatusBadge
                                             label="Dans bordereau"
                                             tone="blue"
@@ -234,7 +257,7 @@ export function KoraPointTicketListView({
                                         />
                                     )}
                                 </td>
-                                <td className="py-3 pl-3 pr-5 text-right whitespace-nowrap">
+                                <td className="py-3 pr-5 pl-3 text-right whitespace-nowrap">
                                     <button
                                         type="button"
                                         onClick={(e) => {
@@ -266,24 +289,38 @@ export function KoraPointTicketListView({
                                 <span className="font-mono text-xs font-black text-slate-900 dark:text-white">
                                     {sale.ticket_number}
                                 </span>
-                                <span className="ml-2 rounded bg-gold/20 px-1.5 py-0.2 font-mono text-[0.625rem] font-black text-kora dark:text-gold">
+                                <span className="py-0.2 ml-2 rounded bg-gold/20 px-1.5 font-mono text-[0.625rem] font-black text-kora dark:text-gold">
                                     Code {sale.short_code}
                                 </span>
                             </div>
                             {sale.settlement_status === 'open' && (
-                                <KoraStatusBadge label="À reverser" tone="amber" variant="solid" />
+                                <KoraStatusBadge
+                                    label="À reverser"
+                                    tone="amber"
+                                    variant="solid"
+                                />
                             )}
                             {sale.settlement_status === 'in_settlement' && (
-                                <KoraStatusBadge label="Dans bordereau" tone="blue" variant="solid" />
+                                <KoraStatusBadge
+                                    label="Dans bordereau"
+                                    tone="blue"
+                                    variant="solid"
+                                />
                             )}
                             {sale.settlement_status === 'settled' && (
-                                <KoraStatusBadge label="Réglé" tone="emerald" variant="solid" />
+                                <KoraStatusBadge
+                                    label="Réglé"
+                                    tone="emerald"
+                                    variant="solid"
+                                />
                             )}
                         </div>
 
                         <div className="my-3 space-y-1.5 text-xs">
                             <div className="flex items-center justify-between">
-                                <span className="text-slate-400">Voyageur :</span>
+                                <span className="text-slate-400">
+                                    Voyageur :
+                                </span>
                                 <strong className="text-slate-900 dark:text-white">
                                     {sale.passenger_name}
                                 </strong>
@@ -295,9 +332,12 @@ export function KoraPointTicketListView({
                                 </span>
                             </div>
                             <div className="flex items-center justify-between">
-                                <span className="text-slate-400">Départ / Siège :</span>
+                                <span className="text-slate-400">
+                                    Départ / Siège :
+                                </span>
                                 <span className="text-slate-600 dark:text-slate-400">
-                                    {sale.departure_ref} · Siège {sale.seat_number}
+                                    {sale.departure_ref} · Siège{' '}
+                                    {sale.seat_number}
                                 </span>
                             </div>
                             <div className="flex items-center justify-between border-t border-slate-100 pt-2 dark:border-slate-800">
@@ -305,19 +345,29 @@ export function KoraPointTicketListView({
                                     Montant payé :
                                 </span>
                                 <strong className="font-mono text-sm text-slate-900 dark:text-white">
-                                    {sale.amount_paid.toLocaleString('fr-FR')} FCFA
+                                    {sale.amount_paid.toLocaleString('fr-FR')}{' '}
+                                    FCFA
                                 </strong>
                             </div>
-                            <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400 font-bold">
+                            <div className="flex items-center justify-between font-bold text-emerald-600 dark:text-emerald-400">
                                 <span>Commission Point :</span>
-                                <span>+{sale.commission_amount.toLocaleString('fr-FR')} FCFA</span>
+                                <span>
+                                    +
+                                    {sale.commission_amount.toLocaleString(
+                                        'fr-FR',
+                                    )}{' '}
+                                    FCFA
+                                </span>
                             </div>
                         </div>
 
                         <div className="flex items-center justify-between border-t border-slate-100 pt-2 text-xs dark:border-slate-800">
-                            <span className="text-[0.6875rem] text-slate-400">{sale.date_label}</span>
+                            <span className="text-[0.6875rem] text-slate-400">
+                                {sale.date_label}
+                            </span>
                             <span className="flex items-center gap-1 font-bold text-blue-600 dark:text-blue-400">
-                                Consulter le reçu <ChevronRight className="size-3.5" />
+                                Consulter le reçu{' '}
+                                <ChevronRight className="size-3.5" />
                             </span>
                         </div>
                     </article>

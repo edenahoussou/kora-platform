@@ -12,7 +12,10 @@ import {
     Trash2,
 } from 'lucide-react';
 import { useState, useRef } from 'react';
-import type { FinancialHealth, PointSettlementMethod } from '../mock/kora-point-mock-data';
+import type {
+    FinancialHealth,
+    PointSettlementMethod,
+} from '../mock/kora-point-mock-data';
 
 type Props = {
     isOpen: boolean;
@@ -35,11 +38,18 @@ export function KoraPointSettlementDialog({
     onClose,
     onSubmit,
 }: Props) {
-    const [amountDeclared, setAmountDeclared] = useState<number>(health.current_exposure || 100000);
-    const [paymentMethod, setPaymentMethod] = useState<PointSettlementMethod>('BANK_DEPOSIT');
+    const [amountDeclared, setAmountDeclared] = useState<number>(
+        health.current_exposure || 100000,
+    );
+    const [paymentMethod, setPaymentMethod] =
+        useState<PointSettlementMethod>('BANK_DEPOSIT');
     const [paymentReference, setPaymentReference] = useState('');
     const [notes, setNotes] = useState('');
-    const [proofFile, setProofFile] = useState<{ name: string; size: string; previewUrl?: string } | null>({
+    const [proofFile, setProofFile] = useState<{
+        name: string;
+        size: string;
+        previewUrl?: string;
+    } | null>({
         name: 'bordereau_versement_ecobank_saint_michel.pdf',
         size: '345 Ko',
     });
@@ -53,7 +63,10 @@ export function KoraPointSettlementDialog({
         return null;
     }
 
-    const remainingExposure = Math.max(0, health.current_exposure - amountDeclared);
+    const remainingExposure = Math.max(
+        0,
+        health.current_exposure - amountDeclared,
+    );
 
     const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -74,7 +87,8 @@ export function KoraPointSettlementDialog({
     };
 
     const handleQuickAmount = (ratio: number) => {
-        const calculated = Math.round((health.current_exposure * ratio) / 1000) * 1000;
+        const calculated =
+            Math.round((health.current_exposure * ratio) / 1000) * 1000;
         setAmountDeclared(calculated);
     };
 
@@ -89,13 +103,17 @@ export function KoraPointSettlementDialog({
         }
 
         if (!paymentReference.trim()) {
-            setError('Veuillez renseigner le numéro d’opération ou la référence bancaire.');
+            setError(
+                'Veuillez renseigner le numéro d’opération ou la référence bancaire.',
+            );
 
             return;
         }
 
         if (!proofFile) {
-            setError('Le téléversement du justificatif de paiement ou bordereau est obligatoire.');
+            setError(
+                'Le téléversement du justificatif de paiement ou bordereau est obligatoire.',
+            );
 
             return;
         }
@@ -113,16 +131,16 @@ export function KoraPointSettlementDialog({
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200"
+            className="fixed inset-0 z-50 flex animate-in items-center justify-center overflow-y-auto bg-slate-950/60 p-4 backdrop-blur-sm duration-200 fade-in"
             role="dialog"
             aria-modal="true"
             aria-labelledby="settlement-dialog-title"
         >
-            <div className="relative my-8 w-full max-w-2xl rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900 overflow-hidden">
+            <div className="relative my-8 w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900">
                 {/* Modal Header */}
                 <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-6 py-4 dark:border-slate-800 dark:bg-slate-800/40">
                     <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gold/15 text-gold-dark dark:bg-gold/25 dark:text-gold">
+                        <div className="text-gold-dark flex h-10 w-10 items-center justify-center rounded-xl bg-gold/15 dark:bg-gold/25 dark:text-gold">
                             <Coins className="h-5 w-5" />
                         </div>
                         <div>
@@ -133,7 +151,8 @@ export function KoraPointSettlementDialog({
                                 Déclarer un versement de reversement
                             </h2>
                             <p className="text-xs text-slate-500">
-                                {pointName} · Apurement de la dette envers KORA Exploitation
+                                {pointName} · Apurement de la dette envers KORA
+                                Exploitation
                             </p>
                         </div>
                     </div>
@@ -147,10 +166,10 @@ export function KoraPointSettlementDialog({
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-6 p-6">
                     {/* Error Banner */}
                     {error && (
-                        <div className="rounded-xl border border-rose-300 bg-rose-50 p-4 text-xs font-semibold text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-200 flex items-center gap-2">
+                        <div className="flex items-center gap-2 rounded-xl border border-rose-300 bg-rose-50 p-4 text-xs font-semibold text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-200">
                             <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
                             <span>{error}</span>
                         </div>
@@ -160,15 +179,16 @@ export function KoraPointSettlementDialog({
                     <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-800 dark:bg-slate-800/20">
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                             <div>
-                                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+                                <span className="block text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
                                     Encours total échu
                                 </span>
                                 <span className="mt-1 text-lg font-black text-slate-900 dark:text-white">
-                                    {health.current_exposure.toLocaleString()} FCFA
+                                    {health.current_exposure.toLocaleString()}{' '}
+                                    FCFA
                                 </span>
                             </div>
                             <div>
-                                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+                                <span className="block text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
                                     Versement déclaré
                                 </span>
                                 <span className="mt-1 text-lg font-black text-emerald-600 dark:text-emerald-400">
@@ -176,7 +196,7 @@ export function KoraPointSettlementDialog({
                                 </span>
                             </div>
                             <div>
-                                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+                                <span className="block text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
                                     Reste dû prévisionnel
                                 </span>
                                 <span className="mt-1 text-lg font-black text-amber-600 dark:text-amber-400">
@@ -189,9 +209,12 @@ export function KoraPointSettlementDialog({
                     {/* Section 1: Montant */}
                     <div className="space-y-2">
                         <label className="flex items-center text-xs font-bold text-slate-700 dark:text-slate-300">
-                            <Coins className="mr-1.5 h-4 w-4 text-gold-dark dark:text-gold" />
+                            <Coins className="text-gold-dark mr-1.5 h-4 w-4 dark:text-gold" />
                             Montant versé
-                            <span className="text-red-500 font-bold ml-1" aria-hidden="true">
+                            <span
+                                className="ml-1 font-bold text-red-500"
+                                aria-hidden="true"
+                            >
                                 *
                             </span>
                         </label>
@@ -202,19 +225,23 @@ export function KoraPointSettlementDialog({
                                 max={10000000}
                                 step={1000}
                                 value={amountDeclared || ''}
-                                onChange={(e) => setAmountDeclared(Number(e.target.value))}
-                                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-base font-black text-slate-900 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                                onChange={(e) =>
+                                    setAmountDeclared(Number(e.target.value))
+                                }
+                                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-base font-black text-slate-900 focus:border-gold focus:ring-2 focus:ring-gold/20 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                                 placeholder="Montant en FCFA"
                                 required
                             />
-                            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-xs font-black text-slate-400">
+                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-xs font-black text-slate-400">
                                 FCFA
                             </div>
                         </div>
 
                         {/* Quick Selection Buttons */}
                         <div className="flex flex-wrap gap-2 pt-1">
-                            <span className="text-[11px] text-slate-400 self-center">Raccourcis :</span>
+                            <span className="self-center text-[11px] text-slate-400">
+                                Raccourcis :
+                            </span>
                             <button
                                 type="button"
                                 onClick={() => handleQuickAmount(1)}
@@ -246,19 +273,32 @@ export function KoraPointSettlementDialog({
                             <label className="flex items-center text-xs font-bold text-slate-700 dark:text-slate-300">
                                 <Landmark className="mr-1.5 h-4 w-4 text-slate-500" />
                                 Mode de versement
-                                <span className="text-red-500 font-bold ml-1" aria-hidden="true">
+                                <span
+                                    className="ml-1 font-bold text-red-500"
+                                    aria-hidden="true"
+                                >
                                     *
                                 </span>
                             </label>
                             <select
                                 value={paymentMethod}
-                                onChange={(e) => setPaymentMethod(e.target.value as PointSettlementMethod)}
-                                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-semibold text-slate-900 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                                onChange={(e) =>
+                                    setPaymentMethod(
+                                        e.target.value as PointSettlementMethod,
+                                    )
+                                }
+                                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-semibold text-slate-900 focus:border-gold focus:ring-2 focus:ring-gold/20 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                                 required
                             >
-                                <option value="BANK_DEPOSIT">Dépôt espèces en agence bancaire</option>
-                                <option value="BANK_TRANSFER">Virement bancaire (BOA / Ecobank / BGFIBank)</option>
-                                <option value="MOBILE_MONEY">Mobile Money B2B (MTN MoMo / Moov Money)</option>
+                                <option value="BANK_DEPOSIT">
+                                    Dépôt espèces en agence bancaire
+                                </option>
+                                <option value="BANK_TRANSFER">
+                                    Virement bancaire (BOA / Ecobank / BGFIBank)
+                                </option>
+                                <option value="MOBILE_MONEY">
+                                    Mobile Money B2B (MTN MoMo / Moov Money)
+                                </option>
                             </select>
                         </div>
 
@@ -267,15 +307,20 @@ export function KoraPointSettlementDialog({
                             <label className="flex items-center text-xs font-bold text-slate-700 dark:text-slate-300">
                                 <Hash className="mr-1.5 h-4 w-4 text-slate-500" />
                                 N° d’opération / Bordereau
-                                <span className="text-red-500 font-bold ml-1" aria-hidden="true">
+                                <span
+                                    className="ml-1 font-bold text-red-500"
+                                    aria-hidden="true"
+                                >
                                     *
                                 </span>
                             </label>
                             <input
                                 type="text"
                                 value={paymentReference}
-                                onChange={(e) => setPaymentReference(e.target.value)}
-                                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                                onChange={(e) =>
+                                    setPaymentReference(e.target.value)
+                                }
+                                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:border-gold focus:ring-2 focus:ring-gold/20 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                                 placeholder="Ex: DEP-ECO-2026-9921"
                                 required
                             />
@@ -288,11 +333,16 @@ export function KoraPointSettlementDialog({
                             <span className="flex items-center">
                                 <UploadCloud className="mr-1.5 h-4 w-4 text-slate-500" />
                                 Preuve de versement (Reçu ou bordereau bancaire)
-                                <span className="text-red-500 font-bold ml-1" aria-hidden="true">
+                                <span
+                                    className="ml-1 font-bold text-red-500"
+                                    aria-hidden="true"
+                                >
                                     *
                                 </span>
                             </span>
-                            <span className="text-[11px] text-slate-400">PDF, JPG, PNG (Max 5 Mo)</span>
+                            <span className="text-[11px] text-slate-400">
+                                PDF, JPG, PNG (Max 5 Mo)
+                            </span>
                         </label>
 
                         {/* Invisible file inputs */}
@@ -320,13 +370,16 @@ export function KoraPointSettlementDialog({
                                         <FileText className="h-5 w-5" />
                                     </div>
                                     <div>
-                                        <p className="text-xs font-bold text-slate-900 dark:text-white truncate max-w-xs sm:max-w-md">
+                                        <p className="max-w-xs truncate text-xs font-bold text-slate-900 sm:max-w-md dark:text-white">
                                             {proofFile.name}
                                         </p>
-                                        <div className="flex items-center gap-2 mt-0.5">
-                                            <span className="text-[11px] text-slate-500">{proofFile.size}</span>
+                                        <div className="mt-0.5 flex items-center gap-2">
+                                            <span className="text-[11px] text-slate-500">
+                                                {proofFile.size}
+                                            </span>
                                             <span className="inline-flex items-center text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-                                                <CheckCircle2 className="h-3 w-3 mr-0.5" /> Fichier prêt
+                                                <CheckCircle2 className="mr-0.5 h-3 w-3" />{' '}
+                                                Fichier prêt
                                             </span>
                                         </div>
                                     </div>
@@ -334,7 +387,9 @@ export function KoraPointSettlementDialog({
                                 <div className="flex items-center gap-2">
                                     <button
                                         type="button"
-                                        onClick={() => fileInputRef.current?.click()}
+                                        onClick={() =>
+                                            fileInputRef.current?.click()
+                                        }
                                         className="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
                                     >
                                         Remplacer
@@ -362,7 +417,9 @@ export function KoraPointSettlementDialog({
                                 <div className="mt-4 flex flex-wrap justify-center gap-2">
                                     <button
                                         type="button"
-                                        onClick={() => fileInputRef.current?.click()}
+                                        onClick={() =>
+                                            fileInputRef.current?.click()
+                                        }
                                         className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
                                     >
                                         <ImageIcon className="h-3.5 w-3.5 text-slate-500" />
@@ -370,8 +427,10 @@ export function KoraPointSettlementDialog({
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() => cameraInputRef.current?.click()}
-                                        className="inline-flex items-center gap-1.5 rounded-lg bg-navy px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-navy/90 dark:bg-slate-700"
+                                        onClick={() =>
+                                            cameraInputRef.current?.click()
+                                        }
+                                        className="bg-navy hover:bg-navy/90 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold text-white shadow-sm dark:bg-slate-700"
                                     >
                                         <Camera className="h-3.5 w-3.5 text-gold" />
                                         Prendre une photo
@@ -386,7 +445,7 @@ export function KoraPointSettlementDialog({
                         <label className="flex items-center text-xs font-bold text-slate-700 dark:text-slate-300">
                             <FileText className="mr-1.5 h-4 w-4 text-slate-500" />
                             Observations pour la trésorerie KORA
-                            <span className="text-[10px] text-slate-400 ml-1.5 font-normal">
+                            <span className="ml-1.5 text-[10px] font-normal text-slate-400">
                                 (Facultatif)
                             </span>
                         </label>
@@ -394,13 +453,13 @@ export function KoraPointSettlementDialog({
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
                             rows={2}
-                            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-normal text-slate-900 placeholder:text-slate-400 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-normal text-slate-900 placeholder:text-slate-400 focus:border-gold focus:ring-2 focus:ring-gold/20 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                             placeholder="Précisions éventuelles sur l'agence de dépôt ou le titulaire du compte émetteur..."
                         />
                     </div>
 
                     {/* Footer Actions */}
-                    <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-3 dark:border-slate-800">
                         <button
                             type="button"
                             onClick={onClose}
@@ -410,7 +469,7 @@ export function KoraPointSettlementDialog({
                         </button>
                         <button
                             type="submit"
-                            className="inline-flex items-center gap-2 rounded-xl bg-gold px-6 py-2.5 text-xs font-black uppercase tracking-wider text-kora shadow-sm hover:bg-gold-light focus:outline-none focus:ring-2 focus:ring-gold"
+                            className="hover:bg-gold-light inline-flex items-center gap-2 rounded-xl bg-gold px-6 py-2.5 text-xs font-black tracking-wider text-kora uppercase shadow-sm focus:ring-2 focus:ring-gold focus:outline-none"
                         >
                             <CheckCircle2 className="h-4 w-4" />
                             Soumettre la déclaration

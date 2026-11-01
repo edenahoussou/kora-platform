@@ -42,6 +42,9 @@ $openApi = preg_replace(
     $openApi,
 );
 
+// Bare `...` scalars are quoted to keep the output identical across YAML emitters.
+$openApi = preg_replace('/^(\s+\S+: )\.\.\.$/m', "$1'...'", $openApi);
+
 $pdfPath = '/api/v1/tickets/{ticket_uuid}/pdf';
 $pdfPathPattern = sprintf(
     '/(  [\'\"]?%s[\'\"]?:\n.*?)(?=\n  [\'\"]?\/api\/v1\/|\z)/s',

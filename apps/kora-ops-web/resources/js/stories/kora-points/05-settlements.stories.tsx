@@ -26,7 +26,8 @@ function SettlementsStoryWrapper({
     initialScenario?: DemoScenarioId;
 }) {
     const demo = useKoraPointDemo(initialScenario);
-    const [activePage, setActivePage] = useState<KoraPointActivePage>('settlements');
+    const [activePage, setActivePage] =
+        useState<KoraPointActivePage>('settlements');
 
     return (
         <KoraPointShell
@@ -46,7 +47,9 @@ function SettlementsStoryWrapper({
                 point={demo.point}
                 health={demo.health}
                 settlements={demo.settlements}
-                onDeclareSettlement={(data) => demo.createSettlementDeclaration(data)}
+                onDeclareSettlement={(data) =>
+                    demo.createSettlementDeclaration(data)
+                }
             />
         </KoraPointShell>
     );
@@ -54,12 +57,16 @@ function SettlementsStoryWrapper({
 
 export const SettlementsAutonomousPoint: Story = {
     name: '01. Point autonome — Liste & Action Déclarer disponible',
-    render: () => <SettlementsStoryWrapper initialScenario="autonomous_healthy" />,
+    render: () => (
+        <SettlementsStoryWrapper initialScenario="autonomous_healthy" />
+    ),
 };
 
 export const SettlementsOrganizationAttached: Story = {
     name: '02. Bureau rattaché (La Poste) — Consultation seule (Paiements centralisés)',
-    render: () => <SettlementsStoryWrapper initialScenario="org_attached_healthy" />,
+    render: () => (
+        <SettlementsStoryWrapper initialScenario="org_attached_healthy" />
+    ),
 };
 
 function SettlementDeclarationStory() {
@@ -67,26 +74,28 @@ function SettlementDeclarationStory() {
     const [isOpen, setIsOpen] = useState(true);
 
     return (
-            <div className="p-8 bg-slate-900 min-h-screen text-white flex items-center justify-center">
-                <button
-                    type="button"
-                    onClick={() => setIsOpen(true)}
-                    className="rounded-xl bg-gold px-4 py-2 text-xs font-black uppercase text-kora"
-                >
-                    Ouvrir le formulaire de versement
-                </button>
-                <KoraPointSettlementDialog
-                    isOpen={isOpen}
-                    health={demo.health}
-                    pointName="Point Service Akpakpa"
-                    onClose={() => setIsOpen(false)}
-                    onSubmit={(data) => {
-                        demo.createSettlementDeclaration(data);
-                        alert(`Déclaration transmise : ${data.amountDeclared.toLocaleString()} FCFA (${data.paymentReference})`);
-                        setIsOpen(false);
-                    }}
-                />
-            </div>
+        <div className="flex min-h-screen items-center justify-center bg-slate-900 p-8 text-white">
+            <button
+                type="button"
+                onClick={() => setIsOpen(true)}
+                className="rounded-xl bg-gold px-4 py-2 text-xs font-black text-kora uppercase"
+            >
+                Ouvrir le formulaire de versement
+            </button>
+            <KoraPointSettlementDialog
+                isOpen={isOpen}
+                health={demo.health}
+                pointName="Point Service Akpakpa"
+                onClose={() => setIsOpen(false)}
+                onSubmit={(data) => {
+                    demo.createSettlementDeclaration(data);
+                    alert(
+                        `Déclaration transmise : ${data.amountDeclared.toLocaleString()} FCFA (${data.paymentReference})`,
+                    );
+                    setIsOpen(false);
+                }}
+            />
+        </div>
     );
 }
 
@@ -100,20 +109,20 @@ function SettlementDetailDrawerStory() {
     const [isOpen, setIsOpen] = useState(true);
 
     return (
-            <div className="p-8 bg-slate-900 min-h-screen text-white flex items-center justify-center">
-                <button
-                    type="button"
-                    onClick={() => setIsOpen(true)}
-                    className="rounded-xl bg-gold px-4 py-2 text-xs font-black uppercase text-kora"
-                >
-                    Ouvrir le tiroir de détail
-                </button>
-                <KoraPointSettlementDetailDrawer
-                    isOpen={isOpen}
-                    settlement={demo.settlements[0]}
-                    onClose={() => setIsOpen(false)}
-                />
-            </div>
+        <div className="flex min-h-screen items-center justify-center bg-slate-900 p-8 text-white">
+            <button
+                type="button"
+                onClick={() => setIsOpen(true)}
+                className="rounded-xl bg-gold px-4 py-2 text-xs font-black text-kora uppercase"
+            >
+                Ouvrir le tiroir de détail
+            </button>
+            <KoraPointSettlementDetailDrawer
+                isOpen={isOpen}
+                settlement={demo.settlements[0]}
+                onClose={() => setIsOpen(false)}
+            />
+        </div>
     );
 }
 
