@@ -10,7 +10,6 @@ import {
     MapPin,
     Percent,
     Phone,
-    Plus,
     Tag,
     Trash2,
     Upload,
@@ -276,14 +275,17 @@ export function KoraOrgFormDialog({
     const submit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        if (phoneInvalid) {
+        if (form.processing || phoneInvalid) {
             return;
         }
 
         const options = {
             preserveScroll: true,
             forceFormData: true,
-            onSuccess: () => onOpenChange(false),
+            onSuccess: () => {
+                onOpenChange(false);
+                form.reset();
+            },
         };
 
         form.transform((data) => ({
