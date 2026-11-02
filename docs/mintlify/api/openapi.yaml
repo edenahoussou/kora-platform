@@ -2664,7 +2664,7 @@ paths:
                 email:
                   type: string
                   description: 'Legacy alias for `identifier`; do not send both fields.'
-                  example: gbailey@example.net
+                  example: agent@kora.example
                   nullable: true
                 purpose:
                   type: string
@@ -3425,7 +3425,7 @@ paths:
                 email:
                   type: string
                   description: 'Legacy alias for `identifier`, accepted for existing clients.'
-                  example: kerluke.bertrand@example.com
+                  example: agent@kora.example
                   nullable: true
                 pin:
                   type: string

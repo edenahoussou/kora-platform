@@ -27,7 +27,7 @@ class AuthOtpController extends Controller
      *
      * @bodyParam identifier string required Email or phone number. For registration, this
      * must be an email. Existing clients may use the `email` alias instead.
-     * @bodyParam email string Legacy alias for `identifier`; do not send both fields.
+     * @bodyParam email string Legacy alias for `identifier`; do not send both fields. Example: agent@kora.example
      *
      * @unauthenticated
      *
