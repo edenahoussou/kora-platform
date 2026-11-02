@@ -3425,7 +3425,7 @@ paths:
                 email:
                   type: string
                   description: 'Legacy alias for `identifier`, accepted for existing clients.'
-                  example: gbailey@example.net
+                  example: kerluke.bertrand@example.com
                   nullable: true
                 pin:
                   type: string
@@ -7763,7 +7763,7 @@ paths:
                 birth_date:
                   type: string
                   description: 'Date de naissance (Y-m-d). Must be a valid date in the format <code>Y-m-d</code>. Le champ value doit être une date antérieure ou égale à <code>today</code>.'
-                  example: '2022-11-26'
+                  example: '2022-11-27'
                   nullable: true
                 yellow_fever_vaccinated:
                   type: boolean
