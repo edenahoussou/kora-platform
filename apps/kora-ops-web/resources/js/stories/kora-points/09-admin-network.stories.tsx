@@ -69,7 +69,34 @@ function CreatePointWizardStory() {
                 organizations={demo.adminOrganizations}
                 onClose={() => setIsOpen(false)}
                 onSubmit={(data) => {
-                    demo.createNetworkPoint(data);
+                    const organization = demo.adminOrganizations.find(
+                        (item) => item.uuid === data.organizationUuid,
+                    );
+                    const frequency =
+                        data.settlementFrequency ??
+                        organization?.default_terms.settlement_frequency_days;
+                    demo.createNetworkPoint({
+                        name: data.name,
+                        type: data.type,
+                        organizationName: organization?.name,
+                        city: data.city,
+                        department: data.department,
+                        managerName: data.managerName,
+                        phone: data.phone ?? '',
+                        creditLimit: data.creditLimit,
+                        commissionRateBps:
+                            data.commissionRateBps ??
+                            organization?.default_terms.commission_rate_bps ??
+                            0,
+                        settlementFrequencyDays:
+                            frequency === 'monthly' || frequency === 30
+                                ? 30
+                                : frequency === 'daily' || frequency === 1
+                                  ? 1
+                                  : 7,
+                        gracePeriodDays:
+                            organization?.default_terms.grace_period_days ?? 3,
+                    });
                     alert(
                         `Point "${data.name}" déployé avec succès avec plafond de ${data.creditLimit.toLocaleString()} FCFA.`,
                     );

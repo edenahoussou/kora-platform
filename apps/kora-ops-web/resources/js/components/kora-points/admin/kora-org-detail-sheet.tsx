@@ -9,6 +9,7 @@ import {
     Phone,
     Store,
     Unlink,
+    UploadCloud,
     Users,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -53,6 +54,10 @@ export function KoraOrgDetailSheet({
     const [attachUuid, setAttachUuid] = useState('');
     const [attachError, setAttachError] = useState<string | null>(null);
     const [attaching, setAttaching] = useState(false);
+    const [documentFile, setDocumentFile] = useState<File | null>(null);
+    const [documentTitle, setDocumentTitle] = useState('');
+    const [documentError, setDocumentError] = useState<string | null>(null);
+    const [uploadingDocument, setUploadingDocument] = useState(false);
 
     if (!organization) {
         return null;
@@ -154,6 +159,9 @@ export function KoraOrgDetailSheet({
                                         {organization.phone}
                                     </span>
                                 )}
+                                <span className="text-xs font-semibold text-muted-foreground">
+                                    {organization.country}
+                                </span>
                                 <span className="flex items-center gap-1">
                                     <Store className="size-3 text-gold" />
                                     {organization.points_count} point(s)
@@ -165,6 +173,26 @@ export function KoraOrgDetailSheet({
                 </div>
 
                 <div className="flex-1 space-y-6 overflow-y-auto px-6 py-6">
+                    <dl className="grid grid-cols-1 gap-3 rounded-xl border border-border bg-card p-4 text-xs sm:grid-cols-2">
+                        <div>
+                            <dt className="text-muted-foreground">
+                                Immatriculation commerciale
+                            </dt>
+                            <dd className="mt-0.5 font-semibold text-foreground">
+                                {organization.registration_identifier ||
+                                    'Non renseigné'}
+                            </dd>
+                        </div>
+                        <div>
+                            <dt className="text-muted-foreground">
+                                Identifiant fiscal
+                            </dt>
+                            <dd className="mt-0.5 font-semibold text-foreground">
+                                {organization.tax_identifier || 'Non renseigné'}
+                            </dd>
+                        </div>
+                    </dl>
+
                     <div className="rounded-2xl border border-border bg-gradient-to-b from-muted/30 to-muted/10 p-5 shadow-xs">
                         <div className="flex items-center justify-between gap-3">
                             <div className="flex items-center gap-2">
@@ -235,15 +263,21 @@ export function KoraOrgDetailSheet({
                                             <option value="">
                                                 Rattacher un point autonome…
                                             </option>
-                                            {unattachedPoints.map((p) => (
-                                                <option
-                                                    key={p.uuid}
-                                                    value={p.uuid}
-                                                >
-                                                    {p.name} ({p.code}) —{' '}
-                                                    {p.city}
-                                                </option>
-                                            ))}
+                                            {unattachedPoints
+                                                .filter(
+                                                    (point) =>
+                                                        point.country ===
+                                                        organization.country,
+                                                )
+                                                .map((p) => (
+                                                    <option
+                                                        key={p.uuid}
+                                                        value={p.uuid}
+                                                    >
+                                                        {p.name} ({p.code}) —{' '}
+                                                        {p.city}
+                                                    </option>
+                                                ))}
                                         </select>
                                         <ChevronDown className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
                                     </div>
@@ -383,38 +417,134 @@ export function KoraOrgDetailSheet({
                         </div>
                     )}
 
-                    {organization.documents.length > 0 && (
-                        <div>
-                            <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-foreground">
+                    <div>
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                            <h4 className="flex items-center gap-2 text-sm font-bold text-foreground">
                                 <FileText className="size-4 text-gold" />
-                                Documents contractuels
+                                Documents de l’organisation
                             </h4>
-                            <ul className="space-y-2">
-                                {organization.documents.map((doc) => (
-                                    <li
-                                        key={doc.uuid}
-                                        className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3"
-                                    >
-                                        <div className="min-w-0">
-                                            <strong className="block truncate text-sm font-medium text-foreground">
-                                                {doc.name}
-                                            </strong>
-                                            <span className="text-xs text-muted-foreground">
-                                                {doc.type} · {doc.uploaded_at}
-                                            </span>
-                                        </div>
-                                        <a
-                                            href={doc.url}
-                                            className="btn btn-ghost btn-xs shrink-0"
-                                            title="Télécharger"
-                                        >
-                                            <Download className="size-3.5" />
-                                        </a>
-                                    </li>
-                                ))}
-                            </ul>
                         </div>
-                    )}
+                        {permissions.canManage && (
+                            <div className="mb-4 grid gap-2 rounded-xl border border-dashed border-border p-4 sm:grid-cols-[1fr_1fr_auto]">
+                                <input
+                                    type="text"
+                                    value={documentTitle}
+                                    onChange={(event) =>
+                                        setDocumentTitle(event.target.value)
+                                    }
+                                    placeholder="Titre du document"
+                                    className="control"
+                                    aria-label="Titre du document"
+                                />
+                                <input
+                                    type="file"
+                                    accept="application/pdf,image/jpeg,image/png"
+                                    onChange={(event) =>
+                                        setDocumentFile(
+                                            event.target.files?.[0] ?? null,
+                                        )
+                                    }
+                                    className="control"
+                                    aria-label="Sélectionner un document"
+                                />
+                                <button
+                                    type="button"
+                                    className="btn btn-primary btn-sm"
+                                    disabled={
+                                        !documentFile ||
+                                        !documentTitle.trim() ||
+                                        uploadingDocument
+                                    }
+                                    onClick={() => {
+                                        if (
+                                            !documentFile ||
+                                            !documentTitle.trim()
+                                        ) {
+                                            return;
+                                        }
+
+                                        setDocumentError(null);
+                                        setUploadingDocument(true);
+                                        router.post(
+                                            koraPoints.organizations.documents.url(
+                                                {
+                                                    organization:
+                                                        organization.uuid,
+                                                },
+                                            ),
+                                            {
+                                                file: documentFile,
+                                                kind: 'other',
+                                                title: documentTitle.trim(),
+                                            },
+                                            {
+                                                forceFormData: true,
+                                                preserveScroll: true,
+                                                onSuccess: () => {
+                                                    setDocumentFile(null);
+                                                    setDocumentTitle('');
+                                                },
+                                                onError: (errors) =>
+                                                    setDocumentError(
+                                                        Object.values(
+                                                            errors,
+                                                        )[0] ??
+                                                            'Le document n’a pas pu être envoyé.',
+                                                    ),
+                                                onFinish: () =>
+                                                    setUploadingDocument(false),
+                                            },
+                                        );
+                                    }}
+                                >
+                                    <UploadCloud className="size-3.5" />
+                                    {uploadingDocument ? 'Envoi…' : 'Ajouter'}
+                                </button>
+                                {documentError && (
+                                    <p className="text-xs font-semibold text-destructive sm:col-span-3">
+                                        {documentError}
+                                    </p>
+                                )}
+                            </div>
+                        )}
+                        <p className="mb-3 text-xs text-muted-foreground">
+                            Les documents contractuels des Points rattachés sont
+                            conservés et gérés ici.
+                        </p>
+                        {organization.documents.length > 0 ? (
+                            <div>
+                                <ul className="space-y-2">
+                                    {organization.documents.map((doc) => (
+                                        <li
+                                            key={doc.uuid}
+                                            className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3"
+                                        >
+                                            <div className="min-w-0">
+                                                <strong className="block truncate text-sm font-medium text-foreground">
+                                                    {doc.name}
+                                                </strong>
+                                                <span className="text-xs text-muted-foreground">
+                                                    {doc.type} ·{' '}
+                                                    {doc.uploaded_at}
+                                                </span>
+                                            </div>
+                                            <a
+                                                href={doc.url}
+                                                className="btn btn-ghost btn-xs shrink-0"
+                                                title="Télécharger"
+                                            >
+                                                <Download className="size-3.5" />
+                                            </a>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        ) : (
+                            <p className="rounded-xl border border-dashed border-border p-4 text-xs text-muted-foreground">
+                                Aucun document n’a encore été ajouté.
+                            </p>
+                        )}
+                    </div>
                 </div>
             </SheetContent>
         </Sheet>

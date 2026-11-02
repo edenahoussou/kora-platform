@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
-import type { PointSaleRecord } from '../mock/kora-point-mock-data';
+import type { PointSaleRecord } from '@/types/kora-points';
 
 type Props = {
     sale: PointSaleRecord | null;

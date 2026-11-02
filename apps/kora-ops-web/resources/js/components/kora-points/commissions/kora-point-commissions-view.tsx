@@ -8,41 +8,67 @@ import {
     Wallet,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { cn } from '@/lib/utils';
 import type {
     KoraPointProfile,
     PointCommissionRecord,
-} from '../mock/kora-point-mock-data';
-import { KoraPointExportDemoDialog } from './kora-point-export-demo-dialog';
+} from '@/types/kora-points';
+
+type Period = 'current_month' | 'last_month' | 'all';
+type CommissionRow = PointCommissionRecord & {
+    point_name?: string;
+    point_code?: string;
+};
 
 type Props = {
     point: KoraPointProfile;
-    commissions: PointCommissionRecord[];
+    commissions: CommissionRow[];
     onViewRefundDetail?: (refundRef: string) => void;
+    periodFilter?: Period;
+    periodLabel?: string;
+    totals?: {
+        gross: number;
+        initial: number;
+        corrections: number;
+        net: number;
+    };
+    operationCount?: number;
+    onPeriodChange?: (period: Period) => void;
+    exportUrls?: { excel: string; pdf: string };
+    scopeLabel?: string;
+    showPoint?: boolean;
+    toolbarSlot?: ReactNode;
 };
 
 export function KoraPointCommissionsView({
     point,
     commissions,
     onViewRefundDetail,
+    periodFilter,
+    periodLabel: suppliedPeriodLabel,
+    totals: suppliedTotals,
+    operationCount,
+    onPeriodChange,
+    exportUrls,
+    scopeLabel = 'Espace Agent',
+    showPoint = false,
+    toolbarSlot,
 }: Props) {
-    const [periodFilter, setPeriodFilter] = useState<
-        'current_month' | 'last_month' | 'all'
-    >('current_month');
-    const [exportModalType, setExportModalType] = useState<
-        'EXCEL' | 'PDF' | null
-    >(null);
+    const [localPeriod, setLocalPeriod] = useState<Period>('current_month');
+    const activePeriod = periodFilter ?? localPeriod;
 
     const periodLabel =
-        periodFilter === 'current_month'
-            ? 'Août 2026 (En cours)'
-            : periodFilter === 'last_month'
-              ? 'Juillet 2026'
-              : 'Toutes les périodes';
+        suppliedPeriodLabel ??
+        (activePeriod === 'all'
+            ? 'Toutes les périodes'
+            : activePeriod === 'last_month'
+              ? 'Mois dernier'
+              : 'Mois en cours');
 
     // Summary calculations
-    const totals = useMemo(() => {
+    const calculatedTotals = useMemo(() => {
         let grossSales = 0;
         let initialComm = 0;
         let corrections = 0;
@@ -57,6 +83,14 @@ export function KoraPointCommissionsView({
 
         return { grossSales, initialComm, corrections, netComm };
     }, [commissions]);
+    const totals = suppliedTotals
+        ? {
+              grossSales: suppliedTotals.gross,
+              initialComm: suppliedTotals.initial,
+              corrections: suppliedTotals.corrections,
+              netComm: suppliedTotals.net,
+          }
+        : calculatedTotals;
 
     const ratePercent = (point.terms.commission_rate_bps / 100).toLocaleString(
         'fr-FR',
@@ -68,24 +102,15 @@ export function KoraPointCommissionsView({
 
     return (
         <div className="space-y-6">
-            {/* Export Dialog */}
-            <KoraPointExportDemoDialog
-                isOpen={exportModalType !== null}
-                exportType={exportModalType || 'PDF'}
-                periodLabel={periodLabel}
-                pointName={point.name}
-                onClose={() => setExportModalType(null)}
-            />
-
             {/* Header */}
             <div className="kora-page-head cash-reveal mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                     <div className="kora-breadcrumb mb-2 text-[0.6875rem] text-muted-foreground">
-                        KORA POINT / Espace Agent / Commissions
+                        KORA POINT / {scopeLabel} / Commissions
                     </div>
                     <div className="flex items-center gap-2.5">
                         <h1 className="text-[clamp(1.8rem,3vw,2.65rem)] font-extrabold tracking-[-0.055em] text-foreground">
-                            Suivi des Commissions Partenaire
+                            Commissions de {point.name}
                         </h1>
                         <KoraStatusBadge
                             label={`Taux effectif : ${ratePercent} %`}
@@ -100,25 +125,31 @@ export function KoraPointCommissionsView({
                 </div>
 
                 {/* Export Buttons */}
-                <div className="flex flex-wrap items-center gap-2.5">
-                    <button
-                        type="button"
-                        onClick={() => setExportModalType('EXCEL')}
-                        className="btn btn-ghost"
-                    >
-                        <FileSpreadsheet className="size-4 text-emerald-600" />
-                        <span>Export Excel</span>
-                    </button>
-
-                    <button
-                        type="button"
-                        onClick={() => setExportModalType('PDF')}
-                        className="btn btn-ghost"
-                    >
-                        <FileText className="size-4 text-rose-600" />
-                        <span>Relevé PDF</span>
-                    </button>
-                </div>
+                {toolbarSlot || exportUrls ? (
+                    <div className="flex flex-wrap items-center gap-2.5">
+                        {toolbarSlot}
+                        {exportUrls ? (
+                            <>
+                                <a
+                                    href={exportUrls.excel}
+                                    className="btn btn-ghost"
+                                    download
+                                >
+                                    <FileSpreadsheet className="size-4 text-emerald-600" />
+                                    <span>Export Excel</span>
+                                </a>
+                                <a
+                                    href={exportUrls.pdf}
+                                    className="btn btn-ghost"
+                                    download
+                                >
+                                    <FileText className="size-4 text-rose-600" />
+                                    <span>Relevé PDF</span>
+                                </a>
+                            </>
+                        ) : null}
+                    </div>
+                ) : null}
             </div>
 
             {/* Permanent Callout: Retained at the Source */}
@@ -256,20 +287,21 @@ export function KoraPointCommissionsView({
                     </span>
                     <div className="flex items-center gap-1.5">
                         {[
-                            { id: 'current_month', label: 'Ce mois-ci (Août)' },
-                            {
-                                id: 'last_month',
-                                label: 'Mois dernier (Juillet)',
-                            },
+                            { id: 'current_month', label: 'Ce mois-ci' },
+                            { id: 'last_month', label: 'Mois dernier' },
                             { id: 'all', label: 'Toutes les dates' },
                         ].map((t) => (
                             <button
                                 key={t.id}
                                 type="button"
-                                onClick={() => setPeriodFilter(t.id as any)}
+                                onClick={() => {
+                                    const nextPeriod = t.id as Period;
+                                    setLocalPeriod(nextPeriod);
+                                    onPeriodChange?.(nextPeriod);
+                                }}
                                 className={cn(
                                     'rounded-xl px-3 py-1 text-xs font-bold transition',
-                                    periodFilter === t.id
+                                    activePeriod === t.id
                                         ? 'bg-[var(--kora)] text-white shadow-sm dark:bg-digital dark:text-kora'
                                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300',
                                 )}
@@ -281,7 +313,8 @@ export function KoraPointCommissionsView({
                 </div>
 
                 <span className="text-xs text-slate-400">
-                    {commissions.length} opérations enregistrées
+                    {operationCount ?? commissions.length} opérations
+                    enregistrées · {periodLabel}
                 </span>
             </div>
 
@@ -292,6 +325,9 @@ export function KoraPointCommissionsView({
                         <tr className="border-b border-slate-200 bg-slate-50 text-[0.625rem] font-black tracking-wider text-slate-400 uppercase dark:border-slate-800 dark:bg-slate-950">
                             <th className="py-3.5 pr-3 pl-5">Billet & Date</th>
                             <th className="px-3 py-3.5">Trajet / Vendeur</th>
+                            {showPoint ? (
+                                <th className="px-3 py-3.5">Point</th>
+                            ) : null}
                             <th className="px-3 py-3.5 text-right">
                                 Prix Payé
                             </th>
@@ -336,6 +372,18 @@ export function KoraPointCommissionsView({
                                         {row.departure_ref} · {row.seller_name}
                                     </div>
                                 </td>
+                                {showPoint ? (
+                                    <td className="px-3 py-3.5">
+                                        <span className="font-semibold">
+                                            {row.point_name ?? '—'}
+                                        </span>
+                                        <span className="ml-1 text-[0.6875rem] text-slate-400">
+                                            {row.point_code
+                                                ? `(${row.point_code})`
+                                                : ''}
+                                        </span>
+                                    </td>
+                                ) : null}
 
                                 <td className="px-3 py-3.5 text-right font-mono font-bold text-slate-900 dark:text-white">
                                     {row.amount_paid.toLocaleString('fr-FR')}{' '}
@@ -457,6 +505,16 @@ export function KoraPointCommissionsView({
                         </div>
 
                         <div className="my-2.5 space-y-1">
+                            {showPoint && row.point_name ? (
+                                <div className="flex justify-between">
+                                    <span className="text-slate-400">
+                                        Point :
+                                    </span>
+                                    <span className="font-bold text-slate-800 dark:text-slate-200">
+                                        {row.point_name} ({row.point_code})
+                                    </span>
+                                </div>
+                            ) : null}
                             <div className="flex justify-between">
                                 <span className="text-slate-400">Trajet :</span>
                                 <span className="font-bold text-slate-800 dark:text-slate-200">
@@ -473,7 +531,13 @@ export function KoraPointCommissionsView({
                                 </span>
                             </div>
                             <div className="flex justify-between font-bold text-emerald-600 dark:text-emerald-400">
-                                <span>Commission brute (3 %) :</span>
+                                <span>
+                                    Commission brute (
+                                    {(
+                                        row.commission_rate_bps / 100
+                                    ).toLocaleString('fr-FR')}{' '}
+                                    %) :
+                                </span>
                                 <span>
                                     +
                                     {row.initial_commission.toLocaleString(

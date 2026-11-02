@@ -7,10 +7,7 @@ import {
 } from 'lucide-react';
 import { KoraTooltip } from '@/components/kora-tooltip';
 import { cn } from '@/lib/utils';
-import type {
-    DailyMetrics,
-    KoraPointTerms,
-} from '../mock/kora-point-mock-data';
+import type { DailyMetrics, KoraPointTerms } from '@/types/kora-points';
 
 type Props = {
     metrics: DailyMetrics;
@@ -18,6 +15,7 @@ type Props = {
     onKpiClick?: (
         type: 'sales' | 'tickets' | 'commissions' | 'settlement',
     ) => void;
+    mode?: 'point' | 'organization';
 };
 
 const kpiVariants = {
@@ -34,7 +32,12 @@ function normalizeSpark(values: number[]): number[] {
     return values.map((value) => Math.max(10, Math.round((value / max) * 100)));
 }
 
-export function KoraPointKpiGrid({ metrics, terms, onKpiClick }: Props) {
+export function KoraPointKpiGrid({
+    metrics,
+    terms,
+    onKpiClick,
+    mode = 'point',
+}: Props) {
     const ratePercent = (terms.commission_rate_bps / 100).toLocaleString(
         'fr-FR',
         {
@@ -56,50 +59,75 @@ export function KoraPointKpiGrid({ metrics, terms, onKpiClick }: Props) {
     const kpis = [
         {
             id: 'sales' as const,
-            label: 'Ventes du jour',
-            hint: 'Recettes brutes encaissées',
+            label:
+                mode === 'organization' ? 'Ventes du réseau' : 'Ventes du jour',
+            hint:
+                mode === 'organization'
+                    ? 'Recettes brutes aujourd’hui'
+                    : 'Recettes brutes encaissées',
             value: `${metrics.today_sales_amount.toLocaleString('fr-FR')} FCFA`,
             trend: "Aujourd'hui",
             tone: 'blue' as const,
             icon: Wallet,
             spark: salesSpark,
             formula:
-                'Somme cumulée des règlements confirmés (espèces et mobile money) perçus pour des réservations de billets Bus aujourd’hui.',
+                mode === 'organization'
+                    ? 'Somme des ventes enregistrées aujourd’hui par tous les Points visibles de l’organisation.'
+                    : 'Somme cumulée des règlements confirmés (espèces et mobile money) perçus pour des réservations de billets Bus aujourd’hui.',
         },
         {
             id: 'tickets' as const,
-            label: 'Billets émis',
-            hint: 'Passagers du jour',
+            label:
+                mode === 'organization'
+                    ? 'Billets émis aujourd’hui'
+                    : 'Billets émis',
+            hint:
+                mode === 'organization'
+                    ? 'Tous les Points'
+                    : 'Passagers du jour',
             value: `${metrics.today_tickets_count}`,
             trend: 'Départs actifs',
             tone: 'gold' as const,
             icon: Ticket,
             spark: ticketsSpark,
             formula:
-                'Nombre total de titres de transport émis aujourd’hui avec attribution de sièges confirmée par votre guichet.',
+                mode === 'organization'
+                    ? 'Nombre de ventes enregistrées aujourd’hui sur le réseau. Le détail reste consultable par Point.'
+                    : 'Nombre total de titres de transport émis aujourd’hui avec attribution de sièges confirmée par votre guichet.',
         },
         {
             id: 'commissions' as const,
-            label: 'Commission du jour',
-            hint: `Taux effectif : ${ratePercent} %`,
+            label:
+                mode === 'organization'
+                    ? 'Commissions du jour'
+                    : 'Commission du jour',
+            hint: `Taux contractuel : ${ratePercent} %`,
             value: `${metrics.today_commission_amount.toLocaleString('fr-FR')} FCFA`,
             trend: 'Acquise en direct',
             tone: 'emerald' as const,
             icon: TrendingUp,
             spark: commissionSpark,
-            formula: `Commission nette acquise = Ventes du jour × Taux contractuel (${ratePercent} %). Ce montant est déduit de votre versement dû à KORA.`,
+            formula: `Commission nette acquise = Ventes du jour × Taux contractuel (${ratePercent} %). Ce montant est déduit du reversement dû à KORA.`,
         },
         {
             id: 'settlement' as const,
-            label: 'Encours à reverser',
-            hint: 'Dette nette non soldée',
+            label:
+                mode === 'organization'
+                    ? 'Encours de l’organisation'
+                    : 'Encours à reverser',
+            hint:
+                mode === 'organization'
+                    ? 'Dette nette des Points'
+                    : 'Dette nette non soldée',
             value: `${metrics.total_due_amount.toLocaleString('fr-FR')} FCFA`,
             trend: 'Dû à KORA',
             tone: 'navy' as const,
             icon: ReceiptText,
             spark: [] as number[],
             formula:
-                'Montant net à reverser à KORA = Ventes brutes − Commissions acquises − Versements déjà validés.',
+                mode === 'organization'
+                    ? 'Somme des encours nets de tous les Points rattachés à votre organisation.'
+                    : 'Montant net à reverser à KORA = Ventes brutes − Commissions acquises − Versements déjà validés.',
         },
     ];
 
@@ -114,7 +142,9 @@ export function KoraPointKpiGrid({ metrics, terms, onKpiClick }: Props) {
                         id="point-performance-title"
                         className="text-[1.125rem] font-extrabold tracking-[-0.03em] text-foreground sm:text-[1.25rem]"
                     >
-                        Performance instantanée du guichet
+                        {mode === 'organization'
+                            ? 'Performance instantanée du réseau'
+                            : 'Performance instantanée du guichet'}
                     </h2>
                 </div>
             </div>

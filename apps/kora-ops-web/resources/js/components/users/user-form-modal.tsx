@@ -17,6 +17,7 @@ import type {
     AdministrationAgency,
     AdministrationRole,
     AdministrationUser,
+    KoraPointOrganizationOption,
 } from '@/types/administration';
 
 type Props = {
@@ -24,6 +25,7 @@ type Props = {
     user: AdministrationUser | null;
     roles: AdministrationRole[];
     agencies: AdministrationAgency[];
+    koraPointOrganizations: KoraPointOrganizationOption[];
     onOpenChange: (open: boolean) => void;
 };
 
@@ -36,6 +38,7 @@ type FormValues = {
     status: 'active' | 'suspended';
     role: string;
     agency_uuid: string;
+    kora_point_organization_uuid: string;
 };
 
 const emptyValues: FormValues = {
@@ -47,6 +50,7 @@ const emptyValues: FormValues = {
     status: 'active',
     role: '',
     agency_uuid: '',
+    kora_point_organization_uuid: '',
 };
 
 function valuesFromUser(user: AdministrationUser | null): FormValues {
@@ -63,6 +67,7 @@ function valuesFromUser(user: AdministrationUser | null): FormValues {
         status: user.status === 'locked' ? 'active' : user.status,
         role: user.role?.code ?? '',
         agency_uuid: user.agency?.uuid ?? '',
+        kora_point_organization_uuid: user.kora_point_organization?.uuid ?? '',
     };
 }
 
@@ -71,6 +76,7 @@ export function UserFormModal({
     user,
     roles,
     agencies,
+    koraPointOrganizations,
     onOpenChange,
 }: Props) {
     const isEditing = Boolean(user);
@@ -98,6 +104,11 @@ export function UserFormModal({
         ? selectedRole.category === 'central'
         : false;
 
+    const requiresKoraPointOrganization = [
+        'kora_point_supervisor',
+        'kora_point_treasurer',
+    ].includes(form.data.role);
+
     // Quand le rôle change, si central, vider agency_uuid
     const handleRoleChange = (roleCode: string) => {
         const found = roles.find((r) => r.code === roleCode);
@@ -105,6 +116,12 @@ export function UserFormModal({
             ...data,
             role: roleCode,
             agency_uuid: found?.category === 'central' ? '' : data.agency_uuid,
+            kora_point_organization_uuid: [
+                'kora_point_supervisor',
+                'kora_point_treasurer',
+            ].includes(roleCode)
+                ? data.kora_point_organization_uuid
+                : '',
         }));
     };
 
@@ -132,6 +149,9 @@ export function UserFormModal({
             country_code: data.country_code.trim().toUpperCase() || null,
             birth_date: data.birth_date || null,
             agency_uuid: forbidsAgency ? null : data.agency_uuid || null,
+            kora_point_organization_uuid: requiresKoraPointOrganization
+                ? data.kora_point_organization_uuid || null
+                : null,
         }));
 
         const options = {
@@ -494,6 +514,63 @@ export function UserFormModal({
                                 )}
                             </label>
                         </div>
+
+                        {requiresKoraPointOrganization && (
+                            <label className="field mt-3">
+                                <span>
+                                    Organisation KORA POINT
+                                    <b className="ml-1 font-black text-destructive">
+                                        *
+                                    </b>
+                                </span>
+                                <select
+                                    className="control"
+                                    value={
+                                        form.data.kora_point_organization_uuid
+                                    }
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'kora_point_organization_uuid',
+                                            event.target.value,
+                                        )
+                                    }
+                                    aria-invalid={Boolean(
+                                        form.errors
+                                            .kora_point_organization_uuid,
+                                    )}
+                                >
+                                    <option value="">
+                                        Sélectionner une organisation…
+                                    </option>
+                                    {koraPointOrganizations.map(
+                                        (organization) => (
+                                            <option
+                                                key={organization.uuid}
+                                                value={organization.uuid}
+                                            >
+                                                {organization.code
+                                                    ? `${organization.code} · `
+                                                    : ''}
+                                                {organization.name}
+                                            </option>
+                                        ),
+                                    )}
+                                </select>
+                                {form.errors.kora_point_organization_uuid ? (
+                                    <small className="field-error-text font-semibold text-destructive">
+                                        {
+                                            form.errors
+                                                .kora_point_organization_uuid
+                                        }
+                                    </small>
+                                ) : (
+                                    <small className="text-muted-foreground">
+                                        Le membre recevra ses identifiants pour
+                                        cette organisation.
+                                    </small>
+                                )}
+                            </label>
+                        )}
 
                         {/* Alertes contextuelles dynamiques */}
                         {selectedRole && (

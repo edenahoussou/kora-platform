@@ -26,8 +26,17 @@ class KoraPointReadService
     {
         $this->access->authorize($actor, 'kora-points.view');
 
-        $organizations = KoraPointOrganization::query()
-            ->with('media')
+        $organizationsQuery = KoraPointOrganization::query()->with('media');
+
+        if ($this->access->isPartner($actor)) {
+            $organizationsQuery->whereKey(
+                $actor->hasRole('kora_point_agent')
+                    ? 0
+                    : ($actor->kora_point_organization_id ?? 0),
+            );
+        }
+
+        $organizations = $organizationsQuery
             ->latest('id')
             ->get()
             ->map(fn (KoraPointOrganization $org): array => [
@@ -36,19 +45,31 @@ class KoraPointReadService
                 'name' => $org->name,
                 'logo_url' => $org->getFirstMediaUrl('logo', 'thumb') ?: null,
                 'legal_name' => $org->name,
-                'headquarters_city' => $org->address ?? 'Cotonou',
-                'rccm' => 'RB/COT/14 B 11842',
-                'ifu' => '3201400293841',
+                'headquarters_city' => null,
+                'country' => $org->country,
+                'registration_identifier' => $org->registration_identifier,
+                'tax_identifier' => $org->tax_identifier,
+                'status' => $org->status,
+                'phone' => $org->phone,
+                'address' => $org->address,
                 'points_count' => $org->points()->count(),
                 'active_points_count' => $org->points()->where('status', 'active')->count(),
                 'total_monthly_sales' => (int) $org->sales()->sum('gross_amount'),
                 'total_exposure' => (int) $org->points()->withSum('entries as debt_total', 'amount')->get()->sum('debt_total'),
-                'credit_limit' => (int) ($org->ceiling_amount ?? $org->points()->sum('ceiling_amount')),
+                'allocated_credit_limit' => $this->allocatedCreditLimit($org),
+                'credit_limit' => (int) $org->ceiling_amount,
+                'commission_basis_points' => $org->commission_basis_points,
+                'ceiling_amount' => $org->ceiling_amount,
+                'settlement_calendar' => $org->settlement_calendar,
                 'default_terms' => [
-                    'commission_rate_bps' => (int) ($org->commission_basis_points ?? 300),
-                    'credit_limit' => (int) ($org->ceiling_amount ?? 1500000),
-                    'settlement_frequency_days' => ($org->settlement_calendar['frequency'] ?? 'weekly') === 'monthly' ? 30 : 7,
-                    'grace_period_days' => 7,
+                    'commission_rate_bps' => (int) $org->commission_basis_points,
+                    'credit_limit' => (int) $org->ceiling_amount,
+                    'settlement_frequency_days' => match ($org->settlement_calendar['frequency'] ?? 'daily') {
+                        'monthly' => 30,
+                        'weekly' => 7,
+                        default => 1,
+                    },
+                    'grace_period_days' => $this->terms->graceDays(),
                 ],
                 'users' => [],
                 'documents' => [],
@@ -70,7 +91,7 @@ class KoraPointReadService
             $pointsQuery->whereNotNull('organization_id');
         }
 
-        if (in_array($filters['state'] ?? '', ['active', 'suspended'], true)) {
+        if (in_array($filters['state'] ?? '', ['active', 'suspended', 'closed'], true)) {
             $pointsQuery->where('status', $filters['state']);
         }
 
@@ -143,14 +164,20 @@ class KoraPointReadService
         $calendar = $terms['settlement_calendar'] ?? [];
         $freqDays = ($calendar['frequency'] ?? 'weekly') === 'monthly' ? 30 : (($calendar['frequency'] ?? 'weekly') === 'daily' ? 1 : 7);
 
-        $status = $point->status === 'suspended' ? 'SUSPENDED' : ($limit > 0 && $exposure >= $limit ? 'LIMIT_REACHED' : ($limit > 0 && $exposure >= ($limit * 0.8) ? 'WARNING_THRESHOLD' : 'ACTIVE'));
+        $status = match ($point->status) {
+            'closed' => 'CLOSED',
+            'suspended' => 'SUSPENDED',
+            default => $limit > 0 && $exposure >= $limit
+                ? 'LIMIT_REACHED'
+                : ($limit > 0 && $exposure >= ($limit * 0.8) ? 'WARNING_THRESHOLD' : 'ACTIVE'),
+        };
 
         return [
             'uuid' => $point->uuid,
             'code' => $point->agency->code,
             'name' => $point->agency->name,
             'city' => $point->agency->city,
-            'department' => $point->agency->city,
+            'department' => $point->agency->department,
             'country' => $point->agency->country,
             'status' => $status,
             'raw_status' => $point->status,
@@ -171,7 +198,7 @@ class KoraPointReadService
             'current_exposure' => $exposure,
             'credit_limit' => $limit,
             'usage_percentage' => $usage,
-            'commission_rate_bps' => (int) ($terms['commission_basis_points'] ?? 300),
+            'commission_rate_bps' => (int) ($terms['commission_basis_points'] ?? 0),
             'settlement_frequency_days' => $freqDays,
             'grace_period_days' => $this->terms->graceDays(),
             'daily_sales_amount' => (int) $point->getAttribute('gross_total'),
@@ -183,6 +210,22 @@ class KoraPointReadService
             'overdue' => (bool) $point->getAttribute('overdue'),
             'created_at' => $point->created_at?->format('d M Y') ?? '',
         ];
+    }
+
+    public function allocatedCreditLimit(KoraPointOrganization $organization): int
+    {
+        return (int) $organization->points()
+            ->withSum('entries as allocation_exposure', 'amount')
+            ->get()
+            ->sum(function (KoraPoint $point): int {
+                $exposure = (int) ($point->getAttribute('allocation_exposure') ?? 0);
+
+                if ($point->status === 'closed' && $exposure === 0) {
+                    return 0;
+                }
+
+                return max(0, (int) ($point->ceiling_amount ?? 0));
+            });
     }
 
     /** @return array<string, mixed> */

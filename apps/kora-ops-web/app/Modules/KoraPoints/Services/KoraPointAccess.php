@@ -20,12 +20,31 @@ class KoraPointAccess
         return $user->hasAnyRole(['kora_point_agent', 'kora_point_supervisor', 'kora_point_treasurer']);
     }
 
+    public function isOrganizationPartner(User $user): bool
+    {
+        return $user->hasAnyRole(['kora_point_supervisor', 'kora_point_treasurer']);
+    }
+
+    public function isOrganizationSupervisor(User $user): bool
+    {
+        return $user->hasRole('kora_point_supervisor');
+    }
+
     /**
      * Throws an authorization error when the user is inactive or lacks the given permission.
      */
     public function authorize(User $user, string $permission): void
     {
         if ($user->status !== UserStatus::Active || ! $user->can($permission)) {
+            throw new AuthorizationException;
+        }
+    }
+
+    public function authorizeInternal(User $user, string $permission): void
+    {
+        $this->authorize($user, $permission);
+
+        if ($this->isPartner($user)) {
             throw new AuthorizationException;
         }
     }
@@ -49,7 +68,8 @@ class KoraPointAccess
             return $query->where('agency_id', $user->agency_id ?? 0);
         }
 
-        return $query->where('organization_id', $user->kora_point_organization_id ?? 0);
+        return $query->where('organization_id', $user->kora_point_organization_id ?? 0)
+            ->whereHas('organization', fn (Builder $organization) => $organization->where('status', 'active'));
     }
 
     /**
@@ -65,7 +85,7 @@ class KoraPointAccess
      */
     public function viewOrganization(User $user, KoraPointOrganization $organization): bool
     {
-        return $user->status === UserStatus::Active && $user->can('kora-points.view')
+        return $user->status === UserStatus::Active && $organization->status === 'active' && $user->can('kora-points.view')
             && (! $this->isPartner($user) || (! $user->hasRole('kora_point_agent') && $user->kora_point_organization_id === $organization->getKey()));
     }
 
@@ -88,7 +108,8 @@ class KoraPointAccess
             return $query->whereHas('point', fn (Builder $points) => $points->where('agency_id', $user->agency_id ?? 0));
         }
 
-        return $query->where('organization_id', $user->kora_point_organization_id ?? 0);
+        return $query->where('organization_id', $user->kora_point_organization_id ?? 0)
+            ->whereHas('point.organization', fn (Builder $organization) => $organization->where('status', 'active'));
     }
 
     /**

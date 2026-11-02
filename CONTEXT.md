@@ -253,12 +253,13 @@ Personne ou entite externe qui distribue les billets KORA. Dans le cas courant, 
 _Avoid_: KORA Point unique pour tous les bureaux, compte entreprise achetant pour ses propres voyageurs
 
 **Organisation partenaire KORA POINT**:
-Regroupement facultatif de Points physiques d'un meme partenaire institutionnel. Un responsable consulte ses bureaux en lecture seule ; un tresorier distinct peut declarer leurs reversements groupes. Ce regroupement est distinct du compte organisationnel acheteur de voyages.
+Regroupement facultatif de Points physiques d'un même partenaire institutionnel. Son espace web dédié réutilise les écrans KORA POINT de suivi avec des données agrégées par organisation et un filtre pour consulter un Point. Le solde disponible est calculé sur la somme des allocations, tandis que le plafond global non alloué est affiché séparément ; les alertes restent rattachées aux Points concernés. Le superviseur consulte les ventes, billets, commissions et remboursements, gère les coordonnées opérationnelles et le cycle de vie des Points, répartit leurs allocations et prépare/soumet des reversements groupés pour toute l'organisation. Il ne modifie ni les conditions commerciales globales, ni les comptes des membres, ni les rattachements entre organisations. Le trésorier consulte les mêmes données et prépare/soumet les mêmes reversements groupés sans gérer les Points. Seule Finance KORA autorise ou refuse les remboursements et valide les reversements ; les remboursements restent en lecture seule dans l'espace partenaire. Les deux rôles sont cloisonnés à leur organisation. Une organisation suspendue ou clôturée coupe leur accès et ferme leur session à la prochaine requête. Ce regroupement est distinct du compte organisationnel acheteur de voyages.
 _Avoid_: Organisation obligatoire pour chaque boutique, Point principal COLIS
 
 **Conditions commerciales KORA POINT**:
-Commission, plafond d'encours et calendrier de reversement resolus dans l'ordre Point, organisation eventuelle, parametres d'exploitation. Null signifie heriter ; 0 % est une commission explicite. La vente fige ses conditions au paiement et un changement ne recalcule pas l'historique.
-_Avoid_: Taux contractuel implicite tire de la maquette, plafond mensuel de chiffre d'affaires
+Pour un Point autonome, la commission, le plafond d'encours et le calendrier proviennent du Point ou, si une valeur est absente, des paramètres d'exploitation. Pour un Point rattaché, la commission et le calendrier sont définis par l'organisation et ne peuvent pas être remplacés au niveau du Point. Le plafond global appartient à l'organisation et les plafonds des Points sont des allocations positives dont la somme ne peut pas le dépasser. Une baisse du plafond global sous les allocations existantes ou une allocation sous l'encours est refusée. Une suspension conserve l'allocation ; la clôture ne la libère qu'après solde de l'encours. Le délai de grâce reste un réglage global KORA. La vente fige ses conditions au paiement et un changement ne recalcule pas l'historique.
+Les organisations et Points KORA POINT utilisent un même pays pour le rattachement. Les pays pris en charge sont BJ, TG et CI, en XOF ; le Ghana attend la prise en charge de sa devise GHS. Les organisations portent leurs identifiants légaux et leurs documents. Un Point rattaché n'ajoute pas de documents propres ; un Point autonome conserve son dossier documentaire.
+_Avoid_: Taux contractuel implicite tire de la maquette, plafond mensuel de chiffre d'affaires, conditions locales d'un Point rattaché
 
 **Reversement partenaire**:
 Reglement net declare pour des ventes entieres, affecte explicitement a chaque Point. Seule la reception validee par Finance KORA diminue l'encours. Le declarant ne valide pas sa propre operation ; une difference reste a rapprocher.
@@ -272,9 +273,17 @@ _Avoid_: Annulation partenaire autonome, statut rembourse avant restitution effe
 Personne identifiee par un compte personnel qui opere pour un KORA Point. Le bureau et le compte de connexion de son agent sont deux concepts distincts.
 _Avoid_: Compte partage au nom du bureau, partenaire distributeur, agence postale representee par une personne fictive
 
-**Responsable partenaire**:
-Personne habilitee a consulter en lecture seule les ventes et les situations financieres des KORA Points de son partenaire distributeur. Son perimetre exclut les autres partenaires et les donnees globales KORA.
-_Avoid_: Responsable reseau KORA, administrateur partenaire, agent autorise a modifier les conditions commerciales
+**Accès web initial**:
+Premiere remise d'un mot de passe provisoire par e-mail, avec SMS de repli si l'e-mail echoue, pour ouvrir KORA OPS Web a un agent, superviseur ou tresorier KORA POINT. Le mot de passe doit etre change a la premiere connexion et expire apres 72 heures s'il n'est pas utilise.
+_Avoid_: Activation de l'acces passager mobile, code OTP, mot de passe permanent transmis par KORA
+
+**Superviseur partenaire KORA POINT**:
+Membre d'une organisation partenaire qui consulte les ventes, billets, commissions et remboursements agrégés de ses Points, avec filtre et détail par Point. Il crée et gère le cycle de vie des Points rattachés, répartit immédiatement les allocations sous le plafond global et prépare/soumet des reversements groupés pour toute son organisation. Il fournit l'identité et l'e-mail du compte agent lors de la création d'un Point ; les changements ultérieurs de compte et les renvois d'accès restent gérés par KORA OPS. Il ne gère pas les membres de l'organisation, ne change pas les conditions globales, ne transfère pas un Point vers une autre organisation et ne traite pas les décisions Finance sur les remboursements ou reversements.
+_Avoid_: Responsable réseau KORA, administrateur partenaire, gestionnaire des comptes membres, éditeur des conditions commerciales globales, validateur Finance
+
+**Trésorier partenaire KORA POINT**:
+Membre d'une organisation partenaire qui consulte les mêmes ventes, billets, commissions et remboursements agrégés que son superviseur et prépare/soumet les reversements groupés de l'organisation. Il ne crée ni ne modifie les Points et leurs allocations ; Finance KORA reçoit et valide le reversement.
+_Avoid_: Validateur de son propre reversement, gestionnaire des Points, trésorier KORA
 
 **Encours a reverser d'un Point**:
 Dette de reglement d'un KORA Point envers KORA, issue des encaissements detenus par le partenaire, des commissions retenues et des mouvements de reglement ou de correction justifies. Elle reste distincte du chiffre d'affaires et du montant des billets annules.

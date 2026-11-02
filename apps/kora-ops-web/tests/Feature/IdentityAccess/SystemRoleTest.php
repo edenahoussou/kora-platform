@@ -28,6 +28,8 @@ describe('SystemRole enum', function (): void {
         expect(SystemRole::Passenger->permissions())->toBe(['bookings.create', 'bookings.view-own', 'bookings.cancel', 'tickets.view', 'company-accounts.view', 'company-portal.access'])
             ->and(SystemRole::BusDriver->permissions())->toBe(['departures.progress', 'incidents.report', 'departures.view', 'notifications.view'])
             ->and(SystemRole::Conductor->permissions())->toContain('boarding.scan', 'seat-releases.create')
+            ->and(SystemRole::KoraPointSupervisor->permissions())->toContain('kora-points.remit')
+            ->and(SystemRole::KoraPointSupervisor->permissions())->not->toContain('kora-points.finance')
             ->and(SystemRole::CommercialDirector->permissions())->toContain('agencies.view', 'agencies.create', 'agencies.update', 'agencies.deactivate')
             ->and(SystemRole::SystemAdmin->permissions())->toBe(SystemRole::allPermissions());
     });
@@ -58,8 +60,8 @@ describe('SystemRole enum', function (): void {
             ->and($all)->toContain('passengers.erase', 'sensitive-data.export')
             ->and($all)->toContain('monitoring.view')
             ->and($all)->toContain('app-releases.view', 'app-releases.manage')
-            ->and($all)->toHaveCount(99)
-            ->and(count(array_unique($all)))->toBe(99);
+            ->and($all)->toHaveCount(100)
+            ->and(count(array_unique($all)))->toBe(100);
     });
 
     it('registers every permission declared by a system role', function (): void {

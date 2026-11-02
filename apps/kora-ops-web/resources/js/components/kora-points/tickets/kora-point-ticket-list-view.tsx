@@ -1,3 +1,4 @@
+import { Link } from '@inertiajs/react';
 import {
     ChevronRight,
     Eye,
@@ -8,24 +9,32 @@ import {
     Wallet,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { cn } from '@/lib/utils';
-import type {
-    PointSaleRecord,
-    SettlementStatus,
-} from '../mock/kora-point-mock-data';
+import type { PointSaleRecord, SettlementStatus } from '@/types/kora-points';
 import { KoraPointTicketDetailDrawer } from './kora-point-ticket-detail-drawer';
 
 type Props = {
-    sales: PointSaleRecord[];
-    onStartNewSale: () => void;
+    sales: (PointSaleRecord & {
+        point_uuid?: string;
+        point_name?: string;
+        point_code?: string;
+    })[];
+    onStartNewSale?: () => void;
     onRequestRefund?: (saleUuid: string) => void;
+    showPoint?: boolean;
+    scopeLabel?: string;
+    toolbarSlot?: ReactNode;
 };
 
 export function KoraPointTicketListView({
     sales,
     onStartNewSale,
     onRequestRefund,
+    showPoint = false,
+    scopeLabel = 'Espace Agent',
+    toolbarSlot,
 }: Props) {
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | SettlementStatus>(
@@ -78,7 +87,7 @@ export function KoraPointTicketListView({
             <div className="kora-page-head cash-reveal mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                     <div className="kora-breadcrumb mb-2 text-[0.6875rem] text-muted-foreground">
-                        KORA POINT / Espace Agent / Billets
+                        KORA POINT / {scopeLabel} / Billets
                     </div>
                     <h1 className="text-[clamp(1.8rem,3vw,2.65rem)] font-extrabold tracking-[-0.055em] text-foreground">
                         Billets & Activité
@@ -89,16 +98,21 @@ export function KoraPointTicketListView({
                     </p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2.5">
-                    <button
-                        type="button"
-                        onClick={onStartNewSale}
-                        className="btn btn-primary"
-                    >
-                        <Ticket className="size-4" />
-                        <span>Nouvelle vente</span>
-                    </button>
-                </div>
+                {onStartNewSale || toolbarSlot ? (
+                    <div className="flex flex-wrap items-center gap-2.5">
+                        {toolbarSlot}
+                        {onStartNewSale ? (
+                            <button
+                                type="button"
+                                onClick={onStartNewSale}
+                                className="btn btn-primary"
+                            >
+                                <Ticket className="size-4" />
+                                <span>Nouvelle vente</span>
+                            </button>
+                        ) : null}
+                    </div>
+                ) : null}
             </div>
 
             {/* Summary Cards */}
@@ -244,6 +258,9 @@ export function KoraPointTicketListView({
                     <thead>
                         <tr className="border-b border-slate-200 bg-slate-50 text-[0.625rem] font-black tracking-wider text-slate-400 uppercase dark:border-slate-800 dark:bg-slate-950">
                             <th className="py-3.5 pr-3 pl-5">Billet & Code</th>
+                            {showPoint ? (
+                                <th className="px-3 py-3.5">Point</th>
+                            ) : null}
                             <th className="px-3 py-3.5">Date & Heure</th>
                             <th className="px-3 py-3.5">Voyageur</th>
                             <th className="px-3 py-3.5">Trajet / Départ</th>
@@ -272,6 +289,23 @@ export function KoraPointTicketListView({
                                         Code {sale.short_code}
                                     </span>
                                 </td>
+                                {showPoint ? (
+                                    <td className="px-3 py-3">
+                                        {sale.point_uuid ? (
+                                            <Link
+                                                href={`/kora-partner/points/${sale.point_uuid}`}
+                                                className="font-semibold hover:underline"
+                                            >
+                                                {sale.point_name}
+                                                <span className="ml-1 text-[0.6875rem] text-slate-400">
+                                                    ({sale.point_code})
+                                                </span>
+                                            </Link>
+                                        ) : (
+                                            (sale.point_name ?? '—')
+                                        )}
+                                    </td>
+                                ) : null}
                                 <td className="px-3 py-3 whitespace-nowrap text-slate-500">
                                     {sale.date_label}
                                 </td>
@@ -387,6 +421,16 @@ export function KoraPointTicketListView({
                         </div>
 
                         <div className="my-3 space-y-1.5 text-xs">
+                            {showPoint && sale.point_name ? (
+                                <div className="flex items-center justify-between">
+                                    <span className="text-slate-400">
+                                        Point :
+                                    </span>
+                                    <strong className="text-slate-900 dark:text-white">
+                                        {sale.point_name} ({sale.point_code})
+                                    </strong>
+                                </div>
+                            ) : null}
                             <div className="flex items-center justify-between">
                                 <span className="text-slate-400">
                                     Voyageur :

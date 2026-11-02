@@ -96,7 +96,7 @@ class AuthSessionController extends Controller
      *
      * @bodyParam identifier string required Email or phone number. Local and international
      * numbers are normalized before lookup. Do not send together with `email`.
-     * @bodyParam email string Legacy alias for `identifier`, accepted for existing clients.
+     * @bodyParam email string Legacy alias for `identifier`, accepted for existing clients. Example: agent@kora.example
      * @bodyParam pin string required Four-digit PIN.
      *
      * @unauthenticated

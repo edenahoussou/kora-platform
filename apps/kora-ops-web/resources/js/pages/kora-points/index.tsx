@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import {
     AlertTriangle,
     Building2,
@@ -54,13 +54,21 @@ type Props = {
     organizations: AdminOrganization[];
     defaults?: Record<string, unknown> | null;
     permissions: AdminPermissions;
+    partnerWorkspace?: {
+        base_path: string;
+        organization_uuid: string;
+        organization_name: string;
+    };
 };
 
 export default function KoraPointsIndexPage({
     points,
     organizations,
     permissions,
+    partnerWorkspace,
 }: Props) {
+    const isPartnerWorkspace = partnerWorkspace !== undefined;
+    const basePath = partnerWorkspace?.base_path ?? '/kora-points';
     const [wizardOpen, setWizardOpen] = useState(false);
     const [editingPoint, setEditingPoint] = useState<AdminPoint | null>(null);
     const [attachPoint, setAttachPoint] = useState<AdminPoint | null>(null);
@@ -112,9 +120,13 @@ export default function KoraPointsIndexPage({
             options: [
                 { value: 'active', label: 'Actifs' },
                 { value: 'suspended', label: 'Suspendus' },
+                { value: 'closed', label: 'Clôturés' },
             ],
         },
     ];
+    const visibleFilters = isPartnerWorkspace
+        ? filterConfigs.filter((filter) => filter.name !== 'type')
+        : filterConfigs;
 
     const pagination: PaginationMeta = {
         currentPage: points.current_page,
@@ -123,7 +135,7 @@ export default function KoraPointsIndexPage({
         total: points.total,
         from: points.from,
         to: points.to,
-        baseUrl: '/kora-points',
+        baseUrl: basePath,
     };
 
     const openCreate = () => {
@@ -137,61 +149,80 @@ export default function KoraPointsIndexPage({
     const handleWizardSubmit = (data: {
         name: string;
         type: 'AUTONOMOUS' | 'ORGANIZATION_ATTACHED';
-        organizationName?: string;
         organizationUuid?: string;
+        country: 'BJ' | 'TG' | 'CI';
         city: string;
         department: string;
+        address: string;
         managerName: string;
-        phone: string;
-        email?: string;
+        phone: string | null;
+        email: string;
         creditLimit: number;
-        commissionRateBps: number;
-        settlementFrequencyDays: number;
-        gracePeriodDays: number;
+        commissionRateBps?: number;
+        settlementFrequency?: 'daily' | 'weekly' | 'monthly';
+        documentFile?: File | null;
     }) => {
-        const frequencyMap: Record<number, string> = {
-            1: 'daily',
-            7: 'weekly',
-            30: 'monthly',
-        };
-        const frequency = frequencyMap[data.settlementFrequencyDays];
+        const settlementCalendar =
+            data.type === 'AUTONOMOUS' && data.settlementFrequency
+                ? {
+                      frequency: data.settlementFrequency,
+                      time: '18:00',
+                      timezone: 'Africa/Porto-Novo',
+                      ...(data.settlementFrequency === 'weekly'
+                          ? { weekday: 1 }
+                          : {}),
+                      ...(data.settlementFrequency === 'monthly'
+                          ? { day: 1 }
+                          : {}),
+                  }
+                : undefined;
 
         router.post(
             koraPoints.store.url(),
             {
                 name: data.name,
                 city: data.city,
-                country: 'BJ',
+                country: data.country,
+                department: data.department || null,
                 responsible_name: data.managerName,
                 phone: data.phone,
-                email: data.email ? data.email.trim() : null,
+                email: data.email,
+                address: data.address || null,
                 organization_uuid:
                     data.type === 'ORGANIZATION_ATTACHED'
                         ? data.organizationUuid
                         : null,
-                commission_basis_points: data.commissionRateBps,
                 ceiling_amount: data.creditLimit,
-                ...(frequency
+                ...(data.type === 'AUTONOMOUS'
                     ? {
-                          settlement_calendar: {
-                              frequency,
-                              time: '18:00',
-                              timezone: 'Africa/Porto-Novo',
-                              ...(frequency === 'weekly' ? { weekday: 1 } : {}),
-                              ...(frequency === 'monthly' ? { day: 1 } : {}),
-                          },
+                          commission_basis_points: data.commissionRateBps ?? 0,
+                          settlement_calendar: settlementCalendar,
+                      }
+                    : {}),
+                ...(data.documentFile
+                    ? {
+                          document_file: data.documentFile,
+                          document_title: data.documentFile.name,
                       }
                     : {}),
             },
-            { preserveScroll: true },
+            {
+                preserveScroll: true,
+                onSuccess: () => setWizardOpen(false),
+            },
         );
     };
 
     const changeStatus = (
         point: AdminPoint,
-        status: 'active' | 'suspended',
+        status: 'active' | 'suspended' | 'closed',
     ) => {
-        const action = status === 'suspended' ? 'suspendre' : 'réactiver';
+        const action =
+            status === 'closed'
+                ? 'clôturer'
+                : status === 'suspended'
+                  ? 'suspendre'
+                  : 'réactiver';
 
         if (
             !window.confirm(
@@ -248,9 +279,18 @@ export default function KoraPointsIndexPage({
                             </span>
                         )}
                         <div>
-                            <strong className="block font-bold text-foreground">
-                                {point.name}
-                            </strong>
+                            {isPartnerWorkspace ? (
+                                <Link
+                                    href={`${basePath}/${point.uuid}`}
+                                    className="block font-bold text-foreground hover:text-primary hover:underline"
+                                >
+                                    {point.name}
+                                </Link>
+                            ) : (
+                                <strong className="block font-bold text-foreground">
+                                    {point.name}
+                                </strong>
+                            )}
                             <span className="text-xs font-semibold tracking-[0.08em] text-muted-foreground uppercase">
                                 {point.code} · {point.city}
                             </span>
@@ -376,7 +416,7 @@ export default function KoraPointsIndexPage({
                                         Rattacher à une organisation
                                     </DropdownMenuItem>
                                 )}
-                                {point.raw_status !== 'suspended' ? (
+                                {point.raw_status === 'active' ? (
                                     <DropdownMenuItem
                                         onClick={() =>
                                             changeStatus(point, 'suspended')
@@ -395,6 +435,17 @@ export default function KoraPointsIndexPage({
                                         Réactiver
                                     </DropdownMenuItem>
                                 )}
+                                {point.raw_status !== 'closed' && (
+                                    <DropdownMenuItem
+                                        disabled={point.current_exposure > 0}
+                                        onClick={() =>
+                                            changeStatus(point, 'closed')
+                                        }
+                                    >
+                                        <ShieldOff className="size-4" />
+                                        Clôturer le Point
+                                    </DropdownMenuItem>
+                                )}
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
@@ -404,20 +455,31 @@ export default function KoraPointsIndexPage({
 
     return (
         <>
-            <Head title="Points de vente KORA POINT" />
+            <Head
+                title={
+                    isPartnerWorkspace
+                        ? `Points de vente — ${partnerWorkspace.organization_name}`
+                        : 'Points de vente KORA POINT'
+                }
+            />
 
             <div className="cash-page">
                 <div className="kora-page-head cash-reveal mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                     <div>
                         <div className="kora-breadcrumb mb-2 text-[0.6875rem] text-muted-foreground">
-                            KORA OPS / Réseau commercial / Points de vente
+                            {isPartnerWorkspace
+                                ? `${partnerWorkspace.organization_name} / Espace partenaire / Points de vente`
+                                : 'KORA OPS / Réseau commercial / Points de vente'}
                         </div>
                         <h1 className="text-[clamp(1.8rem,3vw,2.65rem)] font-extrabold tracking-[-0.055em] text-foreground">
-                            Points de vente partenaires
+                            {isPartnerWorkspace
+                                ? 'Points de vente de l’organisation'
+                                : 'Points de vente partenaires'}
                         </h1>
                         <p className="mt-1.5 text-[0.8125rem] leading-6 text-muted-foreground">
-                            Administrez le réseau KORA POINT : guichets
-                            autonomes et points rattachés aux organisations.
+                            {isPartnerWorkspace
+                                ? 'Consultez vos Points, leur activité et leur allocation. Créez-en de nouveaux avec les conditions de votre organisation.'
+                                : 'Administrez le réseau KORA POINT : guichets autonomes et points rattachés aux organisations.'}
                         </p>
                     </div>
                     {permissions.canManage && (
@@ -474,23 +536,31 @@ export default function KoraPointsIndexPage({
 
                 <div className="cash-reveal cash-reveal-delay-2">
                     <KoraFilterBar
-                        route="/kora-points"
+                        route={basePath}
                         searchPlaceholder="Rechercher par code, nom ou ville…"
-                        filters={filterConfigs}
+                        filters={visibleFilters}
                         className="cash-filterbar"
                     />
                 </div>
 
                 <div className="cash-reveal cash-reveal-delay-3 mt-4">
                     <KoraTable
-                        title="Réseau de points de vente"
-                        subtitle={`${points.total} point${points.total > 1 ? 's' : ''} référencé${points.total > 1 ? 's' : ''}`}
+                        title={
+                            isPartnerWorkspace
+                                ? 'Points de vente de l’organisation'
+                                : 'Réseau de points de vente'
+                        }
+                        subtitle={`${points.total} point${points.total > 1 ? 's' : ''} ${isPartnerWorkspace ? 'rattaché' : 'référencé'}${points.total > 1 ? 's' : ''}`}
                         icon={Store}
                         columns={columns}
                         data={points.data}
                         rowKey={(point) => point.uuid}
                         emptyTitle="Aucun point de vente"
-                        emptyMessage="Ajustez votre recherche ou créez le premier point du réseau."
+                        emptyMessage={
+                            isPartnerWorkspace
+                                ? 'Ajustez votre recherche ou créez le premier Point de votre organisation.'
+                                : 'Ajustez votre recherche ou créez le premier point du réseau.'
+                        }
                         emptyIcon={Store}
                         pagination={pagination}
                     />
@@ -498,8 +568,12 @@ export default function KoraPointsIndexPage({
             </div>
 
             <KoraAdminPointWizardDialog
+                key={partnerWorkspace?.organization_uuid ?? 'admin'}
                 isOpen={wizardOpen}
                 organizations={organizations}
+                partnerOrganization={
+                    isPartnerWorkspace ? organizations[0] : undefined
+                }
                 onClose={() => setWizardOpen(false)}
                 onSubmit={handleWizardSubmit}
             />
@@ -508,6 +582,7 @@ export default function KoraPointsIndexPage({
                 open={editingPoint !== null}
                 point={editingPoint}
                 organizations={organizations}
+                partnerMode={isPartnerWorkspace}
                 onOpenChange={(open) => {
                     if (!open) {
                         setEditingPoint(null);

@@ -18,11 +18,14 @@ use App\Modules\DynamicPricing\Models\PricingRule;
 use App\Modules\DynamicPricing\Models\ServiceClass;
 use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\IdentityAccess\Models\AuthOtpChallenge;
+use App\Modules\IdentityAccess\Models\KoraPointWebAccessInvitation;
 use App\Modules\KoraPoints\Actions\RecordKoraPointSaleAction;
 use App\Modules\KoraPoints\Jobs\SendKoraPointReminderJob;
+use App\Modules\KoraPoints\Models\KoraPartnerDocument;
 use App\Modules\KoraPoints\Models\KoraPoint;
 use App\Modules\KoraPoints\Models\KoraPointEntry;
 use App\Modules\KoraPoints\Models\KoraPointOrganization;
+use App\Modules\KoraPoints\Models\KoraPointRemittance;
 use App\Modules\KoraPoints\Models\KoraPointSale;
 use App\Modules\KoraPoints\Services\KoraPointAccess;
 use App\Modules\KoraPoints\Services\KoraPointDocumentService;
@@ -113,15 +116,19 @@ function kpRemit(User $actor, KoraPointSale $sale, User $finance): void
     $service->receive($finance, $remittance, $remittance->amount);
 }
 
-it('creates standalone points through web routes with optional GPS and documents', function (): void {
-    $this->actingAs($this->commercial)->post(route('kora-points.store'), ['code' => 'KP-1', 'name' => 'Boutique Lomé', 'city' => 'Lomé', 'country' => 'TG', 'responsible_name' => 'Afi', 'phone' => '+22890000000'])->assertRedirect();
+it('creates standalone points through web routes with a web account and optional GPS and documents', function (): void {
+    $this->actingAs($this->commercial)->post(route('kora-points.store'), ['code' => 'KP-1', 'name' => 'Boutique Lomé', 'city' => 'Lomé', 'country' => 'TG', 'responsible_name' => 'Afi', 'phone' => '+22890000000', 'email' => 'afi.point@example.com'])->assertRedirect();
     $point = KoraPoint::query()->sole();
     expect($point->organization_id)->toBeNull()->and($point->latitude)->toBeNull()->and($point->agency->kind)->toBe('partner');
+    expect(User::query()->where('email', 'afi.point@example.com')->whereHas('roles', fn ($query) => $query->where('name', 'kora_point_agent'))->exists())->toBeTrue();
 });
 
 it('creates an organization with auto generated code composed from structure name', function (): void {
     $this->actingAs($this->commercial)->post(route('kora-points.organizations.store'), [
         'name' => 'La Poste du Bénin',
+        'country' => 'CI',
+        'registration_identifier' => 'REG-CI-2026-01',
+        'tax_identifier' => 'TAX-CI-2026-01',
         'phone' => '+22921300000',
         'address' => 'Ganhi, Cotonou',
         'commission_basis_points' => 350,
@@ -132,10 +139,29 @@ it('creates an organization with auto generated code composed from structure nam
     $org = KoraPointOrganization::query()->where('name', 'La Poste du Bénin')->sole();
     expect($org->code)->toBe('LPDB-01')
         ->and($org->phone)->toBe('+22921300000')
+        ->and($org->country)->toBe('CI')
+        ->and($org->registration_identifier)->toBe('REG-CI-2026-01')
+        ->and($org->tax_identifier)->toBe('TAX-CI-2026-01')
         ->and($org->address)->toBe('Ganhi, Cotonou')
         ->and($org->commission_basis_points)->toBe(350)
         ->and($org->ceiling_amount)->toBe(2500000)
         ->and($org->settlement_calendar['frequency'])->toBe('weekly');
+});
+
+it('requires supported country and complete terms before creating an organization', function (): void {
+    $this->actingAs($this->commercial)
+        ->post(route('kora-points.organizations.store'), [
+            'name' => 'Organisation sans conditions',
+            'country' => 'GH',
+        ])
+        ->assertSessionHasErrors([
+            'country',
+            'commission_basis_points',
+            'ceiling_amount',
+            'settlement_calendar',
+        ]);
+
+    expect(KoraPointOrganization::query()->where('name', 'Organisation sans conditions')->exists())->toBeFalse();
 });
 
 it('stores a partner logo and lets attached points inherit it', function (): void {
@@ -143,7 +169,11 @@ it('stores a partner logo and lets attached points inherit it', function (): voi
 
     $this->actingAs($this->commercial)->post(route('kora-points.organizations.store'), [
         'name' => 'Coris Bank',
+        'country' => 'BJ',
         'logo' => UploadedFile::fake()->image('logo.png', 64, 64),
+        'commission_basis_points' => 300,
+        'ceiling_amount' => 500000,
+        'settlement_calendar' => kpCalendar(),
     ])->assertRedirect();
 
     $org = KoraPointOrganization::query()->where('name', 'Coris Bank')->sole();
@@ -155,33 +185,35 @@ it('stores a partner logo and lets attached points inherit it', function (): voi
     expect($view['organization_logo_url'])->toBe($org->getFirstMediaUrl('logo', 'thumb'))
         ->and($view['logo_url'])->toBeNull();
 
-    app(KoraPointManagementService::class)->savePoint($this->commercial, ['logo' => UploadedFile::fake()->image('point.png', 64, 64)], $point);
-    expect($point->refresh()->getMedia('logo'))->toHaveCount(1);
-
     $this->actingAs($this->commercial)->put(route('kora-points.organizations.update', $org->uuid), [
         'name' => 'Coris Bank',
+        'country' => 'BJ',
+        'commission_basis_points' => $org->commission_basis_points,
+        'ceiling_amount' => $org->ceiling_amount,
+        'settlement_calendar' => $org->settlement_calendar,
         'remove_logo' => '1',
     ])->assertRedirect();
     expect($org->refresh()->getMedia('logo'))->toHaveCount(0);
 });
 
 it('creates an organization and its points atomically and rolls back invalid batches', function (): void {
-    $point = ['code' => 'POST-1', 'name' => 'Bureau central', 'city' => 'Lomé', 'country' => 'TG', 'responsible_name' => 'Afi', 'phone' => '+22890000000'];
-    $this->actingAs($this->commercial)->post(route('kora-points.organizations.store'), ['code' => 'POST', 'name' => 'La Poste', 'points' => [$point, $point]])->assertSessionHasErrors('points.0.code');
+    $point = ['code' => 'POST-1', 'name' => 'Bureau central', 'city' => 'Lomé', 'department' => 'Maritime', 'country' => 'TG', 'responsible_name' => 'Afi', 'email' => 'afi.post@example.com', 'ceiling_amount' => 100000];
+    $organizationTerms = ['country' => 'TG', 'commission_basis_points' => 300, 'ceiling_amount' => 500000, 'settlement_calendar' => kpCalendar()];
+    $this->actingAs($this->commercial)->post(route('kora-points.organizations.store'), ['code' => 'POST', 'name' => 'La Poste', ...$organizationTerms, 'points' => [$point, $point]])->assertSessionHasErrors('points.0.code');
     expect(KoraPointOrganization::query()->count())->toBe(0);
-    $org = app(KoraPointManagementService::class)->saveOrganization($this->commercial, ['code' => 'POST', 'name' => 'La Poste', 'points' => [$point, array_replace($point, ['code' => 'POST-2'])]]);
-    expect($org->points)->toHaveCount(2);
+    $org = app(KoraPointManagementService::class)->saveOrganization($this->commercial, ['code' => 'POST', 'name' => 'La Poste', ...$organizationTerms, 'points' => [$point, array_replace($point, ['code' => 'POST-2', 'email' => 'afi.post.two@example.com'])]]);
+    expect($org->points)->toHaveCount(2)->and($org->points->every(fn (KoraPoint $point): bool => $point->commission_basis_points === null && $point->settlement_calendar === null))->toBeTrue();
 });
 
 it('inherits terms without treating zero commission as inheritance and freezes sales', function (): void {
     $org = KoraPointOrganization::factory()->create(['commission_basis_points' => 400, 'ceiling_amount' => 50000, 'settlement_calendar' => kpCalendar()]);
-    $point = KoraPoint::factory()->create(['organization_id' => $org->id]);
+    $point = KoraPoint::factory()->create(['organization_id' => $org->id, 'commission_basis_points' => null, 'settlement_calendar' => null, 'ceiling_amount' => 50000]);
     $terms = app(KoraPointTermsService::class);
     expect($terms->resolve($point)['commission_basis_points'])->toBe(400);
-    app(KoraPointManagementService::class)->updateTerms($this->commercial, $point, ['commission_basis_points' => 0]);
+    expect(fn () => app(KoraPointManagementService::class)->updateTerms($this->commercial, $point, ['commission_basis_points' => 0]))->toThrow(ValidationException::class);
     $sale = kpSale($point->refresh());
-    app(KoraPointManagementService::class)->updateTerms($this->commercial, $point, ['commission_basis_points' => 900]);
-    expect($sale->refresh()->commission_amount)->toBe(0)->and($sale->terms_snapshot['commission_basis_points'])->toBe(0);
+    app(KoraPointManagementService::class)->updateTerms($this->commercial, $org, ['commission_basis_points' => 900, 'ceiling_amount' => 50000, 'settlement_calendar' => kpCalendar()]);
+    expect($sale->refresh()->commission_amount)->toBe(400)->and($sale->terms_snapshot['commission_basis_points'])->toBe(400);
 });
 
 it('updates only point defaults using the existing audited settings lock', function (): void {
@@ -222,10 +254,106 @@ it('isolates agents and supervisors and returns explicit Inertia props without n
     $supervisor = User::factory()->create();
     app(KoraPointManagementService::class)->assign(tap(User::factory()->create(), fn ($user) => $user->assignRole('system_admin')), $supervisor, $org, 'kora_point_supervisor');
     $this->actingAs($agent)->get(route('kora-points.show', $other->uuid))->assertForbidden();
-    $this->actingAs($supervisor->refresh())->get(route('kora-points.show', $point->uuid))->assertSuccessful()->assertInertia(fn (Assert $page) => $page->component('kora-points/show', false)->where('point.uuid', $point->uuid)->missing('point.id')->missing('point.agency_id'));
+    $this->actingAs($supervisor->refresh())->get(route('kora-partner.points.show', $point->uuid))->assertSuccessful()->assertInertia(fn (Assert $page) => $page->component('kora-points/partner/point')->where('point.uuid', $point->uuid)->missing('point.id')->missing('point.agency_id'));
     $this->actingAs($supervisor->refresh())->get(route('kora-points.show', $other->uuid))->assertForbidden();
-    $this->actingAs($supervisor->refresh())->post(route('kora-points.remittances.store'), [])->assertForbidden();
+    $this->actingAs($supervisor->refresh())->post(route('kora-points.remittances.store'), [])->assertSessionHasErrors(['sale_uuids', 'method', 'reference']);
     $this->actingAs($agent)->get(route('administration.settings.operations'))->assertForbidden();
+});
+
+it('aggregates the partner workspace by organization and filters each view by point', function (): void {
+    $organization = KoraPointOrganization::factory()->create();
+    $pointOne = kpPoint(['organization_id' => $organization->getKey()]);
+    $pointTwo = kpPoint(['organization_id' => $organization->getKey()]);
+    $otherPoint = kpPoint();
+    kpSale($pointOne, null, 10000);
+    kpSale($pointTwo, null, 20000);
+    kpSale($otherPoint, null, 50000);
+
+    $supervisor = User::factory()->create(['kora_point_organization_id' => $organization->getKey()]);
+    $supervisor->assignRole('kora_point_supervisor');
+
+    $this->actingAs($supervisor)->get(route('kora-partner.dashboard'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('kora-points/partner/dashboard')
+            ->where('metrics.today_sales_amount', 30000)
+            ->where('metrics.today_commission_amount', 900)
+            ->where('health.credit_limit', 200000)
+            ->where('health.global_credit_limit', (int) $organization->ceiling_amount)
+            ->has('points', 2)
+            ->has('priorities'));
+
+    $this->get(route('kora-partner.sales', ['point_uuid' => $pointOne->uuid]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('kora-points/partner/sales')
+            ->where('selected_point_uuid', $pointOne->uuid)
+            ->where('sales.total', 1)
+            ->where('sales.data.0.point_uuid', $pointOne->uuid));
+
+    $this->get(route('kora-partner.commissions', ['period' => 'all', 'point_uuid' => $pointTwo->uuid]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('kora-points/partner/commissions')
+            ->where('period', 'all')
+            ->where('selected_point_uuid', $pointTwo->uuid)
+            ->where('totals.gross', 20000)
+            ->where('totals.net', 600)
+            ->where('sales.total', 1));
+
+    $this->get(route('kora-partner.sales', ['point_uuid' => $otherPoint->uuid]))->assertNotFound();
+});
+
+it('reuses the autonomous versement flow for the whole organization network', function (): void {
+    $organization = KoraPointOrganization::factory()->create();
+    $pointOne = kpPoint(['organization_id' => $organization->getKey()]);
+    $pointTwo = kpPoint(['organization_id' => $organization->getKey()]);
+    $saleOne = kpSale($pointOne, null, 10000);
+    $saleTwo = kpSale($pointTwo, null, 20000);
+    $otherSale = kpSale(kpPoint(), null, 50000);
+    $otherAgent = User::query()->findOrFail($otherSale->seller_id);
+    app(KoraPointRemittanceService::class)->create($otherAgent, [$otherSale->uuid], 'bank_transfer', 'HORS-RESEAU');
+    $supervisor = User::factory()->create(['kora_point_organization_id' => $organization->getKey()]);
+    $supervisor->assignRole('kora_point_supervisor');
+
+    $this->actingAs($supervisor)
+        ->get(route('kora-points.remittances.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('kora-points/partner/remittances')
+            ->where('organization_name', $organization->name)
+            ->where('health.current_exposure', $saleOne->outstanding_amount + $saleTwo->outstanding_amount)
+            ->has('settlements', 0));
+
+    $this->getJson(route('kora-points.remittances.preview', ['from' => '2026-10-30', 'to' => '2026-10-31']))
+        ->assertOk()
+        ->assertJsonPath('data.tickets_count', 2)
+        ->assertJsonPath('data.net_amount', $saleOne->outstanding_amount + $saleTwo->outstanding_amount);
+
+    $this->post(route('kora-points.remittances.declare'), [
+        'sale_uuids' => [$saleOne->uuid, $saleTwo->uuid],
+        'method' => 'bank_transfer',
+        'reference' => 'VIR-ORG-2026-17',
+        'proof' => UploadedFile::fake()->create('preuve-reseau.pdf', 30, 'application/pdf'),
+    ])->assertRedirect(route('kora-points.remittances.index'));
+
+    $remittance = KoraPointRemittance::query()->where('reference', 'VIR-ORG-2026-17')->sole();
+    expect($remittance->organization_id)->toBe($organization->getKey())
+        ->and($remittance->amount)->toBe($saleOne->outstanding_amount + $saleTwo->outstanding_amount)
+        ->and($remittance->lines()->count())->toBe(2)
+        ->and($remittance->declared_by)->toBe($supervisor->getKey())
+        ->and($remittance->status)->toBe('submitted');
+
+    expect(KoraPartnerDocument::query()->where('remittance_id', $remittance->getKey())->where('kind', 'remittance_proof')->exists())->toBeTrue();
+    expect($saleOne->refresh()->status)->not->toBe('settled')
+        ->and($saleTwo->refresh()->status)->not->toBe('settled');
+
+    $this->get(route('kora-points.remittances.index'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('kora-points/partner/remittances')
+            ->where('settlements.0.status', 'DECLARED')
+            ->where('settlements.0.sales_count', 2)
+            ->has('settlements', 1));
 });
 
 it('prevents direct partner and payer cancellation of point sales', function (): void {
@@ -412,7 +540,33 @@ it('preserves original organization attribution after a debt free transfer', fun
     expect(app(KoraPointAccess::class)->sales($treasurer)->count())->toBe(1)
         ->and(app(KoraPointAccess::class)->sales($newSupervisor)->count())->toBe(0)
         ->and($sale->refresh()->organization_id)->toBe($old->id);
-    $this->actingAs($newSupervisor)->get(route('kora-points.show', $point->uuid))->assertInertia(fn (Assert $page) => $page->component('kora-points/show', false)->where('sales.total', 0)->where('point.gross_sales_amount', 0));
+    $this->actingAs($newSupervisor)->get(route('kora-partner.points.show', $point->uuid))->assertInertia(fn (Assert $page) => $page->component('kora-points/partner/point')->where('sales.total', 0)->where('point.gross_sales_amount', 0));
+});
+
+it('rejects cross-country transfers and transfers with an unsettled point balance', function (): void {
+    $old = KoraPointOrganization::factory()->create(['country' => 'BJ']);
+    $sameCountryTarget = KoraPointOrganization::factory()->create(['country' => 'BJ']);
+    $differentCountryTarget = KoraPointOrganization::factory()->create(['country' => 'TG']);
+    $point = kpPoint([
+        'organization_id' => $old->getKey(),
+        'commission_basis_points' => null,
+        'settlement_calendar' => null,
+    ]);
+
+    expect(fn () => app(KoraPointManagementService::class)->savePoint(
+        $this->commercial,
+        ['organization_uuid' => $differentCountryTarget->uuid],
+        $point,
+    ))->toThrow(ValidationException::class);
+
+    kpSale($point);
+    expect(fn () => app(KoraPointManagementService::class)->savePoint(
+        $this->commercial,
+        ['organization_uuid' => $sameCountryTarget->uuid],
+        $point,
+    ))->toThrow(ValidationException::class);
+
+    expect($point->refresh()->organization_id)->toBe($old->getKey());
 });
 
 it('refunds only the remaining paid amount when a full cancellation follows a partial refund', function (): void {
@@ -583,13 +737,17 @@ it('rejects provider confirmation of a partner reservation outside the counter c
     expect($payment->refresh()->status->value)->toBe('pending')->and($reservation->refresh()->status->value)->toBe('held')->and(KoraPointSale::query()->count())->toBe(0);
 });
 
-it('creates organization members as users with otp challenge when saving an organization', function (): void {
+it('creates organization members with initial web access and without registration otp', function (): void {
     $admin = tap(User::factory()->create(), fn ($user) => $user->assignRole('system_admin'));
 
     $org = app(KoraPointManagementService::class)->saveOrganization($admin, [
         'name' => 'La Poste Bénin Test',
         'code' => 'LPB-TEST',
+        'country' => 'BJ',
         'phone' => '+22997000000',
+        'commission_basis_points' => 300,
+        'ceiling_amount' => 1500000,
+        'settlement_calendar' => kpCalendar(),
         'members' => [
             [
                 'name' => 'Jean Superviseur',
@@ -620,8 +778,10 @@ it('creates organization members as users with otp challenge when saving an orga
         ->and($treasurer->kora_point_organization_id)->toBe($org->id)
         ->and($treasurer->must_change_password)->toBeTrue();
 
-    expect(AuthOtpChallenge::query()->where('user_id', $supervisor->id)->count())->toBe(1)
-        ->and(AuthOtpChallenge::query()->where('user_id', $treasurer->id)->count())->toBe(1);
+    expect(AuthOtpChallenge::query()->where('user_id', $supervisor->id)->count())->toBe(0)
+        ->and(AuthOtpChallenge::query()->where('user_id', $treasurer->id)->count())->toBe(0)
+        ->and(KoraPointWebAccessInvitation::query()->where('user_id', $supervisor->id)->value('status'))->toBeIn(['pending_delivery', 'sent'])
+        ->and(KoraPointWebAccessInvitation::query()->where('user_id', $treasurer->id)->value('status'))->toBeIn(['pending_delivery', 'sent']);
 });
 
 it('creates a kora_point_agent user account when saving a point with email', function (): void {
@@ -642,24 +802,25 @@ it('creates a kora_point_agent user account when saving a point with email', fun
         ->and($agent->agency_id)->toBe($point->agency_id)
         ->and($agent->must_change_password)->toBeTrue();
 
-    expect(AuthOtpChallenge::query()->where('user_id', $agent->id)->count())->toBe(1);
+    expect(AuthOtpChallenge::query()->where('user_id', $agent->id)->count())->toBe(0)
+        ->and(KoraPointWebAccessInvitation::query()->where('user_id', $agent->id)->value('status'))->toBeIn(['pending_delivery', 'sent']);
 });
 
-it('does not create any user account when saving a point without email', function (): void {
+it('requires an email when creating a standalone point account', function (): void {
     $admin = tap(User::factory()->create(), fn ($user) => $user->assignRole('system_admin'));
 
     $initialUserCount = User::query()->count();
 
-    $point = app(KoraPointManagementService::class)->savePoint($admin, [
+    expect(fn () => app(KoraPointManagementService::class)->savePoint($admin, [
         'name' => 'Point Sans Compte',
         'city' => 'Porto-Novo',
         'responsible_name' => 'Bio Sans Email',
         'phone' => '+22997445566',
         'email' => null,
-    ]);
+    ]))->toThrow(ValidationException::class);
 
-    expect($point)->not->toBeNull()
-        ->and(User::query()->count())->toBe($initialUserCount);
+    expect(User::query()->count())->toBe($initialUserCount)
+        ->and(KoraPoint::query()->count())->toBe(0);
 });
 
 function kpCounterScenario(): array

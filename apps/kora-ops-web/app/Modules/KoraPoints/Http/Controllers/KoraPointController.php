@@ -4,6 +4,7 @@ namespace App\Modules\KoraPoints\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Modules\IdentityAccess\Models\KoraPointWebAccessInvitation;
 use App\Modules\KoraPoints\Http\Requests\AssignKoraPointUserRequest;
 use App\Modules\KoraPoints\Http\Requests\ChangeKoraPointStatusRequest;
 use App\Modules\KoraPoints\Http\Requests\SaveKoraPointRequest;
@@ -15,6 +16,7 @@ use App\Modules\KoraPoints\Services\KoraPointReadService;
 use App\Modules\Settings\Services\DatabaseSettingsCoordinator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -93,9 +95,20 @@ class KoraPointController extends Controller
     public function store(SaveKoraPointRequest $request): RedirectResponse
     {
         $point = $this->management->savePoint($request->user(), $request->validated());
-        Inertia::flash('toast', ['type' => 'success', 'message' => 'KORA Point créé.']);
+        $message = 'KORA Point créé.';
+        $accessSummary = $this->newAgentAccessSummary($point);
 
-        return to_route('kora-points.show', $point->uuid);
+        if ($accessSummary !== null) {
+            $message .= ' '.$accessSummary;
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
+
+        if ($request->user()->hasRole('kora_point_supervisor')) {
+            return to_route('kora-partner.points');
+        }
+
+        return to_route('kora-points');
     }
 
     /**
@@ -143,5 +156,32 @@ class KoraPointController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Agent affecté au Point.']);
 
         return back();
+    }
+
+    private function newAgentAccessSummary(KoraPoint $point): ?string
+    {
+        $agent = User::query()
+            ->where('agency_id', $point->agency_id)
+            ->whereHas('roles', fn ($query) => $query->where('name', 'kora_point_agent'))
+            ->with('latestKoraPointWebAccessInvitation')
+            ->latest('id')
+            ->first();
+
+        $invitation = $agent?->latestKoraPointWebAccessInvitation;
+
+        if ($invitation === null) {
+            return null;
+        }
+
+        $expiresAt = $invitation->expires_at === null ? null : Carbon::parse($invitation->expires_at);
+        $status = $invitation->status === KoraPointWebAccessInvitation::STATUS_SENT
+            && $expiresAt?->isPast()
+            ? KoraPointWebAccessInvitation::STATUS_EXPIRED
+            : $invitation->status;
+        $delivery = $status === KoraPointWebAccessInvitation::STATUS_SENT
+            ? 'délivré par '.($invitation->delivery_channel === 'sms' ? 'SMS' : 'e-mail')
+            : 'en attente de livraison';
+
+        return "Accès web initial {$delivery}. Le mot de passe n’est pas affiché; suivi et renvoi dans Utilisateurs.";
     }
 }

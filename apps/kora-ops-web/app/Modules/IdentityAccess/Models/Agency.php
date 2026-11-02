@@ -31,6 +31,7 @@ class Agency extends KoraModel
         'code',
         'name',
         'city',
+        'department',
         'country',
         'head_user_id',
         'status',

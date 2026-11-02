@@ -6,11 +6,13 @@ use App\Models\Concerns\HasPublicUuid;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\IdentityAccess\Data\UserStatus;
 use App\Modules\IdentityAccess\Models\Agency;
+use App\Modules\IdentityAccess\Models\KoraPointWebAccessInvitation;
 use App\Modules\IdentityAccess\Models\Role;
 use App\Modules\IdentityAccess\Models\UserDevice;
 use App\Modules\IdentityAccess\Models\UserPreference;
 use App\Modules\IdentityAccess\Models\UserSocialAccount;
 use App\Modules\IdentityAccess\Observers\UserOpsSessionObserver;
+use App\Modules\KoraPoints\Models\KoraPointOrganization;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Notifications\IdentityAccess\ResetPassword;
 use Database\Factories\UserFactory;
@@ -109,6 +111,18 @@ class User extends Authenticatable implements HasMedia, PasskeyUser
     public function agency(): BelongsTo
     {
         return $this->belongsTo(Agency::class);
+    }
+
+    /** @return BelongsTo<KoraPointOrganization, $this> */
+    public function koraPointOrganization(): BelongsTo
+    {
+        return $this->belongsTo(KoraPointOrganization::class, 'kora_point_organization_id');
+    }
+
+    /** @return HasOne<KoraPointWebAccessInvitation, $this> */
+    public function latestKoraPointWebAccessInvitation(): HasOne
+    {
+        return $this->hasOne(KoraPointWebAccessInvitation::class)->latestOfMany();
     }
 
     /**

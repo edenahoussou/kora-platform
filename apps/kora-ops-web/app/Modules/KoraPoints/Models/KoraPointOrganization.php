@@ -17,6 +17,9 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property array<string, mixed>|null $settlement_calendar
  * @property int|null $ceiling_amount
  * @property int|null $commission_basis_points
+ * @property string $country
+ * @property string|null $registration_identifier
+ * @property string|null $tax_identifier
  */
 class KoraPointOrganization extends KoraModel implements HasMedia
 {
@@ -33,7 +36,7 @@ class KoraPointOrganization extends KoraModel implements HasMedia
 
     protected $table = 'kora_point_organizations';
 
-    protected $fillable = ['code', 'name', 'status', 'phone', 'address', 'commission_basis_points', 'ceiling_amount', 'settlement_calendar', 'uuid'];
+    protected $fillable = ['code', 'name', 'status', 'country', 'registration_identifier', 'tax_identifier', 'phone', 'address', 'commission_basis_points', 'ceiling_amount', 'settlement_calendar', 'uuid'];
 
     /** @return array<string, string> */
     protected function casts(): array

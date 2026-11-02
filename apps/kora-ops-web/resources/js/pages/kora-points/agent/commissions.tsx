@@ -1,4 +1,4 @@
-import { Head, Deferred } from '@inertiajs/react';
+import { Head, Deferred, router } from '@inertiajs/react';
 import { KoraPointCommissionsView } from '@/components/kora-points/commissions/kora-point-commissions-view';
 import { handleAgentNavigate } from '@/components/kora-points/common/agent-nav';
 import { KoraPointShell } from '@/components/kora-points/common/kora-point-shell';
@@ -14,6 +14,15 @@ type PaginatedCommissions = {
     current_page: number;
     last_page: number;
     total: number;
+    totals: {
+        gross: number;
+        initial: number;
+        corrections: number;
+        net: number;
+    };
+    period: 'current_month' | 'last_month' | 'all';
+    period_label: string;
+    count: number;
 };
 
 type Props = {
@@ -63,6 +72,20 @@ export default function AgentCommissionsPage({ point, commissions }: Props) {
                         <KoraPointCommissionsView
                             point={point}
                             commissions={commissions.data}
+                            periodFilter={commissions.period}
+                            periodLabel={commissions.period_label}
+                            totals={commissions.totals}
+                            operationCount={commissions.count}
+                            onPeriodChange={(period) =>
+                                router.get(
+                                    '/kora-point/commissions',
+                                    { period },
+                                    {
+                                        preserveScroll: true,
+                                        preserveState: true,
+                                    },
+                                )
+                            }
                             onViewRefundDetail={() =>
                                 handleAgentNavigate('refunds')
                             }

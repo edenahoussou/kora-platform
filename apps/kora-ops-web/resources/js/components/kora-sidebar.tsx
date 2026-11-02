@@ -107,6 +107,52 @@ const koraPointAgentNavItems: NavEntry[] = [
     },
 ];
 
+const koraPointOrganizationNavItems: NavEntry[] = [
+    {
+        title: 'Tableau de bord',
+        href: '/kora-partner',
+        icon: LayoutDashboard,
+        permission: null,
+        exact: true,
+    },
+    {
+        title: 'Points de vente',
+        href: '/kora-partner/points',
+        icon: Store,
+        permission: null,
+    },
+    {
+        title: 'Ventes',
+        href: '/kora-partner/sales',
+        icon: Ticket,
+        permission: null,
+    },
+    {
+        title: 'Commissions',
+        href: '/kora-partner/commissions',
+        icon: TrendingUp,
+        permission: null,
+    },
+    {
+        title: 'Remboursements',
+        href: '/kora-partner/refunds',
+        icon: RotateCcw,
+        permission: null,
+    },
+    {
+        title: 'Documents',
+        href: '/kora-partner/documents',
+        icon: FileText,
+        permission: null,
+    },
+    {
+        title: 'Mon organisation',
+        href: '/kora-partner/organization',
+        icon: Building2,
+        permission: null,
+    },
+];
+
 const navItems: NavEntry[] = [
     {
         title: 'Accueil',
@@ -475,6 +521,8 @@ export function KoraSidebar({
     const { isCurrentUrl } = useCurrentUrl();
     const { auth, companyPortal, portalOnly } = usePage().props;
     const { can, canAny, hasRole } = usePermissions();
+    const isOrganizationPartner =
+        hasRole('kora_point_supervisor') || hasRole('kora_point_treasurer');
     const getInitials = useInitials();
     const [openGroups, setOpenGroups] = useState<string[]>([]);
 
@@ -666,7 +714,9 @@ export function KoraSidebar({
                 <div className="mx-2 mb-3 text-[0.625rem] font-black tracking-[0.13em] text-white/35 uppercase">
                     {hasRole('kora_point_agent')
                         ? 'Espace KORA POINT'
-                        : 'Espace de travail'}
+                        : isOrganizationPartner
+                          ? 'Espace partenaire'
+                          : 'Espace de travail'}
                 </div>
             )}
 
@@ -677,15 +727,26 @@ export function KoraSidebar({
             >
                 {(hasRole('kora_point_agent')
                     ? koraPointAgentNavItems
-                    : portalOnly
-                      ? navItems.filter(
-                            (item) => item.href === companyPortalHref,
-                        )
-                      : navItems.filter(
-                            (item) =>
-                                item.title !== 'KORA POINT' ||
-                                hasRole('system_admin'),
-                        )
+                    : isOrganizationPartner
+                      ? [
+                            ...koraPointOrganizationNavItems.slice(0, 5),
+                            {
+                                title: 'Reversements',
+                                href: '/kora-points/remittances',
+                                icon: ReceiptText,
+                                permission: null,
+                            },
+                            ...koraPointOrganizationNavItems.slice(5),
+                        ]
+                      : portalOnly
+                        ? navItems.filter(
+                              (item) => item.href === companyPortalHref,
+                          )
+                        : navItems.filter(
+                              (item) =>
+                                  item.title !== 'KORA POINT' ||
+                                  hasRole('system_admin'),
+                          )
                 ).map((item) => {
                     const visibleChildren = item.children?.filter(
                         (child) =>

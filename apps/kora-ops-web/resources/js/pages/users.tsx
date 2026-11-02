@@ -28,6 +28,7 @@ import type {
     AdministrationAgency,
     AdministrationRole,
     AdministrationUser,
+    KoraPointOrganizationOption,
     PaginatedAdministrationUsers,
 } from '@/types/administration';
 
@@ -43,6 +44,7 @@ type UsersPageProps = {
     statuses?: string[];
     roles?: AdministrationRole[];
     agencies?: AdministrationAgency[];
+    koraPointOrganizations?: KoraPointOrganizationOption[];
     permissions?: {
         canManage?: boolean;
     };
@@ -55,6 +57,30 @@ type CredentialsFlash = {
     temporaryPassword?: string;
     otpChallengeUuid?: string;
 };
+
+function isKoraPointRole(roleCode: string | undefined): boolean {
+    return [
+        'kora_point_agent',
+        'kora_point_supervisor',
+        'kora_point_treasurer',
+    ].includes(roleCode ?? '');
+}
+
+function webAccessStatusLabel(
+    webAccess: AdministrationUser['web_access'],
+): string | null {
+    if (!webAccess) {
+        return null;
+    }
+
+    return {
+        pending_delivery: 'Accès en attente',
+        sent: 'Accès envoyé',
+        expired: 'Accès expiré',
+        used: 'Mot de passe changé',
+        replaced: 'Accès remplacé',
+    }[webAccess.status];
+}
 
 function KpiCard({
     icon: Icon,
@@ -113,6 +139,7 @@ export default function UsersPage({
     statuses = ['active', 'suspended', 'locked'],
     roles = [],
     agencies = [],
+    koraPointOrganizations = [],
     permissions = { canManage: false },
     temporaryPassword: propTempPassword,
     otpChallengeUuid: propOtpChallenge,
@@ -308,16 +335,23 @@ export default function UsersPage({
 
     // Actions utilisateur
     const handlePasswordReset = (user: AdministrationUser) => {
+        const isKoraPoint = isKoraPointRole(user.role?.code);
+
         if (
             !window.confirm(
-                `Réinitialiser le mot de passe de ${user.name} ? Un mot de passe temporaire unique sera généré.`,
+                isKoraPoint
+                    ? `Renvoyer l’accès web initial de ${user.name} ? L’ancien mot de passe sera invalidé et un nouveau sera envoyé par e-mail, avec repli SMS si l’e-mail échoue.`
+                    : `Réinitialiser le mot de passe de ${user.name} ? Un mot de passe temporaire unique sera généré.`,
             )
         ) {
             return;
         }
 
-        setCredUserName(user.name);
-        setCredUserEmail(user.email);
+        if (!isKoraPoint) {
+            setCredUserName(user.name);
+            setCredUserEmail(user.email);
+        }
+
         router.post(
             usersActions.password.reset.url({ user: user.uuid }),
             {},
@@ -769,6 +803,15 @@ export default function UsersPage({
                                                                     <Mail className="size-2.5 text-muted-foreground/70" />
                                                                     {user.email}
                                                                 </span>
+                                                                {webAccessStatusLabel(
+                                                                    user.web_access,
+                                                                ) && (
+                                                                    <span className="mt-1 inline-flex rounded-md bg-gold/10 px-1.5 py-0.5 text-[0.625rem] font-bold text-gold">
+                                                                        {webAccessStatusLabel(
+                                                                            user.web_access,
+                                                                        )}
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     </td>
@@ -881,7 +924,15 @@ export default function UsersPage({
                                                                                     user,
                                                                                 )
                                                                             }
-                                                                            title="Réinitialiser le mot de passe"
+                                                                            title={
+                                                                                isKoraPointRole(
+                                                                                    user
+                                                                                        .role
+                                                                                        ?.code,
+                                                                                )
+                                                                                    ? 'Renvoyer l’accès web initial'
+                                                                                    : 'Réinitialiser le mot de passe'
+                                                                            }
                                                                         >
                                                                             <KeyRound className="size-3.5" />
                                                                         </button>
@@ -982,6 +1033,7 @@ export default function UsersPage({
                 user={editingUser}
                 roles={roles}
                 agencies={agencies}
+                koraPointOrganizations={koraPointOrganizations}
                 onOpenChange={setModalOpen}
             />
 

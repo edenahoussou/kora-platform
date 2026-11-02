@@ -5,6 +5,7 @@ use App\Modules\KoraPoints\Http\Controllers\KoraPointAgentController;
 use App\Modules\KoraPoints\Http\Controllers\KoraPointController;
 use App\Modules\KoraPoints\Http\Controllers\KoraPointFinanceController;
 use App\Modules\KoraPoints\Http\Controllers\KoraPointOrganizationController;
+use App\Modules\KoraPoints\Http\Controllers\KoraPointPartnerController;
 use App\Modules\KoraPoints\Http\Controllers\KoraPointRefundController;
 use App\Modules\KoraPoints\Http\Controllers\KoraPointRemittanceController;
 use App\Modules\KoraPoints\Http\Controllers\KoraPointSaleController;
@@ -14,6 +15,18 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('kora-points', [KoraPointController::class, 'index'])->name('kora-points');
     Route::get('commissions', [KoraPointController::class, 'commissions'])->name('commissions');
     Route::get('settlements', [KoraPointRemittanceController::class, 'index'])->name('settlements');
+
+    Route::prefix('kora-partner')->name('kora-partner.')->group(function (): void {
+        Route::get('/', [KoraPointPartnerController::class, 'dashboard'])->name('dashboard');
+        Route::get('points', [KoraPointPartnerController::class, 'points'])->name('points');
+        Route::get('points/{point:uuid}', [KoraPointPartnerController::class, 'point'])->name('points.show');
+        Route::get('sales', [KoraPointPartnerController::class, 'sales'])->name('sales');
+        Route::get('commissions', [KoraPointPartnerController::class, 'commissions'])->name('commissions');
+        Route::get('commissions/export', [KoraPointPartnerController::class, 'exportCommissions'])->name('commissions.export');
+        Route::get('refunds', [KoraPointPartnerController::class, 'refunds'])->name('refunds');
+        Route::get('documents', [KoraPointPartnerController::class, 'documents'])->name('documents');
+        Route::get('organization', [KoraPointPartnerController::class, 'organization'])->name('organization');
+    });
 
     Route::prefix('kora-point')->name('kora-point.')->group(function (): void {
         Route::get('/', [KoraPointAgentController::class, 'dashboard'])->name('dashboard');
@@ -59,6 +72,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         });
         Route::prefix('remittances')->name('remittances.')->group(function (): void {
             Route::get('/', [KoraPointRemittanceController::class, 'index'])->name('index');
+            Route::get('preview', [KoraPointRemittanceController::class, 'preview'])->name('preview');
+            Route::post('declare', [KoraPointRemittanceController::class, 'declare'])->name('declare');
             Route::post('/', [KoraPointRemittanceController::class, 'store'])->name('store');
             Route::get('{remittance:uuid}', [KoraPointRemittanceController::class, 'show'])->name('show');
             Route::post('{remittance:uuid}/submit', [KoraPointRemittanceController::class, 'submit'])->name('submit');

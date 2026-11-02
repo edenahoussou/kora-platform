@@ -10,6 +10,7 @@ import {
     Search,
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
+import type { ReactNode } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { cn } from '@/lib/utils';
 import type {
@@ -17,28 +18,45 @@ import type {
     PointRefundRecord,
     PointRefundStatus,
     PointSaleRecord,
-} from '../mock/kora-point-mock-data';
+} from '@/types/kora-points';
 import { KoraPointRefundRequestDialog } from './kora-point-refund-request-dialog';
 import { KoraPointRefundRestitutionDialog } from './kora-point-refund-restitution-dialog';
 
 type Props = {
     point: KoraPointProfile;
-    refunds: PointRefundRecord[];
-    sales: PointSaleRecord[];
-    onInitiateRefund: (data: any) => void;
-    onConfirmRestitution: (
+    refunds: (PointRefundRecord & {
+        point_name?: string;
+        point_code?: string;
+    })[];
+    sales?: PointSaleRecord[];
+    onInitiateRefund?: (data: any) => void;
+    onConfirmRestitution?: (
         refundUuid: string,
         signatoryName: string,
         receiptNote?: string,
     ) => void;
+    scopeLabel?: string;
+    showPoint?: boolean;
+    summary?: {
+        pendingFinance: number;
+        readyForRestitution: number;
+        totalRefunded: number;
+        totalClawback: number;
+        totalCount?: number;
+    };
+    toolbarSlot?: ReactNode;
 };
 
 export function KoraPointRefundListView({
     point,
     refunds,
-    sales,
+    sales = [],
     onInitiateRefund,
     onConfirmRestitution,
+    scopeLabel = 'Espace Agent',
+    showPoint = false,
+    summary,
+    toolbarSlot,
 }: Props) {
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<'ALL' | PointRefundStatus>(
@@ -68,7 +86,7 @@ export function KoraPointRefundListView({
     }, [refunds, searchQuery, statusFilter]);
 
     // Summary metrics
-    const metrics = useMemo(() => {
+    const calculatedMetrics = useMemo(() => {
         let pendingFinance = 0;
         let readyForRestitution = 0;
         let totalRefunded = 0;
@@ -96,6 +114,7 @@ export function KoraPointRefundListView({
             totalClawback,
         };
     }, [refunds]);
+    const metrics = summary ?? calculatedMetrics;
 
     const getStatusBadge = (status: PointRefundStatus) => {
         switch (status) {
@@ -145,31 +164,35 @@ export function KoraPointRefundListView({
     return (
         <div className="space-y-6">
             {/* Modal d'initiation d'un remboursement */}
-            <KoraPointRefundRequestDialog
-                isOpen={isRequestModalOpen}
-                point={point}
-                eligibleSales={sales.filter((s) => s.refundable)}
-                onClose={() => setIsRequestModalOpen(false)}
-                onSubmit={onInitiateRefund}
-            />
+            {onInitiateRefund ? (
+                <KoraPointRefundRequestDialog
+                    isOpen={isRequestModalOpen}
+                    point={point}
+                    eligibleSales={sales.filter((s) => s.refundable)}
+                    onClose={() => setIsRequestModalOpen(false)}
+                    onSubmit={onInitiateRefund}
+                />
+            ) : null}
 
             {/* Modal de restitution d'espèces */}
-            <KoraPointRefundRestitutionDialog
-                isOpen={activeRestitutionRefund !== null}
-                refund={activeRestitutionRefund}
-                pointName={point.name}
-                operatorName={point.manager_name}
-                onClose={() => setActiveRestitutionRefund(null)}
-                onConfirmRestitution={(uuid, signatory, note) => {
-                    onConfirmRestitution(uuid, signatory, note);
-                }}
-            />
+            {onConfirmRestitution ? (
+                <KoraPointRefundRestitutionDialog
+                    isOpen={activeRestitutionRefund !== null}
+                    refund={activeRestitutionRefund}
+                    pointName={point.name}
+                    operatorName={point.manager_name}
+                    onClose={() => setActiveRestitutionRefund(null)}
+                    onConfirmRestitution={(uuid, signatory, note) => {
+                        onConfirmRestitution(uuid, signatory, note);
+                    }}
+                />
+            ) : null}
 
             {/* Header */}
             <div className="kora-page-head cash-reveal mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                     <div className="kora-breadcrumb mb-2 text-[0.6875rem] text-muted-foreground">
-                        KORA POINT / Espace Agent / Remboursements
+                        KORA POINT / {scopeLabel} / Remboursements
                     </div>
                     <h1 className="text-[clamp(1.8rem,3vw,2.65rem)] font-extrabold tracking-[-0.055em] text-foreground">
                         Remboursements & Restitutions passagers
@@ -180,16 +203,21 @@ export function KoraPointRefundListView({
                     </p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2.5">
-                    <button
-                        type="button"
-                        onClick={() => setIsRequestModalOpen(true)}
-                        className="btn btn-primary"
-                    >
-                        <Plus className="size-4" />
-                        <span>Initier un remboursement</span>
-                    </button>
-                </div>
+                {toolbarSlot || onInitiateRefund ? (
+                    <div className="flex flex-wrap items-center gap-2.5">
+                        {toolbarSlot}
+                        {onInitiateRefund ? (
+                            <button
+                                type="button"
+                                onClick={() => setIsRequestModalOpen(true)}
+                                className="btn btn-primary"
+                            >
+                                <Plus className="size-4" />
+                                <span>Initier un remboursement</span>
+                            </button>
+                        ) : null}
+                    </div>
+                ) : null}
             </div>
 
             {/* Top KPI Cards */}
@@ -312,7 +340,7 @@ export function KoraPointRefundListView({
                             statusFilter === 'ALL' ? 'btn-navy' : 'btn-ghost',
                         )}
                     >
-                        Tous ({refunds.length})
+                        Tous ({summary?.totalCount ?? refunds.length})
                     </button>
                     <button
                         type="button"
@@ -377,6 +405,11 @@ export function KoraPointRefundListView({
                                     <th className="px-5 py-3.5 font-bold tracking-wider uppercase">
                                         Billet & Passager
                                     </th>
+                                    {showPoint ? (
+                                        <th className="px-5 py-3.5 font-bold tracking-wider uppercase">
+                                            Point
+                                        </th>
+                                    ) : null}
                                     <th className="px-5 py-3.5 font-bold tracking-wider uppercase">
                                         Motif
                                     </th>
@@ -384,13 +417,15 @@ export function KoraPointRefundListView({
                                         Net remboursé
                                     </th>
                                     <th className="px-5 py-3.5 text-right font-bold tracking-wider uppercase">
-                                        Reprise com (-3%)
+                                        Reprise commission
                                     </th>
                                     <th className="px-5 py-3.5 font-bold tracking-wider uppercase">
                                         Statut
                                     </th>
                                     <th className="px-5 py-3.5 text-right font-bold tracking-wider uppercase">
-                                        Action guichet
+                                        {onConfirmRestitution
+                                            ? 'Action guichet'
+                                            : 'Suivi'}
                                     </th>
                                 </tr>
                             </thead>
@@ -417,6 +452,18 @@ export function KoraPointRefundListView({
                                                 {r.route_label})
                                             </span>
                                         </td>
+                                        {showPoint ? (
+                                            <td className="px-5 py-4">
+                                                <span className="font-semibold">
+                                                    {r.point_name ?? '—'}
+                                                </span>
+                                                <span className="ml-1 text-[11px] text-slate-500">
+                                                    {r.point_code
+                                                        ? `(${r.point_code})`
+                                                        : ''}
+                                                </span>
+                                            </td>
+                                        ) : null}
                                         <td className="px-5 py-4">
                                             <span className="line-clamp-1 text-slate-700 dark:text-slate-300">
                                                 {r.reason_label}
@@ -441,35 +488,43 @@ export function KoraPointRefundListView({
                                         </td>
                                         <td className="px-5 py-4 text-right">
                                             {r.status ===
-                                                'APPROVED_BY_FINANCE' && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        setActiveRestitutionRefund(
-                                                            r,
-                                                        )
-                                                    }
-                                                    className="hover:bg-gold-light inline-flex items-center gap-1 rounded-xl bg-gold px-3 py-1.5 text-xs font-black text-kora uppercase shadow-sm"
-                                                >
-                                                    <Coins className="h-3.5 w-3.5" />
-                                                    Restituer espèces →
-                                                </button>
-                                            )}
-                                            {r.status ===
-                                                'FUNDS_RESTITUTED' && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        setActiveRestitutionRefund(
-                                                            r,
-                                                        )
-                                                    }
-                                                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-                                                >
-                                                    <Receipt className="h-3.5 w-3.5 text-emerald-600" />
-                                                    Quittance
-                                                </button>
-                                            )}
+                                                'APPROVED_BY_FINANCE' &&
+                                                onConfirmRestitution && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            setActiveRestitutionRefund(
+                                                                r,
+                                                            )
+                                                        }
+                                                        className="hover:bg-gold-light inline-flex items-center gap-1 rounded-xl bg-gold px-3 py-1.5 text-xs font-black text-kora uppercase shadow-sm"
+                                                    >
+                                                        <Coins className="h-3.5 w-3.5" />
+                                                        Restituer espèces →
+                                                    </button>
+                                                )}
+                                            {r.status === 'FUNDS_RESTITUTED' &&
+                                                onConfirmRestitution && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            setActiveRestitutionRefund(
+                                                                r,
+                                                            )
+                                                        }
+                                                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                                                    >
+                                                        <Receipt className="h-3.5 w-3.5 text-emerald-600" />
+                                                        Quittance
+                                                    </button>
+                                                )}
+                                            {!onConfirmRestitution &&
+                                            r.status ===
+                                                'APPROVED_BY_FINANCE' ? (
+                                                <span className="text-[11px] text-slate-400">
+                                                    En attente de restitution
+                                                </span>
+                                            ) : null}
                                             {r.status === 'REQUESTED' && (
                                                 <span className="text-[11px] text-slate-400 italic">
                                                     Instruction en cours
@@ -527,7 +582,7 @@ export function KoraPointRefundListView({
                                     </div>
                                     <div>
                                         <span className="block text-[11px] text-slate-400">
-                                            Reprise com (-3%)
+                                            Reprise commission
                                         </span>
                                         <span className="font-black text-rose-600 dark:text-rose-400">
                                             {r.commission_clawback.toLocaleString()}{' '}
@@ -535,6 +590,11 @@ export function KoraPointRefundListView({
                                         </span>
                                     </div>
                                 </div>
+                                {showPoint && r.point_name ? (
+                                    <p className="text-[11px] font-semibold text-muted-foreground">
+                                        Point : {r.point_name} ({r.point_code})
+                                    </p>
+                                ) : null}
 
                                 {r.status === 'REJECTED' &&
                                     r.rejection_reason && (
@@ -545,30 +605,36 @@ export function KoraPointRefundListView({
                                     )}
 
                                 <div className="flex justify-end pt-1">
-                                    {r.status === 'APPROVED_BY_FINANCE' && (
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                setActiveRestitutionRefund(r)
-                                            }
-                                            className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-gold px-3 py-2 text-xs font-black text-kora uppercase"
-                                        >
-                                            <Coins className="h-4 w-4" />
-                                            Restituer espèces →
-                                        </button>
-                                    )}
-                                    {r.status === 'FUNDS_RESTITUTED' && (
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                setActiveRestitutionRefund(r)
-                                            }
-                                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-                                        >
-                                            <Receipt className="h-3.5 w-3.5 text-emerald-600" />
-                                            Revoir la quittance
-                                        </button>
-                                    )}
+                                    {r.status === 'APPROVED_BY_FINANCE' &&
+                                        onConfirmRestitution && (
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setActiveRestitutionRefund(
+                                                        r,
+                                                    )
+                                                }
+                                                className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-gold px-3 py-2 text-xs font-black text-kora uppercase"
+                                            >
+                                                <Coins className="h-4 w-4" />
+                                                Restituer espèces →
+                                            </button>
+                                        )}
+                                    {r.status === 'FUNDS_RESTITUTED' &&
+                                        onConfirmRestitution && (
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setActiveRestitutionRefund(
+                                                        r,
+                                                    )
+                                                }
+                                                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                                            >
+                                                <Receipt className="h-3.5 w-3.5 text-emerald-600" />
+                                                Revoir la quittance
+                                            </button>
+                                        )}
                                 </div>
                             </div>
                         ))}

@@ -2,8 +2,10 @@
 
 namespace App\Modules\KoraPoints\Models;
 
+use App\Models\User;
 use App\Modules\Support\Models\KoraModel;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
@@ -33,6 +35,12 @@ class KoraPointRemittance extends KoraModel
     public function lines(): HasMany
     {
         return $this->hasMany(KoraPointRemittanceLine::class, 'remittance_id');
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function declarant(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'declared_by');
     }
 
     /** Forbids deleting a remittance slip. */

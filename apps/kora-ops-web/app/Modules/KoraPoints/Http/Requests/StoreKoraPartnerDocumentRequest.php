@@ -12,7 +12,14 @@ class StoreKoraPartnerDocumentRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user() !== null && $this->user()->status === UserStatus::Active && $this->user()->can('kora-points.view');
+        return $this->user() !== null
+            && $this->user()->status === UserStatus::Active
+            && $this->user()->canAny([
+                'kora-points.documents.upload',
+                'kora-points.manage',
+                'kora-points.remit',
+                'kora-points.refund-request',
+            ]);
     }
 
     /**

@@ -1,20 +1,19 @@
 import { Bell, Calendar, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type {
-    DailyActivity,
-    PointPriorityAlert,
-} from '../mock/kora-point-mock-data';
+import type { DailyActivity, PointPriorityAlert } from '@/types/kora-points';
 
 type Props = {
     activity7d: DailyActivity[];
     priorities: PointPriorityAlert[];
     onQuickAction: (actionId: string) => void;
+    mode?: 'point' | 'organization';
 };
 
 export function KoraPointActivityChart({
     activity7d,
     priorities,
     onQuickAction,
+    mode = 'point',
 }: Props) {
     const maxSales = Math.max(...activity7d.map((a) => a.sales_amount), 1);
 
@@ -127,7 +126,9 @@ export function KoraPointActivityChart({
                         <div className="flex items-center gap-2">
                             <Bell className="size-4 text-gold" />
                             <h2 className="text-sm font-extrabold text-foreground">
-                                À suivre maintenant
+                                {mode === 'organization'
+                                    ? 'Points à suivre'
+                                    : 'À suivre maintenant'}
                             </h2>
                         </div>
                         <span className="text-[0.625rem] font-black text-muted-foreground uppercase">

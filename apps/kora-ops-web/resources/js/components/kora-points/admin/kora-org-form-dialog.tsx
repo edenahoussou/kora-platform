@@ -5,6 +5,7 @@ import {
     CalendarClock,
     ChevronDown,
     Coins,
+    FileBadge,
     Image as ImageIcon,
     Landmark,
     MapPin,
@@ -23,6 +24,7 @@ import PhoneInput, {
     parsePhoneNumber,
 } from 'react-phone-number-input';
 import phoneLabels from 'react-phone-number-input/locale/fr.json';
+import 'react-phone-number-input/style.css';
 import { cn } from '@/lib/utils';
 import organizationRoutes from '@/routes/kora-points/organizations';
 import type { AdminOrganization } from './kora-admin-ui';
@@ -42,6 +44,9 @@ type OrgMemberInput = {
 
 type OrgFormValues = {
     name: string;
+    country: 'BJ' | 'TG' | 'CI';
+    registration_identifier: string;
+    tax_identifier: string;
     phone: string;
     address: string;
     logo: File | null;
@@ -60,6 +65,9 @@ type OrgFormValues = {
 
 const emptyValues: OrgFormValues = {
     name: '',
+    country: 'BJ',
+    registration_identifier: '',
+    tax_identifier: '',
     phone: '',
     address: '',
     logo: null,
@@ -102,6 +110,9 @@ function valuesFromOrg(org?: AdminOrganization | null): OrgFormValues {
 
     return {
         name: org.name ?? '',
+        country: org.country ?? 'BJ',
+        registration_identifier: org.registration_identifier ?? '',
+        tax_identifier: org.tax_identifier ?? '',
         phone: normalizePhoneValue(org.phone),
         address: org.address ?? '',
         logo: null,
@@ -167,6 +178,10 @@ export function KoraOrgFormDialog({ open, organization, onOpenChange }: Props) {
 
     const phoneInvalid =
         Boolean(form.data.phone.trim()) && !isValidPhoneNumber(form.data.phone);
+    const memberPhoneInvalid = form.data.members.some(
+        (member) =>
+            Boolean(member.phone.trim()) && !isValidPhoneNumber(member.phone),
+    );
     const phoneError =
         form.errors.phone ??
         (phoneInvalid ? 'Numéro de téléphone invalide.' : undefined);
@@ -174,6 +189,9 @@ export function KoraOrgFormDialog({ open, organization, onOpenChange }: Props) {
     const commissionError = allErrors.commission_basis_points;
     const inlineErrorKeys = new Set([
         'name',
+        'country',
+        'registration_identifier',
+        'tax_identifier',
         'phone',
         'address',
         'logo',
@@ -269,7 +287,7 @@ export function KoraOrgFormDialog({ open, organization, onOpenChange }: Props) {
     const submit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        if (form.processing || phoneInvalid) {
+        if (form.processing || phoneInvalid || memberPhoneInvalid) {
             return;
         }
 
@@ -284,7 +302,11 @@ export function KoraOrgFormDialog({ open, organization, onOpenChange }: Props) {
 
         form.transform((data) => ({
             name: data.name,
-            phone: data.phone,
+            country: data.country,
+            registration_identifier:
+                data.registration_identifier.trim() || null,
+            tax_identifier: data.tax_identifier.trim() || null,
+            phone: data.phone || null,
             address: data.address,
             logo: data.logo,
             remove_logo: data.remove_logo,
@@ -327,7 +349,7 @@ export function KoraOrgFormDialog({ open, organization, onOpenChange }: Props) {
         >
             <form
                 onSubmit={submit}
-                className="cash-modal w-[36rem]! max-w-[95vw]!"
+                className="cash-modal w-[64rem]! max-w-[95vw]!"
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="kora-org-modal-title"
@@ -374,8 +396,8 @@ export function KoraOrgFormDialog({ open, organization, onOpenChange }: Props) {
                     </div>
                 )}
 
-                <div className="mt-5 space-y-4">
-                    <label className="field">
+                <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                    <label className="field lg:col-span-2">
                         <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
                             <Building2 className="size-3.5 text-gold" />
                             Raison sociale
@@ -399,33 +421,127 @@ export function KoraOrgFormDialog({ open, organization, onOpenChange }: Props) {
                         )}
                     </label>
 
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:col-span-2">
+                        <label className="field">
+                            <span className="text-xs font-semibold text-foreground">
+                                Pays de l’organisation
+                                <b className="ml-1 font-bold text-destructive">
+                                    *
+                                </b>
+                            </span>
+                            <select
+                                className="control"
+                                value={form.data.country}
+                                onChange={(event) =>
+                                    form.setData(
+                                        'country',
+                                        event.target
+                                            .value as OrgFormValues['country'],
+                                    )
+                                }
+                                required
+                                disabled={
+                                    isEditing &&
+                                    (organization?.points_count ?? 0) > 0
+                                }
+                                aria-invalid={Boolean(form.errors.country)}
+                            >
+                                <option value="BJ">Bénin</option>
+                                <option value="TG">Togo</option>
+                                <option value="CI">Côte d’Ivoire</option>
+                            </select>
+                            {form.errors.country && (
+                                <small className="field-error-text">
+                                    {form.errors.country}
+                                </small>
+                            )}
+                            {isEditing &&
+                                (organization?.points_count ?? 0) > 0 && (
+                                    <small className="text-muted-foreground">
+                                        Le pays reste verrouillé tant que des
+                                        Points sont rattachés.
+                                    </small>
+                                )}
+                        </label>
+
+                        <label className="field">
+                            <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                                <Phone className="size-3.5 text-gold" />
+                                Téléphone officiel
+                            </span>
+                            <PhoneInput
+                                className="control phone-field-control"
+                                defaultCountry={form.data.country}
+                                international
+                                labels={phoneLabels}
+                                value={form.data.phone || undefined}
+                                onChange={(value) =>
+                                    form.setData('phone', value ?? '')
+                                }
+                                numberInputProps={{
+                                    autoComplete: 'tel',
+                                    'aria-invalid': Boolean(phoneError),
+                                }}
+                            />
+                            {phoneError && (
+                                <small className="field-error-text">
+                                    {phoneError}
+                                </small>
+                            )}
+                        </label>
+                    </div>
+
                     <label className="field">
                         <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-                            <Phone className="size-3.5 text-gold" />
-                            Téléphone officiel
+                            <FileBadge className="size-3.5 text-gold" />
+                            Immatriculation commerciale
                         </span>
-                        <PhoneInput
-                            className="control phone-field-control"
-                            defaultCountry="BJ"
-                            international
-                            labels={phoneLabels}
-                            value={form.data.phone || undefined}
-                            onChange={(value) =>
-                                form.setData('phone', value ?? '')
+                        <input
+                            type="text"
+                            className="control"
+                            value={form.data.registration_identifier}
+                            onChange={(event) =>
+                                form.setData(
+                                    'registration_identifier',
+                                    event.target.value,
+                                )
                             }
-                            numberInputProps={{
-                                autoComplete: 'tel',
-                                'aria-invalid': Boolean(phoneError),
-                            }}
+                            aria-invalid={Boolean(
+                                form.errors.registration_identifier,
+                            )}
                         />
-                        {phoneError && (
+                        {form.errors.registration_identifier && (
                             <small className="field-error-text">
-                                {phoneError}
+                                {form.errors.registration_identifier}
                             </small>
                         )}
                     </label>
 
                     <label className="field">
+                        <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                            <Landmark className="size-3.5 text-gold" />
+                            Identifiant fiscal
+                        </span>
+                        <input
+                            type="text"
+                            className="control"
+                            value={form.data.tax_identifier}
+                            onChange={(event) =>
+                                form.setData(
+                                    'tax_identifier',
+                                    event.target.value,
+                                )
+                            }
+                            aria-invalid={Boolean(form.errors.tax_identifier)}
+                        />
+                        {form.errors.tax_identifier && (
+                            <small className="field-error-text">
+                                {form.errors.tax_identifier}
+                            </small>
+                        )}
+                    </label>
+
+                    <label className="field lg:col-span-2">
                         <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
                             <MapPin className="size-3.5 text-gold" />
                             Adresse
@@ -447,7 +563,7 @@ export function KoraOrgFormDialog({ open, organization, onOpenChange }: Props) {
                         )}
                     </label>
 
-                    <div className="field">
+                    <div className="field lg:col-span-2">
                         <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
                             <ImageIcon className="size-3.5 text-gold" />
                             Logo
@@ -589,7 +705,7 @@ export function KoraOrgFormDialog({ open, organization, onOpenChange }: Props) {
                     )}
 
                     {/* Conditions cadres */}
-                    <div className="space-y-3 border-t border-border pt-4">
+                    <div className="space-y-3 border-t border-border pt-4 lg:col-span-2">
                         <div className="flex items-center gap-2">
                             <Coins className="size-4 text-gold" />
                             <h4 className="text-xs font-black tracking-wider text-foreground uppercase">
@@ -616,6 +732,7 @@ export function KoraOrgFormDialog({ open, organization, onOpenChange }: Props) {
                                         )
                                     }
                                     placeholder="ex : 3,5"
+                                    required
                                     aria-invalid={Boolean(commissionError)}
                                 />
                                 {commissionError ? (
@@ -633,11 +750,11 @@ export function KoraOrgFormDialog({ open, organization, onOpenChange }: Props) {
                             <label className="field">
                                 <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
                                     <Landmark className="size-3.5 text-gold" />
-                                    Plafond (FCFA)
+                                    Plafond global (FCFA)
                                 </span>
                                 <input
                                     type="number"
-                                    min={0}
+                                    min={1}
                                     className="control"
                                     value={form.data.ceiling_amount}
                                     onChange={(e) =>
@@ -647,6 +764,7 @@ export function KoraOrgFormDialog({ open, organization, onOpenChange }: Props) {
                                         )
                                     }
                                     placeholder="ex : 1 500 000"
+                                    required
                                     aria-invalid={Boolean(
                                         form.errors.ceiling_amount,
                                     )}
@@ -677,10 +795,6 @@ export function KoraOrgFormDialog({ open, organization, onOpenChange }: Props) {
                                 {(
                                     [
                                         {
-                                            value: '',
-                                            label: 'Valeur par défaut',
-                                        },
-                                        {
                                             value: 'daily',
                                             label: 'Quotidien',
                                         },
@@ -700,7 +814,7 @@ export function KoraOrgFormDialog({ open, organization, onOpenChange }: Props) {
 
                                     return (
                                         <label
-                                            key={option.value || 'default'}
+                                            key={option.value}
                                             className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-foreground"
                                         >
                                             <input
@@ -751,7 +865,7 @@ export function KoraOrgFormDialog({ open, organization, onOpenChange }: Props) {
                         </div>
                     </div>
 
-                    <div className="space-y-3 border-t border-border pt-4">
+                    <div className="space-y-3 border-t border-border pt-4 lg:col-span-2">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <Users className="size-4 text-gold" />
@@ -773,8 +887,9 @@ export function KoraOrgFormDialog({ open, organization, onOpenChange }: Props) {
                             <p className="text-xs text-muted-foreground italic">
                                 Aucun membre ajouté. Cliquez sur « Ajouter un
                                 membre » pour créer un compte superviseur ou
-                                trésorier (un SMS/WhatsApp ou email d'accès sera
-                                envoyé automatiquement).
+                                trésorier. Son accès web initial sera envoyé par
+                                e-mail; le SMS sert uniquement de repli si
+                                l’e-mail échoue.
                             </p>
                         ) : (
                             <div className="space-y-3">
@@ -868,18 +983,31 @@ export function KoraOrgFormDialog({ open, organization, onOpenChange }: Props) {
                                             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                                 <label className="field">
                                                     <span>Téléphone</span>
-                                                    <input
-                                                        type="tel"
-                                                        value={member.phone}
-                                                        onChange={(e) =>
+                                                    <PhoneInput
+                                                        className="control phone-field-control"
+                                                        defaultCountry={
+                                                            form.data.country
+                                                        }
+                                                        international
+                                                        labels={phoneLabels}
+                                                        value={
+                                                            member.phone ||
+                                                            undefined
+                                                        }
+                                                        onChange={(value) =>
                                                             updateMember(
                                                                 idx,
                                                                 'phone',
-                                                                e.target.value,
+                                                                value ?? '',
                                                             )
                                                         }
-                                                        placeholder="+229 97 00 00 00"
-                                                        className="control font-mono"
+                                                        numberInputProps={{
+                                                            autoComplete: 'tel',
+                                                            'aria-invalid':
+                                                                Boolean(
+                                                                    phoneErr,
+                                                                ),
+                                                        }}
                                                     />
                                                     {phoneErr && (
                                                         <small className="field-error-text">
