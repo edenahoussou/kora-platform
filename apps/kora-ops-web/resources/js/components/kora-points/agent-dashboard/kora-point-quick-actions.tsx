@@ -56,11 +56,53 @@ const actions: QuickActionItem[] = [
     },
 ];
 
+const organizationActions: QuickActionItem[] = [
+    {
+        index: '01',
+        title: 'Points de vente',
+        description:
+            'Consultez les allocations et les alertes de chaque Point.',
+        icon: Ticket,
+        brandClass: 'bg-gold/15 text-gold',
+        pageId: 'points',
+    },
+    {
+        index: '02',
+        title: 'Ventes & billets',
+        description:
+            'Retrouvez les ventes de tous les Points avec leur détail.',
+        icon: TrendingUp,
+        brandClass: 'bg-emerald-500/10 text-emerald-600',
+        pageId: 'sales',
+    },
+    {
+        index: '03',
+        title: 'Reversements groupés',
+        description:
+            'Préparez un bordereau unique pour les Points de l’organisation.',
+        icon: ReceiptText,
+        brandClass: 'bg-digital/10 text-digital',
+        pageId: 'remittances',
+    },
+    {
+        index: '04',
+        title: 'Suivi des commissions',
+        description: 'Consultez les commissions acquises et leurs corrections.',
+        icon: TrendingUp,
+        brandClass: 'bg-kora text-white dark:bg-gold/20 dark:text-gold',
+        pageId: 'commissions',
+    },
+];
+
 type Props = {
     onNavigate: (pageId: string) => void;
+    mode?: 'point' | 'organization';
 };
 
-export function KoraPointQuickActions({ onNavigate }: Props) {
+export function KoraPointQuickActions({ onNavigate, mode = 'point' }: Props) {
+    const visibleActions =
+        mode === 'organization' ? organizationActions : actions;
+
     return (
         <section
             aria-labelledby="point-quick-actions-title"
@@ -69,14 +111,16 @@ export function KoraPointQuickActions({ onNavigate }: Props) {
             <div className="cash-section-intro">
                 <div>
                     <span className="section-kicker text-gold">
-                        Raccourcis guichetier
+                        {mode === 'organization'
+                            ? 'Raccourcis du réseau'
+                            : 'Raccourcis guichetier'}
                     </span>
                     <h2 id="point-quick-actions-title">Agir sans détour</h2>
                 </div>
             </div>
 
             <div className="grid grid-flow-row-dense grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                {actions.map((action) => {
+                {visibleActions.map((action) => {
                     const Icon = action.icon;
 
                     return (

@@ -27,6 +27,7 @@ type Props = {
     isOpen: boolean;
     health: FinancialHealth;
     pointName: string;
+    previewUrl?: string;
     koraPaymentDetails?: KoraPaymentDetails;
     onClose: () => void;
     onSubmit: (data: {
@@ -39,13 +40,16 @@ type Props = {
     }) => void;
 };
 
-const getTodayStr = () => new Date().toISOString().split('T')[0];
+const formatDateForInput = (date: Date) =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+const getTodayStr = () => formatDateForInput(new Date());
 
 const get7DaysAgoStr = () => {
     const d = new Date();
     d.setDate(d.getDate() - 6);
 
-    return d.toISOString().split('T')[0];
+    return formatDateForInput(d);
 };
 
 const getMonthStartStr = () => {
@@ -57,9 +61,9 @@ const getMonthStartStr = () => {
 const getLastWeekRange = () => {
     const d = new Date();
     d.setDate(d.getDate() - 7);
-    const to = d.toISOString().split('T')[0];
+    const to = formatDateForInput(d);
     d.setDate(d.getDate() - 6);
-    const from = d.toISOString().split('T')[0];
+    const from = formatDateForInput(d);
 
     return { from, to };
 };
@@ -80,6 +84,7 @@ export function KoraPointSettlementDialog({
     isOpen,
     health,
     pointName,
+    previewUrl = '/kora-point/settlements/preview',
     koraPaymentDetails,
     onClose,
     onSubmit,
@@ -160,30 +165,75 @@ export function KoraPointSettlementDialog({
             queryParams.set('to', toDate);
         }
 
-        fetch(`/kora-point/settlements/preview?${queryParams.toString()}`, {
+        fetch(`${previewUrl}?${queryParams.toString()}`, {
             headers: {
                 Accept: 'application/json',
                 'X-Requested-With': 'XMLHttpRequest',
             },
         })
-            .then((res) => res.json())
-            .then((json) => {
+            .then(async (res) => {
+                if (res.redirected) {
+                    throw new Error(
+                        'Votre session a expiré. Reconnectez-vous pour continuer.',
+                    );
+                }
+
+                const json = (await res.json().catch(() => null)) as {
+                    success?: boolean;
+                    data?: SettlementPeriodPreview;
+                    message?: unknown;
+                } | null;
+
+                if (!res.ok) {
+                    if (res.status === 401) {
+                        throw new Error(
+                            'Votre session a expiré. Reconnectez-vous pour continuer.',
+                        );
+                    }
+
+                    if (res.status === 403) {
+                        throw new Error(
+                            'Votre compte ne dispose pas des droits nécessaires pour consulter les ventes de cette organisation.',
+                        );
+                    }
+
+                    if (res.status === 422) {
+                        throw new Error(
+                            'La période sélectionnée est invalide. Vérifiez les dates puis réessayez.',
+                        );
+                    }
+
+                    throw new Error(
+                        'Le calcul des ventes a échoué. Réessayez dans quelques instants.',
+                    );
+                }
+
                 if (cancelled) {
                     return;
+                }
+
+                if (!json) {
+                    throw new Error(
+                        'Le serveur a renvoyé une réponse invalide. Réessayez dans quelques instants.',
+                    );
                 }
 
                 if (json.success && json.data) {
                     setPreview(json.data);
                 } else {
                     setPreviewError(
-                        'Impossible de calculer les ventes pour cette période.',
+                        typeof json.message === 'string'
+                            ? json.message
+                            : 'Impossible de calculer les ventes pour cette période.',
                     );
                 }
             })
-            .catch(() => {
+            .catch((fetchError: unknown) => {
                 if (!cancelled) {
                     setPreviewError(
-                        'Erreur de connexion lors du calcul des ventes de la période.',
+                        fetchError instanceof Error
+                            ? fetchError.message
+                            : 'Erreur de connexion lors du calcul des ventes de la période.',
                     );
                 }
             })
@@ -200,7 +250,7 @@ export function KoraPointSettlementDialog({
                 clearInterval(uploadTimerRef.current);
             }
         };
-    }, [isOpen, fromDate, toDate]);
+    }, [isOpen, fromDate, toDate, previewUrl]);
 
     if (!isOpen) {
         return null;
@@ -332,6 +382,14 @@ export function KoraPointSettlementDialog({
             return;
         }
 
+        if (preview.tickets_count > preview.sale_uuids.length) {
+            setError(
+                'Cette période dépasse la limite de 500 ventes par versement. Réduisez la période avant de continuer.',
+            );
+
+            return;
+        }
+
         setError(null);
         setStep(2);
     };
@@ -346,6 +404,15 @@ export function KoraPointSettlementDialog({
             preview.sale_uuids.length === 0
         ) {
             setError('Aucune vente à reverser sur cette période.');
+            setStep(1);
+
+            return;
+        }
+
+        if (preview.tickets_count > preview.sale_uuids.length) {
+            setError(
+                'Cette période dépasse la limite de 500 ventes par versement. Réduisez la période avant de continuer.',
+            );
             setStep(1);
 
             return;
@@ -474,6 +541,20 @@ export function KoraPointSettlementDialog({
                             <span className="mr-1 text-[0.625rem] font-bold text-muted-foreground uppercase">
                                 Raccourcis :
                             </span>
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    handleApplyPeriod(todayStr, todayStr)
+                                }
+                                className={cn(
+                                    'rounded-md px-2.5 py-1 text-xs font-semibold transition-colors',
+                                    fromDate === todayStr && toDate === todayStr
+                                        ? 'bg-primary text-primary-foreground shadow-sm'
+                                        : 'bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground',
+                                )}
+                            >
+                                Aujourd’hui
+                            </button>
                             <button
                                 type="button"
                                 onClick={() =>

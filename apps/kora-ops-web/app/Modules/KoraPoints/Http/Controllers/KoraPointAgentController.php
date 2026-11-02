@@ -4,14 +4,14 @@ namespace App\Modules\KoraPoints\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Cash\Models\CashSession;
+use App\Modules\KoraPoints\Actions\DeclareKoraPointRemittanceAction;
 use App\Modules\KoraPoints\Models\KoraPointSale;
 use App\Modules\KoraPoints\Services\KoraPointAgentReadService;
-use App\Modules\KoraPoints\Services\KoraPointDocumentService;
-use App\Modules\KoraPoints\Services\KoraPointRemittanceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -19,8 +19,7 @@ class KoraPointAgentController extends Controller
 {
     public function __construct(
         private readonly KoraPointAgentReadService $agentRead,
-        private readonly KoraPointRemittanceService $remittanceService,
-        private readonly KoraPointDocumentService $documentService,
+        private readonly DeclareKoraPointRemittanceAction $declareRemittance,
     ) {}
 
     /**
@@ -193,10 +192,13 @@ class KoraPointAgentController extends Controller
     {
         $user = $request->user();
         $point = $this->agentRead->resolvePoint($user);
+        $period = in_array($request->query('period'), ['current_month', 'last_month', 'all'], true)
+            ? (string) $request->query('period')
+            : 'current_month';
 
         return Inertia::render('kora-points/agent/commissions', [
             'point' => $this->agentRead->profile($point, $user),
-            'commissions' => Inertia::defer(fn (): array => $this->agentRead->commissions($point, $user)),
+            'commissions' => Inertia::defer(fn (): array => $this->agentRead->commissions($point, $user, $period)),
         ]);
     }
 
@@ -350,32 +352,22 @@ class KoraPointAgentController extends Controller
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $method = (string) $validated['method'];
-        $reference = (string) $validated['reference'];
         /** @var list<string> $saleUuids */
         $saleUuids = array_values(array_map('strval', (array) $validated['sale_uuids']));
-
-        $note = $validated['notes'] ?? null;
-        if (! empty($validated['bank_name'])) {
-            $note = trim(($note ? $note.' · ' : '').'Banque : '.$validated['bank_name']);
+        $proof = $request->file('proof');
+        if (! $proof instanceof UploadedFile) {
+            throw ValidationException::withMessages(['proof' => 'La preuve de versement est obligatoire.']);
         }
 
-        DB::transaction(function () use ($user, $saleUuids, $method, $reference, $note, $request): void {
-            $remittance = $this->remittanceService->create($user, $saleUuids, $method, $reference);
-            if ($note !== null) {
-                $remittance->update(['note' => $note]);
-            }
-            $this->documentService->store(
-                $user,
-                $remittance,
-                [
-                    'title' => 'Justificatif de versement '.$reference,
-                    'reference' => $reference,
-                ],
-                $request->file('proof')
-            );
-            $this->remittanceService->submit($user, $remittance);
-        });
+        $this->declareRemittance->execute(
+            $user,
+            $saleUuids,
+            (string) $validated['method'],
+            (string) $validated['reference'],
+            $proof,
+            $validated['bank_name'] ?? null,
+            $validated['notes'] ?? null,
+        );
 
         Inertia::flash('toast', [
             'type' => 'success',

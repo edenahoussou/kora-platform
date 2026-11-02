@@ -30,6 +30,9 @@ type Props = {
     point: KoraPointProfile;
     health: FinancialHealth;
     settlements: PointSettlementRecord[];
+    networkScope?: boolean;
+    organizationName?: string;
+    previewUrl?: string;
     koraPaymentDetails?: KoraPaymentDetails;
     onDeclareSettlement: (data: {
         saleUuids: string[];
@@ -52,10 +55,14 @@ export function KoraPointSettlementListView({
     point,
     health,
     settlements,
+    networkScope = false,
+    organizationName,
+    previewUrl,
     koraPaymentDetails,
     onDeclareSettlement,
 }: Props) {
-    const isAutonomous = !point.organization;
+    const isAutonomous = !point.organization && !networkScope;
+    const canDeclareSettlement = networkScope || isAutonomous;
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<
         'ALL' | PointSettlementStatus
@@ -72,6 +79,10 @@ export function KoraPointSettlementListView({
                 s.payment_reference
                     .toLowerCase()
                     .includes(searchQuery.toLowerCase()) ||
+                (s.point_name &&
+                    s.point_name
+                        .toLowerCase()
+                        .includes(searchQuery.toLowerCase())) ||
                 (s.notes &&
                     s.notes.toLowerCase().includes(searchQuery.toLowerCase()));
 
@@ -88,11 +99,14 @@ export function KoraPointSettlementListView({
         let validatedTotal = 0;
 
         settlements.forEach((s) => {
-            if (s.status === 'DECLARED') {
+            if (s.status === 'DECLARED' || s.status === 'PARTIALLY_VALIDATED') {
                 declaredPending += s.amount_declared;
             }
 
-            if (s.status === 'VALIDATED') {
+            if (
+                s.status === 'VALIDATED' ||
+                s.status === 'PARTIALLY_VALIDATED'
+            ) {
                 validatedTotal += s.amount_validated ?? s.amount_declared;
             }
         });
@@ -201,6 +215,7 @@ export function KoraPointSettlementListView({
                 isOpen={isDeclarationModalOpen}
                 health={health}
                 pointName={point.name}
+                previewUrl={previewUrl}
                 koraPaymentDetails={koraPaymentDetails}
                 onClose={() => setIsDeclarationModalOpen(false)}
                 onSubmit={(data) => {
@@ -223,19 +238,25 @@ export function KoraPointSettlementListView({
             <div className="kora-page-head cash-reveal mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                     <div className="kora-breadcrumb mb-2 text-[0.6875rem] text-muted-foreground">
-                        KORA POINT / Espace Agent / Versements
+                        KORA POINT /{' '}
+                        {networkScope
+                            ? 'Espace partenaire / Reversements'
+                            : 'Espace Agent / Versements'}
                     </div>
                     <h1 className="text-[clamp(1.8rem,3vw,2.65rem)] font-extrabold tracking-[-0.055em] text-foreground">
-                        Versements partenaires
+                        {networkScope
+                            ? `Versements de ${organizationName ?? point.name}`
+                            : 'Versements partenaires'}
                     </h1>
                     <p className="mt-1.5 text-[0.8125rem] leading-6 text-muted-foreground">
-                        Déclarations et suivi des apurements de recettes de
-                        billetterie vers KORA Exploitation.
+                        {networkScope
+                            ? 'Déclarez et suivez les versements de l’ensemble des Points de l’organisation vers KORA Exploitation.'
+                            : 'Déclarations et suivi des apurements de recettes de billetterie vers KORA Exploitation.'}
                     </p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2.5">
-                    {isAutonomous ? (
+                    {canDeclareSettlement ? (
                         <button
                             type="button"
                             onClick={() => setIsDeclarationModalOpen(true)}
@@ -257,7 +278,7 @@ export function KoraPointSettlementListView({
             </div>
 
             {/* Organization notice if attached */}
-            {!isAutonomous && (
+            {!isAutonomous && !networkScope && (
                 <div className="flex items-start gap-3 rounded-2xl border border-blue-500/20 bg-blue-500/10 p-4 text-xs text-foreground">
                     <Info className="mt-0.5 size-5 shrink-0 text-digital" />
                     <div className="space-y-1">
@@ -452,6 +473,14 @@ export function KoraPointSettlementListView({
                                                 {s.created_at} par{' '}
                                                 {s.created_by_name}
                                             </span>
+                                            {networkScope && s.point_name ? (
+                                                <span
+                                                    className="mt-1 block max-w-64 truncate text-[11px] text-slate-500"
+                                                    title={s.point_name}
+                                                >
+                                                    {s.point_name}
+                                                </span>
+                                            ) : null}
                                         </td>
                                         <td className="px-5 py-4">
                                             <span className="block font-bold text-slate-800 dark:text-slate-200">
@@ -532,6 +561,14 @@ export function KoraPointSettlementListView({
                                         <span className="text-[11px] text-slate-400">
                                             {s.created_at}
                                         </span>
+                                        {networkScope && s.point_name ? (
+                                            <span
+                                                className="mt-1 block max-w-56 truncate text-[11px] text-slate-500"
+                                                title={s.point_name}
+                                            >
+                                                {s.point_name}
+                                            </span>
+                                        ) : null}
                                     </div>
                                     {getStatusBadge(s.status)}
                                 </div>

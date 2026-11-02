@@ -17,7 +17,7 @@ import {
 import { useState } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { cn } from '@/lib/utils';
-import type { PointSettlementRecord } from '../mock/kora-point-mock-data';
+import type { PointSettlementRecord } from '@/types/kora-points';
 
 type Props = {
     settlement: PointSettlementRecord | null;

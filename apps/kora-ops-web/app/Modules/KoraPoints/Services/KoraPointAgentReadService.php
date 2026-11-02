@@ -17,6 +17,7 @@ use App\Modules\Payments\Data\MobileMoneyNetwork;
 use App\Modules\Payments\Data\PaymentMethod;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\Builder;
 
 class KoraPointAgentReadService
 {
@@ -502,10 +503,24 @@ class KoraPointAgentReadService
      *
      * @return array<string, mixed>
      */
-    public function commissions(KoraPoint $point, User $agent, int $perPage = 30): array
+    public function commissions(KoraPoint $point, User $agent, string $period = 'current_month', int $perPage = 30): array
     {
-        $paginator = $this->access->sales($agent)
+        $query = $this->access->sales($agent)
             ->where('point_id', $point->getKey())
+            ->when($period === 'current_month', fn (Builder $sales): Builder => $sales->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()]))
+            ->when($period === 'last_month', function (Builder $sales): Builder {
+                $lastMonth = now()->subMonthNoOverflow();
+
+                return $sales->whereBetween('created_at', [$lastMonth->copy()->startOfMonth(), $lastMonth->copy()->endOfMonth()]);
+            });
+        $totals = [
+            'gross' => (int) (clone $query)->sum('gross_amount'),
+            'initial' => (int) (clone $query)->sum('commission_amount'),
+            'corrections' => (int) (clone $query)->sum('commission_reversed'),
+            'net' => (int) (clone $query)->selectRaw('COALESCE(SUM(commission_amount - commission_reversed), 0) as total')->value('total'),
+        ];
+        $count = (clone $query)->count();
+        $paginator = $query
             ->with([
                 'reservation.tickets',
                 'reservation.segments.departure.line',
@@ -552,6 +567,14 @@ class KoraPointAgentReadService
             'last_page' => $paginator->lastPage(),
             'total' => $paginator->total(),
             'per_page' => $paginator->perPage(),
+            'totals' => $totals,
+            'period' => $period,
+            'period_label' => match ($period) {
+                'last_month' => now()->subMonthNoOverflow()->translatedFormat('F Y'),
+                'all' => 'Toutes les périodes',
+                default => now()->translatedFormat('F Y').' (En cours)',
+            },
+            'count' => $count,
         ];
     }
 
