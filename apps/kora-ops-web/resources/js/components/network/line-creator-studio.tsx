@@ -463,6 +463,7 @@ export function LineCreatorStudio({
                                       longitude: newLng,
                                       city: geo.city,
                                       country: geo.country,
+                                      physicalStopUuid: null,
                                   }
                                 : s,
                         ),
