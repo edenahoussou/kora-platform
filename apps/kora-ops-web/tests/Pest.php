@@ -152,3 +152,5 @@ function pinUser(string $email, ?string $phone = null): User
         'pin_hash' => Hash::make('1234'),
     ]);
 }
+
+require_once __DIR__.'/Support/BoardingHelpers.php';
