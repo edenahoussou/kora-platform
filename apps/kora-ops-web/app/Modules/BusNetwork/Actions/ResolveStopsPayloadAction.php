@@ -37,7 +37,7 @@ class ResolveStopsPayloadAction
 
                 if ($this->normalizeCity($resolved['city']) !== $this->normalizeCity((string) $physical->city)) {
                     throw ValidationException::withMessages([
-                        "stops.{$index}.physical_stop_uuid" => "L'arrêt « {$resolved['name']} » est déclaré à {$resolved['city']} mais le point « {$physical->name} » se situe à {$physical->city}. Choisissez un point situé à {$resolved['city']} ou corrigez la ville de l'arrêt.",
+                        "stops.{$index}.physical_stop_uuid" => "L'arrêt « {$resolved['name']} » est déclaré à {$resolved['city']} mais le point « {$physical->name} » se situe à {$physical->city}. Supprimez cet arrêt et rajoutez-le en choisissant un point situé à {$resolved['city']}.",
                     ]);
                 }
 
