@@ -68,7 +68,7 @@ class KoraPointController extends Controller
      */
     public function index(Request $request): Response
     {
-        return Inertia::render('kora-points/index', $this->read->index($request->user()));
+        return Inertia::render('kora-points/index', $this->read->index($request->user(), $request->only('q', 'type', 'state')));
     }
 
     /**
@@ -76,7 +76,7 @@ class KoraPointController extends Controller
      */
     public function commissions(Request $request): Response
     {
-        return Inertia::render('kora-points/commissions', $this->read->index($request->user()));
+        return Inertia::render('kora-points/commissions', $this->read->index($request->user(), $request->only('q', 'type', 'state')));
     }
 
     /**

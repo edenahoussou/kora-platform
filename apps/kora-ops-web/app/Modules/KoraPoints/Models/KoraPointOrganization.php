@@ -7,6 +7,10 @@ use App\Modules\Support\Models\KoraModel;
 use Database\Factories\KoraPointOrganizationFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\Image\Enums\Fit;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * @property int $id
@@ -14,10 +18,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $ceiling_amount
  * @property int|null $commission_basis_points
  */
-class KoraPointOrganization extends KoraModel
+class KoraPointOrganization extends KoraModel implements HasMedia
 {
     /** @use HasFactory<KoraPointOrganizationFactory> */
-    use HasFactory;
+    use HasFactory, InteractsWithMedia;
 
     /** Returns the bound model factory. */
     protected static function newFactory(): KoraPointOrganizationFactory
@@ -59,5 +63,19 @@ class KoraPointOrganization extends KoraModel
     public function sales(): HasMany
     {
         return $this->hasMany(KoraPointSale::class, 'organization_id');
+    }
+
+    /** Declares the single-file partner logo collection. */
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('logo')->singleFile();
+    }
+
+    /** Generates a contained thumbnail for list rendering. */
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        $this->addMediaConversion('thumb')
+            ->fit(Fit::Contain, 200, 200)
+            ->nonQueued(); // @phpstan-ignore-line — nonQueued() est défini sur Conversion, pas sur le retour de fit() selon PHPStan
     }
 }

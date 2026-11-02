@@ -347,6 +347,7 @@ const navItems: NavEntry[] = [
                 title: 'Points de vente',
                 href: '/kora-points',
                 permission: 'kora-points.view',
+                exact: true,
             },
             {
                 title: 'Organisations partenaires',
@@ -572,13 +573,28 @@ export function KoraSidebar({
         );
     };
 
-    const isActive = (href: string, exact = false) =>
-        isCurrentUrl(href) ||
-        (!exact &&
-            href !== dashboard().url &&
-            href !== '/kora-point' &&
-            typeof window !== 'undefined' &&
-            window.location.pathname.startsWith(href));
+    const isActive = (href: string, exact = false) => {
+        if (isCurrentUrl(href)) {
+            return true;
+        }
+
+        if (
+            exact ||
+            href === dashboard().url ||
+            href === '/kora-point' ||
+            href === '/kora-points' ||
+            typeof window === 'undefined'
+        ) {
+            return false;
+        }
+
+        const pathname = window.location.pathname;
+
+        return (
+            pathname === href ||
+            pathname.startsWith(`${href.replace(/\/$/, '')}/`)
+        );
+    };
 
     const renderSidebarContent = (
         isCollapsed: boolean,

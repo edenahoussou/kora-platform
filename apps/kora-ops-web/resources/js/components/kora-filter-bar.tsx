@@ -2,6 +2,7 @@ import { router, usePage } from '@inertiajs/react';
 import { Filter, X } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export type FilterOption = {
     value: string;
@@ -28,6 +29,7 @@ type KoraFilterBarProps = {
     initialValues?: Record<string, string>;
     /** Optional label block rendered before the search input (maquette .filter-label). */
     label?: { caption: string; value: string };
+    className?: string;
 };
 
 /**
@@ -48,6 +50,7 @@ export function KoraFilterBar({
     route: routeUrl,
     initialValues,
     label,
+    className,
 }: KoraFilterBarProps) {
     // Inertia's own page.url (path + query string) is available identically
     // on the server and the client, unlike window.location which only
@@ -138,7 +141,10 @@ export function KoraFilterBar({
 
     return (
         <div
-            className="kora-filterbar mb-[14px] flex flex-col items-stretch gap-[9px] rounded-[0.9375rem] border border-border bg-card p-[13px] sm:flex-row sm:items-center"
+            className={cn(
+                'kora-filterbar mb-[14px] flex flex-col items-stretch gap-[9px] rounded-[0.9375rem] border border-border bg-card p-[13px] sm:flex-row sm:items-center',
+                className,
+            )}
             onKeyDown={handleKeyDown}
         >
             {label && (

@@ -19,19 +19,22 @@ class KoraPointReadService
     /**
      * Builds the Inertia props for the network admin screen (points, organizations, defaults).
      *
+     * @param  array{q?: string, type?: string, state?: string}  $filters
      * @return array<string, mixed>
      */
-    public function index(User $actor): array
+    public function index(User $actor, array $filters = []): array
     {
         $this->access->authorize($actor, 'kora-points.view');
 
         $organizations = KoraPointOrganization::query()
+            ->with('media')
             ->latest('id')
             ->get()
             ->map(fn (KoraPointOrganization $org): array => [
                 'uuid' => $org->uuid,
                 'code' => $org->code,
                 'name' => $org->name,
+                'logo_url' => $org->getFirstMediaUrl('logo', 'thumb') ?: null,
                 'legal_name' => $org->name,
                 'headquarters_city' => $org->address ?? 'Cotonou',
                 'rccm' => 'RB/COT/14 B 11842',
@@ -51,10 +54,34 @@ class KoraPointReadService
                 'documents' => [],
             ])->all();
 
+        $pointsQuery = $this->query($actor)->latest('id');
+        $search = mb_strtolower(trim((string) ($filters['q'] ?? '')));
+
+        if ($search !== '') {
+            $like = '%'.$search.'%';
+            $pointsQuery->whereHas('agency', fn ($agency) => $agency->whereRaw('LOWER(name) LIKE ?', [$like])->orWhereRaw('LOWER(code) LIKE ?', [$like])->orWhereRaw('LOWER(city) LIKE ?', [$like]));
+        }
+
+        if (($filters['type'] ?? '') === 'AUTONOMOUS') {
+            $pointsQuery->whereNull('organization_id');
+        }
+
+        if (($filters['type'] ?? '') === 'ORGANIZATION_ATTACHED') {
+            $pointsQuery->whereNotNull('organization_id');
+        }
+
+        if (in_array($filters['state'] ?? '', ['active', 'suspended'], true)) {
+            $pointsQuery->where('status', $filters['state']);
+        }
+
         return [
-            'points' => $this->query($actor)->latest('id')->paginate(30)->through(fn (KoraPoint $point): array => $this->point($point, $actor)),
+            'points' => $pointsQuery->paginate(30)->withQueryString()->through(fn (KoraPoint $point): array => $this->point($point, $actor)),
             'organizations' => $organizations,
             'defaults' => $actor->can('kora-points.terms') ? ($this->terms->defaults() + ['grace_days' => $this->terms->graceDays()]) : null,
+            'permissions' => [
+                'canManage' => $actor->can('kora-points.manage'),
+                'canManageTerms' => $actor->can('kora-points.terms'),
+            ],
         ];
     }
 
@@ -92,7 +119,7 @@ class KoraPointReadService
         $entries = fn ($query) => $query->whereIn('sale_id', $saleIds);
         $due = now()->subDays($this->terms->graceDays());
 
-        return $this->access->points($actor)->with(['agency', 'organization'])
+        return $this->access->points($actor)->with(['agency', 'organization.media', 'media'])
             ->withCount(['sales' => $sales])
             ->withSum(['sales as gross_total' => $sales], 'gross_amount')
             ->withSum(['sales as refunded_total' => $sales], 'refunded_amount')
@@ -131,6 +158,8 @@ class KoraPointReadService
             'type' => $point->organization_id !== null ? 'ORGANIZATION_ATTACHED' : 'AUTONOMOUS',
             'organization_name' => $point->organization?->name,
             'organization_uuid' => $point->organization?->uuid,
+            'logo_url' => $point->getFirstMediaUrl('logo', 'thumb') ?: null,
+            'organization_logo_url' => $point->organization?->getFirstMediaUrl('logo', 'thumb') ?: null,
             'manager_name' => $point->responsible_name,
             'responsible_name' => $point->responsible_name,
             'phone' => $point->phone,

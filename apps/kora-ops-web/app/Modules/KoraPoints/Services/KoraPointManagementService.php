@@ -3,11 +3,13 @@
 namespace App\Modules\KoraPoints\Services;
 
 use App\Models\User;
+use App\Modules\IdentityAccess\Actions\CreateUserAction;
 use App\Modules\IdentityAccess\Data\SystemRole;
 use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\KoraPoints\Models\KoraPoint;
 use App\Modules\KoraPoints\Models\KoraPointOrganization;
 use App\Modules\KoraPoints\Models\KoraPointRemittanceLine;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -15,7 +17,11 @@ use Illuminate\Validation\ValidationException;
 
 class KoraPointManagementService
 {
-    public function __construct(private readonly KoraPointAccess $access, private readonly KoraPointLedgerService $ledger) {}
+    public function __construct(
+        private readonly KoraPointAccess $access,
+        private readonly KoraPointLedgerService $ledger,
+        private readonly CreateUserAction $createUser,
+    ) {}
 
     /** @param array<string, mixed> $data */
     /**
@@ -62,7 +68,22 @@ class KoraPointManagementService
                 $point->organization_id = $organization?->getKey();
             }
             $point->save();
+            $this->syncLogo($actor, $point, $data);
             $this->audit($actor, $point, 'point.saved', $before);
+
+            $email = isset($data['email']) ? trim((string) $data['email']) : null;
+            if (! empty($email)) {
+                $this->createUser->execute([
+                    'name' => (string) ($point->responsible_name ?: ($data['responsible_name'] ?? 'Agent')),
+                    'email' => strtolower($email),
+                    'phone' => $point->phone ?: ($data['phone'] ?? null),
+                    'country_code' => (string) $data['country'],
+                    'birth_date' => null,
+                    'status' => 'active',
+                    'agency_uuid' => $point->agency->uuid,
+                    'role' => 'kora_point_agent',
+                ], $actor, request());
+            }
 
             return $point->refresh();
         }, 3);
@@ -83,12 +104,36 @@ class KoraPointManagementService
             if (! $creating && ! empty($data['points'])) {
                 throw ValidationException::withMessages(['points' => 'Les bureaux se rattachent individuellement depuis leur fiche.']);
             }
+            if ($creating && empty($data['code'])) {
+                $data['code'] = $this->generateOrganizationCode((string) ($data['name'] ?? 'ORG'));
+            }
             $organization = $creating ? new KoraPointOrganization(['status' => 'active']) : KoraPointOrganization::query()->lockForUpdate()->whereKey($organization->getKey())->firstOrFail();
             $before = $organization->getAttributes();
-            $organization->fill(Arr::only($data, ['code', 'name', 'phone', 'address']));
+            $organization->fill(Arr::only($data, ['code', 'name', 'phone', 'address', 'commission_basis_points', 'ceiling_amount', 'settlement_calendar']));
             $organization->save();
+            $this->syncLogo($actor, $organization, $data);
             foreach ($data['points'] ?? [] as $pointData) {
                 $this->savePoint($actor, $pointData + ['organization_uuid' => $organization->uuid]);
+            }
+            foreach ($data['members'] ?? [] as $memberData) {
+                $result = $this->createUser->execute([
+                    'name' => trim((string) $memberData['name']),
+                    'email' => strtolower(trim((string) $memberData['email'])),
+                    'phone' => ! empty($memberData['phone']) ? trim((string) $memberData['phone']) : null,
+                    'country_code' => $data['country'] ?? 'BJ',
+                    'birth_date' => null,
+                    'status' => 'active',
+                    'agency_uuid' => null,
+                    'role' => (string) $memberData['role'],
+                ], $actor, request());
+
+                $memberUser = $result['user'];
+                $memberUser->forceFill(['kora_point_organization_id' => $organization->getKey()])->save();
+                activity('kora-points')
+                    ->performedOn($memberUser)
+                    ->causedBy($actor)
+                    ->withProperties(['role' => $memberData['role'], 'subject_uuid' => $organization->uuid])
+                    ->log('partner.assigned');
             }
             $this->audit($actor, $organization, 'organization.saved', $before);
 
@@ -152,14 +197,58 @@ class KoraPointManagementService
         });
     }
 
-    /** @param array<string, mixed> $before */
+    /** @param array<string, mixed> $data */
     /**
-     * Writes an audit activity entry capturing before and after attribute snapshots.
+     * Replaces or clears the single-file logo when the payload carries one.
      *
-     * @param  array<string, mixed>  $before
+     * @param  array<string, mixed>  $data
      */
+    private function syncLogo(User $actor, KoraPoint|KoraPointOrganization $subject, array $data): void
+    {
+        $logo = $data['logo'] ?? null;
+        $removing = filter_var($data['remove_logo'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        if (! $logo instanceof UploadedFile && ! $removing) {
+            return;
+        }
+        unset($subject->media);
+        if ($logo instanceof UploadedFile) {
+            $media = $subject->addMedia($logo)->toMediaCollection('logo');
+            activity('kora-points')->performedOn($subject)->causedBy($actor)->withProperties(['media_uuid' => $media->uuid])->log('logo.updated');
+        } else {
+            $subject->clearMediaCollection('logo');
+            activity('kora-points')->performedOn($subject)->causedBy($actor)->log('logo.removed');
+        }
+    }
+
+    /** @param array<string, mixed> $before */
     private function audit(User $actor, KoraPoint|KoraPointOrganization $subject, string $event, array $before): void
     {
         activity('kora-points')->performedOn($subject)->causedBy($actor)->withProperties(['before' => $before, 'after' => $subject->getAttributes()])->log($event);
+    }
+
+    /** Generates a unique business code from an organization name (e.g. LPB-01). */
+    private function generateOrganizationCode(string $name): string
+    {
+        $words = preg_split('/[\s\-_\'\.]+/u', trim($name)) ?: [];
+        $words = array_values(array_filter($words, fn (string $w): bool => $w !== ''));
+        $prefix = '';
+        foreach ($words as $word) {
+            $clean = preg_replace('/[^A-Za-z0-9]/', '', $word);
+            if ($clean !== '') {
+                $prefix .= strtoupper(substr($clean, 0, 1));
+            }
+        }
+        if (strlen($prefix) < 3) {
+            $cleanName = strtoupper((string) preg_replace('/[^A-Za-z0-9]/', '', $name));
+            $prefix = substr($cleanName.'ORG', 0, 4);
+        }
+        $prefix = substr($prefix, 0, 6);
+        $counter = 1;
+        do {
+            $candidate = sprintf('%s-%02d', $prefix, $counter);
+            $counter++;
+        } while (KoraPointOrganization::query()->where('code', $candidate)->exists());
+
+        return $candidate;
     }
 }

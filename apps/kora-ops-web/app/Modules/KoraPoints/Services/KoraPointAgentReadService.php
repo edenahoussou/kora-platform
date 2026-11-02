@@ -42,7 +42,7 @@ class KoraPointAgentReadService
         /** @var KoraPoint|null $point */
         $point = KoraPoint::query()
             ->where('agency_id', $agent->agency_id)
-            ->with(['agency', 'organization'])
+            ->with(['agency', 'organization.media', 'media'])
             ->first();
 
         if ($point === null) {
@@ -63,7 +63,7 @@ class KoraPointAgentReadService
      */
     public function profile(KoraPoint $point, User $agent): array
     {
-        $point->loadMissing(['agency', 'organization']);
+        $point->loadMissing(['agency', 'organization.media', 'media']);
         $terms = $this->terms->resolve($point);
         $schedule = $terms['settlement_calendar'] ?? ['frequency' => 'weekly', 'time' => '17:00', 'timezone' => 'Africa/Porto-Novo', 'weekday' => 5];
 
@@ -88,10 +88,12 @@ class KoraPointAgentReadService
             'manager_phone' => $point->phone ?? '',
             'manager_email' => $agent->email ?? '',
             'status' => $status,
+            'logo_url' => $point->getFirstMediaUrl('logo', 'thumb') ?: null,
             'organization' => $point->organization ? [
                 'uuid' => $point->organization->uuid,
                 'code' => $point->organization->code,
                 'name' => $point->organization->name,
+                'logo_url' => $point->organization->getFirstMediaUrl('logo', 'thumb') ?: null,
             ] : null,
             'terms' => [
                 'commission_rate_bps' => (int) ($terms['commission_basis_points'] ?? 0),

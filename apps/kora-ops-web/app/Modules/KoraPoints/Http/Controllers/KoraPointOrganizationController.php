@@ -32,16 +32,32 @@ class KoraPointOrganizationController extends Controller
     {
         $actor = $request->user();
         $this->access->authorize($actor, 'kora-points.view');
-        $query = KoraPointOrganization::query()->with(['documents', 'users']);
+        $query = KoraPointOrganization::query()->with(['documents', 'users', 'media']);
         if ($this->access->isPartner($actor)) {
             $query->whereKey($actor->hasRole('kora_point_agent') ? 0 : ($actor->kora_point_organization_id ?? 0));
+        }
+
+        $search = (string) $request->input('q', '');
+        if ($search !== '') {
+            $like = '%'.mb_strtolower($search).'%';
+            $query->where(function ($q) use ($like): void {
+                $q->whereRaw('LOWER(name) LIKE ?', [$like])
+                    ->orWhereRaw('LOWER(code) LIKE ?', [$like])
+                    ->orWhereRaw('LOWER(address) LIKE ?', [$like])
+                    ->orWhereRaw('LOWER(phone) LIKE ?', [$like]);
+            });
+        }
+
+        $status = (string) $request->input('status', '');
+        if (in_array($status, ['active', 'suspended', 'closed'], true)) {
+            $query->where('status', $status);
         }
 
         $organizations = $query->latest('id')->paginate(30)->through(fn (KoraPointOrganization $org): array => $this->organization($org));
 
         $subpoints = KoraPoint::query()
             ->whereNotNull('organization_id')
-            ->with(['agency', 'organization'])
+            ->with(['agency', 'organization.media'])
             ->get()
             ->map(function (KoraPoint $point): array {
                 $exposure = (int) $point->entries()->sum('amount');
@@ -67,12 +83,39 @@ class KoraPointOrganizationController extends Controller
                     'monthly_commission_earned' => (int) $point->entries()->whereMonth('created_at', now()->month)->sum('commission_delta'),
                     'last_settlement_date' => $point->created_at?->format('d M Y') ?? 'Aucun',
                     'organization_uuid' => $point->organization?->uuid,
+                    'organization_name' => $point->organization?->name,
+                    'responsible_name' => $point->responsible_name,
+                    'address' => $point->address,
+                    'country' => $point->agency->country ?? 'BJ',
+                    'settlement_calendar' => $point->settlement_calendar,
                 ];
             })->all();
+
+        $unattachedPoints = KoraPoint::query()
+            ->whereNull('organization_id')
+            ->with('agency')
+            ->get()
+            ->map(fn (KoraPoint $point): array => [
+                'uuid' => $point->uuid,
+                'code' => $point->agency->code,
+                'name' => $point->agency->name,
+                'city' => $point->agency->city,
+                'country' => $point->agency->country ?? 'BJ',
+                'responsible_name' => $point->responsible_name,
+                'phone' => $point->phone,
+                'address' => $point->address,
+                'latitude' => $point->latitude,
+                'longitude' => $point->longitude,
+            ])->all();
 
         return Inertia::render('kora-points/organizations/index', [
             'organizations' => $organizations,
             'subpoints' => $subpoints,
+            'unattached_points' => $unattachedPoints,
+            'permissions' => [
+                'canManage' => $actor->can('kora-points.manage'),
+                'canManageTerms' => $actor->can('kora-points.terms'),
+            ],
         ]);
     }
 
@@ -99,7 +142,7 @@ class KoraPointOrganizationController extends Controller
         $organization = $this->management->saveOrganization($request->user(), $request->validated());
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Organisation partenaire créée.']);
 
-        return to_route('kora-points.organizations.show', $organization->uuid);
+        return to_route('kora-points.organizations.index');
     }
 
     /**
@@ -162,6 +205,7 @@ class KoraPointOrganizationController extends Controller
             'uuid' => $organization->uuid,
             'code' => $organization->code,
             'name' => $organization->name,
+            'logo_url' => $organization->getFirstMediaUrl('logo', 'thumb') ?: null,
             'legal_name' => $organization->name,
             'headquarters_city' => $organization->address ?? 'Cotonou',
             'rccm' => 'RB/COT/14 B 11842',
