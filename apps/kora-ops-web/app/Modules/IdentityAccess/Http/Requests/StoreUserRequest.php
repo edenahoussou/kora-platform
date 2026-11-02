@@ -3,6 +3,7 @@
 namespace App\Modules\IdentityAccess\Http\Requests;
 
 use App\Models\User;
+use App\Modules\IdentityAccess\Data\SystemRole;
 use App\Modules\IdentityAccess\Data\UserStatus;
 use App\Modules\IdentityAccess\Models\Role;
 use Illuminate\Contracts\Validation\Validator;
@@ -11,6 +12,15 @@ use Illuminate\Validation\Rule;
 
 class StoreUserRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $email = $this->input('email');
+
+        $this->merge([
+            'email' => is_string($email) ? strtolower(trim($email)) : $email,
+        ]);
+    }
+
     public function authorize(): bool
     {
         return $this->user()?->can('create', User::class) ?? false;
@@ -42,6 +52,11 @@ class StoreUserRequest extends FormRequest
                 'nullable',
                 'uuid',
                 Rule::exists('agencies', 'uuid')->whereNull('deleted_at'),
+            ],
+            'kora_point_organization_uuid' => [
+                'nullable',
+                'uuid',
+                Rule::exists('kora_point_organizations', 'uuid')->where('status', 'active'),
             ],
             'role' => [
                 'required',
@@ -76,11 +91,34 @@ class StoreUserRequest extends FormRequest
             if ($role->category->value === 'central' && $hasAgency) {
                 $validator->errors()->add('agency_uuid', 'Un rôle central ne peut pas être rattaché à une agence.');
             }
+
+            $systemRole = SystemRole::tryFrom($role->name);
+            $requiresKoraPointOrganization = in_array(
+                $systemRole,
+                [SystemRole::KoraPointSupervisor, SystemRole::KoraPointTreasurer],
+                true,
+            );
+
+            if ($requiresKoraPointOrganization && ! filled($this->input('kora_point_organization_uuid'))) {
+                $validator->errors()->add('kora_point_organization_uuid', 'Une organisation KORA POINT est obligatoire pour ce rôle.');
+            }
+
+            if (! $requiresKoraPointOrganization && filled($this->input('kora_point_organization_uuid'))) {
+                $validator->errors()->add('kora_point_organization_uuid', 'Ce rattachement est réservé aux rôles superviseur et trésorier KORA POINT.');
+            }
         });
     }
 
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        return [
+            'email.unique' => 'Cette adresse e-mail est déjà associée à un compte. Affectez ce compte existant au lieu de créer un doublon.',
+        ];
+    }
+
     /**
-     * @return array{name: string, email: string, phone: string|null, country_code: string|null, birth_date: string|null, status: string, agency_uuid: string|null, role: string}
+     * @return array{name: string, email: string, phone: string|null, country_code: string|null, birth_date: string|null, status: string, agency_uuid: string|null, kora_point_organization_uuid: string|null, role: string}
      */
     public function payload(): array
     {
@@ -92,6 +130,7 @@ class StoreUserRequest extends FormRequest
             'birth_date' => $this->input('birth_date') ?: null,
             'status' => $this->string('status')->trim()->value(),
             'agency_uuid' => $this->input('agency_uuid') ?: null,
+            'kora_point_organization_uuid' => $this->input('kora_point_organization_uuid') ?: null,
             'role' => $this->string('role')->trim()->value(),
         ];
     }

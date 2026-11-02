@@ -7,6 +7,7 @@ use App\Modules\IdentityAccess\Contracts\PassengerIdentityResolver;
 use App\Modules\IdentityAccess\Data\RoleCategory;
 use App\Modules\IdentityAccess\Http\Requests\UserRoleResolver;
 use App\Modules\IdentityAccess\Models\Agency;
+use App\Modules\KoraPoints\Models\KoraPointOrganization;
 use Illuminate\Support\Facades\DB;
 
 class UpdateUserAction
@@ -17,7 +18,7 @@ class UpdateUserAction
     ) {}
 
     /**
-     * @param  array{name: string, email: string, phone: string|null, country_code: string|null, birth_date: string|null, status: string, agency_uuid: string|null, role: string}  $attributes
+     * @param  array{name: string, email: string, phone: string|null, country_code: string|null, birth_date: string|null, status: string, agency_uuid: string|null, kora_point_organization_uuid: string|null, role: string}  $attributes
      */
     public function execute(User $user, array $attributes, User $actor): User
     {
@@ -32,6 +33,7 @@ class UpdateUserAction
         $updated = DB::transaction(function () use ($user, $attributes): User {
             $role = $this->roleResolver->resolve((string) $attributes['role']);
             $agency = $this->resolveAgency($attributes['agency_uuid'] ?? null);
+            $organization = $this->resolveKoraPointOrganization($attributes['kora_point_organization_uuid'] ?? null);
             $this->assertAssignment($role->category, $agency !== null);
 
             $emailChanged = $user->email !== $attributes['email'];
@@ -44,12 +46,13 @@ class UpdateUserAction
                 'birth_date' => $attributes['birth_date'] ?? null,
                 'status' => $attributes['status'],
                 'agency_id' => $agency?->getKey(),
+                'kora_point_organization_id' => $organization?->getKey(),
                 'email_verified_at' => $emailChanged ? null : $user->email_verified_at,
             ])->save();
 
             $user->syncRoles([$role->name]);
 
-            return $user->refresh()->load(['agency', 'roles']);
+            return $user->refresh()->load(['agency', 'koraPointOrganization', 'roles']);
         });
 
         activity('identity-access')
@@ -77,6 +80,15 @@ class UpdateUserAction
         }
 
         return Agency::query()->where('uuid', $uuid)->firstOrFail();
+    }
+
+    private function resolveKoraPointOrganization(?string $uuid): ?KoraPointOrganization
+    {
+        if ($uuid === null || $uuid === '') {
+            return null;
+        }
+
+        return KoraPointOrganization::query()->where('uuid', $uuid)->where('status', 'active')->firstOrFail();
     }
 
     private function assertAssignment(?RoleCategory $category, bool $hasAgency): void

@@ -20,6 +20,12 @@ export type AdministrationAgency = {
     name: string;
 };
 
+export type KoraPointOrganizationOption = {
+    uuid: string;
+    code: string | null;
+    name: string;
+};
+
 export type AdministrationUser = {
     uuid: string;
     name: string;
@@ -31,7 +37,14 @@ export type AdministrationUser = {
     status: 'active' | 'suspended' | 'locked';
     deleted_at: string | null;
     agency: AdministrationAgency | null;
+    kora_point_organization: KoraPointOrganizationOption | null;
     role: Pick<AdministrationRole, 'code' | 'label' | 'category'> | null;
+    web_access: {
+        status: 'pending_delivery' | 'sent' | 'expired' | 'used' | 'replaced';
+        delivery_channel: 'email' | 'sms' | null;
+        sent_at: string | null;
+        expires_at: string | null;
+    } | null;
 };
 
 export type PaginatedAdministrationUsers = {

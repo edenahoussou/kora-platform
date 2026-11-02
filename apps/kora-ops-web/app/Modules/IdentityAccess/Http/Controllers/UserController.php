@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Modules\IdentityAccess\Actions\ArchiveUserAction;
 use App\Modules\IdentityAccess\Actions\CreateUserAction;
+use App\Modules\IdentityAccess\Actions\IssueKoraPointWebAccessAction;
 use App\Modules\IdentityAccess\Actions\RequestUserPinResetAction;
 use App\Modules\IdentityAccess\Actions\ResetUserPasswordAction;
 use App\Modules\IdentityAccess\Actions\RestoreUserAction;
@@ -16,9 +17,12 @@ use App\Modules\IdentityAccess\Data\UserStatus;
 use App\Modules\IdentityAccess\Http\Requests\StoreUserRequest;
 use App\Modules\IdentityAccess\Http\Requests\UpdateUserRequest;
 use App\Modules\IdentityAccess\Models\Agency;
+use App\Modules\IdentityAccess\Models\KoraPointWebAccessInvitation;
 use App\Modules\IdentityAccess\Models\Role;
+use App\Modules\KoraPoints\Models\KoraPointOrganization;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -29,7 +33,14 @@ class UserController extends Controller
     {
         Gate::authorize('viewAny', User::class);
 
-        $query = User::query()->with(['agency', 'roles']);
+        KoraPointWebAccessInvitation::query()
+            ->where('status', KoraPointWebAccessInvitation::STATUS_SENT)
+            ->where(function ($query): void {
+                $query->whereNull('expires_at')->orWhere('expires_at', '<=', now());
+            })
+            ->update(['status' => KoraPointWebAccessInvitation::STATUS_EXPIRED]);
+
+        $query = User::query()->with(['agency', 'koraPointOrganization', 'roles', 'latestKoraPointWebAccessInvitation']);
         $archived = $request->string('archived')->trim()->value();
 
         if ($archived === 'only') {
@@ -90,6 +101,17 @@ class UserController extends Controller
                 ])
                 ->values()
                 ->all(),
+            'koraPointOrganizations' => KoraPointOrganization::query()
+                ->where('status', 'active')
+                ->orderBy('name')
+                ->get(['uuid', 'code', 'name'])
+                ->map(fn (KoraPointOrganization $organization): array => [
+                    'uuid' => $organization->uuid,
+                    'code' => $organization->code,
+                    'name' => $organization->name,
+                ])
+                ->values()
+                ->all(),
             'permissions' => [
                 'canManage' => Gate::allows('create', User::class),
             ],
@@ -98,7 +120,7 @@ class UserController extends Controller
 
     public function show(string $user): Response
     {
-        $target = User::withTrashed()->with(['agency', 'roles'])->where('uuid', $user)->firstOrFail();
+        $target = User::withTrashed()->with(['agency', 'koraPointOrganization', 'roles'])->where('uuid', $user)->firstOrFail();
         Gate::authorize('view', $target);
 
         return Inertia::render('users', [
@@ -113,9 +135,19 @@ class UserController extends Controller
     {
         $result = $createUser->execute($request->payload(), $request->user(), $request);
 
-        Inertia::flash('temporaryPassword', $result['temporary_password']);
-        Inertia::flash('otpChallengeUuid', $result['otp_challenge_uuid']);
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Utilisateur créé avec succès.')]);
+        if ($result['temporary_password'] !== null) {
+            Inertia::flash('temporaryPassword', $result['temporary_password']);
+        }
+
+        if ($result['otp_challenge_uuid'] !== null) {
+            Inertia::flash('otpChallengeUuid', $result['otp_challenge_uuid']);
+        }
+
+        $message = $result['web_access_invitation'] === null
+            ? __('Utilisateur créé avec succès.')
+            : $this->webAccessMessage($result['web_access_invitation']->status);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
 
         return to_route('users');
     }
@@ -150,9 +182,22 @@ class UserController extends Controller
         return back();
     }
 
-    public function resetPassword(User $user, ResetUserPasswordAction $resetPassword): RedirectResponse
-    {
+    public function resetPassword(
+        Request $request,
+        User $user,
+        ResetUserPasswordAction $resetPassword,
+        IssueKoraPointWebAccessAction $issueKoraPointWebAccess,
+    ): RedirectResponse {
         Gate::authorize('resetPassword', $user);
+
+        if ($user->isKoraPointUser()) {
+            $invitation = $issueKoraPointWebAccess->execute($user, $request->user())->refresh();
+
+            Inertia::flash('toast', ['type' => 'success', 'message' => $this->webAccessMessage($invitation->status)]);
+
+            return back();
+        }
+
         $temporaryPassword = $resetPassword->execute($user, request()->user());
 
         Inertia::flash('temporaryPassword', $temporaryPassword);
@@ -212,6 +257,9 @@ class UserController extends Controller
     private function serializeUser(User $user): array
     {
         $role = $user->roles->first();
+        $webAccess = $user->latestKoraPointWebAccessInvitation;
+        $sentAt = $webAccess?->sent_at === null ? null : Carbon::parse($webAccess->sent_at);
+        $expiresAt = $webAccess?->expires_at === null ? null : Carbon::parse($webAccess->expires_at);
 
         return [
             'uuid' => $user->uuid,
@@ -228,6 +276,11 @@ class UserController extends Controller
                 'code' => $user->agency->code,
                 'name' => $user->agency->name,
             ] : null,
+            'kora_point_organization' => $user->koraPointOrganization ? [
+                'uuid' => $user->koraPointOrganization->uuid,
+                'code' => $user->koraPointOrganization->code,
+                'name' => $user->koraPointOrganization->name,
+            ] : null,
             'role' => $role ? [
                 'code' => $role->name,
                 'label' => SystemRole::tryFrom($role->name)?->translatedLabel()
@@ -235,6 +288,21 @@ class UserController extends Controller
                     ?? $role->name,
                 'category' => $role->category->value,
             ] : null,
+            'web_access' => $webAccess ? [
+                'status' => $webAccess->status === 'sent' && $expiresAt?->isPast()
+                    ? 'expired'
+                    : $webAccess->status,
+                'delivery_channel' => $webAccess->delivery_channel,
+                'sent_at' => $sentAt?->toISOString(),
+                'expires_at' => $expiresAt?->toISOString(),
+            ] : null,
         ];
+    }
+
+    private function webAccessMessage(string $status): string
+    {
+        $delivery = $status === 'sent' ? 'envoyé' : 'en attente de livraison';
+
+        return "Accès web initial {$delivery}. Le mot de passe n’est pas affiché dans OPS; consultez son état ou renvoyez l’accès depuis Utilisateurs.";
     }
 }

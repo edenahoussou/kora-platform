@@ -74,6 +74,11 @@ export function UserDetailDrawer({
 
     const isArchived = Boolean(user.deleted_at);
     const isLocked = user.status === 'locked';
+    const isKoraPointUser = [
+        'kora_point_agent',
+        'kora_point_supervisor',
+        'kora_point_treasurer',
+    ].includes(user.role?.code ?? '');
 
     const statusTone = isArchived
         ? 'muted'
@@ -332,17 +337,21 @@ export function UserDetailDrawer({
                                                 </span>
                                                 <div>
                                                     <span className="block text-xs font-bold text-foreground">
-                                                        Réinitialiser le mot de
-                                                        passe
+                                                        {isKoraPointUser
+                                                            ? 'Renvoyer l’accès web initial'
+                                                            : 'Réinitialiser le mot de passe'}
                                                     </span>
                                                     <small className="text-[0.6875rem] text-muted-foreground">
-                                                        Génère un nouveau mot de
-                                                        passe temporaire
+                                                        {isKoraPointUser
+                                                            ? 'Génère un nouveau mot de passe et l’envoie par e-mail (SMS si échec)'
+                                                            : 'Génère un nouveau mot de passe temporaire'}
                                                     </small>
                                                 </div>
                                             </div>
                                             <span className="text-xs font-bold text-gold">
-                                                Réinitialiser →
+                                                {isKoraPointUser
+                                                    ? 'Renvoyer →'
+                                                    : 'Réinitialiser →'}
                                             </span>
                                         </button>
 
