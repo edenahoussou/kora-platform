@@ -115,6 +115,52 @@ it('creates a line with nested stops referencing existing physical stops', funct
         ->and($line->stops()->orderBy('stop_order')->first()->name)->toBe('Cotonou');
 });
 
+it('rejects a stop whose declared city differs from the linked physical stop city', function (): void {
+    $manager = networkManager();
+
+    $cotonouPhysical = makePhysicalStop(['name' => 'Avenue de la Libération', 'city' => 'Cotonou']);
+
+    $this->actingAs($manager)->post(route('network.store'), [
+        'code' => 'LC1',
+        'name' => 'Ligne cassée',
+        'type' => 'nationale',
+        'status' => 'draft',
+        'stops' => [
+            ['name' => 'Arrêt Porto Novo', 'city' => 'Porto-Novo', 'country' => 'BJ', 'stop_order' => 1, 'km_from_origin' => 0, 'physical_stop_uuid' => $cotonouPhysical->uuid],
+        ],
+    ])->assertSessionHasErrors('stops.0.physical_stop_uuid');
+
+    expect(Line::query()->where('code', 'LC1')->exists())->toBeFalse();
+});
+
+it('derives city, country and coordinates from the linked physical stop', function (): void {
+    $manager = networkManager();
+
+    $physical = makePhysicalStop([
+        'name' => 'Gare de Porto-Novo',
+        'city' => 'Porto-Novo',
+        'country' => 'BJ',
+        'latitude' => 6.4969,
+        'longitude' => 2.6289,
+    ]);
+
+    $this->actingAs($manager)->post(route('network.store'), [
+        'code' => 'LC2',
+        'name' => 'Ligne littorale nord',
+        'type' => 'nationale',
+        'status' => 'draft',
+        'stops' => [
+            ['name' => 'Arrêt Porto Novo', 'city' => 'Porto Novo', 'country' => 'BJ', 'stop_order' => 1, 'km_from_origin' => 0, 'physical_stop_uuid' => $physical->uuid],
+        ],
+    ])->assertRedirect(route('network.index', absolute: false));
+
+    $stop = Line::query()->where('code', 'LC2')->firstOrFail()->stops()->sole();
+    expect($stop->city)->toBe('Porto-Novo')
+        ->and($stop->country)->toBe('BJ')
+        ->and((float) $stop->latitude)->toBe(6.4969)
+        ->and((float) $stop->longitude)->toBe(2.6289);
+});
+
 it('creates physical stops inline for map-placed points', function (): void {
     $manager = networkManager();
 

@@ -3,6 +3,8 @@
 namespace App\Modules\BusNetwork\Actions;
 
 use App\Modules\BusNetwork\Models\PhysicalStop;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class ResolveStopsPayloadAction
 {
@@ -16,7 +18,7 @@ class ResolveStopsPayloadAction
      */
     public function execute(array $stops): array
     {
-        return collect($stops)->map(function (array $stop): array {
+        return collect($stops)->map(function (array $stop, int $index): array {
             $resolved = [
                 'uuid' => $stop['uuid'] ?? null,
                 'name' => trim((string) $stop['name']),
@@ -29,10 +31,21 @@ class ResolveStopsPayloadAction
             ];
 
             if (! empty($stop['physical_stop_uuid'])) {
-                $resolved['physical_stop_id'] = PhysicalStop::query()
+                $physical = PhysicalStop::query()
                     ->where('uuid', $stop['physical_stop_uuid'])
-                    ->firstOrFail()
-                    ->id;
+                    ->firstOrFail();
+
+                if ($this->normalizeCity($resolved['city']) !== $this->normalizeCity((string) $physical->city)) {
+                    throw ValidationException::withMessages([
+                        "stops.{$index}.physical_stop_uuid" => "L'arrêt « {$resolved['name']} » est déclaré à {$resolved['city']} mais le point « {$physical->name} » se situe à {$physical->city}.",
+                    ]);
+                }
+
+                $resolved['physical_stop_id'] = $physical->id;
+                $resolved['city'] = $physical->city;
+                $resolved['country'] = $physical->country;
+                $resolved['latitude'] = $physical->latitude !== null ? (float) $physical->latitude : null;
+                $resolved['longitude'] = $physical->longitude !== null ? (float) $physical->longitude : null;
             } else {
                 $physical = $this->findOrCreatePhysicalStop->execute([
                     'name' => $resolved['name'],
@@ -46,5 +59,10 @@ class ResolveStopsPayloadAction
 
             return $resolved;
         })->values()->all();
+    }
+
+    private function normalizeCity(string $city): string
+    {
+        return Str::lower((string) preg_replace('/[\s\-]+/u', ' ', trim($city)));
     }
 }
