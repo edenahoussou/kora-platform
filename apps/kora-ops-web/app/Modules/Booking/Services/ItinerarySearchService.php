@@ -84,66 +84,113 @@ class ItinerarySearchService
 
         $this->resetSearchCache();
 
-        $originPhysical = PhysicalStop::query()
+        // A city can host several physical stops (gare + named arrêts).
+        // Resolve all of them: picking first() would silently miss
+        // departures served by a different stop in the same city.
+        $originPhysicals = PhysicalStop::query()
             ->where('city', $from)
             ->where('status', 'active')
-            ->first();
+            ->get();
 
-        $destinationPhysical = PhysicalStop::query()
+        $destinationPhysicals = PhysicalStop::query()
             ->where('city', $to)
             ->where('status', 'active')
-            ->first();
+            ->get();
 
-        if ($originPhysical === null || $destinationPhysical === null) {
+        if ($originPhysicals->isEmpty() || $destinationPhysicals->isEmpty()) {
             return ['outbound' => [], 'inbound' => []];
         }
 
         $inbound = [];
         $tripType = $filters['trip_type'] ?? 'one_way';
         $returnDate = $filters['return_date'] ?? null;
+        $serviceClassCode = $filters['service_class'] ?? null;
+        $defaultSearchDays = app(OperationsSettings::class)->defaultSearchDays;
 
         $hasExplicitDate = isset($filters['date']) && $filters['date'] !== '';
-        $outbound = $hasExplicitDate
-            ? $this->searchWithPhysicalStops(
-                originPhysical: $originPhysical,
-                destinationPhysical: $destinationPhysical,
-                date: CarbonImmutable::parse($filters['date']),
-                passengerCount: 1,
-            )
-            : $this->searchUpcoming(
-                originPhysicalStopUuid: $originPhysical->uuid,
-                destinationPhysicalStopUuid: $destinationPhysical->uuid,
-                fromDate: CarbonImmutable::today(),
-                days: app(OperationsSettings::class)->defaultSearchDays,
-                passengerCount: 1,
-            );
+        $outbound = $this->searchAcrossCityStops(
+            originPhysicals: $originPhysicals,
+            destinationPhysicals: $destinationPhysicals,
+            date: $hasExplicitDate ? CarbonImmutable::parse($filters['date']) : null,
+            fromDate: CarbonImmutable::today(),
+            days: $defaultSearchDays,
+        );
 
         if ($tripType === 'round_trip') {
-            if ($returnDate !== null) {
-                $inbound = $this->searchWithPhysicalStops(
-                    originPhysical: $destinationPhysical,
-                    destinationPhysical: $originPhysical,
-                    date: CarbonImmutable::parse($returnDate),
-                    passengerCount: 1,
-                );
-            } else {
-                // No return date — search upcoming return departures.
-                // Start from the day after the outbound date (or today if
-                // no outbound date) to avoid same-day returns on long trips.
-                $fromDate = $hasExplicitDate
-                    ? CarbonImmutable::parse($filters['date'])->addDay()
-                    : CarbonImmutable::today();
-                $inbound = $this->searchUpcoming(
-                    originPhysicalStopUuid: $destinationPhysical->uuid,
-                    destinationPhysicalStopUuid: $originPhysical->uuid,
-                    fromDate: $fromDate,
-                    days: app(OperationsSettings::class)->defaultSearchDays,
-                    passengerCount: 1,
-                );
-            }
+            $inboundFromDate = $hasExplicitDate && $returnDate === null
+                ? CarbonImmutable::parse($filters['date'])->addDay()
+                : CarbonImmutable::today();
+            $inbound = $this->searchAcrossCityStops(
+                originPhysicals: $destinationPhysicals,
+                destinationPhysicals: $originPhysicals,
+                date: $returnDate !== null ? CarbonImmutable::parse($returnDate) : null,
+                fromDate: $inboundFromDate,
+                days: $defaultSearchDays,
+            );
+        }
+
+        if ($serviceClassCode !== null) {
+            $outbound = $this->filterByServiceClass($outbound, $serviceClassCode);
+            $inbound = $this->filterByServiceClass($inbound, $serviceClassCode);
         }
 
         return ['outbound' => $outbound, 'inbound' => $inbound];
+    }
+
+    /**
+     * Run the search for every (origin, destination) physical-stop pair in the
+     * two cities and merge deduplicated results. A city can be served by
+     * several physical stops — searching only first() silently drops
+     * departures boarding elsewhere in the same city.
+     *
+     * @param  EloquentCollection<int, PhysicalStop>  $originPhysicals
+     * @param  EloquentCollection<int, PhysicalStop>  $destinationPhysicals
+     * @return list<ItineraryData>
+     */
+    private function searchAcrossCityStops(
+        EloquentCollection $originPhysicals,
+        EloquentCollection $destinationPhysicals,
+        ?CarbonImmutable $date,
+        CarbonImmutable $fromDate,
+        int $days,
+    ): array {
+        $merged = [];
+        $seen = [];
+
+        foreach ($originPhysicals as $originPhysical) {
+            foreach ($destinationPhysicals as $destinationPhysical) {
+                if ($originPhysical->id === $destinationPhysical->id) {
+                    continue;
+                }
+
+                $daily = $date !== null
+                    ? $this->searchWithPhysicalStops(
+                        originPhysical: $originPhysical,
+                        destinationPhysical: $destinationPhysical,
+                        date: $date,
+                        passengerCount: 1,
+                    )
+                    : $this->searchUpcoming(
+                        originPhysicalStopUuid: $originPhysical->uuid,
+                        destinationPhysicalStopUuid: $destinationPhysical->uuid,
+                        fromDate: $fromDate,
+                        days: $days,
+                        passengerCount: 1,
+                    );
+
+                foreach ($daily as $itinerary) {
+                    $key = $this->itineraryKey($itinerary);
+                    if (! isset($seen[$key])) {
+                        $seen[$key] = true;
+                        $merged[] = $itinerary;
+                    }
+                }
+            }
+        }
+
+        $merged = $this->sortItineraries($merged);
+
+        return array_slice($merged, 0, app(OperationsSettings::class)->maxResults);
     }
 
     /**

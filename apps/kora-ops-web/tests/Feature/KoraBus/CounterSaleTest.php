@@ -166,6 +166,39 @@ it('renders the counter sale page with itinerary results', function (): void {
         );
 });
 
+it('finds itineraries served by a secondary physical stop of the city', function (): void {
+    // Reproduces production data: cities host several physical stops and
+    // the served one is not the first row for that city.
+    PhysicalStop::query()->create([
+        'uuid' => (string) Str::uuid(),
+        'name' => 'Cotonou Ancien Arrêt',
+        'city' => 'Cotonou',
+        'country' => 'BJ',
+        'status' => 'active',
+    ]);
+    PhysicalStop::query()->create([
+        'uuid' => (string) Str::uuid(),
+        'name' => 'Abidjan Ancien Arrêt',
+        'city' => 'Abidjan',
+        'country' => 'CI',
+        'status' => 'active',
+    ]);
+
+    $scenario = counterSaleScenario();
+
+    $this->actingAs($scenario['agent'])
+        ->get(route('sale', [
+            'date' => '2026-08-20',
+            'from' => 'Cotonou',
+            'to' => 'Abidjan',
+        ]))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page): Assert => $page
+            ->component('sale')
+            ->has('outboundItineraries', 1)
+        );
+});
+
 it('creates a counter itinerary quote and blocks seats through the web flow', function (): void {
     $scenario = counterSaleScenario();
     $context = counterSaleContext($scenario);
