@@ -82,7 +82,9 @@ export default function KoraPointOrganizationsIndexPage({
     const [editingOrg, setEditingOrg] = useState<AdminOrganization | null>(
         null,
     );
-    const [detailOrg, setDetailOrg] = useState<AdminOrganization | null>(null);
+    const [detailOrgUuid, setDetailOrgUuid] = useState<string | null>(null);
+    const detailOrg =
+        organizations.data.find((org) => org.uuid === detailOrgUuid) ?? null;
 
     const stats = useMemo(() => {
         let totalPoints = 0;
@@ -352,7 +354,7 @@ export default function KoraPointOrganizationsIndexPage({
                     columns={columns}
                     data={organizations.data}
                     rowKey={(org) => org.uuid}
-                    onRowClick={(org) => setDetailOrg(org)}
+                    onRowClick={(org) => setDetailOrgUuid(org.uuid)}
                     emptyTitle="Aucune organisation partenaire"
                     emptyMessage="Créez la première organisation pour y rattacher des points de vente."
                     emptyIcon={Building2}
@@ -374,7 +376,7 @@ export default function KoraPointOrganizationsIndexPage({
                 permissions={permissions}
                 onOpenChange={(open) => {
                     if (!open) {
-                        setDetailOrg(null);
+                        setDetailOrgUuid(null);
                     }
                 }}
             />

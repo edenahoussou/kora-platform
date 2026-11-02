@@ -9,6 +9,7 @@ use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\KoraPoints\Models\KoraPoint;
 use App\Modules\KoraPoints\Models\KoraPointOrganization;
 use App\Modules\KoraPoints\Models\KoraPointRemittanceLine;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -17,10 +18,13 @@ use Illuminate\Validation\ValidationException;
 
 class KoraPointManagementService
 {
+    private const SUPPORTED_COUNTRIES = ['BJ', 'TG', 'CI'];
+
     public function __construct(
         private readonly KoraPointAccess $access,
         private readonly KoraPointLedgerService $ledger,
         private readonly CreateUserAction $createUser,
+        private readonly KoraPointDocumentService $documents,
     ) {}
 
     /** @param array<string, mixed> $data */
@@ -33,8 +37,125 @@ class KoraPointManagementService
     {
         $this->access->authorize($actor, 'kora-points.manage');
 
+        if ($this->access->isOrganizationPartner($actor)) {
+            if (! $this->access->isOrganizationSupervisor($actor)) {
+                throw new AuthorizationException;
+            }
+
+            if ($point !== null) {
+                $this->access->requirePoint($actor, $point);
+            }
+        }
+
         return DB::transaction(function () use ($actor, $data, $point): KoraPoint {
-            $organization = isset($data['organization_uuid']) ? KoraPointOrganization::query()->where('uuid', $data['organization_uuid'])->lockForUpdate()->firstOrFail() : null;
+            $creatingPoint = $point === null;
+            $currentPoint = $point === null
+                ? null
+                : KoraPoint::query()->whereKey($point->getKey())->firstOrFail();
+            $originalOrganizationId = $currentPoint?->organization_id;
+            $targetOrganizationId = $originalOrganizationId;
+
+            if (array_key_exists('organization_uuid', $data)) {
+                $targetOrganizationId = filled($data['organization_uuid'])
+                    ? KoraPointOrganization::query()->where('uuid', $data['organization_uuid'])->value('id')
+                    : null;
+
+                if (filled($data['organization_uuid']) && $targetOrganizationId === null) {
+                    throw ValidationException::withMessages(['organization_uuid' => 'L’organisation sélectionnée est introuvable.']);
+                }
+            }
+
+            $organizationIds = collect([$originalOrganizationId, $targetOrganizationId])
+                ->filter()
+                ->unique()
+                ->sort()
+                ->values();
+            $organizations = $organizationIds->isEmpty()
+                ? collect()
+                : KoraPointOrganization::query()
+                    ->whereIn('id', $organizationIds)
+                    ->orderBy('id')
+                    ->lockForUpdate()
+                    ->get()
+                    ->keyBy('id');
+            $organization = $targetOrganizationId === null ? null : $organizations->get($targetOrganizationId);
+
+            if ($targetOrganizationId !== null && $organization === null) {
+                throw ValidationException::withMessages(['organization_uuid' => 'L’organisation sélectionnée est introuvable.']);
+            }
+
+            if ($organization !== null && (
+                ($data['logo'] ?? null) instanceof UploadedFile
+                || filter_var($data['remove_logo'] ?? false, FILTER_VALIDATE_BOOLEAN)
+            )) {
+                throw ValidationException::withMessages([
+                    'logo' => 'Le logo de ce Point est géré depuis la fiche de son organisation.',
+                ]);
+            }
+
+            $point = $currentPoint === null
+                ? null
+                : KoraPoint::query()->lockForUpdate()->whereKey($currentPoint->getKey())->firstOrFail();
+
+            if ($point !== null && $point->organization_id !== $originalOrganizationId) {
+                throw ValidationException::withMessages(['organization_uuid' => 'Le rattachement a changé. Rechargez la fiche du Point avant de la modifier.']);
+            }
+
+            if ($this->access->isOrganizationPartner($actor)) {
+                $organizationId = $actor->kora_point_organization_id;
+
+                if ($organizationId === null || $targetOrganizationId !== $organizationId || ($point !== null && $originalOrganizationId !== $organizationId)) {
+                    throw new AuthorizationException;
+                }
+
+                if ($point !== null) {
+                    $data['code'] = $point->agency()->value('code');
+                    $data['responsible_name'] = $point->responsible_name;
+                    unset($data['email'], $data['document_file'], $data['document_title']);
+                } elseif (array_key_exists('document_file', $data)) {
+                    throw ValidationException::withMessages(['document_file' => 'Les documents des Points rattachés sont gérés sur le profil de l’organisation.']);
+                }
+            }
+
+            if ($creatingPoint && blank($data['email'] ?? null)) {
+                throw ValidationException::withMessages([
+                    'email' => 'L’e-mail est obligatoire pour créer le compte web de l’agent du Point.',
+                ]);
+            }
+
+            $existingCountry = $point?->agency()->value('country');
+            $country = strtoupper((string) ($data['country'] ?? $existingCountry ?? 'BJ'));
+            if (! in_array($country, self::SUPPORTED_COUNTRIES, true)) {
+                throw ValidationException::withMessages(['country' => 'Choisissez un pays actuellement pris en charge par KORA POINT.']);
+            }
+
+            if ($organization !== null) {
+                if ($organization->status !== 'active') {
+                    throw ValidationException::withMessages(['organization_uuid' => 'Un Point ne peut être rattaché qu’à une organisation active.']);
+                }
+
+                if ($country !== $organization->country) {
+                    throw ValidationException::withMessages(['country' => 'Un Point rattaché doit utiliser le pays de son organisation.']);
+                }
+
+                if ($organization->commission_basis_points === null || $organization->ceiling_amount === null || $organization->settlement_calendar === null) {
+                    throw ValidationException::withMessages(['organization_uuid' => 'Configurez les conditions commerciales de l’organisation avant de lui rattacher un Point.']);
+                }
+
+                $allocation = (int) ($data['ceiling_amount'] ?? ($point === null ? 0 : $point->ceiling_amount));
+                if ($allocation < 1) {
+                    throw ValidationException::withMessages(['ceiling_amount' => 'L’allocation du Point doit être supérieure à zéro.']);
+                }
+
+                if ($point !== null && $this->ledger->balance($point) > $allocation) {
+                    throw ValidationException::withMessages(['ceiling_amount' => 'L’allocation ne peut pas être inférieure à l’encours actuel du Point.']);
+                }
+
+                if ($this->reservedPointAllocations($organization, $point?->getKey()) + $allocation > (int) $organization->ceiling_amount) {
+                    throw ValidationException::withMessages(['ceiling_amount' => 'La somme des allocations dépasserait le plafond global de l’organisation.']);
+                }
+            }
+
             if (empty($data['code'])) {
                 $cityPrefix = strtoupper(substr(preg_replace('/[^A-Za-z]/', '', (string) ($data['city'] ?? 'KP')), 0, 3));
                 if ($cityPrefix === '') {
@@ -45,44 +166,60 @@ class KoraPointManagementService
                 } while (Agency::query()->where('code', $candidateCode)->exists());
                 $data['code'] = $candidateCode;
             }
-            if (empty($data['country'])) {
-                $data['country'] = 'BJ';
-            }
-            if ($point !== null) {
-                $point = KoraPoint::query()->lockForUpdate()->whereKey($point->getKey())->firstOrFail();
-                if (array_key_exists('organization_uuid', $data) && $point->organization_id !== $organization?->getKey()) {
-                    $pending = $point->sales()->whereHas('refunds', fn ($query) => $query->whereNotIn('status', ['confirmed', 'rejected']))->exists();
-                    $claimed = KoraPointRemittanceLine::query()->whereNotNull('claimed_sale_id')->whereHas('sale', fn ($query) => $query->where('point_id', $point->getKey()))->exists();
-                    if ($this->ledger->balance($point) !== 0 || $pending || $claimed) {
-                        throw ValidationException::withMessages(['organization_uuid' => 'Soldez les encours et opérations en cours avant de changer le rattachement.']);
-                    }
+            if ($point !== null && $originalOrganizationId !== $targetOrganizationId) {
+                $pending = $point->sales()->whereHas('refunds', fn ($query) => $query->whereNotIn('status', ['confirmed', 'rejected']))->exists();
+                $claimed = KoraPointRemittanceLine::query()->whereNotNull('claimed_sale_id')->whereHas('sale', fn ($query) => $query->where('point_id', $point->getKey()))->exists();
+
+                if ($this->ledger->balance($point) !== 0 || $pending || $claimed) {
+                    throw ValidationException::withMessages(['organization_uuid' => 'Soldez l’encours et les opérations en cours avant de changer le rattachement.']);
                 }
-                $point->agency->update(Arr::only($data, ['code', 'name', 'city', 'country']));
+            }
+
+            $data['country'] = $country;
+            if (array_key_exists('phone', $data)) {
+                $data['phone'] = filled($data['phone']) ? trim((string) $data['phone']) : null;
+            }
+            $agencyData = Arr::only($data, ['code', 'name', 'city', 'department', 'country']);
+            if ($point !== null) {
+                $point->agency()->firstOrFail()->update($agencyData);
             } else {
-                $agency = Agency::query()->create(Arr::only($data, ['code', 'name', 'city', 'country']) + ['status' => 'active', 'kind' => 'partner']);
+                $agency = Agency::query()->create($agencyData + ['status' => 'active', 'kind' => 'partner']);
                 $point = new KoraPoint(['agency_id' => $agency->getKey(), 'status' => 'active']);
             }
             $before = $point->exists ? $point->getAttributes() : [];
-            $point->fill(Arr::only($data, ['responsible_name', 'phone', 'address', 'latitude', 'longitude', 'commission_basis_points', 'ceiling_amount', 'settlement_calendar']));
-            if (array_key_exists('organization_uuid', $data)) {
-                $point->organization_id = $organization?->getKey();
+            $terms = Arr::only($data, ['commission_basis_points', 'ceiling_amount', 'settlement_calendar']);
+            if ($organization !== null) {
+                $terms['commission_basis_points'] = null;
+                $terms['settlement_calendar'] = null;
+                $terms['ceiling_amount'] = (int) ($data['ceiling_amount'] ?? $point->ceiling_amount);
             }
+            $point->fill(Arr::only($data, ['responsible_name', 'phone', 'address', 'latitude', 'longitude']) + $terms);
+            $point->organization_id = $organization?->getKey();
             $point->save();
             $this->syncLogo($actor, $point, $data);
             $this->audit($actor, $point, 'point.saved', $before);
 
-            $email = isset($data['email']) ? trim((string) $data['email']) : null;
-            if (! empty($email)) {
+            $email = isset($data['email']) ? strtolower(trim((string) $data['email'])) : null;
+            if ($creatingPoint) {
                 $this->createUser->execute([
                     'name' => (string) ($point->responsible_name ?: ($data['responsible_name'] ?? 'Agent')),
                     'email' => strtolower($email),
-                    'phone' => $point->phone ?: ($data['phone'] ?? null),
+                    'phone' => $point->phone,
                     'country_code' => (string) $data['country'],
                     'birth_date' => null,
                     'status' => 'active',
                     'agency_uuid' => $point->agency->uuid,
+                    'kora_point_organization_uuid' => null,
                     'role' => 'kora_point_agent',
                 ], $actor, request());
+            }
+
+            $documentFile = $data['document_file'] ?? null;
+            if ($documentFile instanceof UploadedFile) {
+                $this->documents->store($actor, $point, [
+                    'kind' => 'other',
+                    'title' => (string) ($data['document_title'] ?? $documentFile->getClientOriginalName()),
+                ], $documentFile);
             }
 
             return $point->refresh();
@@ -97,7 +234,7 @@ class KoraPointManagementService
      */
     public function saveOrganization(User $actor, array $data, ?KoraPointOrganization $organization = null): KoraPointOrganization
     {
-        $this->access->authorize($actor, 'kora-points.manage');
+        $this->access->authorizeInternal($actor, 'kora-points.manage');
 
         return DB::transaction(function () use ($actor, $data, $organization): KoraPointOrganization {
             $creating = $organization === null;
@@ -108,8 +245,21 @@ class KoraPointManagementService
                 $data['code'] = $this->generateOrganizationCode((string) ($data['name'] ?? 'ORG'));
             }
             $organization = $creating ? new KoraPointOrganization(['status' => 'active']) : KoraPointOrganization::query()->lockForUpdate()->whereKey($organization->getKey())->firstOrFail();
+
+            if (! in_array((string) ($data['country'] ?? ''), self::SUPPORTED_COUNTRIES, true)) {
+                throw ValidationException::withMessages(['country' => 'Choisissez un pays actuellement pris en charge par KORA POINT.']);
+            }
+
+            if (! $creating && $organization->country !== $data['country'] && $organization->points()->exists()) {
+                throw ValidationException::withMessages(['country' => 'Le pays ne peut pas changer tant que des Points sont rattachés à cette organisation.']);
+            }
+
+            if ($this->reservedPointAllocations($organization) > (int) ($data['ceiling_amount'] ?? 0)) {
+                throw ValidationException::withMessages(['ceiling_amount' => 'Le plafond global ne peut pas être inférieur aux allocations déjà réservées.']);
+            }
+
             $before = $organization->getAttributes();
-            $organization->fill(Arr::only($data, ['code', 'name', 'phone', 'address', 'commission_basis_points', 'ceiling_amount', 'settlement_calendar']));
+            $organization->fill(Arr::only($data, ['code', 'name', 'country', 'registration_identifier', 'tax_identifier', 'phone', 'address', 'commission_basis_points', 'ceiling_amount', 'settlement_calendar']));
             $organization->save();
             $this->syncLogo($actor, $organization, $data);
             foreach ($data['points'] ?? [] as $pointData) {
@@ -120,15 +270,15 @@ class KoraPointManagementService
                     'name' => trim((string) $memberData['name']),
                     'email' => strtolower(trim((string) $memberData['email'])),
                     'phone' => ! empty($memberData['phone']) ? trim((string) $memberData['phone']) : null,
-                    'country_code' => $data['country'] ?? 'BJ',
+                    'country_code' => $organization->country,
                     'birth_date' => null,
                     'status' => 'active',
                     'agency_uuid' => null,
+                    'kora_point_organization_uuid' => $organization->uuid,
                     'role' => (string) $memberData['role'],
                 ], $actor, request());
 
                 $memberUser = $result['user'];
-                $memberUser->forceFill(['kora_point_organization_id' => $organization->getKey()])->save();
                 activity('kora-points')
                     ->performedOn($memberUser)
                     ->causedBy($actor)
@@ -149,10 +299,53 @@ class KoraPointManagementService
      */
     public function updateTerms(User $actor, KoraPoint|KoraPointOrganization $subject, array $data): void
     {
-        $this->access->authorize($actor, 'kora-points.terms');
+        $this->access->authorizeInternal($actor, 'kora-points.terms');
         $values = Validator::make($data, KoraPointTermsService::rules())->validate();
         DB::transaction(function () use ($actor, $subject, $values): void {
-            $locked = $subject->newQuery()->lockForUpdate()->whereKey($subject->getKey())->firstOrFail();
+            if ($subject instanceof KoraPointOrganization) {
+                $locked = KoraPointOrganization::query()->lockForUpdate()->whereKey($subject->getKey())->firstOrFail();
+                foreach (['commission_basis_points', 'ceiling_amount', 'settlement_calendar'] as $requiredTerm) {
+                    if (! array_key_exists($requiredTerm, $values) || $values[$requiredTerm] === null) {
+                        throw ValidationException::withMessages([$requiredTerm => 'Les conditions de l’organisation doivent être complètes.']);
+                    }
+                }
+
+                if ($this->reservedPointAllocations($locked) > (int) $values['ceiling_amount']) {
+                    throw ValidationException::withMessages(['ceiling_amount' => 'Le plafond global ne peut pas être inférieur aux allocations déjà réservées.']);
+                }
+            } else {
+                $current = KoraPoint::query()->whereKey($subject->getKey())->firstOrFail();
+                $organization = $current->organization_id === null
+                    ? null
+                    : KoraPointOrganization::query()->lockForUpdate()->whereKey($current->organization_id)->firstOrFail();
+                $locked = KoraPoint::query()->lockForUpdate()->whereKey($subject->getKey())->firstOrFail();
+
+                if ($organization !== null) {
+                    if (array_key_exists('commission_basis_points', $values) && $values['commission_basis_points'] !== null && (int) $values['commission_basis_points'] !== (int) $organization->commission_basis_points) {
+                        throw ValidationException::withMessages(['commission_basis_points' => 'La commission est définie par l’organisation.']);
+                    }
+
+                    if (array_key_exists('settlement_calendar', $values) && $values['settlement_calendar'] !== null && $values['settlement_calendar'] !== $organization->settlement_calendar) {
+                        throw ValidationException::withMessages(['settlement_calendar' => 'Le calendrier de reversement est défini par l’organisation.']);
+                    }
+
+                    $allocation = (int) ($values['ceiling_amount'] ?? $locked->ceiling_amount ?? 0);
+                    if ($allocation < 1) {
+                        throw ValidationException::withMessages(['ceiling_amount' => 'L’allocation du Point doit être supérieure à zéro.']);
+                    }
+
+                    if ($this->ledger->balance($locked) > $allocation) {
+                        throw ValidationException::withMessages(['ceiling_amount' => 'L’allocation ne peut pas être inférieure à l’encours actuel du Point.']);
+                    }
+
+                    if ($this->reservedPointAllocations($organization, $locked->getKey()) + $allocation > (int) $organization->ceiling_amount) {
+                        throw ValidationException::withMessages(['ceiling_amount' => 'La somme des allocations dépasserait le plafond global de l’organisation.']);
+                    }
+
+                    $values = ['ceiling_amount' => $allocation];
+                }
+            }
+
             $before = $locked->getAttributes();
             $locked->fill(Arr::only($values, ['commission_basis_points', 'ceiling_amount', 'settlement_calendar']))->save();
             $this->audit($actor, $locked, 'terms.updated', $before);
@@ -164,10 +357,38 @@ class KoraPointManagementService
      */
     public function changeStatus(User $actor, KoraPoint|KoraPointOrganization $subject, string $status): void
     {
-        $this->access->authorize($actor, 'kora-points.manage');
+        if ($subject instanceof KoraPointOrganization) {
+            $this->access->authorizeInternal($actor, 'kora-points.manage');
+        } else {
+            $this->access->authorize($actor, 'kora-points.manage');
+
+            if ($this->access->isOrganizationPartner($actor)) {
+                if (! $this->access->isOrganizationSupervisor($actor)) {
+                    throw new AuthorizationException;
+                }
+
+                $this->access->requirePoint($actor, $subject);
+            }
+        }
         Validator::make(['status' => $status], ['status' => 'required|in:active,suspended,closed'])->validate();
         DB::transaction(function () use ($actor, $subject, $status): void {
-            $locked = $subject->newQuery()->lockForUpdate()->whereKey($subject->getKey())->firstOrFail();
+            if ($subject instanceof KoraPoint) {
+                $current = KoraPoint::query()->whereKey($subject->getKey())->firstOrFail();
+                $organization = $current->organization_id === null
+                    ? null
+                    : KoraPointOrganization::query()->lockForUpdate()->whereKey($current->organization_id)->firstOrFail();
+                $locked = KoraPoint::query()->lockForUpdate()->whereKey($subject->getKey())->firstOrFail();
+
+                if ($organization !== null && $locked->status === 'closed' && $status !== 'closed' && $this->ledger->balance($locked) === 0) {
+                    $allocation = (int) ($locked->ceiling_amount ?? 0);
+                    if ($allocation < 1 || $this->reservedPointAllocations($organization, $locked->getKey()) + $allocation > (int) $organization->ceiling_amount) {
+                        throw ValidationException::withMessages(['status' => 'Le plafond disponible de l’organisation ne permet pas de réactiver ce Point.']);
+                    }
+                }
+            } else {
+                $locked = KoraPointOrganization::query()->lockForUpdate()->whereKey($subject->getKey())->firstOrFail();
+            }
+
             $before = $locked->getAttributes();
             $locked->update(['status' => $status]);
             $this->audit($actor, $locked, 'status.updated', $before);
@@ -179,8 +400,8 @@ class KoraPointManagementService
      */
     public function assign(User $actor, User $user, KoraPoint|KoraPointOrganization $subject, string $role): void
     {
-        $this->access->authorize($actor, 'users.manage');
-        $this->access->authorize($actor, 'kora-points.manage');
+        $this->access->authorizeInternal($actor, 'users.manage');
+        $this->access->authorizeInternal($actor, 'kora-points.manage');
         $allowed = $subject instanceof KoraPoint ? ['kora_point_agent'] : ['kora_point_supervisor', 'kora_point_treasurer'];
         if (! in_array($role, $allowed, true)) {
             throw ValidationException::withMessages(['role' => 'Rôle incompatible avec cette affectation.']);
@@ -194,6 +415,29 @@ class KoraPointManagementService
             $locked->forceFill(['agency_id' => $subject instanceof KoraPoint ? $subject->agency_id : null, 'kora_point_organization_id' => $subject instanceof KoraPointOrganization ? $subject->getKey() : null])->save();
             $locked->syncRoles([$role]);
             activity('kora-points')->performedOn($locked)->causedBy($actor)->withProperties(['before' => $before, 'role' => $role, 'subject_uuid' => $subject->uuid])->log('partner.assigned');
+        });
+    }
+
+    private function reservedPointAllocations(KoraPointOrganization $organization, ?int $excludePointId = null): int
+    {
+        if (! $organization->exists) {
+            return 0;
+        }
+
+        $points = $organization->points()->withSum('entries as allocation_exposure', 'amount');
+
+        if ($excludePointId !== null) {
+            $points->where('id', '!=', $excludePointId);
+        }
+
+        return (int) $points->get()->sum(function (KoraPoint $point): int {
+            $exposure = (int) ($point->getAttribute('allocation_exposure') ?? 0);
+
+            if ($point->status === 'closed' && $exposure === 0) {
+                return 0;
+            }
+
+            return max(0, (int) ($point->ceiling_amount ?? 0));
         });
     }
 

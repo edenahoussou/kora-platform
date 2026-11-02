@@ -16,14 +16,16 @@ use App\Modules\KoraPoints\Models\KoraPointSale;
 use App\Modules\KoraPoints\Services\KoraPointAccess;
 use App\Modules\KoraPoints\Services\KoraPointManagementService;
 use App\Modules\KoraPoints\Services\KoraPointReadService;
+use App\Modules\KoraPoints\Services\KoraPointTermsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class KoraPointOrganizationController extends Controller
 {
-    public function __construct(private readonly KoraPointManagementService $management, private readonly KoraPointAccess $access, private readonly KoraPointReadService $read) {}
+    public function __construct(private readonly KoraPointManagementService $management, private readonly KoraPointAccess $access, private readonly KoraPointReadService $read, private readonly KoraPointTermsService $terms) {}
 
     /**
      * Renders the organizations screen with contractual matrix, sub-points, users and documents.
@@ -55,13 +57,13 @@ class KoraPointOrganizationController extends Controller
 
         $organizations = $query->latest('id')->paginate(30)->through(fn (KoraPointOrganization $org): array => $this->organization($org));
 
-        $subpoints = KoraPoint::query()
+        $subpoints = $this->access->points($actor)
             ->whereNotNull('organization_id')
             ->with(['agency', 'organization.media'])
             ->get()
             ->map(function (KoraPoint $point): array {
                 $exposure = (int) $point->entries()->sum('amount');
-                $limit = (int) ($point->ceiling_amount ?? $point->organization->ceiling_amount ?? 1000000);
+                $limit = (int) ($point->ceiling_amount ?? 0);
                 $usage = $limit > 0 ? (int) round(($exposure / $limit) * 100) : 0;
                 $status = $point->status === 'suspended' ? 'SUSPENDED' : ($limit > 0 && $exposure >= $limit ? 'LIMIT_REACHED' : ($limit > 0 && $exposure >= ($limit * 0.8) ? 'WARNING_THRESHOLD' : 'ACTIVE'));
 
@@ -79,7 +81,7 @@ class KoraPointOrganizationController extends Controller
                     'credit_limit' => $limit,
                     'current_exposure' => $exposure,
                     'usage_percentage' => $usage,
-                    'commission_rate_bps' => (int) ($point->commission_basis_points ?? $point->organization->commission_basis_points ?? 300),
+                    'commission_rate_bps' => (int) ($point->commission_basis_points ?? $point->organization->commission_basis_points ?? 0),
                     'monthly_commission_earned' => (int) $point->entries()->whereMonth('created_at', now()->month)->sum('commission_delta'),
                     'last_settlement_date' => $point->created_at?->format('d M Y') ?? 'Aucun',
                     'organization_uuid' => $point->organization?->uuid,
@@ -87,11 +89,12 @@ class KoraPointOrganizationController extends Controller
                     'responsible_name' => $point->responsible_name,
                     'address' => $point->address,
                     'country' => $point->agency->country ?? 'BJ',
-                    'settlement_calendar' => $point->settlement_calendar,
+                    'department' => $point->agency->department,
+                    'settlement_calendar' => $point->settlement_calendar ?? $point->organization->settlement_calendar,
                 ];
             })->all();
 
-        $unattachedPoints = KoraPoint::query()
+        $unattachedPoints = $this->access->points($actor)
             ->whereNull('organization_id')
             ->with('agency')
             ->get()
@@ -101,6 +104,7 @@ class KoraPointOrganizationController extends Controller
                 'name' => $point->agency->name,
                 'city' => $point->agency->city,
                 'country' => $point->agency->country ?? 'BJ',
+                'department' => $point->agency->department,
                 'responsible_name' => $point->responsible_name,
                 'phone' => $point->phone,
                 'address' => $point->address,
@@ -140,7 +144,14 @@ class KoraPointOrganizationController extends Controller
     public function store(SaveKoraPointOrganizationRequest $request): RedirectResponse
     {
         $organization = $this->management->saveOrganization($request->user(), $request->validated());
-        Inertia::flash('toast', ['type' => 'success', 'message' => 'Organisation partenaire créée.']);
+        $message = 'Organisation partenaire créée.';
+        $accessSummary = $this->newMemberAccessSummary($request->validated('members', []));
+
+        if ($accessSummary !== null) {
+            $message .= ' '.$accessSummary;
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
 
         return to_route('kora-points.organizations.index');
     }
@@ -152,7 +163,14 @@ class KoraPointOrganizationController extends Controller
     {
         $this->management->saveOrganization($request->user(), $request->validated(), $organization);
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => 'Organisation enregistrée.']);
+        $message = 'Organisation enregistrée.';
+        $accessSummary = $this->newMemberAccessSummary($request->validated('members', []));
+
+        if ($accessSummary !== null) {
+            $message .= ' '.$accessSummary;
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
 
         return back();
     }
@@ -181,6 +199,34 @@ class KoraPointOrganizationController extends Controller
         return back();
     }
 
+    /** @param array<int, array{name?: string, email?: string}> $members */
+    private function newMemberAccessSummary(array $members): ?string
+    {
+        $emails = collect($members)->pluck('email')->filter()->map(fn (string $email): string => strtolower(trim($email)))->all();
+
+        if ($emails === []) {
+            return null;
+        }
+
+        $invitations = User::query()
+            ->whereIn('email', $emails)
+            ->with('latestKoraPointWebAccessInvitation')
+            ->get()
+            ->map(fn (User $user) => $user->latestKoraPointWebAccessInvitation)
+            ->filter();
+
+        if ($invitations->isEmpty()) {
+            return null;
+        }
+
+        $sent = $invitations->filter(fn ($invitation): bool => $invitation->status === 'sent'
+            && $invitation->expires_at !== null
+            && Carbon::parse($invitation->expires_at)->isFuture())->count();
+        $pending = $invitations->filter(fn ($invitation): bool => $invitation->status === 'pending_delivery')->count();
+
+        return "Accès web initial : {$sent} délivré(s), {$pending} en attente. Le mot de passe n’est pas affiché; suivi et renvoi dans Utilisateurs.";
+    }
+
     /**
      * Assigns a supervisor or treasurer user to the organization.
      */
@@ -207,9 +253,10 @@ class KoraPointOrganizationController extends Controller
             'name' => $organization->name,
             'logo_url' => $organization->getFirstMediaUrl('logo', 'thumb') ?: null,
             'legal_name' => $organization->name,
-            'headquarters_city' => $organization->address ?? 'Cotonou',
-            'rccm' => 'RB/COT/14 B 11842',
-            'ifu' => '3201400293841',
+            'headquarters_city' => null,
+            'country' => $organization->country,
+            'registration_identifier' => $organization->registration_identifier,
+            'tax_identifier' => $organization->tax_identifier,
             'status' => $organization->status,
             'phone' => $organization->phone,
             'address' => $organization->address,
@@ -220,12 +267,17 @@ class KoraPointOrganizationController extends Controller
             'active_points_count' => $organization->points()->where('status', 'active')->count(),
             'total_monthly_sales' => (int) $organization->sales()->sum('gross_amount'),
             'total_exposure' => (int) $organization->points()->withSum('entries as debt_total', 'amount')->get()->sum('debt_total'),
-            'credit_limit' => (int) ($organization->ceiling_amount ?? $organization->points()->sum('ceiling_amount')),
+            'allocated_credit_limit' => $this->read->allocatedCreditLimit($organization),
+            'credit_limit' => (int) $organization->ceiling_amount,
             'default_terms' => [
-                'commission_rate_bps' => (int) ($organization->commission_basis_points ?? 300),
-                'credit_limit' => (int) ($organization->ceiling_amount ?? 1500000),
-                'settlement_frequency_days' => ($organization->settlement_calendar['frequency'] ?? 'weekly') === 'monthly' ? 30 : 7,
-                'grace_period_days' => 7,
+                'commission_rate_bps' => (int) $organization->commission_basis_points,
+                'credit_limit' => (int) $organization->ceiling_amount,
+                'settlement_frequency_days' => match ($organization->settlement_calendar['frequency'] ?? 'daily') {
+                    'monthly' => 30,
+                    'weekly' => 7,
+                    default => 1,
+                },
+                'grace_period_days' => $this->terms->graceDays(),
             ],
             'users' => $organization->users->map(fn (User $user): array => [
                 'uuid' => $user->uuid,
@@ -236,14 +288,18 @@ class KoraPointOrganizationController extends Controller
                 'phone' => $user->phone ?? '',
                 'status' => $user->status === UserStatus::Active ? 'ACTIVE' : 'SUSPENDED',
             ])->all(),
-            'documents' => $organization->documents->map(fn (KoraPartnerDocument $doc): array => [
-                'uuid' => $doc->uuid,
-                'name' => $doc->title,
-                'type' => strtoupper((string) $doc->kind) === 'CONVENTION' ? 'CONVENTION' : (strtoupper((string) $doc->kind) === 'RCCM' ? 'RCCM' : 'IFU'),
-                'uploaded_at' => $doc->created_at?->format('d M Y') ?? '',
-                'size' => '1.2 Mo',
-                'url' => route('kora-points.documents.download', $doc->uuid),
-            ])->all(),
+            'documents' => $organization->documents->map(function (KoraPartnerDocument $doc): array {
+                $size = $doc->getFirstMedia('proof')?->size;
+
+                return [
+                    'uuid' => $doc->uuid,
+                    'name' => $doc->title,
+                    'type' => strtoupper((string) $doc->kind),
+                    'uploaded_at' => $doc->created_at?->format('d M Y') ?? '',
+                    'size' => $size === null ? null : number_format($size / 1024, 1, ',', ' ').' Ko',
+                    'url' => route('kora-points.documents.download', $doc->uuid),
+                ];
+            })->all(),
         ];
     }
 }

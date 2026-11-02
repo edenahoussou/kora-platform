@@ -1,203 +1,286 @@
 import {
-    X,
-    Store,
-    Building2,
-    MapPin,
-    User,
-    Phone,
-    Mail,
-    Coins,
-    Calendar,
-    FileText,
-    UploadCloud,
-    CheckCircle2,
     AlertCircle,
-    ArrowRight,
     ArrowLeft,
+    ArrowRight,
+    Building2,
+    Calendar,
+    CheckCircle2,
+    Coins,
+    FileText,
+    Mail,
+    MapPin,
+    Phone,
     Shield,
+    Store,
+    UploadCloud,
+    User,
+    X,
 } from 'lucide-react';
 import { useState } from 'react';
+import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
+import phoneLabels from 'react-phone-number-input/locale/fr.json';
+import 'react-phone-number-input/style.css';
 import { cn } from '@/lib/utils';
-import type { AdminOrganization } from '../mock/kora-point-mock-data';
+
+type Country = 'BJ' | 'TG' | 'CI';
+type SettlementFrequency = 'daily' | 'weekly' | 'monthly';
+
+type WizardSubmission = {
+    name: string;
+    type: 'AUTONOMOUS' | 'ORGANIZATION_ATTACHED';
+    organizationUuid?: string;
+    country: Country;
+    city: string;
+    department: string;
+    address: string;
+    managerName: string;
+    phone: string | null;
+    email: string;
+    creditLimit: number;
+    commissionRateBps?: number;
+    settlementFrequency?: SettlementFrequency;
+    documentFile?: File | null;
+};
+
+type WizardOrganization = {
+    uuid: string;
+    name: string;
+    country?: Country;
+    status?: string;
+    allocated_credit_limit?: number;
+    default_terms: {
+        commission_rate_bps: number;
+        credit_limit: number;
+        settlement_frequency_days: number;
+    };
+    settlement_calendar?: { frequency?: string } | null;
+};
 
 type Props = {
     isOpen: boolean;
-    organizations: AdminOrganization[];
+    organizations: WizardOrganization[];
+    partnerOrganization?: WizardOrganization;
     onClose: () => void;
-    onSubmit: (data: {
-        name: string;
-        type: 'AUTONOMOUS' | 'ORGANIZATION_ATTACHED';
-        organizationName?: string;
-        organizationUuid?: string;
-        city: string;
-        department: string;
-        managerName: string;
-        phone: string;
-        email?: string;
-        creditLimit: number;
-        commissionRateBps: number;
-        settlementFrequencyDays: number;
-        gracePeriodDays: number;
-    }) => void;
+    onSubmit: (data: WizardSubmission) => void;
 };
+
+const countries: { code: Country; label: string }[] = [
+    { code: 'BJ', label: 'Bénin' },
+    { code: 'TG', label: 'Togo' },
+    { code: 'CI', label: 'Côte d’Ivoire' },
+];
+
+const frequencies: { value: SettlementFrequency; label: string }[] = [
+    { value: 'daily', label: 'Quotidien' },
+    { value: 'weekly', label: 'Hebdomadaire' },
+    { value: 'monthly', label: 'Mensuel' },
+];
+
+const fieldClass =
+    'w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold text-slate-900 focus:border-gold focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white';
 
 export function KoraAdminPointWizardDialog({
     isOpen,
     organizations,
+    partnerOrganization,
     onClose,
     onSubmit,
 }: Props) {
     const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
-
-    // Step 1: Identité & Localisation
-    const [name, setName] = useState('');
-    const [city, setCity] = useState('Cotonou');
-    const [department, setDepartment] = useState('Littoral');
-    const [address, setAddress] = useState('');
-
-    // Step 2: Type & Organisation
     const [pointType, setPointType] = useState<
         'AUTONOMOUS' | 'ORGANIZATION_ATTACHED'
-    >('AUTONOMOUS');
-    const [selectedOrgUuid, setSelectedOrgUuid] = useState<string>(
-        organizations[0]?.uuid || '',
+    >(partnerOrganization ? 'ORGANIZATION_ATTACHED' : 'AUTONOMOUS');
+    const [selectedOrgUuid, setSelectedOrgUuid] = useState(
+        partnerOrganization?.uuid ??
+            organizations.find(
+                (organization) =>
+                    organization.status === undefined ||
+                    organization.status === 'active',
+            )?.uuid ??
+            '',
     );
-
-    // Step 3: Conditions financières
-    const [commissionRateBps, setCommissionRateBps] = useState<number>(300);
-    const [creditLimit, setCreditLimit] = useState<number>(500000);
-    const [settlementFrequencyDays, setSettlementFrequencyDays] =
-        useState<number>(7);
-    const [gracePeriodDays, setGracePeriodDays] = useState<number>(3);
-
-    // Step 4: Gérant & Pièces légales
+    const [country, setCountry] = useState<Country>('BJ');
+    const [name, setName] = useState('');
+    const [city, setCity] = useState('');
+    const [department, setDepartment] = useState('');
+    const [address, setAddress] = useState('');
+    const [commissionRate, setCommissionRate] = useState('3');
+    const [creditLimit, setCreditLimit] = useState('');
+    const [frequency, setFrequency] = useState<SettlementFrequency>('weekly');
     const [managerName, setManagerName] = useState('');
-    const [phone, setPhone] = useState('+229 ');
+    const [phone, setPhone] = useState('');
     const [email, setEmail] = useState('');
-    const [proofFile, setProofFile] = useState<{
-        name: string;
-        size: string;
-    } | null>({
-        name: 'rccm_ifu_piece_identite_gerant.pdf',
-        size: '1.4 Mo',
-    });
-
+    const [documentFile, setDocumentFile] = useState<File | null>(null);
     const [error, setError] = useState<string | null>(null);
+
+    const selectedOrganization = organizations.find(
+        (organization) => organization.uuid === selectedOrgUuid,
+    );
+    const effectiveCountry =
+        pointType === 'ORGANIZATION_ATTACHED'
+            ? (selectedOrganization?.country ?? 'BJ')
+            : country;
 
     if (!isOpen) {
         return null;
     }
 
-    // Handle organization selection change (auto-prefill inherited terms)
-    const handleOrgChange = (orgUuid: string) => {
-        setSelectedOrgUuid(orgUuid);
-        const org = organizations.find((o) => o.uuid === orgUuid);
-
-        if (org) {
-            setCommissionRateBps(org.default_terms.commission_rate_bps);
-            setCreditLimit(org.default_terms.credit_limit / 5); // Default per-subpoint share
-            setSettlementFrequencyDays(
-                org.default_terms.settlement_frequency_days,
-            );
-            setGracePeriodDays(org.default_terms.grace_period_days);
-        }
-    };
-
-    const handleNext = () => {
+    const validateStep = (): boolean => {
         setError(null);
 
-        if (step === 1) {
-            if (!name.trim()) {
-                setError('Veuillez renseigner le nom commercial du Point.');
+        if (step === 1 && pointType === 'ORGANIZATION_ATTACHED') {
+            if (!selectedOrganization) {
+                setError('Sélectionnez une organisation active.');
 
-                return;
+                return false;
             }
 
-            if (!city.trim()) {
-                setError('Veuillez préciser la ville d’implantation.');
+            if (
+                selectedOrganization.default_terms.commission_rate_bps ==
+                    null ||
+                selectedOrganization.default_terms.credit_limit < 1 ||
+                selectedOrganization.settlement_calendar === null
+            ) {
+                setError(
+                    'Complétez les conditions commerciales de l’organisation avant de lui rattacher un Point.',
+                );
 
-                return;
+                return false;
             }
-
-            setStep(2);
-        } else if (step === 2) {
-            if (pointType === 'ORGANIZATION_ATTACHED' && selectedOrgUuid) {
-                handleOrgChange(selectedOrgUuid);
-            }
-
-            setStep(3);
-        } else if (step === 3) {
-            if (creditLimit <= 0) {
-                setError('Le plafond de crédit doit être supérieur à 0 FCFA.');
-
-                return;
-            }
-
-            setStep(4);
         }
+
+        if (step === 2) {
+            if (!name.trim() || !city.trim()) {
+                setError('Le nom du Point et sa ville sont obligatoires.');
+
+                return false;
+            }
+        }
+
+        if (step === 3) {
+            const amount = Number(creditLimit);
+
+            if (!Number.isInteger(amount) || amount < 1) {
+                setError('L’allocation du Point doit être un montant positif.');
+
+                return false;
+            }
+
+            if (pointType === 'ORGANIZATION_ATTACHED' && selectedOrganization) {
+                const remaining =
+                    selectedOrganization.default_terms.credit_limit -
+                    (selectedOrganization.allocated_credit_limit ?? 0);
+
+                if (amount > remaining) {
+                    setError(
+                        'Cette allocation dépasse le plafond encore disponible pour l’organisation.',
+                    );
+
+                    return false;
+                }
+            } else {
+                const rate = Number(commissionRate);
+
+                if (!Number.isFinite(rate) || rate < 0 || rate > 100) {
+                    setError(
+                        'La commission doit être comprise entre 0 et 100 %.',
+                    );
+
+                    return false;
+                }
+            }
+        }
+
+        if (step === 4) {
+            if (!managerName.trim() || !email.trim()) {
+                setError(
+                    'Le nom du gérant et son e-mail de connexion sont obligatoires.',
+                );
+
+                return false;
+            }
+
+            if (phone.trim() && !isValidPhoneNumber(phone)) {
+                setError('Vérifiez le numéro de téléphone ou laissez-le vide.');
+
+                return false;
+            }
+        }
+
+        return true;
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        setError(null);
-
-        if (!managerName.trim()) {
-            setError('Le nom du gérant ou responsable de bureau est requis.');
-
+    const goNext = () => {
+        if (!validateStep()) {
             return;
         }
 
-        if (!phone.trim() || phone.length < 8) {
-            setError('Un numéro de téléphone valide est requis.');
+        setStep((current) => Math.min(4, current + 1) as 1 | 2 | 3 | 4);
+    };
 
+    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+
+        if (!validateStep()) {
             return;
         }
-
-        const org = organizations.find((o) => o.uuid === selectedOrgUuid);
 
         onSubmit({
             name: name.trim(),
-            type: pointType,
-            organizationName:
-                pointType === 'ORGANIZATION_ATTACHED' ? org?.name : undefined,
+            type: partnerOrganization ? 'ORGANIZATION_ATTACHED' : pointType,
             organizationUuid:
-                pointType === 'ORGANIZATION_ATTACHED'
-                    ? selectedOrgUuid
+                partnerOrganization || pointType === 'ORGANIZATION_ATTACHED'
+                    ? (partnerOrganization?.uuid ?? selectedOrgUuid)
                     : undefined,
+            country: effectiveCountry,
             city: city.trim(),
-            department,
+            department: department.trim(),
+            address: address.trim(),
             managerName: managerName.trim(),
-            phone: phone.trim(),
-            email: email.trim() || undefined,
-            creditLimit,
-            commissionRateBps,
-            settlementFrequencyDays,
-            gracePeriodDays,
+            phone: phone || null,
+            email: email.trim().toLowerCase(),
+            creditLimit: Number(creditLimit),
+            ...(pointType === 'AUTONOMOUS'
+                ? {
+                      commissionRateBps: Math.round(
+                          Number(commissionRate) * 100,
+                      ),
+                      settlementFrequency: frequency,
+                      documentFile,
+                  }
+                : {}),
         });
-
-        onClose();
     };
+
+    const stepLabels = partnerOrganization
+        ? (['Organisation', 'Point', 'Conditions', 'Agent'] as const)
+        : (['Mode', 'Point', 'Conditions', 'Gérant'] as const);
 
     return (
         <div
-            className="fixed inset-0 z-50 flex animate-in items-center justify-center overflow-y-auto bg-slate-950/60 p-4 backdrop-blur-sm duration-200 fade-in"
+            className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/60 p-4 backdrop-blur-sm"
             role="dialog"
             aria-modal="true"
+            aria-labelledby="point-wizard-title"
         >
-            <div className="relative my-8 w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900">
-                {/* Header */}
-                <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-6 py-4 dark:border-slate-800 dark:bg-slate-800/40">
+            <div className="relative my-6 w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900">
+                <header className="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-6 py-4 dark:border-slate-800 dark:bg-slate-800/40">
                     <div className="flex items-center gap-3">
-                        <div className="text-gold-dark flex h-10 w-10 items-center justify-center rounded-xl bg-gold/15 dark:bg-gold/25 dark:text-gold">
-                            <Store className="h-5 w-5" />
-                        </div>
+                        <span className="text-gold-dark flex size-10 items-center justify-center rounded-xl bg-gold/15 dark:text-gold">
+                            <Store className="size-5" />
+                        </span>
                         <div>
-                            <h2 className="text-base font-black text-slate-900 dark:text-white">
+                            <h2
+                                id="point-wizard-title"
+                                className="text-base font-black text-slate-900 dark:text-white"
+                            >
                                 Déployer un nouveau Point de vente KORA
                             </h2>
                             <p className="text-xs text-slate-500">
-                                Étape {step} sur 4 · Administration Réseau
-                                Commercial
+                                Étape {step} sur 4 ·{' '}
+                                {partnerOrganization
+                                    ? `Organisation : ${partnerOrganization.name}`
+                                    : 'Administration du réseau'}
                             </p>
                         </div>
                     </div>
@@ -205,504 +288,506 @@ export function KoraAdminPointWizardDialog({
                         type="button"
                         onClick={onClose}
                         className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                        aria-label="Fermer"
                     >
-                        <X className="h-5 w-5" />
+                        <X className="size-5" />
                     </button>
-                </div>
+                </header>
 
-                {/* Stepper Progress */}
                 <div className="grid grid-cols-4 border-b border-slate-200 text-center text-xs font-bold dark:border-slate-800">
-                    <div
-                        className={cn(
-                            'border-b-2 py-2.5 transition-colors',
-                            step >= 1
-                                ? 'border-gold text-slate-900 dark:text-white'
-                                : 'border-transparent text-slate-400',
-                        )}
-                    >
-                        1. Localisation
-                    </div>
-                    <div
-                        className={cn(
-                            'border-b-2 py-2.5 transition-colors',
-                            step >= 2
-                                ? 'border-gold text-slate-900 dark:text-white'
-                                : 'border-transparent text-slate-400',
-                        )}
-                    >
-                        2. Rattachement
-                    </div>
-                    <div
-                        className={cn(
-                            'border-b-2 py-2.5 transition-colors',
-                            step >= 3
-                                ? 'border-gold text-slate-900 dark:text-white'
-                                : 'border-transparent text-slate-400',
-                        )}
-                    >
-                        3. Conditions
-                    </div>
-                    <div
-                        className={cn(
-                            'border-b-2 py-2.5 transition-colors',
-                            step >= 4
-                                ? 'border-gold text-slate-900 dark:text-white'
-                                : 'border-transparent text-slate-400',
-                        )}
-                    >
-                        4. Gérant & Pièces
-                    </div>
+                    {stepLabels.map((label, index) => (
+                        <div
+                            key={label}
+                            className={cn(
+                                'border-b-2 py-2.5',
+                                step >= index + 1
+                                    ? 'border-gold text-slate-900 dark:text-white'
+                                    : 'border-transparent text-slate-400',
+                            )}
+                        >
+                            {index + 1}. {label}
+                        </div>
+                    ))}
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-5 p-6">
                     {error && (
-                        <div className="flex items-center gap-2 rounded-xl border border-rose-300 bg-rose-50 p-4 text-xs font-semibold text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-200">
-                            <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
+                        <div className="flex items-center gap-2 rounded-xl border border-rose-300 bg-rose-50 p-4 text-sm font-semibold text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-200">
+                            <AlertCircle className="size-4 shrink-0 text-rose-600" />
                             <span>{error}</span>
                         </div>
                     )}
 
-                    {/* Step 1: Identité & Localisation */}
                     {step === 1 && (
-                        <div className="space-y-4">
-                            <div className="space-y-1.5">
-                                <label className="flex items-center text-xs font-bold text-slate-700 dark:text-slate-300">
-                                    <Store className="text-gold-dark mr-1.5 h-4 w-4 dark:text-gold" />
-                                    Nom commercial du Point
-                                    <span className="ml-1 font-bold text-red-500">
-                                        *
+                        <section className="space-y-4">
+                            <div>
+                                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                                    {partnerOrganization
+                                        ? 'Organisation de rattachement'
+                                        : 'Choisissez d’abord le mode d’exploitation'}
+                                </h3>
+                                <p className="mt-1 text-xs text-slate-500">
+                                    {partnerOrganization
+                                        ? 'Le nouveau Point sera rattaché à votre organisation et héritera de son pays et de ses conditions.'
+                                        : 'Le rattachement détermine le pays et les conditions commerciales du Point.'}
+                                </p>
+                            </div>
+                            {!partnerOrganization && (
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                    {(
+                                        [
+                                            {
+                                                value: 'AUTONOMOUS',
+                                                title: 'Point autonome',
+                                                detail: 'Le Point porte ses propres conditions et reversements.',
+                                                Icon: Store,
+                                            },
+                                            {
+                                                value: 'ORGANIZATION_ATTACHED',
+                                                title: 'Rattaché à une organisation',
+                                                detail: 'Le Point hérite du pays et des conditions de l’organisation.',
+                                                Icon: Building2,
+                                            },
+                                        ] as const
+                                    ).map(({ value, title, detail, Icon }) => (
+                                        <button
+                                            key={value}
+                                            type="button"
+                                            onClick={() => setPointType(value)}
+                                            aria-pressed={pointType === value}
+                                            className={cn(
+                                                'rounded-2xl border-2 p-4 text-left transition-colors',
+                                                pointType === value
+                                                    ? 'border-gold bg-gold/5 dark:bg-gold/10'
+                                                    : 'border-slate-200 hover:border-slate-300 dark:border-slate-800',
+                                            )}
+                                        >
+                                            <span className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
+                                                <Icon className="text-gold-dark size-5 dark:text-gold" />
+                                                {title}
+                                            </span>
+                                            <span className="mt-2 block text-xs text-slate-500">
+                                                {detail}
+                                            </span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+
+                            {pointType === 'ORGANIZATION_ATTACHED' ? (
+                                <label className="block space-y-1.5">
+                                    <span className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
+                                        <Building2 className="size-4 text-slate-500" />
+                                        Organisation partenaire
+                                        <b className="text-rose-600">*</b>
                                     </span>
-                                </label>
-                                <input
-                                    type="text"
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    placeholder="Ex: Kiosque Relais Étoile Rouge"
-                                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-semibold text-slate-900 focus:border-gold focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                                    required
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                <div className="space-y-1.5">
-                                    <label className="flex items-center text-xs font-bold text-slate-700 dark:text-slate-300">
-                                        <MapPin className="mr-1.5 h-4 w-4 text-slate-500" />
-                                        Ville d’implantation
-                                        <span className="ml-1 font-bold text-red-500">
-                                            *
-                                        </span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={city}
-                                        onChange={(e) =>
-                                            setCity(e.target.value)
-                                        }
-                                        placeholder="Ex: Cotonou, Parakou, Bohicon..."
-                                        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-semibold text-slate-900 focus:border-gold focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                                        required
-                                    />
-                                </div>
-
-                                <div className="space-y-1.5">
-                                    <label className="flex items-center text-xs font-bold text-slate-700 dark:text-slate-300">
-                                        <MapPin className="mr-1.5 h-4 w-4 text-slate-500" />
-                                        Département
-                                        <span className="ml-1 font-bold text-red-500">
-                                            *
-                                        </span>
-                                    </label>
-                                    <select
-                                        value={department}
-                                        onChange={(e) =>
-                                            setDepartment(e.target.value)
-                                        }
-                                        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-semibold text-slate-900 focus:border-gold focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                                    >
-                                        <option value="Littoral">
-                                            Littoral (Cotonou)
-                                        </option>
-                                        <option value="Atlantique">
-                                            Atlantique (Calavi, Ouidah)
-                                        </option>
-                                        <option value="Ouémé">
-                                            Ouémé (Porto-Novo)
-                                        </option>
-                                        <option value="Borgou">
-                                            Borgou (Parakou)
-                                        </option>
-                                        <option value="Zou">
-                                            Zou (Bohicon, Abomey)
-                                        </option>
-                                        <option value="Atacora">
-                                            Atacora (Natitingou)
-                                        </option>
-                                        <option value="Mono">
-                                            Mono (Lokossa)
-                                        </option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="space-y-1.5">
-                                <label className="flex items-center text-xs font-bold text-slate-700 dark:text-slate-300">
-                                    <MapPin className="mr-1.5 h-4 w-4 text-slate-500" />
-                                    Adresse précise / Repère géographique
-                                </label>
-                                <input
-                                    type="text"
-                                    value={address}
-                                    onChange={(e) => setAddress(e.target.value)}
-                                    placeholder="Ex: Carrefour Vêdoko, face pharmacie de l'Amitié"
-                                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-semibold text-slate-900 focus:border-gold focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                                />
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Step 2: Type & Rattachement */}
-                    {step === 2 && (
-                        <div className="space-y-4">
-                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                                Modèle d’exploitation du Point
-                                <span className="ml-1 font-bold text-red-500">
-                                    *
-                                </span>
-                            </label>
-
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                <div
-                                    onClick={() => setPointType('AUTONOMOUS')}
-                                    className={cn(
-                                        'cursor-pointer space-y-2 rounded-2xl border-2 p-4 transition-all',
-                                        pointType === 'AUTONOMOUS'
-                                            ? 'border-gold bg-gold/5 dark:bg-gold/10'
-                                            : 'border-slate-200 hover:border-slate-300 dark:border-slate-800',
-                                    )}
-                                >
-                                    <div className="flex items-center gap-2">
-                                        <Store className="text-gold-dark h-5 w-5 dark:text-gold" />
-                                        <span className="text-sm font-bold text-slate-900 dark:text-white">
-                                            Point Autonome
-                                        </span>
-                                    </div>
-                                    <p className="text-xs text-slate-500">
-                                        Commerçant indépendant gérant ses
-                                        propres reversements hebdomadaires et sa
-                                        caisse.
-                                    </p>
-                                </div>
-
-                                <div
-                                    onClick={() =>
-                                        setPointType('ORGANIZATION_ATTACHED')
-                                    }
-                                    className={cn(
-                                        'cursor-pointer space-y-2 rounded-2xl border-2 p-4 transition-all',
-                                        pointType === 'ORGANIZATION_ATTACHED'
-                                            ? 'border-gold bg-gold/5 dark:bg-gold/10'
-                                            : 'border-slate-200 hover:border-slate-300 dark:border-slate-800',
-                                    )}
-                                >
-                                    <div className="flex items-center gap-2">
-                                        <Building2 className="text-navy h-5 w-5 dark:text-gold" />
-                                        <span className="text-sm font-bold text-slate-900 dark:text-white">
-                                            Rattaché à une Organisation
-                                        </span>
-                                    </div>
-                                    <p className="text-xs text-slate-500">
-                                        Agence faisant partie d'un réseau
-                                        structuré (La Poste, etc.). Reversements
-                                        centralisés par le Trésorier.
-                                    </p>
-                                </div>
-                            </div>
-
-                            {pointType === 'ORGANIZATION_ATTACHED' && (
-                                <div className="space-y-1.5 pt-2">
-                                    <label className="flex items-center text-xs font-bold text-slate-700 dark:text-slate-300">
-                                        <Building2 className="mr-1.5 h-4 w-4 text-slate-500" />
-                                        Organisation partenaire de rattachement
-                                        <span className="ml-1 font-bold text-red-500">
-                                            *
-                                        </span>
-                                    </label>
                                     <select
                                         value={selectedOrgUuid}
-                                        onChange={(e) =>
-                                            handleOrgChange(e.target.value)
+                                        onChange={(event) =>
+                                            setSelectedOrgUuid(
+                                                event.target.value,
+                                            )
                                         }
-                                        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-bold text-slate-900 focus:border-gold focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                                        className={fieldClass}
+                                        disabled={
+                                            partnerOrganization !== undefined
+                                        }
+                                        required
                                     >
-                                        {organizations.map((org) => (
+                                        <option value="">
+                                            Sélectionner une organisation
+                                        </option>
+                                        {organizations
+                                            .filter(
+                                                (organization) =>
+                                                    organization.status ===
+                                                        undefined ||
+                                                    organization.status ===
+                                                        'active',
+                                            )
+                                            .map((organization) => (
+                                                <option
+                                                    key={organization.uuid}
+                                                    value={organization.uuid}
+                                                >
+                                                    {organization.name} ·{' '}
+                                                    {organization.country}
+                                                </option>
+                                            ))}
+                                    </select>
+                                    {selectedOrganization && (
+                                        <p className="text-xs text-slate-500">
+                                            Pays hérité :{' '}
+                                            {countries.find(
+                                                (item) =>
+                                                    item.code ===
+                                                    selectedOrganization.country,
+                                            )?.label ??
+                                                selectedOrganization.country}
+                                        </p>
+                                    )}
+                                </label>
+                            ) : (
+                                <label className="block space-y-1.5">
+                                    <span className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
+                                        <MapPin className="size-4 text-slate-500" />
+                                        Pays du Point
+                                        <b className="text-rose-600">*</b>
+                                    </span>
+                                    <select
+                                        value={country}
+                                        onChange={(event) =>
+                                            setCountry(
+                                                event.target.value as Country,
+                                            )
+                                        }
+                                        className={fieldClass}
+                                    >
+                                        {countries.map((item) => (
                                             <option
-                                                key={org.uuid}
-                                                value={org.uuid}
+                                                key={item.code}
+                                                value={item.code}
                                             >
-                                                {org.name} ({org.points_count}{' '}
-                                                bureaux · Convention cadre
-                                                active)
+                                                {item.label}
                                             </option>
                                         ))}
                                     </select>
-                                    <p className="text-[11px] text-blue-600 dark:text-blue-400">
-                                        ✓ Les conditions financières seront
-                                        pré-remplies selon l'accord-cadre de
-                                        l'organisation.
-                                    </p>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Step 3: Conditions financières */}
-                    {step === 3 && (
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                <div className="space-y-1.5">
-                                    <label className="flex items-center text-xs font-bold text-slate-700 dark:text-slate-300">
-                                        <Coins className="text-gold-dark mr-1.5 h-4 w-4 dark:text-gold" />
-                                        Taux de commission (bps)
-                                        <span className="ml-1 font-bold text-red-500">
-                                            *
-                                        </span>
-                                    </label>
-                                    <div className="relative">
-                                        <input
-                                            type="number"
-                                            value={commissionRateBps}
-                                            onChange={(e) =>
-                                                setCommissionRateBps(
-                                                    Number(e.target.value),
-                                                )
-                                            }
-                                            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-bold text-slate-900 focus:border-gold focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                                        />
-                                        <span className="absolute top-2.5 right-3 text-xs font-bold text-slate-400">
-                                            {(commissionRateBps / 100).toFixed(
-                                                2,
-                                            )}{' '}
-                                            %
-                                        </span>
-                                    </div>
-                                    <p className="text-[10px] text-slate-400">
-                                        Standard KORA : 300 bps (3,00 %)
-                                    </p>
-                                </div>
-
-                                <div className="space-y-1.5">
-                                    <label className="flex items-center text-xs font-bold text-slate-700 dark:text-slate-300">
-                                        <Coins className="mr-1.5 h-4 w-4 text-slate-500" />
-                                        Plafond de crédit initial
-                                        <span className="ml-1 font-bold text-red-500">
-                                            *
-                                        </span>
-                                    </label>
-                                    <div className="relative">
-                                        <input
-                                            type="number"
-                                            step={50000}
-                                            value={creditLimit}
-                                            onChange={(e) =>
-                                                setCreditLimit(
-                                                    Number(e.target.value),
-                                                )
-                                            }
-                                            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-bold text-slate-900 focus:border-gold focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                                        />
-                                        <span className="absolute top-2.5 right-3 text-xs font-bold text-slate-400">
-                                            FCFA
-                                        </span>
-                                    </div>
-                                    <p className="text-[10px] text-slate-400">
-                                        Encours maximal autorisé avant blocage
-                                        des ventes
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                <div className="space-y-1.5">
-                                    <label className="flex items-center text-xs font-bold text-slate-700 dark:text-slate-300">
-                                        <Calendar className="mr-1.5 h-4 w-4 text-slate-500" />
-                                        Fréquence de reversement
-                                    </label>
-                                    <select
-                                        value={settlementFrequencyDays}
-                                        onChange={(e) =>
-                                            setSettlementFrequencyDays(
-                                                Number(e.target.value),
-                                            )
-                                        }
-                                        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-semibold text-slate-900 focus:border-gold focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                                    >
-                                        <option value={7}>
-                                            Hebdomadaire (7 jours · Recommandé
-                                            autonome)
-                                        </option>
-                                        <option value={14}>
-                                            Bimensuel (14 jours)
-                                        </option>
-                                        <option value={30}>
-                                            Mensuel (30 jours · Organisations)
-                                        </option>
-                                    </select>
-                                </div>
-
-                                <div className="space-y-1.5">
-                                    <label className="flex items-center text-xs font-bold text-slate-700 dark:text-slate-300">
-                                        <Shield className="mr-1.5 h-4 w-4 text-slate-500" />
-                                        Délai de grâce avant suspension
-                                    </label>
-                                    <select
-                                        value={gracePeriodDays}
-                                        onChange={(e) =>
-                                            setGracePeriodDays(
-                                                Number(e.target.value),
-                                            )
-                                        }
-                                        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-semibold text-slate-900 focus:border-gold focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                                    >
-                                        <option value={3}>
-                                            3 jours ouvrés
-                                        </option>
-                                        <option value={5}>
-                                            5 jours ouvrés
-                                        </option>
-                                        <option value={7}>
-                                            7 jours ouvrés
-                                        </option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Step 4: Gérant & Pièces */}
-                    {step === 4 && (
-                        <div className="space-y-4">
-                            <div className="flex items-start gap-2.5 rounded-xl border border-blue-200 bg-blue-50/70 p-3 text-xs text-blue-900 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-200">
-                                <AlertCircle className="mt-0.5 size-4 shrink-0 text-blue-600 dark:text-blue-400" />
-                                <span>
-                                    Ces informations serviront à créer le compte
-                                    d'accès du point.
-                                </span>
-                            </div>
-
-                            <div className="space-y-1.5">
-                                <label className="flex items-center text-xs font-bold text-slate-700 dark:text-slate-300">
-                                    <User className="mr-1.5 h-4 w-4 text-slate-500" />
-                                    Nom et prénom du gérant / chef de bureau
-                                    <span className="ml-1 font-bold text-red-500">
-                                        *
-                                    </span>
                                 </label>
-                                <input
-                                    type="text"
-                                    value={managerName}
-                                    onChange={(e) =>
-                                        setManagerName(e.target.value)
-                                    }
-                                    placeholder="Ex: Bio Kora, Jean Dossou..."
-                                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-semibold text-slate-900 focus:border-gold focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                                    required
-                                />
-                            </div>
+                            )}
+                            <p className="rounded-xl bg-slate-50 p-3 text-xs text-slate-500 dark:bg-slate-800">
+                                BJ, TG et CI sont disponibles en XOF. Le Ghana
+                                sera proposé quand la devise GHS sera prise en
+                                charge.
+                            </p>
+                        </section>
+                    )}
 
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                <div className="space-y-1.5">
-                                    <label className="flex items-center text-xs font-bold text-slate-700 dark:text-slate-300">
-                                        <Phone className="mr-1.5 h-4 w-4 text-slate-500" />
-                                        Numéro de téléphone
-                                        <span className="ml-1 font-bold text-red-500">
-                                            *
-                                        </span>
-                                    </label>
+                    {step === 2 && (
+                        <section className="space-y-4">
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <label className="space-y-1.5 sm:col-span-2">
+                                    <span className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
+                                        <Store className="text-gold-dark size-4 dark:text-gold" />
+                                        Nom commercial du Point{' '}
+                                        <b className="text-rose-600">*</b>
+                                    </span>
                                     <input
-                                        type="tel"
-                                        value={phone}
-                                        onChange={(e) =>
-                                            setPhone(e.target.value)
+                                        value={name}
+                                        onChange={(event) =>
+                                            setName(event.target.value)
                                         }
-                                        placeholder="+229 97 00 00 00"
-                                        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 font-mono text-xs font-semibold text-slate-900 focus:border-gold focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                                        placeholder="Ex. Kiosque Étoile Rouge"
+                                        className={fieldClass}
                                         required
                                     />
-                                </div>
+                                </label>
+                                <label className="space-y-1.5">
+                                    <span className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
+                                        <MapPin className="size-4 text-slate-500" />
+                                        Ville <b className="text-rose-600">*</b>
+                                    </span>
+                                    <input
+                                        value={city}
+                                        onChange={(event) =>
+                                            setCity(event.target.value)
+                                        }
+                                        placeholder="Ville d’implantation"
+                                        className={fieldClass}
+                                        required
+                                    />
+                                </label>
+                                <label className="space-y-1.5">
+                                    <span className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
+                                        <MapPin className="size-4 text-slate-500" />
+                                        Département / région
+                                    </span>
+                                    <input
+                                        value={department}
+                                        onChange={(event) =>
+                                            setDepartment(event.target.value)
+                                        }
+                                        placeholder="Facultatif"
+                                        className={fieldClass}
+                                    />
+                                </label>
+                                <label className="space-y-1.5 sm:col-span-2">
+                                    <span className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
+                                        <MapPin className="size-4 text-slate-500" />
+                                        Adresse / repère
+                                    </span>
+                                    <input
+                                        value={address}
+                                        onChange={(event) =>
+                                            setAddress(event.target.value)
+                                        }
+                                        placeholder="Quartier, rue ou repère géographique"
+                                        className={fieldClass}
+                                    />
+                                </label>
+                            </div>
+                            {pointType === 'ORGANIZATION_ATTACHED' && (
+                                <p className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-200">
+                                    Le pays est hérité de l’organisation :{' '}
+                                    {effectiveCountry}.
+                                </p>
+                            )}
+                        </section>
+                    )}
 
-                                <div className="space-y-1.5">
-                                    <label className="flex items-center text-xs font-bold text-slate-700 dark:text-slate-300">
-                                        <Mail className="mr-1.5 h-4 w-4 text-slate-500" />
-                                        Email
+                    {step === 3 && (
+                        <section className="space-y-4">
+                            {pointType === 'ORGANIZATION_ATTACHED' &&
+                            selectedOrganization ? (
+                                <>
+                                    <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-4 text-sm text-blue-900 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-200">
+                                        <strong className="flex items-center gap-2">
+                                            <Shield className="size-4" />
+                                            Conditions héritées de{' '}
+                                            {selectedOrganization.name}
+                                        </strong>
+                                        <p className="mt-2">
+                                            Commission{' '}
+                                            {(
+                                                selectedOrganization
+                                                    .default_terms
+                                                    .commission_rate_bps / 100
+                                            ).toLocaleString('fr-FR', {
+                                                maximumFractionDigits: 2,
+                                            })}
+                                            % ·{' '}
+                                            {frequencies.find(
+                                                (item) =>
+                                                    item.value ===
+                                                    selectedOrganization
+                                                        .settlement_calendar
+                                                        ?.frequency,
+                                            )?.label ??
+                                                frequencies.find(
+                                                    (item) =>
+                                                        item.value ===
+                                                        (selectedOrganization
+                                                            .default_terms
+                                                            .settlement_frequency_days ===
+                                                        1
+                                                            ? 'daily'
+                                                            : selectedOrganization
+                                                                    .default_terms
+                                                                    .settlement_frequency_days ===
+                                                                30
+                                                              ? 'monthly'
+                                                              : 'weekly'),
+                                                )?.label}{' '}
+                                            · Plafond global{' '}
+                                            {selectedOrganization.default_terms.credit_limit.toLocaleString(
+                                                'fr-FR',
+                                            )}{' '}
+                                            XOF
+                                        </p>
+                                        <p className="mt-1 text-xs">
+                                            L’allocation des points actifs :{' '}
+                                            {(
+                                                selectedOrganization.allocated_credit_limit ??
+                                                0
+                                            ).toLocaleString('fr-FR')}{' '}
+                                            XOF · disponible :{' '}
+                                            {Math.max(
+                                                0,
+                                                selectedOrganization
+                                                    .default_terms
+                                                    .credit_limit -
+                                                    (selectedOrganization.allocated_credit_limit ??
+                                                        0),
+                                            ).toLocaleString('fr-FR')}{' '}
+                                            XOF
+                                        </p>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    <label className="space-y-1.5">
+                                        <span className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
+                                            <Coins className="text-gold-dark size-4 dark:text-gold" />
+                                            Commission (%){' '}
+                                            <b className="text-rose-600">*</b>
+                                        </span>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="100"
+                                            step="0.01"
+                                            value={commissionRate}
+                                            onChange={(event) =>
+                                                setCommissionRate(
+                                                    event.target.value,
+                                                )
+                                            }
+                                            className={fieldClass}
+                                            required
+                                        />
                                     </label>
+                                    <label className="space-y-1.5">
+                                        <span className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
+                                            <Calendar className="size-4 text-slate-500" />
+                                            Reversement{' '}
+                                            <b className="text-rose-600">*</b>
+                                        </span>
+                                        <select
+                                            value={frequency}
+                                            onChange={(event) =>
+                                                setFrequency(
+                                                    event.target
+                                                        .value as SettlementFrequency,
+                                                )
+                                            }
+                                            className={fieldClass}
+                                        >
+                                            {frequencies.map((item) => (
+                                                <option
+                                                    key={item.value}
+                                                    value={item.value}
+                                                >
+                                                    {item.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                </div>
+                            )}
+                            <label className="block space-y-1.5">
+                                <span className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
+                                    <Coins className="text-gold-dark size-4 dark:text-gold" />
+                                    {pointType === 'ORGANIZATION_ATTACHED'
+                                        ? 'Allocation du plafond pour ce Point (XOF)'
+                                        : 'Plafond du Point (XOF)'}
+                                    <b className="text-rose-600">*</b>
+                                </span>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    step="1"
+                                    value={creditLimit}
+                                    onChange={(event) =>
+                                        setCreditLimit(event.target.value)
+                                    }
+                                    className={fieldClass}
+                                    required
+                                />
+                                <small className="block text-xs text-slate-500">
+                                    {pointType === 'ORGANIZATION_ATTACHED'
+                                        ? 'L’allocation doit être positive et la somme des allocations ne peut pas dépasser le plafond global.'
+                                        : 'Le délai de grâce avant suspension reste réglé au niveau global KORA.'}
+                                </small>
+                            </label>
+                        </section>
+                    )}
+
+                    {step === 4 && (
+                        <section className="space-y-4">
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <label className="space-y-1.5">
+                                    <span className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
+                                        <User className="size-4 text-slate-500" />
+                                        Gérant / responsable{' '}
+                                        <b className="text-rose-600">*</b>
+                                    </span>
+                                    <input
+                                        value={managerName}
+                                        onChange={(event) =>
+                                            setManagerName(event.target.value)
+                                        }
+                                        placeholder="Nom et prénom"
+                                        className={fieldClass}
+                                        required
+                                    />
+                                </label>
+                                <label className="space-y-1.5">
+                                    <span className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
+                                        <Mail className="size-4 text-slate-500" />
+                                        E-mail de connexion{' '}
+                                        <b className="text-rose-600">*</b>
+                                    </span>
                                     <input
                                         type="email"
                                         value={email}
-                                        onChange={(e) =>
-                                            setEmail(e.target.value)
+                                        onChange={(event) =>
+                                            setEmail(event.target.value)
                                         }
-                                        placeholder="agent@kora.bj"
-                                        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-semibold text-slate-900 focus:border-gold focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                                        placeholder="agent@exemple.com"
+                                        className={fieldClass}
+                                        required
                                     />
-                                </div>
+                                </label>
+                                <label className="space-y-1.5 sm:col-span-2">
+                                    <span className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
+                                        <Phone className="size-4 text-slate-500" />
+                                        Téléphone (facultatif)
+                                    </span>
+                                    <PhoneInput
+                                        className="control phone-field-control"
+                                        defaultCountry={effectiveCountry}
+                                        international
+                                        labels={phoneLabels}
+                                        value={phone || undefined}
+                                        onChange={(value) =>
+                                            setPhone(value ?? '')
+                                        }
+                                        numberInputProps={{
+                                            autoComplete: 'tel',
+                                            'aria-label':
+                                                'Téléphone facultatif du responsable',
+                                        }}
+                                    />
+                                    <small className="block text-xs text-slate-500">
+                                        L’accès provisoire est envoyé par
+                                        e-mail. Un SMS est utilisé uniquement en
+                                        cas d’échec de l’e-mail.
+                                    </small>
+                                </label>
                             </div>
 
-                            {/* Documents Upload */}
-                            <div className="space-y-1.5">
-                                <label className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
-                                    <span className="flex items-center">
-                                        <UploadCloud className="mr-1.5 h-4 w-4 text-slate-500" />
-                                        Dossier légal (RCCM, IFU, Pièce
-                                        d'identité)
+                            {pointType === 'AUTONOMOUS' ? (
+                                <label className="block space-y-1.5">
+                                    <span className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
+                                        <UploadCloud className="size-4 text-slate-500" />
+                                        Document du Point autonome (facultatif)
                                     </span>
+                                    <input
+                                        type="file"
+                                        accept="application/pdf,image/jpeg,image/png"
+                                        onChange={(event) =>
+                                            setDocumentFile(
+                                                event.target.files?.[0] ?? null,
+                                            )
+                                        }
+                                        className={fieldClass}
+                                    />
+                                    <small className="flex items-center gap-1 text-xs text-slate-500">
+                                        <FileText className="size-3.5" />
+                                        PDF, JPG ou PNG, 10 Mo maximum. Le
+                                        document sera rattaché au Point.
+                                    </small>
                                 </label>
-                                {proofFile ? (
-                                    <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50/70 p-3.5 text-xs dark:border-emerald-800/60 dark:bg-emerald-950/20">
-                                        <div className="flex items-center gap-2.5">
-                                            <FileText className="h-5 w-5 text-emerald-600" />
-                                            <div>
-                                                <p className="font-bold text-slate-900 dark:text-white">
-                                                    {proofFile.name}
-                                                </p>
-                                                <span className="text-slate-500">
-                                                    {proofFile.size} · Validé
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => setProofFile(null)}
-                                            className="text-xs font-bold text-slate-600 hover:text-rose-600"
-                                        >
-                                            Remplacer
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div className="rounded-xl border-2 border-dashed border-slate-300 p-4 text-center dark:border-slate-700">
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                setProofFile({
-                                                    name: 'dossier_juridique_point.pdf',
-                                                    size: '2.1 Mo',
-                                                })
-                                            }
-                                            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
-                                        >
-                                            Sélectionner le dossier PDF
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+                            ) : (
+                                <p className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-200">
+                                    Les documents légaux et contractuels sont
+                                    déposés sur le profil de l’organisation. Ce
+                                    Point n’a pas de dossier séparé.
+                                </p>
+                            )}
+                        </section>
                     )}
 
-                    {/* Navigation Buttons */}
-                    <div className="flex items-center justify-between border-t border-slate-100 pt-4 dark:border-slate-800">
+                    <footer className="flex items-center justify-between border-t border-slate-100 pt-4 dark:border-slate-800">
                         {step > 1 ? (
                             <button
                                 type="button"
-                                onClick={() => setStep((s) => (s - 1) as any)}
+                                onClick={() =>
+                                    setStep(
+                                        (current) =>
+                                            Math.max(1, current - 1) as
+                                                1 | 2 | 3 | 4,
+                                    )
+                                }
                                 className="btn btn-ghost"
                             >
                                 <ArrowLeft className="size-4" />
@@ -717,11 +802,10 @@ export function KoraAdminPointWizardDialog({
                                 Annuler
                             </button>
                         )}
-
                         {step < 4 ? (
                             <button
                                 type="button"
-                                onClick={handleNext}
+                                onClick={goNext}
                                 className="btn btn-primary"
                             >
                                 Suivant
@@ -730,10 +814,10 @@ export function KoraAdminPointWizardDialog({
                         ) : (
                             <button type="submit" className="btn btn-primary">
                                 <CheckCircle2 className="size-4" />
-                                Finaliser & Déployer le Point
+                                Finaliser le déploiement
                             </button>
                         )}
-                    </div>
+                    </footer>
                 </form>
             </div>
         </div>

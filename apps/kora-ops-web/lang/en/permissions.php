@@ -13,6 +13,8 @@ return [
     'settings.integrations.manage' => 'Manage integration settings',
     'passengers.erase' => 'Permanently erase a passenger account',
     'sensitive-data.export' => 'Export sensitive data',
+    'kora-points.manage' => 'Manage the sales points in the organization',
+    'kora-points.documents.upload' => 'Upload organization documents',
     'profitability.view' => 'View profitability',
     'profitability.export' => 'Export profitability',
     'app-releases.view' => 'View mobile app releases',

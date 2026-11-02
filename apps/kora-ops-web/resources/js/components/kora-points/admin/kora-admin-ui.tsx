@@ -1,14 +1,18 @@
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { cn } from '@/lib/utils';
-import type { AdminOrganization as MockAdminOrganization } from '../mock/kora-point-mock-data';
-
 export type AdminPoint = {
     uuid: string;
     code: string;
     name: string;
     city: string;
+    department: string | null;
     country: string;
-    status: 'ACTIVE' | 'WARNING_THRESHOLD' | 'LIMIT_REACHED' | 'SUSPENDED';
+    status:
+        | 'ACTIVE'
+        | 'WARNING_THRESHOLD'
+        | 'LIMIT_REACHED'
+        | 'SUSPENDED'
+        | 'CLOSED';
     raw_status: string;
     type: 'AUTONOMOUS' | 'ORGANIZATION_ATTACHED';
     organization_name: string | null;
@@ -43,13 +47,33 @@ export type AdminPoint = {
     created_at: string;
 };
 
-export type AdminOrganization = MockAdminOrganization & {
+export type AdminOrganization = {
+    uuid: string;
+    code: string;
+    name: string;
+    legal_name: string;
+    headquarters_city: string | null;
+    country: 'BJ' | 'TG' | 'CI';
+    registration_identifier: string | null;
+    tax_identifier: string | null;
+    points_count: number;
+    active_points_count: number;
+    total_monthly_sales: number;
+    total_exposure: number;
+    allocated_credit_limit?: number;
+    credit_limit: number;
     status: string;
     logo_url: string | null;
     phone: string | null;
     address: string | null;
     commission_basis_points: number | null;
     ceiling_amount: number | null;
+    default_terms: {
+        commission_rate_bps: number;
+        credit_limit: number;
+        settlement_frequency_days: number;
+        grace_period_days: number;
+    };
     settlement_calendar: {
         frequency?: string;
         time?: string;
@@ -57,6 +81,23 @@ export type AdminOrganization = MockAdminOrganization & {
         weekday?: number | null;
         day?: number | null;
     } | null;
+    users: {
+        uuid: string;
+        name: string;
+        role: 'ORG_MANAGER' | 'ORG_TREASURER' | 'ORG_CONTROLLER';
+        role_label: string;
+        email: string;
+        phone: string;
+        status: 'ACTIVE' | 'SUSPENDED';
+    }[];
+    documents: {
+        uuid: string;
+        name: string;
+        type: string;
+        uploaded_at: string;
+        size: string | null;
+        url?: string;
+    }[];
 };
 
 export type OrgSubPoint = {
@@ -64,6 +105,7 @@ export type OrgSubPoint = {
     code: string;
     name: string;
     city: string;
+    department?: string | null;
     manager_name: string;
     responsible_name: string;
     phone: string;
@@ -85,6 +127,7 @@ export type UnattachedPoint = {
     code: string;
     name: string;
     city: string;
+    department?: string | null;
     country: string;
     responsible_name: string;
     phone: string;
@@ -213,6 +256,14 @@ export function PointStatusBadge({ status }: { status: AdminPoint['status'] }) {
                     variant="solid"
                     colorScheme="muted"
                     label="Suspendu"
+                />
+            );
+        case 'CLOSED':
+            return (
+                <KoraStatusBadge
+                    variant="solid"
+                    colorScheme="muted"
+                    label="Clôturé"
                 />
             );
     }

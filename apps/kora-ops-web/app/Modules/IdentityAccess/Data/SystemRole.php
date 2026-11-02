@@ -41,8 +41,8 @@ enum SystemRole: string
     {
         return match ($this) {
             self::KoraPointAgent => ['departures.view', 'kora-points.view', 'kora-points.remit', 'kora-points.refund-request', 'counter-sales.create', 'cash.open', 'cash.close', 'cash.view', 'cash.media.view', 'tickets.view', 'tickets.issue', 'notifications.view'],
-            self::KoraPointSupervisor => ['kora-points.view', 'notifications.view'],
-            self::KoraPointTreasurer => ['kora-points.view', 'kora-points.remit', 'notifications.view'],
+            self::KoraPointSupervisor => ['kora-points.view', 'kora-points.manage', 'kora-points.remit', 'kora-points.documents.upload', 'notifications.view'],
+            self::KoraPointTreasurer => ['kora-points.view', 'kora-points.remit', 'kora-points.documents.upload', 'notifications.view'],
             self::Passenger => [
                 'bookings.create',
                 'bookings.view-own',
@@ -161,7 +161,7 @@ enum SystemRole: string
                 'profitability.export',
             ],
             self::CommercialDirector => [
-                'kora-points.view', 'kora-points.manage', 'kora-points.terms', 'kora-points.refund-request',
+                'kora-points.view', 'kora-points.manage', 'kora-points.terms', 'kora-points.documents.upload', 'kora-points.refund-request',
                 'notifications.view',
                 'tickets.view-network',
                 'agencies.view',
@@ -263,7 +263,7 @@ enum SystemRole: string
     public static function allPermissions(): array
     {
         return [
-            'kora-points.view', 'kora-points.manage', 'kora-points.terms', 'kora-points.remit', 'kora-points.refund-request', 'kora-points.finance',
+            'kora-points.view', 'kora-points.manage', 'kora-points.terms', 'kora-points.documents.upload', 'kora-points.remit', 'kora-points.refund-request', 'kora-points.finance',
             'departures.progress',
             'incidents.report',
             'notifications.view',

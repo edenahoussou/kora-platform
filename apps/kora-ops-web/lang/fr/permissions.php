@@ -13,6 +13,8 @@ return [
     'settings.integrations.manage' => "Gérer les paramètres d'intégration",
     'passengers.erase' => 'Effacer définitivement un compte passager',
     'sensitive-data.export' => 'Exporter les données sensibles',
+    'kora-points.manage' => 'Gérer les Points de vente de son organisation',
+    'kora-points.documents.upload' => 'Ajouter des documents à son organisation',
     'profitability.view' => 'Consulter la rentabilité',
     'profitability.export' => 'Exporter la rentabilité',
     'app-releases.view' => "Consulter les versions de l'application mobile",

@@ -46,7 +46,17 @@ class KoraPointDocumentService
                 $owner = ['refund_id' => $subject->getKey(), 'point_id' => $subject->sale->point_id];
                 $data['kind'] = 'refund_proof';
             } else {
-                $this->access->authorize($actor, 'kora-points.manage');
+                $this->access->authorize($actor, 'kora-points.documents.upload');
+                if ($subject instanceof KoraPoint && $subject->organization_id !== null) {
+                    throw ValidationException::withMessages(['file' => 'Les documents d’un Point rattaché se gèrent sur le profil de son organisation.']);
+                }
+
+                if ($subject instanceof KoraPoint) {
+                    $this->access->requirePoint($actor, $subject);
+                } else {
+                    $this->access->requireOrganization($actor, $subject);
+                }
+
                 $owner = $subject instanceof KoraPoint ? ['point_id' => $subject->getKey()] : ['organization_id' => $subject->getKey()];
                 if (in_array($data['kind'], ['remittance_proof', 'refund_proof'], true)) {
                     throw ValidationException::withMessages(['kind' => 'Utilisez le dossier financier concerné pour cette preuve.']);

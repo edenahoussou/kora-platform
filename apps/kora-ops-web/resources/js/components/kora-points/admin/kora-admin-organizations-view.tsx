@@ -1,12 +1,4 @@
-import {
-    Building2,
-    Store,
-    Users,
-    FileText,
-    Coins,
-    KeyRound,
-    Edit3,
-} from 'lucide-react';
+import { Building2, Store, Users, FileText, Coins, Edit3 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import type {
@@ -467,6 +459,10 @@ export function KoraAdminOrganizationsView({
                     {/* Tab 4: Utilisateurs affectés */}
                     {activeTab === 'users' && (
                         <div className="space-y-3 pt-2 text-xs">
+                            <p className="text-slate-500">
+                                Pour renvoyer ou émettre un accès web, utilisez
+                                la liste Utilisateurs.
+                            </p>
                             <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">
                                 <table className="w-full text-left">
                                     <thead className="border-b border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-800 dark:bg-slate-800">
@@ -535,18 +531,6 @@ export function KoraAdminOrganizationsView({
                                                             'ACTIVE'
                                                                 ? 'Désactiver'
                                                                 : 'Activer'}
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() =>
-                                                                alert(
-                                                                    `Lien de réinitialisation de mot de passe envoyé à ${u.email}`,
-                                                                )
-                                                            }
-                                                            className="rounded-lg border border-slate-300 p-1 text-slate-500 hover:text-slate-800 dark:border-slate-700 dark:hover:text-white"
-                                                            title="Réinitialiser mot de passe"
-                                                        >
-                                                            <KeyRound className="h-3.5 w-3.5" />
                                                         </button>
                                                     </div>
                                                 </td>
