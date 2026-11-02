@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\Hash;
 use Laravel\Socialite\Contracts\Factory as SocialiteFactory;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as SocialiteUser;
-use Mockery;
 
 function mockSocialiteUser(string $provider, string $providerId, ?string $email = null, ?string $name = null, ?string $avatar = null, ?string $nickname = null): void
 {

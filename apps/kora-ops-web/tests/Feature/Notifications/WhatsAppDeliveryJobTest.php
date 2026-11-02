@@ -24,7 +24,6 @@ use App\Modules\Payments\Models\Payment;
 use App\Modules\Settings\Settings\IntegrationsSettings;
 use App\Modules\Ticketing\Actions\GenerateTicketPdfAction;
 use App\Modules\Ticketing\Models\Ticket;
-use Exception;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;

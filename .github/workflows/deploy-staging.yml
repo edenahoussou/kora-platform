@@ -1,20 +1,28 @@
 name: Deploy Staging
 
 on:
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
 
 permissions:
   contents: read
   packages: write
 
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
 jobs:
   build-and-push:
+    if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -32,17 +40,19 @@ jobs:
           context: .
           file: infra/docker/kora-ops-web/Dockerfile.prod
           push: true
+          cache-from: type=gha,scope=kora-ops-web
+          cache-to: type=gha,mode=max,scope=kora-ops-web
           build-args: |
             VITE_APP_ENV=staging
             VITE_SENTRY_DSN=${{ vars.SENTRY_DSN_PUBLIC }}
-            SENTRY_RELEASE=staging-${{ github.sha }}
+            SENTRY_RELEASE=staging-${{ github.event.workflow_run.head_sha }}
             SENTRY_ORG=${{ vars.SENTRY_ORG }}
             SENTRY_PROJECT=${{ vars.SENTRY_PROJECT }}
           secrets: |
             sentry_auth_token=${{ secrets.SENTRY_AUTH_TOKEN }}
           tags: |
             ghcr.io/${{ github.repository_owner }}/kora-ops-web:staging
-            ghcr.io/${{ github.repository_owner }}/kora-ops-web:staging-${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/kora-ops-web:staging-${{ github.event.workflow_run.head_sha }}
 
   deploy:
     needs: build-and-push
