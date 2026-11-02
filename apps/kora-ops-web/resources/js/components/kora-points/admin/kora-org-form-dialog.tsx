@@ -1,5 +1,6 @@
 import { useForm } from '@inertiajs/react';
 import {
+    AlertCircle,
     Building2,
     CalendarClock,
     Coins,
@@ -18,6 +19,7 @@ import PhoneInput, {
     parsePhoneNumber,
 } from 'react-phone-number-input';
 import phoneLabels from 'react-phone-number-input/locale/fr.json';
+import { cn } from '@/lib/utils';
 import organizationRoutes from '@/routes/kora-points/organizations';
 import type { AdminOrganization } from './kora-admin-ui';
 
@@ -119,6 +121,8 @@ export function KoraOrgFormDialog({
         organization?.logo_url ?? null,
     );
     const [previewKey, setPreviewKey] = useState<string | null>(null);
+    const [isDragging, setIsDragging] = useState(false);
+    const [logoClientError, setLogoClientError] = useState<string | null>(null);
     const dialogKey = open ? `open:${organization?.uuid ?? 'new'}` : 'closed';
 
     if (previewKey !== dialogKey) {
@@ -158,9 +162,20 @@ export function KoraOrgFormDialog({
     const phoneError =
         form.errors.phone ??
         (phoneInvalid ? 'Numéro de téléphone invalide.' : undefined);
-    const commissionError = (
-        form.errors as Record<string, string | undefined>
-    ).commission_basis_points;
+    const allErrors = form.errors as Record<string, string | undefined>;
+    const commissionError = allErrors.commission_basis_points;
+    const inlineErrorKeys = new Set([
+        'name',
+        'phone',
+        'address',
+        'logo',
+        'commission_basis_points',
+        'ceiling_amount',
+        'settlement_calendar',
+    ]);
+    const hiddenErrors = Object.entries(allErrors).filter(
+        ([key, message]) => Boolean(message) && !inlineErrorKeys.has(key),
+    );
 
     const selectLogo = (file: File | null) => {
         if (logoObjectUrl.current) {
@@ -176,9 +191,32 @@ export function KoraOrgFormDialog({
         }
     };
 
+    const acceptLogo = (file: File | null) => {
+        setLogoClientError(null);
+
+        if (!file) {
+            return;
+        }
+
+        if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+            setLogoClientError('Format accepté : PNG, JPEG ou WebP.');
+
+            return;
+        }
+
+        if (file.size > 2 * 1024 * 1024) {
+            setLogoClientError('Le logo ne peut pas dépasser 2 Mo.');
+
+            return;
+        }
+
+        selectLogo(file);
+    };
+
     const clearLogo = () => {
         selectLogo(null);
         setLogoPreview(null);
+        setLogoClientError(null);
         form.setData('logo', null);
         form.setData('remove_logo', Boolean(organization?.logo_url));
 
@@ -275,6 +313,17 @@ export function KoraOrgFormDialog({
                     </button>
                 </div>
 
+                {hiddenErrors.length > 0 && (
+                    <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3">
+                        <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
+                        <ul className="space-y-0.5 text-xs font-semibold text-destructive">
+                            {hiddenErrors.map(([key, message]) => (
+                                <li key={key}>{message}</li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+
                 <div className="mt-5 space-y-4">
                     <label className="field">
                         <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
@@ -353,8 +402,35 @@ export function KoraOrgFormDialog({
                             <ImageIcon className="size-3.5 text-gold" />
                             Logo
                         </span>
-                        <div className="mt-2 flex items-center gap-3">
-                            <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-muted/40">
+                        <div
+                            role="button"
+                            tabIndex={0}
+                            aria-label="Zone de dépôt du logo"
+                            onDragOver={(e) => {
+                                e.preventDefault();
+                                setIsDragging(true);
+                            }}
+                            onDragLeave={() => setIsDragging(false)}
+                            onDrop={(e) => {
+                                e.preventDefault();
+                                setIsDragging(false);
+                                acceptLogo(e.dataTransfer.files?.[0] ?? null);
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    logoInputRef.current?.click();
+                                }
+                            }}
+                            onClick={() => logoInputRef.current?.click()}
+                            className={cn(
+                                'mt-2 flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed p-3 transition-colors',
+                                isDragging
+                                    ? 'border-gold bg-gold/10'
+                                    : 'border-border hover:border-gold/50 hover:bg-muted/30',
+                            )}
+                        >
+                            <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-white">
                                 {logoPreview ? (
                                     <img
                                         src={logoPreview}
@@ -362,47 +438,77 @@ export function KoraOrgFormDialog({
                                         className="h-full w-full object-contain"
                                     />
                                 ) : (
-                                    <Building2 className="size-5 text-muted-foreground/60" />
+                                    <ImageIcon className="size-5 text-muted-foreground/60" />
                                 )}
                             </span>
-                            <div className="flex flex-wrap items-center gap-2">
-                                <button
-                                    type="button"
-                                    className="btn btn-ghost btn-sm"
-                                    onClick={() =>
-                                        logoInputRef.current?.click()
-                                    }
-                                    disabled={form.processing}
-                                >
-                                    <Upload className="size-3.5" />
+                            <div className="min-w-0 flex-1">
+                                <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                                    <Upload className="size-3.5 text-gold" />
                                     {logoPreview
                                         ? 'Changer le logo'
-                                        : 'Choisir un logo'}
-                                </button>
-                                {logoPreview && (
-                                    <button
-                                        type="button"
-                                        className="btn btn-ghost btn-sm text-destructive"
-                                        onClick={clearLogo}
-                                        disabled={form.processing}
-                                    >
-                                        Retirer
-                                    </button>
-                                )}
-                                <input
-                                    ref={logoInputRef}
-                                    type="file"
-                                    accept="image/png,image/jpeg,image/webp"
-                                    className="hidden"
-                                    onChange={(e) =>
-                                        selectLogo(e.target.files?.[0] ?? null)
-                                    }
-                                />
+                                        : 'Glissez-déposez le logo ici'}
+                                </span>
+                                <span className="text-[0.6875rem] text-muted-foreground">
+                                    ou cliquez pour parcourir
+                                </span>
                             </div>
+                            {logoPreview && (
+                                <button
+                                    type="button"
+                                    className="btn btn-ghost btn-sm shrink-0 text-destructive"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        clearLogo();
+                                    }}
+                                    disabled={form.processing}
+                                >
+                                    Retirer
+                                </button>
+                            )}
+                            <input
+                                ref={logoInputRef}
+                                type="file"
+                                accept="image/png,image/jpeg,image/webp"
+                                className="hidden"
+                                onClick={(e) => e.stopPropagation()}
+                                onChange={(e) =>
+                                    acceptLogo(e.target.files?.[0] ?? null)
+                                }
+                            />
                         </div>
-                        {form.errors.logo ? (
+                        {form.processing && form.progress && (
+                            <div
+                                className="mt-2"
+                                role="progressbar"
+                                aria-valuemin={0}
+                                aria-valuemax={100}
+                                aria-valuenow={Math.round(
+                                    form.progress.percentage ?? 0,
+                                )}
+                                aria-label="Progression de l’envoi du logo"
+                            >
+                                <div className="flex items-center justify-between text-[0.6875rem] font-semibold text-muted-foreground">
+                                    <span>Envoi du fichier…</span>
+                                    <span>
+                                        {Math.round(
+                                            form.progress.percentage ?? 0,
+                                        )}
+                                        {' %'}
+                                    </span>
+                                </div>
+                                <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                                    <div
+                                        className="h-full rounded-full bg-gradient-to-r from-gold to-[var(--kora)] transition-all duration-300 ease-out"
+                                        style={{
+                                            width: `${Math.round(form.progress.percentage ?? 0)}%`,
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        )}
+                        {logoClientError || form.errors.logo ? (
                             <small className="field-error-text">
-                                {form.errors.logo}
+                                {logoClientError ?? form.errors.logo}
                             </small>
                         ) : (
                             <small className="text-muted-foreground">

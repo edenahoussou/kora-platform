@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/react';
 import {
+    AlertCircle,
     Coins,
     Download,
     FileText,
@@ -49,6 +50,8 @@ export function KoraOrgDetailSheet({
     onOpenChange,
 }: Props) {
     const [attachUuid, setAttachUuid] = useState('');
+    const [attachError, setAttachError] = useState<string | null>(null);
+    const [attaching, setAttaching] = useState(false);
 
     if (!organization) {
         return null;
@@ -62,6 +65,8 @@ export function KoraOrgDetailSheet({
         point: OrgSubPoint | UnattachedPoint,
         organizationUuid: string | null,
     ) => {
+        setAttachError(null);
+        setAttaching(true);
         router.put(
             koraPoints.update.url({ point: point.uuid }),
             {
@@ -80,7 +85,15 @@ export function KoraOrgDetailSheet({
                 longitude: 'longitude' in point ? point.longitude : null,
                 organization_uuid: organizationUuid,
             },
-            { preserveScroll: true },
+            {
+                preserveScroll: true,
+                onError: (errors) =>
+                    setAttachError(
+                        Object.values(errors)[0] ??
+                            'Le rattachement a été refusé.',
+                    ),
+                onFinish: () => setAttaching(false),
+            },
         );
     };
 
@@ -230,13 +243,27 @@ export function KoraOrgDetailSheet({
                                         type="button"
                                         className="btn btn-primary btn-sm"
                                         onClick={attach}
-                                        disabled={!attachUuid}
+                                        disabled={!attachUuid || attaching}
                                     >
                                         <Link2 className="size-3.5" />
-                                        Rattacher
+                                        {attaching ? 'Rattachement…' : 'Rattacher'}
                                     </button>
                                 </div>
                             )}
+
+                        {attachError && (
+                            <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3">
+                                <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
+                                <div className="min-w-0">
+                                    <strong className="block text-xs font-bold text-destructive">
+                                        Rattachement impossible
+                                    </strong>
+                                    <span className="text-xs text-destructive/90">
+                                        {attachError}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
 
                         {orgPoints.length === 0 ? (
                             <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center">

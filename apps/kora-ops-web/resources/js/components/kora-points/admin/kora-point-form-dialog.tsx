@@ -1,12 +1,23 @@
 import { Form } from '@inertiajs/react';
 import {
+    AlertCircle,
     Building2,
+    CalendarClock,
+    ChevronDown,
+    Coins,
     Image as ImageIcon,
+    Landmark,
+    MapPin,
+    Percent,
+    Phone,
     Store,
+    Tag,
     Upload,
+    User,
     X,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { cn } from '@/lib/utils';
 import koraPoints from '@/routes/kora-points';
 import type { AdminOrganization, AdminPoint } from './kora-admin-ui';
 
@@ -54,6 +65,22 @@ export function KoraPointFormDialog({
         };
     }, []);
     const isEditing = Boolean(point);
+    const inlineErrorKeys = new Set([
+        'name',
+        'city',
+        'code',
+        'address',
+        'logo',
+        'responsible_name',
+        'phone',
+        'organization_uuid',
+        'commission_basis_points',
+        'ceiling_amount',
+        'settlement_calendar',
+    ]);
+
+    const [isDragging, setIsDragging] = useState(false);
+    const [logoClientError, setLogoClientError] = useState<string | null>(null);
 
     const selectLogo = (file: File | null) => {
         if (logoObjectUrl.current) {
@@ -68,9 +95,38 @@ export function KoraPointFormDialog({
         }
     };
 
+    const acceptLogo = (file: File | null) => {
+        setLogoClientError(null);
+
+        if (!file) {
+            return;
+        }
+
+        if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+            setLogoClientError('Format accepté : PNG, JPEG ou WebP.');
+
+            return;
+        }
+
+        if (file.size > 2 * 1024 * 1024) {
+            setLogoClientError('Le logo ne peut pas dépasser 2 Mo.');
+
+            return;
+        }
+
+        if (logoInputRef.current) {
+            const transfer = new DataTransfer();
+            transfer.items.add(file);
+            logoInputRef.current.files = transfer.files;
+        }
+
+        selectLogo(file);
+    };
+
     const clearLogo = () => {
         selectLogo(null);
         setLogoPreview(null);
+        setLogoClientError(null);
         setLogoRemoved(Boolean(point?.logo_url));
 
         if (logoInputRef.current) {
@@ -109,7 +165,7 @@ export function KoraPointFormDialog({
                 aria-modal="true"
                 aria-labelledby="kora-point-modal-title"
             >
-                {({ processing, errors }) => (
+                {({ processing, errors, progress }) => (
                     <>
                         <div className="cash-modal-head">
                             <div className="flex items-start gap-3">
@@ -142,6 +198,24 @@ export function KoraPointFormDialog({
                             </button>
                         </div>
 
+                        {Object.entries(errors).filter(
+                            ([key]) => !inlineErrorKeys.has(key),
+                        ).length > 0 && (
+                            <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3">
+                                <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
+                                <ul className="space-y-0.5 text-xs font-semibold text-destructive">
+                                    {Object.entries(errors)
+                                        .filter(
+                                            ([key]) =>
+                                                !inlineErrorKeys.has(key),
+                                        )
+                                        .map(([key, message]) => (
+                                            <li key={key}>{message}</li>
+                                        ))}
+                                </ul>
+                            </div>
+                        )}
+
                         <div className="cash-opening-list">
                             <div className="cash-opening-row">
                                 <div className="cash-opening-row-head">
@@ -159,7 +233,8 @@ export function KoraPointFormDialog({
 
                                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                     <label className="field sm:col-span-2">
-                                        <span>
+                                        <span className="flex items-center gap-1.5">
+                                            <Store className="size-3.5 text-gold" />
                                             Nom du point{' '}
                                             <b className="font-black text-destructive">
                                                 *
@@ -168,19 +243,22 @@ export function KoraPointFormDialog({
                                         <input
                                             type="text"
                                             name="name"
+                                            className="control"
                                             defaultValue={point?.name ?? ''}
                                             placeholder="Guichet Akpakpa Centre"
                                             required
+                                            aria-invalid={Boolean(errors.name)}
                                         />
                                         {errors.name && (
-                                            <small className="text-destructive">
+                                            <small className="field-error-text">
                                                 {errors.name}
                                             </small>
                                         )}
                                     </label>
 
                                     <label className="field">
-                                        <span>
+                                        <span className="flex items-center gap-1.5">
+                                            <MapPin className="size-3.5 text-gold" />
                                             Ville{' '}
                                             <b className="font-black text-destructive">
                                                 *
@@ -189,42 +267,56 @@ export function KoraPointFormDialog({
                                         <input
                                             type="text"
                                             name="city"
+                                            className="control"
                                             defaultValue={point?.city ?? ''}
                                             placeholder="Cotonou"
                                             required
+                                            aria-invalid={Boolean(errors.city)}
                                         />
                                         {errors.city && (
-                                            <small className="text-destructive">
+                                            <small className="field-error-text">
                                                 {errors.city}
                                             </small>
                                         )}
                                     </label>
 
                                     <label className="field">
-                                        <span>Code agence</span>
+                                        <span className="flex items-center gap-1.5">
+                                            <Tag className="size-3.5 text-gold" />
+                                            Code agence
+                                        </span>
                                         <input
                                             type="text"
                                             name="code"
+                                            className="control"
                                             defaultValue={point?.code ?? ''}
                                             placeholder="Auto : KP-XXX-0000"
+                                            aria-invalid={Boolean(errors.code)}
                                         />
                                         {errors.code && (
-                                            <small className="text-destructive">
+                                            <small className="field-error-text">
                                                 {errors.code}
                                             </small>
                                         )}
                                     </label>
 
                                     <label className="field sm:col-span-2">
-                                        <span>Adresse</span>
+                                        <span className="flex items-center gap-1.5">
+                                            <MapPin className="size-3.5 text-gold" />
+                                            Adresse
+                                        </span>
                                         <input
                                             type="text"
                                             name="address"
+                                            className="control"
                                             defaultValue={point?.address ?? ''}
                                             placeholder="Quartier, rue, repère"
+                                            aria-invalid={Boolean(
+                                                errors.address,
+                                            )}
                                         />
                                         {errors.address && (
-                                            <small className="text-destructive">
+                                            <small className="field-error-text">
                                                 {errors.address}
                                             </small>
                                         )}
@@ -235,8 +327,45 @@ export function KoraPointFormDialog({
                                             <ImageIcon className="size-3.5 text-gold" />
                                             Logo
                                         </span>
-                                        <div className="mt-2 flex items-center gap-3">
-                                            <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-muted/40">
+                                        <div
+                                            role="button"
+                                            tabIndex={0}
+                                            aria-label="Zone de dépôt du logo"
+                                            onDragOver={(e) => {
+                                                e.preventDefault();
+                                                setIsDragging(true);
+                                            }}
+                                            onDragLeave={() =>
+                                                setIsDragging(false)
+                                            }
+                                            onDrop={(e) => {
+                                                e.preventDefault();
+                                                setIsDragging(false);
+                                                acceptLogo(
+                                                    e.dataTransfer
+                                                        .files?.[0] ?? null,
+                                                );
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (
+                                                    e.key === 'Enter' ||
+                                                    e.key === ' '
+                                                ) {
+                                                    e.preventDefault();
+                                                    logoInputRef.current?.click();
+                                                }
+                                            }}
+                                            onClick={() =>
+                                                logoInputRef.current?.click()
+                                            }
+                                            className={cn(
+                                                'mt-2 flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed p-3 transition-colors',
+                                                isDragging
+                                                    ? 'border-gold bg-gold/10'
+                                                    : 'border-border hover:border-gold/50 hover:bg-muted/30',
+                                            )}
+                                        >
+                                            <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-white">
                                                 {logoPreview ? (
                                                     <img
                                                         src={logoPreview}
@@ -244,59 +373,94 @@ export function KoraPointFormDialog({
                                                         className="h-full w-full object-contain"
                                                     />
                                                 ) : (
-                                                    <Store className="size-5 text-muted-foreground/60" />
+                                                    <ImageIcon className="size-5 text-muted-foreground/60" />
                                                 )}
                                             </span>
-                                            <div className="flex flex-wrap items-center gap-2">
-                                                <button
-                                                    type="button"
-                                                    className="btn btn-ghost btn-sm"
-                                                    onClick={() =>
-                                                        logoInputRef.current?.click()
-                                                    }
-                                                    disabled={processing}
-                                                >
-                                                    <Upload className="size-3.5" />
+                                            <div className="min-w-0 flex-1">
+                                                <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                                                    <Upload className="size-3.5 text-gold" />
                                                     {logoPreview
                                                         ? 'Changer le logo'
-                                                        : 'Choisir un logo'}
-                                                </button>
-                                                {logoPreview && (
-                                                    <button
-                                                        type="button"
-                                                        className="btn btn-ghost btn-sm text-destructive"
-                                                        onClick={clearLogo}
-                                                        disabled={processing}
-                                                    >
-                                                        Retirer
-                                                    </button>
-                                                )}
-                                                <input
-                                                    ref={logoInputRef}
-                                                    type="file"
-                                                    name="logo"
-                                                    accept="image/png,image/jpeg,image/webp"
-                                                    className="hidden"
-                                                    onChange={(e) =>
-                                                        selectLogo(
-                                                            e.target
-                                                                .files?.[0] ??
-                                                                null,
-                                                        )
-                                                    }
-                                                />
-                                                {logoRemoved && (
-                                                    <input
-                                                        type="hidden"
-                                                        name="remove_logo"
-                                                        value="1"
-                                                    />
-                                                )}
+                                                        : 'Glissez-déposez le logo ici'}
+                                                </span>
+                                                <span className="text-[0.6875rem] text-muted-foreground">
+                                                    ou cliquez pour parcourir
+                                                </span>
                                             </div>
+                                            {logoPreview && (
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-ghost btn-sm shrink-0 text-destructive"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        clearLogo();
+                                                    }}
+                                                    disabled={processing}
+                                                >
+                                                    Retirer
+                                                </button>
+                                            )}
+                                            <input
+                                                ref={logoInputRef}
+                                                type="file"
+                                                name="logo"
+                                                accept="image/png,image/jpeg,image/webp"
+                                                className="hidden"
+                                                onClick={(e) =>
+                                                    e.stopPropagation()
+                                                }
+                                                onChange={(e) =>
+                                                    acceptLogo(
+                                                        e.target.files?.[0] ??
+                                                            null,
+                                                    )
+                                                }
+                                            />
+                                            {logoRemoved && (
+                                                <input
+                                                    type="hidden"
+                                                    name="remove_logo"
+                                                    value="1"
+                                                />
+                                            )}
                                         </div>
-                                        {errors.logo ? (
+                                        {processing && progress && (
+                                            <div
+                                                className="mt-2"
+                                                role="progressbar"
+                                                aria-valuemin={0}
+                                                aria-valuemax={100}
+                                                aria-valuenow={Math.round(
+                                                    progress.percentage ?? 0,
+                                                )}
+                                                aria-label="Progression de l’envoi du logo"
+                                            >
+                                                <div className="flex items-center justify-between text-[0.6875rem] font-semibold text-muted-foreground">
+                                                    <span>
+                                                        Envoi du fichier…
+                                                    </span>
+                                                    <span>
+                                                        {Math.round(
+                                                            progress.percentage ??
+                                                                0,
+                                                        )}
+                                                        {' %'}
+                                                    </span>
+                                                </div>
+                                                <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                                                    <div
+                                                        className="h-full rounded-full bg-gradient-to-r from-gold to-[var(--kora)] transition-all duration-300 ease-out"
+                                                        style={{
+                                                            width: `${Math.round(progress.percentage ?? 0)}%`,
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+                                        {logoClientError || errors.logo ? (
                                             <small className="text-destructive">
-                                                {errors.logo}
+                                                {logoClientError ??
+                                                    errors.logo}
                                             </small>
                                         ) : (
                                             <small className="text-muted-foreground">
@@ -328,7 +492,8 @@ export function KoraPointFormDialog({
 
                                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                     <label className="field">
-                                        <span>
+                                        <span className="flex items-center gap-1.5">
+                                            <User className="size-3.5 text-gold" />
                                             Nom du responsable{' '}
                                             <b className="font-black text-destructive">
                                                 *
@@ -337,21 +502,26 @@ export function KoraPointFormDialog({
                                         <input
                                             type="text"
                                             name="responsible_name"
+                                            className="control"
                                             defaultValue={
                                                 point?.responsible_name ?? ''
                                             }
                                             placeholder="Jean Dossou"
                                             required
+                                            aria-invalid={Boolean(
+                                                errors.responsible_name,
+                                            )}
                                         />
                                         {errors.responsible_name && (
-                                            <small className="text-destructive">
+                                            <small className="field-error-text">
                                                 {errors.responsible_name}
                                             </small>
                                         )}
                                     </label>
 
                                     <label className="field">
-                                        <span>
+                                        <span className="flex items-center gap-1.5">
+                                            <Phone className="size-3.5 text-gold" />
                                             Téléphone{' '}
                                             <b className="font-black text-destructive">
                                                 *
@@ -360,41 +530,62 @@ export function KoraPointFormDialog({
                                         <input
                                             type="tel"
                                             name="phone"
+                                            className="control"
                                             defaultValue={point?.phone ?? ''}
                                             placeholder="+229 97 00 00 00"
                                             required
+                                            aria-invalid={Boolean(
+                                                errors.phone,
+                                            )}
                                         />
                                         {errors.phone && (
-                                            <small className="text-destructive">
+                                            <small className="field-error-text">
                                                 {errors.phone}
                                             </small>
                                         )}
                                     </label>
 
                                     <label className="field sm:col-span-2">
-                                        <span>Organisation partenaire</span>
-                                        <select
-                                            name="organization_uuid"
-                                            defaultValue={
-                                                point?.organization_uuid ?? ''
-                                            }
-                                        >
-                                            <option value="">
-                                                Point autonome (aucune
-                                                organisation)
-                                            </option>
-                                            {organizations.map((org) => (
-                                                <option
-                                                    key={org.uuid}
-                                                    value={org.uuid}
-                                                >
-                                                    {org.name} ({org.code})
+                                        <span className="flex items-center gap-1.5">
+                                            <Building2 className="size-3.5 text-gold" />
+                                            Organisation partenaire
+                                        </span>
+                                        <div className="relative">
+                                            <select
+                                                name="organization_uuid"
+                                                className="control w-full appearance-none"
+                                                defaultValue={
+                                                    point?.organization_uuid ??
+                                                    ''
+                                                }
+                                                aria-invalid={Boolean(
+                                                    errors.organization_uuid,
+                                                )}
+                                            >
+                                                <option value="">
+                                                    Point autonome (aucune
+                                                    organisation)
                                                 </option>
-                                            ))}
-                                        </select>
-                                        {errors.organization_uuid && (
-                                            <small className="text-destructive">
+                                                {organizations.map((org) => (
+                                                    <option
+                                                        key={org.uuid}
+                                                        value={org.uuid}
+                                                    >
+                                                        {org.name} ({org.code})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <ChevronDown className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                                        </div>
+                                        {errors.organization_uuid ? (
+                                            <small className="field-error-text">
                                                 {errors.organization_uuid}
+                                            </small>
+                                        ) : (
+                                            <small className="text-muted-foreground">
+                                                Le point hérite du logo et des
+                                                conditions cadres de
+                                                l’organisation choisie.
                                             </small>
                                         )}
                                     </label>
@@ -404,7 +595,7 @@ export function KoraPointFormDialog({
                             <div className="cash-opening-row">
                                 <div className="cash-opening-row-head">
                                     <span className="cash-opening-icon">
-                                        <Store className="size-4" />
+                                        <Coins className="size-4" />
                                     </span>
                                     <div>
                                         <strong>Conditions commerciales</strong>
@@ -415,14 +606,18 @@ export function KoraPointFormDialog({
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                     <label className="field">
-                                        <span>Commission (%)</span>
+                                        <span className="flex items-center gap-1.5">
+                                            <Percent className="size-3.5 text-gold" />
+                                            Commission (%)
+                                        </span>
                                         <input
                                             type="number"
                                             min={0}
                                             max={100}
                                             step="0.01"
+                                            className="control"
                                             value={commissionRate}
                                             onChange={(e) =>
                                                 setCommissionRate(
@@ -430,6 +625,9 @@ export function KoraPointFormDialog({
                                                 )
                                             }
                                             placeholder="ex : 3,5"
+                                            aria-invalid={Boolean(
+                                                errors.commission_basis_points,
+                                            )}
                                         />
                                         <input
                                             type="hidden"
@@ -446,92 +644,145 @@ export function KoraPointFormDialog({
                                                       )
                                             }
                                         />
-                                        {errors.commission_basis_points && (
-                                            <small className="text-destructive">
+                                        {errors.commission_basis_points ? (
+                                            <small className="field-error-text">
                                                 {errors.commission_basis_points}
+                                            </small>
+                                        ) : (
+                                            <small className="text-muted-foreground">
+                                                Pourcentage conservé par le
+                                                point sur chaque vente.
                                             </small>
                                         )}
                                     </label>
 
                                     <label className="field">
-                                        <span>Plafond d'encours (FCFA)</span>
+                                        <span className="flex items-center gap-1.5">
+                                            <Landmark className="size-3.5 text-gold" />
+                                            Plafond (FCFA)
+                                        </span>
                                         <input
                                             type="number"
                                             name="ceiling_amount"
                                             min={0}
+                                            className="control"
                                             defaultValue={
                                                 point?.terms?.ceiling_amount ??
                                                 ''
                                             }
                                             placeholder="1 500 000"
+                                            aria-invalid={Boolean(
+                                                errors.ceiling_amount,
+                                            )}
                                         />
-                                        {errors.ceiling_amount && (
-                                            <small className="text-destructive">
+                                        {errors.ceiling_amount ? (
+                                            <small className="field-error-text">
                                                 {errors.ceiling_amount}
                                             </small>
-                                        )}
-                                    </label>
-
-                                    <label className="field">
-                                        <span>Reversements</span>
-                                        <select
-                                            value={frequency}
-                                            onChange={(e) =>
-                                                setFrequency(e.target.value)
-                                            }
-                                        >
-                                            <option value="">
-                                                Hérité (hebdomadaire)
-                                            </option>
-                                            <option value="daily">
-                                                Quotidien
-                                            </option>
-                                            <option value="weekly">
-                                                Hebdomadaire
-                                            </option>
-                                            <option value="monthly">
-                                                Mensuel
-                                            </option>
-                                        </select>
-                                        {frequency !== '' && (
-                                            <>
-                                                <input
-                                                    type="hidden"
-                                                    name="settlement_calendar[frequency]"
-                                                    value={frequency}
-                                                />
-                                                <input
-                                                    type="hidden"
-                                                    name="settlement_calendar[time]"
-                                                    value="18:00"
-                                                />
-                                                <input
-                                                    type="hidden"
-                                                    name="settlement_calendar[timezone]"
-                                                    value="Africa/Porto-Novo"
-                                                />
-                                                {frequency === 'weekly' && (
-                                                    <input
-                                                        type="hidden"
-                                                        name="settlement_calendar[weekday]"
-                                                        value="1"
-                                                    />
-                                                )}
-                                                {frequency === 'monthly' && (
-                                                    <input
-                                                        type="hidden"
-                                                        name="settlement_calendar[day]"
-                                                        value="1"
-                                                    />
-                                                )}
-                                            </>
-                                        )}
-                                        {errors.settlement_calendar && (
-                                            <small className="text-destructive">
-                                                {errors.settlement_calendar}
+                                        ) : (
+                                            <small className="text-muted-foreground">
+                                                Montant maximal dû à KORA
+                                                avant blocage des ventes.
                                             </small>
                                         )}
                                     </label>
+                                </div>
+
+                                <div className="field mt-4">
+                                    <span className="flex items-center gap-1.5">
+                                        <CalendarClock className="size-3.5 text-gold" />
+                                        Reversements
+                                    </span>
+                                    <div
+                                        className="mt-1 flex flex-wrap items-center gap-x-5 gap-y-2"
+                                        role="radiogroup"
+                                        aria-label="Fréquence de reversement"
+                                    >
+                                        {(
+                                            [
+                                                {
+                                                    value: '',
+                                                    label: 'Valeur par défaut',
+                                                },
+                                                {
+                                                    value: 'daily',
+                                                    label: 'Quotidien',
+                                                },
+                                                {
+                                                    value: 'weekly',
+                                                    label: 'Hebdomadaire',
+                                                },
+                                                {
+                                                    value: 'monthly',
+                                                    label: 'Mensuel',
+                                                },
+                                            ] as const
+                                        ).map((option) => (
+                                            <label
+                                                key={option.value || 'default'}
+                                                className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-foreground"
+                                            >
+                                                <input
+                                                    type="radio"
+                                                    name="settlement_frequency_choice"
+                                                    checked={
+                                                        frequency ===
+                                                        option.value
+                                                    }
+                                                    onChange={() =>
+                                                        setFrequency(
+                                                            option.value,
+                                                        )
+                                                    }
+                                                    className="size-3.5 accent-[var(--kora)]"
+                                                />
+                                                {option.label}
+                                            </label>
+                                        ))}
+                                    </div>
+                                    {frequency !== '' && (
+                                        <>
+                                            <input
+                                                type="hidden"
+                                                name="settlement_calendar[frequency]"
+                                                value={frequency}
+                                            />
+                                            <input
+                                                type="hidden"
+                                                name="settlement_calendar[time]"
+                                                value="18:00"
+                                            />
+                                            <input
+                                                type="hidden"
+                                                name="settlement_calendar[timezone]"
+                                                value="Africa/Porto-Novo"
+                                            />
+                                            {frequency === 'weekly' && (
+                                                <input
+                                                    type="hidden"
+                                                    name="settlement_calendar[weekday]"
+                                                    value="1"
+                                                />
+                                            )}
+                                            {frequency === 'monthly' && (
+                                                <input
+                                                    type="hidden"
+                                                    name="settlement_calendar[day]"
+                                                    value="1"
+                                                />
+                                            )}
+                                        </>
+                                    )}
+                                    {errors.settlement_calendar ? (
+                                        <small className="field-error-text">
+                                            {errors.settlement_calendar}
+                                        </small>
+                                    ) : (
+                                        <small className="text-muted-foreground">
+                                            Rythme de reversement des
+                                            encaissements à KORA.
+                                        </small>
+                                    )}
                                 </div>
                             </div>
                         </div>
