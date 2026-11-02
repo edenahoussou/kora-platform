@@ -84,7 +84,8 @@ RUN --mount=type=secret,id=sentry_auth_token,required=false \
 # Permissions Laravel
 RUN mkdir -p /app/storage/app/private /app/storage/app/public /app/storage/framework/cache/data /app/storage/framework/sessions /app/storage/framework/views /app/storage/logs \
     && chown -R www-data:www-data /app/storage /app/bootstrap/cache \
-    && chmod -R 775 /app/storage /app/bootstrap/cache
+    && chmod -R 775 /app/storage /app/bootstrap/cache \
+    && ln -sfn /app/storage/app/public /app/public/storage
 
 # Optimisations production
 RUN php artisan config:clear \

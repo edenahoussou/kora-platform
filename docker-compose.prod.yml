@@ -44,6 +44,7 @@ services:
     volumes:
       - ./infra/docker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - prod-public:/app/public:ro
+      - prod-storage:/app/storage:ro
     depends_on:
       - app
     networks:

@@ -54,6 +54,7 @@ services:
     volumes:
       - ./infra/docker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - staging-public:/app/public:ro
+      - staging-storage:/app/storage:ro
     depends_on:
       - app
     networks:
