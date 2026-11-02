@@ -3,14 +3,19 @@ import {
     AlertCircle,
     Building2,
     CalendarClock,
+    ChevronDown,
     Coins,
     Image as ImageIcon,
     Landmark,
     MapPin,
     Percent,
     Phone,
+    Plus,
     Tag,
+    Trash2,
     Upload,
+    UserPlus,
+    Users,
     X,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -29,6 +34,13 @@ type Props = {
     onOpenChange: (open: boolean) => void;
 };
 
+type OrgMemberInput = {
+    name: string;
+    email: string;
+    phone: string;
+    role: 'kora_point_supervisor' | 'kora_point_treasurer';
+};
+
 type OrgFormValues = {
     name: string;
     phone: string;
@@ -44,6 +56,7 @@ type OrgFormValues = {
         weekday: number | null;
         day: number | null;
     } | null;
+    members: OrgMemberInput[];
 };
 
 const emptyValues: OrgFormValues = {
@@ -55,6 +68,7 @@ const emptyValues: OrgFormValues = {
     commission_rate: '',
     ceiling_amount: '',
     settlement_calendar: null,
+    members: [],
 };
 
 function normalizePhoneValue(value: string | null | undefined): string {
@@ -105,6 +119,7 @@ function valuesFromOrg(org?: AdminOrganization | null): OrgFormValues {
                 ? String(org.ceiling_amount)
                 : '',
         settlement_calendar: settlementCalendar,
+        members: [],
     };
 }
 
@@ -172,10 +187,43 @@ export function KoraOrgFormDialog({
         'commission_basis_points',
         'ceiling_amount',
         'settlement_calendar',
+        'members',
     ]);
     const hiddenErrors = Object.entries(allErrors).filter(
-        ([key, message]) => Boolean(message) && !inlineErrorKeys.has(key),
+        ([key, message]) =>
+            Boolean(message) &&
+            !inlineErrorKeys.has(key) &&
+            !key.startsWith('members.'),
     );
+
+    const addMember = () => {
+        form.setData('members', [
+            ...form.data.members,
+            {
+                name: '',
+                email: '',
+                phone: '',
+                role: 'kora_point_supervisor',
+            },
+        ]);
+    };
+
+    const updateMember = (
+        index: number,
+        field: keyof OrgMemberInput,
+        value: string,
+    ) => {
+        const updated = [...form.data.members];
+        updated[index] = { ...updated[index], [field]: value };
+        form.setData('members', updated);
+    };
+
+    const removeMember = (index: number) => {
+        form.setData(
+            'members',
+            form.data.members.filter((_, i) => i !== index),
+        );
+    };
 
     const selectLogo = (file: File | null) => {
         if (logoObjectUrl.current) {
@@ -253,6 +301,14 @@ export function KoraOrgFormDialog({
                     ? null
                     : Number(data.ceiling_amount),
             settlement_calendar: data.settlement_calendar,
+            members: data.members
+                .filter((m) => m.name.trim() || m.email.trim())
+                .map((m) => ({
+                    name: m.name.trim(),
+                    email: m.email.trim().toLowerCase(),
+                    phone: m.phone.trim() || null,
+                    role: m.role,
+                })),
         }));
 
         if (isEditing) {
@@ -698,6 +754,183 @@ export function KoraOrgFormDialog({
                                 </small>
                             )}
                         </div>
+                    </div>
+
+                    <div className="space-y-3 border-t border-border pt-4">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <Users className="size-4 text-gold" />
+                                <strong className="text-xs font-bold text-foreground">
+                                    Membres de l'organisation
+                                </strong>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={addMember}
+                                className="btn btn-ghost btn-sm text-xs font-bold text-gold"
+                            >
+                                <UserPlus className="size-3.5" />
+                                Ajouter un membre
+                            </button>
+                        </div>
+
+                        {form.data.members.length === 0 ? (
+                            <p className="text-xs text-muted-foreground italic">
+                                Aucun membre ajouté. Cliquez sur « Ajouter un membre » pour créer un compte superviseur ou trésorier (un SMS/WhatsApp ou email d'accès sera envoyé automatiquement).
+                            </p>
+                        ) : (
+                            <div className="space-y-3">
+                                {form.data.members.map((member, idx) => {
+                                    const nameErr =
+                                        allErrors[`members.${idx}.name`];
+                                    const emailErr =
+                                        allErrors[`members.${idx}.email`];
+                                    const phoneErr =
+                                        allErrors[`members.${idx}.phone`];
+                                    const roleErr =
+                                        allErrors[`members.${idx}.role`];
+
+                                    return (
+                                        <div
+                                            key={idx}
+                                            className="space-y-3 rounded-xl border border-border bg-muted/20 p-3.5"
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-xs font-bold text-foreground">
+                                                    Nouveau membre #{idx + 1}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        removeMember(idx)
+                                                    }
+                                                    className="p-1 text-muted-foreground transition-colors hover:text-destructive"
+                                                    aria-label="Supprimer ce membre"
+                                                >
+                                                    <Trash2 className="size-3.5" />
+                                                </button>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                                <label className="field">
+                                                    <span>
+                                                        Nom complet{' '}
+                                                        <b className="font-black text-destructive">
+                                                            *
+                                                        </b>
+                                                    </span>
+                                                    <input
+                                                        type="text"
+                                                        value={member.name}
+                                                        onChange={(e) =>
+                                                            updateMember(
+                                                                idx,
+                                                                'name',
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        placeholder="Ex: Bio Kora"
+                                                        className="control"
+                                                    />
+                                                    {nameErr && (
+                                                        <small className="field-error-text">
+                                                            {nameErr}
+                                                        </small>
+                                                    )}
+                                                </label>
+
+                                                <label className="field">
+                                                    <span>
+                                                        Email{' '}
+                                                        <b className="font-black text-destructive">
+                                                            *
+                                                        </b>
+                                                    </span>
+                                                    <input
+                                                        type="email"
+                                                        value={member.email}
+                                                        onChange={(e) =>
+                                                            updateMember(
+                                                                idx,
+                                                                'email',
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        placeholder="membre@partenaire.bj"
+                                                        className="control"
+                                                    />
+                                                    {emailErr && (
+                                                        <small className="field-error-text">
+                                                            {emailErr}
+                                                        </small>
+                                                    )}
+                                                </label>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                                <label className="field">
+                                                    <span>Téléphone</span>
+                                                    <input
+                                                        type="tel"
+                                                        value={member.phone}
+                                                        onChange={(e) =>
+                                                            updateMember(
+                                                                idx,
+                                                                'phone',
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        placeholder="+229 97 00 00 00"
+                                                        className="control font-mono"
+                                                    />
+                                                    {phoneErr && (
+                                                        <small className="field-error-text">
+                                                            {phoneErr}
+                                                        </small>
+                                                    )}
+                                                </label>
+
+                                                <label className="field">
+                                                    <span>
+                                                        Rôle{' '}
+                                                        <b className="font-black text-destructive">
+                                                            *
+                                                        </b>
+                                                    </span>
+                                                    <div className="relative">
+                                                        <select
+                                                            value={member.role}
+                                                            onChange={(e) =>
+                                                                updateMember(
+                                                                    idx,
+                                                                    'role',
+                                                                    e.target
+                                                                        .value as OrgMemberInput['role'],
+                                                                )
+                                                            }
+                                                            className="control w-full pr-9"
+                                                        >
+                                                            <option value="kora_point_supervisor">
+                                                                Superviseur
+                                                            </option>
+                                                            <option value="kora_point_treasurer">
+                                                                Trésorier
+                                                            </option>
+                                                        </select>
+                                                        <ChevronDown className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                                                    </div>
+                                                    {roleErr && (
+                                                        <small className="field-error-text">
+                                                            {roleErr}
+                                                        </small>
+                                                    )}
+                                                </label>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
                 </div>
 

@@ -143,6 +143,7 @@ export default function KoraPointsIndexPage({
         department: string;
         managerName: string;
         phone: string;
+        email?: string;
         creditLimit: number;
         commissionRateBps: number;
         settlementFrequencyDays: number;
@@ -163,6 +164,7 @@ export default function KoraPointsIndexPage({
                 country: 'BJ',
                 responsible_name: data.managerName,
                 phone: data.phone,
+                email: data.email ? data.email.trim() : null,
                 organization_uuid:
                     data.type === 'ORGANIZATION_ATTACHED'
                         ? data.organizationUuid
@@ -404,81 +406,93 @@ export default function KoraPointsIndexPage({
         <>
             <Head title="Points de vente KORA POINT" />
 
-            <div className="kora-page-head mb-6 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                    <div className="kora-breadcrumb mb-2 text-[0.6875rem] text-muted-foreground">
-                        KORA OPS / Réseau commercial / Points de vente
+            <div className="cash-page">
+                <div className="kora-page-head cash-reveal mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                        <div className="kora-breadcrumb mb-2 text-[0.6875rem] text-muted-foreground">
+                            KORA OPS / Réseau commercial / Points de vente
+                        </div>
+                        <h1 className="text-[clamp(1.8rem,3vw,2.65rem)] font-extrabold tracking-[-0.055em] text-foreground">
+                            Points de vente partenaires
+                        </h1>
+                        <p className="mt-1.5 text-[0.8125rem] leading-6 text-muted-foreground">
+                            Administrez le réseau KORA POINT : guichets autonomes et
+                            points rattachés aux organisations.
+                        </p>
                     </div>
-                    <h1 className="text-[1.8125rem] font-extrabold tracking-[-0.035em] text-foreground">
-                        Points de vente partenaires
-                    </h1>
-                    <p className="mt-1.5 text-[0.8125rem] text-muted-foreground">
-                        Administrez le réseau KORA POINT : guichets autonomes et
-                        points rattachés aux organisations.
-                    </p>
+                    {permissions.canManage && (
+                        <button
+                            type="button"
+                            onClick={openCreate}
+                            className="btn btn-primary"
+                        >
+                            <Plus className="size-4" />
+                            Nouveau point
+                        </button>
+                    )}
                 </div>
-                {permissions.canManage && (
-                    <button
-                        type="button"
-                        onClick={openCreate}
-                        className="btn btn-primary"
-                    >
-                        <Plus className="size-3.5" />
-                        Nouveau point
-                    </button>
-                )}
-            </div>
 
-            <section className="mb-6 grid grid-cols-2 gap-3.5 sm:grid-cols-4">
-                <KpiCard
-                    icon={Store}
-                    label="Points du réseau"
-                    hint="Guichets partenaires"
-                    value={points.total}
-                    tone="navy"
-                />
-                <KpiCard
-                    icon={Coins}
-                    label="Volume mensuel"
-                    hint="Recettes billetterie"
-                    value={formatAmount(stats.totalMonthlySales)}
-                    tone="green"
-                />
-                <KpiCard
-                    icon={AlertTriangle}
-                    label="Encours global"
-                    hint="Dettes en circulation"
-                    value={formatAmount(stats.totalExposure)}
-                    tone="gold"
-                />
-                <KpiCard
-                    icon={AlertTriangle}
-                    label="Points en alerte"
-                    hint="Seuil ou suspension"
-                    value={stats.alertCount}
-                    tone="rose"
-                />
-            </section>
+                <section className="cash-reveal cash-reveal-delay-1 mb-6 grid grid-cols-2 gap-3.5 sm:grid-cols-4">
+                    <KpiCard
+                        icon={Store}
+                        label="Points du réseau"
+                        hint="Guichets partenaires"
+                        value={points.total}
+                        tone="navy"
+                    />
+                    <KpiCard
+                        icon={Coins}
+                        label="Volume mensuel"
+                        hint="Recettes billetterie"
+                        value={formatAmount(stats.totalMonthlySales)}
+                        tone="green"
+                    />
+                    <KpiCard
+                        icon={AlertTriangle}
+                        label="Encours global"
+                        hint="Dettes en circulation"
+                        value={formatAmount(stats.totalExposure)}
+                        tone="gold"
+                    />
+                    <KpiCard
+                        icon={AlertTriangle}
+                        label="Points en alerte"
+                        hint="Seuil ou suspension"
+                        value={stats.alertCount}
+                        tone="rose"
+                    />
+                </section>
 
-            <KoraFilterBar
-                route="/kora-points"
-                searchPlaceholder="Rechercher par code, nom ou ville…"
-                filters={filterConfigs}
-            />
+                <div className="cash-reveal cash-reveal-delay-2 cash-section-intro">
+                    <div>
+                        <span className="section-kicker">Réseau commercial</span>
+                        <h2>Points de vente partenaires</h2>
+                    </div>
+                </div>
 
-            <div className="mt-4">
-                <KoraTable
-                    title="Réseau de points de vente"
-                    subtitle={`${points.total} point${points.total > 1 ? 's' : ''} référencé${points.total > 1 ? 's' : ''}`}
-                    icon={Store}
-                    columns={columns}
-                    data={points.data}
-                    rowKey={(point) => point.uuid}
-                    emptyTitle="Aucun point de vente"
-                    emptyMessage="Ajustez votre recherche ou créez le premier point du réseau."
-                    emptyIcon={Store}
-                    pagination={pagination}
-                />
+                <div className="cash-reveal cash-reveal-delay-2">
+                    <KoraFilterBar
+                        route="/kora-points"
+                        searchPlaceholder="Rechercher par code, nom ou ville…"
+                        filters={filterConfigs}
+                        className="cash-filterbar"
+                    />
+                </div>
+
+                <div className="cash-reveal cash-reveal-delay-3 mt-4">
+                    <KoraTable
+                        title="Réseau de points de vente"
+                        subtitle={`${points.total} point${points.total > 1 ? 's' : ''} référencé${points.total > 1 ? 's' : ''}`}
+                        icon={Store}
+                        columns={columns}
+                        data={points.data}
+                        rowKey={(point) => point.uuid}
+                        emptyTitle="Aucun point de vente"
+                        emptyMessage="Ajustez votre recherche ou créez le premier point du réseau."
+                        emptyIcon={Store}
+                        pagination={pagination}
+                    />
+                </div>
             </div>
 
             <KoraAdminPointWizardDialog

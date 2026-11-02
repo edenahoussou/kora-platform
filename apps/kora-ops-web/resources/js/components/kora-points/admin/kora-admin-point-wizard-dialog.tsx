@@ -33,6 +33,7 @@ type Props = {
         department: string;
         managerName: string;
         phone: string;
+        email?: string;
         creditLimit: number;
         commissionRateBps: number;
         settlementFrequencyDays: number;
@@ -167,6 +168,7 @@ export function KoraAdminPointWizardDialog({
             department,
             managerName: managerName.trim(),
             phone: phone.trim(),
+            email: email.trim() || undefined,
             creditLimit,
             commissionRateBps,
             settlementFrequencyDays,
@@ -579,6 +581,14 @@ export function KoraAdminPointWizardDialog({
                     {/* Step 4: Gérant & Pièces */}
                     {step === 4 && (
                         <div className="space-y-4">
+                            <div className="flex items-start gap-2.5 rounded-xl border border-blue-200 bg-blue-50/70 p-3 text-xs text-blue-900 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-200">
+                                <AlertCircle className="mt-0.5 size-4 shrink-0 text-blue-600 dark:text-blue-400" />
+                                <span>
+                                    Ces informations serviront à créer le compte
+                                    d'accès du point.
+                                </span>
+                            </div>
+
                             <div className="space-y-1.5">
                                 <label className="flex items-center text-xs font-bold text-slate-700 dark:text-slate-300">
                                     <User className="mr-1.5 h-4 w-4 text-slate-500" />
@@ -623,7 +633,7 @@ export function KoraAdminPointWizardDialog({
                                 <div className="space-y-1.5">
                                     <label className="flex items-center text-xs font-bold text-slate-700 dark:text-slate-300">
                                         <Mail className="mr-1.5 h-4 w-4 text-slate-500" />
-                                        Email professionnel
+                                        Email
                                     </label>
                                     <input
                                         type="email"

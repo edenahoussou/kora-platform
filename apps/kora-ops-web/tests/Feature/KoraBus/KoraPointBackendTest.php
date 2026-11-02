@@ -17,6 +17,7 @@ use App\Modules\DynamicPricing\Models\Fare;
 use App\Modules\DynamicPricing\Models\PricingRule;
 use App\Modules\DynamicPricing\Models\ServiceClass;
 use App\Modules\IdentityAccess\Models\Agency;
+use App\Modules\IdentityAccess\Models\AuthOtpChallenge;
 use App\Modules\KoraPoints\Actions\RecordKoraPointSaleAction;
 use App\Modules\KoraPoints\Jobs\SendKoraPointReminderJob;
 use App\Modules\KoraPoints\Models\KoraPoint;
@@ -580,6 +581,85 @@ it('rejects provider confirmation of a partner reservation outside the counter c
     $payment = Payment::query()->create(['reservation_id' => $reservation->getKey(), 'method' => 'mobile_money', 'provider' => 'fedapay', 'status' => 'pending', 'amount' => 10000, 'currency' => 'XOF', 'idempotency_key' => (string) Str::uuid()]);
     expect(fn () => app(ConfirmPaymentAction::class)->handle($payment, 'confirmed'))->toThrow(ValidationException::class);
     expect($payment->refresh()->status->value)->toBe('pending')->and($reservation->refresh()->status->value)->toBe('held')->and(KoraPointSale::query()->count())->toBe(0);
+});
+
+it('creates organization members as users with otp challenge when saving an organization', function (): void {
+    $admin = tap(User::factory()->create(), fn ($user) => $user->assignRole('system_admin'));
+
+    $org = app(KoraPointManagementService::class)->saveOrganization($admin, [
+        'name' => 'La Poste Bénin Test',
+        'code' => 'LPB-TEST',
+        'phone' => '+22997000000',
+        'members' => [
+            [
+                'name' => 'Jean Superviseur',
+                'email' => 'jean.sup@laposte.bj',
+                'phone' => '+22997010203',
+                'role' => 'kora_point_supervisor',
+            ],
+            [
+                'name' => 'Marc Tresorier',
+                'email' => 'marc.tres@laposte.bj',
+                'phone' => '+22997040506',
+                'role' => 'kora_point_treasurer',
+            ],
+        ],
+    ]);
+
+    $supervisor = User::query()->where('email', 'jean.sup@laposte.bj')->first();
+    expect($supervisor)->not->toBeNull()
+        ->and($supervisor->name)->toBe('Jean Superviseur')
+        ->and($supervisor->hasRole('kora_point_supervisor'))->toBeTrue()
+        ->and($supervisor->kora_point_organization_id)->toBe($org->id)
+        ->and($supervisor->must_change_password)->toBeTrue();
+
+    $treasurer = User::query()->where('email', 'marc.tres@laposte.bj')->first();
+    expect($treasurer)->not->toBeNull()
+        ->and($treasurer->name)->toBe('Marc Tresorier')
+        ->and($treasurer->hasRole('kora_point_treasurer'))->toBeTrue()
+        ->and($treasurer->kora_point_organization_id)->toBe($org->id)
+        ->and($treasurer->must_change_password)->toBeTrue();
+
+    expect(AuthOtpChallenge::query()->where('user_id', $supervisor->id)->count())->toBe(1)
+        ->and(AuthOtpChallenge::query()->where('user_id', $treasurer->id)->count())->toBe(1);
+});
+
+it('creates a kora_point_agent user account when saving a point with email', function (): void {
+    $admin = tap(User::factory()->create(), fn ($user) => $user->assignRole('system_admin'));
+
+    $point = app(KoraPointManagementService::class)->savePoint($admin, [
+        'name' => 'Point Etoile Rouge',
+        'city' => 'Cotonou',
+        'responsible_name' => 'Aïcha Gérant',
+        'phone' => '+22997112233',
+        'email' => 'aicha.agent@etoile.bj',
+    ]);
+
+    $agent = User::query()->where('email', 'aicha.agent@etoile.bj')->first();
+    expect($agent)->not->toBeNull()
+        ->and($agent->name)->toBe('Aïcha Gérant')
+        ->and($agent->hasRole('kora_point_agent'))->toBeTrue()
+        ->and($agent->agency_id)->toBe($point->agency_id)
+        ->and($agent->must_change_password)->toBeTrue();
+
+    expect(AuthOtpChallenge::query()->where('user_id', $agent->id)->count())->toBe(1);
+});
+
+it('does not create any user account when saving a point without email', function (): void {
+    $admin = tap(User::factory()->create(), fn ($user) => $user->assignRole('system_admin'));
+
+    $initialUserCount = User::query()->count();
+
+    $point = app(KoraPointManagementService::class)->savePoint($admin, [
+        'name' => 'Point Sans Compte',
+        'city' => 'Porto-Novo',
+        'responsible_name' => 'Bio Sans Email',
+        'phone' => '+22997445566',
+        'email' => null,
+    ]);
+
+    expect($point)->not->toBeNull()
+        ->and(User::query()->count())->toBe($initialUserCount);
 });
 
 function kpCounterScenario(): array

@@ -1,6 +1,7 @@
 import { router } from '@inertiajs/react';
 import {
     AlertCircle,
+    ChevronDown,
     Coins,
     Download,
     FileText,
@@ -223,22 +224,25 @@ export function KoraOrgDetailSheet({
                         {permissions.canManage &&
                             unattachedPoints.length > 0 && (
                                 <div className="mb-4 flex items-center gap-2">
-                                    <select
-                                        className="field flex-1"
-                                        value={attachUuid}
-                                        onChange={(e) =>
-                                            setAttachUuid(e.target.value)
-                                        }
-                                    >
-                                        <option value="">
-                                            Rattacher un point autonome…
-                                        </option>
-                                        {unattachedPoints.map((p) => (
-                                            <option key={p.uuid} value={p.uuid}>
-                                                {p.name} ({p.code}) — {p.city}
+                                    <div className="relative flex-1">
+                                        <select
+                                            className="control w-full pr-9"
+                                            value={attachUuid}
+                                            onChange={(e) =>
+                                                setAttachUuid(e.target.value)
+                                            }
+                                        >
+                                            <option value="">
+                                                Rattacher un point autonome…
                                             </option>
-                                        ))}
-                                    </select>
+                                            {unattachedPoints.map((p) => (
+                                                <option key={p.uuid} value={p.uuid}>
+                                                    {p.name} ({p.code}) — {p.city}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <ChevronDown className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                                    </div>
                                     <button
                                         type="button"
                                         className="btn btn-primary btn-sm"

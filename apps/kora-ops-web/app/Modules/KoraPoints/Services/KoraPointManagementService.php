@@ -3,6 +3,7 @@
 namespace App\Modules\KoraPoints\Services;
 
 use App\Models\User;
+use App\Modules\IdentityAccess\Actions\CreateUserAction;
 use App\Modules\IdentityAccess\Data\SystemRole;
 use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\KoraPoints\Models\KoraPoint;
@@ -16,7 +17,11 @@ use Illuminate\Validation\ValidationException;
 
 class KoraPointManagementService
 {
-    public function __construct(private readonly KoraPointAccess $access, private readonly KoraPointLedgerService $ledger) {}
+    public function __construct(
+        private readonly KoraPointAccess $access,
+        private readonly KoraPointLedgerService $ledger,
+        private readonly CreateUserAction $createUser,
+    ) {}
 
     /** @param array<string, mixed> $data */
     /**
@@ -66,6 +71,20 @@ class KoraPointManagementService
             $this->syncLogo($actor, $point, $data);
             $this->audit($actor, $point, 'point.saved', $before);
 
+            $email = isset($data['email']) ? trim((string) $data['email']) : null;
+            if (! empty($email)) {
+                $this->createUser->execute([
+                    'name' => (string) ($point->responsible_name ?: ($data['responsible_name'] ?? 'Agent')),
+                    'email' => strtolower($email),
+                    'phone' => $point->phone ?: ($data['phone'] ?? null),
+                    'country_code' => (string) $data['country'],
+                    'birth_date' => null,
+                    'status' => 'active',
+                    'agency_uuid' => $point->agency->uuid,
+                    'role' => 'kora_point_agent',
+                ], $actor, request());
+            }
+
             return $point->refresh();
         }, 3);
     }
@@ -95,6 +114,26 @@ class KoraPointManagementService
             $this->syncLogo($actor, $organization, $data);
             foreach ($data['points'] ?? [] as $pointData) {
                 $this->savePoint($actor, $pointData + ['organization_uuid' => $organization->uuid]);
+            }
+            foreach ($data['members'] ?? [] as $memberData) {
+                $result = $this->createUser->execute([
+                    'name' => trim((string) $memberData['name']),
+                    'email' => strtolower(trim((string) $memberData['email'])),
+                    'phone' => ! empty($memberData['phone']) ? trim((string) $memberData['phone']) : null,
+                    'country_code' => $data['country'] ?? 'BJ',
+                    'birth_date' => null,
+                    'status' => 'active',
+                    'agency_uuid' => null,
+                    'role' => (string) $memberData['role'],
+                ], $actor, request());
+
+                $memberUser = $result['user'];
+                $memberUser->forceFill(['kora_point_organization_id' => $organization->getKey()])->save();
+                activity('kora-points')
+                    ->performedOn($memberUser)
+                    ->causedBy($actor)
+                    ->withProperties(['role' => $memberData['role'], 'subject_uuid' => $organization->uuid])
+                    ->log('partner.assigned');
             }
             $this->audit($actor, $organization, 'organization.saved', $before);
 

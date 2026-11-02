@@ -46,6 +46,11 @@ class SaveKoraPointOrganizationRequest extends FormRequest
             'points.*.address' => ['nullable', 'string', 'max:2000'],
             'points.*.latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'points.*.longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'members' => ['sometimes', 'array', 'max:50'],
+            'members.*.name' => ['required', 'string', 'max:255'],
+            'members.*.email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'members.*.phone' => ['nullable', 'string', 'max:40'],
+            'members.*.role' => ['required', 'string', Rule::in(['kora_point_supervisor', 'kora_point_treasurer'])],
         ];
 
         return $rules + KoraPointTermsService::rules();
