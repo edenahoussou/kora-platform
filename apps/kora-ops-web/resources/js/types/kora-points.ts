@@ -44,10 +44,12 @@ export type KoraPointProfile = {
     manager_phone: string;
     manager_email: string;
     status: PointStatus;
+    logo_url: string | null;
     organization: {
         uuid: string;
         code: string;
         name: string;
+        logo_url: string | null;
     } | null;
     terms: KoraPointTerms;
 };

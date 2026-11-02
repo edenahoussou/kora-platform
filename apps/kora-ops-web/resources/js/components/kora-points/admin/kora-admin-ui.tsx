@@ -13,6 +13,8 @@ export type AdminPoint = {
     type: 'AUTONOMOUS' | 'ORGANIZATION_ATTACHED';
     organization_name: string | null;
     organization_uuid: string | null;
+    logo_url: string | null;
+    organization_logo_url: string | null;
     manager_name: string;
     responsible_name: string;
     phone: string;
@@ -43,6 +45,7 @@ export type AdminPoint = {
 
 export type AdminOrganization = MockAdminOrganization & {
     status: string;
+    logo_url: string | null;
     phone: string | null;
     address: string | null;
     commission_basis_points: number | null;

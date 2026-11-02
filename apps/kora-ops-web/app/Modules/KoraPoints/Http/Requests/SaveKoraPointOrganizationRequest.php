@@ -33,6 +33,8 @@ class SaveKoraPointOrganizationRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:40'],
             'address' => ['nullable', 'string', 'max:2000'],
+            'logo' => ['sometimes', 'nullable', 'image', 'mimes:jpeg,png,webp', 'max:2048'],
+            'remove_logo' => ['sometimes', 'boolean'],
             'points' => ['sometimes', 'array', 'max:100'],
             'points.*' => ['array:code,name,city,country,responsible_name,phone,address,latitude,longitude'],
             'points.*.code' => ['required', 'string', 'max:80', 'distinct', 'unique:agencies,code'],

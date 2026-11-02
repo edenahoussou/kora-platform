@@ -27,12 +27,14 @@ class KoraPointReadService
         $this->access->authorize($actor, 'kora-points.view');
 
         $organizations = KoraPointOrganization::query()
+            ->with('media')
             ->latest('id')
             ->get()
             ->map(fn (KoraPointOrganization $org): array => [
                 'uuid' => $org->uuid,
                 'code' => $org->code,
                 'name' => $org->name,
+                'logo_url' => $org->getFirstMediaUrl('logo', 'thumb') ?: null,
                 'legal_name' => $org->name,
                 'headquarters_city' => $org->address ?? 'Cotonou',
                 'rccm' => 'RB/COT/14 B 11842',
@@ -117,7 +119,7 @@ class KoraPointReadService
         $entries = fn ($query) => $query->whereIn('sale_id', $saleIds);
         $due = now()->subDays($this->terms->graceDays());
 
-        return $this->access->points($actor)->with(['agency', 'organization'])
+        return $this->access->points($actor)->with(['agency', 'organization.media', 'media'])
             ->withCount(['sales' => $sales])
             ->withSum(['sales as gross_total' => $sales], 'gross_amount')
             ->withSum(['sales as refunded_total' => $sales], 'refunded_amount')
@@ -156,6 +158,8 @@ class KoraPointReadService
             'type' => $point->organization_id !== null ? 'ORGANIZATION_ATTACHED' : 'AUTONOMOUS',
             'organization_name' => $point->organization?->name,
             'organization_uuid' => $point->organization?->uuid,
+            'logo_url' => $point->getFirstMediaUrl('logo', 'thumb') ?: null,
+            'organization_logo_url' => $point->organization?->getFirstMediaUrl('logo', 'thumb') ?: null,
             'manager_name' => $point->responsible_name,
             'responsible_name' => $point->responsible_name,
             'phone' => $point->phone,

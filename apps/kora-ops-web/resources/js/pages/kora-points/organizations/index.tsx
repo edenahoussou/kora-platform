@@ -141,9 +141,17 @@ export default function KoraPointOrganizationsIndexPage({
             header: 'Organisation',
             render: (org) => (
                 <div className="flex items-center gap-3">
-                    <span className="grid size-9 place-items-center rounded-[0.65rem] bg-kora text-[0.6875rem] font-black text-white">
-                        {org.code.slice(0, 3)}
-                    </span>
+                    {org.logo_url ? (
+                        <img
+                            src={org.logo_url}
+                            alt={`Logo ${org.name}`}
+                            className="size-9 rounded-[0.65rem] bg-white object-contain ring-1 ring-border"
+                        />
+                    ) : (
+                        <span className="grid size-9 place-items-center rounded-[0.65rem] bg-kora text-[0.6875rem] font-black text-white">
+                            {org.code.slice(0, 3)}
+                        </span>
+                    )}
                     <div>
                         <strong className="block font-bold text-foreground">
                             {org.name}

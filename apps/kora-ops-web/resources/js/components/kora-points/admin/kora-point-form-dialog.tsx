@@ -1,6 +1,12 @@
 import { Form } from '@inertiajs/react';
-import { Building2, Store, X } from 'lucide-react';
-import { useState } from 'react';
+import {
+    Building2,
+    Image as ImageIcon,
+    Store,
+    Upload,
+    X,
+} from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import koraPoints from '@/routes/kora-points';
 import type { AdminOrganization, AdminPoint } from './kora-admin-ui';
 
@@ -25,7 +31,52 @@ export function KoraPointFormDialog({
             ? String(point.terms.commission_basis_points / 100)
             : '',
     );
+    const logoInputRef = useRef<HTMLInputElement>(null);
+    const logoObjectUrl = useRef<string | null>(null);
+    const [logoPreview, setLogoPreview] = useState<string | null>(
+        point?.logo_url ?? null,
+    );
+    const [logoRemoved, setLogoRemoved] = useState(false);
+    const [previewKey, setPreviewKey] = useState<string | null>(null);
+    const dialogKey = open ? `open:${point?.uuid ?? 'new'}` : 'closed';
+
+    if (previewKey !== dialogKey) {
+        setPreviewKey(dialogKey);
+        setLogoPreview(point?.logo_url ?? null);
+        setLogoRemoved(false);
+    }
+
+    useEffect(() => {
+        return () => {
+            if (logoObjectUrl.current) {
+                URL.revokeObjectURL(logoObjectUrl.current);
+            }
+        };
+    }, []);
     const isEditing = Boolean(point);
+
+    const selectLogo = (file: File | null) => {
+        if (logoObjectUrl.current) {
+            URL.revokeObjectURL(logoObjectUrl.current);
+            logoObjectUrl.current = null;
+        }
+
+        if (file) {
+            logoObjectUrl.current = URL.createObjectURL(file);
+            setLogoPreview(logoObjectUrl.current);
+            setLogoRemoved(false);
+        }
+    };
+
+    const clearLogo = () => {
+        selectLogo(null);
+        setLogoPreview(null);
+        setLogoRemoved(Boolean(point?.logo_url));
+
+        if (logoInputRef.current) {
+            logoInputRef.current.value = '';
+        }
+    };
     const title = isEditing
         ? 'Modifier le point de vente'
         : 'Nouveau point de vente';
@@ -178,6 +229,84 @@ export function KoraPointFormDialog({
                                             </small>
                                         )}
                                     </label>
+
+                                    <div className="field sm:col-span-2">
+                                        <span className="flex items-center gap-1.5">
+                                            <ImageIcon className="size-3.5 text-gold" />
+                                            Logo
+                                        </span>
+                                        <div className="mt-2 flex items-center gap-3">
+                                            <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-muted/40">
+                                                {logoPreview ? (
+                                                    <img
+                                                        src={logoPreview}
+                                                        alt="Logo du point"
+                                                        className="h-full w-full object-contain"
+                                                    />
+                                                ) : (
+                                                    <Store className="size-5 text-muted-foreground/60" />
+                                                )}
+                                            </span>
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-ghost btn-sm"
+                                                    onClick={() =>
+                                                        logoInputRef.current?.click()
+                                                    }
+                                                    disabled={processing}
+                                                >
+                                                    <Upload className="size-3.5" />
+                                                    {logoPreview
+                                                        ? 'Changer le logo'
+                                                        : 'Choisir un logo'}
+                                                </button>
+                                                {logoPreview && (
+                                                    <button
+                                                        type="button"
+                                                        className="btn btn-ghost btn-sm text-destructive"
+                                                        onClick={clearLogo}
+                                                        disabled={processing}
+                                                    >
+                                                        Retirer
+                                                    </button>
+                                                )}
+                                                <input
+                                                    ref={logoInputRef}
+                                                    type="file"
+                                                    name="logo"
+                                                    accept="image/png,image/jpeg,image/webp"
+                                                    className="hidden"
+                                                    onChange={(e) =>
+                                                        selectLogo(
+                                                            e.target
+                                                                .files?.[0] ??
+                                                                null,
+                                                        )
+                                                    }
+                                                />
+                                                {logoRemoved && (
+                                                    <input
+                                                        type="hidden"
+                                                        name="remove_logo"
+                                                        value="1"
+                                                    />
+                                                )}
+                                            </div>
+                                        </div>
+                                        {errors.logo ? (
+                                            <small className="text-destructive">
+                                                {errors.logo}
+                                            </small>
+                                        ) : (
+                                            <small className="text-muted-foreground">
+                                                PNG, JPEG ou WebP (2 Mo max).
+                                                {point?.organization_uuid
+                                                    ? ' Le logo de l’organisation s’affiche sur ce point rattaché.'
+                                                    : ' Affiché si le point reste autonome.'}
+                                            </small>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 

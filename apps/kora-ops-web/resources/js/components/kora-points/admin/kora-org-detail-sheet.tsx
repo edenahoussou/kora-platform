@@ -106,7 +106,18 @@ export function KoraOrgDetailSheet({
                 </SheetDescription>
 
                 <div className="border-b border-border bg-card px-6 py-5">
-                    <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-3">
+                        {organization.logo_url ? (
+                            <img
+                                src={organization.logo_url}
+                                alt={`Logo ${organization.name}`}
+                                className="size-11 shrink-0 rounded-xl bg-white object-contain ring-1 ring-border"
+                            />
+                        ) : (
+                            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-kora text-xs font-black text-white">
+                                {organization.code.slice(0, 3)}
+                            </span>
+                        )}
                         <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
                                 <span className="section-kicker">

@@ -70,6 +70,7 @@ function KoraPointStandaloneShell({
 }: Omit<Props, 'standalone'>) {
     const [mobileNavOpen, setMobileNavOpen] = useState(false);
     const isAutonomous = !point.organization;
+    const activeLogo = point.organization?.logo_url ?? point.logo_url;
     const persona = MOCK_PERSONAS[currentRole] || MOCK_PERSONAS.AGENT_POINT;
 
     const navGroups = useMemo(() => {
@@ -390,8 +391,17 @@ function KoraPointStandaloneShell({
                                     {point.code}
                                 </span>
                             </div>
-                            <div className="mt-1 truncate text-xs font-extrabold text-white">
-                                {point.name}
+                            <div className="mt-1 flex items-center gap-2">
+                                {activeLogo && (
+                                    <img
+                                        src={activeLogo}
+                                        alt=""
+                                        className="size-6 shrink-0 rounded-md bg-white object-contain ring-1 ring-white/20"
+                                    />
+                                )}
+                                <span className="truncate text-xs font-extrabold text-white">
+                                    {point.name}
+                                </span>
                             </div>
                             <div className="mt-1 flex items-center gap-1.5 text-[0.6875rem] text-white/70">
                                 {point.organization ? (
@@ -527,6 +537,13 @@ function KoraPointStandaloneShell({
                                         KORA OPS
                                     </span>
                                     <ChevronRight className="hidden size-3.5 sm:inline" />
+                                    {activeLogo && (
+                                        <img
+                                            src={activeLogo}
+                                            alt=""
+                                            className="size-6 shrink-0 rounded-md bg-white object-contain ring-1 ring-slate-200 dark:ring-slate-700"
+                                        />
+                                    )}
                                     <span className="font-extrabold text-slate-900 dark:text-white">
                                         {point.name}
                                     </span>

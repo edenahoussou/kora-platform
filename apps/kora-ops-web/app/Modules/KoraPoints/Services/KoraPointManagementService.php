@@ -8,6 +8,7 @@ use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\KoraPoints\Models\KoraPoint;
 use App\Modules\KoraPoints\Models\KoraPointOrganization;
 use App\Modules\KoraPoints\Models\KoraPointRemittanceLine;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -62,6 +63,7 @@ class KoraPointManagementService
                 $point->organization_id = $organization?->getKey();
             }
             $point->save();
+            $this->syncLogo($actor, $point, $data);
             $this->audit($actor, $point, 'point.saved', $before);
 
             return $point->refresh();
@@ -90,6 +92,7 @@ class KoraPointManagementService
             $before = $organization->getAttributes();
             $organization->fill(Arr::only($data, ['code', 'name', 'phone', 'address', 'commission_basis_points', 'ceiling_amount', 'settlement_calendar']));
             $organization->save();
+            $this->syncLogo($actor, $organization, $data);
             foreach ($data['points'] ?? [] as $pointData) {
                 $this->savePoint($actor, $pointData + ['organization_uuid' => $organization->uuid]);
             }
@@ -153,6 +156,29 @@ class KoraPointManagementService
             $locked->syncRoles([$role]);
             activity('kora-points')->performedOn($locked)->causedBy($actor)->withProperties(['before' => $before, 'role' => $role, 'subject_uuid' => $subject->uuid])->log('partner.assigned');
         });
+    }
+
+    /** @param array<string, mixed> $data */
+    /**
+     * Replaces or clears the single-file logo when the payload carries one.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function syncLogo(User $actor, KoraPoint|KoraPointOrganization $subject, array $data): void
+    {
+        $logo = $data['logo'] ?? null;
+        $removing = filter_var($data['remove_logo'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        if (! $logo instanceof UploadedFile && ! $removing) {
+            return;
+        }
+        unset($subject->media);
+        if ($logo instanceof UploadedFile) {
+            $media = $subject->addMedia($logo)->toMediaCollection('logo');
+            activity('kora-points')->performedOn($subject)->causedBy($actor)->withProperties(['media_uuid' => $media->uuid])->log('logo.updated');
+        } else {
+            $subject->clearMediaCollection('logo');
+            activity('kora-points')->performedOn($subject)->causedBy($actor)->log('logo.removed');
+        }
     }
 
     /** @param array<string, mixed> $before */

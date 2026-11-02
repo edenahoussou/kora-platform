@@ -211,28 +211,40 @@ export default function KoraPointsIndexPage({
             key: 'point',
             header: 'Point de vente',
             render: (point) => {
-                const attachedOrgBadge = point.organization_uuid
-                    ? orgBadgeByUuid.get(point.organization_uuid)
-                    : null;
-                const badgeLabel =
-                    attachedOrgBadge ?? point.code.slice(0, 3).toUpperCase();
+                const orgUuid = point.organization_uuid;
+                const attached = orgUuid != null;
+                const logoUrl = attached
+                    ? point.organization_logo_url
+                    : point.logo_url;
+                const badgeLabel = attached
+                    ? (orgBadgeByUuid.get(orgUuid) ??
+                      point.code.slice(0, 3).toUpperCase())
+                    : point.code.slice(0, 3).toUpperCase();
+                const badgeTitle = attached
+                    ? `Rattaché à ${point.organization_name}`
+                    : 'Point autonome';
 
                 return (
                     <div className="flex items-center gap-3">
-                        <span
-                            className={
-                                attachedOrgBadge
-                                    ? 'grid size-9 place-items-center rounded-[0.65rem] bg-kora text-[0.6875rem] font-black text-white'
-                                    : 'grid size-9 place-items-center rounded-[0.65rem] bg-gold/12 text-[0.6875rem] font-black text-[var(--kora)]'
-                            }
-                            title={
-                                attachedOrgBadge
-                                    ? `Rattaché à ${point.organization_name}`
-                                    : 'Point autonome'
-                            }
-                        >
-                            {badgeLabel}
-                        </span>
+                        {logoUrl ? (
+                            <img
+                                src={logoUrl}
+                                alt=""
+                                title={badgeTitle}
+                                className="size-9 rounded-[0.65rem] bg-white object-contain ring-1 ring-border"
+                            />
+                        ) : (
+                            <span
+                                className={
+                                    attached
+                                        ? 'grid size-9 place-items-center rounded-[0.65rem] bg-kora text-[0.6875rem] font-black text-white'
+                                        : 'grid size-9 place-items-center rounded-[0.65rem] bg-gold/12 text-[0.6875rem] font-black text-[var(--kora)]'
+                                }
+                                title={badgeTitle}
+                            >
+                                {badgeLabel}
+                            </span>
+                        )}
                         <div>
                             <strong className="block font-bold text-foreground">
                                 {point.name}

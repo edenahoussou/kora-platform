@@ -74,6 +74,8 @@ class SaveKoraPointRequest extends FormRequest
             'address' => ['nullable', 'string', 'max:2000'],
             'latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'logo' => ['sometimes', 'nullable', 'image', 'mimes:jpeg,png,webp', 'max:2048'],
+            'remove_logo' => ['sometimes', 'boolean'],
             'organization_uuid' => ['nullable', 'uuid', 'exists:kora_point_organizations,uuid'],
             'commission_basis_points' => ['nullable', 'integer', 'min:0', 'max:10000'],
             'ceiling_amount' => ['nullable', 'integer', 'min:0', 'max:1000000000000'],

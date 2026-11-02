@@ -39,10 +39,12 @@ export type KoraPointProfile = {
     manager_phone: string;
     manager_email: string;
     status: PointStatus;
+    logo_url: string | null;
     organization: {
         uuid: string;
         code: string;
         name: string;
+        logo_url: string | null;
     } | null;
     terms: KoraPointTerms;
 };
@@ -137,6 +139,7 @@ export const MOCK_POINT_AUTONOMOUS: KoraPointProfile = {
     manager_phone: '+229 97 00 11 22',
     manager_email: 'jean.dossou@korapoint.bj',
     status: 'ready',
+    logo_url: null,
     organization: null,
     terms: {
         commission_rate_bps: 300,
@@ -162,10 +165,12 @@ export const MOCK_POINT_ORGANIZATION: KoraPointProfile = {
     manager_phone: '+229 95 44 22 11',
     manager_email: 'awa.kiki@laposte.bj',
     status: 'ready',
+    logo_url: null,
     organization: {
         uuid: 'org-11223344-5566-7788-99aa-bbccddeeff00',
         code: 'ORG-LAPOSTE-BJ',
         name: 'La Poste du Togo / Bénin Réseau',
+        logo_url: null,
     },
     terms: {
         commission_rate_bps: 350,

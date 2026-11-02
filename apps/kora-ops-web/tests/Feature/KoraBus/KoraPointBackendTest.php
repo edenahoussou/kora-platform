@@ -27,6 +27,7 @@ use App\Modules\KoraPoints\Services\KoraPointAccess;
 use App\Modules\KoraPoints\Services\KoraPointDocumentService;
 use App\Modules\KoraPoints\Services\KoraPointLedgerService;
 use App\Modules\KoraPoints\Services\KoraPointManagementService;
+use App\Modules\KoraPoints\Services\KoraPointReadService;
 use App\Modules\KoraPoints\Services\KoraPointRefundService;
 use App\Modules\KoraPoints\Services\KoraPointRemittanceService;
 use App\Modules\KoraPoints\Services\KoraPointTermsService;
@@ -134,6 +135,33 @@ it('creates an organization with auto generated code composed from structure nam
         ->and($org->commission_basis_points)->toBe(350)
         ->and($org->ceiling_amount)->toBe(2500000)
         ->and($org->settlement_calendar['frequency'])->toBe('weekly');
+});
+
+it('stores a partner logo and lets attached points inherit it', function (): void {
+    Storage::fake('public');
+
+    $this->actingAs($this->commercial)->post(route('kora-points.organizations.store'), [
+        'name' => 'Coris Bank',
+        'logo' => UploadedFile::fake()->image('logo.png', 64, 64),
+    ])->assertRedirect();
+
+    $org = KoraPointOrganization::query()->where('name', 'Coris Bank')->sole();
+    expect($org->getMedia('logo'))->toHaveCount(1)
+        ->and($org->getFirstMediaUrl('logo', 'thumb'))->not->toBeEmpty();
+
+    $point = kpPoint(['organization_id' => $org->id]);
+    $view = app(KoraPointReadService::class)->point($point->load(['organization.media', 'media']), $this->commercial);
+    expect($view['organization_logo_url'])->toBe($org->getFirstMediaUrl('logo', 'thumb'))
+        ->and($view['logo_url'])->toBeNull();
+
+    app(KoraPointManagementService::class)->savePoint($this->commercial, ['logo' => UploadedFile::fake()->image('point.png', 64, 64)], $point);
+    expect($point->refresh()->getMedia('logo'))->toHaveCount(1);
+
+    $this->actingAs($this->commercial)->put(route('kora-points.organizations.update', $org->uuid), [
+        'name' => 'Coris Bank',
+        'remove_logo' => '1',
+    ])->assertRedirect();
+    expect($org->refresh()->getMedia('logo'))->toHaveCount(0);
 });
 
 it('creates an organization and its points atomically and rolls back invalid batches', function (): void {

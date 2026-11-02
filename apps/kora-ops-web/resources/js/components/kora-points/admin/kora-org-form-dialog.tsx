@@ -3,14 +3,16 @@ import {
     Building2,
     CalendarClock,
     Coins,
+    Image as ImageIcon,
     Landmark,
     MapPin,
     Percent,
     Phone,
     Tag,
+    Upload,
     X,
 } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import PhoneInput, {
     isValidPhoneNumber,
     parsePhoneNumber,
@@ -29,6 +31,8 @@ type OrgFormValues = {
     name: string;
     phone: string;
     address: string;
+    logo: File | null;
+    remove_logo: boolean;
     commission_rate: string;
     ceiling_amount: string;
     settlement_calendar: {
@@ -44,6 +48,8 @@ const emptyValues: OrgFormValues = {
     name: '',
     phone: '',
     address: '',
+    logo: null,
+    remove_logo: false,
     commission_rate: '',
     ceiling_amount: '',
     settlement_calendar: null,
@@ -85,6 +91,8 @@ function valuesFromOrg(org?: AdminOrganization | null): OrgFormValues {
         name: org.name ?? '',
         phone: normalizePhoneValue(org.phone),
         address: org.address ?? '',
+        logo: null,
+        remove_logo: false,
         commission_rate:
             org.commission_basis_points !== null &&
             org.commission_basis_points !== undefined
@@ -105,6 +113,18 @@ export function KoraOrgFormDialog({
 }: Props) {
     const isEditing = Boolean(organization);
     const form = useForm<OrgFormValues>(valuesFromOrg(organization));
+    const logoInputRef = useRef<HTMLInputElement>(null);
+    const logoObjectUrl = useRef<string | null>(null);
+    const [logoPreview, setLogoPreview] = useState<string | null>(
+        organization?.logo_url ?? null,
+    );
+    const [previewKey, setPreviewKey] = useState<string | null>(null);
+    const dialogKey = open ? `open:${organization?.uuid ?? 'new'}` : 'closed';
+
+    if (previewKey !== dialogKey) {
+        setPreviewKey(dialogKey);
+        setLogoPreview(organization?.logo_url ?? null);
+    }
 
     useEffect(() => {
         if (open) {
@@ -113,6 +133,14 @@ export function KoraOrgFormDialog({
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, organization?.uuid]);
+
+    useEffect(() => {
+        return () => {
+            if (logoObjectUrl.current) {
+                URL.revokeObjectURL(logoObjectUrl.current);
+            }
+        };
+    }, []);
 
     if (!open) {
         return null;
@@ -134,6 +162,31 @@ export function KoraOrgFormDialog({
         form.errors as Record<string, string | undefined>
     ).commission_basis_points;
 
+    const selectLogo = (file: File | null) => {
+        if (logoObjectUrl.current) {
+            URL.revokeObjectURL(logoObjectUrl.current);
+            logoObjectUrl.current = null;
+        }
+
+        if (file) {
+            logoObjectUrl.current = URL.createObjectURL(file);
+            setLogoPreview(logoObjectUrl.current);
+            form.setData('logo', file);
+            form.setData('remove_logo', false);
+        }
+    };
+
+    const clearLogo = () => {
+        selectLogo(null);
+        setLogoPreview(null);
+        form.setData('logo', null);
+        form.setData('remove_logo', Boolean(organization?.logo_url));
+
+        if (logoInputRef.current) {
+            logoInputRef.current.value = '';
+        }
+    };
+
     const submit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
@@ -143,6 +196,7 @@ export function KoraOrgFormDialog({
 
         const options = {
             preserveScroll: true,
+            forceFormData: true,
             onSuccess: () => onOpenChange(false),
         };
 
@@ -150,6 +204,8 @@ export function KoraOrgFormDialog({
             name: data.name,
             phone: data.phone,
             address: data.address,
+            logo: data.logo,
+            remove_logo: data.remove_logo,
             commission_basis_points:
                 data.commission_rate === ''
                     ? null
@@ -162,10 +218,10 @@ export function KoraOrgFormDialog({
         }));
 
         if (isEditing) {
-            form.put(
-                organizationRoutes.update.url({
+            form.post(
+                organizationRoutes.update.form({
                     organization: organization!.uuid,
-                }),
+                }).action,
                 options,
             );
         } else {
@@ -291,6 +347,70 @@ export function KoraOrgFormDialog({
                             </small>
                         )}
                     </label>
+
+                    <div className="field">
+                        <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                            <ImageIcon className="size-3.5 text-gold" />
+                            Logo
+                        </span>
+                        <div className="mt-2 flex items-center gap-3">
+                            <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-muted/40">
+                                {logoPreview ? (
+                                    <img
+                                        src={logoPreview}
+                                        alt={`Logo de ${form.data.name || 'l’organisation'}`}
+                                        className="h-full w-full object-contain"
+                                    />
+                                ) : (
+                                    <Building2 className="size-5 text-muted-foreground/60" />
+                                )}
+                            </span>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <button
+                                    type="button"
+                                    className="btn btn-ghost btn-sm"
+                                    onClick={() =>
+                                        logoInputRef.current?.click()
+                                    }
+                                    disabled={form.processing}
+                                >
+                                    <Upload className="size-3.5" />
+                                    {logoPreview
+                                        ? 'Changer le logo'
+                                        : 'Choisir un logo'}
+                                </button>
+                                {logoPreview && (
+                                    <button
+                                        type="button"
+                                        className="btn btn-ghost btn-sm text-destructive"
+                                        onClick={clearLogo}
+                                        disabled={form.processing}
+                                    >
+                                        Retirer
+                                    </button>
+                                )}
+                                <input
+                                    ref={logoInputRef}
+                                    type="file"
+                                    accept="image/png,image/jpeg,image/webp"
+                                    className="hidden"
+                                    onChange={(e) =>
+                                        selectLogo(e.target.files?.[0] ?? null)
+                                    }
+                                />
+                            </div>
+                        </div>
+                        {form.errors.logo ? (
+                            <small className="field-error-text">
+                                {form.errors.logo}
+                            </small>
+                        ) : (
+                            <small className="text-muted-foreground">
+                                PNG, JPEG ou WebP (2 Mo max). Affiché sur les
+                                points rattachés.
+                            </small>
+                        )}
+                    </div>
 
                     {isEditing && (
                         <div className="flex items-center justify-between rounded-xl border border-border bg-muted/40 p-3">

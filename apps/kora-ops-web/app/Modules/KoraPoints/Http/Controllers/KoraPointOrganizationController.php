@@ -32,7 +32,7 @@ class KoraPointOrganizationController extends Controller
     {
         $actor = $request->user();
         $this->access->authorize($actor, 'kora-points.view');
-        $query = KoraPointOrganization::query()->with(['documents', 'users']);
+        $query = KoraPointOrganization::query()->with(['documents', 'users', 'media']);
         if ($this->access->isPartner($actor)) {
             $query->whereKey($actor->hasRole('kora_point_agent') ? 0 : ($actor->kora_point_organization_id ?? 0));
         }
@@ -57,7 +57,7 @@ class KoraPointOrganizationController extends Controller
 
         $subpoints = KoraPoint::query()
             ->whereNotNull('organization_id')
-            ->with(['agency', 'organization'])
+            ->with(['agency', 'organization.media'])
             ->get()
             ->map(function (KoraPoint $point): array {
                 $exposure = (int) $point->entries()->sum('amount');
@@ -205,6 +205,7 @@ class KoraPointOrganizationController extends Controller
             'uuid' => $organization->uuid,
             'code' => $organization->code,
             'name' => $organization->name,
+            'logo_url' => $organization->getFirstMediaUrl('logo', 'thumb') ?: null,
             'legal_name' => $organization->name,
             'headquarters_city' => $organization->address ?? 'Cotonou',
             'rccm' => 'RB/COT/14 B 11842',
