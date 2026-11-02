@@ -1,14 +1,13 @@
 import { router } from '@inertiajs/react';
 import { AlertCircle, Coins, Link2, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import koraPoints from '@/routes/kora-points';
 import type { AdminOrganization, AdminPoint } from './kora-admin-ui';
 import { formatAmount } from './kora-admin-ui';
 
 type Props = {
-    open: boolean;
-    point: AdminPoint | null;
+    point: AdminPoint;
     organizations: AdminOrganization[];
     onOpenChange: (open: boolean) => void;
 };
@@ -22,7 +21,6 @@ const frequencyLabels: Record<number, string> = {
 };
 
 export function KoraPointAttachDialog({
-    open,
     point,
     organizations,
     onOpenChange,
@@ -30,17 +28,6 @@ export function KoraPointAttachDialog({
     const [organizationUuid, setOrganizationUuid] = useState('');
     const [attachError, setAttachError] = useState<string | null>(null);
     const [processing, setProcessing] = useState(false);
-
-    useEffect(() => {
-        if (open) {
-            setOrganizationUuid('');
-            setAttachError(null);
-        }
-    }, [open]);
-
-    if (!open || !point) {
-        return null;
-    }
 
     const selectedOrg = organizations.find((o) => o.uuid === organizationUuid);
 
@@ -154,7 +141,8 @@ export function KoraPointAttachDialog({
                             className="max-h-60 space-y-2 overflow-y-auto pr-1"
                         >
                             {organizations.map((org) => {
-                                const isSelected = organizationUuid === org.uuid;
+                                const isSelected =
+                                    organizationUuid === org.uuid;
 
                                 return (
                                     <label
@@ -185,7 +173,9 @@ export function KoraPointAttachDialog({
                                             />
                                         ) : (
                                             <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-kora text-xs font-black text-white">
-                                                {org.code.slice(0, 3).toUpperCase()}
+                                                {org.code
+                                                    .slice(0, 3)
+                                                    .toUpperCase()}
                                             </span>
                                         )}
                                         <div className="min-w-0 flex-1">
@@ -198,7 +188,14 @@ export function KoraPointAttachDialog({
                                                 </span>
                                             </div>
                                             <span className="text-xs text-muted-foreground">
-                                                {org.points_count} point{org.points_count > 1 ? 's' : ''} rattaché{org.points_count > 1 ? 's' : ''}
+                                                {org.points_count} point
+                                                {org.points_count > 1
+                                                    ? 's'
+                                                    : ''}{' '}
+                                                rattaché
+                                                {org.points_count > 1
+                                                    ? 's'
+                                                    : ''}
                                             </span>
                                         </div>
                                     </label>
@@ -217,31 +214,45 @@ export function KoraPointAttachDialog({
                             </div>
                             <dl className="mt-3 grid grid-cols-3 gap-3 text-xs">
                                 <div>
-                                    <dt className="text-muted-foreground">Commission</dt>
+                                    <dt className="text-muted-foreground">
+                                        Commission
+                                    </dt>
                                     <dd className="font-bold text-foreground">
                                         {(
-                                            selectedOrg.default_terms.commission_rate_bps / 100
-                                        ).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
+                                            selectedOrg.default_terms
+                                                .commission_rate_bps / 100
+                                        ).toLocaleString('fr-FR', {
+                                            maximumFractionDigits: 2,
+                                        })}
                                         {' %'}
                                     </dd>
                                 </div>
                                 <div>
-                                    <dt className="text-muted-foreground">Plafond</dt>
+                                    <dt className="text-muted-foreground">
+                                        Plafond
+                                    </dt>
                                     <dd className="font-bold text-foreground">
-                                        {formatAmount(selectedOrg.default_terms.credit_limit)}
+                                        {formatAmount(
+                                            selectedOrg.default_terms
+                                                .credit_limit,
+                                        )}
                                     </dd>
                                 </div>
                                 <div>
-                                    <dt className="text-muted-foreground">Reversement</dt>
+                                    <dt className="text-muted-foreground">
+                                        Reversement
+                                    </dt>
                                     <dd className="font-bold text-foreground">
                                         {frequencyLabels[
-                                            selectedOrg.default_terms.settlement_frequency_days
+                                            selectedOrg.default_terms
+                                                .settlement_frequency_days
                                         ] ?? 'Hebdomadaire'}
                                     </dd>
                                 </div>
                             </dl>
                             <p className="mt-3 text-xs text-blue-600 dark:text-blue-400">
-                                ✓ Le logo de l'organisation s'affichera sur ce point.
+                                ✓ Le logo de l'organisation s'affichera sur ce
+                                point.
                             </p>
                         </div>
                     )}
@@ -263,7 +274,9 @@ export function KoraPointAttachDialog({
                         disabled={processing || !organizationUuid}
                     >
                         <Link2 className="size-4" />
-                        {processing ? 'Rattachement en cours…' : 'Rattacher le point'}
+                        {processing
+                            ? 'Rattachement en cours…'
+                            : 'Rattacher le point'}
                     </button>
                 </div>
             </div>

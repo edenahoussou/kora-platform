@@ -345,19 +345,19 @@ export default function KoraPointOrganizationsIndexPage({
             />
 
             <div className="mt-4">
-            <KoraTable
-                title="Matrice des organisations"
-                subtitle={`${organizations.total} organisation${organizations.total > 1 ? 's' : ''} partenaire${organizations.total > 1 ? 's' : ''}`}
-                icon={Building2}
-                columns={columns}
-                data={organizations.data}
-                rowKey={(org) => org.uuid}
-                onRowClick={(org) => setDetailOrg(org)}
-                emptyTitle="Aucune organisation partenaire"
-                emptyMessage="Créez la première organisation pour y rattacher des points de vente."
-                emptyIcon={Building2}
-                pagination={pagination}
-            />
+                <KoraTable
+                    title="Matrice des organisations"
+                    subtitle={`${organizations.total} organisation${organizations.total > 1 ? 's' : ''} partenaire${organizations.total > 1 ? 's' : ''}`}
+                    icon={Building2}
+                    columns={columns}
+                    data={organizations.data}
+                    rowKey={(org) => org.uuid}
+                    onRowClick={(org) => setDetailOrg(org)}
+                    emptyTitle="Aucune organisation partenaire"
+                    emptyMessage="Créez la première organisation pour y rattacher des points de vente."
+                    emptyIcon={Building2}
+                    pagination={pagination}
+                />
             </div>
 
             <KoraOrgFormDialog

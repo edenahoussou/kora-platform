@@ -236,8 +236,12 @@ export function KoraOrgDetailSheet({
                                                 Rattacher un point autonome…
                                             </option>
                                             {unattachedPoints.map((p) => (
-                                                <option key={p.uuid} value={p.uuid}>
-                                                    {p.name} ({p.code}) — {p.city}
+                                                <option
+                                                    key={p.uuid}
+                                                    value={p.uuid}
+                                                >
+                                                    {p.name} ({p.code}) —{' '}
+                                                    {p.city}
                                                 </option>
                                             ))}
                                         </select>
@@ -250,7 +254,9 @@ export function KoraOrgDetailSheet({
                                         disabled={!attachUuid || attaching}
                                     >
                                         <Link2 className="size-3.5" />
-                                        {attaching ? 'Rattachement…' : 'Rattacher'}
+                                        {attaching
+                                            ? 'Rattachement…'
+                                            : 'Rattacher'}
                                     </button>
                                 </div>
                             )}

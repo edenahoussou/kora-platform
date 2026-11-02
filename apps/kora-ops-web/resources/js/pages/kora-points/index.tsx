@@ -416,8 +416,8 @@ export default function KoraPointsIndexPage({
                             Points de vente partenaires
                         </h1>
                         <p className="mt-1.5 text-[0.8125rem] leading-6 text-muted-foreground">
-                            Administrez le réseau KORA POINT : guichets autonomes et
-                            points rattachés aux organisations.
+                            Administrez le réseau KORA POINT : guichets
+                            autonomes et points rattachés aux organisations.
                         </p>
                     </div>
                     {permissions.canManage && (
@@ -465,7 +465,9 @@ export default function KoraPointsIndexPage({
 
                 <div className="cash-reveal cash-reveal-delay-2 cash-section-intro">
                     <div>
-                        <span className="section-kicker">Réseau commercial</span>
+                        <span className="section-kicker">
+                            Réseau commercial
+                        </span>
                         <h2>Points de vente partenaires</h2>
                     </div>
                 </div>
@@ -513,16 +515,17 @@ export default function KoraPointsIndexPage({
                 }}
             />
 
-            <KoraPointAttachDialog
-                open={attachPoint !== null}
-                point={attachPoint}
-                organizations={organizations}
-                onOpenChange={(open) => {
-                    if (!open) {
-                        setAttachPoint(null);
-                    }
-                }}
-            />
+            {attachPoint && (
+                <KoraPointAttachDialog
+                    point={attachPoint}
+                    organizations={organizations}
+                    onOpenChange={(open) => {
+                        if (!open) {
+                            setAttachPoint(null);
+                        }
+                    }}
+                />
+            )}
         </>
     );
 }

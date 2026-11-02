@@ -88,15 +88,13 @@ function valuesFromOrg(org?: AdminOrganization | null): OrgFormValues {
     }
 
     const frequency = org.settlement_calendar?.frequency as
-        | 'daily'
-        | 'weekly'
-        | 'monthly'
-        | undefined;
+        'daily' | 'weekly' | 'monthly' | undefined;
     const settlementCalendar = frequency
         ? {
               frequency,
               time: org.settlement_calendar?.time ?? '18:00',
-              timezone: org.settlement_calendar?.timezone ?? 'Africa/Porto-Novo',
+              timezone:
+                  org.settlement_calendar?.timezone ?? 'Africa/Porto-Novo',
               weekday: org.settlement_calendar?.weekday ?? null,
               day: org.settlement_calendar?.day ?? null,
           }
@@ -122,11 +120,7 @@ function valuesFromOrg(org?: AdminOrganization | null): OrgFormValues {
     };
 }
 
-export function KoraOrgFormDialog({
-    open,
-    organization,
-    onOpenChange,
-}: Props) {
+export function KoraOrgFormDialog({ open, organization, onOpenChange }: Props) {
     const isEditing = Boolean(organization);
     const form = useForm<OrgFormValues>(valuesFromOrg(organization));
     const logoInputRef = useRef<HTMLInputElement>(null);
@@ -299,9 +293,7 @@ export function KoraOrgFormDialog({
                     ? null
                     : Math.round(Number(data.commission_rate) * 100),
             ceiling_amount:
-                data.ceiling_amount === ''
-                    ? null
-                    : Number(data.ceiling_amount),
+                data.ceiling_amount === '' ? null : Number(data.ceiling_amount),
             settlement_calendar: data.settlement_calendar,
             members: data.members
                 .filter((m) => m.name.trim() || m.email.trim())
@@ -585,7 +577,8 @@ export function KoraOrgFormDialog({
                                         Code organisation
                                     </span>
                                     <span className="text-[11px] text-muted-foreground">
-                                        Identifiant pérenne généré automatiquement
+                                        Identifiant pérenne généré
+                                        automatiquement
                                     </span>
                                 </div>
                             </div>
@@ -778,7 +771,10 @@ export function KoraOrgFormDialog({
 
                         {form.data.members.length === 0 ? (
                             <p className="text-xs text-muted-foreground italic">
-                                Aucun membre ajouté. Cliquez sur « Ajouter un membre » pour créer un compte superviseur ou trésorier (un SMS/WhatsApp ou email d'accès sera envoyé automatiquement).
+                                Aucun membre ajouté. Cliquez sur « Ajouter un
+                                membre » pour créer un compte superviseur ou
+                                trésorier (un SMS/WhatsApp ou email d'accès sera
+                                envoyé automatiquement).
                             </p>
                         ) : (
                             <div className="space-y-3">

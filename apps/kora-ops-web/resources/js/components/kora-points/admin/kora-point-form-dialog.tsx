@@ -342,8 +342,8 @@ export function KoraPointFormDialog({
                                                 e.preventDefault();
                                                 setIsDragging(false);
                                                 acceptLogo(
-                                                    e.dataTransfer
-                                                        .files?.[0] ?? null,
+                                                    e.dataTransfer.files?.[0] ??
+                                                        null,
                                                 );
                                             }}
                                             onKeyDown={(e) => {
@@ -459,8 +459,7 @@ export function KoraPointFormDialog({
                                         )}
                                         {logoClientError || errors.logo ? (
                                             <small className="text-destructive">
-                                                {logoClientError ??
-                                                    errors.logo}
+                                                {logoClientError ?? errors.logo}
                                             </small>
                                         ) : (
                                             <small className="text-muted-foreground">
@@ -534,9 +533,7 @@ export function KoraPointFormDialog({
                                             defaultValue={point?.phone ?? ''}
                                             placeholder="+229 97 00 00 00"
                                             required
-                                            aria-invalid={Boolean(
-                                                errors.phone,
-                                            )}
+                                            aria-invalid={Boolean(errors.phone)}
                                         />
                                         {errors.phone && (
                                             <small className="field-error-text">
@@ -681,8 +678,8 @@ export function KoraPointFormDialog({
                                             </small>
                                         ) : (
                                             <small className="text-muted-foreground">
-                                                Montant maximal dû à KORA
-                                                avant blocage des ventes.
+                                                Montant maximal dû à KORA avant
+                                                blocage des ventes.
                                             </small>
                                         )}
                                     </label>
