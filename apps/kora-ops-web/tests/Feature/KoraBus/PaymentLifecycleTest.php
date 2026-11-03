@@ -70,7 +70,8 @@ it('exposes the configured mobile payment catalog without credentials', function
         ->assertJsonPath('data.methods.0.code', 'mobile_money')
         ->assertJsonPath('data.methods.0.providers.0.verification', 'server_verify')
         ->assertJsonPath('data.methods.2.code', 'wallet')
-        ->assertJsonPath('data.methods.2.enabled', false)
+        ->assertJsonPath('data.methods.2.enabled', true)
+        ->assertJsonPath('data.methods.2.availability', 'points_only')
         ->assertJsonMissingPath('data.methods.0.providers.0.api_key');
 });
 
@@ -249,22 +250,22 @@ it('rejects unsupported mobile payment providers before creating a payment', fun
     ])->assertUnprocessable()->assertJsonValidationErrors(['provider']);
 });
 
-it('keeps the wallet in the catalog while rejecting wallet initiation until activation', function (): void {
+it('keeps the wallet in the catalog and rejects wallet cash initiation until activation', function (): void {
     $scenario = paymentTestScenario();
     Sanctum::actingAs($scenario['user']);
 
     $this->getJson('/api/v1/payments/methods')
         ->assertOk()
         ->assertJsonPath('data.methods.2.code', 'wallet')
-        ->assertJsonPath('data.methods.2.enabled', false)
-        ->assertJsonPath('data.methods.2.availability', 'disabled_until_wallet_ledger');
+        ->assertJsonPath('data.methods.2.enabled', true)
+        ->assertJsonPath('data.methods.2.availability', 'points_only');
 
     $this->postJson('/api/v1/payments/initiate', [
         'reservation_uuid' => $scenario['reservation']->uuid,
         'method' => 'wallet',
         'wallet_amount' => 15000,
         'idempotency_key' => (string) Str::uuid(),
-    ])->assertUnprocessable()->assertJsonValidationErrors(['method']);
+    ])->assertUnprocessable()->assertJsonValidationErrors(['wallet_amount']);
 });
 
 it('rejects initiation for expired reservation', function (): void {

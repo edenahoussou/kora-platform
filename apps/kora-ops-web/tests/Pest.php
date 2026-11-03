@@ -154,3 +154,4 @@ function pinUser(string $email, ?string $phone = null): User
 }
 
 require_once __DIR__.'/Support/BoardingHelpers.php';
+require_once __DIR__.'/Support/WalletHelpers.php';
