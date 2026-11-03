@@ -56,6 +56,7 @@ import type {
     SettingsGroup,
     SettingsLineOption,
     SettingsPageProps,
+    WalletSettingsValues,
 } from '@/types/settings';
 
 type FormScalar = string | number | boolean | null;
@@ -850,6 +851,11 @@ const titles: Record<SettingsGroup, { title: string; description: string }> = {
         description:
             'Définissez l’identité visible de KORA, son contexte régional et les canaux de support proposés aux équipes.',
     },
+    wallet: {
+        title: 'Wallet & fidélité',
+        description:
+            'Pilotez l’ouverture du solde cash, le moteur de fidélité, l’expiration des points et les bornes de recharge du Wallet KORA BUS.',
+    },
     operations: {
         title: 'Paramètres d’exploitation',
         description:
@@ -967,6 +973,7 @@ export default function SettingsPage({
     const updateUrl = {
         general: administration.settings.general.update.url(),
         operations: administration.settings.operations.update.url(),
+        wallet: administration.settings.wallet.update.url(),
         integrations: administration.settings.integrations.update.url(),
     }[group];
     const initialValue = (
@@ -1215,6 +1222,262 @@ export default function SettingsPage({
                             error={error('supportWhatsappPhone')}
                             onChange={(nextValue) =>
                                 setValue('supportWhatsappPhone', nextValue)
+                            }
+                        />
+                    </div>
+                </SettingsSection>
+            </div>
+        );
+    };
+
+    const renderWallet = () => {
+        const wallet = snapshot.values as WalletSettingsValues;
+        const reminderDays = (value('pointsExpiryReminderDays') as number[]) ?? [];
+
+        return (
+            <div className="cash-reveal cash-reveal-delay-2 grid gap-4">
+                <SettingsSection
+                    title="Ouverture du Wallet"
+                    description="Le solde cash reste fermé tant que la validation juridique du montage n’est pas prononcée."
+                >
+                    <div className="grid gap-5 md:grid-cols-2">
+                        <SettingsToggle
+                            label="Solde cash activé"
+                            hint="Gate la recharge, le débit cash et le catalogue Wallet."
+                            icon={Coins}
+                            checked={Boolean(value('walletCashEnabled'))}
+                            disabled={!permissions.canManage}
+                            onChange={(checked) =>
+                                setValue('walletCashEnabled', checked)
+                            }
+                        />
+                        <SettingsToggle
+                            label="Points fidélité activés"
+                            hint="Gate le solde de points et le moteur de fidélité."
+                            icon={BadgePercent}
+                            checked={Boolean(value('walletPointsEnabled'))}
+                            disabled={!permissions.canManage}
+                            onChange={(checked) =>
+                                setValue('walletPointsEnabled', checked)
+                            }
+                        />
+                    </div>
+                </SettingsSection>
+                <SettingsSection
+                    title="Fidélité"
+                    description="Le taux s’applique à la part monétaire des allocations figées de chaque jambe effectuée."
+                >
+                    <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                        <SettingsField
+                            label="Taux d’acquisition"
+                            hint={`${(wallet.loyaltyEarnRateBasisPoints / 100).toFixed(2)} % du montant monétaire de la jambe.`}
+                            value={value('loyaltyEarnRateBasisPoints') as number}
+                            type="number"
+                            suffix="pts base 10000"
+                            disabled={!permissions.canManage}
+                            error={error('loyaltyEarnRateBasisPoints')}
+                            onChange={(nextValue) =>
+                                setNumber('loyaltyEarnRateBasisPoints', nextValue)
+                            }
+                        />
+                        <SettingsField
+                            label="Valeur d’un point"
+                            hint="Valeur d’usage d’un point en FCFA."
+                            value={value('pointValueFcfa') as number}
+                            type="number"
+                            suffix="FCFA"
+                            disabled={!permissions.canManage}
+                            error={error('pointValueFcfa')}
+                            onChange={(nextValue) =>
+                                setNumber('pointValueFcfa', nextValue)
+                            }
+                        />
+                        <SettingsField
+                            label="Minimum d’utilisation"
+                            hint="Points minimums par paiement."
+                            value={value('pointsMinSpend') as number}
+                            type="number"
+                            suffix="points"
+                            disabled={!permissions.canManage}
+                            error={error('pointsMinSpend')}
+                            onChange={(nextValue) =>
+                                setNumber('pointsMinSpend', nextValue)
+                            }
+                        />
+                        <SettingsField
+                            label="Bonus bienvenue"
+                            hint="Versé une fois, après la première jambe effectuée."
+                            value={value('bonusWelcomePoints') as number}
+                            type="number"
+                            suffix="points"
+                            disabled={!permissions.canManage}
+                            error={error('bonusWelcomePoints')}
+                            onChange={(nextValue) =>
+                                setNumber('bonusWelcomePoints', nextValue)
+                            }
+                        />
+                        <SettingsField
+                            label="Bonus parrainage"
+                            hint="Versé au parrain quand le filleul utilise son premier billet."
+                            value={value('bonusReferralPoints') as number}
+                            type="number"
+                            suffix="points"
+                            disabled={!permissions.canManage}
+                            error={error('bonusReferralPoints')}
+                            onChange={(nextValue) =>
+                                setNumber('bonusReferralPoints', nextValue)
+                            }
+                        />
+                        <SettingsField
+                            label="Bonus anniversaire"
+                            hint="Versé à l’anniversaire de création du compte."
+                            value={value('bonusAnniversaryPoints') as number}
+                            type="number"
+                            suffix="points"
+                            disabled={!permissions.canManage}
+                            error={error('bonusAnniversaryPoints')}
+                            onChange={(nextValue) =>
+                                setNumber('bonusAnniversaryPoints', nextValue)
+                            }
+                        />
+                        <SettingsField
+                            label="Rang de l’utilisation bonus"
+                            hint="Nième utilisation du mois calendaire déclenchant le bonus."
+                            value={value('bonusUsageNth') as number}
+                            type="number"
+                            disabled={!permissions.canManage}
+                            error={error('bonusUsageNth')}
+                            onChange={(nextValue) =>
+                                setNumber('bonusUsageNth', nextValue)
+                            }
+                        />
+                        <SettingsField
+                            label="Montant du bonus d’usage"
+                            hint="Points versés au rang configuré."
+                            value={value('bonusUsagePoints') as number}
+                            type="number"
+                            suffix="points"
+                            disabled={!permissions.canManage}
+                            error={error('bonusUsagePoints')}
+                            onChange={(nextValue) =>
+                                setNumber('bonusUsagePoints', nextValue)
+                            }
+                        />
+                    </div>
+                </SettingsSection>
+                <SettingsSection
+                    title="Expiration des points"
+                    description="Une activité qualifiante (achat ou recharge confirmée) repousse l’échéance."
+                >
+                    <div className="grid gap-5 md:grid-cols-2">
+                        <SettingsField
+                            label="Fenêtre d’expiration"
+                            hint="Mois sans activité qualifiante avant expiration globale."
+                            value={value('pointsExpiryMonths') as number}
+                            type="number"
+                            suffix="mois"
+                            disabled={!permissions.canManage}
+                            error={error('pointsExpiryMonths')}
+                            onChange={(nextValue) =>
+                                setNumber('pointsExpiryMonths', nextValue)
+                            }
+                        />
+                        <SettingsField
+                            label="Jalons de rappel"
+                            hint="Jours avant expiration, séparés par des virgules."
+                            value={reminderDays.join(', ')}
+                            disabled={!permissions.canManage}
+                            error={error('pointsExpiryReminderDays')}
+                            onChange={(nextValue) =>
+                                setValue(
+                                    'pointsExpiryReminderDays',
+                                    nextValue
+                                        .split(',')
+                                        .map((entry) => Number(entry.trim()))
+                                        .filter((entry) => Number.isFinite(entry) && entry > 0),
+                                )
+                            }
+                        />
+                    </div>
+                </SettingsSection>
+                <SettingsSection
+                    title="Recharge et plafonds"
+                    description="Les bornes sont facultatives : laissez vide pour ne pas plafonner."
+                >
+                    <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                        <SettingsField
+                            label="Recharge minimum"
+                            hint="Montant minimum accepté à la recharge."
+                            value={(value('topupMinAmount') as number | null) ?? ''}
+                            type="number"
+                            suffix="FCFA"
+                            disabled={!permissions.canManage}
+                            error={error('topupMinAmount')}
+                            onChange={(nextValue) =>
+                                setValue(
+                                    'topupMinAmount',
+                                    nextValue === '' ? null : Number(nextValue),
+                                )
+                            }
+                        />
+                        <SettingsField
+                            label="Recharge maximum"
+                            hint="Montant maximum accepté à la recharge."
+                            value={(value('topupMaxAmount') as number | null) ?? ''}
+                            type="number"
+                            suffix="FCFA"
+                            disabled={!permissions.canManage}
+                            error={error('topupMaxAmount')}
+                            onChange={(nextValue) =>
+                                setValue(
+                                    'topupMaxAmount',
+                                    nextValue === '' ? null : Number(nextValue),
+                                )
+                            }
+                        />
+                        <SettingsField
+                            label="Plafond du solde cash"
+                            hint="Solde cash maximum autorisé."
+                            value={(value('cashBalanceCap') as number | null) ?? ''}
+                            type="number"
+                            suffix="FCFA"
+                            disabled={!permissions.canManage}
+                            error={error('cashBalanceCap')}
+                            onChange={(nextValue) =>
+                                setValue(
+                                    'cashBalanceCap',
+                                    nextValue === '' ? null : Number(nextValue),
+                                )
+                            }
+                        />
+                        <SettingsField
+                            label="Paliers de recharge"
+                            hint="Montants rapides proposés, séparés par des virgules."
+                            value={(
+                                (value('topupAmountPresets') as number[]) ?? []
+                            ).join(', ')}
+                            disabled={!permissions.canManage}
+                            error={error('topupAmountPresets')}
+                            onChange={(nextValue) =>
+                                setValue(
+                                    'topupAmountPresets',
+                                    nextValue
+                                        .split(',')
+                                        .map((entry) => Number(entry.trim()))
+                                        .filter((entry) => Number.isFinite(entry) && entry > 0),
+                                )
+                            }
+                        />
+                        <SettingsField
+                            label="Durée d’un hold"
+                            hint="Durée de vie d’une réservation de fonds."
+                            value={value('walletHoldTtlMinutes') as number}
+                            type="number"
+                            suffix="min"
+                            disabled={!permissions.canManage}
+                            error={error('walletHoldTtlMinutes')}
+                            onChange={(nextValue) =>
+                                setNumber('walletHoldTtlMinutes', nextValue)
                             }
                         />
                     </div>
@@ -2439,6 +2702,7 @@ export default function SettingsPage({
                     <div className="min-w-0">
                         {group === 'general' && renderGeneral()}
                         {group === 'operations' && renderOperations()}
+                        {group === 'wallet' && renderWallet()}
                         {group === 'integrations' && renderIntegrations()}
                         <div className="mt-5">
                             <SettingsSaveBar
@@ -2464,7 +2728,18 @@ export default function SettingsPage({
                                               text: 'Conservez Africa/Porto-Novo pour garder les départs et les journaux alignés sur l’exploitation béninoise.',
                                           },
                                       ]
-                                    : group === 'operations'
+                                    : group === 'wallet'
+                                      ? [
+                                            {
+                                                title: 'Ouverture progressive',
+                                                text: 'Le solde cash reste fermé jusqu’à la validation juridique ; les points peuvent être actifs séparément.',
+                                            },
+                                            {
+                                                title: 'Aucune valeur en dur',
+                                                text: 'Chaque taux, bonus et plafond est appliqué aux prochaines requêtes sans redéploiement.',
+                                            },
+                                        ]
+                                      : group === 'operations'
                                       ? [
                                             {
                                                 title: 'Confirmez les impacts',

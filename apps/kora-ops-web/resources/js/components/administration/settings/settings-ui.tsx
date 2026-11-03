@@ -13,6 +13,7 @@ import {
     Route,
     Save,
     ShieldCheck,
+    Wallet,
     XCircle,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -51,6 +52,14 @@ const navigation: Array<{
         href: administration.settings.operations.url(),
     },
     {
+        key: 'wallet',
+        label: 'Wallet & fidélité',
+        description: 'Soldes, points et recharge',
+        icon: Wallet,
+        permission: 'settings.operations.view',
+        href: administration.settings.wallet.url(),
+    },
+    {
         key: 'integrations',
         label: 'Intégrations',
         description: 'Fournisseurs et connexions',
@@ -66,7 +75,7 @@ export function SettingsTabs({ active }: { active: SettingsGroup }) {
     return (
         <nav
             aria-label="Groupes de paramètres"
-            className="grid grid-cols-1 gap-1.5 rounded-2xl border border-border bg-card p-1.5 shadow-[0_7px_28px_rgba(0,29,78,0.04)] sm:grid-cols-3"
+            className="grid grid-cols-1 gap-1.5 rounded-2xl border border-border bg-card p-1.5 shadow-[0_7px_28px_rgba(0,29,78,0.04)] sm:grid-cols-2 lg:grid-cols-4"
         >
             {navigation
                 .filter((item) => can(item.permission))
@@ -135,7 +144,9 @@ export function SettingsPageHeader({
             ? 'Général'
             : group === 'operations'
               ? 'Exploitation'
-              : 'Intégrations';
+              : group === 'wallet'
+                ? 'Wallet & fidélité'
+                : 'Intégrations';
 
     return (
         <div className="kora-page-head cash-reveal mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
