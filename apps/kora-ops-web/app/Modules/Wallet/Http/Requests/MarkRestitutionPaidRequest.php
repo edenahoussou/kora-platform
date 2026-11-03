@@ -31,4 +31,17 @@ class MarkRestitutionPaidRequest extends FormRequest
             'payout_channel' => ['nullable', 'string', 'max:32'],
         ];
     }
+
+    /**
+     * Décrit les champs du corps pour la documentation OpenAPI.
+     *
+     * @return array<string, array{description: string}>
+     */
+    public function bodyParameters(): array
+    {
+        return [
+            'payout_reference' => ['description' => 'Référence du versement hors système.'],
+            'payout_channel' => ['description' => 'Canal du versement (mobile_money, espèces…).'],
+        ];
+    }
 }

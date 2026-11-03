@@ -30,4 +30,16 @@ class RejectRestitutionRequest extends FormRequest
             'reason' => ['required', 'string', 'max:500'],
         ];
     }
+
+    /**
+     * Décrit les champs du corps pour la documentation OpenAPI.
+     *
+     * @return array<string, array{description: string}>
+     */
+    public function bodyParameters(): array
+    {
+        return [
+            'reason' => ['description' => 'Motif du rejet communiqué au demandeur.'],
+        ];
+    }
 }

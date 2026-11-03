@@ -30,4 +30,16 @@ class AttachReferralRequest extends FormRequest
             'referral_code' => ['required', 'string', 'max:24'],
         ];
     }
+
+    /**
+     * Décrit les champs du corps pour la documentation OpenAPI.
+     *
+     * @return array<string, array{description: string}>
+     */
+    public function bodyParameters(): array
+    {
+        return [
+            'referral_code' => ['description' => 'Code parrain à rattacher au compte.'],
+        ];
+    }
 }

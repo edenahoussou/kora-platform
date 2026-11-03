@@ -35,4 +35,19 @@ class WalletAdjustmentRequest extends FormRequest
             'reason' => ['required', 'string', 'max:500'],
         ];
     }
+
+    /**
+     * Décrit les champs du corps pour la documentation OpenAPI.
+     *
+     * @return array<string, array{description: string}>
+     */
+    public function bodyParameters(): array
+    {
+        return [
+            'balance_type' => ['description' => 'Solde corrigé : cash ou points.'],
+            'direction' => ['description' => 'Sens de l’écriture : credit ou debit.'],
+            'amount' => ['description' => 'Montant de la correction.'],
+            'reason' => ['description' => 'Motif obligatoire de la correction.'],
+        ];
+    }
 }

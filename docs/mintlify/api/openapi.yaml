@@ -79,6 +79,12 @@ tags:
   -
     name: Tickets
     description: "\nTicket retrieval endpoints for issued boarding passes."
+  -
+    name: Wallet
+    description: "\nSoldes, paramètres UX et code de parrainage du Wallet du voyageur connecté."
+  -
+    name: 'Wallet OPS'
+    description: "\nRecherche du Wallet d'un voyageur par téléphone avant un débit au guichet."
 components:
   securitySchemes:
     default:
@@ -11417,6 +11423,11 @@ paths:
                   description: 'Amount allocated to Wallet. Reserved for the disabled Wallet contract.'
                   example: 16
                   nullable: true
+                points_amount:
+                  type: integer
+                  description: 'Points fidélité utilisés pour ce paiement. Le champ value doit être au moins 0.'
+                  example: 8
+                  nullable: true
                 mobile_money_amount:
                   type: integer
                   description: 'Amount allocated to Mobile Money. Must equal the server quote total in this iteration.'
@@ -12752,6 +12763,386 @@ paths:
         in: path
         name: ticket_uuid
         description: 'Public UUID of the ticket.'
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  /api/v1/wallet:
+    get:
+      summary: 'Retourne le Wallet du voyageur connecté (créé à la volée si absent).'
+      operationId: retourneLeWalletDuVoyageurConnectcrLaVoleSiAbsent
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - Wallet
+      security: []
+  /api/v1/wallet/transactions:
+    get:
+      summary: "Liste l'historique Wallet, filtrable par nature de solde."
+      operationId: listeLhistoriqueWalletFiltrableParNatureDeSolde
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - Wallet
+      security: []
+  /api/v1/wallet/topups:
+    post:
+      summary: 'Initie une recharge Wallet via un provider de paiement existant.'
+      operationId: initieUneRechargeWalletViaUnProviderDePaiementExistant
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - Wallet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  type: integer
+                  description: 'Montant de la recharge en FCFA. Le champ value doit être au moins 1.'
+                  example: 16
+                method:
+                  type: string
+                  description: 'Méthode de paiement : mobile_money ou card.'
+                  example: mobile_money
+                  enum:
+                    - mobile_money
+                    - card
+                provider:
+                  type: string
+                  description: 'Fournisseur de paiement retenu.'
+                  example: fedapay
+                  enum:
+                    - fedapay
+                    - mtn_momo
+                    - kkiapay
+                idempotency_key:
+                  type: string
+                  description: 'Clé d’idempotence de la recharge. Le champ value ne doit pas dépasser 255 caractères.'
+                  example: 'n'
+                phone:
+                  type: string
+                  description: 'Numéro Mobile Money du payeur. Le champ value ne doit pas dépasser 32 caractères.'
+                  example: g
+                  nullable: true
+                mobile_money_network:
+                  type: string
+                  description: 'Réseau Mobile Money utilisé.'
+                  example: mtn_momo
+                  enum:
+                    - mtn_momo
+                    - moov_flooz
+                    - celtiis_cash
+                    - mtn_momo_ci
+                    - moov_flooz_ci
+                    - wave_ci
+                    - orange_money_ci
+                    - moov_flooz_tg
+                    - tmoney_tg
+                  nullable: true
+              required:
+                - amount
+                - method
+                - provider
+                - idempotency_key
+      security: []
+  '/api/v1/wallet/topups/{uuid}':
+    get:
+      summary: "Retourne le statut d'une recharge du voyageur connecté."
+      operationId: retourneLeStatutDuneRechargeDuVoyageurConnect
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - Wallet
+      security: []
+    parameters:
+      -
+        in: path
+        name: uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  /api/v1/wallet/referral:
+    post:
+      summary: 'Rattache un code parrain au Wallet du voyageur connecté.'
+      operationId: rattacheUnCodeParrainAuWalletDuVoyageurConnect
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - Wallet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                referral_code:
+                  type: string
+                  description: 'Code parrain à rattacher au compte. Le champ value ne doit pas dépasser 24 caractères.'
+                  example: bngzmiyvdljnikhw
+              required:
+                - referral_code
+      security: []
+  /api/v1/ops/wallets/lookup:
+    get:
+      summary: 'Recherche un Wallet par téléphone avant un débit au guichet.'
+      operationId: rechercheUnWalletParTlphoneAvantUnDbitAuGuichet
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'Wallet OPS'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                phone:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 32 caractères.'
+                  example: b
+              required:
+                - phone
+      security: []
+  '/api/v1/ops/wallets/{wallet_uuid}/debit':
+    post:
+      summary: "Débite le Wallet d'un voyageur pour une vente guichet."
+      operationId: dbiteLeWalletDunVoyageurPourUneVenteGuichet
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'Wallet OPS'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reservation_uuid:
+                  type: string
+                  description: 'UUID de la réservation à régler. Le champ value doit être un UUID valide. Must match an existing stored value.'
+                  example: 00000000-0000-4000-8000-000000000000
+                wallet_amount:
+                  type: integer
+                  description: 'Montant débité du solde cash du Wallet. Le champ value doit être au moins 0.'
+                  example: 84
+                points_amount:
+                  type: integer
+                  description: 'Points fidélité utilisés. Le champ value doit être au moins 0.'
+                  example: 12
+                  nullable: true
+                idempotency_key:
+                  type: string
+                  description: 'Clé d’idempotence du débit. Le champ value ne doit pas dépasser 255 caractères.'
+                  example: m
+              required:
+                - reservation_uuid
+                - wallet_amount
+                - idempotency_key
+      security: []
+    parameters:
+      -
+        in: path
+        name: wallet_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/ops/wallets/{wallet_uuid}/adjustments':
+    post:
+      summary: 'Enregistre un ajustement Wallet audité.'
+      operationId: enregistreUnAjustementWalletAudit
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'Wallet OPS'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                balance_type:
+                  type: string
+                  description: 'Solde corrigé : cash ou points.'
+                  example: cash
+                  enum:
+                    - cash
+                    - points
+                direction:
+                  type: string
+                  description: 'Sens de l’écriture : credit ou debit.'
+                  example: credit
+                  enum:
+                    - credit
+                    - debit
+                amount:
+                  type: integer
+                  description: 'Montant de la correction. Le champ value doit être au moins 1.'
+                  example: 16
+                reason:
+                  type: string
+                  description: 'Motif obligatoire de la correction. Le champ value ne doit pas dépasser 500 caractères.'
+                  example: 'n'
+              required:
+                - balance_type
+                - direction
+                - amount
+                - reason
+      security: []
+    parameters:
+      -
+        in: path
+        name: wallet_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  /api/v1/ops/wallet-restitutions:
+    get:
+      summary: 'Liste les restitutions, filtrables par statut.'
+      operationId: listeLesRestitutionsFiltrablesParStatut
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'Wallet OPS'
+      security: []
+    post:
+      summary: 'Ouvre une demande de restitution.'
+      operationId: ouvreUneDemandeDeRestitution
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'Wallet OPS'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                wallet_uuid:
+                  type: string
+                  description: 'UUID du Wallet concerné. Le champ value doit être un UUID valide. Must match an existing stored value.'
+                  example: 00000000-0000-4000-8000-000000000000
+                amount:
+                  type: integer
+                  description: 'Montant de la restitution demandée. Le champ value doit être au moins 1.'
+                  example: 67
+                note:
+                  type: string
+                  description: 'Motif ou précision du demandeur. Le champ value ne doit pas dépasser 1000 caractères.'
+                  example: z
+                  nullable: true
+              required:
+                - wallet_uuid
+                - amount
+      security: []
+  '/api/v1/ops/wallet-restitutions/{restitution_uuid}/approve':
+    post:
+      summary: 'Approuve une restitution en attente.'
+      operationId: approuveUneRestitutionEnAttente
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'Wallet OPS'
+      security: []
+    parameters:
+      -
+        in: path
+        name: restitution_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/ops/wallet-restitutions/{restitution_uuid}/reject':
+    post:
+      summary: 'Rejette une restitution avec un motif.'
+      operationId: rejetteUneRestitutionAvecUnMotif
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'Wallet OPS'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  description: 'Motif du rejet communiqué au demandeur. Le champ value ne doit pas dépasser 500 caractères.'
+                  example: b
+              required:
+                - reason
+      security: []
+    parameters:
+      -
+        in: path
+        name: restitution_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/ops/wallet-restitutions/{restitution_uuid}/mark-paid':
+    post:
+      summary: 'Marque une restitution versée et débite le Wallet.'
+      operationId: marqueUneRestitutionVerseEtDbiteLeWallet
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'Wallet OPS'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payout_reference:
+                  type: string
+                  description: 'Référence du versement hors système. Le champ value ne doit pas dépasser 255 caractères.'
+                  example: b
+                payout_channel:
+                  type: string
+                  description: 'Canal du versement (mobile_money, espèces…). Le champ value ne doit pas dépasser 32 caractères.'
+                  example: 'n'
+                  nullable: true
+              required:
+                - payout_reference
+      security: []
+    parameters:
+      -
+        in: path
+        name: restitution_uuid
+        description: ''
         example: 00000000-0000-4000-8000-000000000000
         required: true
         schema:

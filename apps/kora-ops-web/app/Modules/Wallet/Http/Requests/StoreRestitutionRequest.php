@@ -32,4 +32,18 @@ class StoreRestitutionRequest extends FormRequest
             'note' => ['nullable', 'string', 'max:1000'],
         ];
     }
+
+    /**
+     * Décrit les champs du corps pour la documentation OpenAPI.
+     *
+     * @return array<string, array{description: string}>
+     */
+    public function bodyParameters(): array
+    {
+        return [
+            'wallet_uuid' => ['description' => 'UUID du Wallet concerné.'],
+            'amount' => ['description' => 'Montant de la restitution demandée.'],
+            'note' => ['description' => 'Motif ou précision du demandeur.'],
+        ];
+    }
 }

@@ -33,4 +33,19 @@ class OpsWalletDebitRequest extends FormRequest
             'idempotency_key' => ['required', 'string', 'max:255'],
         ];
     }
+
+    /**
+     * Décrit les champs du corps pour la documentation OpenAPI.
+     *
+     * @return array<string, array{description: string}>
+     */
+    public function bodyParameters(): array
+    {
+        return [
+            'reservation_uuid' => ['description' => 'UUID de la réservation à régler.'],
+            'wallet_amount' => ['description' => 'Montant débité du solde cash du Wallet.'],
+            'points_amount' => ['description' => 'Points fidélité utilisés.'],
+            'idempotency_key' => ['description' => 'Clé d’idempotence du débit.'],
+        ];
+    }
 }

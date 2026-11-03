@@ -49,6 +49,23 @@ class InitiateTopUpRequest extends FormRequest
     }
 
     /**
+     * Décrit les champs du corps pour la documentation OpenAPI.
+     *
+     * @return array<string, array{description: string}>
+     */
+    public function bodyParameters(): array
+    {
+        return [
+            'amount' => ['description' => 'Montant de la recharge en FCFA.'],
+            'method' => ['description' => 'Méthode de paiement : mobile_money ou card.'],
+            'provider' => ['description' => 'Fournisseur de paiement retenu.'],
+            'idempotency_key' => ['description' => 'Clé d’idempotence de la recharge.'],
+            'phone' => ['description' => 'Numéro Mobile Money du payeur.'],
+            'mobile_money_network' => ['description' => 'Réseau Mobile Money utilisé.'],
+        ];
+    }
+
+    /**
      * Extrait les données de recharge validées.
      *
      * @return array{amount: int, method: string, provider: string, idempotency_key: string, phone: string|null, mobile_money_network: string|null}
