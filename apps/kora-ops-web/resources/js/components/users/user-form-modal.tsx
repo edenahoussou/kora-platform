@@ -53,6 +53,14 @@ const emptyValues: FormValues = {
     kora_point_organization_uuid: '',
 };
 
+function isKoraPointRole(roleCode: string | undefined): boolean {
+    return [
+        'kora_point_agent',
+        'kora_point_supervisor',
+        'kora_point_treasurer',
+    ].includes(roleCode ?? '');
+}
+
 function valuesFromUser(user: AdministrationUser | null): FormValues {
     if (!user) {
         return emptyValues;
@@ -439,11 +447,13 @@ export function UserFormModal({
                                             value={role.code}
                                         >
                                             {role.label} (
-                                            {role.category === 'central'
-                                                ? 'Siège / Central'
-                                                : role.category === 'agency'
-                                                  ? 'Agence'
-                                                  : 'Terrain'}
+                                            {isKoraPointRole(role.code)
+                                                ? 'Partenaire'
+                                                : role.category === 'central'
+                                                  ? 'Siège / Central'
+                                                  : role.category === 'agency'
+                                                    ? 'Agence'
+                                                    : 'Terrain'}
                                             )
                                         </option>
                                     ))}

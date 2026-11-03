@@ -66,6 +66,60 @@ function isKoraPointRole(roleCode: string | undefined): boolean {
     ].includes(roleCode ?? '');
 }
 
+function PerimeterCell({ user }: { user: AdministrationUser }) {
+    const roleCode = user.role?.code ?? '';
+
+    if (roleCode === 'kora_point_agent') {
+        const pointName = user.kora_point?.name ?? user.agency?.name;
+
+        return (
+            <div className="max-w-56 text-xs">
+                <p className="truncate font-semibold text-foreground">
+                    {pointName ? `KORA Point · ${pointName}` : 'KORA Point'}
+                </p>
+                {user.kora_point?.organization_name && (
+                    <p className="truncate text-[0.6875rem] text-muted-foreground">
+                        Partenaire : {user.kora_point.organization_name}
+                    </p>
+                )}
+            </div>
+        );
+    }
+
+    if (
+        roleCode === 'kora_point_supervisor' ||
+        roleCode === 'kora_point_treasurer'
+    ) {
+        return (
+            <div className="max-w-56 text-xs">
+                <p className="truncate font-semibold text-foreground">
+                    Partenaire
+                </p>
+                <p className="truncate text-[0.6875rem] text-muted-foreground">
+                    {user.kora_point_organization?.name ??
+                        'Organisation non rattachée'}
+                </p>
+            </div>
+        );
+    }
+
+    return user.agency ? (
+        <div className="flex items-center gap-1.5 text-xs">
+            <Building2 className="size-3.5 text-gold" />
+            <span className="font-semibold text-foreground">
+                {user.agency.name}
+            </span>
+            <span className="font-mono text-[0.6875rem] text-muted-foreground">
+                ({user.agency.code})
+            </span>
+        </div>
+    ) : (
+        <span className="text-xs text-muted-foreground italic">
+            Réseau central / Siège
+        </span>
+    );
+}
+
 function webAccessStatusLabel(
     webAccess: AdministrationUser['web_access'],
 ): string | null {
@@ -695,7 +749,7 @@ export default function UsersPage({
                                                 Rôle attribué
                                             </th>
                                             <th className="px-4 py-3">
-                                                Périmètre / Agence
+                                                Périmètre
                                             </th>
                                             <th className="px-4 py-3">
                                                 Contact
@@ -732,23 +786,29 @@ export default function UsersPage({
                                                     ? 'Suspendu'
                                                     : 'Actif';
 
-                                            const roleCategoryLabel =
-                                                user.role?.category ===
-                                                'central'
-                                                    ? 'Siège'
-                                                    : user.role?.category ===
-                                                        'agency'
-                                                      ? 'Agence'
-                                                      : 'Terrain';
+                                            const isPartner = isKoraPointRole(
+                                                user.role?.code,
+                                            );
 
-                                            const roleBadgeTone =
-                                                user.role?.category ===
-                                                'central'
-                                                    ? 'bg-kora/10 text-kora dark:bg-digital/20 dark:text-digital'
-                                                    : user.role?.category ===
-                                                        'agency'
-                                                      ? 'bg-gold/15 text-gold'
-                                                      : 'bg-emerald-500/10 text-emerald-600';
+                                            const roleCategoryLabel = isPartner
+                                                ? 'Partenaire'
+                                                : user.role?.category ===
+                                                    'central'
+                                                  ? 'Siège'
+                                                  : user.role?.category ===
+                                                      'agency'
+                                                    ? 'Agence'
+                                                    : 'Terrain';
+
+                                            const roleBadgeTone = isPartner
+                                                ? 'bg-violet-600 text-white'
+                                                : user.role?.category ===
+                                                    'central'
+                                                  ? 'bg-kora/10 text-kora dark:bg-digital/20 dark:text-digital'
+                                                  : user.role?.category ===
+                                                      'agency'
+                                                    ? 'bg-gold/15 text-gold'
+                                                    : 'bg-emerald-500/10 text-emerald-600';
 
                                             return (
                                                 <tr
@@ -837,34 +897,11 @@ export default function UsersPage({
                                                         </div>
                                                     </td>
 
-                                                    {/* Agence */}
+                                                    {/* Périmètre */}
                                                     <td className="px-4 py-3.5">
-                                                        {user.agency ? (
-                                                            <div className="flex items-center gap-1.5 text-xs">
-                                                                <Building2 className="size-3.5 text-gold" />
-                                                                <span className="font-semibold text-foreground">
-                                                                    {
-                                                                        user
-                                                                            .agency
-                                                                            .name
-                                                                    }
-                                                                </span>
-                                                                <span className="font-mono text-[0.6875rem] text-muted-foreground">
-                                                                    (
-                                                                    {
-                                                                        user
-                                                                            .agency
-                                                                            .code
-                                                                    }
-                                                                    )
-                                                                </span>
-                                                            </div>
-                                                        ) : (
-                                                            <span className="text-xs text-muted-foreground italic">
-                                                                Réseau central /
-                                                                Siège
-                                                            </span>
-                                                        )}
+                                                        <PerimeterCell
+                                                            user={user}
+                                                        />
                                                     </td>
 
                                                     {/* Contact */}
@@ -878,7 +915,7 @@ export default function UsersPage({
                                                             </div>
                                                         ) : (
                                                             <span className="text-muted-foreground/60">
-                                                                —
+                                                                Non renseigné
                                                             </span>
                                                         )}
                                                     </td>

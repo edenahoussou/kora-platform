@@ -42,7 +42,7 @@ function getInitials(name: string): string {
 
 function formatDate(iso: string | null): string {
     if (!iso) {
-        return '—';
+        return 'Non renseigné';
     }
 
     try {
@@ -95,6 +95,39 @@ export function UserDetailDrawer({
           : user.status === 'suspended'
             ? 'Suspendu'
             : 'Actif';
+
+    const isKoraPointAgent = user.role?.code === 'kora_point_agent';
+    const isKoraPointStaff = [
+        'kora_point_supervisor',
+        'kora_point_treasurer',
+    ].includes(user.role?.code ?? '');
+
+    const assignmentTitle = isKoraPointAgent
+        ? (user.kora_point?.name ?? user.agency?.name ?? 'KORA Point')
+        : isKoraPointStaff
+          ? (user.kora_point_organization?.name ?? 'Organisation non rattachée')
+          : user.agency
+            ? user.agency.name
+            : 'Siège Central';
+
+    const assignmentCode = isKoraPointAgent
+        ? (user.kora_point?.code ?? user.agency?.code)
+        : isKoraPointStaff
+          ? user.kora_point_organization?.code
+          : user.agency?.code;
+
+    const assignmentSubtitle = assignmentCode
+        ? `Code : ${assignmentCode}`
+        : isKoraPointAgent
+          ? 'Point de vente partenaire'
+          : isKoraPointStaff
+            ? 'Partenaire KORA POINT'
+            : 'Réseau Global';
+
+    const assignmentPartner =
+        isKoraPointAgent && user.kora_point?.organization_name
+            ? `Partenaire : ${user.kora_point.organization_name}`
+            : null;
 
     return (
         <div className="fixed inset-0 z-50 overflow-hidden" role="presentation">
@@ -230,11 +263,13 @@ export function UserDetailDrawer({
                             </p>
                             <span className="mt-0.5 inline-block text-[0.65rem] font-semibold text-muted-foreground">
                                 Périmètre :{' '}
-                                {user.role?.category === 'central'
-                                    ? 'Direction Centrale'
-                                    : user.role?.category === 'agency'
-                                      ? 'Agence Locale'
-                                      : 'Équipage Terrain'}
+                                {isKoraPointUser
+                                    ? 'Partenaire'
+                                    : user.role?.category === 'central'
+                                      ? 'Direction Centrale'
+                                      : user.role?.category === 'agency'
+                                        ? 'Agence Locale'
+                                        : 'Équipage Terrain'}
                             </span>
                         </div>
 
@@ -246,15 +281,16 @@ export function UserDetailDrawer({
                                 </span>
                             </div>
                             <p className="mt-2 text-sm font-extrabold text-foreground">
-                                {user.agency
-                                    ? user.agency.name
-                                    : 'Siège Central'}
+                                {assignmentTitle}
                             </p>
                             <span className="mt-0.5 inline-block text-[0.65rem] font-semibold text-muted-foreground">
-                                {user.agency
-                                    ? `Code site : ${user.agency.code}`
-                                    : 'Réseau Global'}
+                                {assignmentSubtitle}
                             </span>
+                            {assignmentPartner && (
+                                <span className="mt-0.5 block text-[0.65rem] font-semibold text-muted-foreground">
+                                    {assignmentPartner}
+                                </span>
+                            )}
                         </div>
 
                         <div className="rounded-xl border border-border bg-muted/20 p-3.5">

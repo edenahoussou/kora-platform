@@ -19,10 +19,12 @@ use App\Modules\IdentityAccess\Http\Requests\UpdateUserRequest;
 use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\IdentityAccess\Models\KoraPointWebAccessInvitation;
 use App\Modules\IdentityAccess\Models\Role;
+use App\Modules\KoraPoints\Models\KoraPoint;
 use App\Modules\KoraPoints\Models\KoraPointOrganization;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -74,11 +76,16 @@ class UserController extends Controller
             $query->where('status', $status);
         }
 
-        $users = $query
+        $paginator = $query
             ->orderBy('name')
             ->paginate(15)
-            ->withQueryString()
-            ->through(fn (User $user): array => $this->serializeUser($user));
+            ->withQueryString();
+
+        $koraPoints = $this->koraPointsByAgency($paginator->getCollection());
+
+        $users = $paginator->through(
+            fn (User $user): array => $this->serializeUser($user, $koraPoints->get($user->agency_id)),
+        );
 
         return Inertia::render('users', [
             'users' => $users,
@@ -123,8 +130,13 @@ class UserController extends Controller
         $target = User::withTrashed()->with(['agency', 'koraPointOrganization', 'roles'])->where('uuid', $user)->firstOrFail();
         Gate::authorize('view', $target);
 
+        $koraPoint = $target->agency_id === null ? null : KoraPoint::query()
+            ->where('agency_id', $target->agency_id)
+            ->with(['agency', 'organization'])
+            ->first();
+
         return Inertia::render('users', [
-            'user' => $this->serializeUser($target),
+            'user' => $this->serializeUser($target, $koraPoint),
             'permissions' => [
                 'canManage' => Gate::allows('update', $target),
             ],
@@ -252,9 +264,33 @@ class UserController extends Controller
     }
 
     /**
+     * Points de vente des `kora_point_agent` de la page, indexés par `agency_id` (pas de N+1).
+     *
+     * @param  Collection<int, User>  $users
+     * @return Collection<int, KoraPoint>
+     */
+    private function koraPointsByAgency(Collection $users): Collection
+    {
+        $agencyIds = $users
+            ->filter(fn (User $user): bool => $user->roles->first()?->name === 'kora_point_agent' && $user->agency_id !== null)
+            ->pluck('agency_id')
+            ->all();
+
+        if ($agencyIds === []) {
+            return collect();
+        }
+
+        return KoraPoint::query()
+            ->whereIn('agency_id', $agencyIds)
+            ->with(['agency', 'organization'])
+            ->get()
+            ->keyBy('agency_id');
+    }
+
+    /**
      * @return array<string, mixed>
      */
-    private function serializeUser(User $user): array
+    private function serializeUser(User $user, ?KoraPoint $koraPoint = null): array
     {
         $role = $user->roles->first();
         $webAccess = $user->latestKoraPointWebAccessInvitation;
@@ -275,6 +311,12 @@ class UserController extends Controller
                 'uuid' => $user->agency->uuid,
                 'code' => $user->agency->code,
                 'name' => $user->agency->name,
+            ] : null,
+            'kora_point' => $koraPoint !== null && $role?->name === 'kora_point_agent' ? [
+                'uuid' => $koraPoint->uuid,
+                'code' => $koraPoint->agency->code,
+                'name' => $koraPoint->agency->name,
+                'organization_name' => $koraPoint->organization?->name,
             ] : null,
             'kora_point_organization' => $user->koraPointOrganization ? [
                 'uuid' => $user->koraPointOrganization->uuid,

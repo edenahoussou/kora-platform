@@ -26,6 +26,13 @@ export type KoraPointOrganizationOption = {
     name: string;
 };
 
+export type AdministrationKoraPoint = {
+    uuid: string;
+    code: string;
+    name: string;
+    organization_name: string | null;
+};
+
 export type AdministrationUser = {
     uuid: string;
     name: string;
@@ -37,6 +44,7 @@ export type AdministrationUser = {
     status: 'active' | 'suspended' | 'locked';
     deleted_at: string | null;
     agency: AdministrationAgency | null;
+    kora_point: AdministrationKoraPoint | null;
     kora_point_organization: KoraPointOrganizationOption | null;
     role: Pick<AdministrationRole, 'code' | 'label' | 'category'> | null;
     web_access: {
