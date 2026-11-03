@@ -2883,7 +2883,7 @@ paths:
                 verification_token:
                   type: string
                   description: 'Jeton de vérification à usage unique. Le champ value doit contenir 64 caractères.'
-                  example: gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn
+                  example: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
                 pin:
                   type: string
                   description: 'Code PIN du compte. Le champ value doit contenir 4 chiffres.'
@@ -3001,7 +3001,7 @@ paths:
                 verification_token:
                   type: string
                   description: 'Jeton de vérification à usage unique. Le champ value doit contenir 64 caractères.'
-                  example: gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn
+                  example: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
               required:
                 - otp_challenge_uuid
                 - verification_token
@@ -3154,7 +3154,7 @@ paths:
                 verification_token:
                   type: string
                   description: 'Jeton de vérification à usage unique. Le champ value doit contenir 64 caractères.'
-                  example: gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn
+                  example: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
                 pin:
                   type: string
                   description: 'Code PIN du compte. Le champ value doit contenir 4 chiffres.'
@@ -3467,7 +3467,7 @@ paths:
                 verification_token:
                   type: string
                   description: 'Jeton de vérification à usage unique. This field is required when <code>otp_challenge_uuid</code> is present. Le champ value doit contenir 64 caractères.'
-                  example: yvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtnnoqi
+                  example: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
                   nullable: true
               required:
                 - identifier
@@ -7769,7 +7769,7 @@ paths:
                 birth_date:
                   type: string
                   description: 'Date de naissance (Y-m-d). Must be a valid date in the format <code>Y-m-d</code>. Le champ value doit être une date antérieure ou égale à <code>today</code>.'
-                  example: '2022-11-27'
+                  example: '2022-11-28'
                   nullable: true
                 yellow_fever_vaccinated:
                   type: boolean

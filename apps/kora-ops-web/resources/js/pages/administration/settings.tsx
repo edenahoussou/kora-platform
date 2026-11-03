@@ -1232,7 +1232,8 @@ export default function SettingsPage({
 
     const renderWallet = () => {
         const wallet = snapshot.values as WalletSettingsValues;
-        const reminderDays = (value('pointsExpiryReminderDays') as number[]) ?? [];
+        const reminderDays =
+            (value('pointsExpiryReminderDays') as number[]) ?? [];
 
         return (
             <div className="cash-reveal cash-reveal-delay-2 grid gap-4">
@@ -1271,13 +1272,18 @@ export default function SettingsPage({
                         <SettingsField
                             label="Taux d’acquisition"
                             hint={`${(wallet.loyaltyEarnRateBasisPoints / 100).toFixed(2)} % du montant monétaire de la jambe.`}
-                            value={value('loyaltyEarnRateBasisPoints') as number}
+                            value={
+                                value('loyaltyEarnRateBasisPoints') as number
+                            }
                             type="number"
                             suffix="pts base 10000"
                             disabled={!permissions.canManage}
                             error={error('loyaltyEarnRateBasisPoints')}
                             onChange={(nextValue) =>
-                                setNumber('loyaltyEarnRateBasisPoints', nextValue)
+                                setNumber(
+                                    'loyaltyEarnRateBasisPoints',
+                                    nextValue,
+                                )
                             }
                         />
                         <SettingsField
@@ -1394,7 +1400,11 @@ export default function SettingsPage({
                                     nextValue
                                         .split(',')
                                         .map((entry) => Number(entry.trim()))
-                                        .filter((entry) => Number.isFinite(entry) && entry > 0),
+                                        .filter(
+                                            (entry) =>
+                                                Number.isFinite(entry) &&
+                                                entry > 0,
+                                        ),
                                 )
                             }
                         />
@@ -1408,7 +1418,9 @@ export default function SettingsPage({
                         <SettingsField
                             label="Recharge minimum"
                             hint="Montant minimum accepté à la recharge."
-                            value={(value('topupMinAmount') as number | null) ?? ''}
+                            value={
+                                (value('topupMinAmount') as number | null) ?? ''
+                            }
                             type="number"
                             suffix="FCFA"
                             disabled={!permissions.canManage}
@@ -1423,7 +1435,9 @@ export default function SettingsPage({
                         <SettingsField
                             label="Recharge maximum"
                             hint="Montant maximum accepté à la recharge."
-                            value={(value('topupMaxAmount') as number | null) ?? ''}
+                            value={
+                                (value('topupMaxAmount') as number | null) ?? ''
+                            }
                             type="number"
                             suffix="FCFA"
                             disabled={!permissions.canManage}
@@ -1438,7 +1452,9 @@ export default function SettingsPage({
                         <SettingsField
                             label="Plafond du solde cash"
                             hint="Solde cash maximum autorisé."
-                            value={(value('cashBalanceCap') as number | null) ?? ''}
+                            value={
+                                (value('cashBalanceCap') as number | null) ?? ''
+                            }
                             type="number"
                             suffix="FCFA"
                             disabled={!permissions.canManage}
@@ -1464,7 +1480,11 @@ export default function SettingsPage({
                                     nextValue
                                         .split(',')
                                         .map((entry) => Number(entry.trim()))
-                                        .filter((entry) => Number.isFinite(entry) && entry > 0),
+                                        .filter(
+                                            (entry) =>
+                                                Number.isFinite(entry) &&
+                                                entry > 0,
+                                        ),
                                 )
                             }
                         />
@@ -2740,26 +2760,26 @@ export default function SettingsPage({
                                             },
                                         ]
                                       : group === 'operations'
-                                      ? [
-                                            {
-                                                title: 'Confirmez les impacts',
-                                                text: 'Les délais de vente et de session peuvent modifier immédiatement les parcours en cours.',
-                                            },
-                                            {
-                                                title: 'Préférez les overrides',
-                                                text: 'Utilisez un override de ligne lorsque la règle globale ne décrit pas une exploitation particulière.',
-                                            },
-                                        ]
-                                      : [
-                                            {
-                                                title: 'Testez la configuration enregistrée',
-                                                text: 'Un probe utilise uniquement les valeurs déjà sauvegardées, jamais les champs encore en édition.',
-                                            },
-                                            {
-                                                title: 'Secrets masqués',
-                                                text: 'Laisser un secret vide le conserve. Une suppression exige une action explicite et auditée.',
-                                            },
-                                        ]
+                                        ? [
+                                              {
+                                                  title: 'Confirmez les impacts',
+                                                  text: 'Les délais de vente et de session peuvent modifier immédiatement les parcours en cours.',
+                                              },
+                                              {
+                                                  title: 'Préférez les overrides',
+                                                  text: 'Utilisez un override de ligne lorsque la règle globale ne décrit pas une exploitation particulière.',
+                                              },
+                                          ]
+                                        : [
+                                              {
+                                                  title: 'Testez la configuration enregistrée',
+                                                  text: 'Un probe utilise uniquement les valeurs déjà sauvegardées, jamais les champs encore en édition.',
+                                              },
+                                              {
+                                                  title: 'Secrets masqués',
+                                                  text: 'Laisser un secret vide le conserve. Une suppression exige une action explicite et auditée.',
+                                              },
+                                          ]
                             }
                         />
                     )}

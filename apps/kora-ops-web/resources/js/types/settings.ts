@@ -1,4 +1,5 @@
-export type SettingsGroup = 'general' | 'operations' | 'wallet' | 'integrations';
+export type SettingsGroup =
+    'general' | 'operations' | 'wallet' | 'integrations';
 
 export type GeneralSettingsValues = {
     displayName: string;

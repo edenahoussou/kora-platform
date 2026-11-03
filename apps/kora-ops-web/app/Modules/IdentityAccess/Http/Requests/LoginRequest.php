@@ -114,7 +114,10 @@ class LoginRequest extends FormRequest
             'device_fingerprint' => ['description' => 'Valeur de « device fingerprint ».'],
             'push_token' => ['description' => 'Jeton de notification push de l’appareil.'],
             'otp_challenge_uuid' => ['description' => 'UUID du challenge OTP.'],
-            'verification_token' => ['description' => 'Jeton de vérification à usage unique.'],
+            'verification_token' => [
+                'description' => 'Jeton de vérification à usage unique.',
+                'example' => '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+            ],
         ];
     }
 }

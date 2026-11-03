@@ -58,7 +58,10 @@ class ResetPinRequest extends FormRequest
     {
         return [
             'otp_challenge_uuid' => ['description' => 'UUID du challenge OTP.'],
-            'verification_token' => ['description' => 'Jeton de vérification à usage unique.'],
+            'verification_token' => [
+                'description' => 'Jeton de vérification à usage unique.',
+                'example' => '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+            ],
             'pin' => ['description' => 'Code PIN du compte.'],
         ];
     }
