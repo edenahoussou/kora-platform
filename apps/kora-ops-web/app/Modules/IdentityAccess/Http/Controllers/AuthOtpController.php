@@ -22,7 +22,7 @@ class AuthOtpController extends Controller
     /**
      * Request an OTP challenge for registration, login, PIN reset or account unlock.
      *
-     * Sends a one-time code to WhatsApp when the account has a phone number, with email
+     * Sends a one-time code via SMS when configured, falling back to WhatsApp, with email
      * fallback. The returned `otp_challenge_uuid` must be submitted to the verify endpoint.
      *
      * @bodyParam identifier string required Email or phone number. For registration, this

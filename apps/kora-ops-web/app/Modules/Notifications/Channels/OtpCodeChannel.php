@@ -33,22 +33,8 @@ class OtpCodeChannel
     {
         $phone = $notifiable instanceof User
             ? $notifiable->phone
-            : $this->routeNotificationTarget($notifiable, 'whatsapp');
-
-        $whatsappError = null;
-
-        if (is_string($phone) && trim($phone) !== '') {
-            try {
-                $this->whatsapp->send(
-                    $phone,
-                    $notification->toWhatsApp($notifiable),
-                );
-
-                return;
-            } catch (Throwable $exception) {
-                $whatsappError = $exception;
-            }
-        }
+            : ($this->routeNotificationTarget($notifiable, 'sms')
+                ?? $this->routeNotificationTarget($notifiable, 'whatsapp'));
 
         $smsError = null;
 
@@ -70,9 +56,24 @@ class OtpCodeChannel
             }
         }
 
+        $whatsappError = null;
+
+        if (is_string($phone) && trim($phone) !== '') {
+            try {
+                $this->whatsapp->send(
+                    $phone,
+                    $notification->toWhatsApp($notifiable),
+                );
+
+                return;
+            } catch (Throwable $exception) {
+                $whatsappError = $exception;
+            }
+        }
+
         if (self::isContactableEmail($this->routeNotificationTarget($notifiable, 'mail'))) {
-            if ($whatsappError !== null || $smsError !== null) {
-                Log::warning('OTP WhatsApp/SMS delivery failed; falling back to email.', [
+            if ($smsError !== null || $whatsappError !== null) {
+                Log::warning('OTP SMS/WhatsApp delivery failed; falling back to email.', [
                     'exception' => ($smsError ?? $whatsappError)::class,
                     'user_id' => $notifiable instanceof User ? $notifiable->getKey() : null,
                 ]);

@@ -2560,7 +2560,7 @@ paths:
     post:
       summary: 'Request an OTP challenge for registration, login, PIN reset or account unlock.'
       operationId: requestAnOTPChallengeForRegistrationLoginPINResetOrAccountUnlock
-      description: "Sends a one-time code to WhatsApp when the account has a phone number, with email\nfallback. The returned `otp_challenge_uuid` must be submitted to the verify endpoint."
+      description: "Sends a one-time code via SMS when configured, falling back to WhatsApp, with email\nfallback. The returned `otp_challenge_uuid` must be submitted to the verify endpoint."
       parameters: []
       responses:
         202:

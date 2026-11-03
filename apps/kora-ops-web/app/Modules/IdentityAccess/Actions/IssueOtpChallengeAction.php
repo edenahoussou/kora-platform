@@ -35,7 +35,7 @@ class IssueOtpChallengeAction
         }
 
         // Le challenge porte la cible de livraison : le téléphone du compte
-        // quand il existe (canal WhatsApp prioritaire), son email sinon ;
+        // quand il existe (canal SMS prioritaire), son email sinon ;
         // en inscription, l'identifiant normalisé tel que saisi.
         $normalizedIdentifier = $user !== null
             ? (string) ($user->phone ?: Str::lower((string) $user->email))
@@ -70,14 +70,13 @@ class IssueOtpChallengeAction
 
         $notification = new OtpCodeNotification($code, $purpose);
 
-        // Envoi synchrone : un échec de livraison (WhatsApp injoignable et
-        // aucun email joignable) doit remonter en erreur métier dans la
-        // réponse, pas mourir silencieusement dans la file.
+        // Envoi synchrone : un échec de livraison doit remonter en erreur
+        // métier dans la réponse, pas mourir silencieusement dans la file.
         if ($user) {
             $user->notifyNow($notification);
         } else {
             Notification::route(
-                $this->isEmail($normalizedIdentifier) ? 'mail' : 'whatsapp',
+                $this->isEmail($normalizedIdentifier) ? 'mail' : 'sms',
                 $normalizedIdentifier,
             )->notifyNow($notification);
         }

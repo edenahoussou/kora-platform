@@ -133,11 +133,11 @@ function otpChannelSettingsWithSms(): IntegrationsSettings
     return $settings;
 }
 
-it('falls back to SMS when WhatsApp fails and skips the email', function (): void {
+it('sends otp through SMS first without calling WhatsApp when Conexteo is configured', function (): void {
     app()->instance(IntegrationsSettings::class, otpChannelSettingsWithSms());
     Http::fake([
-        'https://wa.genuka.com/*' => Http::response(['error' => 'unavailable'], 500),
-        'http://waha.test/*' => Http::response(['error' => 'unavailable'], 500),
+        'https://wa.genuka.com/*' => Http::response(['id' => 'otp-genuka-001'], 200),
+        'http://waha.test/*' => Http::response(['id' => 'otp-waha-001'], 200),
         'api.conexteo.com/*' => Http::response(['success' => true, 'message_id' => 'sms-otp-1', 'credits_used' => 1]),
     ]);
 
@@ -153,11 +153,37 @@ it('falls back to SMS when WhatsApp fails and skips the email', function (): voi
 
     Http::assertSent(fn (Request $request): bool => str_contains($request->url(), 'api.conexteo.com')
         && str_contains((string) $request['content'], '123456'));
+    Http::assertNotSent(fn (Request $request): bool => str_contains($request->url(), 'wa.genuka.com'));
+    Http::assertNotSent(fn (Request $request): bool => str_contains($request->url(), 'waha.test'));
 
     expect(NotificationLog::query()->where('channel', 'sms')->where('template', 'otp')->where('status', 'sent')->exists())->toBeTrue();
 });
 
-it('falls back to email when WhatsApp and SMS both fail', function (): void {
+it('falls back to WhatsApp when SMS delivery fails', function (): void {
+    app()->instance(IntegrationsSettings::class, otpChannelSettingsWithSms());
+    Http::fake([
+        'api.conexteo.com/*' => Http::response(['error' => 'unavailable'], 500),
+        'https://wa.genuka.com/*' => Http::response(['id' => 'otp-genuka-002'], 200),
+        'http://waha.test/*' => Http::response(['error' => 'unavailable'], 500),
+    ]);
+
+    $mail = Mockery::mock(MailChannel::class);
+    $mail->shouldReceive('send')->never();
+    app()->instance(MailChannel::class, $mail);
+
+    $user = User::factory()->create(['phone' => '+2290197421860']);
+    app(OtpCodeChannel::class)->send(
+        $user,
+        new OtpCodeNotification('123456', OtpPurpose::LoginNewDevice),
+    );
+
+    Http::assertSent(fn (Request $request): bool => str_contains($request->url(), 'api.conexteo.com'));
+    Http::assertSent(fn (Request $request): bool => str_contains($request->url(), 'wa.genuka.com'));
+
+    expect(NotificationLog::query()->where('channel', 'sms')->where('template', 'otp')->where('status', 'failed')->exists())->toBeTrue();
+});
+
+it('falls back to email when SMS and WhatsApp both fail', function (): void {
     app()->instance(IntegrationsSettings::class, otpChannelSettingsWithSms());
     Http::fake([
         'https://wa.genuka.com/*' => Http::response(['error' => 'unavailable'], 500),
@@ -197,6 +223,40 @@ it('skips SMS entirely when Conexteo is disabled', function (): void {
     );
 
     Http::assertNotSent(fn (Request $request): bool => str_contains($request->url(), 'api.conexteo.com'));
+});
+
+it('sends SMS first for a notifiable routed by phone via the sms route', function (): void {
+    app()->instance(IntegrationsSettings::class, otpChannelSettingsWithSms());
+    Http::fake([
+        'api.conexteo.com/*' => Http::response(['success' => true, 'message_id' => 'sms-otp-2', 'credits_used' => 1]),
+        'https://wa.genuka.com/*' => Http::response(['id' => 'otp-wa-002'], 200),
+    ]);
+
+    $notifiable = Notification::route('sms', '+2290153234060');
+    app(OtpCodeChannel::class)->send(
+        $notifiable,
+        new OtpCodeNotification('445566', OtpPurpose::Registration),
+    );
+
+    Http::assertSent(fn (Request $request): bool => str_contains($request->url(), 'api.conexteo.com'));
+    Http::assertNotSent(fn (Request $request): bool => str_contains($request->url(), 'wa.genuka.com'));
+});
+
+it('resolves the whatsapp route as SMS fallback target for anonymous notifiables', function (): void {
+    app()->instance(IntegrationsSettings::class, otpChannelSettingsWithSms());
+    Http::fake([
+        'api.conexteo.com/*' => Http::response(['success' => true, 'message_id' => 'sms-otp-3', 'credits_used' => 1]),
+        'https://wa.genuka.com/*' => Http::response(['id' => 'otp-wa-003'], 200),
+    ]);
+
+    $notifiable = Notification::route('whatsapp', '+2290153234060');
+    app(OtpCodeChannel::class)->send(
+        $notifiable,
+        new OtpCodeNotification('445566', OtpPurpose::Registration),
+    );
+
+    Http::assertSent(fn (Request $request): bool => str_contains($request->url(), 'api.conexteo.com'));
+    Http::assertNotSent(fn (Request $request): bool => str_contains($request->url(), 'wa.genuka.com'));
 });
 
 it('throws when WhatsApp, SMS and email are all unavailable', function (): void {
