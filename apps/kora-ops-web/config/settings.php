@@ -3,6 +3,7 @@
 use App\Modules\Settings\Settings\GeneralSettings;
 use App\Modules\Settings\Settings\IntegrationsSettings;
 use App\Modules\Settings\Settings\OperationsSettings;
+use App\Modules\Settings\Settings\WalletSettings;
 use Spatie\LaravelSettings\SettingsCasts\DateTimeInterfaceCast;
 use Spatie\LaravelSettings\SettingsCasts\DateTimeZoneCast;
 use Spatie\LaravelSettings\SettingsRepositories\DatabaseSettingsRepository;
@@ -17,6 +18,7 @@ return [
     'settings' => [
         GeneralSettings::class,
         OperationsSettings::class,
+        WalletSettings::class,
         IntegrationsSettings::class,
     ],
 

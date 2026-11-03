@@ -4,6 +4,7 @@ namespace App\Modules\Departures\Actions;
 
 use App\Modules\Departures\Data\DepartureStatus;
 use App\Modules\Departures\Models\Departure;
+use App\Modules\Wallet\Jobs\CreditDepartureLoyaltyJob;
 use Illuminate\Validation\ValidationException;
 
 class ChangeDepartureStatusAction
@@ -37,6 +38,10 @@ class ChangeDepartureStatusAction
         }
 
         $departure->update(['status' => $targetStatus, ...$attributes]);
+
+        if ($targetStatus === DepartureStatus::Arrived) {
+            CreditDepartureLoyaltyJob::dispatch((int) $departure->getKey())->afterCommit();
+        }
 
         return $departure->refresh();
     }

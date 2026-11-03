@@ -32,6 +32,10 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         ->name('administration.settings.operations');
     Route::patch('administration/settings/operations', [SettingsController::class, 'updateOperations'])
         ->name('administration.settings.operations.update');
+    Route::get('administration/settings/wallet', [SettingsController::class, 'wallet'])
+        ->name('administration.settings.wallet');
+    Route::patch('administration/settings/wallet', [SettingsController::class, 'updateWallet'])
+        ->name('administration.settings.wallet.update');
     Route::get('administration/settings/integrations', [SettingsController::class, 'integrations'])
         ->name('administration.settings.integrations');
     Route::patch('administration/settings/integrations', [SettingsController::class, 'updateIntegrations'])

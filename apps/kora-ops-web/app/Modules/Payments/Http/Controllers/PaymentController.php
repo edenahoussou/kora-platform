@@ -78,7 +78,7 @@ class PaymentController extends Controller
             phone: $data['phone'],
             mobileMoneyNetwork: $data['mobile_money_network'],
             walletAmount: $data['wallet_amount'],
-            pointsAmount: null,
+            pointsAmount: $data['points_amount'],
             mobileMoneyAmount: $data['mobile_money_amount'],
         );
 

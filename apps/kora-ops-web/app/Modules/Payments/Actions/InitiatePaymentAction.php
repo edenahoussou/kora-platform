@@ -3,11 +3,21 @@
 namespace App\Modules\Payments\Actions;
 
 use App\Models\User;
+use App\Modules\Booking\Data\PayerType;
 use App\Modules\Booking\Data\ReservationStatus;
 use App\Modules\Booking\Models\Reservation;
+use App\Modules\Payments\Data\PaymentMethod;
 use App\Modules\Payments\Data\PaymentStatus;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\PaymentManager;
+use App\Modules\Settings\Settings\WalletSettings;
+use App\Modules\Wallet\Actions\FindOrCreateWalletAction;
+use App\Modules\Wallet\Actions\PlaceWalletHoldAction;
+use App\Modules\Wallet\Actions\ReleaseWalletHoldAction;
+use App\Modules\Wallet\Data\WalletBalanceType;
+use App\Modules\Wallet\Models\Wallet;
+use App\Modules\Wallet\Models\WalletHold;
+use App\Modules\Wallet\Services\WalletLedgerService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +27,12 @@ class InitiatePaymentAction
 {
     public function __construct(
         private readonly PaymentManager $manager,
+        private readonly WalletSettings $walletSettings,
+        private readonly FindOrCreateWalletAction $findOrCreateWallet,
+        private readonly PlaceWalletHoldAction $placeWalletHold,
+        private readonly ReleaseWalletHoldAction $releaseWalletHold,
+        private readonly WalletLedgerService $walletLedger,
+        private readonly ConfirmPaymentAction $confirmPayment,
     ) {}
 
     /**
@@ -51,8 +67,10 @@ class InitiatePaymentAction
             mobileMoneyAmount: $mobileMoneyAmount,
         );
 
+        $walletHoldId = null;
+
         try {
-            $result = DB::transaction(function () use ($reservation, $method, $provider, $idempotencyKey, $phone, $mobileMoneyNetwork, $walletAmount, $pointsAmount, $mobileMoneyAmount, $requestFingerprint): array {
+            $result = DB::transaction(function () use ($reservation, $user, $method, $provider, $idempotencyKey, $phone, $mobileMoneyNetwork, $walletAmount, $pointsAmount, $mobileMoneyAmount, $requestFingerprint, &$walletHoldId): array {
                 $lockedReservation = Reservation::query()
                     ->whereKey($reservation->getKey())
                     ->lockForUpdate()
@@ -85,7 +103,7 @@ class InitiatePaymentAction
 
                 if (! in_array($lockedReservation->status, [ReservationStatus::Held, ReservationStatus::Confirmed], true)) {
                     throw ValidationException::withMessages([
-                        'reservation_uuid' => 'Cette réservation doit d’abord être reprise avant de lancer un paiement en ligne.',
+                        'reservation_uuid' => 'Cette réservation doit d\'abord être reprise avant de lancer un paiement en ligne.',
                     ]);
                 }
 
@@ -95,19 +113,26 @@ class InitiatePaymentAction
                     ]);
                 }
 
-                if ($mobileMoneyAmount !== null && $mobileMoneyAmount !== (int) $lockedReservation->total_amount) {
-                    throw ValidationException::withMessages([
-                        'mobile_money_amount' => 'Le montant Mobile Money doit correspondre au total du devis serveur.',
-                    ]);
-                }
-
-                $providerKey = $provider ?? '';
-                $this->manager->assertAvailable($method, $providerKey, $mobileMoneyNetwork);
-                $providerAmount = $this->manager->providerAmount(
-                    provider: $providerKey,
-                    amount: (int) $lockedReservation->total_amount,
-                    currency: $lockedReservation->currency,
+                $total = (int) $lockedReservation->total_amount;
+                [$walletAmount, $pointsAmount, $providerPayable] = $this->resolveSplit(
+                    reservation: $lockedReservation,
+                    user: $user,
+                    method: $method,
+                    total: $total,
+                    walletAmount: $walletAmount,
+                    pointsAmount: $pointsAmount,
+                    mobileMoneyAmount: $mobileMoneyAmount,
                 );
+
+                $providerKey = $method === PaymentMethod::Wallet->value ? '' : (string) $provider;
+                $this->manager->assertAvailable($method, $providerKey, $mobileMoneyNetwork);
+                $providerAmount = $providerKey === ''
+                    ? ['amount' => 0, 'currency' => $lockedReservation->currency]
+                    : $this->manager->providerAmount(
+                        provider: $providerKey,
+                        amount: $providerPayable,
+                        currency: $lockedReservation->currency,
+                    );
 
                 $payment = Payment::create([
                     'reservation_id' => $lockedReservation->id,
@@ -115,7 +140,7 @@ class InitiatePaymentAction
                     'provider' => $providerKey,
                     'idempotency_key' => $idempotencyKey,
                     'request_fingerprint' => $requestFingerprint,
-                    'amount' => $lockedReservation->total_amount,
+                    'amount' => $total,
                     'currency' => $lockedReservation->currency,
                     'provider_amount' => $providerAmount['amount'],
                     'provider_currency' => $providerAmount['currency'],
@@ -126,11 +151,27 @@ class InitiatePaymentAction
                         'method' => $method,
                         'phone' => $phone,
                         'mobile_money_network' => $mobileMoneyNetwork,
-                        'wallet_amount' => $walletAmount,
-                        'points_amount' => $pointsAmount,
+                        'wallet_amount' => $walletAmount ?: null,
+                        'points_amount' => $pointsAmount ?: null,
                         'mobile_money_amount' => $mobileMoneyAmount,
                     ], fn ($value): bool => $value !== null),
                 ]);
+
+                if ($walletAmount > 0 || $pointsAmount > 0) {
+                    $owner = $this->walletOwner($lockedReservation, $user);
+                    $wallet = $this->findOrCreateWallet->handle($owner);
+
+                    $hold = $this->placeWalletHold->handle(
+                        wallet: $wallet,
+                        cashAmount: $walletAmount,
+                        pointsAmount: $pointsAmount,
+                        idempotencyKey: 'payment:'.$payment->uuid.':hold',
+                        reservation: $lockedReservation,
+                        payment: $payment,
+                    );
+
+                    $walletHoldId = $hold?->getKey();
+                }
 
                 return [
                     'payment' => $payment->loadMissing(['reservation.segments.departure']),
@@ -164,6 +205,14 @@ class InitiatePaymentAction
         }
 
         $payment = $result['payment'];
+
+        if ($payment->method === PaymentMethod::Wallet) {
+            return [
+                'payment' => $this->confirmPayment->handle($payment, 'confirmed'),
+                'is_replay' => false,
+            ];
+        }
+
         $providerResponse = $this->manager->resolve((string) $payment->provider)->initiate($payment, array_filter([
             'method' => $method,
             'phone' => $phone,
@@ -179,10 +228,107 @@ class InitiatePaymentAction
             'failure_message' => $providerResponse->isFailed() ? $providerResponse->message : null,
         ]);
 
+        if ($providerResponse->isFailed() && $walletHoldId !== null) {
+            $hold = WalletHold::query()->whereKey($walletHoldId)->first();
+            if ($hold !== null) {
+                $this->releaseWalletHold->handle($hold);
+            }
+        }
+
         return [
             'payment' => $payment->fresh(['reservation.segments.departure']),
             'is_replay' => false,
         ];
+    }
+
+    /**
+     * Valide la répartition points / cash Wallet / complément provider.
+     *
+     * @return array{0: int, 1: int, 2: int}
+     */
+    private function resolveSplit(
+        Reservation $reservation,
+        ?User $user,
+        string $method,
+        int $total,
+        ?int $walletAmount,
+        ?int $pointsAmount,
+        ?int $mobileMoneyAmount,
+    ): array {
+        $walletAmount = max(0, (int) $walletAmount);
+        $pointsAmount = max(0, (int) $pointsAmount);
+        $providerPayable = max(0, $total - $walletAmount - $pointsAmount);
+
+        if ($method === PaymentMethod::Wallet->value && $providerPayable !== 0) {
+            throw ValidationException::withMessages([
+                'wallet_amount' => 'Le solde Wallet et les points doivent couvrir la totalité du montant.',
+            ]);
+        }
+
+        if ($providerPayable > 0 && ! in_array($method, [PaymentMethod::MobileMoney->value, PaymentMethod::Card->value], true)) {
+            throw ValidationException::withMessages([
+                'method' => 'Le complément doit être réglé par Mobile Money ou carte.',
+            ]);
+        }
+
+        if ($mobileMoneyAmount !== null && $mobileMoneyAmount !== $providerPayable) {
+            throw ValidationException::withMessages([
+                'mobile_money_amount' => 'Le montant Mobile Money doit correspondre au reste à payer du devis serveur.',
+            ]);
+        }
+
+        if ($walletAmount > 0 && ! $this->walletSettings->walletCashEnabled) {
+            throw ValidationException::withMessages([
+                'wallet_amount' => 'Le solde Wallet n’est pas encore ouvert aux paiements.',
+            ]);
+        }
+
+        if ($pointsAmount > 0) {
+            if (! $this->walletSettings->walletPointsEnabled) {
+                throw ValidationException::withMessages(['points_amount' => 'L’utilisation des points est désactivée.']);
+            }
+
+            if ($pointsAmount < $this->walletSettings->pointsMinSpend) {
+                throw ValidationException::withMessages([
+                    'points_amount' => 'Le minimum d’utilisation de points est de '.$this->walletSettings->pointsMinSpend.' points.',
+                ]);
+            }
+
+            $wallet = $this->walletOwner($reservation, $user);
+            $walletModel = Wallet::query()->where('user_id', $wallet->getKey())->first();
+            $availablePoints = $walletModel === null
+                ? 0
+                : $this->walletLedger->availableBalance($walletModel, WalletBalanceType::Points);
+
+            if ($pointsAmount > $availablePoints) {
+                throw ValidationException::withMessages([
+                    'points_amount' => 'Le solde de points disponible est insuffisant.',
+                ]);
+            }
+        }
+
+        return [$walletAmount, $pointsAmount, $providerPayable];
+    }
+
+    private function walletOwner(Reservation $reservation, ?User $user): User
+    {
+        if ($reservation->payer_type !== PayerType::Personal) {
+            throw ValidationException::withMessages([
+                'wallet_amount' => 'Le Wallet ne peut régler qu’une réservation personnelle.',
+            ]);
+        }
+
+        $owner = $reservation->payer_user_id !== null
+            ? User::query()->find($reservation->payer_user_id)
+            : $user;
+
+        if ($owner === null) {
+            throw ValidationException::withMessages([
+                'wallet_amount' => 'Aucun titulaire de Wallet identifié pour ce paiement.',
+            ]);
+        }
+
+        return $owner;
     }
 
     private function fingerprint(

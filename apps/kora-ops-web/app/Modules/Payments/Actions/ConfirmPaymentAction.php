@@ -11,6 +11,10 @@ use App\Modules\Payments\Data\PaymentMethod;
 use App\Modules\Payments\Data\PaymentStatus;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Ticketing\Jobs\IssueReservationTicketsJob;
+use App\Modules\Wallet\Actions\CaptureWalletHoldAction;
+use App\Modules\Wallet\Actions\ConfirmWalletTopUpAction;
+use App\Modules\Wallet\Actions\ReleaseWalletHoldAction;
+use App\Modules\Wallet\Models\WalletHold;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -19,6 +23,9 @@ class ConfirmPaymentAction
     public function __construct(
         private readonly CompanyCreditService $companyCredit,
         private readonly RecordPromotionRedemptionAction $recordPromotionRedemption,
+        private readonly ConfirmWalletTopUpAction $confirmWalletTopUp,
+        private readonly CaptureWalletHoldAction $captureWalletHold,
+        private readonly ReleaseWalletHoldAction $releaseWalletHold,
     ) {}
 
     /**
@@ -60,6 +67,17 @@ class ConfirmPaymentAction
                 if ($reservation?->origin_kora_point_id !== null) {
                     throw ValidationException::withMessages(['payment' => 'Une réservation KORA Point se règle au guichet partenaire.']);
                 }
+
+                $this->confirmWalletTopUp->confirm($lockedPayment);
+
+                $hold = WalletHold::query()
+                    ->where('payment_id', $lockedPayment->getKey())
+                    ->where('status', 'active')
+                    ->first();
+                if ($hold !== null) {
+                    $this->captureWalletHold->handle($hold, $lockedPayment);
+                }
+
                 if ($reservation) {
                     if ($lockedPayment->method === PaymentMethod::CompanyCredit) {
                         $hold = $reservation->companyCreditHolds()
@@ -100,6 +118,9 @@ class ConfirmPaymentAction
                         'released_at' => now(),
                     ]);
                 }
+
+                $this->confirmWalletTopUp->fail($lockedPayment);
+                $this->releaseWalletHold->releaseForPayment((int) $lockedPayment->getKey());
             }
 
             return $lockedPayment->fresh(['reservation.segments.departure']);

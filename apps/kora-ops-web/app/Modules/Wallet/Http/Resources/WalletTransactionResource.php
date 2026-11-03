@@ -1,0 +1,33 @@
+<?php
+
+namespace App\Modules\Wallet\Http\Resources;
+
+use App\Modules\Wallet\Models\WalletTransaction;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+/**
+ * @mixin WalletTransaction
+ */
+class WalletTransactionResource extends JsonResource
+{
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(Request $request): array
+    {
+        return [
+            'uuid' => $this->uuid,
+            'balance_type' => $this->balance_type->value,
+            'direction' => $this->direction->value,
+            'amount' => (int) $this->amount,
+            'reason' => $this->reason->value,
+            'reference' => [
+                'type' => $this->reference_type,
+                'uuid' => $this->reference?->getAttribute('uuid'),
+            ],
+            'meta' => $this->meta,
+            'created_at' => $this->created_at->toIso8601String(),
+        ];
+    }
+}

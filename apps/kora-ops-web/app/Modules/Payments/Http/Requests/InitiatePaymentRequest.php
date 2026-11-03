@@ -36,6 +36,7 @@ class InitiatePaymentRequest extends FormRequest
                 Rule::in(MobileMoneyNetwork::values()),
             ],
             'wallet_amount' => ['required_if:method,wallet', 'nullable', 'integer', 'min:0'],
+            'points_amount' => ['nullable', 'integer', 'min:0'],
             'mobile_money_amount' => ['nullable', 'integer', 'min:0'],
         ];
     }
@@ -49,6 +50,7 @@ class InitiatePaymentRequest extends FormRequest
      *     phone: string|null,
      *     mobile_money_network: string|null,
      *     wallet_amount: int|null,
+     *     points_amount: int|null,
      *     mobile_money_amount: int|null
      * }
      */
@@ -62,6 +64,7 @@ class InitiatePaymentRequest extends FormRequest
             'phone' => $this->string('phone')->trim()->value() ?: null,
             'mobile_money_network' => $this->string('mobile_money_network')->value() ?: null,
             'wallet_amount' => $this->input('wallet_amount') === null ? null : $this->integer('wallet_amount'),
+            'points_amount' => $this->input('points_amount') === null ? null : $this->integer('points_amount'),
             'mobile_money_amount' => $this->input('mobile_money_amount') === null ? null : $this->integer('mobile_money_amount'),
         ];
     }
@@ -77,6 +80,7 @@ class InitiatePaymentRequest extends FormRequest
             'phone' => ['description' => 'Numéro de téléphone.'],
             'mobile_money_network' => ['description' => 'Réseau Mobile Money utilisé.'],
             'wallet_amount' => ['description' => 'Montant débité du portefeuille.'],
+            'points_amount' => ['description' => 'Points fidélité utilisés pour ce paiement.'],
             'mobile_money_amount' => ['description' => 'Montant payé par Mobile Money.'],
         ];
     }

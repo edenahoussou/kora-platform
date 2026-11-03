@@ -10,6 +10,7 @@ use App\Modules\Payments\Providers\KKiaPayAdapter;
 use App\Modules\Payments\Providers\MtnMomoAdapter;
 use App\Modules\Settings\Settings\GeneralSettings;
 use App\Modules\Settings\Settings\IntegrationsSettings;
+use App\Modules\Settings\Settings\WalletSettings;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 
@@ -77,6 +78,7 @@ class PaymentManager
         $mobileMoneyProviders = [];
         $cardProviders = [];
         $countries = [];
+        $walletSettings = app(WalletSettings::class);
 
         if ($this->isAvailable('mtn_momo')) {
             $mobileMoneyProviders[] = [
@@ -158,10 +160,20 @@ class PaymentManager
                 [
                     'code' => 'wallet',
                     'label' => 'Wallet KORA BUS',
-                    'enabled' => false,
-                    'availability' => 'disabled_until_wallet_ledger',
+                    'enabled' => $walletSettings->walletCashEnabled || $walletSettings->walletPointsEnabled,
+                    'availability' => match (true) {
+                        $walletSettings->walletCashEnabled => 'available',
+                        $walletSettings->walletPointsEnabled => 'points_only',
+                        default => 'disabled',
+                    },
                     'providers' => [],
                     'requires' => ['wallet_amount'],
+                    'capabilities' => [
+                        'cash' => $walletSettings->walletCashEnabled,
+                        'points' => $walletSettings->walletPointsEnabled,
+                    ],
+                    'min_points_amount' => $walletSettings->pointsMinSpend,
+                    'point_value_fcfa' => $walletSettings->pointValueFcfa,
                 ],
             ],
         ];
@@ -207,9 +219,15 @@ class PaymentManager
     public function assertAvailable(string $method, string $provider, ?string $network = null): void
     {
         if ($method === 'wallet') {
-            throw ValidationException::withMessages([
-                'method' => 'Le Wallet est prévu dans le contrat mobile mais n’est pas encore activé.',
-            ]);
+            $walletSettings = app(WalletSettings::class);
+
+            if (! $walletSettings->walletCashEnabled && ! $walletSettings->walletPointsEnabled) {
+                throw ValidationException::withMessages([
+                    'method' => 'Le Wallet KORA BUS n’est pas encore activé.',
+                ]);
+            }
+
+            return;
         }
 
         if (! in_array($method, ['mobile_money', 'card'], true)) {

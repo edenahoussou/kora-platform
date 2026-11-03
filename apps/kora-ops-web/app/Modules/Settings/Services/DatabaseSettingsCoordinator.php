@@ -243,6 +243,30 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
             ];
         }
 
+        if ($group === SettingsGroup::Wallet) {
+            return [
+                'walletCashEnabled' => ['required', 'boolean'],
+                'walletPointsEnabled' => ['required', 'boolean'],
+                'loyaltyEarnRateBasisPoints' => ['required', 'integer', 'between:0,10000'],
+                'pointValueFcfa' => ['required', 'integer', 'between:1,100000'],
+                'pointsMinSpend' => ['required', 'integer', 'between:1,1000000'],
+                'bonusWelcomePoints' => ['required', 'integer', 'between:0,1000000'],
+                'bonusReferralPoints' => ['required', 'integer', 'between:0,1000000'],
+                'bonusAnniversaryPoints' => ['required', 'integer', 'between:0,1000000'],
+                'bonusUsageNth' => ['required', 'integer', 'between:1,1000'],
+                'bonusUsagePoints' => ['required', 'integer', 'between:0,1000000'],
+                'pointsExpiryMonths' => ['required', 'integer', 'between:1,120'],
+                'pointsExpiryReminderDays' => ['required', 'array', 'min:1', 'max:5'],
+                'pointsExpiryReminderDays.*' => ['required', 'integer', 'between:1,365'],
+                'walletHoldTtlMinutes' => ['required', 'integer', 'between:1,1440'],
+                'topupMinAmount' => ['nullable', 'integer', 'min:0', 'max:100000000'],
+                'topupMaxAmount' => ['nullable', 'integer', 'min:0', 'max:100000000'],
+                'cashBalanceCap' => ['nullable', 'integer', 'min:0', 'max:100000000'],
+                'topupAmountPresets' => ['required', 'array', 'min:1', 'max:8'],
+                'topupAmountPresets.*' => ['required', 'integer', 'between:1,100000000'],
+            ];
+        }
+
         return [
             'firebasePushEnabled' => ['required', 'boolean'],
             'firebaseProjectId' => ['nullable', 'string', 'max:200'],
@@ -387,6 +411,32 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
 
                 if (! is_numeric($minutes) || (int) $minutes != (float) $minutes || (int) $minutes < 0 || (int) $minutes > 1440) {
                     $errors['saleCutoffOverrides'] = 'Chaque override doit être compris entre 0 et 1440 minutes.';
+
+                    break;
+                }
+            }
+
+            return $errors;
+        }
+
+        if ($group === SettingsGroup::Wallet) {
+            $errors = [];
+            $min = $values['topupMinAmount'] ?? null;
+            $max = $values['topupMaxAmount'] ?? null;
+
+            if ($min !== null && $max !== null && (int) $min > (int) $max) {
+                $errors['topupMinAmount'] = 'Le montant minimum de recharge ne peut pas dépasser le maximum.';
+            }
+
+            foreach ($values['topupAmountPresets'] ?? [] as $preset) {
+                if ($min !== null && (int) $preset < (int) $min) {
+                    $errors['topupAmountPresets'] = 'Chaque palier de recharge doit respecter le montant minimum.';
+
+                    break;
+                }
+
+                if ($max !== null && (int) $preset > (int) $max) {
+                    $errors['topupAmountPresets'] = 'Chaque palier de recharge doit respecter le montant maximum.';
 
                     break;
                 }

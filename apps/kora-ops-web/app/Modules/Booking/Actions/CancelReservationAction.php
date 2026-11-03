@@ -15,13 +15,19 @@ use App\Modules\Payments\Data\PaymentStatus;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\Models\PaymentRefund;
 use App\Modules\Ticketing\Data\TicketStatus;
+use App\Modules\Wallet\Actions\ApplyLoyaltyCorrectionAction;
+use App\Modules\Wallet\Actions\RouteRefundToWalletAction;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class CancelReservationAction
 {
-    public function __construct(private readonly CompanyCreditService $companyCredit) {}
+    public function __construct(
+        private readonly CompanyCreditService $companyCredit,
+        private readonly RouteRefundToWalletAction $routeRefundToWallet,
+        private readonly ApplyLoyaltyCorrectionAction $applyLoyaltyCorrection,
+    ) {}
 
     public function cancel(Reservation $reservation, User $actor, bool $pointRefund = false): Reservation
     {
@@ -34,7 +40,10 @@ class CancelReservationAction
                     if ($paid !== null) {
                         $owed = max(0, (int) $paid->amount - (int) $paid->refunds()->whereNotIn('status', [PaymentRefundStatus::Failed->value])->sum('amount'));
                         if ($owed > 0) {
-                            $this->recordRefund($locked, null, $paid, $owed, false);
+                            $refund = $this->recordRefund($locked, null, $paid, $owed, false);
+                            if ($refund->wasRecentlyCreated) {
+                                $this->settleWalletRefund($locked, $paid, $refund, $owed);
+                            }
                         }
                     }
                 }
@@ -63,7 +72,10 @@ class CancelReservationAction
             } else {
                 $this->companyCredit->release($locked);
                 if ($payment !== null && $amount > 0) {
-                    $this->recordRefund($locked, null, $payment, $amount, false);
+                    $refund = $this->recordRefund($locked, null, $payment, $amount, false);
+                    if ($refund->wasRecentlyCreated) {
+                        $this->settleWalletRefund($locked, $payment, $refund, $amount);
+                    }
                 }
             }
 
@@ -100,7 +112,10 @@ class CancelReservationAction
                     $this->companyCredit->refund($locked, $refund, $payment);
                 }
             } elseif ($payment !== null && $refund > 0) {
-                $this->recordRefund($locked, $lockedPassenger, $payment, $refund, false);
+                $refundRecord = $this->recordRefund($locked, $lockedPassenger, $payment, $refund, false);
+                if ($refundRecord->wasRecentlyCreated) {
+                    $this->settleWalletRefund($locked, $payment, $refundRecord, $refund);
+                }
             }
 
             $activePassengers = $locked->passengers()->where('status', 'active')->count();
@@ -138,6 +153,27 @@ class CancelReservationAction
                 'metadata' => ['source' => 'reservation_cancellation'],
             ],
         );
+    }
+
+    private function settleWalletRefund(Reservation $reservation, Payment $payment, PaymentRefund $refund, int $amount): void
+    {
+        if ($refund->destination === PaymentRefundDestination::WalletCash) {
+            $routed = $this->routeRefundToWallet->handle($reservation, $payment, $amount, $refund->reference);
+
+            if ($routed !== null) {
+                $refund->update([
+                    'status' => PaymentRefundStatus::Completed,
+                    'completed_at' => now(),
+                    'metadata' => array_merge((array) ($refund->getAttribute('metadata') ?? []), [
+                        'wallet_uuid' => $routed['wallet']->uuid,
+                        'wallet_points' => $routed['points'],
+                        'wallet_cash' => $routed['cash'],
+                    ]),
+                ]);
+            }
+        }
+
+        $this->applyLoyaltyCorrection->handle($reservation, $amount);
     }
 
     private function authorize(Reservation $reservation, User $actor, bool $pointRefund = false): void

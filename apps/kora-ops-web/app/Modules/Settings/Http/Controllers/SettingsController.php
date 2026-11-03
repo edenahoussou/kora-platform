@@ -8,9 +8,11 @@ use App\Modules\Settings\Data\SettingsGroup;
 use App\Modules\Settings\DTO\GeneralSettingsUpdate;
 use App\Modules\Settings\DTO\IntegrationsSettingsUpdate;
 use App\Modules\Settings\DTO\OperationsSettingsUpdate;
+use App\Modules\Settings\DTO\WalletSettingsUpdate;
 use App\Modules\Settings\Http\Requests\UpdateGeneralSettingsRequest;
 use App\Modules\Settings\Http\Requests\UpdateIntegrationsSettingsRequest;
 use App\Modules\Settings\Http\Requests\UpdateOperationsSettingsRequest;
+use App\Modules\Settings\Http\Requests\UpdateWalletSettingsRequest;
 use App\Modules\Settings\Services\SettingsPagePresenter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -42,6 +44,11 @@ final class SettingsController
         return Inertia::render('administration/settings', $presenter->page(SettingsGroup::Operations, $this->actor($request)));
     }
 
+    public function wallet(Request $request, SettingsPagePresenter $presenter): Response
+    {
+        return Inertia::render('administration/settings', $presenter->page(SettingsGroup::Wallet, $this->actor($request)));
+    }
+
     public function integrations(Request $request, SettingsPagePresenter $presenter): Response
     {
         return Inertia::render('administration/settings', $presenter->page(SettingsGroup::Integrations, $this->actor($request)));
@@ -67,6 +74,17 @@ final class SettingsController
         );
 
         return $this->saved('administration.settings.operations');
+    }
+
+    public function updateWallet(UpdateWalletSettingsRequest $request): RedirectResponse
+    {
+        $this->settings->update(
+            SettingsGroup::Wallet,
+            new WalletSettingsUpdate($request->values(), $request->clearSecrets()),
+            $request->user(),
+        );
+
+        return $this->saved('administration.settings.wallet');
     }
 
     public function updateIntegrations(UpdateIntegrationsSettingsRequest $request): RedirectResponse

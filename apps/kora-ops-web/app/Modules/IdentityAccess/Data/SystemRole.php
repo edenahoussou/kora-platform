@@ -40,8 +40,8 @@ enum SystemRole: string
     public function permissions(): array
     {
         return match ($this) {
-            self::KoraPointAgent => ['departures.view', 'kora-points.view', 'kora-points.remit', 'kora-points.refund-request', 'counter-sales.create', 'cash.open', 'cash.close', 'cash.view', 'cash.media.view', 'tickets.view', 'tickets.issue', 'notifications.view'],
-            self::KoraPointSupervisor => ['kora-points.view', 'kora-points.manage', 'kora-points.remit', 'kora-points.documents.upload', 'notifications.view'],
+            self::KoraPointAgent => ['departures.view', 'kora-points.view', 'kora-points.remit', 'kora-points.refund-request', 'counter-sales.create', 'cash.open', 'cash.close', 'cash.view', 'cash.media.view', 'tickets.view', 'tickets.issue', 'notifications.view', 'wallet.debit-counter'],
+            self::KoraPointSupervisor => ['kora-points.view', 'kora-points.manage', 'kora-points.remit', 'kora-points.documents.upload', 'notifications.view', 'wallet.debit-counter'],
             self::KoraPointTreasurer => ['kora-points.view', 'kora-points.remit', 'kora-points.documents.upload', 'notifications.view'],
             self::Passenger => [
                 'bookings.create',
@@ -91,6 +91,7 @@ enum SystemRole: string
                 'assisted-bookings.claim',
                 'expenses.view-own',
                 'expenses.create',
+                'wallet.debit-counter',
             ],
             self::AgencyManager => [
                 'incidents.report',
@@ -123,6 +124,7 @@ enum SystemRole: string
                 'expenses.approve-agency',
                 'expenses.reverse',
                 'expenses.export',
+                'wallet.debit-counter',
             ],
             self::OperationsDirector => [
                 'notifications.view',
@@ -159,6 +161,8 @@ enum SystemRole: string
                 'sensitive-data.export',
                 'profitability.view',
                 'profitability.export',
+                'wallet.debit-counter',
+                'wallet.manage-restitutions',
             ],
             self::CommercialDirector => [
                 'kora-points.view', 'kora-points.manage', 'kora-points.terms', 'kora-points.documents.upload', 'kora-points.refund-request',
@@ -214,6 +218,8 @@ enum SystemRole: string
                 'revenue.export',
                 'profitability.view',
                 'profitability.export',
+                'wallet.manage-restitutions',
+                'wallet.adjust',
             ],
             self::GeneralManagement => [
                 'kora-points.view',
@@ -357,6 +363,9 @@ enum SystemRole: string
             'monitoring.view',
             'app-releases.view',
             'app-releases.manage',
+            'wallet.debit-counter',
+            'wallet.manage-restitutions',
+            'wallet.adjust',
         ];
     }
 

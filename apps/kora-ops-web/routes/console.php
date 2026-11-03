@@ -21,3 +21,9 @@ Schedule::command('health:queue-check-heartbeat')->everyMinute()->withoutOverlap
 Schedule::command('horizon:snapshot')->everyFiveMinutes();
 
 Schedule::command('kora-points:check-settlements')->hourly()->withoutOverlapping()->onOneServer();
+
+Schedule::command('wallet:release-expired-holds')->everyMinute()->withoutOverlapping();
+Schedule::command('wallet:credit-pending-legs')->dailyAt('03:10')->withoutOverlapping()->onOneServer();
+Schedule::command('wallet:expire-points')->dailyAt('03:20')->withoutOverlapping()->onOneServer();
+Schedule::command('wallet:expiry-reminders')->dailyAt('08:00')->withoutOverlapping()->onOneServer();
+Schedule::command('wallet:anniversary-bonuses')->dailyAt('08:10')->withoutOverlapping()->onOneServer();

@@ -71,6 +71,18 @@ class StoreCounterSalePaymentRequest extends JsonValidationRequest
                     ['nullable', 'boolean'],
                 ),
             ],
+            'wallet_uuid' => [
+                'nullable',
+                'uuid',
+                Rule::requiredIf(fn (): bool => $this->input('method') === PaymentMethod::Wallet->value),
+            ],
+            'wallet_amount' => [
+                'nullable',
+                'integer',
+                'min:0',
+                Rule::requiredIf(fn (): bool => $this->input('method') === PaymentMethod::Wallet->value),
+            ],
+            'points_amount' => ['nullable', 'integer', 'min:0'],
         ];
     }
 

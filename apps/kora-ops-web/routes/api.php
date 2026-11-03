@@ -37,6 +37,14 @@ use App\Modules\Sync\Http\Controllers\OpsSyncController;
 use App\Modules\Ticketing\Http\Controllers\TicketController;
 use App\Modules\Tracking\Http\Controllers\FleetTrackingController;
 use App\Modules\Tracking\Http\Controllers\OpsTrackingController;
+use App\Modules\Wallet\Http\Controllers\OpsWalletAdjustmentController;
+use App\Modules\Wallet\Http\Controllers\OpsWalletDebitController;
+use App\Modules\Wallet\Http\Controllers\OpsWalletLookupController;
+use App\Modules\Wallet\Http\Controllers\OpsWalletRestitutionController;
+use App\Modules\Wallet\Http\Controllers\WalletController;
+use App\Modules\Wallet\Http\Controllers\WalletReferralController;
+use App\Modules\Wallet\Http\Controllers\WalletTopUpController;
+use App\Modules\Wallet\Http\Controllers\WalletTransactionController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->name('api.v1.')->group(function (): void {
@@ -326,6 +334,34 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             ->name('tickets.show');
         Route::get('tickets/{ticket:uuid}/pdf', [TicketController::class, 'downloadPdf'])
             ->name('tickets.pdf');
+
+        // Wallet KORA BUS — soldes, historique, recharge et parrainage (MEZ-160).
+        Route::prefix('wallet')->name('wallet.')->group(function (): void {
+            Route::get('/', [WalletController::class, 'show'])->name('show');
+            Route::get('transactions', [WalletTransactionController::class, 'index'])->name('transactions.index');
+            Route::post('topups', [WalletTopUpController::class, 'store'])
+                ->middleware('throttle:bus-itinerary-actions')
+                ->name('topups.store');
+            Route::get('topups/{uuid}', [WalletTopUpController::class, 'show'])
+                ->whereUuid('uuid')
+                ->name('topups.show');
+            Route::post('referral', [WalletReferralController::class, 'store'])->name('referral.store');
+        });
+
+        // Wallet OPS — lookup et débit au guichet, restitutions (MEZ-160).
+        Route::prefix('ops/wallets')->name('ops.wallets.')->group(function (): void {
+            Route::get('lookup', OpsWalletLookupController::class)->name('lookup');
+            Route::post('{wallet:uuid}/debit', OpsWalletDebitController::class)->name('debit');
+            Route::post('{wallet:uuid}/adjustments', OpsWalletAdjustmentController::class)->name('adjustments.store');
+        });
+
+        Route::prefix('ops/wallet-restitutions')->name('ops.wallet-restitutions.')->group(function (): void {
+            Route::get('/', [OpsWalletRestitutionController::class, 'index'])->name('index');
+            Route::post('/', [OpsWalletRestitutionController::class, 'store'])->name('store');
+            Route::post('{restitution:uuid}/approve', [OpsWalletRestitutionController::class, 'approve'])->name('approve');
+            Route::post('{restitution:uuid}/reject', [OpsWalletRestitutionController::class, 'reject'])->name('reject');
+            Route::post('{restitution:uuid}/mark-paid', [OpsWalletRestitutionController::class, 'markPaid'])->name('mark-paid');
+        });
     });
 
     Route::post('payments/{payment:uuid}/confirm', [PaymentController::class, 'confirm'])
