@@ -17,6 +17,14 @@ use Illuminate\Http\JsonResponse;
  */
 class OpsWalletAdjustmentController extends Controller
 {
+    /**
+     * Enregistre un ajustement Wallet audité.
+     *
+     * @param  WalletAdjustmentRequest  $request  Solde, sens, montant et motif
+     * @param  Wallet  $wallet  Wallet corrigé
+     * @param  RecordWalletAdjustmentAction  $recordAdjustment  Écriture corrective
+     * @return JsonResponse Écriture créée
+     */
     public function __invoke(
         WalletAdjustmentRequest $request,
         Wallet $wallet,

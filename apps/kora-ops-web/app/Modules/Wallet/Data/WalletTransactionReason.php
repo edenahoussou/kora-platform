@@ -4,6 +4,9 @@ namespace App\Modules\Wallet\Data;
 
 use App\Modules\Support\Enums\Concerns\HasEnumUtilities;
 
+/**
+ * Motifs d'écriture du ledger Wallet.
+ */
 enum WalletTransactionReason: string
 {
     use HasEnumUtilities;
@@ -23,6 +26,11 @@ enum WalletTransactionReason: string
     case Restitution = 'restitution';
     case Adjustment = 'adjustment';
 
+    /**
+     * Indique si le motif est un gain de points (soumis à compensation).
+     *
+     * @return bool Vrai pour un earn ou un bonus
+     */
     public function isLoyaltyEarn(): bool
     {
         return in_array($this, [
@@ -34,6 +42,11 @@ enum WalletTransactionReason: string
         ], true);
     }
 
+    /**
+     * Indique si le motif réarme la fenêtre d'expiration des points.
+     *
+     * @return bool Vrai pour un achat, une recharge ou un remboursement de points
+     */
     public function isQualifyingActivity(): bool
     {
         return in_array($this, [self::Purchase, self::TopUp, self::RefundPoints], true);

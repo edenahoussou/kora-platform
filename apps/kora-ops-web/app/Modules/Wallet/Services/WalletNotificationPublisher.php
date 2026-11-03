@@ -17,6 +17,15 @@ use Illuminate\Support\Facades\Notification;
  */
 final class WalletNotificationPublisher
 {
+    /**
+     * Notifie un débit Wallet effectué au guichet.
+     *
+     * @param  Wallet  $wallet  Wallet débité
+     * @param  int  $amount  Montant débité
+     * @param  Reservation  $reservation  Billet réglé
+     * @param  User  $agent  Agent au guichet
+     * @param  string  $disputeReference  Référence de contestation
+     */
     public function counterDebit(Wallet $wallet, int $amount, Reservation $reservation, User $agent, string $disputeReference): void
     {
         $this->publish(
@@ -35,6 +44,12 @@ final class WalletNotificationPublisher
         );
     }
 
+    /**
+     * Notifie une recharge confirmée et le nouveau solde.
+     *
+     * @param  Wallet  $wallet  Wallet rechargé
+     * @param  int  $amount  Montant crédité
+     */
     public function topUpConfirmed(Wallet $wallet, int $amount): void
     {
         $this->publish(
@@ -47,6 +62,13 @@ final class WalletNotificationPublisher
         );
     }
 
+    /**
+     * Notifie des points gagnés sur une jambe.
+     *
+     * @param  Wallet  $wallet  Wallet crédité
+     * @param  int  $points  Points gagnés
+     * @param  string|null  $legLabel  Libellé du trajet concerné
+     */
     public function pointsCredited(Wallet $wallet, int $points, ?string $legLabel = null): void
     {
         $this->publish(
@@ -64,6 +86,13 @@ final class WalletNotificationPublisher
         );
     }
 
+    /**
+     * Notifie un bonus fidélité accordé.
+     *
+     * @param  Wallet  $wallet  Wallet bénéficiaire
+     * @param  LoyaltyBonusKind  $kind  Type de bonus
+     * @param  int  $points  Points versés
+     */
     public function bonusGranted(Wallet $wallet, LoyaltyBonusKind $kind, int $points): void
     {
         $this->publish(
@@ -76,6 +105,14 @@ final class WalletNotificationPublisher
         );
     }
 
+    /**
+     * Rappelle l'expiration prochaine des points avec une suggestion.
+     *
+     * @param  Wallet  $wallet  Wallet concerné
+     * @param  Carbon  $expiresAt  Date d'expiration
+     * @param  int  $daysBefore  Jalon du rappel en jours
+     * @param  string  $suggestion  Service suggéré au voyageur
+     */
     public function pointsExpiring(Wallet $wallet, Carbon $expiresAt, int $daysBefore, string $suggestion): void
     {
         $this->publish(
@@ -94,6 +131,12 @@ final class WalletNotificationPublisher
         );
     }
 
+    /**
+     * Notifie l'expiration effective des points.
+     *
+     * @param  Wallet  $wallet  Wallet concerné
+     * @param  int  $points  Points expirés
+     */
     public function pointsExpired(Wallet $wallet, int $points): void
     {
         $this->publish(
@@ -106,6 +149,13 @@ final class WalletNotificationPublisher
         );
     }
 
+    /**
+     * Notifie le versement d'une restitution.
+     *
+     * @param  Wallet  $wallet  Wallet concerné
+     * @param  int  $amount  Montant versé
+     * @param  string  $payoutReference  Référence du versement
+     */
     public function restitutionPaid(Wallet $wallet, int $amount, string $payoutReference): void
     {
         $this->publish(
@@ -119,7 +169,14 @@ final class WalletNotificationPublisher
     }
 
     /**
-     * @param  array<string, mixed>  $data
+     * Envoie la notification inbox puis le SMS/WhatsApp du voyageur.
+     *
+     * @param  Wallet  $wallet  Wallet concerné
+     * @param  string  $type  Type de notification
+     * @param  string  $title  Titre affiché
+     * @param  string  $message  Message du voyageur
+     * @param  string|null  $resourceUuid  Ressource liée dans l'app
+     * @param  array<string, mixed>  $data  Données additionnelles
      */
     private function publish(Wallet $wallet, string $type, string $title, string $message, ?string $resourceUuid, array $data): void
     {
@@ -150,6 +207,12 @@ final class WalletNotificationPublisher
         }
     }
 
+    /**
+     * Formate un montant en FCFA.
+     *
+     * @param  int  $amount  Montant à formater
+     * @return string Montant lisible
+     */
     private function money(int $amount): string
     {
         return number_format($amount, 0, ',', ' ');

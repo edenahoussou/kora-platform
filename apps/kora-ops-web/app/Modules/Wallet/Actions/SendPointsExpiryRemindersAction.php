@@ -13,12 +13,22 @@ use Illuminate\Support\Carbon;
  */
 final class SendPointsExpiryRemindersAction
 {
+    /**
+     * @param  WalletSettings  $settings  Jalons de rappel configurés
+     * @param  ExpireWalletPointsAction  $expireWalletPoints  Calcul de l'échéance
+     * @param  WalletNotificationPublisher  $notifications  Notifications voyageur
+     */
     public function __construct(
         private readonly WalletSettings $settings,
         private readonly ExpireWalletPointsAction $expireWalletPoints,
         private readonly WalletNotificationPublisher $notifications,
     ) {}
 
+    /**
+     * Envoie les rappels du jour, une seule fois par jalon.
+     *
+     * @return int Nombre de rappels envoyés
+     */
     public function handle(): int
     {
         $sent = 0;
@@ -69,6 +79,11 @@ final class SendPointsExpiryRemindersAction
         return $sent;
     }
 
+    /**
+     * Suggestion de service jointe au rappel (règle CDC).
+     *
+     * @return string Texte de suggestion
+     */
     private function suggestion(): string
     {
         return 'Utilisez vos points sur votre prochain billet KORA BUS pour les conserver.';

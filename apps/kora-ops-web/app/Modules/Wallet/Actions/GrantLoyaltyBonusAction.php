@@ -17,12 +17,26 @@ use Illuminate\Support\Str;
  */
 final class GrantLoyaltyBonusAction
 {
+    /**
+     * @param  WalletSettings  $settings  Paramètres du module
+     * @param  WalletLedgerService  $ledger  Écritures du ledger
+     * @param  WalletNotificationPublisher  $notifications  Notifications voyageur
+     */
     public function __construct(
         private readonly WalletSettings $settings,
         private readonly WalletLedgerService $ledger,
         private readonly WalletNotificationPublisher $notifications,
     ) {}
 
+    /**
+     * Accorde le bonus une seule fois par type et par période.
+     *
+     * @param  Wallet  $wallet  Wallet bénéficiaire
+     * @param  LoyaltyBonusKind  $kind  Type de bonus
+     * @param  string  $periodKey  Période d'unicité (mois, année, filleul)
+     * @param  int|null  $points  Montant forcé, sinon paramètre du type
+     * @return WalletTransaction|null Écriture créée, null si déjà accordé
+     */
     public function handle(Wallet $wallet, LoyaltyBonusKind $kind, string $periodKey, ?int $points = null): ?WalletTransaction
     {
         $points ??= $this->pointsFor($kind);
@@ -68,6 +82,12 @@ final class GrantLoyaltyBonusAction
         return $transaction;
     }
 
+    /**
+     * Lit le montant configuré pour un type de bonus.
+     *
+     * @param  LoyaltyBonusKind  $kind  Type de bonus
+     * @return int Points à verser
+     */
     private function pointsFor(LoyaltyBonusKind $kind): int
     {
         return match ($kind) {

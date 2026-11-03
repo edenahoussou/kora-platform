@@ -12,7 +12,10 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class WalletTopUpResource extends JsonResource
 {
     /**
-     * @return array<string, mixed>
+     * Expose une recharge Wallet et son paiement provider.
+     *
+     * @param  Request  $request  Requête courante
+     * @return array<string, mixed> Représentation API
      */
     public function toArray(Request $request): array
     {

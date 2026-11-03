@@ -16,8 +16,24 @@ use Illuminate\Validation\ValidationException;
  */
 final class RecordWalletAdjustmentAction
 {
+    /**
+     * @param  WalletLedgerService  $ledger  Écritures du ledger
+     */
     public function __construct(private readonly WalletLedgerService $ledger) {}
 
+    /**
+     * Écrit un ajustement audité avec motif obligatoire.
+     *
+     * @param  Wallet  $wallet  Wallet corrigé
+     * @param  WalletBalanceType  $type  Solde concerné
+     * @param  string  $direction  Sens de l'écriture (credit, debit)
+     * @param  int  $amount  Montant de la correction
+     * @param  string  $reason  Motif de la correction
+     * @param  User  $actor  Auteur habilité
+     * @return WalletTransaction Écriture créée
+     *
+     * @throws ValidationException
+     */
     public function handle(
         Wallet $wallet,
         WalletBalanceType $type,

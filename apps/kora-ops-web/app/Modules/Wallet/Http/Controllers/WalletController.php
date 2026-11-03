@@ -16,9 +16,11 @@ use Illuminate\Http\Request;
 class WalletController extends Controller
 {
     /**
-     * Display the authenticated traveler Wallet.
+     * Retourne le Wallet du voyageur connecté (créé à la volée si absent).
      *
-     * @authenticated
+     * @param  Request  $request  Requête authentifiée Sanctum
+     * @param  FindOrCreateWalletAction  $findOrCreateWallet  Provisionnement du Wallet
+     * @return JsonResponse Soldes, échéance de points, code parrain et paramètres UX
      */
     public function show(Request $request, FindOrCreateWalletAction $findOrCreateWallet): JsonResponse
     {

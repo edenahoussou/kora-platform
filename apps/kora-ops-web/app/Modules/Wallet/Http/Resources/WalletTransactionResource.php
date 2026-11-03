@@ -12,7 +12,10 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class WalletTransactionResource extends JsonResource
 {
     /**
-     * @return array<string, mixed>
+     * Expose une écriture du ledger Wallet.
+     *
+     * @param  Request  $request  Requête courante
+     * @return array<string, mixed> Représentation API
      */
     public function toArray(Request $request): array
     {

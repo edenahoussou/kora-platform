@@ -15,9 +15,11 @@ use Illuminate\Http\Request;
 class WalletTransactionController extends Controller
 {
     /**
-     * List Wallet transactions (cursor paginated).
+     * Liste l'historique Wallet, filtrable par nature de solde.
      *
-     * @authenticated
+     * @param  Request  $request  Requête avec `balance_type` optionnel
+     * @param  FindOrCreateWalletAction  $findOrCreateWallet  Provisionnement du Wallet
+     * @return JsonResponse Écritures paginées par curseur
      */
     public function index(Request $request, FindOrCreateWalletAction $findOrCreateWallet): JsonResponse
     {

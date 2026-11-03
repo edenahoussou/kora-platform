@@ -7,12 +7,21 @@ use App\Modules\Departures\Models\Departure;
 use App\Modules\Wallet\Actions\ProcessDepartureLoyaltyAction;
 use Illuminate\Console\Command;
 
+/**
+ * Rattrape les points des départs arrivés non traités.
+ */
 class CreditPendingLegsCommand extends Command
 {
     protected $signature = 'wallet:credit-pending-legs {--days=30 : Fenêtre de rattrapage en jours}';
 
     protected $description = 'Crédite les points des jambes embarquées des départs arrivés non traités';
 
+    /**
+     * Exécute le traitement de fidélité du départ et affiche le bilan.
+     *
+     * @param  ProcessDepartureLoyaltyAction  $processDepartureLoyalty  Traitement de fidélité du départ
+     * @return int Code de sortie de la commande
+     */
     public function handle(ProcessDepartureLoyaltyAction $processDepartureLoyalty): int
     {
         $days = max(1, (int) $this->option('days'));

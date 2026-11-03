@@ -14,8 +14,21 @@ use Illuminate\Validation\ValidationException;
  */
 final class FindOrCreateWalletAction
 {
+    /**
+     * @param  PassengerIdentityResolver  $identityResolver  Normalisation et résolution du téléphone
+     */
     public function __construct(private readonly PassengerIdentityResolver $identityResolver) {}
 
+    /**
+     * Retrouve ou crée le Wallet d'un voyageur identifié.
+     *
+     * @param  User|null  $user  Titulaire déjà authentifié
+     * @param  string|null  $phone  Téléphone brut à normaliser
+     * @param  string|null  $name  Nom utilisé si le compte doit être créé
+     * @return Wallet Wallet du voyageur
+     *
+     * @throws ValidationException
+     */
     public function handle(?User $user = null, ?string $phone = null, ?string $name = null): Wallet
     {
         if ($user === null) {
@@ -47,11 +60,22 @@ final class FindOrCreateWalletAction
         }
     }
 
+    /**
+     * Nom d'affichage provisoire dérivé du téléphone.
+     *
+     * @param  string  $normalizedPhone  Téléphone normalisé
+     * @return string Nom par défaut
+     */
     private function defaultName(string $normalizedPhone): string
     {
         return 'Voyageur '.Str::substr($normalizedPhone, -4);
     }
 
+    /**
+     * Génère un code parrain unique.
+     *
+     * @return string Code parrain
+     */
     private function referralCode(): string
     {
         do {

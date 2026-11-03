@@ -34,24 +34,41 @@ class WalletRestitution extends KoraModel
         'note',
     ];
 
-    /** @return BelongsTo<Wallet, $this> */
+    /**
+     * Wallet concerné par la restitution.
+     *
+     * @return BelongsTo<Wallet, $this>
+     */
     public function wallet(): BelongsTo
     {
         return $this->belongsTo(Wallet::class);
     }
 
-    /** @return BelongsTo<User, $this> */
+    /**
+     * Auteur de la demande.
+     *
+     * @return BelongsTo<User, $this>
+     */
     public function requestedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'requested_by_user_id');
     }
 
-    /** @return BelongsTo<User, $this> */
+    /**
+     * Responsable qui a validé ou rejeté la demande.
+     *
+     * @return BelongsTo<User, $this>
+     */
     public function approvedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by_user_id');
     }
 
+    /**
+     * Casts du statut et des horodatages.
+     *
+     * @return array<string, string>
+     */
     protected function casts(): array
     {
         return [

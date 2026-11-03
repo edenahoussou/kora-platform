@@ -23,18 +23,31 @@ class WalletBonusGrant extends KoraModel
         'transaction_id',
     ];
 
-    /** @return BelongsTo<Wallet, $this> */
+    /**
+     * Wallet bénéficiaire du bonus.
+     *
+     * @return BelongsTo<Wallet, $this>
+     */
     public function wallet(): BelongsTo
     {
         return $this->belongsTo(Wallet::class);
     }
 
-    /** @return BelongsTo<WalletTransaction, $this> */
+    /**
+     * Écriture de crédit associée.
+     *
+     * @return BelongsTo<WalletTransaction, $this>
+     */
     public function transaction(): BelongsTo
     {
         return $this->belongsTo(WalletTransaction::class);
     }
 
+    /**
+     * Cast du type de bonus.
+     *
+     * @return array<string, string>
+     */
     protected function casts(): array
     {
         return [

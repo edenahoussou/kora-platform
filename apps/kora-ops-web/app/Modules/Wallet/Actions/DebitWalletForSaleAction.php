@@ -14,11 +14,27 @@ use Illuminate\Support\Facades\DB;
  */
 final class DebitWalletForSaleAction
 {
+    /**
+     * @param  PlaceWalletHoldAction  $placeHold  Réservation de fonds
+     * @param  CaptureWalletHoldAction  $captureHold  Capture du hold
+     */
     public function __construct(
         private readonly PlaceWalletHoldAction $placeHold,
         private readonly CaptureWalletHoldAction $captureHold,
     ) {}
 
+    /**
+     * Réserve puis débite immédiatement les fonds pour une vente guichet.
+     *
+     * @param  Wallet  $wallet  Wallet du titulaire
+     * @param  int  $cashAmount  Montant débité du solde cash
+     * @param  int  $pointsAmount  Points utilisés
+     * @param  string  $idempotencyKey  Clé d'idempotence de l'opération
+     * @param  Reservation  $reservation  Réservation payée
+     * @param  Payment  $payment  Paiement guichet créé
+     * @param  User  $agent  Agent au guichet
+     * @return WalletHold|null Hold capturé, null si aucun montant Wallet
+     */
     public function handle(
         Wallet $wallet,
         int $cashAmount,

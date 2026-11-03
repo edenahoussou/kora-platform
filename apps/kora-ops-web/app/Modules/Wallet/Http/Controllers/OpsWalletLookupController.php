@@ -18,6 +18,14 @@ use Illuminate\Http\Request;
  */
 class OpsWalletLookupController extends Controller
 {
+    /**
+     * Recherche un Wallet par téléphone avant un débit au guichet.
+     *
+     * @param  Request  $request  Requête avec `phone`
+     * @param  PassengerIdentityResolver  $identityResolver  Normalisation du téléphone
+     * @param  WalletLedgerService  $ledger  Calcul du disponible
+     * @return JsonResponse Titulaire, soldes et disponible, ou `data: null`
+     */
     public function __invoke(
         Request $request,
         PassengerIdentityResolver $identityResolver,

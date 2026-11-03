@@ -15,9 +15,12 @@ use Illuminate\Http\JsonResponse;
 class WalletReferralController extends Controller
 {
     /**
-     * Attach a referral code to the authenticated traveler Wallet.
+     * Rattache un code parrain au Wallet du voyageur connecté.
      *
-     * @authenticated
+     * @param  AttachReferralRequest  $request  Code parrain validé
+     * @param  FindOrCreateWalletAction  $findOrCreateWallet  Provisionnement du Wallet
+     * @param  AttachReferralCodeAction  $attachReferralCode  Contrôles et rattachement
+     * @return JsonResponse Wallet mis à jour
      */
     public function store(
         AttachReferralRequest $request,

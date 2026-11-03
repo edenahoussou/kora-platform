@@ -16,6 +16,14 @@ use Illuminate\Http\JsonResponse;
  */
 class OpsWalletDebitController extends Controller
 {
+    /**
+     * Débite le Wallet d'un voyageur pour une vente guichet.
+     *
+     * @param  OpsWalletDebitRequest  $request  Réservation, montants et clé d'idempotence
+     * @param  Wallet  $wallet  Wallet lié par UUID
+     * @param  RecordCounterSalePaymentAction  $recordCounterSalePayment  Parcours de vente guichet
+     * @return JsonResponse Réservation payée et soldes restants
+     */
     public function __invoke(
         OpsWalletDebitRequest $request,
         Wallet $wallet,

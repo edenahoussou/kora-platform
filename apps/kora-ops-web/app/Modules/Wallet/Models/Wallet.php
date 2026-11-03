@@ -29,54 +29,91 @@ class Wallet extends KoraModel
         'referred_by_user_id',
     ];
 
-    /** @return BelongsTo<User, $this> */
+    /**
+     * Titulaire du Wallet.
+     *
+     * @return BelongsTo<User, $this>
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    /** @return BelongsTo<User, $this> */
+    /**
+     * Parrain du compte, s'il a été rattaché.
+     *
+     * @return BelongsTo<User, $this>
+     */
     public function referredBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'referred_by_user_id');
     }
 
-    /** @return HasMany<WalletTransaction, $this> */
+    /**
+     * Écritures append-only du ledger.
+     *
+     * @return HasMany<WalletTransaction, $this>
+     */
     public function transactions(): HasMany
     {
         return $this->hasMany(WalletTransaction::class);
     }
 
-    /** @return HasMany<WalletHold, $this> */
+    /**
+     * Réservations de fonds du Wallet.
+     *
+     * @return HasMany<WalletHold, $this>
+     */
     public function holds(): HasMany
     {
         return $this->hasMany(WalletHold::class);
     }
 
-    /** @return HasMany<WalletTopUp, $this> */
+    /**
+     * Recharges adossées aux paiements provider.
+     *
+     * @return HasMany<WalletTopUp, $this>
+     */
     public function topups(): HasMany
     {
         return $this->hasMany(WalletTopUp::class);
     }
 
-    /** @return HasMany<WalletRestitution, $this> */
+    /**
+     * Restitutions exceptionnelles demandées.
+     *
+     * @return HasMany<WalletRestitution, $this>
+     */
     public function restitutions(): HasMany
     {
         return $this->hasMany(WalletRestitution::class);
     }
 
-    /** @return HasMany<WalletUsage, $this> */
+    /**
+     * Utilisations de billets comptées pour la fidélité.
+     *
+     * @return HasMany<WalletUsage, $this>
+     */
     public function usages(): HasMany
     {
         return $this->hasMany(WalletUsage::class);
     }
 
-    /** @return HasMany<WalletBonusGrant, $this> */
+    /**
+     * Bonus déjà accordés, un par type et période.
+     *
+     * @return HasMany<WalletBonusGrant, $this>
+     */
     public function bonusGrants(): HasMany
     {
         return $this->hasMany(WalletBonusGrant::class);
     }
 
+    /**
+     * Casts des soldes et de l'échéance de points.
+     *
+     * @return array<string, string>
+     */
     protected function casts(): array
     {
         return [

@@ -7,8 +7,21 @@ use App\Modules\Wallet\Data\RestitutionStatus;
 use App\Modules\Wallet\Models\WalletRestitution;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * Clôt une restitution par un rejet motivé, sans mouvement de fonds.
+ */
 final class RejectRestitutionAction
 {
+    /**
+     * Passe la restitution en « rejetée ».
+     *
+     * @param  WalletRestitution  $restitution  Demande à rejeter
+     * @param  User  $actor  Responsable du rejet
+     * @param  string  $reason  Motif communiqué au demandeur
+     * @return WalletRestitution Restitution rejetée
+     *
+     * @throws ValidationException
+     */
     public function handle(WalletRestitution $restitution, User $actor, string $reason): WalletRestitution
     {
         if ($restitution->status->isTerminal()) {

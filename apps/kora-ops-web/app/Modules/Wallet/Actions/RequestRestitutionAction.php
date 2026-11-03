@@ -15,8 +15,22 @@ use Illuminate\Validation\ValidationException;
  */
 final class RequestRestitutionAction
 {
+    /**
+     * @param  WalletLedgerService  $ledger  Calcul du disponible
+     */
     public function __construct(private readonly WalletLedgerService $ledger) {}
 
+    /**
+     * Ouvre une demande de restitution contrôlée sur le disponible.
+     *
+     * @param  Wallet  $wallet  Wallet concerné
+     * @param  int  $amount  Montant demandé
+     * @param  User  $requester  Auteur de la demande
+     * @param  string|null  $note  Motif ou précision
+     * @return WalletRestitution Demande créée
+     *
+     * @throws ValidationException
+     */
     public function handle(Wallet $wallet, int $amount, User $requester, ?string $note = null): WalletRestitution
     {
         if ($amount <= 0) {

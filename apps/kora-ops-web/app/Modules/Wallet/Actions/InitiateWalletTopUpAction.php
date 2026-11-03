@@ -19,13 +19,28 @@ use Illuminate\Validation\ValidationException;
  */
 final class InitiateWalletTopUpAction
 {
+    /**
+     * @param  PaymentManager  $manager  Résolution des providers de paiement
+     * @param  WalletSettings  $settings  Bornes et plafonds de recharge
+     */
     public function __construct(
         private readonly PaymentManager $manager,
         private readonly WalletSettings $settings,
     ) {}
 
     /**
+     * Crée la recharge et lance le paiement provider associé.
+     *
+     * @param  Wallet  $wallet  Wallet à recharger
+     * @param  int  $amount  Montant demandé
+     * @param  string  $method  Méthode provider (mobile_money, card)
+     * @param  string  $provider  Fournisseur retenu
+     * @param  string  $idempotencyKey  Clé d'idempotence
+     * @param  string|null  $phone  Téléphone payeur
+     * @param  string|null  $mobileMoneyNetwork  Réseau Mobile Money
      * @return array{topup: WalletTopUp, payment: Payment, is_replay: bool}
+     *
+     * @throws ValidationException
      */
     public function handle(
         Wallet $wallet,
@@ -124,6 +139,14 @@ final class InitiateWalletTopUpAction
         ];
     }
 
+    /**
+     * Applique les bornes de recharge et le plafond de solde configurés.
+     *
+     * @param  Wallet  $wallet  Wallet à recharger
+     * @param  int  $amount  Montant demandé
+     *
+     * @throws ValidationException
+     */
     private function assertAmount(Wallet $wallet, int $amount): void
     {
         if ($amount <= 0) {

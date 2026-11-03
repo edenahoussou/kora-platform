@@ -9,10 +9,25 @@ use App\Modules\Wallet\Models\WalletRestitution;
 use App\Modules\Wallet\Services\WalletLedgerService;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * Valide une demande de restitution après contrôle du solde disponible.
+ */
 final class ApproveRestitutionAction
 {
+    /**
+     * @param  WalletLedgerService  $ledger  Calcul du disponible
+     */
     public function __construct(private readonly WalletLedgerService $ledger) {}
 
+    /**
+     * Passe la restitution en « approuvée ».
+     *
+     * @param  WalletRestitution  $restitution  Demande à approuver
+     * @param  User  $approver  Responsable habilité
+     * @return WalletRestitution Restitution approuvée
+     *
+     * @throws ValidationException
+     */
     public function handle(WalletRestitution $restitution, User $approver): WalletRestitution
     {
         if ($restitution->status !== RestitutionStatus::Requested) {

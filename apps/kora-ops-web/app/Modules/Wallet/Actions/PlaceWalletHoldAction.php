@@ -18,11 +18,28 @@ use Illuminate\Validation\ValidationException;
  */
 final class PlaceWalletHoldAction
 {
+    /**
+     * @param  WalletLedgerService  $ledger  Calcul du disponible
+     * @param  WalletSettings  $settings  Durée de vie et ouverture du Wallet
+     */
     public function __construct(
         private readonly WalletLedgerService $ledger,
         private readonly WalletSettings $settings,
     ) {}
 
+    /**
+     * Réserve les fonds Wallet dans la limite du disponible.
+     *
+     * @param  Wallet  $wallet  Wallet débité
+     * @param  int  $cashAmount  Montant cash réservé
+     * @param  int  $pointsAmount  Points réservés
+     * @param  string  $idempotencyKey  Clé d'idempotence
+     * @param  Reservation|null  $reservation  Réservation liée
+     * @param  Payment|null  $payment  Paiement lié
+     * @return WalletHold|null Hold actif, null si aucun montant
+     *
+     * @throws ValidationException
+     */
     public function handle(
         Wallet $wallet,
         int $cashAmount,

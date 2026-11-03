@@ -17,8 +17,22 @@ use Illuminate\Validation\ValidationException;
  */
 final class CaptureWalletHoldAction
 {
+    /**
+     * @param  WalletLedgerService  $ledger  Écritures du ledger
+     */
     public function __construct(private readonly WalletLedgerService $ledger) {}
 
+    /**
+     * Transforme le hold en débit définitif, une seule fois.
+     *
+     * @param  WalletHold  $hold  Hold actif
+     * @param  Payment|null  $payment  Paiement déclencheur
+     * @param  User|null  $actor  Agent à l'origine du débit
+     * @param  int|null  $agencyId  Agence de rattachement
+     * @return WalletHold Hold capturé
+     *
+     * @throws ValidationException
+     */
     public function handle(WalletHold $hold, ?Payment $payment = null, ?User $actor = null, ?int $agencyId = null): WalletHold
     {
         return DB::transaction(function () use ($hold, $payment, $actor, $agencyId): WalletHold {

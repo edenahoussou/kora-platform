@@ -13,8 +13,17 @@ use App\Modules\Wallet\Services\WalletLedgerService;
  */
 final class ApplyLoyaltyCorrectionAction
 {
+    /**
+     * @param  WalletLedgerService  $ledger  Écritures du ledger
+     */
     public function __construct(private readonly WalletLedgerService $ledger) {}
 
+    /**
+     * Reprend les points gagnés au prorata du montant remboursé.
+     *
+     * @param  Reservation  $reservation  Réservation remboursée
+     * @param  int|null  $refundedAmount  Montant rendu, null pour un remboursement total
+     */
     public function handle(Reservation $reservation, ?int $refundedAmount = null): void
     {
         $total = (int) $reservation->total_amount;

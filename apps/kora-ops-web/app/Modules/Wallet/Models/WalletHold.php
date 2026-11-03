@@ -32,29 +32,51 @@ class WalletHold extends KoraModel
         'idempotency_key',
     ];
 
-    /** @return BelongsTo<Wallet, $this> */
+    /**
+     * Wallet réservé.
+     *
+     * @return BelongsTo<Wallet, $this>
+     */
     public function wallet(): BelongsTo
     {
         return $this->belongsTo(Wallet::class);
     }
 
-    /** @return BelongsTo<Reservation, $this> */
+    /**
+     * Réservation à l'origine du hold.
+     *
+     * @return BelongsTo<Reservation, $this>
+     */
     public function reservation(): BelongsTo
     {
         return $this->belongsTo(Reservation::class);
     }
 
-    /** @return BelongsTo<Payment, $this> */
+    /**
+     * Paiement à l'origine du hold.
+     *
+     * @return BelongsTo<Payment, $this>
+     */
     public function payment(): BelongsTo
     {
         return $this->belongsTo(Payment::class);
     }
 
+    /**
+     * Indique si le hold est actif mais hors délai.
+     *
+     * @return bool Vrai si le hold doit être libéré
+     */
     public function isExpired(): bool
     {
         return $this->status === WalletHoldStatus::Active && $this->expires_at->isPast();
     }
 
+    /**
+     * Casts des montants et du statut.
+     *
+     * @return array<string, string>
+     */
     protected function casts(): array
     {
         return [

@@ -27,18 +27,31 @@ class WalletTopUp extends KoraModel
         'idempotency_key',
     ];
 
-    /** @return BelongsTo<Wallet, $this> */
+    /**
+     * Wallet rechargé.
+     *
+     * @return BelongsTo<Wallet, $this>
+     */
     public function wallet(): BelongsTo
     {
         return $this->belongsTo(Wallet::class);
     }
 
-    /** @return BelongsTo<Payment, $this> */
+    /**
+     * Paiement provider qui porte la recharge.
+     *
+     * @return BelongsTo<Payment, $this>
+     */
     public function payment(): BelongsTo
     {
         return $this->belongsTo(Payment::class);
     }
 
+    /**
+     * Casts du montant et du statut.
+     *
+     * @return array<string, string>
+     */
     protected function casts(): array
     {
         return [

@@ -15,8 +15,17 @@ use Illuminate\Support\Facades\DB;
  */
 final class ConfirmWalletTopUpAction
 {
+    /**
+     * @param  WalletLedgerService  $ledger  Écritures du ledger
+     */
     public function __construct(private readonly WalletLedgerService $ledger) {}
 
+    /**
+     * Crédite le Wallet après confirmation provider, une seule fois.
+     *
+     * @param  Payment  $payment  Paiement de recharge confirmé
+     * @return WalletTopUp|null Recharge créditée, null si le paiement n'en porte pas
+     */
     public function confirm(Payment $payment): ?WalletTopUp
     {
         return DB::transaction(function () use ($payment): ?WalletTopUp {
@@ -45,6 +54,11 @@ final class ConfirmWalletTopUpAction
         });
     }
 
+    /**
+     * Marque la recharge en échec sans toucher au solde.
+     *
+     * @param  Payment  $payment  Paiement de recharge échoué
+     */
     public function fail(Payment $payment): void
     {
         WalletTopUp::query()

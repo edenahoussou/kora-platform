@@ -22,12 +22,21 @@ class WalletPointsExpiryReminder extends KoraModel
         'sent_at',
     ];
 
-    /** @return BelongsTo<Wallet, $this> */
+    /**
+     * Wallet rappelé.
+     *
+     * @return BelongsTo<Wallet, $this>
+     */
     public function wallet(): BelongsTo
     {
         return $this->belongsTo(Wallet::class);
     }
 
+    /**
+     * Casts du jalon et de la date d'expiration.
+     *
+     * @return array<string, string>
+     */
     protected function casts(): array
     {
         return [

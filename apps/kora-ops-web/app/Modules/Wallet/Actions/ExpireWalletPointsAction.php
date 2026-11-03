@@ -16,12 +16,22 @@ use Illuminate\Support\Carbon;
  */
 final class ExpireWalletPointsAction
 {
+    /**
+     * @param  WalletSettings  $settings  Fenêtre d'expiration
+     * @param  WalletLedgerService  $ledger  Écritures du ledger
+     * @param  WalletNotificationPublisher  $notifications  Notifications voyageur
+     */
     public function __construct(
         private readonly WalletSettings $settings,
         private readonly WalletLedgerService $ledger,
         private readonly WalletNotificationPublisher $notifications,
     ) {}
 
+    /**
+     * Expire tous les Wallets dont l'échéance de points est dépassée.
+     *
+     * @return int Nombre de Wallets expirés
+     */
     public function handle(): int
     {
         $expired = 0;
@@ -39,6 +49,12 @@ final class ExpireWalletPointsAction
         return $expired;
     }
 
+    /**
+     * Calcule l'échéance : champ persisté, sinon dernière activité qualifiante.
+     *
+     * @param  Wallet  $wallet  Wallet concerné
+     * @return Carbon Date d'expiration des points
+     */
     public function expiresAt(Wallet $wallet): Carbon
     {
         if ($wallet->points_expires_at !== null) {
@@ -61,6 +77,12 @@ final class ExpireWalletPointsAction
         return $base->copy()->addMonths($this->settings->pointsExpiryMonths);
     }
 
+    /**
+     * Solde à zéro et notifie le voyageur si l'échéance est passée.
+     *
+     * @param  Wallet  $wallet  Wallet concerné
+     * @return bool Vrai si des points ont été expirés
+     */
     private function expireWallet(Wallet $wallet): bool
     {
         $expiresAt = $this->expiresAt($wallet);

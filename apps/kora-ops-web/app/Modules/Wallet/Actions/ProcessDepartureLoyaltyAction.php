@@ -11,8 +11,17 @@ use App\Modules\Departures\Models\Departure;
  */
 final class ProcessDepartureLoyaltyAction
 {
+    /**
+     * @param  CreditLegPointsAction  $creditLegPoints  Crédit des jambes
+     */
     public function __construct(private readonly CreditLegPointsAction $creditLegPoints) {}
 
+    /**
+     * Crédite les points de toutes les jambes embarquées du départ.
+     *
+     * @param  Departure  $departure  Départ clôturé
+     * @return int Points crédités
+     */
     public function handle(Departure $departure): int
     {
         $reservations = Reservation::query()

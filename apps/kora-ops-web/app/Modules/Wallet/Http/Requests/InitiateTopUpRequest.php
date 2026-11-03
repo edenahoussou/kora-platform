@@ -6,15 +6,25 @@ use App\Modules\Payments\Data\MobileMoneyNetwork;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
+/**
+ * Formulaire de recharge Wallet.
+ */
 class InitiateTopUpRequest extends FormRequest
 {
+    /**
+     * Autorise la requête pour tout voyageur authentifié.
+     *
+     * @return bool Toujours vrai, l'auth est portée par la route
+     */
     public function authorize(): bool
     {
         return true;
     }
 
     /**
-     * @return array<string, array<int, mixed>>
+     * Valide montant, méthode, provider et coordonnées Mobile Money.
+     *
+     * @return array<string, array<int, mixed>> Règles de validation
      */
     public function rules(): array
     {
@@ -39,6 +49,8 @@ class InitiateTopUpRequest extends FormRequest
     }
 
     /**
+     * Extrait les données de recharge validées.
+     *
      * @return array{amount: int, method: string, provider: string, idempotency_key: string, phone: string|null, mobile_money_network: string|null}
      */
     public function topUpData(): array

@@ -17,9 +17,12 @@ use Illuminate\Http\Request;
 class WalletTopUpController extends Controller
 {
     /**
-     * Initiate a Wallet top-up through an existing payment provider.
+     * Initie une recharge Wallet via un provider de paiement existant.
      *
-     * @authenticated
+     * @param  InitiateTopUpRequest  $request  Montant, méthode et provider validés
+     * @param  FindOrCreateWalletAction  $findOrCreateWallet  Provisionnement du Wallet
+     * @param  InitiateWalletTopUpAction  $initiateTopUp  Création de la recharge et du paiement
+     * @return JsonResponse Recharge créée (201) ou rejouée (200)
      */
     public function store(
         InitiateTopUpRequest $request,
@@ -45,9 +48,12 @@ class WalletTopUpController extends Controller
     }
 
     /**
-     * Show a Wallet top-up status.
+     * Retourne le statut d'une recharge du voyageur connecté.
      *
-     * @authenticated
+     * @param  Request  $request  Requête authentifiée Sanctum
+     * @param  string  $uuid  UUID de la recharge
+     * @param  FindOrCreateWalletAction  $findOrCreateWallet  Provisionnement du Wallet
+     * @return JsonResponse Recharge et statut du paiement provider
      */
     public function show(Request $request, string $uuid, FindOrCreateWalletAction $findOrCreateWallet): JsonResponse
     {

@@ -11,8 +11,16 @@ use Illuminate\Support\Carbon;
  */
 final class GrantAnniversaryBonusesAction
 {
+    /**
+     * @param  GrantLoyaltyBonusAction  $grantBonus  Attribution des bonus
+     */
     public function __construct(private readonly GrantLoyaltyBonusAction $grantBonus) {}
 
+    /**
+     * Accorde le bonus d'anniversaire aux comptes créés ce jour-là.
+     *
+     * @return int Nombre de bonus accordés
+     */
     public function handle(): int
     {
         $today = Carbon::now('Africa/Porto-Novo');

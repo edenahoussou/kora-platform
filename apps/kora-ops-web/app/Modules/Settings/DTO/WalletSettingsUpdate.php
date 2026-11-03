@@ -15,16 +15,31 @@ final readonly class WalletSettingsUpdate implements SettingsUpdate
         private array $clearSecrets = [],
     ) {}
 
+    /**
+     * Groupe visé par la mutation.
+     *
+     * @return SettingsGroup Groupe Wallet
+     */
     public function group(): SettingsGroup
     {
         return SettingsGroup::Wallet;
     }
 
+    /**
+     * Valeurs soumises à persister.
+     *
+     * @return array<string, mixed> Valeurs du formulaire
+     */
     public function values(): array
     {
         return $this->values;
     }
 
+    /**
+     * Secrets à effacer explicitement.
+     *
+     * @return list<string> Propriétés sensibles à vider
+     */
     public function clearSecrets(): array
     {
         return $this->clearSecrets;

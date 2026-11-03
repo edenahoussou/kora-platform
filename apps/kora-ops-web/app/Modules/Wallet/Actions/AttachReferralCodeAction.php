@@ -10,6 +10,15 @@ use Illuminate\Validation\ValidationException;
  */
 final class AttachReferralCodeAction
 {
+    /**
+     * Rattache le parrain une seule fois, avant tout usage du filleul.
+     *
+     * @param  Wallet  $wallet  Wallet du filleul
+     * @param  string  $code  Code parrain saisi
+     * @return Wallet Wallet rattaché
+     *
+     * @throws ValidationException
+     */
     public function handle(Wallet $wallet, string $code): Wallet
     {
         $normalized = strtoupper(trim($code));

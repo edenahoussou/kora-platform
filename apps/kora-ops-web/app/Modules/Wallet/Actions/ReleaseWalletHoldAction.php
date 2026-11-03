@@ -11,6 +11,12 @@ use Illuminate\Support\Facades\DB;
  */
 final class ReleaseWalletHoldAction
 {
+    /**
+     * Libère le hold sans écriture économique.
+     *
+     * @param  WalletHold  $hold  Hold à libérer
+     * @return WalletHold Hold à jour
+     */
     public function handle(WalletHold $hold): WalletHold
     {
         return DB::transaction(function () use ($hold): WalletHold {
@@ -24,6 +30,11 @@ final class ReleaseWalletHoldAction
         });
     }
 
+    /**
+     * Libère tous les holds actifs d'un paiement.
+     *
+     * @param  int  $paymentId  Identifiant interne du paiement
+     */
     public function releaseForPayment(int $paymentId): void
     {
         WalletHold::query()

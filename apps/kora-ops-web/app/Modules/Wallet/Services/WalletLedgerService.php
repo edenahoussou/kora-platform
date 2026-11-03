@@ -23,7 +23,18 @@ use Illuminate\Validation\ValidationException;
 final class WalletLedgerService
 {
     /**
-     * @param  array<string, mixed>  $meta
+     * Crée une écriture de crédit sur un solde.
+     *
+     * @param  Wallet  $wallet  Wallet crédité
+     * @param  WalletBalanceType  $type  Solde concerné
+     * @param  int  $amount  Montant strictement positif
+     * @param  WalletTransactionReason  $reason  Motif du crédit
+     * @param  string  $idempotencyKey  Clé d'idempotence
+     * @param  array<string, mixed>  $meta  Contexte libre de l'écriture
+     * @param  Model|null  $reference  Objet métier d'origine
+     * @param  User|null  $actor  Auteur de l'écriture
+     * @param  int|null  $agencyId  Agence de rattachement
+     * @return WalletTransaction Écriture créée ou rejouée
      */
     public function credit(
         Wallet $wallet,
@@ -51,7 +62,20 @@ final class WalletLedgerService
     }
 
     /**
-     * @param  array<string, mixed>  $meta
+     * Crée une écriture de débit dans la limite du disponible.
+     *
+     * @param  Wallet  $wallet  Wallet débité
+     * @param  WalletBalanceType  $type  Solde concerné
+     * @param  int  $amount  Montant strictement positif
+     * @param  WalletTransactionReason  $reason  Motif du débit
+     * @param  string  $idempotencyKey  Clé d'idempotence
+     * @param  array<string, mixed>  $meta  Contexte libre de l'écriture
+     * @param  Model|null  $reference  Objet métier d'origine
+     * @param  User|null  $actor  Auteur de l'écriture
+     * @param  int|null  $agencyId  Agence de rattachement
+     * @return WalletTransaction Écriture créée ou rejouée
+     *
+     * @throws ValidationException
      */
     public function debit(
         Wallet $wallet,
@@ -169,6 +193,13 @@ final class WalletLedgerService
         });
     }
 
+    /**
+     * Solde utilisable, holds actifs déduits.
+     *
+     * @param  Wallet  $wallet  Wallet consulté
+     * @param  WalletBalanceType  $type  Solde concerné
+     * @return int Montant disponible
+     */
     public function availableBalance(Wallet $wallet, WalletBalanceType $type): int
     {
         $held = $this->heldAmount($wallet, $type);
@@ -176,6 +207,13 @@ final class WalletLedgerService
         return max(0, $this->balance($wallet, $type) - $held);
     }
 
+    /**
+     * Somme des holds actifs sur un solde.
+     *
+     * @param  Wallet  $wallet  Wallet consulté
+     * @param  WalletBalanceType  $type  Solde concerné
+     * @return int Montant réservé
+     */
     public function heldAmount(Wallet $wallet, WalletBalanceType $type): int
     {
         $column = $type === WalletBalanceType::Cash ? 'cash_amount' : 'points_amount';
@@ -186,6 +224,13 @@ final class WalletLedgerService
             ->sum($column);
     }
 
+    /**
+     * Solde matérialisé, rechargé depuis la base.
+     *
+     * @param  Wallet  $wallet  Wallet consulté
+     * @param  WalletBalanceType  $type  Solde concerné
+     * @return int Solde courant
+     */
     public function balance(Wallet $wallet, WalletBalanceType $type): int
     {
         $wallet->refresh();
@@ -194,9 +239,10 @@ final class WalletLedgerService
     }
 
     /**
-     * Reconstruit les soldes depuis le ledger (contrôle d'intégrité).
+     * Recalcule les soldes depuis le ledger pour contrôle d'intégrité.
      *
-     * @return array{cash: int, points: int}
+     * @param  Wallet  $wallet  Wallet contrôlé
+     * @return array{cash: int, points: int} Soldes reconstruits
      */
     public function reconstructedBalances(Wallet $wallet): array
     {
@@ -222,7 +268,21 @@ final class WalletLedgerService
     }
 
     /**
-     * @param  array<string, mixed>  $meta
+     * Applique les invariants du ledger sous verrou puis persiste l'écriture.
+     *
+     * @param  Wallet  $wallet  Wallet mouvementé
+     * @param  WalletBalanceType  $type  Solde concerné
+     * @param  WalletDirection  $direction  Sens de l'écriture
+     * @param  int  $amount  Montant strictement positif
+     * @param  WalletTransactionReason  $reason  Motif de l'écriture
+     * @param  string  $idempotencyKey  Clé d'idempotence
+     * @param  array<string, mixed>  $meta  Contexte libre
+     * @param  Model|null  $reference  Objet métier d'origine
+     * @param  User|null  $actor  Auteur de l'écriture
+     * @param  int|null  $agencyId  Agence de rattachement
+     * @return WalletTransaction Écriture créée ou rejouée
+     *
+     * @throws ValidationException
      */
     private function write(
         Wallet $wallet,

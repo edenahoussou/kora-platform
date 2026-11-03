@@ -4,15 +4,25 @@ namespace App\Modules\Wallet\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * Formulaire de débit Wallet au guichet.
+ */
 class OpsWalletDebitRequest extends FormRequest
 {
+    /**
+     * Autorise la requête, la permission est vérifiée par le contrôleur.
+     *
+     * @return bool Toujours vrai
+     */
     public function authorize(): bool
     {
         return true;
     }
 
     /**
-     * @return array<string, array<int, string>>
+     * Valide la réservation, la répartition points/cash et la clé d'idempotence.
+     *
+     * @return array<string, array<int, string>> Règles de validation
      */
     public function rules(): array
     {

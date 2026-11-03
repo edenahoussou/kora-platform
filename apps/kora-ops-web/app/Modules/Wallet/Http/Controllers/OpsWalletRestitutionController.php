@@ -25,6 +25,12 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
  */
 class OpsWalletRestitutionController extends Controller
 {
+    /**
+     * Liste les restitutions, filtrables par statut.
+     *
+     * @param  Request  $request  Requête avec `status` optionnel
+     * @return AnonymousResourceCollection Restitutions paginées
+     */
     public function index(Request $request): AnonymousResourceCollection
     {
         abort_unless($request->user()?->can('wallet.manage-restitutions'), 403);
@@ -41,6 +47,13 @@ class OpsWalletRestitutionController extends Controller
         return WalletRestitutionResource::collection($query->paginate(25));
     }
 
+    /**
+     * Ouvre une demande de restitution.
+     *
+     * @param  StoreRestitutionRequest  $request  Wallet, montant et note
+     * @param  RequestRestitutionAction  $requestRestitution  Contrôle du disponible
+     * @return JsonResponse Restitution demandée
+     */
     public function store(StoreRestitutionRequest $request, RequestRestitutionAction $requestRestitution): JsonResponse
     {
         abort_unless($request->user()?->can('wallet.debit-counter'), 403);
@@ -59,6 +72,14 @@ class OpsWalletRestitutionController extends Controller
             ->setStatusCode(201);
     }
 
+    /**
+     * Approuve une restitution en attente.
+     *
+     * @param  Request  $request  Requête de l'approbateur habilité
+     * @param  WalletRestitution  $restitution  Restitution liée par UUID
+     * @param  ApproveRestitutionAction  $approveRestitution  Passage en « approuvée »
+     * @return JsonResponse Restitution approuvée
+     */
     public function approve(
         Request $request,
         WalletRestitution $restitution,
@@ -71,6 +92,14 @@ class OpsWalletRestitutionController extends Controller
         return (new WalletRestitutionResource($restitution->load(['wallet.user', 'approvedBy'])))->response();
     }
 
+    /**
+     * Rejette une restitution avec un motif.
+     *
+     * @param  RejectRestitutionRequest  $request  Motif du rejet
+     * @param  WalletRestitution  $restitution  Restitution liée par UUID
+     * @param  RejectRestitutionAction  $rejectRestitution  Passage en « rejetée »
+     * @return JsonResponse Restitution rejetée
+     */
     public function reject(
         RejectRestitutionRequest $request,
         WalletRestitution $restitution,
@@ -83,6 +112,14 @@ class OpsWalletRestitutionController extends Controller
         return (new WalletRestitutionResource($restitution->load(['wallet.user', 'approvedBy'])))->response();
     }
 
+    /**
+     * Marque une restitution versée et débite le Wallet.
+     *
+     * @param  MarkRestitutionPaidRequest  $request  Référence et canal du versement
+     * @param  WalletRestitution  $restitution  Restitution liée par UUID
+     * @param  MarkRestitutionPaidAction  $markRestitutionPaid  Débit tracé
+     * @return JsonResponse Restitution versée
+     */
     public function markPaid(
         MarkRestitutionPaidRequest $request,
         WalletRestitution $restitution,

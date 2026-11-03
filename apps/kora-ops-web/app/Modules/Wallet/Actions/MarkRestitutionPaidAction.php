@@ -17,11 +17,26 @@ use Illuminate\Validation\ValidationException;
  */
 final class MarkRestitutionPaidAction
 {
+    /**
+     * @param  WalletLedgerService  $ledger  Écritures du ledger
+     * @param  WalletNotificationPublisher  $notifications  Notifications voyageur
+     */
     public function __construct(
         private readonly WalletLedgerService $ledger,
         private readonly WalletNotificationPublisher $notifications,
     ) {}
 
+    /**
+     * Trace le versement puis débite le Wallet une seule fois.
+     *
+     * @param  WalletRestitution  $restitution  Restitution approuvée
+     * @param  User  $actor  Responsable du versement
+     * @param  string  $payoutReference  Référence du versement hors système
+     * @param  string|null  $payoutChannel  Canal de versement
+     * @return WalletRestitution Restitution versée
+     *
+     * @throws ValidationException
+     */
     public function handle(
         WalletRestitution $restitution,
         User $actor,

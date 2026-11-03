@@ -16,13 +16,23 @@ use App\Modules\Wallet\Services\WalletLedgerService;
  */
 final class RouteRefundToWalletAction
 {
+    /**
+     * @param  FindOrCreateWalletAction  $findOrCreateWallet  Provisionnement du Wallet
+     * @param  WalletLedgerService  $ledger  Écritures du ledger
+     */
     public function __construct(
         private readonly FindOrCreateWalletAction $findOrCreateWallet,
         private readonly WalletLedgerService $ledger,
     ) {}
 
     /**
-     * @return array{wallet: Wallet, points: int, cash: int}|null
+     * Répartit le remboursement entre points et cash du payeur personnel.
+     *
+     * @param  Reservation  $reservation  Réservation remboursée
+     * @param  Payment  $payment  Paiement d'origine
+     * @param  int  $amount  Montant remboursé
+     * @param  string  $reference  Référence du remboursement
+     * @return array{wallet: Wallet, points: int, cash: int}|null Répartition, null sans payeur personnel
      */
     public function handle(Reservation $reservation, Payment $payment, int $amount, string $reference): ?array
     {

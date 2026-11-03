@@ -42,23 +42,41 @@ class WalletTransaction extends KoraModel
         'meta',
     ];
 
-    /** @return BelongsTo<Wallet, $this> */
+    /**
+     * Wallet mouvementé.
+     *
+     * @return BelongsTo<Wallet, $this>
+     */
     public function wallet(): BelongsTo
     {
         return $this->belongsTo(Wallet::class);
     }
 
-    /** @return MorphTo<Model, $this> */
+    /**
+     * Objet métier à l'origine de l'écriture.
+     *
+     * @return MorphTo<Model, $this>
+     */
     public function reference(): MorphTo
     {
         return $this->morphTo();
     }
 
+    /**
+     * Montant signé selon le sens de l'écriture.
+     *
+     * @return int Montant positif en crédit, négatif en débit
+     */
     public function signedAmount(): int
     {
         return $this->direction === WalletDirection::Credit ? $this->amount : -$this->amount;
     }
 
+    /**
+     * Casts des enums et du payload.
+     *
+     * @return array<string, string>
+     */
     protected function casts(): array
     {
         return [

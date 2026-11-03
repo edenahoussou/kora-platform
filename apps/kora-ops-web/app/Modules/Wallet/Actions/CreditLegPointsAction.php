@@ -24,6 +24,13 @@ use Illuminate\Support\Facades\DB;
  */
 final class CreditLegPointsAction
 {
+    /**
+     * @param  WalletSettings  $settings  Paramètres du module
+     * @param  WalletLedgerService  $ledger  Écritures du ledger
+     * @param  FindOrCreateWalletAction  $findOrCreateWallet  Provisionnement des Wallets
+     * @param  GrantLoyaltyBonusAction  $grantBonus  Attribution des bonus
+     * @param  WalletNotificationPublisher  $notifications  Notifications voyageur
+     */
     public function __construct(
         private readonly WalletSettings $settings,
         private readonly WalletLedgerService $ledger,
@@ -32,6 +39,12 @@ final class CreditLegPointsAction
         private readonly WalletNotificationPublisher $notifications,
     ) {}
 
+    /**
+     * Crédite les jambes embarquées et évalue les bonus d'usage.
+     *
+     * @param  Reservation  $reservation  Réservation à créditer
+     * @return int Points crédités
+     */
     public function handle(Reservation $reservation): int
     {
         if (! $this->settings->walletPointsEnabled) {
@@ -96,6 +109,13 @@ final class CreditLegPointsAction
         return $credited;
     }
 
+    /**
+     * Résout le Wallet du voyageur de la jambe, sinon le payeur personnel.
+     *
+     * @param  Reservation  $reservation  Réservation concernée
+     * @param  ReservationSegment  $segment  Jambe embarquée
+     * @return Wallet|null Wallet créditable, null sans compte voyageur
+     */
     private function walletFor(Reservation $reservation, ReservationSegment $segment): ?Wallet
     {
         $passenger = $reservation->passengers->firstWhere('passenger_index', $segment->passenger_index)
@@ -114,6 +134,14 @@ final class CreditLegPointsAction
         return $this->findOrCreateWallet->handle($owner);
     }
 
+    /**
+     * Applique le taux configuré à la part monétaire de la jambe (floor).
+     *
+     * @param  Reservation  $reservation  Réservation concernée
+     * @param  ReservationSegment  $segment  Jambe embarquée
+     * @param  Payment|null  $payment  Paiement confirmé portant le financement
+     * @return int Points à créditer
+     */
     private function pointsForLeg(Reservation $reservation, ReservationSegment $segment, ?Payment $payment): int
     {
         $base = $this->legBase($reservation, $segment);
@@ -130,6 +158,13 @@ final class CreditLegPointsAction
         return (int) floor($monetary * $this->settings->loyaltyEarnRateBasisPoints / 10000);
     }
 
+    /**
+     * Lit l'allocation figée de la jambe dans le snapshot du devis.
+     *
+     * @param  Reservation  $reservation  Réservation concernée
+     * @param  ReservationSegment  $segment  Jambe embarquée
+     * @return int Montant figé de la jambe
+     */
     private function legBase(Reservation $reservation, ReservationSegment $segment): int
     {
         $snapshot = $reservation->total_snapshot ?? [];
@@ -146,6 +181,12 @@ final class CreditLegPointsAction
         return (int) ($allocations[$passengerIndex] ?? $allocations[0] ?? 0);
     }
 
+    /**
+     * Compte une utilisation par billet puis évalue les bonus associés.
+     *
+     * @param  Wallet  $wallet  Wallet du voyageur
+     * @param  Reservation  $reservation  Billet utilisé
+     */
     private function recordUsage(Wallet $wallet, Reservation $reservation): void
     {
         $usage = DB::transaction(function () use ($wallet, $reservation): ?WalletUsage {

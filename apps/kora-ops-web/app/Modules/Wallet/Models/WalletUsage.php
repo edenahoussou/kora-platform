@@ -23,18 +23,31 @@ class WalletUsage extends KoraModel
         'used_at',
     ];
 
-    /** @return BelongsTo<Wallet, $this> */
+    /**
+     * Wallet crédité de l'utilisation.
+     *
+     * @return BelongsTo<Wallet, $this>
+     */
     public function wallet(): BelongsTo
     {
         return $this->belongsTo(Wallet::class);
     }
 
-    /** @return BelongsTo<Reservation, $this> */
+    /**
+     * Billet utilisé.
+     *
+     * @return BelongsTo<Reservation, $this>
+     */
     public function reservation(): BelongsTo
     {
         return $this->belongsTo(Reservation::class);
     }
 
+    /**
+     * Cast de l'horodatage d'utilisation.
+     *
+     * @return array<string, string>
+     */
     protected function casts(): array
     {
         return [

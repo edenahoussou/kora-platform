@@ -46,6 +46,11 @@ final class WalletSettings extends Settings
     /** @var array<int, int> */
     public array $topupAmountPresets = [2000, 5000, 10000, 20000];
 
+    /**
+     * Groupe de paramètres exposé dans l'écran Paramètres OPS.
+     *
+     * @return string Nom du groupe `wallet`
+     */
     public static function group(): string
     {
         return 'wallet';

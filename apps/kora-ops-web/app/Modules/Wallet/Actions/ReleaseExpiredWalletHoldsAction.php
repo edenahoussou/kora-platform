@@ -10,8 +10,16 @@ use App\Modules\Wallet\Models\WalletHold;
  */
 final class ReleaseExpiredWalletHoldsAction
 {
+    /**
+     * @param  ReleaseWalletHoldAction  $releaseHold  Libération d'un hold
+     */
     public function __construct(private readonly ReleaseWalletHoldAction $releaseHold) {}
 
+    /**
+     * Libère les holds actifs dont l'échéance est dépassée.
+     *
+     * @return int Nombre de holds libérés
+     */
     public function handle(): int
     {
         $holds = WalletHold::query()
