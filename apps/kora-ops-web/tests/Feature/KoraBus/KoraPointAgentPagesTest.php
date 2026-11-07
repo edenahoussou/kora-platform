@@ -97,9 +97,6 @@ function createCustomAgentSale(
         ]);
 
         $sale = app(RecordKoraPointSaleAction::class)->execute($reservation, $payment, $agent);
-        if ($paidAt !== null) {
-            $sale->update(['paid_at' => $paidAt]);
-        }
 
         return $sale;
     });
@@ -362,15 +359,21 @@ it('renders settlements page with remittances and kora payment details', functio
 });
 
 it('previews unsettled sales for a selected period via settlements.preview', function (): void {
-    $sale1 = createAgentSale($this->point, $this->agent, 20000);
-    KoraPointSale::query()->whereKey($sale1->getKey())->update(['paid_at' => CarbonImmutable::parse('2026-10-25 10:00:00')]);
+    $this->point->update(['settlement_calendar' => [
+        'frequency' => 'monthly',
+        'day' => 1,
+        'time' => '17:00',
+        'timezone' => 'Africa/Porto-Novo',
+    ]]);
+    $this->travelTo(CarbonImmutable::parse('2026-10-25 10:00:00', 'UTC'));
+    $sale1 = createCustomAgentSale($this->point, $this->agent, 20000, paidAt: CarbonImmutable::parse('2026-10-25 10:00:00'));
 
-    $sale2 = createAgentSale($this->point, $this->agent, 30000);
-    KoraPointSale::query()->whereKey($sale2->getKey())->update(['paid_at' => CarbonImmutable::parse('2026-10-26 14:00:00')]);
+    $this->travelTo(CarbonImmutable::parse('2026-10-26 14:00:00', 'UTC'));
+    $sale2 = createCustomAgentSale($this->point, $this->agent, 30000, paidAt: CarbonImmutable::parse('2026-10-26 14:00:00'));
 
     // 1 sale on 2026-10-31 (outside preview filter)
-    $sale3 = createAgentSale($this->point, $this->agent, 10000);
-    KoraPointSale::query()->whereKey($sale3->getKey())->update(['paid_at' => CarbonImmutable::parse('2026-10-31 08:00:00')]);
+    $this->travelTo(CarbonImmutable::parse('2026-10-31 08:00:00', 'UTC'));
+    createCustomAgentSale($this->point, $this->agent, 10000, paidAt: CarbonImmutable::parse('2026-10-31 08:00:00'));
 
     $response = $this->actingAs($this->agent)
         ->getJson(route('kora-point.settlements.preview', [
@@ -651,9 +654,8 @@ it('allows partner agent to record cash sale without open cash session', functio
 it('allows partner agent to record mobile money sale across regional operators without agency account', function (): void {
     $networks = ['wave_ci', 'tmoney_tg', 'mtn_momo'];
 
-    $setup = createAgentDeparture();
-
     foreach ($networks as $network) {
+        $setup = createAgentDeparture();
         $reservation = Reservation::query()->create([
             'created_by_user_id' => $this->agent->getKey(),
             'origin_kora_point_id' => $this->point->getKey(),

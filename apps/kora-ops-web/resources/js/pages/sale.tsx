@@ -393,6 +393,7 @@ export default function SalePage(props: SaleProps) {
                                 reservation={reservation}
                                 cashSession={cashSession}
                                 mobileMoneyAccounts={mobileMoneyAccounts}
+                                canDebitWallet={permissions.canDebitWallet}
                                 processing={paymentForm.processing}
                                 errors={paymentForm.errors}
                                 search={search}

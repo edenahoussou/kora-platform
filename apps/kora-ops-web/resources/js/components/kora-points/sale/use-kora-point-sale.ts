@@ -159,6 +159,11 @@ export function useKoraPointSale(props: KoraPointSaleProps) {
         payer_name: '',
         provider_reference: '',
         verified_manually: false,
+        wallet_uuid: null,
+        wallet_amount: null,
+        points_amount: null,
+        wallet_holder_phone: '',
+        wallet_holder_confirmed: false,
     });
 
     const search = (event: SyntheticEvent<HTMLFormElement>) => {

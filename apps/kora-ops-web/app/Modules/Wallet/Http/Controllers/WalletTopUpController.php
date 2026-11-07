@@ -23,6 +23,9 @@ class WalletTopUpController extends Controller
      * @param  FindOrCreateWalletAction  $findOrCreateWallet  Provisionnement du Wallet
      * @param  InitiateWalletTopUpAction  $initiateTopUp  Création de la recharge et du paiement
      * @return JsonResponse Recharge créée (201) ou rejouée (200)
+     *
+     * @response 201 {"data":{"uuid":"9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e","amount":5000,"status":"pending","payment":{"uuid":"a4a5d8fd-8168-4f40-b6b5-437f97cf41f0","status":"pending","provider":"fedapay","provider_reference":null},"created_at":"2026-11-07T10:00:00+00:00"}}
+     * @response 200 scenario="Recharge idempotente déjà créée" {"data":{"uuid":"9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e","amount":5000,"status":"pending","payment":{"uuid":"a4a5d8fd-8168-4f40-b6b5-437f97cf41f0","status":"pending","provider":"fedapay","provider_reference":null},"created_at":"2026-11-07T10:00:00+00:00"}}
      */
     public function store(
         InitiateTopUpRequest $request,
@@ -54,6 +57,8 @@ class WalletTopUpController extends Controller
      * @param  string  $uuid  UUID de la recharge
      * @param  FindOrCreateWalletAction  $findOrCreateWallet  Provisionnement du Wallet
      * @return JsonResponse Recharge et statut du paiement provider
+     *
+     * @response 200 {"data":{"uuid":"9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e","amount":5000,"status":"pending","payment":{"uuid":"a4a5d8fd-8168-4f40-b6b5-437f97cf41f0","status":"pending","provider":"fedapay","provider_reference":null},"created_at":"2026-11-07T10:00:00+00:00"}}
      */
     public function show(Request $request, string $uuid, FindOrCreateWalletAction $findOrCreateWallet): JsonResponse
     {

@@ -4,6 +4,7 @@ use App\Modules\Departures\Data\DepartureStatus;
 use App\Modules\Wallet\Actions\CreditLegPointsAction;
 use App\Modules\Wallet\Data\WalletTransactionReason;
 use App\Modules\Wallet\Models\WalletTransaction;
+use App\Modules\Wallet\Models\WalletUsage;
 
 function walletBoardedScenario(int $pointsFunded = 0): array
 {
@@ -49,6 +50,33 @@ it('does not credit a leg that was never boarded', function (): void {
     walletConfirmedPayment($scenario['reservation']);
 
     expect(app(CreditLegPointsAction::class)->handle($scenario['reservation']))->toBe(0);
+});
+
+it('does not award an unlinked passenger the personal payer wallet', function (): void {
+    $scenario = walletBoardedScenario();
+    $scenario['passenger']->update(['user_id' => null]);
+
+    expect(app(CreditLegPointsAction::class)->handle($scenario['reservation']->fresh()))->toBe(0)
+        ->and($scenario['wallet']->fresh()->points_balance)->toBe(0)
+        ->and(WalletUsage::query()->count())->toBe(0);
+});
+
+it('calculates loyalty from the frozen discounted leg allocation', function (): void {
+    $scenario = walletBoardedScenario();
+    $scenario['reservation']->update([
+        'total_amount' => 7500,
+        'total_snapshot' => [
+            'legs' => [['leg_order' => 1, 'final_amount' => 10000]],
+            'passenger_allocations' => [7500],
+            'passenger_leg_allocations' => [[7500]],
+        ],
+    ]);
+    $scenario['reservation']->payments()->firstOrFail()->update(['amount' => 7500]);
+
+    expect(app(CreditLegPointsAction::class)->handle($scenario['reservation']->fresh()))->toBe(150)
+        ->and(WalletTransaction::query()
+            ->where('reason', WalletTransactionReason::PointsEarn->value)
+            ->value('amount'))->toBe(150);
 });
 
 it('catches up late arrivals through the scheduled command', function (): void {

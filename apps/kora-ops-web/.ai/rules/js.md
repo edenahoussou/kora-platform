@@ -23,3 +23,6 @@ Whenever adding a file-upload field, provide a keyboard-accessible drag-and-drop
 
 ## Rebuild after frontend changes
 After every frontend code change, run `npm run build` before finishing and confirm it completes successfully. If it fails, fix the frontend build errors before reporting completion.
+
+## Form field labels and telephone inputs
+Every React form field label includes an appropriate icon. Required fields are semantically required and show a red asterisk; optional fields do not show an asterisk. Telephone fields use PhoneInput from react-phone-number-input with French labels and the relevant default country.

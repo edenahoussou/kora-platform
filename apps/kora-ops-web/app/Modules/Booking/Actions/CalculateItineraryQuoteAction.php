@@ -137,6 +137,7 @@ class CalculateItineraryQuoteAction
                 expiresAt: $earliestExpiry,
                 promotionDiscount: $promotionDiscount,
                 companyAccount: $companyAccount,
+                resolvedPromotion: $resolvedPromotion,
             );
 
             $promotion = $resolvedPromotion?->promotion;
@@ -173,6 +174,7 @@ class CalculateItineraryQuoteAction
                 'group' => $pricing['group'],
                 'group_discount' => $pricing['group_discount'],
                 'passenger_allocations' => $pricing['passenger_allocations'],
+                'passenger_leg_allocations' => $pricing['passenger_leg_allocations'],
                 'legs' => $legSnapshots,
                 'pricing_breakdown' => $breakdown->toArray(),
                 ...($companyAccount !== null ? [

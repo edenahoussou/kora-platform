@@ -616,10 +616,10 @@ it('computes the fill rate per leg, not reservations over seats', function (): v
         'status' => DepartureStatus::Scheduled->value,
     ]);
 
-    $seat = Seat::query()->create([
+    $makeSeat = fn (int $number): Seat => Seat::query()->create([
         'uuid' => (string) Str::uuid(),
         'bus_id' => $bus->id,
-        'code' => '1A',
+        'code' => '1A-'.$number,
         'type' => 'standard',
         'sellable' => true,
         'status' => 'active',
@@ -627,7 +627,7 @@ it('computes the fill rate per leg, not reservations over seats', function (): v
 
     [$cotonou, $portoNovo, $abidjan] = $line->stops()->orderBy('stop_order')->get()->all();
 
-    $bookSegment = function (Stop $origin, Stop $destination, string $status) use ($departure, $seat): void {
+    $bookSegment = function (Seat $seat, Stop $origin, Stop $destination, string $status) use ($departure): void {
         $reservation = Reservation::query()->create([
             'status' => 'ticketed',
             'total_amount' => 5000,
@@ -647,17 +647,16 @@ it('computes the fill rate per leg, not reservations over seats', function (): v
         ]);
     };
 
-    // 20 passagers sur le tronçon Cotonou → Porto-Novo, 10 sur
-    // Porto-Novo → Abidjan : le même siège peut être revendu, la charge
-    // maximale réelle est 20/55 — pas 30/55.
+    // 20 passagers sur le premier tronçon et 10 sur le second : la charge
+    // maximale est 20/55, pas le total de 30 réservations.
     for ($i = 0; $i < 20; $i++) {
-        $bookSegment($cotonou, $portoNovo, 'ticketed');
+        $bookSegment($makeSeat($i + 1), $cotonou, $portoNovo, 'ticketed');
     }
     for ($i = 0; $i < 10; $i++) {
-        $bookSegment($portoNovo, $abidjan, 'ticketed');
+        $bookSegment($makeSeat($i + 21), $portoNovo, $abidjan, 'ticketed');
     }
     // Un segment libéré ne doit plus compter.
-    $bookSegment($cotonou, $abidjan, 'released');
+    $bookSegment($makeSeat(31), $cotonou, $abidjan, 'released');
 
     $this->actingAs(departuresManager())
         ->get(route('departures.index'))
@@ -711,7 +710,7 @@ it('releases segments from the departure detail via web no-show and early-exit',
         $segment = ReservationSegment::query()->create([
             'reservation_id' => $reservation->id,
             'reservation_passenger_id' => $passenger->id,
-            'leg_order' => 0,
+            'leg_order' => 1,
             'departure_id' => $departure->id,
             'seat_id' => $seat->id,
             'origin_stop_id' => $origin->id,
@@ -800,7 +799,7 @@ it('closes no-shows in bulk and reverses a boarding from the departure detail', 
         $segment = ReservationSegment::query()->create([
             'reservation_id' => $reservation->id,
             'reservation_passenger_id' => $passenger->id,
-            'leg_order' => 0,
+            'leg_order' => 1,
             'departure_id' => $departure->id,
             'seat_id' => $seat->id,
             'origin_stop_id' => $origin->id,

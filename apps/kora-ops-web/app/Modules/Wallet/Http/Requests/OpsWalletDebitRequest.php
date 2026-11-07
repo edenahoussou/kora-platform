@@ -30,6 +30,8 @@ class OpsWalletDebitRequest extends FormRequest
             'reservation_uuid' => ['required', 'uuid', 'exists:reservations,uuid'],
             'wallet_amount' => ['required', 'integer', 'min:0'],
             'points_amount' => ['nullable', 'integer', 'min:0'],
+            'wallet_holder_phone' => ['required', 'string', 'max:32'],
+            'wallet_holder_confirmed' => ['required', 'accepted'],
             'idempotency_key' => ['required', 'string', 'max:255'],
         ];
     }
@@ -45,6 +47,8 @@ class OpsWalletDebitRequest extends FormRequest
             'reservation_uuid' => ['description' => 'UUID de la réservation à régler.'],
             'wallet_amount' => ['description' => 'Montant débité du solde cash du Wallet.'],
             'points_amount' => ['description' => 'Points fidélité utilisés.'],
+            'wallet_holder_phone' => ['description' => 'Téléphone confirmé du titulaire présent.'],
+            'wallet_holder_confirmed' => ['description' => 'Confirme que le titulaire est présent et autorise le montant affiché.'],
             'idempotency_key' => ['description' => 'Clé d’idempotence du débit.'],
         ];
     }

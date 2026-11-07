@@ -39,6 +39,7 @@ use App\Modules\Ticketing\Http\Controllers\TicketIndexController;
 use App\Modules\Ticketing\Http\Controllers\TicketPreviewController;
 use App\Modules\Ticketing\Http\Controllers\TicketViewController;
 use App\Modules\Tracking\Http\Controllers\FleetTrackingPageController;
+use App\Modules\Wallet\Http\Controllers\OpsWalletLookupController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
@@ -93,6 +94,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('sale/{reservation:uuid}/draft', [CounterSaleController::class, 'saveDraft'])->name('sale.draft');
     Route::post('sale/{reservation:uuid}/passengers', [CounterSaleController::class, 'storePassengers'])->name('sale.passengers');
     Route::post('sale/{reservation:uuid}/payment', [CounterSaleController::class, 'storePayment'])->name('sale.payment');
+    Route::get('sale/wallet-lookup', OpsWalletLookupController::class)->name('sale.wallet-lookup');
     Route::post('sale/{reservation:uuid}/tickets/retry', [CounterSaleController::class, 'retryTicketIssuance'])->name('sale.tickets.retry');
     Route::get('sale/{any}', function () {
         session()->reflash();

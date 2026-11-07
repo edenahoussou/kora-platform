@@ -102,6 +102,8 @@ it('debits the traveler wallet at the counter with agent audit', function (): vo
         'reservation_uuid' => $reservation->uuid,
         'wallet_amount' => 15000,
         'points_amount' => 0,
+        'wallet_holder_phone' => $scenario['user']->phone,
+        'wallet_holder_confirmed' => true,
         'idempotency_key' => (string) Str::uuid(),
     ])->assertCreated();
 
@@ -116,6 +118,26 @@ it('debits the traveler wallet at the counter with agent audit', function (): vo
         ->and(Payment::query()->where('reservation_id', $reservation->getKey())->firstOrFail()->method->value)->toBe('wallet');
 });
 
+it('requires the present wallet holder phone to match the wallet owner', function (): void {
+    walletCashEnabled();
+    $scenario = walletScenario(['cash' => 20000]);
+    $agent = counterAgent();
+    $reservation = counterWalletReservation($agent);
+
+    Sanctum::actingAs($agent);
+    $this->postJson('/api/v1/ops/wallets/'.$scenario['wallet']->uuid.'/debit', [
+        'reservation_uuid' => $reservation->uuid,
+        'wallet_amount' => 15000,
+        'points_amount' => 0,
+        'wallet_holder_phone' => '+2290199999999',
+        'wallet_holder_confirmed' => true,
+        'idempotency_key' => (string) Str::uuid(),
+    ])->assertUnprocessable()->assertJsonValidationErrors(['wallet_holder_phone']);
+
+    expect($scenario['wallet']->fresh()->cash_balance)->toBe(20000)
+        ->and($reservation->fresh()->status->value)->toBe('held');
+});
+
 it('forbids the counter debit without the wallet permission', function (): void {
     walletCashEnabled();
     $scenario = walletScenario(['cash' => 20000]);
@@ -128,6 +150,8 @@ it('forbids the counter debit without the wallet permission', function (): void 
     $this->postJson('/api/v1/ops/wallets/'.$scenario['wallet']->uuid.'/debit', [
         'reservation_uuid' => $reservation->uuid,
         'wallet_amount' => 15000,
+        'wallet_holder_phone' => $scenario['user']->phone,
+        'wallet_holder_confirmed' => true,
         'idempotency_key' => (string) Str::uuid(),
     ])->assertForbidden();
 

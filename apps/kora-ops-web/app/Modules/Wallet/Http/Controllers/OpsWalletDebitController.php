@@ -23,6 +23,8 @@ class OpsWalletDebitController extends Controller
      * @param  Wallet  $wallet  Wallet lié par UUID
      * @param  RecordCounterSalePaymentAction  $recordCounterSalePayment  Parcours de vente guichet
      * @return JsonResponse Réservation payée et soldes restants
+     *
+     * @response 201 {"data":{"reservation_uuid":"9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e","payment_uuid":"a4a5d8fd-8168-4f40-b6b5-437f97cf41f0","wallet_uuid":"fba6df9a-8f10-4387-baf4-5140cbf64a6a","cash_balance":5000,"points_balance":200}}
      */
     public function __invoke(
         OpsWalletDebitRequest $request,
@@ -42,6 +44,9 @@ class OpsWalletDebitController extends Controller
             'wallet_uuid' => $wallet->uuid,
             'wallet_amount' => $request->integer('wallet_amount'),
             'points_amount' => $request->integer('points_amount'),
+            'wallet_holder_phone' => $request->string('wallet_holder_phone')->value(),
+            'wallet_holder_confirmed' => $request->boolean('wallet_holder_confirmed'),
+            'payer_phone' => $request->string('wallet_holder_phone')->value(),
         ]);
 
         return response()->json([

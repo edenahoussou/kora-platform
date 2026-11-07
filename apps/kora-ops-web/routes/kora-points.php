@@ -9,6 +9,8 @@ use App\Modules\KoraPoints\Http\Controllers\KoraPointPartnerController;
 use App\Modules\KoraPoints\Http\Controllers\KoraPointRefundController;
 use App\Modules\KoraPoints\Http\Controllers\KoraPointRemittanceController;
 use App\Modules\KoraPoints\Http\Controllers\KoraPointSaleController;
+use App\Modules\Wallet\Http\Controllers\OpsWalletLookupController;
+use App\Modules\Wallet\Http\Controllers\OpsWalletRestitutionController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
@@ -18,6 +20,9 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
 
     Route::prefix('kora-partner')->name('kora-partner.')->group(function (): void {
         Route::get('/', [KoraPointPartnerController::class, 'dashboard'])->name('dashboard');
+        Route::get('wallet-lookup', OpsWalletLookupController::class)->name('wallet-lookup');
+        Route::get('wallet-restitutions', [OpsWalletRestitutionController::class, 'page'])->name('wallet-restitutions.index');
+        Route::post('wallet-restitutions', [OpsWalletRestitutionController::class, 'store'])->name('wallet-restitutions.store');
         Route::get('points', [KoraPointPartnerController::class, 'points'])->name('points');
         Route::get('points/{point:uuid}', [KoraPointPartnerController::class, 'point'])->name('points.show');
         Route::get('visits', [KoraPointPartnerController::class, 'visits'])->name('visits');
@@ -33,6 +38,9 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
 
     Route::prefix('kora-point')->name('kora-point.')->group(function (): void {
         Route::get('/', [KoraPointAgentController::class, 'dashboard'])->name('dashboard');
+        Route::get('wallet-lookup', OpsWalletLookupController::class)->name('wallet-lookup');
+        Route::get('wallet-restitutions', [OpsWalletRestitutionController::class, 'page'])->name('wallet-restitutions.index');
+        Route::post('wallet-restitutions', [OpsWalletRestitutionController::class, 'store'])->name('wallet-restitutions.store');
         Route::get('sale', [KoraPointSaleController::class, 'index'])->name('sale');
         Route::post('sale/quote', [KoraPointSaleController::class, 'quote'])->name('sale.quote');
         Route::post('sale/seats', [KoraPointSaleController::class, 'seats'])->name('sale.seats');

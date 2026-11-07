@@ -114,7 +114,7 @@ class CancelReservationAction
             } elseif ($payment !== null && $refund > 0) {
                 $refundRecord = $this->recordRefund($locked, $lockedPassenger, $payment, $refund, false);
                 if ($refundRecord->wasRecentlyCreated) {
-                    $this->settleWalletRefund($locked, $payment, $refundRecord, $refund);
+                    $this->settleWalletRefund($locked, $payment, $refundRecord, $refund, $lockedPassenger);
                 }
             }
 
@@ -155,8 +155,13 @@ class CancelReservationAction
         );
     }
 
-    private function settleWalletRefund(Reservation $reservation, Payment $payment, PaymentRefund $refund, int $amount): void
-    {
+    private function settleWalletRefund(
+        Reservation $reservation,
+        Payment $payment,
+        PaymentRefund $refund,
+        int $amount,
+        ?ReservationPassenger $passenger = null,
+    ): void {
         if ($refund->destination === PaymentRefundDestination::WalletCash) {
             $routed = $this->routeRefundToWallet->handle($reservation, $payment, $amount, $refund->reference);
 
@@ -173,7 +178,7 @@ class CancelReservationAction
             }
         }
 
-        $this->applyLoyaltyCorrection->handle($reservation, $amount);
+        $this->applyLoyaltyCorrection->handle($reservation, $amount, $passenger);
     }
 
     private function authorize(Reservation $reservation, User $actor, bool $pointRefund = false): void

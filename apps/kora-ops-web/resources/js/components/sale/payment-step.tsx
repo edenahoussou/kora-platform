@@ -5,19 +5,24 @@ import {
     Check,
     CheckCircle2,
     Clock3,
+    Coins,
     HandCoins,
     Hash,
     LockKeyhole,
+    LoaderCircle,
     Phone,
     Receipt,
     ShieldCheck,
     Smartphone,
     UserRound,
+    WalletCards,
+    Search,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
 import phoneLabels from 'react-phone-number-input/locale/fr.json';
+import { toast } from 'sonner';
 import { CashOpeningDialog } from '@/components/cash/cash-opening-dialog';
 import { cn, uuid } from '@/lib/utils';
 import { SaleJourneySummary } from './sale-journey-summary';
@@ -45,6 +50,22 @@ export type CounterSalePaymentPayload = {
     payer_name: string;
     provider_reference: string;
     verified_manually: boolean;
+    wallet_uuid: string | null;
+    wallet_amount: number | null;
+    points_amount: number | null;
+    wallet_holder_phone: string;
+    wallet_holder_confirmed: boolean;
+};
+
+type WalletLookup = {
+    uuid: string;
+    holder: { name: string | null; phone: string | null };
+    available: { cash: number; points: number };
+    settings: {
+        points_min_spend: number;
+        wallet_cash_enabled: boolean;
+        wallet_points_enabled: boolean;
+    };
 };
 
 type Props = {
@@ -52,6 +73,7 @@ type Props = {
     reservation: SaleReservation;
     cashSession: SaleCashSession;
     mobileMoneyAccounts: SaleMobileMoneyAccount[];
+    canDebitWallet: boolean;
     processing: boolean;
     errors: Record<string, string>;
     onSubmit: (payload: CounterSalePaymentPayload) => void;
@@ -197,6 +219,7 @@ export function PaymentStep({
     reservation,
     cashSession,
     mobileMoneyAccounts,
+    canDebitWallet,
     processing,
     errors,
     onSubmit,
@@ -218,6 +241,11 @@ export function PaymentStep({
     const [payerName, setPayerName] = useState('');
     const [reference, setReference] = useState('');
     const [verified, setVerified] = useState(false);
+    const [walletPhone, setWalletPhone] = useState('');
+    const [wallet, setWallet] = useState<WalletLookup | null>(null);
+    const [walletPointsAmount, setWalletPointsAmount] = useState(0);
+    const [walletHolderConfirmed, setWalletHolderConfirmed] = useState(false);
+    const [walletLookupLoading, setWalletLookupLoading] = useState(false);
     const [key] = useState(uuid);
     const [cashModalOpen, setCashModalOpen] = useState(false);
     const holdCountdown = useHoldCountdown(
@@ -293,6 +321,21 @@ export function PaymentStep({
         reservation.payerType === 'company' &&
         reservation.companyAccount !== null;
     const companyCreditReady = isCompanyCredit;
+    const maximumPoints = wallet?.settings.wallet_points_enabled
+        ? Math.min(wallet.available.points, total)
+        : 0;
+    const minimumPoints = wallet?.settings.points_min_spend ?? 100;
+    const walletCashAmount = total - walletPointsAmount;
+    const walletCanCoverTotal = Boolean(
+        wallet &&
+        wallet.settings.wallet_cash_enabled &&
+        wallet.available.cash +
+            (maximumPoints >= minimumPoints ? maximumPoints : 0) >=
+            total &&
+        walletPointsAmount <= maximumPoints &&
+        (walletPointsAmount === 0 || walletPointsAmount >= minimumPoints) &&
+        walletCashAmount <= wallet.available.cash,
+    );
     const canSubmit =
         !holdCountdown.isExpired &&
         !processing &&
@@ -302,7 +345,11 @@ export function PaymentStep({
               ? mobileReady
               : method === 'company_credit'
                 ? companyCreditReady
-                : false);
+                : method === 'wallet'
+                  ? walletCanCoverTotal &&
+                    walletHolderConfirmed &&
+                    !walletLookupLoading
+                  : false);
 
     const mobileChecklist = useMemo(
         () => [
@@ -340,6 +387,66 @@ export function PaymentStep({
         setCashReceived(String(amount));
     };
 
+    const lookupWallet = async () => {
+        if (!isValidPhoneNumber(walletPhone)) {
+            toast.error('Saisissez un numéro de téléphone valide.');
+
+            return;
+        }
+
+        setWalletLookupLoading(true);
+        setWallet(null);
+        setWalletHolderConfirmed(false);
+
+        try {
+            const url = new URL('/sale/wallet-lookup', window.location.origin);
+            url.searchParams.set('phone', walletPhone);
+            const response = await fetch(url, {
+                headers: { Accept: 'application/json' },
+            });
+
+            if (!response.ok) {
+                throw new Error('La recherche du Wallet a échoué.');
+            }
+
+            const result = (await response.json()) as {
+                data: WalletLookup | null;
+            };
+
+            if (!result.data) {
+                toast.error('Aucun Wallet n’est associé à ce numéro.');
+
+                return;
+            }
+
+            setWallet(result.data);
+            const suggestedPoints = Math.max(
+                0,
+                Math.min(
+                    result.data.available.points,
+                    total - result.data.available.cash,
+                ),
+            );
+            setWalletPointsAmount(
+                suggestedPoints > 0 &&
+                    suggestedPoints < result.data.settings.points_min_spend
+                    ? Math.min(
+                          result.data.available.points,
+                          result.data.settings.points_min_spend,
+                      )
+                    : suggestedPoints,
+            );
+        } catch (error) {
+            toast.error(
+                error instanceof Error
+                    ? error.message
+                    : 'La recherche du Wallet a échoué.',
+            );
+        } finally {
+            setWalletLookupLoading(false);
+        }
+    };
+
     const submit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
@@ -371,6 +478,15 @@ export function PaymentStep({
             provider_reference:
                 method === 'mobile_money' ? reference.trim() : '',
             verified_manually: method === 'mobile_money' ? verified : true,
+            wallet_uuid: method === 'wallet' ? (wallet?.uuid ?? null) : null,
+            wallet_amount: method === 'wallet' ? walletCashAmount : null,
+            points_amount: method === 'wallet' ? walletPointsAmount : null,
+            wallet_holder_phone:
+                method === 'wallet'
+                    ? (wallet?.holder.phone ?? walletPhone)
+                    : '',
+            wallet_holder_confirmed:
+                method === 'wallet' ? walletHolderConfirmed : false,
         });
     };
 
@@ -380,7 +496,9 @@ export function PaymentStep({
           ? 'Encaisser les espèces'
           : method === 'mobile_money'
             ? 'Confirmer le transfert Mobile Money'
-            : 'Imputer le crédit entreprise';
+            : method === 'wallet'
+              ? 'Confirmer le débit Wallet'
+              : 'Imputer le crédit entreprise';
 
     return (
         <>
@@ -410,7 +528,8 @@ export function PaymentStep({
 
                     {!isPartner &&
                         !cashSession.isOpen &&
-                        method !== 'company_credit' && (
+                        method !== 'company_credit' &&
+                        method !== 'wallet' && (
                             <div className="cash-required-card" role="status">
                                 <span className="cash-required-icon">
                                     <Banknote className="size-5" />
@@ -462,6 +581,15 @@ export function PaymentStep({
                             title="Espèces"
                             description="Encaissement au guichet"
                         />
+                        {canDebitWallet && (
+                            <PaymentChoice
+                                active={method === 'wallet'}
+                                onClick={() => setMethod('wallet')}
+                                icon={WalletCards}
+                                title="Wallet KORA"
+                                description="Solde cash et points"
+                            />
+                        )}
                         <PaymentChoice
                             active={method === 'mobile_money'}
                             onClick={() => setMethod('mobile_money')}
@@ -517,6 +645,26 @@ export function PaymentStep({
                             onReferenceChange={setReference}
                             onVerifiedChange={setVerified}
                             isPartner={isPartner}
+                        />
+                    ) : method === 'wallet' ? (
+                        <WalletPaymentFields
+                            phone={walletPhone}
+                            wallet={wallet}
+                            pointsAmount={walletPointsAmount}
+                            cashAmount={walletCashAmount}
+                            total={total}
+                            confirmed={walletHolderConfirmed}
+                            loading={walletLookupLoading}
+                            canCoverTotal={walletCanCoverTotal}
+                            errors={errors}
+                            onPhoneChange={(phone) => {
+                                setWalletPhone(phone);
+                                setWallet(null);
+                                setWalletHolderConfirmed(false);
+                            }}
+                            onLookup={lookupWallet}
+                            onPointsChange={setWalletPointsAmount}
+                            onConfirmedChange={setWalletHolderConfirmed}
                         />
                     ) : (
                         <CompanyCreditFields
@@ -595,6 +743,246 @@ export function PaymentStep({
                 />
             )}
         </>
+    );
+}
+
+function WalletPaymentFields({
+    phone,
+    wallet,
+    pointsAmount,
+    cashAmount,
+    total,
+    confirmed,
+    loading,
+    canCoverTotal,
+    errors,
+    onPhoneChange,
+    onLookup,
+    onPointsChange,
+    onConfirmedChange,
+}: {
+    phone: string;
+    wallet: WalletLookup | null;
+    pointsAmount: number;
+    cashAmount: number;
+    total: number;
+    confirmed: boolean;
+    loading: boolean;
+    canCoverTotal: boolean;
+    errors: Record<string, string>;
+    onPhoneChange: (phone: string) => void;
+    onLookup: () => void;
+    onPointsChange: (amount: number) => void;
+    onConfirmedChange: (confirmed: boolean) => void;
+}) {
+    const minimumPoints = wallet?.settings.points_min_spend ?? 100;
+    const maximumPoints = wallet?.settings.wallet_points_enabled
+        ? Math.min(wallet.available.points, total)
+        : 0;
+
+    return (
+        <div className="space-y-5 rounded-2xl border border-border bg-muted/30 p-4 sm:p-5">
+            <div className="space-y-2">
+                <label
+                    htmlFor="wallet-holder-phone"
+                    className="flex items-center gap-2 text-sm font-semibold text-foreground"
+                >
+                    <Phone className="size-4 text-muted-foreground" />
+                    Téléphone du titulaire
+                    <span className="text-destructive" aria-hidden="true">
+                        *
+                    </span>
+                </label>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                    <PhoneInput
+                        id="wallet-holder-phone"
+                        international
+                        defaultCountry="BJ"
+                        labels={phoneLabels}
+                        value={phone || undefined}
+                        onChange={(value) => onPhoneChange(value ?? '')}
+                        required
+                        aria-required="true"
+                        aria-invalid={Boolean(errors.wallet_holder_phone)}
+                        className="flex-1"
+                    />
+                    <button
+                        type="button"
+                        className="btn btn-secondary shrink-0"
+                        onClick={onLookup}
+                        disabled={loading || !phone}
+                    >
+                        {loading ? (
+                            <LoaderCircle className="size-4 animate-spin" />
+                        ) : (
+                            <Search className="size-4" />
+                        )}
+                        Rechercher le Wallet
+                    </button>
+                </div>
+                {errors.wallet_holder_phone && (
+                    <p className="text-sm text-destructive" role="alert">
+                        {errors.wallet_holder_phone}
+                    </p>
+                )}
+            </div>
+
+            {wallet && (
+                <>
+                    <section
+                        className="rounded-xl border border-border bg-card p-4"
+                        aria-live="polite"
+                    >
+                        <div className="flex items-start gap-3">
+                            <span className="grid size-10 place-items-center rounded-xl bg-gold/15 text-gold">
+                                <WalletCards className="size-5" />
+                            </span>
+                            <div className="min-w-0">
+                                <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                                    Titulaire trouvé
+                                </p>
+                                <p className="mt-1 font-bold text-foreground">
+                                    {wallet.holder.name ?? 'Nom non renseigné'}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    {wallet.holder.phone ?? phone}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <BalanceTile
+                                icon={WalletCards}
+                                label="Cash disponible"
+                                value={`${wallet.available.cash.toLocaleString('fr-FR')} FCFA`}
+                            />
+                            <BalanceTile
+                                icon={Coins}
+                                label="Points disponibles"
+                                value={`${wallet.available.points.toLocaleString('fr-FR')} pts`}
+                            />
+                        </div>
+                    </section>
+
+                    <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="rounded-xl border border-border bg-card p-4">
+                            <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                                Montant du billet
+                            </p>
+                            <strong className="mt-2 block text-lg text-foreground">
+                                {total.toLocaleString('fr-FR')} FCFA
+                            </strong>
+                        </div>
+                        <div className="space-y-2 rounded-xl border border-border bg-card p-4">
+                            <label
+                                htmlFor="wallet-points-amount"
+                                className="flex items-center gap-2 text-sm font-semibold text-foreground"
+                            >
+                                <Coins className="size-4 text-muted-foreground" />
+                                Points à utiliser
+                            </label>
+                            <input
+                                id="wallet-points-amount"
+                                type="number"
+                                min={pointsAmount === 0 ? 0 : minimumPoints}
+                                max={maximumPoints}
+                                step={1}
+                                value={pointsAmount}
+                                onChange={(event) =>
+                                    onPointsChange(
+                                        Math.max(
+                                            0,
+                                            Number(event.target.value) || 0,
+                                        ),
+                                    )
+                                }
+                                aria-describedby="wallet-points-hint"
+                                aria-invalid={Boolean(errors.points_amount)}
+                                className="form-input w-full"
+                            />
+                            <p
+                                id="wallet-points-hint"
+                                className="text-xs text-muted-foreground"
+                            >
+                                Facultatif · minimum{' '}
+                                {minimumPoints.toLocaleString('fr-FR')} points
+                                quand utilisés.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center justify-between rounded-xl bg-kora px-4 py-3 text-white">
+                        <span className="text-sm font-semibold">
+                            Cash Wallet débité
+                        </span>
+                        <strong>
+                            {cashAmount.toLocaleString('fr-FR')} FCFA
+                        </strong>
+                    </div>
+
+                    {!canCoverTotal && (
+                        <p
+                            className="rounded-lg border border-amber-300/60 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200"
+                            role="status"
+                        >
+                            Le solde disponible en cash et en points ne couvre
+                            pas le montant total du billet.
+                        </p>
+                    )}
+
+                    <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-gold/30 bg-gold/5 p-3 text-sm text-foreground">
+                        <input
+                            type="checkbox"
+                            checked={confirmed}
+                            onChange={(event) =>
+                                onConfirmedChange(event.target.checked)
+                            }
+                            required
+                            aria-required="true"
+                            className="mt-0.5 size-4 accent-gold"
+                        />
+                        <span className="flex items-start gap-2">
+                            <ShieldCheck className="mt-0.5 size-4 shrink-0 text-gold" />
+                            <span>
+                                Le titulaire est présent, a vérifié le montant
+                                et autorise le débit de son Wallet.
+                                <span
+                                    className="ml-1 text-destructive"
+                                    aria-hidden="true"
+                                >
+                                    *
+                                </span>
+                            </span>
+                        </span>
+                    </label>
+                    {errors.wallet_holder_confirmed && (
+                        <p className="text-sm text-destructive" role="alert">
+                            {errors.wallet_holder_confirmed}
+                        </p>
+                    )}
+                </>
+            )}
+        </div>
+    );
+}
+
+function BalanceTile({
+    icon: Icon,
+    label,
+    value,
+}: {
+    icon: LucideIcon;
+    label: string;
+    value: string;
+}) {
+    return (
+        <div className="rounded-lg bg-muted/60 p-3">
+            <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Icon className="size-3.5" /> {label}
+            </span>
+            <strong className="mt-1 block text-sm font-bold text-foreground">
+                {value}
+            </strong>
+        </div>
     );
 }
 

@@ -28,6 +28,8 @@ class StoreRestitutionRequest extends FormRequest
     {
         return [
             'wallet_uuid' => ['required', 'uuid', 'exists:wallets,uuid'],
+            'holder_phone' => ['required', 'string', 'max:32'],
+            'holder_confirmed' => ['required', 'accepted'],
             'amount' => ['required', 'integer', 'min:1'],
             'note' => ['nullable', 'string', 'max:1000'],
         ];
@@ -42,6 +44,8 @@ class StoreRestitutionRequest extends FormRequest
     {
         return [
             'wallet_uuid' => ['description' => 'UUID du Wallet concerné.'],
+            'holder_phone' => ['description' => 'Téléphone confirmé du titulaire présent.'],
+            'holder_confirmed' => ['description' => 'Confirme le contrôle du titulaire et son accord pour la restitution.'],
             'amount' => ['description' => 'Montant de la restitution demandée.'],
             'note' => ['description' => 'Motif ou précision du demandeur.'],
         ];

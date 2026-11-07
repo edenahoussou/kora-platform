@@ -113,6 +113,12 @@ const koraPointAgentNavItems: NavEntry[] = [
         icon: ClipboardList,
         permission: 'kora-points.visits.actions.update',
     },
+    {
+        title: 'Restitutions Wallet',
+        href: '/kora-point/wallet-restitutions',
+        icon: Wallet,
+        permission: 'wallet.debit-counter',
+    },
 ];
 
 const koraPointOrganizationNavItems: NavEntry[] = [
@@ -164,6 +170,12 @@ const koraPointOrganizationNavItems: NavEntry[] = [
         href: '/kora-partner/documents',
         icon: FileText,
         permission: null,
+    },
+    {
+        title: 'Restitutions Wallet',
+        href: '/kora-partner/wallet-restitutions',
+        icon: Wallet,
+        permission: 'wallet.debit-counter',
     },
     {
         title: 'Mon organisation',
@@ -312,6 +324,8 @@ const navItems: NavEntry[] = [
             'expenses.view-agency',
             'expenses.view-network',
             'revenue.view',
+            'wallet.manage-restitutions',
+            'wallet.debit-counter',
         ],
         children: [
             {
@@ -337,6 +351,14 @@ const navItems: NavEntry[] = [
                     'expenses.view-own',
                     'expenses.view-agency',
                     'expenses.view-network',
+                ],
+            },
+            {
+                title: 'Restitutions Wallet',
+                href: '/administration/wallet-restitutions',
+                permission: [
+                    'wallet.manage-restitutions',
+                    'wallet.debit-counter',
                 ],
             },
         ],

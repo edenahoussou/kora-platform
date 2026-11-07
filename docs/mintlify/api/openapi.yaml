@@ -12773,7 +12773,80 @@ paths:
       operationId: retourneLeWalletDuVoyageurConnectcrLaVoleSiAbsent
       description: ''
       parameters: []
-      responses: {}
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                    cash_balance: 0
+                    points_balance: 0
+                    points_expires_at: null
+                    referral_code: KORA-ABC123
+                    referred_by: false
+                    holder:
+                      name: 'Aïcha Hounkpè'
+                      phone: '+22997000000'
+                    settings:
+                      wallet_cash_enabled: false
+                      wallet_points_enabled: true
+                      point_value_fcfa: 1
+                      points_min_spend: 100
+                    created_at: '2026-11-07T10:00:00+00:00'
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      cash_balance:
+                        type: integer
+                        example: 0
+                      points_balance:
+                        type: integer
+                        example: 0
+                      points_expires_at:
+                        type: string
+                        example: null
+                        nullable: true
+                      referral_code:
+                        type: string
+                        example: KORA-ABC123
+                      referred_by:
+                        type: boolean
+                        example: false
+                      holder:
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                            example: 'Aïcha Hounkpè'
+                          phone:
+                            type: string
+                            example: '+22997000000'
+                      settings:
+                        type: object
+                        properties:
+                          wallet_cash_enabled:
+                            type: boolean
+                            example: false
+                          wallet_points_enabled:
+                            type: boolean
+                            example: false
+                          point_value_fcfa:
+                            type: integer
+                            example: 1
+                          points_min_spend:
+                            type: integer
+                            example: 100
+                      created_at:
+                        type: string
+                        example: '2026-11-07T10:00:00+00:00'
       tags:
         - Wallet
       security: []
@@ -12783,7 +12856,97 @@ paths:
       operationId: listeLhistoriqueWalletFiltrableParNatureDeSolde
       description: ''
       parameters: []
-      responses: {}
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    -
+                      uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                      balance_type: cash
+                      direction: credit
+                      amount: 5000
+                      reason: topup
+                      reference:
+                        type: wallet_topup
+                        uuid: a4a5d8fd-8168-4f40-b6b5-437f97cf41f0
+                      meta: null
+                      created_at: '2026-11-07T10:00:00+00:00'
+                  links:
+                    next: null
+                    prev: null
+                  meta:
+                    per_page: 20
+                properties:
+                  data:
+                    type: array
+                    example:
+                      -
+                        uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                        balance_type: cash
+                        direction: credit
+                        amount: 5000
+                        reason: topup
+                        reference:
+                          type: wallet_topup
+                          uuid: a4a5d8fd-8168-4f40-b6b5-437f97cf41f0
+                        meta: null
+                        created_at: '2026-11-07T10:00:00+00:00'
+                    items:
+                      type: object
+                      properties:
+                        uuid:
+                          type: string
+                          example: 00000000-0000-4000-8000-000000000000
+                        balance_type:
+                          type: string
+                          example: cash
+                        direction:
+                          type: string
+                          example: credit
+                        amount:
+                          type: integer
+                          example: 5000
+                        reason:
+                          type: string
+                          example: topup
+                        reference:
+                          type: object
+                          properties:
+                            type:
+                              type: string
+                              example: wallet_topup
+                            uuid:
+                              type: string
+                              example: 00000000-0000-4000-8000-000000000000
+                        meta:
+                          type: string
+                          example: null
+                          nullable: true
+                        created_at:
+                          type: string
+                          example: '2026-11-07T10:00:00+00:00'
+                  links:
+                    type: object
+                    properties:
+                      next:
+                        type: string
+                        example: null
+                        nullable: true
+                      prev:
+                        type: string
+                        example: null
+                        nullable: true
+                  meta:
+                    type: object
+                    properties:
+                      per_page:
+                        type: integer
+                        example: 20
       tags:
         - Wallet
       security: []
@@ -12793,7 +12956,105 @@ paths:
       operationId: initieUneRechargeWalletViaUnProviderDePaiementExistant
       description: ''
       parameters: []
-      responses: {}
+      responses:
+        200:
+          description: 'Recharge idempotente déjà créée'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                    amount: 5000
+                    status: pending
+                    payment:
+                      uuid: a4a5d8fd-8168-4f40-b6b5-437f97cf41f0
+                      status: pending
+                      provider: fedapay
+                      provider_reference: null
+                    created_at: '2026-11-07T10:00:00+00:00'
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      amount:
+                        type: integer
+                        example: 5000
+                      status:
+                        type: string
+                        example: pending
+                      payment:
+                        type: object
+                        properties:
+                          uuid:
+                            type: string
+                            example: 00000000-0000-4000-8000-000000000000
+                          status:
+                            type: string
+                            example: pending
+                          provider:
+                            type: string
+                            example: fedapay
+                          provider_reference:
+                            type: string
+                            example: null
+                            nullable: true
+                      created_at:
+                        type: string
+                        example: '2026-11-07T10:00:00+00:00'
+        201:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                    amount: 5000
+                    status: pending
+                    payment:
+                      uuid: a4a5d8fd-8168-4f40-b6b5-437f97cf41f0
+                      status: pending
+                      provider: fedapay
+                      provider_reference: null
+                    created_at: '2026-11-07T10:00:00+00:00'
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      amount:
+                        type: integer
+                        example: 5000
+                      status:
+                        type: string
+                        example: pending
+                      payment:
+                        type: object
+                        properties:
+                          uuid:
+                            type: string
+                            example: 00000000-0000-4000-8000-000000000000
+                          status:
+                            type: string
+                            example: pending
+                          provider:
+                            type: string
+                            example: fedapay
+                          provider_reference:
+                            type: string
+                            example: null
+                            nullable: true
+                      created_at:
+                        type: string
+                        example: '2026-11-07T10:00:00+00:00'
       tags:
         - Wallet
       requestBody:
@@ -12858,7 +13119,56 @@ paths:
       operationId: retourneLeStatutDuneRechargeDuVoyageurConnect
       description: ''
       parameters: []
-      responses: {}
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                    amount: 5000
+                    status: pending
+                    payment:
+                      uuid: a4a5d8fd-8168-4f40-b6b5-437f97cf41f0
+                      status: pending
+                      provider: fedapay
+                      provider_reference: null
+                    created_at: '2026-11-07T10:00:00+00:00'
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      amount:
+                        type: integer
+                        example: 5000
+                      status:
+                        type: string
+                        example: pending
+                      payment:
+                        type: object
+                        properties:
+                          uuid:
+                            type: string
+                            example: 00000000-0000-4000-8000-000000000000
+                          status:
+                            type: string
+                            example: pending
+                          provider:
+                            type: string
+                            example: fedapay
+                          provider_reference:
+                            type: string
+                            example: null
+                            nullable: true
+                      created_at:
+                        type: string
+                        example: '2026-11-07T10:00:00+00:00'
       tags:
         - Wallet
       security: []
@@ -12877,7 +13187,39 @@ paths:
       operationId: rattacheUnCodeParrainAuWalletDuVoyageurConnect
       description: ''
       parameters: []
-      responses: {}
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                    cash_balance: 0
+                    points_balance: 0
+                    referral_code: KORA-ABC123
+                    referred_by: true
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      cash_balance:
+                        type: integer
+                        example: 0
+                      points_balance:
+                        type: integer
+                        example: 0
+                      referral_code:
+                        type: string
+                        example: KORA-ABC123
+                      referred_by:
+                        type: boolean
+                        example: false
       tags:
         - Wallet
       requestBody:
@@ -12899,23 +13241,81 @@ paths:
       summary: 'Recherche un Wallet par téléphone avant un débit au guichet.'
       operationId: rechercheUnWalletParTlphoneAvantUnDbitAuGuichet
       description: ''
-      parameters: []
-      responses: {}
+      parameters:
+        -
+          in: query
+          name: phone
+          description: 'Numéro de téléphone personnel du titulaire du Wallet. Le champ value ne doit pas dépasser 32 caractères.'
+          example: b
+          required: true
+          schema:
+            type: string
+            description: 'Numéro de téléphone personnel du titulaire du Wallet. Le champ value ne doit pas dépasser 32 caractères.'
+            example: b
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  -
+                    description: 'Wallet trouvé'
+                    type: object
+                    example:
+                      data:
+                        uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                        holder:
+                          name: 'Aïcha Hounkpè'
+                          phone: '+22997000000'
+                        cash_balance: 5000
+                        points_balance: 200
+                        available:
+                          cash: 5000
+                          points: 200
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          uuid:
+                            type: string
+                            example: 00000000-0000-4000-8000-000000000000
+                          holder:
+                            type: object
+                            properties:
+                              name:
+                                type: string
+                                example: 'Aïcha Hounkpè'
+                              phone:
+                                type: string
+                                example: '+22997000000'
+                          cash_balance:
+                            type: integer
+                            example: 5000
+                          points_balance:
+                            type: integer
+                            example: 200
+                          available:
+                            type: object
+                            properties:
+                              cash:
+                                type: integer
+                                example: 5000
+                              points:
+                                type: integer
+                                example: 200
+                  -
+                    description: 'Aucun Wallet pour ce téléphone'
+                    type: object
+                    example:
+                      data: null
+                    properties:
+                      data:
+                        type: string
+                        example: null
+                        nullable: true
       tags:
         - 'Wallet OPS'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                phone:
-                  type: string
-                  description: 'Le champ value ne doit pas dépasser 32 caractères.'
-                  example: b
-              required:
-                - phone
       security: []
   '/api/v1/ops/wallets/{wallet_uuid}/debit':
     post:
@@ -12923,7 +13323,39 @@ paths:
       operationId: dbiteLeWalletDunVoyageurPourUneVenteGuichet
       description: ''
       parameters: []
-      responses: {}
+      responses:
+        201:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    reservation_uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                    payment_uuid: a4a5d8fd-8168-4f40-b6b5-437f97cf41f0
+                    wallet_uuid: fba6df9a-8f10-4387-baf4-5140cbf64a6a
+                    cash_balance: 5000
+                    points_balance: 200
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      reservation_uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      payment_uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      wallet_uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      cash_balance:
+                        type: integer
+                        example: 5000
+                      points_balance:
+                        type: integer
+                        example: 200
       tags:
         - 'Wallet OPS'
       requestBody:
@@ -12946,13 +13378,23 @@ paths:
                   description: 'Points fidélité utilisés. Le champ value doit être au moins 0.'
                   example: 12
                   nullable: true
+                wallet_holder_phone:
+                  type: string
+                  description: 'Téléphone confirmé du titulaire présent. Le champ value ne doit pas dépasser 32 caractères.'
+                  example: m
+                wallet_holder_confirmed:
+                  type: boolean
+                  description: 'Confirme que le titulaire est présent et autorise le montant affiché. Must be accepted.'
+                  example: false
                 idempotency_key:
                   type: string
                   description: 'Clé d’idempotence du débit. Le champ value ne doit pas dépasser 255 caractères.'
-                  example: m
+                  example: i
               required:
                 - reservation_uuid
                 - wallet_amount
+                - wallet_holder_phone
+                - wallet_holder_confirmed
                 - idempotency_key
       security: []
     parameters:
@@ -12970,7 +13412,63 @@ paths:
       operationId: enregistreUnAjustementWalletAudit
       description: ''
       parameters: []
-      responses: {}
+      responses:
+        201:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                    balance_type: points
+                    direction: credit
+                    amount: 150
+                    reason: adjustment
+                    reference:
+                      type: wallet
+                      uuid: fba6df9a-8f10-4387-baf4-5140cbf64a6a
+                    meta:
+                      reason: 'Geste commercial validé'
+                    created_at: '2026-11-07T10:00:00+00:00'
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      balance_type:
+                        type: string
+                        example: points
+                      direction:
+                        type: string
+                        example: credit
+                      amount:
+                        type: integer
+                        example: 150
+                      reason:
+                        type: string
+                        example: adjustment
+                      reference:
+                        type: object
+                        properties:
+                          type:
+                            type: string
+                            example: wallet
+                          uuid:
+                            type: string
+                            example: 00000000-0000-4000-8000-000000000000
+                      meta:
+                        type: object
+                        properties:
+                          reason:
+                            type: string
+                            example: 'Geste commercial validé'
+                      created_at:
+                        type: string
+                        example: '2026-11-07T10:00:00+00:00'
       tags:
         - 'Wallet OPS'
       requestBody:
@@ -13023,7 +13521,64 @@ paths:
       operationId: listeLesRestitutionsFiltrablesParStatut
       description: ''
       parameters: []
-      responses: {}
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    -
+                      uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                      wallet_uuid: fba6df9a-8f10-4387-baf4-5140cbf64a6a
+                      holder:
+                        name: 'Aïcha Hounkpè'
+                        phone: '+22997000000'
+                      amount: 4000
+                      status: requested
+                      note: 'Erreur de recharge'
+                properties:
+                  data:
+                    type: array
+                    example:
+                      -
+                        uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                        wallet_uuid: fba6df9a-8f10-4387-baf4-5140cbf64a6a
+                        holder:
+                          name: 'Aïcha Hounkpè'
+                          phone: '+22997000000'
+                        amount: 4000
+                        status: requested
+                        note: 'Erreur de recharge'
+                    items:
+                      type: object
+                      properties:
+                        uuid:
+                          type: string
+                          example: 00000000-0000-4000-8000-000000000000
+                        wallet_uuid:
+                          type: string
+                          example: 00000000-0000-4000-8000-000000000000
+                        holder:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                              example: 'Aïcha Hounkpè'
+                            phone:
+                              type: string
+                              example: '+22997000000'
+                        amount:
+                          type: integer
+                          example: 4000
+                        status:
+                          type: string
+                          example: requested
+                        note:
+                          type: string
+                          example: 'Erreur de recharge'
       tags:
         - 'Wallet OPS'
       security: []
@@ -13032,7 +13587,51 @@ paths:
       operationId: ouvreUneDemandeDeRestitution
       description: ''
       parameters: []
-      responses: {}
+      responses:
+        201:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                    wallet_uuid: fba6df9a-8f10-4387-baf4-5140cbf64a6a
+                    holder:
+                      name: 'Aïcha Hounkpè'
+                      phone: '+22997000000'
+                    amount: 4000
+                    status: requested
+                    note: 'Erreur de recharge'
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      wallet_uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      holder:
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                            example: 'Aïcha Hounkpè'
+                          phone:
+                            type: string
+                            example: '+22997000000'
+                      amount:
+                        type: integer
+                        example: 4000
+                      status:
+                        type: string
+                        example: requested
+                      note:
+                        type: string
+                        example: 'Erreur de recharge'
       tags:
         - 'Wallet OPS'
       requestBody:
@@ -13046,17 +13645,27 @@ paths:
                   type: string
                   description: 'UUID du Wallet concerné. Le champ value doit être un UUID valide. Must match an existing stored value.'
                   example: 00000000-0000-4000-8000-000000000000
+                holder_phone:
+                  type: string
+                  description: 'Téléphone confirmé du titulaire présent. Le champ value ne doit pas dépasser 32 caractères.'
+                  example: g
+                holder_confirmed:
+                  type: boolean
+                  description: 'Confirme le contrôle du titulaire et son accord pour la restitution. Must be accepted.'
+                  example: false
                 amount:
                   type: integer
                   description: 'Montant de la restitution demandée. Le champ value doit être au moins 1.'
-                  example: 67
+                  example: 66
                 note:
                   type: string
                   description: 'Motif ou précision du demandeur. Le champ value ne doit pas dépasser 1000 caractères.'
-                  example: z
+                  example: m
                   nullable: true
               required:
                 - wallet_uuid
+                - holder_phone
+                - holder_confirmed
                 - amount
       security: []
   '/api/v1/ops/wallet-restitutions/{restitution_uuid}/approve':
@@ -13065,7 +13674,39 @@ paths:
       operationId: approuveUneRestitutionEnAttente
       description: ''
       parameters: []
-      responses: {}
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                    amount: 4000
+                    status: approved
+                    approved_by: 'Responsable Finance'
+                    approved_at: '2026-11-07T10:00:00+00:00'
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      amount:
+                        type: integer
+                        example: 4000
+                      status:
+                        type: string
+                        example: approved
+                      approved_by:
+                        type: string
+                        example: 'Responsable Finance'
+                      approved_at:
+                        type: string
+                        example: '2026-11-07T10:00:00+00:00'
       tags:
         - 'Wallet OPS'
       security: []
@@ -13084,7 +13725,35 @@ paths:
       operationId: rejetteUneRestitutionAvecUnMotif
       description: ''
       parameters: []
-      responses: {}
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                    amount: 4000
+                    status: rejected
+                    rejection_reason: 'Vérification nécessaire'
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      amount:
+                        type: integer
+                        example: 4000
+                      status:
+                        type: string
+                        example: rejected
+                      rejection_reason:
+                        type: string
+                        example: 'Vérification nécessaire'
       tags:
         - 'Wallet OPS'
       requestBody:
@@ -13116,7 +13785,43 @@ paths:
       operationId: marqueUneRestitutionVerseEtDbiteLeWallet
       description: ''
       parameters: []
-      responses: {}
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                    amount: 4000
+                    status: paid
+                    payout_reference: MM-2026-0001
+                    payout_channel: mobile_money
+                    paid_at: '2026-11-07T10:00:00+00:00'
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      amount:
+                        type: integer
+                        example: 4000
+                      status:
+                        type: string
+                        example: paid
+                      payout_reference:
+                        type: string
+                        example: MM-2026-0001
+                      payout_channel:
+                        type: string
+                        example: mobile_money
+                      paid_at:
+                        type: string
+                        example: '2026-11-07T10:00:00+00:00'
       tags:
         - 'Wallet OPS'
       requestBody:

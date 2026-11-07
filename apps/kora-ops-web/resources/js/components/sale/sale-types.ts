@@ -3,7 +3,8 @@ import type { LayoutGrid } from '@/components/seat-map/types';
 export type SaleStage =
     'search' | 'seats' | 'passengers' | 'payment' | 'tickets';
 
-export type SalePaymentMethod = 'cash' | 'mobile_money' | 'company_credit';
+export type SalePaymentMethod =
+    'cash' | 'mobile_money' | 'company_credit' | 'wallet';
 
 export type SaleBusAmenity = {
     code: string;
@@ -500,5 +501,5 @@ export type SaleProps = {
     mobileMoneyAccounts: SaleMobileMoneyAccount[];
     companyAccounts: SaleCompanyAccount[];
     groupBookingSettings: SaleGroupBookingSettings;
-    permissions: { canCreate: boolean };
+    permissions: { canCreate: boolean; canDebitWallet: boolean };
 };

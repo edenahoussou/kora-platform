@@ -3,7 +3,6 @@
 namespace App\Modules\Wallet\Actions;
 
 use App\Models\User;
-use App\Modules\Booking\Data\PayerType;
 use App\Modules\Booking\Data\ReservationSegmentStatus;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\Booking\Models\ReservationSegment;
@@ -51,7 +50,7 @@ final class CreditLegPointsAction
             return 0;
         }
 
-        $reservation->loadMissing(['segments', 'passengers.user', 'payer']);
+        $reservation->loadMissing(['segments.reservationPassenger', 'passengers.user']);
 
         $boarded = $reservation->segments
             ->filter(fn (ReservationSegment $segment): bool => $segment->status === ReservationSegmentStatus::Boarded);
@@ -66,6 +65,7 @@ final class CreditLegPointsAction
             ->first();
 
         $credited = 0;
+        $usageWallets = [];
 
         foreach ($boarded as $segment) {
             $wallet = $this->walletFor($reservation, $segment);
@@ -73,6 +73,8 @@ final class CreditLegPointsAction
             if ($wallet === null) {
                 continue;
             }
+
+            $usageWallets[$wallet->getKey()] = $wallet;
 
             $points = $this->pointsForLeg($reservation, $segment, $payment);
 
@@ -87,6 +89,7 @@ final class CreditLegPointsAction
                 'loyalty:segment:'.$segment->uuid,
                 [
                     'reservation_uuid' => $reservation->uuid,
+                    'passenger_uuid' => $segment->reservationPassenger?->uuid,
                     'leg_order' => (int) $segment->leg_order,
                     'departure_uuid' => $segment->departure?->uuid,
                 ],
@@ -97,20 +100,15 @@ final class CreditLegPointsAction
             $this->notifications->pointsCredited($wallet, $points);
         }
 
-        if ($credited > 0 || $boarded->isNotEmpty()) {
-            $firstSegment = $boarded->sortBy('leg_order')->first();
-            $wallet = $firstSegment !== null ? $this->walletFor($reservation, $firstSegment) : null;
-
-            if ($wallet !== null) {
-                $this->recordUsage($wallet, $reservation);
-            }
+        foreach ($usageWallets as $wallet) {
+            $this->recordUsage($wallet, $reservation);
         }
 
         return $credited;
     }
 
     /**
-     * Résout le Wallet du voyageur de la jambe, sinon le payeur personnel.
+     * Résout le Wallet du voyageur propre à la jambe.
      *
      * @param  Reservation  $reservation  Réservation concernée
      * @param  ReservationSegment  $segment  Jambe embarquée
@@ -122,10 +120,6 @@ final class CreditLegPointsAction
             ?? $reservation->passengers->firstWhere('id', $segment->reservation_passenger_id);
 
         $owner = $passenger?->user;
-
-        if (! $owner instanceof User && $reservation->payer_type === PayerType::Personal) {
-            $owner = $reservation->payer;
-        }
 
         if (! $owner instanceof User) {
             return null;
@@ -169,16 +163,50 @@ final class CreditLegPointsAction
     {
         $snapshot = $reservation->total_snapshot ?? [];
         $legs = is_array($snapshot['legs'] ?? null) ? $snapshot['legs'] : [];
-        $index = max(0, (int) $segment->leg_order - 1);
+        $legIndex = max(0, (int) $segment->leg_order - 1);
+        $passengerIndex = (int) ($segment->passenger_index ?? 0);
+        $legAllocations = $snapshot['passenger_leg_allocations'] ?? null;
 
-        if (isset($legs[$index]['final_amount'])) {
-            return (int) $legs[$index]['final_amount'];
+        if (is_array($legAllocations) && isset($legAllocations[$passengerIndex][$legIndex])) {
+            return (int) $legAllocations[$passengerIndex][$legIndex];
         }
 
-        $allocations = is_array($snapshot['passenger_allocations'] ?? null) ? $snapshot['passenger_allocations'] : [];
-        $passengerIndex = $segment->passenger_index ?? 0;
+        $passengerAllocations = is_array($snapshot['passenger_allocations'] ?? null)
+            ? $snapshot['passenger_allocations']
+            : [];
+        $passengerTotal = (int) ($passengerAllocations[$passengerIndex] ?? $passengerAllocations[0] ?? 0);
 
-        return (int) ($allocations[$passengerIndex] ?? $allocations[0] ?? 0);
+        if ($passengerTotal <= 0 || $legs === []) {
+            return $passengerTotal;
+        }
+
+        $weights = array_map(
+            static fn (array $leg): int => max(0, (int) ($leg['final_amount'] ?? 0)),
+            $legs,
+        );
+        $weightTotal = array_sum($weights);
+
+        if ($weightTotal <= 0 || ! array_key_exists($legIndex, $weights)) {
+            return 0;
+        }
+
+        $shares = [];
+        $remainders = [];
+        foreach ($weights as $index => $weight) {
+            $exact = $passengerTotal * $weight / $weightTotal;
+            $shares[$index] = (int) floor($exact);
+            $remainders[$index] = $exact - $shares[$index];
+        }
+
+        $remaining = $passengerTotal - array_sum($shares);
+        $indices = array_keys($weights);
+        usort($indices, static fn (int $left, int $right): int => ($remainders[$right] <=> $remainders[$left]) ?: ($left <=> $right));
+
+        for ($index = 0; $index < $remaining; $index++) {
+            $shares[$indices[$index % count($indices)]]++;
+        }
+
+        return (int) ($shares[$legIndex] ?? 0);
     }
 
     /**

@@ -72,6 +72,7 @@ class ApplyReservationPromoCodeAction
                 dynamicAdjustments: $this->legDynamicAdjustments($locked, count($unitAmounts), $passengerCount),
                 expiresAt: $locked->expires_at,
                 promotionDiscount: $discount,
+                resolvedPromotion: $resolved,
             );
 
             $promotion = $resolved?->promotion;
@@ -82,6 +83,7 @@ class ApplyReservationPromoCodeAction
             $snapshot['group'] = $pricing['group'];
             $snapshot['group_discount'] = $pricing['group_discount'];
             $snapshot['passenger_allocations'] = $pricing['passenger_allocations'];
+            $snapshot['passenger_leg_allocations'] = $pricing['passenger_leg_allocations'];
             $snapshot['promotion_discount_amount'] = $discount;
             $snapshot['promotion'] = $promotion === null ? null : [
                 'uuid' => $promotion->uuid,

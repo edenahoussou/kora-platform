@@ -22,6 +22,7 @@ use App\Modules\CompanyAccounts\Services\CompanyCreditService;
 use App\Modules\DynamicPricing\Actions\RecordPromotionRedemptionAction;
 use App\Modules\Fiscalization\Data\FiscalInvoiceStatus;
 use App\Modules\Fiscalization\Models\FiscalInvoice;
+use App\Modules\IdentityAccess\Contracts\PassengerIdentityResolver;
 use App\Modules\KoraPoints\Actions\RecordKoraPointSaleAction;
 use App\Modules\KoraPoints\Models\KoraPoint;
 use App\Modules\Payments\Data\MobileMoneyNetwork;
@@ -48,6 +49,7 @@ class RecordCounterSalePaymentAction
         private readonly RecordPromotionRedemptionAction $recordPromotionRedemption,
         private readonly DebitWalletForSaleAction $debitWalletForSale,
         private readonly WalletNotificationPublisher $walletNotifications,
+        private readonly PassengerIdentityResolver $identityResolver,
     ) {}
 
     /**
@@ -97,6 +99,29 @@ class RecordCounterSalePaymentAction
             $isPartner = $agent->isKoraPointUser();
             $cashSession = (in_array($method, [PaymentMethod::CompanyCredit, PaymentMethod::Wallet], true) || $isPartner) ? null : $this->openCashSession($agent);
             $total = (int) $lockedReservation->total_amount;
+            $walletForPayment = null;
+
+            if ($method === PaymentMethod::Wallet) {
+                if (! (bool) ($attributes['wallet_holder_confirmed'] ?? false)) {
+                    throw ValidationException::withMessages([
+                        'wallet_holder_confirmed' => 'Le titulaire doit être présent et confirmer le débit.',
+                    ]);
+                }
+
+                $walletForPayment = Wallet::query()
+                    ->with('user')
+                    ->where('uuid', (string) ($attributes['wallet_uuid'] ?? ''))
+                    ->firstOrFail();
+                $holderPhone = $this->identityResolver->normalizePhone((string) ($attributes['wallet_holder_phone'] ?? ''));
+                $walletPhone = $this->identityResolver->normalizePhone($walletForPayment->user->phone);
+
+                if ($holderPhone === null || $walletPhone === null || $holderPhone !== $walletPhone) {
+                    throw ValidationException::withMessages([
+                        'wallet_holder_phone' => 'Le numéro ne correspond pas au titulaire de ce Wallet.',
+                    ]);
+                }
+            }
+
             $paymentData = $this->paymentData($method, $attributes, $lockedReservation, $agent, $cashSession, $total);
 
             if (Payment::query()
@@ -111,9 +136,8 @@ class RecordCounterSalePaymentAction
             $payment = Payment::query()->create($paymentData);
 
             if ($method === PaymentMethod::Wallet) {
-                $wallet = Wallet::query()->where('uuid', (string) ($attributes['wallet_uuid'] ?? ''))->firstOrFail();
                 $this->debitWalletForSale->handle(
-                    wallet: $wallet,
+                    wallet: $walletForPayment,
                     cashAmount: (int) ($attributes['wallet_amount'] ?? 0),
                     pointsAmount: (int) ($attributes['points_amount'] ?? 0),
                     idempotencyKey: 'payment:'.$payment->uuid.':hold',
@@ -122,7 +146,7 @@ class RecordCounterSalePaymentAction
                     agent: $agent,
                 );
                 $this->walletNotifications->counterDebit(
-                    $wallet,
+                    $walletForPayment,
                     (int) $payment->amount,
                     $lockedReservation,
                     $agent,
@@ -352,6 +376,14 @@ class RecordCounterSalePaymentAction
                 && $payment->payer_phone === trim((string) ($attributes['payer_phone'] ?? ''));
         }
 
+        if ($payment->method === PaymentMethod::Wallet) {
+            return ($payment->provider_payload['wallet_uuid'] ?? null) === ($attributes['wallet_uuid'] ?? null)
+                && (int) ($payment->provider_payload['wallet_amount'] ?? -1) === (int) ($attributes['wallet_amount'] ?? -2)
+                && (int) ($payment->provider_payload['points_amount'] ?? -1) === (int) ($attributes['points_amount'] ?? -2)
+                && ($payment->provider_payload['holder_phone'] ?? null)
+                    === $this->identityResolver->normalizePhone((string) ($attributes['wallet_holder_phone'] ?? ''));
+        }
+
         return true;
     }
 
@@ -448,6 +480,7 @@ class RecordCounterSalePaymentAction
                     'wallet_amount' => $walletAmount,
                     'points_amount' => $pointsAmount,
                     'wallet_uuid' => (string) ($attributes['wallet_uuid'] ?? ''),
+                    'holder_phone' => $this->identityResolver->normalizePhone((string) ($attributes['wallet_holder_phone'] ?? '')),
                 ],
             ];
         }
