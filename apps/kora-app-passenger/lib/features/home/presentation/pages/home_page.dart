@@ -155,9 +155,9 @@ class _HomeContent extends StatelessWidget {
               // promettre de l'ouvrir.
               onTap: null,
             ),
-            // Colis et Wallet, comme Ride : la tuile dit ce que KORA
-            // fera, sans promettre de l'ouvrir. Leurs écrans attendent
-            // leur feature, et y mener n'ouvrirait qu'une page vide.
+            // Colis, comme Ride : la tuile dit ce que KORA fera, sans
+            // promettre de l'ouvrir. Son écran attend sa feature, et y
+            // mener n'ouvrirait qu'une page vide.
             QuickAccessItem(
               label: context.l10n.homeQuickParcels,
               icon: _quickIcon(context, KoraNavIconType.parcel),
@@ -166,7 +166,7 @@ class _HomeContent extends StatelessWidget {
             QuickAccessItem(
               label: context.l10n.homeQuickWallet,
               icon: _quickIcon(context, KoraNavIconType.wallet),
-              onTap: null,
+              onTap: () => context.go('/wallet'),
             ),
             QuickAccessItem(
               label: context.l10n.homeQuickTickets,

@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 
 import '../../../../core/di/injector.dart';
+import '../../../../core/error/failures.dart';
 import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/utils/date_formats.dart';
 import '../../../../core/utils/title_color.dart';
@@ -45,6 +46,19 @@ class WalletPage extends StatelessWidget {
     );
   }
 }
+
+/// Ce qu'on écrit sous le titre quand les soldes ne viennent pas.
+///
+/// Une panne serveur rend son propre texte, écrit pour un journal :
+/// « The route api/v1/wallet could not be found. » le jour où le module
+/// n'est pas déployé. Le voyageur lit le nôtre. Les autres échecs — le
+/// réseau, la session expirée — portent une phrase écrite pour lui, et
+/// celle-là vaut mieux que la nôtre.
+String _failureText(AppLocalization l10n, Failure? failure) =>
+    switch (failure) {
+      null || ServerFailure() || UnexpectedFailure() => l10n.walletErrorText,
+      _ => failure.message,
+    };
 
 class _WalletView extends StatelessWidget {
   const _WalletView({this.today});
@@ -96,7 +110,7 @@ class _WalletView extends StatelessWidget {
       return StateView(
         icon: Icons.account_balance_wallet_outlined,
         title: l10n.walletErrorTitle,
-        message: state.failure?.message ?? l10n.walletErrorText,
+        message: _failureText(l10n, state.failure),
         primaryLabel: l10n.actionRetry,
         onPrimary: context.read<WalletCubit>().load,
         isPrimaryLoading: state.isLoading,

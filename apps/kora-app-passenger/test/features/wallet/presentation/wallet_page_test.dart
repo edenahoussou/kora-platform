@@ -275,12 +275,42 @@ void main() {
       );
 
       expect(find.text('Soldes indisponibles'), findsOneWidget);
-      expect(find.text('Service indisponible.'), findsOneWidget);
 
       await tester.tap(find.text('Réessayer'));
       await tester.pumpAndSettle();
 
       expect(repository.calls.where((call) => call == 'account').length, 2);
+    });
+
+    testWidgets('une panne serveur ne recopie pas le texte du serveur', (
+      tester,
+    ) async {
+      // Le jour où le module Wallet n'était pas déployé, l'écran
+      // affichait « The route api/v1/wallet could not be found. » à un
+      // voyageur. Un message de journal, en anglais : il lit le nôtre.
+      await pump(
+        tester,
+        failure: const ServerFailure(
+          'The route api/v1/wallet could not be found.',
+        ),
+      );
+
+      expect(
+        find.text('The route api/v1/wallet could not be found.'),
+        findsNothing,
+      );
+      expect(find.textContaining('Nous n’avons pas pu lire'), findsOneWidget);
+    });
+
+    testWidgets('une coupure réseau garde sa phrase, écrite pour le voyageur', (
+      tester,
+    ) async {
+      await pump(tester, failure: const NetworkFailure());
+
+      expect(
+        find.textContaining('Vérifie ta connexion internet'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('un Wallet pas encore ouvert le dit', (tester) async {
