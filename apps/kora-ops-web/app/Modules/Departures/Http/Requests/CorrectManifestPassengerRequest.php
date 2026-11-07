@@ -56,7 +56,7 @@ class CorrectManifestPassengerRequest extends FormRequest
         return $reason === '' ? null : $reason;
     }
 
-    /** @return array<string, array{description: string}> */
+    /** @return array<string, array{description: string, example?: string}> */
     public function bodyParameters(): array
     {
         return [
@@ -67,7 +67,7 @@ class CorrectManifestPassengerRequest extends FormRequest
             'document_type' => ['description' => 'Type de pièce : national_id, biometric_card, passport, consular_card, cip.'],
             'document_number' => ['description' => 'Numéro de la pièce (numéro de passeport si le type est passport).'],
             'nationality' => ['description' => 'Nationalité, code ISO 3166-1 alpha-2.'],
-            'birth_date' => ['description' => 'Date de naissance (Y-m-d).'],
+            'birth_date' => ['description' => 'Date de naissance (Y-m-d).', 'example' => '1990-05-15'],
             'yellow_fever_vaccinated' => ['description' => 'Vacciné contre la fièvre jaune ? null = non renseigné.'],
             'reason' => ['description' => 'Motif de la correction (facultatif, pour l’audit).'],
         ];

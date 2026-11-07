@@ -28,10 +28,21 @@ import { cn } from '@/lib/utils';
 import koraPoints from '@/routes/kora-points';
 import type { AdminOrganization, AdminPoint } from './kora-admin-ui';
 
+export type KoraPointFormOrganization = Pick<
+    AdminOrganization,
+    | 'uuid'
+    | 'code'
+    | 'name'
+    | 'country'
+    | 'status'
+    | 'default_terms'
+    | 'settlement_calendar'
+>;
+
 type Props = {
     open: boolean;
     point?: AdminPoint | null;
-    organizations: AdminOrganization[];
+    organizations: KoraPointFormOrganization[];
     partnerMode?: boolean;
     onOpenChange: (open: boolean) => void;
 };
@@ -210,6 +221,8 @@ export function KoraPointFormDialog({
         (organization) => organization.uuid === selectedOrganizationUuid,
     );
     const isAttached = Boolean(selectedOrganizationUuid);
+    const allocationManagedByOrganization =
+        isEditing && Boolean(point?.organization_uuid) && !partnerMode;
     const phoneInvalid = Boolean(phone) && !isValidPhoneNumber(phone);
     const form = isEditing
         ? koraPoints.update.form({ point: point!.uuid })
@@ -1061,38 +1074,69 @@ export function KoraPointFormDialog({
                                         </label>
                                     )}
 
-                                    <label className="field">
-                                        <span className="flex items-center gap-1.5">
-                                            <Landmark className="size-3.5 text-gold" />
-                                            {partnerMode
-                                                ? 'Allocation de plafond du Point (XOF)'
-                                                : 'Plafond (FCFA)'}
-                                        </span>
-                                        <input
-                                            type="number"
-                                            name="ceiling_amount"
-                                            min={isAttached ? 1 : 0}
-                                            className="control"
-                                            defaultValue={
-                                                point?.terms?.ceiling_amount ??
-                                                ''
-                                            }
-                                            placeholder="1 500 000"
-                                            aria-invalid={Boolean(
-                                                errors.ceiling_amount,
-                                            )}
-                                        />
-                                        {errors.ceiling_amount ? (
-                                            <small className="field-error-text">
-                                                {errors.ceiling_amount}
-                                            </small>
-                                        ) : (
+                                    {allocationManagedByOrganization ? (
+                                        <div className="field">
+                                            <span className="flex items-center gap-1.5">
+                                                <Landmark className="size-3.5 text-gold" />
+                                                Allocation du Point (FCFA)
+                                            </span>
+                                            <div
+                                                className="control flex items-center justify-between gap-3"
+                                                aria-readonly="true"
+                                            >
+                                                <span className="font-semibold text-foreground">
+                                                    {new Intl.NumberFormat(
+                                                        'fr-FR',
+                                                    ).format(
+                                                        point?.terms
+                                                            ?.ceiling_amount ??
+                                                            0,
+                                                    )}{' '}
+                                                    FCFA
+                                                </span>
+                                                <span className="rounded-full bg-blue-500/10 px-2 py-1 text-[10px] font-bold text-blue-800 dark:text-blue-200">
+                                                    Gérée par l’organisation
+                                                </span>
+                                            </div>
                                             <small className="text-muted-foreground">
-                                                Montant maximal dû à KORA avant
-                                                blocage des ventes.
+                                                Modifiez cette allocation depuis
+                                                l’espace de l’organisation.
                                             </small>
-                                        )}
-                                    </label>
+                                        </div>
+                                    ) : (
+                                        <label className="field">
+                                            <span className="flex items-center gap-1.5">
+                                                <Landmark className="size-3.5 text-gold" />
+                                                {partnerMode
+                                                    ? 'Allocation de plafond du Point (XOF)'
+                                                    : 'Plafond (FCFA)'}
+                                            </span>
+                                            <input
+                                                type="number"
+                                                name="ceiling_amount"
+                                                min={isAttached ? 1 : 0}
+                                                className="control"
+                                                defaultValue={
+                                                    point?.terms
+                                                        ?.ceiling_amount ?? ''
+                                                }
+                                                placeholder="1 500 000"
+                                                aria-invalid={Boolean(
+                                                    errors.ceiling_amount,
+                                                )}
+                                            />
+                                            {errors.ceiling_amount ? (
+                                                <small className="field-error-text">
+                                                    {errors.ceiling_amount}
+                                                </small>
+                                            ) : (
+                                                <small className="text-muted-foreground">
+                                                    Montant maximal dû à KORA
+                                                    avant blocage des ventes.
+                                                </small>
+                                            )}
+                                        </label>
+                                    )}
                                 </div>
 
                                 {!isAttached && (

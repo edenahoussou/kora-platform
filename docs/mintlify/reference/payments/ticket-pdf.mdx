@@ -4,8 +4,6 @@ description: "GET /api/v1/tickets/{ticket_uuid}/pdf : télécharger le billet PD
 api: GET /api/v1/tickets/{ticket_uuid}/pdf
 ---
 
-# Télécharger le PDF d'un billet
-
 Retourne le PDF officiel du billet. Le document est généré par le backend avec le même module que le téléchargement web et l'envoi WhatsApp : QR code, informations du trajet, passager, montant et informations officielles restent donc identiques entre les canaux.
 
 L'utilisateur authentifié doit être le créateur de la réservation ou son payeur. Le billet doit être émis et son statut doit être `issued` ou `used`.

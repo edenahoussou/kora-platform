@@ -4,8 +4,6 @@ description: "POST /payments/{uuid}/cancel : annuler un paiement Mobile Money pe
 api: POST /api/v1/payments/{payment_uuid}/cancel
 ---
 
-# Annuler un paiement
-
 Annule un paiement au statut `pending`. Seul le propriétaire de la réservation peut annuler. L'annulation est définitive : le passager doit réinitier un nouveau paiement s'il veut reprendre.
 
 <Warning>

@@ -168,7 +168,7 @@ it('rejects organization allocations above the global ceiling and below point ex
         ->assertSessionHasErrors('ceiling_amount');
 });
 
-it('allows reducing an attached point allocation and reuses the released amount', function (): void {
+it('keeps attached point allocations read-only for KORA admins and does not release unavailable capacity', function (): void {
     $organization = KoraPointOrganization::factory()->create([
         'ceiling_amount' => 4_500_000,
     ]);
@@ -189,9 +189,11 @@ it('allows reducing an attached point allocation and reuses the released amount'
             'organization_uuid' => $organization->uuid,
             'ceiling_amount' => 2_500_000,
         ])
-        ->assertRedirect();
+        ->assertSessionHasErrors([
+            'ceiling_amount' => 'L’allocation d’un Point rattaché se gère depuis l’espace de son organisation.',
+        ]);
 
-    expect($point->refresh()->ceiling_amount)->toBe(2_500_000);
+    expect($point->refresh()->ceiling_amount)->toBe(4_500_000);
 
     $this->actingAs($this->commercial)
         ->post(route('kora-points.store'), [
@@ -203,13 +205,11 @@ it('allows reducing an attached point allocation and reuses the released amount'
             'organization_uuid' => $organization->uuid,
             'ceiling_amount' => 2_000_000,
         ])
-        ->assertRedirect();
+        ->assertSessionHasErrors([
+            'ceiling_amount' => 'La somme des allocations dépasserait le plafond global de l’organisation.',
+        ]);
 
-    $secondPoint = KoraPoint::query()
-        ->where('responsible_name', 'Agent reliquat')
-        ->firstOrFail();
-
-    expect($secondPoint->ceiling_amount)->toBe(2_000_000)
+    expect(KoraPoint::query()->where('organization_id', $organization->getKey())->count())->toBe(1)
         ->and(KoraPoint::query()->where('organization_id', $organization->getKey())->sum('ceiling_amount'))
         ->toBe(4_500_000);
 });
@@ -236,7 +236,7 @@ it('shows a field validation error when an attached point allocation is zero', f
             'ceiling_amount' => 0,
         ])
         ->assertSessionHasErrors([
-            'ceiling_amount' => 'L’allocation du Point doit être supérieure à zéro.',
+            'ceiling_amount' => 'L’allocation d’un Point rattaché se gère depuis l’espace de son organisation.',
         ]);
 
     expect($point->refresh()->ceiling_amount)->toBe(4_500_000);

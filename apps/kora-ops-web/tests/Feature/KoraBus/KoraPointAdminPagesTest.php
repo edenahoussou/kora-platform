@@ -58,7 +58,7 @@ it('returns 403 on network points page for unauthorized user', function (): void
         ->assertForbidden();
 });
 
-it('renders organizations page with contracts and subpoints props', function (): void {
+it('renders organizations page with contracts and filtered summary props', function (): void {
     $org = KoraPointOrganization::factory()->create(['name' => 'Organisation Centrale']);
     $point = KoraPoint::factory()->create(['organization_id' => $org->getKey()]);
 
@@ -69,8 +69,9 @@ it('renders organizations page with contracts and subpoints props', function ():
             ->component('kora-points/organizations/index')
             ->has('organizations.data', 1)
             ->where('organizations.data.0.uuid', $org->uuid)
-            ->has('subpoints', 1)
-            ->where('subpoints.0.uuid', $point->uuid)
+            ->has('index_summary')
+            ->where('index_summary.organizations', 1)
+            ->where('organizations.data.0.points_count', 1)
         );
 });
 

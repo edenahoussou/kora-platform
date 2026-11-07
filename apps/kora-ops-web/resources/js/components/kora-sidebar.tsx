@@ -3,9 +3,11 @@ import {
     AlertTriangle,
     Building2,
     Bus,
+    ClipboardList,
     ChevronUp,
     FileText,
     LayoutDashboard,
+    Megaphone,
     PanelLeftClose,
     PanelLeftOpen,
     ReceiptText,
@@ -105,6 +107,12 @@ const koraPointAgentNavItems: NavEntry[] = [
         icon: RotateCcw,
         permission: null,
     },
+    {
+        title: 'Actions de visite',
+        href: '/kora-point/visit-actions',
+        icon: ClipboardList,
+        permission: 'kora-points.visits.actions.update',
+    },
 ];
 
 const koraPointOrganizationNavItems: NavEntry[] = [
@@ -137,6 +145,18 @@ const koraPointOrganizationNavItems: NavEntry[] = [
         title: 'Remboursements',
         href: '/kora-partner/refunds',
         icon: RotateCcw,
+        permission: null,
+    },
+    {
+        title: 'Visites terrain',
+        href: '/kora-partner/visits',
+        icon: ClipboardList,
+        permission: null,
+    },
+    {
+        title: 'PLV',
+        href: '/kora-partner/plv',
+        icon: Megaphone,
         permission: null,
     },
     {

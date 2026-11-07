@@ -1,6 +1,7 @@
 import {
     Bell,
     Building2,
+    ClipboardList,
     ChevronRight,
     Coins,
     FileText,
@@ -37,6 +38,7 @@ export type KoraPointActivePage =
     | 'commissions'
     | 'settlements'
     | 'refunds'
+    | 'visit-actions'
     | 'notifications'
     | 'finance'
     | 'org-supervision'
@@ -332,6 +334,12 @@ function KoraPointStandaloneShell({
                         id: 'refunds' as KoraPointActivePage,
                         label: 'Remboursements',
                         icon: RotateCcw,
+                        badge: null,
+                    },
+                    {
+                        id: 'visit-actions' as KoraPointActivePage,
+                        label: 'Actions de visite',
+                        icon: ClipboardList,
                         badge: null,
                     },
                     {

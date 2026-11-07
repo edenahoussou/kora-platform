@@ -68,6 +68,18 @@ class KoraPoint extends KoraModel implements HasMedia
         return $this->hasMany(KoraPointSale::class, 'point_id');
     }
 
+    /** @return HasMany<KoraPointVisit, $this> */
+    public function visits(): HasMany
+    {
+        return $this->hasMany(KoraPointVisit::class, 'point_id');
+    }
+
+    /** @return HasMany<KoraPointPlvOrder, $this> */
+    public function plvOrders(): HasMany
+    {
+        return $this->hasMany(KoraPointPlvOrder::class, 'point_id');
+    }
+
     /** Declares the single-file point logo collection. */
     public function registerMediaCollections(): void
     {

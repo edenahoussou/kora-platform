@@ -4,8 +4,6 @@ description: "POST /payments/{uuid}/verify : le serveur interroge FedaPay ou MTN
 api: POST /api/v1/payments/{payment_uuid}/verify
 ---
 
-# Vérifier explicitement un paiement
-
 Cet endpoint est appelé par l'application mobile lorsqu'elle veut demander une vérification immédiate côté serveur. Le serveur interroge l'endpoint officiel du provider (`FedaPay::retrieve` ou `MTN MoMo requesttopay/{reference}`), met à jour le statut local du paiement, puis retourne la ressource complète.
 
 Si le paiement est déjà dans un statut terminal (`confirmed`, `failed`, `cancelled`, `refunded`), le serveur retourne l'état existant **sans** rappeler le provider.

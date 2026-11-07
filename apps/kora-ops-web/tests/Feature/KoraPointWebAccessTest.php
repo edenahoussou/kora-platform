@@ -87,6 +87,92 @@ it('creates a standalone point agent with a tracked web access and no registrati
         ->and($flash['toast']['message'])->toContain('Accès web initial');
 });
 
+it('creates a point member with the point agency and tracked web invitation', function (): void {
+    $point = KoraPoint::factory()->create();
+    $otherAgency = Agency::factory()->create(['country' => 'TG', 'kind' => 'partner']);
+
+    $this->actingAs($this->admin)
+        ->post(route('kora-points.members.store', $point->uuid), [
+            'name' => 'Agent du Point',
+            'email' => 'point.member@example.com',
+            'phone' => '+22997000010',
+            'role' => 'system_admin',
+            'agency_uuid' => $otherAgency->uuid,
+            'status' => 'suspended',
+        ])
+        ->assertRedirect();
+
+    $member = User::query()->where('email', 'point.member@example.com')->firstOrFail();
+    $invitation = $member->latestKoraPointWebAccessInvitation()->firstOrFail();
+
+    expect($member->hasRole('kora_point_agent'))->toBeTrue()
+        ->and($member->status->value)->toBe('active')
+        ->and($member->agency_id)->toBe($point->agency_id)
+        ->and($member->country_code)->toBe($point->agency->country)
+        ->and($member->kora_point_organization_id)->toBeNull()
+        ->and($invitation->status)->toBe('pending_delivery')
+        ->and(AuthOtpChallenge::query()->where('user_id', $member->getKey())->exists())->toBeFalse()
+        ->and(session('inertia.flash_data.toast.message'))->toContain('Invitation en attente de livraison');
+
+    $this->get(route('kora-points.show', $point->uuid))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('permissions.canManageMembers', true)
+            ->where('members.data.0.uuid', $member->uuid)
+            ->missing('members.data.0.id')
+            ->missing('point.id'));
+});
+
+it('rejects invalid and duplicate e-mail addresses for point members', function (): void {
+    $point = KoraPoint::factory()->create();
+    $initialUsers = User::query()->count();
+    $existingUser = User::factory()->create(['email' => 'already.used@example.com']);
+
+    $this->from(route('kora-points.show', $point->uuid))
+        ->actingAs($this->admin)
+        ->post(route('kora-points.members.store', $point->uuid), [
+            'name' => 'Adresse invalide',
+            'email' => 'pas-une-adresse',
+        ])
+        ->assertSessionHasErrors('email');
+
+    $this->from(route('kora-points.show', $point->uuid))
+        ->actingAs($this->admin)
+        ->post(route('kora-points.members.store', $point->uuid), [
+            'name' => 'Adresse déjà utilisée',
+            'email' => $existingUser->email,
+        ])
+        ->assertSessionHasErrors('email');
+
+    expect(User::query()->count())->toBe($initialUsers + 1)
+        ->and(KoraPoint::query()->whereKey($point->getKey())->exists())->toBeTrue();
+});
+
+it('requires both user and point management permissions to create a point member', function (): void {
+    $point = KoraPoint::factory()->create();
+    $usersOnly = User::factory()->create();
+    $usersOnly->givePermissionTo('users.manage');
+
+    $this->actingAs($this->commercial)
+        ->post(route('kora-points.members.store', $point->uuid), [
+            'name' => 'Sans gestion utilisateurs',
+            'email' => 'no.users.permission@example.com',
+        ])
+        ->assertForbidden();
+
+    $this->actingAs($usersOnly)
+        ->post(route('kora-points.members.store', $point->uuid), [
+            'name' => 'Sans gestion KORA POINT',
+            'email' => 'no.point.permission@example.com',
+        ])
+        ->assertForbidden();
+
+    expect(User::query()->whereIn('email', [
+        'no.users.permission@example.com',
+        'no.point.permission@example.com',
+    ])->exists())->toBeFalse();
+});
+
 it('requires a unique email before creating a standalone point account', function (): void {
     $initialUsers = User::query()->count();
 

@@ -4,8 +4,6 @@ description: "GET /api/v1/tickets : lister tous les billets du passager authenti
 api: GET /api/v1/tickets
 ---
 
-# Mes voyages — billets du passager
-
 Retourne la liste paginée de **tous les billets** du passager authentifié, tous statuts confondus (confirmés, terminés, annulés). L'app passager filtre côté client par statut d'affichage ; le serveur renvoie tout en une seule requête.
 
 Un billet appartient au passager si la réservation parente a `created_by_user_id` **ou** `payer_user_id` égal à l'utilisateur authentifié. Cela couvre les achats en ligne (le passager paie lui-même) et les achats pour autrui (un agent au guichet crée la réservation, le passager est le payeur).

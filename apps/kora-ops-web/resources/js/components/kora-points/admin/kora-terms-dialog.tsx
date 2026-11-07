@@ -1,5 +1,5 @@
 import { Form } from '@inertiajs/react';
-import { Coins, X } from 'lucide-react';
+import { CalendarClock, Coins, Landmark, Percent, X } from 'lucide-react';
 import { useState } from 'react';
 import koraPoints from '@/routes/kora-points';
 import organizationRoutes from '@/routes/kora-points/organizations';
@@ -19,10 +19,17 @@ type Props = {
         | { type: 'organization'; uuid: string; label: string }
         | null;
     values?: TermsValues | null;
+    allocationReadOnly?: boolean;
     onOpenChange: (open: boolean) => void;
 };
 
-export function KoraTermsDialog({ open, target, values, onOpenChange }: Props) {
+export function KoraTermsDialog({
+    open,
+    target,
+    values,
+    allocationReadOnly = false,
+    onOpenChange,
+}: Props) {
     const [frequency, setFrequency] = useState(
         values?.settlement_calendar?.frequency ?? '',
     );
@@ -94,8 +101,12 @@ export function KoraTermsDialog({ open, target, values, onOpenChange }: Props) {
                         <div className="cash-opening-list">
                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                 <label className="field">
-                                    <span>Commission (%)</span>
+                                    <span className="flex items-center gap-1.5">
+                                        <Percent className="size-3.5 text-gold" />
+                                        Commission (%)
+                                    </span>
                                     <input
+                                        className="control"
                                         type="number"
                                         min={0}
                                         max={100}
@@ -129,16 +140,41 @@ export function KoraTermsDialog({ open, target, values, onOpenChange }: Props) {
                                 </label>
 
                                 <label className="field">
-                                    <span>Plafond d'encours (FCFA)</span>
-                                    <input
-                                        type="number"
-                                        name="ceiling_amount"
-                                        min={0}
-                                        defaultValue={
-                                            values?.ceiling_amount ?? ''
-                                        }
-                                        placeholder="1 500 000"
-                                    />
+                                    <span className="flex items-center gap-1.5">
+                                        <Landmark className="size-3.5 text-gold" />
+                                        {allocationReadOnly
+                                            ? 'Allocation du Point (FCFA)'
+                                            : "Plafond d'encours (FCFA)"}
+                                    </span>
+                                    {allocationReadOnly ? (
+                                        <input
+                                            className="control"
+                                            value={new Intl.NumberFormat(
+                                                'fr-FR',
+                                            ).format(
+                                                values?.ceiling_amount ?? 0,
+                                            )}
+                                            readOnly
+                                            aria-readonly="true"
+                                        />
+                                    ) : (
+                                        <input
+                                            className="control"
+                                            type="number"
+                                            name="ceiling_amount"
+                                            min={0}
+                                            defaultValue={
+                                                values?.ceiling_amount ?? ''
+                                            }
+                                            placeholder="1 500 000"
+                                        />
+                                    )}
+                                    {allocationReadOnly ? (
+                                        <small className="text-muted-foreground">
+                                            Cette allocation est gérée depuis
+                                            l’espace de l’organisation.
+                                        </small>
+                                    ) : null}
                                     {errors.ceiling_amount && (
                                         <small className="text-destructive">
                                             {errors.ceiling_amount}
@@ -147,8 +183,12 @@ export function KoraTermsDialog({ open, target, values, onOpenChange }: Props) {
                                 </label>
 
                                 <label className="field sm:col-span-2">
-                                    <span>Calendrier de reversement</span>
+                                    <span className="flex items-center gap-1.5">
+                                        <CalendarClock className="size-3.5 text-gold" />
+                                        Calendrier de reversement
+                                    </span>
                                     <select
+                                        className="control"
                                         value={frequency}
                                         onChange={(e) =>
                                             setFrequency(e.target.value)

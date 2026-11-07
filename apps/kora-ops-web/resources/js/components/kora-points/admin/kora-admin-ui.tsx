@@ -58,9 +58,11 @@ export type AdminOrganization = {
     tax_identifier: string | null;
     points_count: number;
     active_points_count: number;
+    total_cumulative_sales: number;
     total_monthly_sales: number;
     total_exposure: number;
     allocated_credit_limit?: number;
+    can_close?: boolean;
     credit_limit: number;
     status: string;
     logo_url: string | null;

@@ -4,8 +4,6 @@ description: GET /api/v1/bookings/{uuid}/assistance retourne l'état du dossier 
 api: GET /api/v1/bookings/{reservation_uuid}/assistance
 ---
 
-# Consulter un dossier assisté
-
 Retourne l'état courant du dossier : statut (`pending`, `in_progress`, `cancelled`, `refused`, `unavailable`, `expired`, `finalized`), fenêtre de validité, canaux du support central, snapshot initial et actions encore permises (`actions.resume_online`). `handling_agency` et `assigned_agent` restent nuls avant le claim.
 
 ## Paramètres

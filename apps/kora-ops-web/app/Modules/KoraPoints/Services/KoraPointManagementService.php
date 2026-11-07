@@ -6,10 +6,12 @@ use App\Models\User;
 use App\Modules\IdentityAccess\Actions\CreateUserAction;
 use App\Modules\IdentityAccess\Data\SystemRole;
 use App\Modules\IdentityAccess\Models\Agency;
+use App\Modules\IdentityAccess\Models\KoraPointWebAccessInvitation;
 use App\Modules\KoraPoints\Models\KoraPoint;
 use App\Modules\KoraPoints\Models\KoraPointOrganization;
 use App\Modules\KoraPoints\Models\KoraPointRemittanceLine;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -99,6 +101,18 @@ class KoraPointManagementService
 
             if ($point !== null && $point->organization_id !== $originalOrganizationId) {
                 throw ValidationException::withMessages(['organization_uuid' => 'Le rattachement a changé. Rechargez la fiche du Point avant de la modifier.']);
+            }
+
+            if (
+                $point !== null
+                && $originalOrganizationId !== null
+                && ! $this->access->isOrganizationPartner($actor)
+                && array_key_exists('ceiling_amount', $data)
+                && (int) $data['ceiling_amount'] !== (int) $point->ceiling_amount
+            ) {
+                throw ValidationException::withMessages([
+                    'ceiling_amount' => 'L’allocation d’un Point rattaché se gère depuis l’espace de son organisation.',
+                ]);
             }
 
             if ($this->access->isOrganizationPartner($actor)) {
@@ -321,6 +335,15 @@ class KoraPointManagementService
                 $locked = KoraPoint::query()->lockForUpdate()->whereKey($subject->getKey())->firstOrFail();
 
                 if ($organization !== null) {
+                    if (
+                        array_key_exists('ceiling_amount', $values)
+                        && (int) $values['ceiling_amount'] !== (int) $locked->ceiling_amount
+                    ) {
+                        throw ValidationException::withMessages([
+                            'ceiling_amount' => 'L’allocation d’un Point rattaché se gère depuis l’espace de son organisation.',
+                        ]);
+                    }
+
                     if (array_key_exists('commission_basis_points', $values) && $values['commission_basis_points'] !== null && (int) $values['commission_basis_points'] !== (int) $organization->commission_basis_points) {
                         throw ValidationException::withMessages(['commission_basis_points' => 'La commission est définie par l’organisation.']);
                     }
@@ -387,6 +410,20 @@ class KoraPointManagementService
                 }
             } else {
                 $locked = KoraPointOrganization::query()->lockForUpdate()->whereKey($subject->getKey())->firstOrFail();
+
+                if ($status === 'closed') {
+                    $points = KoraPoint::query()
+                        ->where('organization_id', $locked->getKey())
+                        ->orderBy('id')
+                        ->lockForUpdate()
+                        ->get();
+
+                    if ($points->contains(fn (KoraPoint $point): bool => $this->ledger->balance($point) !== 0)) {
+                        throw ValidationException::withMessages([
+                            'status' => 'Une organisation ne peut être clôturée que lorsque l’encours de tous ses Points est nul.',
+                        ]);
+                    }
+                }
             }
 
             $before = $locked->getAttributes();
@@ -416,6 +453,79 @@ class KoraPointManagementService
             $locked->syncRoles([$role]);
             activity('kora-points')->performedOn($locked)->causedBy($actor)->withProperties(['before' => $before, 'role' => $role, 'subject_uuid' => $subject->uuid])->log('partner.assigned');
         });
+    }
+
+    /**
+     * Creates a new active agent account for a point and issues its web access invitation.
+     *
+     * @param  array{name: string, email: string, phone?: string|null}  $data
+     * @return array{user: User, temporary_password: string|null, otp_challenge_uuid: string|null, web_access_invitation: KoraPointWebAccessInvitation|null}
+     */
+    public function createAgent(User $actor, KoraPoint $point, array $data, Request $request): array
+    {
+        $this->access->authorizeInternal($actor, 'users.manage');
+        $this->access->authorizeInternal($actor, 'kora-points.manage');
+
+        $point->loadMissing('agency');
+
+        $result = $this->createUser->execute([
+            'name' => trim($data['name']),
+            'email' => strtolower(trim($data['email'])),
+            'phone' => isset($data['phone']) && trim($data['phone']) !== '' ? trim($data['phone']) : null,
+            'country_code' => $point->agency->country,
+            'birth_date' => null,
+            'status' => 'active',
+            'agency_uuid' => $point->agency->uuid,
+            'kora_point_organization_uuid' => null,
+            'role' => 'kora_point_agent',
+        ], $actor, $request);
+
+        activity('kora-points')
+            ->performedOn($result['user'])
+            ->causedBy($actor)
+            ->withProperties(['role' => 'kora_point_agent', 'subject_uuid' => $point->uuid])
+            ->log('partner.assigned');
+
+        return $result;
+    }
+
+    /**
+     * Creates an active organization supervisor or treasurer and issues the existing web invitation.
+     *
+     * @param  array{name: string, email: string, phone?: string|null, role: string}  $data
+     * @return array{user: User, temporary_password: string|null, otp_challenge_uuid: string|null, web_access_invitation: KoraPointWebAccessInvitation|null}
+     */
+    public function createOrganizationMember(User $actor, KoraPointOrganization $organization, array $data, Request $request): array
+    {
+        $this->access->authorizeInternal($actor, 'users.manage');
+        $this->access->authorizeInternal($actor, 'kora-points.manage');
+
+        if (! in_array($data['role'], ['kora_point_supervisor', 'kora_point_treasurer'], true)) {
+            throw ValidationException::withMessages(['role' => 'Choisissez un rôle autorisé pour l’organisation.']);
+        }
+
+        return DB::transaction(function () use ($actor, $organization, $data, $request): array {
+            $lockedOrganization = KoraPointOrganization::query()
+                ->lockForUpdate()
+                ->whereKey($organization->getKey())
+                ->firstOrFail();
+
+            if ($lockedOrganization->status !== 'active') {
+                throw ValidationException::withMessages(['role' => 'Un membre ne peut être ajouté qu’à une organisation active.']);
+            }
+
+            return $this->createUser->execute([
+                'name' => trim($data['name']),
+                'email' => strtolower(trim($data['email'])),
+                'phone' => isset($data['phone']) && trim($data['phone']) !== '' ? trim($data['phone']) : null,
+                'country_code' => $lockedOrganization->country,
+                'birth_date' => null,
+                'status' => 'active',
+                'agency_uuid' => null,
+                'kora_point_organization_uuid' => $lockedOrganization->uuid,
+                'role' => $data['role'],
+            ], $actor, $request);
+        }, 3);
     }
 
     private function reservedPointAllocations(KoraPointOrganization $organization, ?int $excludePointId = null): int

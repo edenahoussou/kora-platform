@@ -4,8 +4,6 @@ description: "Endpoint DELETE /api/v1/auth/me de l'API KORA BUS : demande de sup
 api: DELETE /api/v1/auth/me
 ---
 
-# Supprimer le compte
-
 Enregistre une demande de suppression de compte (droit à l'oubli). La suppression est **asynchrone** : la demande est traitée par l'équipe OPS sous 30 jours, comme le formulaire web public `/account-deletion`. La session n'est pas révoquée par cet appel — l'app doit déconnecter l'utilisateur localement.
 
 Exigence App Store / Play Store : la suppression de compte doit être accessible depuis l'application.

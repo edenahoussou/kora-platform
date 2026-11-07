@@ -32,6 +32,9 @@ export function handleAgentNavigate(page: KoraPointActivePage | string): void {
         case 'refunds':
             router.visit('/kora-point/refunds');
             break;
+        case 'visit-actions':
+            router.visit('/kora-point/visit-actions');
+            break;
         default:
             router.visit('/kora-point');
             break;

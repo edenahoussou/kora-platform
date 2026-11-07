@@ -4,8 +4,6 @@ description: "POST /api/v1/payments/initiate : initier un paiement Mobile Money 
 api: POST /api/v1/payments/initiate
 ---
 
-# Initier un paiement
-
 Initie un paiement Mobile Money pour une réservation au statut `held`. Au Bénin, KORA facture en `XOF` et FedaPay utilise `XOF`. Le sandbox public MTN impose `EUR` pour les appels de test; cela ne constitue pas une conversion de devise métier. En production, MTN utilise la devise du compte provisionné, configurée séparément. L'idempotence est garantie par `idempotency_key`.
 
 ## Paramètres
