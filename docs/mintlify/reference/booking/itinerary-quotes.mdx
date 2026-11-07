@@ -4,8 +4,6 @@ description: "POST /api/v1/bus/itinerary-quotes calcule le prix serveur d'un tra
 api: POST /api/v1/bus/itinerary-quotes
 ---
 
-# Devis d'itinéraire
-
 Crée un devis serveur pour un itinéraire direct, avec correspondances, ou aller-retour. Pour un trajet direct, envoyez un seul leg. Pour un aller-retour, envoyez les legs `outbound` puis les legs `inbound` avec le champ `direction`. Le devis est lié à l'utilisateur authentifié et doit être utilisé avant son expiration.
 
 ## Requête

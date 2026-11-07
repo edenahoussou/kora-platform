@@ -5,8 +5,6 @@ api: POST /api/v1/auth/register/complete
 authMethod: none
 ---
 
-# Compléter l'inscription
-
 Finalise la création d'un compte après vérification OTP. L'utilisateur choisit un PIN à 4 chiffres et enregistre son appareil. L'API crée le compte et émet un token Sanctum.
 
 L'identifiant du challenge fait foi : pour un challenge email, le compte est créé ou rattaché par email ; pour un challenge téléphone, par numéro normalisé. Un compte existant **sans PIN** (ex. créé via réservation assistée) est revendiqué — le code OTP prouve la possession de l'identifiant. Un compte **avec PIN** ne peut pas se « réinscrire » (`409 account_exists`). Pour une inscription par téléphone d'un nouveau compte, `name` est obligatoire.

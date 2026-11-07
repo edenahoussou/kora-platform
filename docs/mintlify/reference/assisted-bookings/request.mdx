@@ -4,8 +4,6 @@ description: POST /api/v1/bookings/{uuid}/assistance adresse la réservation au 
 api: POST /api/v1/bookings/{reservation_uuid}/assistance
 ---
 
-# Envoyer une réservation en assistance
-
 La réservation existante est transformée : les sièges et le crédit entreprise sont libérés, les segments passent en `requested`, puis le dossier entre dans la file réseau avec le statut `pending`. Aucune agence n’est choisie dans l’application. Le même UUID et la même référence sont conservés.
 
 Le backend renvoie les coordonnées et les liens du support central configurés dans KORA. Les canaux appel et WhatsApp sont indépendants : si le canal demandé n’est pas configuré, la réponse est `503` avec le code `assisted_booking_support_unavailable`; aucune agence ni aucun autre canal ne sert de repli.

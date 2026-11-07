@@ -4,8 +4,6 @@ description: "GET /api/v1/payments/{uuid} : consulter le statut d'un paiement KO
 api: GET /api/v1/payments/{payment_uuid}
 ---
 
-# Consulter un paiement
-
 Retourne le statut courant d'un paiement via `PaymentResource`. La relation `reservation` est **toujours chargée** dans cet endpoint (`loadMissing(['reservation.departure'])`). À appeler après `POST /payments/{uuid}/verify` pour rafraîchir l'état jusqu'à l'émission des billets.
 
 ## Paramètres

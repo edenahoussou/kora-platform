@@ -4,8 +4,6 @@ description: "GET /bookings/{uuid}/tickets : récupérer les billets émis aprè
 api: GET /api/v1/bookings/{reservation_uuid}/tickets
 ---
 
-# Récupérer les billets émis
-
 La confirmation du paiement passe la réservation à `paid`, puis un job idempotent (`IssueReservationTicketsJob`) émet les billets. Cette étape peut donc être momentanément `pending`, `processing` ou `failed` dans `reservation.ticket_issuance.status`.
 
 L'endpoint retourne **un billet par passager** rattaché à la réservation. Si la liste est vide alors que le paiement est `confirmed`, rafraîchissez l'état de la réservation avant d'afficher une erreur définitive — le job d'émission peut encore être en file d'attente.

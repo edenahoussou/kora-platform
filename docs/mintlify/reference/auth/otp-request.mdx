@@ -5,8 +5,6 @@ api: POST /api/v1/auth/otp/request
 authMethod: none
 ---
 
-# Demander un OTP
-
 Déclenche l'envoi d'un code OTP à 6 chiffres. `identifier` accepte un email ou un numéro de téléphone pour tous les contextes, y compris `registration` : le canal de livraison est choisi selon le type d'identifiant — email pour une adresse, WhatsApp pour un numéro (qui doit donc être WhatsApp). Pour un compte existant, WhatsApp est prioritaire lorsque le compte possède un téléphone, avec repli email. Le `purpose` détermine le contexte et le rate limit applicable.
 
 La livraison est synchrone : si aucun canal ne peut délivrer le code (WhatsApp indisponible et aucun email joignable), l'endpoint renvoie `503 otp_delivery_unavailable` au lieu de créer un challenge perdu.
