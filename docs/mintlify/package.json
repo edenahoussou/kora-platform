@@ -7,7 +7,14 @@
         "build": "mintlify validate",
         "snippets": "mintlify snippets"
     },
+    "engines": {
+        "node": ">=20.9.0"
+    },
     "devDependencies": {
-        "mintlify": "^4.2.0"
+        "mintlify": "^4.3.5"
+    },
+    "overrides": {
+        "js-yaml": "^4.3.2",
+        "sharp": "^0.35.5"
     }
 }
