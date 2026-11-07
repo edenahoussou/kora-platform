@@ -395,6 +395,45 @@ class AppLocalization {
   String get walletTxPoints => translate('wallet_tx_points');
   String get walletTxPointsDetail => translate('wallet_tx_points_detail');
   String get walletTxPayment => translate('wallet_tx_payment');
+  String walletPointsExpiry(String date) =>
+      _withArgs('wallet_points_expiry', {'date': date});
+  String get walletPointsExpiryNone => translate('wallet_points_expiry_none');
+  String walletPointsExpirySoon(int days) =>
+      _withArgs('wallet_points_expiry_soon', {'days': '$days'});
+  String get walletPointsExpiryToday => translate('wallet_points_expiry_today');
+  String get walletReferralLabel => translate('wallet_referral_label');
+  String get walletReferralCopy => translate('wallet_referral_copy');
+  String get walletReferralNone => translate('wallet_referral_none');
+  String get walletDormantTitle => translate('wallet_dormant_title');
+  String get walletDormantText => translate('wallet_dormant_text');
+  String get walletErrorTitle => translate('wallet_error_title');
+  String get walletErrorText => translate('wallet_error_text');
+  String get walletMovementsEmpty => translate('wallet_movements_empty');
+  String get walletMovementsFailed => translate('wallet_movements_failed');
+  String walletPointsUnit(String points) =>
+      _withArgs('wallet_points_unit', {'points': points});
+  String get walletReasonTopup => translate('wallet_reason_topup');
+  String get walletReasonPurchase => translate('wallet_reason_purchase');
+  String get walletReasonRefundCash => translate('wallet_reason_refund_cash');
+  String get walletReasonRefundPoints =>
+      translate('wallet_reason_refund_points');
+  String get walletReasonPointsEarn => translate('wallet_reason_points_earn');
+  String get walletReasonBonusWelcome =>
+      translate('wallet_reason_bonus_welcome');
+  String get walletReasonBonusReferral =>
+      translate('wallet_reason_bonus_referral');
+  String get walletReasonBonusAnniversary =>
+      translate('wallet_reason_bonus_anniversary');
+  String get walletReasonBonusUsage => translate('wallet_reason_bonus_usage');
+  String get walletReasonPointsExpire =>
+      translate('wallet_reason_points_expire');
+  String get walletReasonPointsCorrection =>
+      translate('wallet_reason_points_correction');
+  String get walletReasonCompensationOffset =>
+      translate('wallet_reason_compensation_offset');
+  String get walletReasonRestitution => translate('wallet_reason_restitution');
+  String get walletReasonAdjustment => translate('wallet_reason_adjustment');
+  String get walletReasonUnknown => translate('wallet_reason_unknown');
   String get walletSoon => translate('wallet_soon');
 
   // ------------------------------------------------------- écran Profil

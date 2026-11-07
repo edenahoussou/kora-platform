@@ -1,24 +1,55 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 
+import '../../../../core/di/injector.dart';
 import '../../../../core/l10n/app_localization.dart';
+import '../../../../core/utils/date_formats.dart';
+import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/brand_mini.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../../core/widgets/section_title.dart';
 import '../../../booking/domain/entities/price.dart';
+import '../../../booking/presentation/widgets/state_view.dart';
+import '../../domain/entities/wallet_movement.dart';
+import '../../domain/repositories/wallet_repository.dart';
+import '../bloc/wallet_cubit.dart';
 
-/// Écran `wallet` de la maquette — l'onglet « Wallet » : le solde, les
+/// Écran `wallet` de la maquette — l'onglet « Wallet » : les soldes, les
 /// points de fidélité, les quatre actions et les derniers mouvements.
 ///
-/// Montants figés : la feature `wallet` n'existe pas encore. Ils passent
-/// tout de même par [Price], qui porte déjà le format monétaire de l'app —
-/// un « 18 750 FCFA » écrit en dur ici se séparerait autrement des prix du
-/// tunnel Bus le jour où le format changera.
+/// **Tout vient du serveur** (`GET /api/v1/wallet`, MEZ-160) : les deux
+/// soldes, l'échéance des points, le code de parrainage et les règles.
+/// L'écran a longtemps montré « 18 750 FCFA » et « 2 480 points » écrits
+/// en dur ; un solde faux est pire qu'un écran qui attend.
 class WalletPage extends StatelessWidget {
-  const WalletPage({super.key});
+  const WalletPage({super.key, this.cubit, this.today});
 
-  static const _balance = Price(18750);
-  static const _points = 2480;
+  /// Cubit déjà construit, pour les tests. En vrai, l'écran le crée
+  /// lui-même et le ferme en partant.
+  final WalletCubit? cubit;
+
+  /// Horloge de référence, figée par les tests : l'alerte d'expiration
+  /// dépend du jour où l'écran s'ouvre.
+  final DateTime? today;
+
+  @override
+  Widget build(BuildContext context) {
+    final existing = cubit;
+
+    return BlocProvider<WalletCubit>(
+      create: (_) =>
+          (existing ?? WalletCubit(getIt<WalletRepository>()))..load(),
+      child: _WalletView(today: today),
+    );
+  }
+}
+
+class _WalletView extends StatelessWidget {
+  const _WalletView({this.today});
+
+  final DateTime? today;
 
   void _soon(BuildContext context) =>
       KoraToaster.show(context, context.l10n.walletSoon);
@@ -46,28 +77,90 @@ class WalletPage extends StatelessWidget {
                 ),
               ),
               Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.only(bottom: 100),
-                  children: [
-                    const _BalanceCard(balance: _balance),
-                    const SizedBox(height: 9),
-                    _PointsStrip(points: _points, onTap: () => _soon(context)),
-                    const SizedBox(height: 11),
-                    _ActionGrid(onTap: () => _soon(context)),
-                    const SizedBox(height: 11),
-                    SectionTitle(
-                      title: l10n.walletMovements,
-                      actionLabel: l10n.actionSeeAll,
-                      onActionTap: () => _soon(context),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    const _Movements(),
-                  ],
+                child: BlocBuilder<WalletCubit, WalletState>(
+                  builder: (context, state) => _body(context, state, l10n),
                 ),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _body(BuildContext context, WalletState state, AppLocalization l10n) {
+    if (state.isFirstLoad) return const _Skeleton();
+
+    final account = state.account;
+    if (account == null) {
+      return StateView(
+        icon: Icons.account_balance_wallet_outlined,
+        title: l10n.walletErrorTitle,
+        message: state.failure?.message ?? l10n.walletErrorText,
+        primaryLabel: l10n.actionRetry,
+        onPrimary: context.read<WalletCubit>().load,
+        isPrimaryLoading: state.isLoading,
+      );
+    }
+
+    final now = today ?? DateTime.now();
+    final expiry = account.pointsExpireAt;
+
+    return RefreshIndicator(
+      onRefresh: context.read<WalletCubit>().load,
+      child: ListView(
+        padding: const EdgeInsets.only(bottom: 100),
+        children: [
+          if (account.isDormant) ...[
+            _Dormant(
+              title: l10n.walletDormantTitle,
+              message: l10n.walletDormantText,
+            ),
+            const SizedBox(height: 11),
+          ],
+          _BalanceCard(balance: account.cash),
+          const SizedBox(height: 9),
+          _PointsStrip(
+            points: account.points,
+            value: account.pointsValue,
+            onTap: () => _soon(context),
+          ),
+          const SizedBox(height: 6),
+          // L'échéance se lit en permanence, pas seulement quand elle
+          // approche : des points qui tombent sans prévenir passent pour
+          // une erreur de l'application.
+          _ExpiryLine(
+            label: expiry == null
+                ? l10n.walletPointsExpiryNone
+                : l10n.walletPointsExpiry(
+                    KoraDateFormats.dayMonthYear.format(expiry),
+                  ),
+          ),
+          if (account.needsExpiryWarning(now)) ...[
+            const SizedBox(height: 9),
+            _ExpiryWarning(
+              message: switch (account.daysBeforeExpiry(now) ?? 0) {
+                <= 0 => l10n.walletPointsExpiryToday,
+                final days => l10n.walletPointsExpirySoon(days),
+              },
+            ),
+          ],
+          const SizedBox(height: 11),
+          _ReferralCard(code: account.referralCode),
+          const SizedBox(height: 11),
+          _ActionGrid(onTap: () => _soon(context)),
+          const SizedBox(height: 11),
+          SectionTitle(
+            title: l10n.walletMovements,
+            actionLabel: l10n.actionSeeAll,
+            onActionTap: () => _soon(context),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          _Movements(
+            movements: state.movements,
+            hasFailed: state.movementsFailed,
+          ),
+        ],
       ),
     );
   }
@@ -201,9 +294,18 @@ class _BalanceCard extends StatelessWidget {
 
 /// `.wallet-points-strip` : les points de fidélité et leur contre-valeur.
 class _PointsStrip extends StatelessWidget {
-  const _PointsStrip({required this.points, required this.onTap});
+  const _PointsStrip({
+    required this.points,
+    required this.value,
+    required this.onTap,
+  });
 
   final int points;
+
+  /// La contre-valeur en francs, calculée avec le taux du serveur : un
+  /// point ne vaut pas forcément un franc, c'est un réglage.
+  final Price value;
+
   final VoidCallback onTap;
 
   @override
@@ -243,12 +345,9 @@ class _PointsStrip extends StatelessWidget {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      // Un point vaut un franc : la maquette affiche les
-                      // deux pour que la valeur soit lisible sans calcul.
-                      l10n.walletPointsValue(
-                        '$points',
-                        Price(points).formatted,
-                      ),
+                      // Les deux sont affichés pour que la valeur soit
+                      // lisible sans calcul.
+                      l10n.walletPointsValue('$points', value.formatted),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -375,39 +474,261 @@ class _ActionTile extends StatelessWidget {
 
 /// Les trois derniers mouvements, dans une seule carte.
 class _Movements extends StatelessWidget {
-  const _Movements();
+  const _Movements({required this.movements, required this.hasFailed});
+
+  final List<WalletMovement> movements;
+
+  /// Le relevé n'a pas répondu alors que les soldes, si : on le dit ici
+  /// plutôt que de laisser croire qu'il ne s'est rien passé.
+  final bool hasFailed;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final koraColors = context.koraColors;
+
+    if (movements.isEmpty) {
+      return KoraCard(
+        variant: KoraCardVariant.mist,
+        child: Text(
+          hasFailed ? l10n.walletMovementsFailed : l10n.walletMovementsEmpty,
+          style: AppTextStyles.body(koraColors.textMuted),
+        ),
+      );
+    }
 
     return KoraCard(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _Transaction(
-            icon: Icons.add_rounded,
-            title: l10n.walletTxRefund,
-            subtitle: 'KE-…78342',
-            amount: '+ ${const Price(9375).formatted}',
-            isCredit: true,
-          ),
-          _Transaction(
-            icon: Icons.star_rounded,
-            title: l10n.walletTxPoints,
-            subtitle: l10n.walletTxPointsDetail,
-            amount: '+ 375 pts',
-            isCredit: true,
-          ),
-          _Transaction(
-            icon: Icons.remove_rounded,
-            title: l10n.walletTxPayment,
-            subtitle: 'KE-…51802',
-            amount: '− ${const Price(6000).formatted}',
-            isLast: true,
+          for (final (index, movement) in movements.indexed)
+            _Transaction(
+              icon: _iconOf(movement.reason),
+              title: _titleOf(l10n, movement.reason),
+              subtitle: KoraDateFormats.dayMonthYear.format(movement.createdAt),
+              amount: _amountOf(l10n, movement),
+              isCredit: movement.isCredit,
+              isLast: index == movements.length - 1,
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// Le montant signé, dans l'unité de son solde.
+  ///
+  /// Le serveur rend une valeur positive et le sens à part : c'est ici
+  /// que les deux se rejoignent, pour que « − » et « + » ne dépendent
+  /// jamais du signe reçu.
+  static String _amountOf(AppLocalization l10n, WalletMovement movement) {
+    final sign = movement.isCredit ? '+ ' : '− ';
+    final value = movement.kind == WalletBalanceKind.points
+        ? l10n.walletPointsUnit('${movement.amount}')
+        : Price(movement.amount).formatted;
+
+    return '$sign$value';
+  }
+
+  /// Le libellé métier d'un motif. Un motif ajouté côté serveur après
+  /// cette version s'affiche sobrement plutôt que sous son code.
+  static String _titleOf(AppLocalization l10n, WalletReason reason) =>
+      switch (reason) {
+        WalletReason.topUp => l10n.walletReasonTopup,
+        WalletReason.purchase => l10n.walletReasonPurchase,
+        WalletReason.refundCash => l10n.walletReasonRefundCash,
+        WalletReason.refundPoints => l10n.walletReasonRefundPoints,
+        WalletReason.pointsEarn => l10n.walletReasonPointsEarn,
+        WalletReason.bonusWelcome => l10n.walletReasonBonusWelcome,
+        WalletReason.bonusReferral => l10n.walletReasonBonusReferral,
+        WalletReason.bonusAnniversary => l10n.walletReasonBonusAnniversary,
+        WalletReason.bonusUsage => l10n.walletReasonBonusUsage,
+        WalletReason.pointsExpire => l10n.walletReasonPointsExpire,
+        WalletReason.pointsCorrection => l10n.walletReasonPointsCorrection,
+        WalletReason.compensationOffset => l10n.walletReasonCompensationOffset,
+        WalletReason.restitution => l10n.walletReasonRestitution,
+        WalletReason.adjustment => l10n.walletReasonAdjustment,
+        WalletReason.unknown => l10n.walletReasonUnknown,
+      };
+
+  static IconData _iconOf(WalletReason reason) => switch (reason) {
+    WalletReason.topUp => Icons.add_rounded,
+    WalletReason.purchase => Icons.remove_rounded,
+    WalletReason.refundCash || WalletReason.refundPoints => Icons.undo_rounded,
+    WalletReason.pointsEarn => Icons.star_rounded,
+    WalletReason.bonusWelcome ||
+    WalletReason.bonusReferral ||
+    WalletReason.bonusAnniversary ||
+    WalletReason.bonusUsage => Icons.card_giftcard_rounded,
+    WalletReason.pointsExpire => Icons.schedule_rounded,
+    WalletReason.pointsCorrection ||
+    WalletReason.adjustment => Icons.tune_rounded,
+    WalletReason.compensationOffset => Icons.handshake_outlined,
+    WalletReason.restitution => Icons.account_balance_outlined,
+    WalletReason.unknown => Icons.circle_outlined,
+  };
+}
+
+/// L'échéance des points, lisible en permanence sous la bande.
+class _ExpiryLine extends StatelessWidget {
+  const _ExpiryLine({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Text(
+        label,
+        style: AppTextStyles.caption(context.koraColors.textMuted),
+      ),
+    );
+  }
+}
+
+/// L'alerte quand l'échéance approche.
+///
+/// Elle ne s'affiche que selon les seuils du serveur : l'app n'a pas à
+/// décider à partir de quand il est urgent de prévenir.
+class _ExpiryWarning extends StatelessWidget {
+  const _ExpiryWarning({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+      decoration: BoxDecoration(
+        color: AppColors.gold.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppRadius.input),
+        border: Border.all(color: AppColors.gold.withValues(alpha: 0.45)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.schedule_rounded, size: 18, color: AppColors.kora),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              message,
+              style: AppTextStyles.body(context.koraColors.textPrimary),
+            ),
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Le code de parrainage, à copier d'un geste.
+class _ReferralCard extends StatelessWidget {
+  const _ReferralCard({required this.code});
+
+  /// `null` tant que le serveur n'en a pas attribué : on l'écrit en
+  /// toutes lettres plutôt que de laisser un vide.
+  final String? code;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final koraColors = context.koraColors;
+    final value = code;
+
+    return KoraCard(
+      variant: KoraCardVariant.mist,
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  l10n.walletReferralLabel,
+                  style: AppTextStyles.caption(koraColors.textMuted),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  value ?? l10n.walletReferralNone,
+                  style: AppTextStyles.titleMedium(context.koraTitleColor),
+                ),
+              ],
+            ),
+          ),
+          if (value != null)
+            KoraIconButton(
+              icon: Icons.copy_rounded,
+              onTap: () async {
+                await Clipboard.setData(ClipboardData(text: value));
+                if (context.mounted) {
+                  KoraToaster.show(context, l10n.walletReferralCopy);
+                }
+              },
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Le Wallet n'est ouvert sur rien : ni espèces, ni fidélité.
+class _Dormant extends StatelessWidget {
+  const _Dormant({required this.title, required this.message});
+
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final koraColors = context.koraColors;
+
+    return KoraCard(
+      variant: KoraCardVariant.mist,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(title, style: AppTextStyles.titleMedium(context.koraTitleColor)),
+          const SizedBox(height: 4),
+          Text(message, style: AppTextStyles.body(koraColors.textMuted)),
+        ],
+      ),
+    );
+  }
+}
+
+/// L'attente de la première lecture.
+///
+/// Des blocs gris à la place des montants, et non un tourniquet centré :
+/// l'écran garde sa forme, et aucun chiffre provisoire ne s'affiche.
+class _Skeleton extends StatelessWidget {
+  const _Skeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    final koraColors = context.koraColors;
+
+    Widget bar(double height, {double? width}) => Container(
+      height: height,
+      width: width,
+      decoration: BoxDecoration(
+        color: koraColors.line,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+      ),
+    );
+
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 100),
+      children: [
+        bar(192),
+        const SizedBox(height: 9),
+        bar(58),
+        const SizedBox(height: 11),
+        bar(74),
+        const SizedBox(height: 11),
+        bar(96),
+      ],
     );
   }
 }

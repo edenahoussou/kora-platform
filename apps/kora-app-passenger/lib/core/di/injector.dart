@@ -70,6 +70,9 @@ import '../../features/theme/data/datasources/theme_local_data_source.dart';
 import '../../features/theme/data/repositories/theme_repository_impl.dart';
 import '../../features/theme/domain/repositories/theme_repository.dart';
 import '../../features/theme/presentation/bloc/theme_bloc.dart';
+import '../../features/wallet/data/datasources/wallet_remote_data_source.dart';
+import '../../features/wallet/data/repositories/wallet_repository_impl.dart';
+import '../../features/wallet/domain/repositories/wallet_repository.dart';
 import '../../features/welcome/data/onboarding_store.dart';
 import '../constants/api_constants.dart';
 import '../constants/storage_keys.dart';
@@ -192,6 +195,17 @@ void _registerCore() {
   );
   getIt.registerLazySingleton<NotificationRepository>(
     () => NotificationRepositoryImpl(getIt<NotificationRemoteDataSource>()),
+  );
+
+  // --- Wallet KORA BUS ---
+  //
+  // Deux soldes tenus par le serveur (MEZ-160) : l'app les lit, elle
+  // n'en tient aucun elle-même.
+  getIt.registerLazySingleton<WalletRemoteDataSource>(
+    () => WalletRemoteDataSource(getIt<Dio>()),
+  );
+  getIt.registerLazySingleton<WalletRepository>(
+    () => WalletRepositoryImpl(getIt<WalletRemoteDataSource>()),
   );
 
   // --- Notifications push ---

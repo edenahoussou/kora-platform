@@ -270,6 +270,15 @@ class ApiConstants {
   static const String parcelQuote = '/parcels/quote';
   static const String parcelTracking = '/parcels/tracking';
 
-  static const String walletBalance = '/wallet/balance';
-  static const String walletTransactions = '/wallet/transactions';
+  /// Wallet KORA BUS (MEZ-160) : les soldes, leurs règles et le relevé.
+  ///
+  /// Les deux chemins déclarés ici avant l'existence du module —
+  /// `/wallet/balance` et un `/wallet/transactions` sans préfixe — ne
+  /// correspondaient à rien côté serveur.
+  static const String wallet = '$_v1/wallet';
+  static const String walletTransactions = '$_v1/wallet/transactions';
+  static const String walletTopUps = '$_v1/wallet/topups';
+  static const String walletReferral = '$_v1/wallet/referral';
+
+  static String walletTopUp(String uuid) => '$_v1/wallet/topups/$uuid';
 }
