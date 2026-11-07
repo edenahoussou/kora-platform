@@ -287,9 +287,14 @@ export default function KoraPointsIndexPage({
                                     {point.name}
                                 </Link>
                             ) : (
-                                <strong className="block font-bold text-foreground">
+                                <Link
+                                    href={koraPoints.show.url({
+                                        point: point.uuid,
+                                    })}
+                                    className="block font-bold text-foreground hover:text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                >
                                     {point.name}
-                                </strong>
+                                </Link>
                             )}
                             <span className="text-xs font-semibold tracking-[0.08em] text-muted-foreground uppercase">
                                 {point.code} · {point.city}
@@ -528,9 +533,20 @@ export default function KoraPointsIndexPage({
                 <div className="cash-reveal cash-reveal-delay-2 cash-section-intro">
                     <div>
                         <span className="section-kicker">
-                            Réseau commercial
+                            {isPartnerWorkspace
+                                ? 'Espace partenaire'
+                                : 'Réseau commercial'}
                         </span>
-                        <h2>Points de vente partenaires</h2>
+                        <h2>
+                            {isPartnerWorkspace
+                                ? 'Points de vente de l’organisation'
+                                : 'Points de vente partenaires'}
+                        </h2>
+                    </div>
+                    <div className="actions">
+                        <span className="text-xs font-bold text-muted-foreground">
+                            {points.total} point{points.total === 1 ? '' : 's'}
+                        </span>
                     </div>
                 </div>
 
@@ -545,24 +561,17 @@ export default function KoraPointsIndexPage({
 
                 <div className="cash-reveal cash-reveal-delay-3 mt-4">
                     <KoraTable
-                        title={
-                            isPartnerWorkspace
-                                ? 'Points de vente de l’organisation'
-                                : 'Réseau de points de vente'
-                        }
-                        subtitle={`${points.total} point${points.total > 1 ? 's' : ''} ${isPartnerWorkspace ? 'rattaché' : 'référencé'}${points.total > 1 ? 's' : ''}`}
-                        icon={Store}
                         columns={columns}
                         data={points.data}
                         rowKey={(point) => point.uuid}
-                        emptyTitle="Aucun point de vente"
                         emptyMessage={
                             isPartnerWorkspace
                                 ? 'Ajustez votre recherche ou créez le premier Point de votre organisation.'
                                 : 'Ajustez votre recherche ou créez le premier point du réseau.'
                         }
-                        emptyIcon={Store}
                         pagination={pagination}
+                        variant="cash"
+                        showHeader={false}
                     />
                 </div>
             </div>

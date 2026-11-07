@@ -8,6 +8,8 @@ use App\Modules\Finance\Services\FinanceExportService;
 use App\Modules\KoraPoints\Models\KoraPartnerDocument;
 use App\Modules\KoraPoints\Models\KoraPoint;
 use App\Modules\KoraPoints\Models\KoraPointOrganization;
+use App\Modules\KoraPoints\Models\KoraPointPlvOrder;
+use App\Modules\KoraPoints\Models\KoraPointVisit;
 use App\Modules\KoraPoints\Services\KoraPointAccess;
 use App\Modules\KoraPoints\Services\KoraPointPartnerReadService;
 use App\Modules\KoraPoints\Services\KoraPointReadService;
@@ -67,6 +69,55 @@ class KoraPointPartnerController extends Controller
             ...$this->read->show($actor, $point),
             'organization' => $this->organizationSummary($organization),
             'can_manage_points' => $this->access->isOrganizationSupervisor($actor),
+        ]);
+    }
+
+    public function visits(Request $request): Response
+    {
+        $actor = $request->user();
+        $organization = $this->organizationFor($actor);
+        $pointUuid = $this->pointFilter($actor, $organization, $request->query('point_uuid'));
+        $visits = KoraPointVisit::query()
+            ->whereHas('point', fn ($points) => $points->where('organization_id', $organization->getKey()))
+            ->when($pointUuid !== null, fn ($query) => $query->whereHas('point', fn ($points) => $points->where('uuid', $pointUuid)))
+            ->with(['point.agency', 'creator', 'actions.assignee', 'actions.reviewer', 'photos'])
+            ->latest('id')
+            ->paginate(30, ['*'], 'visits_page')
+            ->withQueryString()
+            ->through(fn (KoraPointVisit $visit): array => $this->read->visit($visit, $actor) + [
+                'point_uuid' => $visit->point->uuid,
+                'point_name' => $visit->point->agency->name,
+            ]);
+
+        return Inertia::render('kora-points/partner/field-operations', [
+            'kind' => 'visits',
+            'organization' => $this->organizationSummary($organization),
+            'visits' => $visits,
+            'point_filter_options' => $this->pointFilterOptions($actor, $organization),
+            'selected_point_uuid' => $pointUuid,
+        ]);
+    }
+
+    public function plv(Request $request): Response
+    {
+        $actor = $request->user();
+        $organization = $this->organizationFor($actor);
+        $pointUuid = $this->pointFilter($actor, $organization, $request->query('point_uuid'));
+        $orders = KoraPointPlvOrder::query()
+            ->whereHas('point', fn ($points) => $points->where('organization_id', $organization->getKey()))
+            ->when($pointUuid !== null, fn ($query) => $query->whereHas('point', fn ($points) => $points->where('uuid', $pointUuid)))
+            ->with(['point.agency', 'creator', 'canceller'])
+            ->latest('id')
+            ->paginate(30, ['*'], 'plv_page')
+            ->withQueryString()
+            ->through(fn (KoraPointPlvOrder $order): array => $this->read->plvOrder($order));
+
+        return Inertia::render('kora-points/partner/field-operations', [
+            'kind' => 'plv',
+            'organization' => $this->organizationSummary($organization),
+            'plv_orders' => $orders,
+            'point_filter_options' => $this->pointFilterOptions($actor, $organization),
+            'selected_point_uuid' => $pointUuid,
         ]);
     }
 

@@ -40,7 +40,7 @@ enum SystemRole: string
     public function permissions(): array
     {
         return match ($this) {
-            self::KoraPointAgent => ['departures.view', 'kora-points.view', 'kora-points.remit', 'kora-points.refund-request', 'counter-sales.create', 'cash.open', 'cash.close', 'cash.view', 'cash.media.view', 'tickets.view', 'tickets.issue', 'notifications.view'],
+            self::KoraPointAgent => ['departures.view', 'kora-points.view', 'kora-points.remit', 'kora-points.refund-request', 'kora-points.visits.actions.update', 'counter-sales.create', 'cash.open', 'cash.close', 'cash.view', 'cash.media.view', 'tickets.view', 'tickets.issue', 'notifications.view'],
             self::KoraPointSupervisor => ['kora-points.view', 'kora-points.manage', 'kora-points.remit', 'kora-points.documents.upload', 'notifications.view'],
             self::KoraPointTreasurer => ['kora-points.view', 'kora-points.remit', 'kora-points.documents.upload', 'notifications.view'],
             self::Passenger => [
@@ -263,7 +263,7 @@ enum SystemRole: string
     public static function allPermissions(): array
     {
         return [
-            'kora-points.view', 'kora-points.manage', 'kora-points.terms', 'kora-points.documents.upload', 'kora-points.remit', 'kora-points.refund-request', 'kora-points.finance',
+            'kora-points.view', 'kora-points.manage', 'kora-points.terms', 'kora-points.documents.upload', 'kora-points.remit', 'kora-points.refund-request', 'kora-points.finance', 'kora-points.visits.actions.update',
             'departures.progress',
             'incidents.report',
             'notifications.view',

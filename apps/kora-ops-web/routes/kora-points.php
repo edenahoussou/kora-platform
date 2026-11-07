@@ -20,6 +20,9 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('/', [KoraPointPartnerController::class, 'dashboard'])->name('dashboard');
         Route::get('points', [KoraPointPartnerController::class, 'points'])->name('points');
         Route::get('points/{point:uuid}', [KoraPointPartnerController::class, 'point'])->name('points.show');
+        Route::get('visits', [KoraPointPartnerController::class, 'visits'])->name('visits');
+        Route::get('plv', [KoraPointPartnerController::class, 'plv'])->name('plv');
+        Route::get('visits/{visit:uuid}/photos/{photo:uuid}', [KoraPointController::class, 'visitPhoto'])->name('visits.photos.show');
         Route::get('sales', [KoraPointPartnerController::class, 'sales'])->name('sales');
         Route::get('commissions', [KoraPointPartnerController::class, 'commissions'])->name('commissions');
         Route::get('commissions/export', [KoraPointPartnerController::class, 'exportCommissions'])->name('commissions.export');
@@ -54,6 +57,9 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('settlements/preview', [KoraPointAgentController::class, 'settlementPreview'])->name('settlements.preview');
         Route::post('settlements/declare', [KoraPointAgentController::class, 'declareSettlement'])->name('settlements.declare');
         Route::get('refunds', [KoraPointAgentController::class, 'refunds'])->name('refunds');
+        Route::get('visit-actions', [KoraPointAgentController::class, 'visitActions'])->name('visit-actions');
+        Route::get('visits/{visit:uuid}/photos/{photo:uuid}', [KoraPointController::class, 'visitPhoto'])->name('visits.photos.show');
+        Route::post('visits/{visit:uuid}/actions/{action:uuid}/realize', [KoraPointController::class, 'realizeVisitAction'])->name('visits.actions.realize');
     });
 
     Route::prefix('kora-points')->name('kora-points.')->group(function (): void {
@@ -67,6 +73,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
             Route::put('{organization:uuid}', [KoraPointOrganizationController::class, 'update'])->name('update');
             Route::patch('{organization:uuid}/terms', [KoraPointOrganizationController::class, 'terms'])->name('terms');
             Route::patch('{organization:uuid}/status', [KoraPointOrganizationController::class, 'status'])->name('status');
+            Route::post('{organization:uuid}/members', [KoraPointOrganizationController::class, 'storeMember'])->name('members.store');
             Route::post('{organization:uuid}/users', [KoraPointOrganizationController::class, 'assign'])->name('users');
             Route::post('{organization:uuid}/documents', [KoraPartnerDocumentController::class, 'organization'])->name('documents');
         });
@@ -92,10 +99,17 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         });
         Route::get('{point:uuid}/sales/export', [KoraPointController::class, 'export'])->name('sales.export');
         Route::get('{point:uuid}', [KoraPointController::class, 'show'])->name('show');
+        Route::post('{point:uuid}/visits', [KoraPointController::class, 'storeVisit'])->name('visits.store');
+        Route::post('visits/{visit:uuid}/actions/{action:uuid}/realize', [KoraPointController::class, 'realizeVisitAction'])->name('visits.actions.realize');
+        Route::post('visits/{visit:uuid}/actions/{action:uuid}/review', [KoraPointController::class, 'reviewVisitAction'])->name('visits.actions.review');
+        Route::get('visits/{visit:uuid}/photos/{photo:uuid}', [KoraPointController::class, 'visitPhoto'])->name('visits.photos.show');
+        Route::post('{point:uuid}/plv-orders', [KoraPointController::class, 'storePlvOrder'])->name('plv-orders.store');
+        Route::patch('plv-orders/{order:uuid}', [KoraPointController::class, 'updatePlvOrder'])->name('plv-orders.update');
         Route::put('{point:uuid}', [KoraPointController::class, 'update'])->name('update');
         Route::patch('{point:uuid}/terms', [KoraPointController::class, 'terms'])->name('terms');
         Route::patch('{point:uuid}/status', [KoraPointController::class, 'status'])->name('status');
         Route::post('{point:uuid}/users', [KoraPointController::class, 'assign'])->name('users');
+        Route::post('{point:uuid}/members', [KoraPointController::class, 'storeMember'])->name('members.store');
         Route::post('{point:uuid}/documents', [KoraPartnerDocumentController::class, 'point'])->name('documents');
     });
 });

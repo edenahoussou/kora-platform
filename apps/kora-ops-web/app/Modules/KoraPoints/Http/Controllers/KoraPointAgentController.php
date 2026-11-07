@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Modules\Cash\Models\CashSession;
 use App\Modules\KoraPoints\Actions\DeclareKoraPointRemittanceAction;
 use App\Modules\KoraPoints\Models\KoraPointSale;
+use App\Modules\KoraPoints\Models\KoraPointVisitAction;
 use App\Modules\KoraPoints\Services\KoraPointAgentReadService;
+use App\Modules\KoraPoints\Services\KoraPointReadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,6 +22,7 @@ class KoraPointAgentController extends Controller
     public function __construct(
         private readonly KoraPointAgentReadService $agentRead,
         private readonly DeclareKoraPointRemittanceAction $declareRemittance,
+        private readonly KoraPointReadService $pointRead,
     ) {}
 
     /**
@@ -182,6 +185,39 @@ class KoraPointAgentController extends Controller
             'convention' => Inertia::defer(fn (): array => $details['convention']),
             'documents' => Inertia::defer(fn (): array => $details['documents']),
             'assignedUsers' => Inertia::defer(fn (): array => $details['assignedUsers']),
+        ]);
+    }
+
+    public function visitActions(Request $request): Response
+    {
+        $user = $request->user();
+        $point = $this->agentRead->resolvePoint($user);
+        abort_unless($user->can('kora-points.visits.actions.update'), 403);
+        $actions = KoraPointVisitAction::query()
+            ->where('assigned_user_id', $user->getKey())
+            ->whereHas('visit', fn ($visits) => $visits->where('point_id', $point->getKey()))
+            ->with(['visit.point.agency', 'visit.creator', 'visit.actions.assignee', 'visit.actions.reviewer', 'visit.photos'])
+            ->latest('id')
+            ->paginate(30, ['*'], 'actions_page')
+            ->withQueryString()
+            ->through(fn (KoraPointVisitAction $action): array => [
+                'uuid' => $action->uuid,
+                'visit_uuid' => $action->visit->uuid,
+                'visit_type' => $action->visit->visit_type,
+                'visit_status' => $action->visit->status,
+                'point_name' => $action->visit->point->agency->name,
+                'label' => $action->label,
+                'due_date' => $action->due_date->toDateString(),
+                'status' => $action->status,
+                'realization_note' => $action->realization_note,
+                'review_reason' => $action->review_reason,
+                'photos' => $this->pointRead->visit($action->visit, $user)['photos'],
+            ]);
+
+        return Inertia::render('kora-points/agent/visit-actions', [
+            'point' => $this->agentRead->profile($point, $user),
+            'health' => $this->agentRead->health($point),
+            'actions' => $actions,
         ]);
     }
 

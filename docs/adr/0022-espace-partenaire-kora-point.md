@@ -32,6 +32,8 @@ Une organisation suspendue ou clôturée ne peut ouvrir l'espace. Si elle change
 
 Les allocations des Points restent soumises aux contrôles serveur transactionnels existants : elles sont positives, leur somme ne dépasse pas le plafond global, et une allocation ne descend pas sous l'encours. Une suspension conserve l'allocation ; la clôture ne la libère qu'après solde de l'encours.
 
+KORA OPS peut clôturer une organisation uniquement lorsque l'encours de chacun de ses Points est nul. La clôture ne change que l'état de l'organisation : elle ne clôture pas automatiquement les Points, ne change pas leurs états et ne libère pas leurs allocations. Le partenaire perd l'accès à son espace jusqu'à une réactivation explicite de l'organisation. La clôture d'un Point reste un changement distinct ; son allocation n'est libérée qu'une fois le Point clôturé et son encours soldé.
+
 Le tableau de bord organisationnel compare l'encours au total des allocations encore détenues par les Points. Le plafond global et sa part non allouée apparaissent séparément. Les états et alertes sont calculés par Point ; le réseau n'est indiqué comme entièrement bloqué que si chaque Point actif est bloqué.
 
 ## Conséquences

@@ -60,8 +60,9 @@ describe('SystemRole enum', function (): void {
             ->and($all)->toContain('passengers.erase', 'sensitive-data.export')
             ->and($all)->toContain('monitoring.view')
             ->and($all)->toContain('app-releases.view', 'app-releases.manage')
-            ->and($all)->toHaveCount(100)
-            ->and(count(array_unique($all)))->toBe(100);
+            ->and($all)->toContain('kora-points.visits.actions.update')
+            ->and($all)->toHaveCount(101)
+            ->and(count(array_unique($all)))->toBe(101);
     });
 
     it('registers every permission declared by a system role', function (): void {

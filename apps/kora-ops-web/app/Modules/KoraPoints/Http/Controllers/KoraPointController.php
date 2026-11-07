@@ -3,6 +3,12 @@
 namespace App\Modules\KoraPoints\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ReviewKoraPointVisitActionRequest;
+use App\Http\Requests\StoreKoraPointMemberRequest;
+use App\Http\Requests\StoreKoraPointPlvOrderRequest;
+use App\Http\Requests\StoreKoraPointVisitRequest;
+use App\Http\Requests\UpdateKoraPointPlvOrderRequest;
+use App\Http\Requests\UpdateKoraPointVisitActionRequest;
 use App\Models\User;
 use App\Modules\IdentityAccess\Models\KoraPointWebAccessInvitation;
 use App\Modules\KoraPoints\Http\Requests\AssignKoraPointUserRequest;
@@ -10,15 +16,22 @@ use App\Modules\KoraPoints\Http\Requests\ChangeKoraPointStatusRequest;
 use App\Modules\KoraPoints\Http\Requests\SaveKoraPointRequest;
 use App\Modules\KoraPoints\Http\Requests\UpdateKoraPointTermsRequest;
 use App\Modules\KoraPoints\Models\KoraPoint;
+use App\Modules\KoraPoints\Models\KoraPointPlvOrder;
+use App\Modules\KoraPoints\Models\KoraPointVisit;
+use App\Modules\KoraPoints\Models\KoraPointVisitAction;
+use App\Modules\KoraPoints\Models\KoraPointVisitPhoto;
 use App\Modules\KoraPoints\Services\KoraPointAccess;
+use App\Modules\KoraPoints\Services\KoraPointFieldOperationsService;
 use App\Modules\KoraPoints\Services\KoraPointManagementService;
 use App\Modules\KoraPoints\Services\KoraPointReadService;
 use App\Modules\Settings\Services\DatabaseSettingsCoordinator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class KoraPointController extends Controller
@@ -156,6 +169,80 @@ class KoraPointController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Agent affecté au Point.']);
 
         return back();
+    }
+
+    /**
+     * Creates an active agent account for this point and starts its web invitation.
+     */
+    public function storeMember(StoreKoraPointMemberRequest $request, KoraPoint $point): RedirectResponse
+    {
+        $result = $this->management->createAgent($request->user(), $point, $request->memberAttributes(), $request);
+        $invitation = $result['web_access_invitation'];
+        $delivery = $invitation?->status === KoraPointWebAccessInvitation::STATUS_SENT
+            ? 'Invitation envoyée par '.($invitation->delivery_channel === 'sms' ? 'SMS' : 'e-mail').'.'
+            : 'Invitation en attente de livraison.';
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Membre ajouté. '.$delivery]);
+
+        return back();
+    }
+
+    public function storeVisit(StoreKoraPointVisitRequest $request, KoraPoint $point, KoraPointFieldOperationsService $operations): RedirectResponse
+    {
+        $operations->createVisit($request->user(), $point, $request->validated());
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Visite enregistrée.']);
+
+        return back();
+    }
+
+    public function realizeVisitAction(UpdateKoraPointVisitActionRequest $request, KoraPointVisit $visit, KoraPointVisitAction $action, KoraPointFieldOperationsService $operations): RedirectResponse
+    {
+        abort_unless($action->visit_id === $visit->getKey(), 404);
+        $operations->realizeAction($request->user(), $action, $request->validated('realization_note'));
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Réalisation signalée à KORA.']);
+
+        return back();
+    }
+
+    public function reviewVisitAction(ReviewKoraPointVisitActionRequest $request, KoraPointVisit $visit, KoraPointVisitAction $action, KoraPointFieldOperationsService $operations): RedirectResponse
+    {
+        abort_unless($action->visit_id === $visit->getKey(), 404);
+        $attributes = $request->validated();
+        $operations->reviewAction($request->user(), $action, $attributes['operation'], $attributes['reason'] ?? null);
+        Inertia::flash('toast', ['type' => 'success', 'message' => $attributes['operation'] === 'validate' ? 'Action validée.' : 'Action renvoyée au responsable.']);
+
+        return back();
+    }
+
+    public function storePlvOrder(StoreKoraPointPlvOrderRequest $request, KoraPoint $point, KoraPointFieldOperationsService $operations): RedirectResponse
+    {
+        $operations->createPlvOrder($request->user(), $point, $request->validated());
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Commande PLV préparée.']);
+
+        return back();
+    }
+
+    public function updatePlvOrder(UpdateKoraPointPlvOrderRequest $request, KoraPointPlvOrder $order, KoraPointFieldOperationsService $operations): RedirectResponse
+    {
+        $attributes = $request->validated();
+        $operations->updatePlvOrder($request->user(), $order, $attributes['operation'], $attributes['reason'] ?? null);
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Commande PLV mise à jour.']);
+
+        return back();
+    }
+
+    public function visitPhoto(Request $request, KoraPointVisit $visit, KoraPointVisitPhoto $photo, KoraPointAccess $access): BinaryFileResponse
+    {
+        $access->requirePoint($request->user(), $visit->point);
+        abort_unless($photo->visit_id === $visit->getKey(), 404);
+        $storage = Storage::disk($photo->disk);
+        abort_unless($storage->exists($photo->path), 404);
+
+        return response()->file($storage->path($photo->path), [
+            'Content-Type' => $photo->mime_type,
+            'Content-Disposition' => 'inline; filename="'.rawurlencode($photo->original_name).'"',
+            'Cache-Control' => 'private, no-store',
+        ]);
     }
 
     private function newAgentAccessSummary(KoraPoint $point): ?string

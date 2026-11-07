@@ -25,6 +25,7 @@ use App\Modules\KoraPoints\Models\KoraPartnerDocument;
 use App\Modules\KoraPoints\Models\KoraPoint;
 use App\Modules\KoraPoints\Models\KoraPointEntry;
 use App\Modules\KoraPoints\Models\KoraPointOrganization;
+use App\Modules\KoraPoints\Models\KoraPointRefund;
 use App\Modules\KoraPoints\Models\KoraPointRemittance;
 use App\Modules\KoraPoints\Models\KoraPointSale;
 use App\Modules\KoraPoints\Services\KoraPointAccess;
@@ -216,6 +217,29 @@ it('inherits terms without treating zero commission as inheritance and freezes s
     expect($sale->refresh()->commission_amount)->toBe(400)->and($sale->terms_snapshot['commission_basis_points'])->toBe(400);
 });
 
+it('keeps attached point allocation under organization control for internal administrators', function (): void {
+    $organization = KoraPointOrganization::factory()->create([
+        'country' => 'BJ',
+        'commission_basis_points' => 300,
+        'ceiling_amount' => 500000,
+        'settlement_calendar' => kpCalendar(),
+    ]);
+    $point = kpPoint([
+        'organization_id' => $organization->getKey(),
+        'ceiling_amount' => 100000,
+        'commission_basis_points' => null,
+        'settlement_calendar' => null,
+    ]);
+    $management = app(KoraPointManagementService::class);
+
+    expect(fn () => $management->savePoint($this->commercial, ['ceiling_amount' => 125000], $point))
+        ->toThrow(ValidationException::class);
+    expect(fn () => $management->updateTerms($this->commercial, $point, ['ceiling_amount' => 125000]))
+        ->toThrow(ValidationException::class);
+
+    expect($point->refresh()->ceiling_amount)->toBe(100000);
+});
+
 it('updates only point defaults using the existing audited settings lock', function (): void {
     $this->actingAs($this->commercial)->patch(route('kora-points.defaults'), ['commission_basis_points' => 250, 'ceiling_amount' => 25000, 'settlement_calendar' => kpCalendar(), 'grace_days' => 2])->assertRedirect();
     $point = KoraPoint::factory()->create();
@@ -254,10 +278,144 @@ it('isolates agents and supervisors and returns explicit Inertia props without n
     $supervisor = User::factory()->create();
     app(KoraPointManagementService::class)->assign(tap(User::factory()->create(), fn ($user) => $user->assignRole('system_admin')), $supervisor, $org, 'kora_point_supervisor');
     $this->actingAs($agent)->get(route('kora-points.show', $other->uuid))->assertForbidden();
+    $this->actingAs($agent)->get(route('kora-points.show', $point->uuid))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('permissions.canViewNetworkContext', false)
+            ->where('permissions.canManageMembers', false)
+            ->where('organization.global_ceiling_amount', null)
+            ->where('organization.allocated_ceiling_amount', null)
+            ->has('members.data', 0));
     $this->actingAs($supervisor->refresh())->get(route('kora-partner.points.show', $point->uuid))->assertSuccessful()->assertInertia(fn (Assert $page) => $page->component('kora-points/partner/point')->where('point.uuid', $point->uuid)->missing('point.id')->missing('point.agency_id'));
     $this->actingAs($supervisor->refresh())->get(route('kora-points.show', $other->uuid))->assertForbidden();
     $this->actingAs($supervisor->refresh())->post(route('kora-points.remittances.store'), [])->assertSessionHasErrors(['sale_uuids', 'method', 'reference']);
     $this->actingAs($agent)->get(route('administration.settings.operations'))->assertForbidden();
+});
+
+it('renders an autonomous point detail with its own terms, documents and only point agents', function (): void {
+    $point = kpPoint(['commission_basis_points' => 500, 'ceiling_amount' => 80000]);
+    $activeAgent = kpAgent($point);
+    $activeAgent->update(['name' => 'Agent Actif']);
+    $sale = kpSale($point, $activeAgent, 10000);
+    $refund = KoraPointRefund::query()->create([
+        'sale_id' => $sale->getKey(),
+        'requested_by' => $activeAgent->getKey(),
+        'status' => 'confirmed',
+        'amount' => 1000,
+        'reason' => 'Annulation',
+    ]);
+    $sale->update(['commission_reversed' => 100]);
+    KoraPointEntry::query()->create([
+        'point_id' => $point->getKey(),
+        'sale_id' => $sale->getKey(),
+        'actor_id' => $this->commercial->getKey(),
+        'event_key' => 'refund:'.$refund->uuid,
+        'type' => 'refund',
+        'amount' => -900,
+        'commission_delta' => -100,
+    ]);
+    $suspendedAgent = kpAgent($point);
+    $suspendedAgent->update(['name' => 'Agent Suspendu', 'status' => 'suspended']);
+    kpAgent(kpPoint());
+    $organization = KoraPointOrganization::factory()->create();
+    foreach (['kora_point_supervisor', 'kora_point_treasurer'] as $role) {
+        $organizationMember = User::factory()->create([
+            'agency_id' => $point->agency_id,
+            'kora_point_organization_id' => $organization->getKey(),
+        ]);
+        $organizationMember->assignRole($role);
+    }
+    $document = KoraPartnerDocument::query()->create([
+        'point_id' => $point->getKey(),
+        'uploaded_by' => $this->commercial->getKey(),
+        'kind' => 'agreement',
+        'title' => 'Convention du Point',
+    ]);
+
+    $this->actingAs($this->commercial)->get(route('kora-points.show', $point->uuid))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('kora-points/show')
+            ->where('point.uuid', $point->uuid)
+            ->where('point.gross_sales_amount', $sale->gross_amount)
+            ->where('point.terms.sources.commission_basis_points', 'point')
+            ->where('organization', null)
+            ->has('members.data', 2)
+            ->where('members.data.0.uuid', $activeAgent->uuid)
+            ->where('members.data.0.status', 'active')
+            ->where('members.data.1.uuid', $suspendedAgent->uuid)
+            ->where('members.data.1.status', 'suspended')
+            ->where('permissions.canManageMembers', false)
+            ->where('refunds.data.0.uuid', $refund->uuid)
+            ->where('refunds.data.0.commission_reversed', 100)
+            ->where('documents.0.uuid', $document->uuid)
+            ->where('documents.0.source', 'point')
+            ->missing('point.id')
+            ->missing('members.data.0.id')
+            ->missing('documents.0.point_id'));
+});
+
+it('shows inherited organization conditions, shared documents and point allocation on an attached point', function (): void {
+    $organization = KoraPointOrganization::factory()->create([
+        'commission_basis_points' => 450,
+        'ceiling_amount' => 500000,
+        'settlement_calendar' => kpCalendar(),
+    ]);
+    $point = kpPoint([
+        'organization_id' => $organization->getKey(),
+        'commission_basis_points' => null,
+        'settlement_calendar' => null,
+        'ceiling_amount' => 100000,
+    ]);
+    kpPoint(['organization_id' => $organization->getKey(), 'ceiling_amount' => 50000]);
+    $document = KoraPartnerDocument::query()->create([
+        'organization_id' => $organization->getKey(),
+        'uploaded_by' => $this->commercial->getKey(),
+        'kind' => 'agreement',
+        'title' => 'Convention cadre',
+    ]);
+
+    $this->actingAs($this->commercial)->get(route('kora-points.show', $point->uuid))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('kora-points/show')
+            ->where('point.terms.sources.commission_basis_points', 'organization')
+            ->where('point.commission_rate_bps', 450)
+            ->where('organization.uuid', $organization->uuid)
+            ->where('organization.global_ceiling_amount', 500000)
+            ->where('organization.allocated_ceiling_amount', 150000)
+            ->where('organization.point_allocation_amount', 100000)
+            ->where('permissions.canManageMembers', false)
+            ->has('members.data', 0)
+            ->where('documents.0.uuid', $document->uuid)
+            ->where('documents.0.source', 'organization')
+            ->missing('organization.id')
+            ->missing('documents.0.organization_id'));
+});
+
+it('attributes grouped remittance lines to the point while preserving the group total', function (): void {
+    $organization = KoraPointOrganization::factory()->create(['ceiling_amount' => 500000]);
+    $point = kpPoint(['organization_id' => $organization->getKey(), 'ceiling_amount' => 100000]);
+    $otherPoint = kpPoint(['organization_id' => $organization->getKey(), 'ceiling_amount' => 100000]);
+    $pointSale = kpSale($point, null, 10000);
+    $otherSale = kpSale($otherPoint, null, 20000);
+    $supervisor = User::factory()->create(['kora_point_organization_id' => $organization->getKey()]);
+    $supervisor->assignRole('kora_point_supervisor');
+    $remittance = app(KoraPointRemittanceService::class)->create(
+        $supervisor,
+        [$pointSale->uuid, $otherSale->uuid],
+        'bank_transfer',
+        'VIR-RESEAU-001',
+    );
+
+    $this->actingAs($this->commercial)->get(route('kora-points.show', $point->uuid))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('remittances.data.0.uuid', $remittance->uuid)
+            ->where('remittances.data.0.point_amount', $pointSale->outstanding_amount)
+            ->where('remittances.data.0.group_amount', $pointSale->outstanding_amount + $otherSale->outstanding_amount)
+            ->where('remittances.data.0.sales_count', 2)
+            ->missing('remittances.data.0.id'));
 });
 
 it('aggregates the partner workspace by organization and filters each view by point', function (): void {
