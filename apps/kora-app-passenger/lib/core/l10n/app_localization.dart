@@ -119,8 +119,19 @@ class AppLocalization {
         : _cache[AppLanguage.fallback.code] ?? const {};
   }
 
+  /// Lit et décode un fichier de langue.
+  ///
+  /// On passe par [AssetBundle.load] et un `utf8.decode` fait ici,
+  /// plutôt que par `loadString` : au-delà de 50 Kio, celui-ci décode
+  /// sur un isolat de fond, et le `Future` ne se résout plus dans le
+  /// tour de boucle courant. Les écrans montés dans un test —
+  /// `Localizations` attend ce `Future` avant de construire — restaient
+  /// alors vides après `pumpAndSettle`, sans la moindre erreur. Les
+  /// traductions françaises ont franchi ce seuil, et une centaine de
+  /// tests d'écran sont tombés d'un coup.
   static Future<Map<String, String>> _readLanguageFile(String code) async {
-    final raw = await rootBundle.loadString('assets/languages/$code.json');
+    final bytes = await rootBundle.load('assets/languages/$code.json');
+    final raw = utf8.decode(bytes.buffer.asUint8List());
     final decoded = json.decode(raw) as Map<String, dynamic>;
 
     return decoded.map((key, value) => MapEntry(key, '$value'));
