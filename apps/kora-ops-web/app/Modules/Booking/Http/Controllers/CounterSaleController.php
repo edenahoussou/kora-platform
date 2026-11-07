@@ -150,6 +150,7 @@ class CounterSaleController extends Controller
             'groupBookingSettings' => $this->serializeGroupBookingSettings(),
             'permissions' => [
                 'canCreate' => Gate::allows('createCounterSale', Reservation::class),
+                'canDebitWallet' => $request->user()?->can('wallet.debit-counter') ?? false,
             ],
         ]);
     }

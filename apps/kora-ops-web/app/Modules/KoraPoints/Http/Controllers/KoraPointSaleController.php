@@ -151,6 +151,7 @@ class KoraPointSaleController extends CounterSaleController
             'reservation' => $this->serializeReservation($reservation),
             'permissions' => [
                 'canCreate' => $health['sales_allowed'] && Gate::allows('createCounterSale', Reservation::class),
+                'canDebitWallet' => $user->can('wallet.debit-counter'),
             ],
             'cashSession' => $this->serializeCashSession(),
             'mobileMoneyAccounts' => $this->serializeMobileMoneyAccounts(),

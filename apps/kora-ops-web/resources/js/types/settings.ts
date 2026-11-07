@@ -1,4 +1,5 @@
-export type SettingsGroup = 'general' | 'operations' | 'integrations';
+export type SettingsGroup =
+    'general' | 'operations' | 'wallet' | 'integrations';
 
 export type GeneralSettingsValues = {
     displayName: string;
@@ -37,6 +38,26 @@ export type OperationsSettingsValues = {
     profitabilityGpsMinCoveragePercent: number;
     profitabilityGpsMaxGapMinutes: number;
     profitabilityGpsMaxSpeedKmh: number;
+};
+
+export type WalletSettingsValues = {
+    walletCashEnabled: boolean;
+    walletPointsEnabled: boolean;
+    loyaltyEarnRateBasisPoints: number;
+    pointValueFcfa: number;
+    pointsMinSpend: number;
+    bonusWelcomePoints: number;
+    bonusReferralPoints: number;
+    bonusAnniversaryPoints: number;
+    bonusUsageNth: number;
+    bonusUsagePoints: number;
+    pointsExpiryMonths: number;
+    pointsExpiryReminderDays: number[];
+    walletHoldTtlMinutes: number;
+    topupMinAmount: number | null;
+    topupMaxAmount: number | null;
+    cashBalanceCap: number | null;
+    topupAmountPresets: number[];
 };
 
 export type IntegrationsSettingsValues = Record<
@@ -85,6 +106,11 @@ export type OperationsSettingsPageProps = SettingsPagePermissions & {
     snapshot: SettingsSnapshot<OperationsSettingsValues>;
 };
 
+export type WalletSettingsPageProps = SettingsPagePermissions & {
+    group: 'wallet';
+    snapshot: SettingsSnapshot<WalletSettingsValues>;
+};
+
 export type IntegrationsSettingsPageProps = SettingsPagePermissions & {
     group: 'integrations';
     snapshot: SettingsSnapshot<IntegrationsSettingsValues>;
@@ -93,4 +119,5 @@ export type IntegrationsSettingsPageProps = SettingsPagePermissions & {
 export type SettingsPageProps =
     | GeneralSettingsPageProps
     | OperationsSettingsPageProps
+    | WalletSettingsPageProps
     | IntegrationsSettingsPageProps;

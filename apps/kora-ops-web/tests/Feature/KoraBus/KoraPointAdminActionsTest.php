@@ -210,7 +210,7 @@ it('keeps attached point allocations read-only for KORA admins and does not rele
         ]);
 
     expect(KoraPoint::query()->where('organization_id', $organization->getKey())->count())->toBe(1)
-        ->and(KoraPoint::query()->where('organization_id', $organization->getKey())->sum('ceiling_amount'))
+        ->and((int) KoraPoint::query()->where('organization_id', $organization->getKey())->sum('ceiling_amount'))
         ->toBe(4_500_000);
 });
 

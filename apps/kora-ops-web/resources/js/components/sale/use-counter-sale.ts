@@ -160,6 +160,11 @@ export function useCounterSale(props: SaleProps) {
         payer_name: '',
         provider_reference: '',
         verified_manually: false,
+        wallet_uuid: null as string | null,
+        wallet_amount: null as number | null,
+        points_amount: null as number | null,
+        wallet_holder_phone: '',
+        wallet_holder_confirmed: false,
     });
     const search = (event: SyntheticEvent<HTMLFormElement>) => {
         event.preventDefault();

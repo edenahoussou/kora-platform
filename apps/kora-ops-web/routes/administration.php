@@ -8,6 +8,7 @@ use App\Modules\Monitoring\Http\Controllers\MonitoringController;
 use App\Modules\Settings\Http\Controllers\IntegrationConnectionTestController;
 use App\Modules\Settings\Http\Controllers\IntegrationTestSmsController;
 use App\Modules\Settings\Http\Controllers\SettingsController;
+use App\Modules\Wallet\Http\Controllers\OpsWalletRestitutionController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
@@ -32,6 +33,10 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         ->name('administration.settings.operations');
     Route::patch('administration/settings/operations', [SettingsController::class, 'updateOperations'])
         ->name('administration.settings.operations.update');
+    Route::get('administration/settings/wallet', [SettingsController::class, 'wallet'])
+        ->name('administration.settings.wallet');
+    Route::patch('administration/settings/wallet', [SettingsController::class, 'updateWallet'])
+        ->name('administration.settings.wallet.update');
     Route::get('administration/settings/integrations', [SettingsController::class, 'integrations'])
         ->name('administration.settings.integrations');
     Route::patch('administration/settings/integrations', [SettingsController::class, 'updateIntegrations'])
@@ -42,6 +47,17 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::post('administration/settings/integrations/test-sms', IntegrationTestSmsController::class)
         ->middleware('throttle:settings-probes')
         ->name('administration.settings.integrations.test-sms');
+
+    Route::get('administration/wallet-restitutions', [OpsWalletRestitutionController::class, 'page'])
+        ->name('administration.wallet-restitutions.index');
+    Route::post('administration/wallet-restitutions', [OpsWalletRestitutionController::class, 'store'])
+        ->name('administration.wallet-restitutions.store');
+    Route::post('administration/wallet-restitutions/{restitution:uuid}/approve', [OpsWalletRestitutionController::class, 'approve'])
+        ->name('administration.wallet-restitutions.approve');
+    Route::post('administration/wallet-restitutions/{restitution:uuid}/reject', [OpsWalletRestitutionController::class, 'reject'])
+        ->name('administration.wallet-restitutions.reject');
+    Route::post('administration/wallet-restitutions/{restitution:uuid}/mark-paid', [OpsWalletRestitutionController::class, 'markPaid'])
+        ->name('administration.wallet-restitutions.mark-paid');
 
     Route::get('users', [UserController::class, 'index'])->name('users');
     Route::get('users/{user:uuid}', [UserController::class, 'show'])->name('users.show');

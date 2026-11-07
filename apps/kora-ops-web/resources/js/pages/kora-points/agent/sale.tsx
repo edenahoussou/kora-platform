@@ -60,6 +60,7 @@ export default function AgentSalePage(props: KoraPointSaleProps) {
         reservation,
         cashSession,
         mobileMoneyAccounts,
+        permissions,
         groupBookingSettings,
     } = props;
 
@@ -471,6 +472,7 @@ export default function AgentSalePage(props: KoraPointSaleProps) {
                                 reservation={reservation}
                                 cashSession={cashSession}
                                 mobileMoneyAccounts={mobileMoneyAccounts}
+                                canDebitWallet={permissions.canDebitWallet}
                                 processing={paymentForm.processing}
                                 errors={paymentForm.errors}
                                 search={search}

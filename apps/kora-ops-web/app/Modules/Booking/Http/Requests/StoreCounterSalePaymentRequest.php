@@ -71,6 +71,31 @@ class StoreCounterSalePaymentRequest extends JsonValidationRequest
                     ['nullable', 'boolean'],
                 ),
             ],
+            'wallet_uuid' => [
+                'nullable',
+                'uuid',
+                Rule::requiredIf(fn (): bool => $this->input('method') === PaymentMethod::Wallet->value),
+            ],
+            'wallet_amount' => [
+                'nullable',
+                'integer',
+                'min:0',
+                Rule::requiredIf(fn (): bool => $this->input('method') === PaymentMethod::Wallet->value),
+            ],
+            'wallet_holder_phone' => [
+                'nullable',
+                'string',
+                'max:32',
+                Rule::requiredIf(fn (): bool => $this->input('method') === PaymentMethod::Wallet->value),
+            ],
+            'wallet_holder_confirmed' => [
+                Rule::when(
+                    $this->input('method') === PaymentMethod::Wallet->value,
+                    ['required', 'accepted'],
+                    ['nullable', 'boolean'],
+                ),
+            ],
+            'points_amount' => ['nullable', 'integer', 'min:0'],
         ];
     }
 
@@ -89,6 +114,8 @@ class StoreCounterSalePaymentRequest extends JsonValidationRequest
             'payer_name.required' => 'Le nom du payeur est obligatoire pour un paiement en espèces.',
             'provider_reference.required' => 'La référence de transaction est obligatoire.',
             'verified_manually.required' => 'Confirmez la vérification manuelle du crédit reçu.',
+            'wallet_holder_phone.required' => 'Identifiez le titulaire présent avant de débiter son Wallet.',
+            'wallet_holder_confirmed.required' => 'Confirmez la présence et l’accord du titulaire du Wallet.',
         ];
     }
 
