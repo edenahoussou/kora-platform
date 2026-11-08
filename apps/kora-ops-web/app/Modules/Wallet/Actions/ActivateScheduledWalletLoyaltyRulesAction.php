@@ -19,6 +19,11 @@ final class ActivateScheduledWalletLoyaltyRulesAction
         $at ??= now();
 
         $activated = DB::transaction(function () use ($at): int {
+            WalletLoyaltyRuleVersion::query()
+                ->where('status', WalletLoyaltyRuleVersionStatus::Active->value)
+                ->lockForUpdate()
+                ->first();
+
             $version = WalletLoyaltyRuleVersion::query()
                 ->where('status', WalletLoyaltyRuleVersionStatus::Scheduled->value)
                 ->where('effective_at', '<=', $at)

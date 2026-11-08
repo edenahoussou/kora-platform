@@ -22,6 +22,17 @@ final class ScheduleWalletLoyaltyRuleAction
         }
 
         return DB::transaction(function () use ($version, $actor, $effectiveAt): WalletLoyaltyRuleVersion {
+            $active = WalletLoyaltyRuleVersion::query()
+                ->where('status', WalletLoyaltyRuleVersionStatus::Active->value)
+                ->lockForUpdate()
+                ->first();
+
+            if ($active === null) {
+                throw ValidationException::withMessages([
+                    'version' => 'La version active de fidélité est introuvable.',
+                ]);
+            }
+
             $scheduled = WalletLoyaltyRuleVersion::query()
                 ->where('status', WalletLoyaltyRuleVersionStatus::Scheduled->value)
                 ->lockForUpdate()

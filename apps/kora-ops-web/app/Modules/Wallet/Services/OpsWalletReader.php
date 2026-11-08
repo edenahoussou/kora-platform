@@ -50,9 +50,7 @@ final class OpsWalletReader
                 'agency',
                 'loyaltyRuleVersion',
                 'reference' => function (Relation $relation): void {
-                    if ($relation instanceof MorphTo) {
-                        $relation->morphWith([Payment::class => ['reservation']]);
-                    }
+                    $this->eagerLoadPaymentReservation($relation);
                 },
             ])
             ->latest('created_at')
@@ -143,9 +141,7 @@ final class OpsWalletReader
                 'agency',
                 'loyaltyRuleVersion',
                 'reference' => function (Relation $relation): void {
-                    if ($relation instanceof MorphTo) {
-                        $relation->morphWith([Payment::class => ['reservation']]);
-                    }
+                    $this->eagerLoadPaymentReservation($relation);
                 },
             ])
             ->latest('created_at')
@@ -170,9 +166,7 @@ final class OpsWalletReader
                 'agency',
                 'loyaltyRuleVersion',
                 'reference' => function (Relation $relation): void {
-                    if ($relation instanceof MorphTo) {
-                        $relation->morphWith([Payment::class => ['reservation']]);
-                    }
+                    $this->eagerLoadPaymentReservation($relation);
                 },
             ])
             ->latest('created_at');
@@ -223,13 +217,19 @@ final class OpsWalletReader
             'agency',
             'loyaltyRuleVersion',
             'reference' => function (Relation $relation): void {
-                if ($relation instanceof MorphTo) {
-                    $relation->morphWith([Payment::class => ['reservation']]);
-                }
+                $this->eagerLoadPaymentReservation($relation);
             },
         ]);
 
         return $this->movementData($transaction);
+    }
+
+    /** @param Relation<*, *, *> $relation */
+    private function eagerLoadPaymentReservation(Relation $relation): void
+    {
+        if ($relation instanceof MorphTo) {
+            $relation->morphWith([Payment::class => ['reservation']]);
+        }
     }
 
     /** @param list<array<string, mixed>> $recentMovements */

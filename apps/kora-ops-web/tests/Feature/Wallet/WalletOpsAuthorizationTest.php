@@ -3,6 +3,9 @@
 use App\Models\User;
 use App\Modules\Settings\Settings\WalletSettings;
 use App\Modules\Wallet\Actions\ActivateScheduledWalletLoyaltyRulesAction;
+use App\Modules\Wallet\Actions\CreateWalletLoyaltyRuleDraftAction;
+use App\Modules\Wallet\Actions\ScheduleWalletLoyaltyRuleAction;
+use App\Modules\Wallet\Actions\UpdateWalletLoyaltyRuleDraftAction;
 use App\Modules\Wallet\Data\WalletBalanceType;
 use App\Modules\Wallet\Data\WalletLoyaltyRuleVersionStatus;
 use App\Modules\Wallet\Data\WalletTransactionReason;
@@ -14,6 +17,7 @@ use Database\Seeders\KoraBusRolePermissionSeeder;
 use Database\Seeders\WalletLoyaltyRuleVersionSeeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Sanctum\Sanctum;
 
@@ -242,6 +246,16 @@ it('simulates rule changes without persistence and activates a scheduled version
     $scheduled = $draft->fresh();
     $this->patch(route('wallet.rules.update', $draft->uuid), ['values' => $rules])
         ->assertForbidden();
+
+    expect(fn () => app(UpdateWalletLoyaltyRuleDraftAction::class)->execute($draft, $rules))
+        ->toThrow(ValidationException::class);
+
+    $secondDraft = app(CreateWalletLoyaltyRuleDraftAction::class)->execute($daf);
+    expect(fn () => app(ScheduleWalletLoyaltyRuleAction::class)->execute(
+        $secondDraft,
+        $daf,
+        Carbon::parse('2026-11-10 00:00:00'),
+    ))->toThrow(ValidationException::class);
 
     expect($scheduled->status)->toBe(WalletLoyaltyRuleVersionStatus::Scheduled)
         ->and($wallet->fresh()->points_expires_at->equalTo($originalExpiry))->toBeTrue();
