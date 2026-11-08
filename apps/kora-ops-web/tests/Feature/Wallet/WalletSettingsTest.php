@@ -43,21 +43,33 @@ it('persists and audits wallet settings mutations', function (): void {
         ->patch(route('administration.settings.wallet.update'), [
             'values' => [
                 'walletCashEnabled' => true,
-                'bonusWelcomePoints' => 750,
                 'topupAmountPresets' => [1000, 5000],
             ],
         ])
-        ->assertRedirect(route('administration.settings.wallet'));
+        ->assertRedirect(route('administration.settings.wallet'))
+        ->assertSessionHasNoErrors();
 
     $settings = app(WalletSettings::class);
 
     expect($settings->walletCashEnabled)->toBeTrue()
-        ->and($settings->bonusWelcomePoints)->toBe(750)
         ->and($settings->topupAmountPresets)->toBe([1000, 5000]);
 
     $audit = Activity::query()->where('log_name', 'settings')->latest('id')->firstOrFail();
     expect($audit->properties['group'])->toBe('wallet')
         ->and($audit->properties['fields'])->toContain('walletCashEnabled');
+});
+
+it('keeps loyalty rule values out of direct settings updates', function (): void {
+    $admin = walletSettingsAdmin();
+    $settings = app(WalletSettings::class);
+
+    $this->actingAs($admin)
+        ->patch(route('administration.settings.wallet.update'), [
+            'values' => ['bonusWelcomePoints' => $settings->bonusWelcomePoints + 100],
+        ])
+        ->assertSessionHasErrors(['values.bonusWelcomePoints']);
+
+    expect(app(WalletSettings::class)->bonusWelcomePoints)->toBe($settings->bonusWelcomePoints);
 });
 
 it('rejects incoherent wallet top-up bounds', function (): void {

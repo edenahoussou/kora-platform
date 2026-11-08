@@ -8,6 +8,7 @@ use App\Modules\Payments\Actions\RecordCounterSalePaymentAction;
 use App\Modules\Wallet\Http\Requests\OpsWalletDebitRequest;
 use App\Modules\Wallet\Models\Wallet;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * @group Wallet OPS
@@ -31,7 +32,7 @@ class OpsWalletDebitController extends Controller
         Wallet $wallet,
         RecordCounterSalePaymentAction $recordCounterSalePayment,
     ): JsonResponse {
-        abort_unless($request->user()?->can('wallet.debit-counter'), 403);
+        Gate::authorize('debit', $wallet);
 
         $reservation = Reservation::query()
             ->where('uuid', $request->string('reservation_uuid')->value())

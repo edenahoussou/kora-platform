@@ -49,8 +49,13 @@ use App\Modules\Payments\Providers\MtnMomoAdapter;
 use App\Modules\Settings\Contracts\SettingsCoordinator;
 use App\Modules\Settings\Services\DatabaseSettingsCoordinator;
 use App\Modules\Settings\Settings\IntegrationsSettings;
+use App\Modules\Settings\Settings\WalletSettings;
 use App\Modules\Support\Queue\IdempotentFailedJobProvider;
 use App\Modules\Ticketing\Models\Ticket;
+use App\Modules\Wallet\Models\Wallet;
+use App\Modules\Wallet\Models\WalletLoyaltyRuleVersion;
+use App\Modules\Wallet\Models\WalletRestitution;
+use App\Modules\Wallet\Models\WalletTransaction;
 use App\Policies\AgencyPolicy;
 use App\Policies\AppReleasePolicy;
 use App\Policies\AssistedBookingPolicy;
@@ -71,6 +76,11 @@ use App\Policies\StopPolicy;
 use App\Policies\TerminalP501Policy;
 use App\Policies\TicketPolicy;
 use App\Policies\UserPolicy;
+use App\Policies\WalletLoyaltyRuleVersionPolicy;
+use App\Policies\WalletPolicy;
+use App\Policies\WalletRestitutionPolicy;
+use App\Policies\WalletSettingsPolicy;
+use App\Policies\WalletTransactionPolicy;
 use Carbon\CarbonImmutable;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -297,6 +307,11 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Ticket::class, TicketPolicy::class);
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(Role::class, RolePolicy::class);
+        Gate::policy(Wallet::class, WalletPolicy::class);
+        Gate::policy(WalletTransaction::class, WalletTransactionPolicy::class);
+        Gate::policy(WalletRestitution::class, WalletRestitutionPolicy::class);
+        Gate::policy(WalletLoyaltyRuleVersion::class, WalletLoyaltyRuleVersionPolicy::class);
+        Gate::policy(WalletSettings::class, WalletSettingsPolicy::class);
     }
 
     /**

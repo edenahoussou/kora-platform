@@ -244,6 +244,10 @@ _Avoid_: Points convertibles en argent, caisse de l'agent, credit entreprise
 Unites de recompense propres au voyageur eligible, acquises par les voyages effectues et les bonus, utilisables pour payer des billets Bus. Leur valeur d'usage est de 1 point pour 1 FCFA ; ils ne constituent pas du cash retirable ou transferable.
 _Avoid_: Argent disponible, remise immediate sur le voyage qui les genere, KORA POINT
 
+**Version de regle de fidelite**:
+Ensemble publie et immuable des parametres d'acquisition, d'usage, de bonus et d'expiration des points KORA BUS. Une simulation est sans effet de bord ; une version programmee devient active a sa date d'effet. Les mouvements produits ensuite reference cette version, tandis que les echeances deja enregistrees restent inchangees.
+_Avoid_: Campagne promotionnelle passager, regle modifiee apres publication, recalcul retroactif des echeances
+
 **KORA POINT**:
 Lieu physique de distribution exploite par un partenaire KORA et distinct des personnes qui y travaillent. Autonome par defaut, il peut etre rattache a une organisation partenaire. Son offre VOYAGE permet la vente de billets Bus au public. Le suivi terrain et les commandes PLV font partie de l'administration KORA POINT.
 _Avoid_: Partenaire distributeur entier, compte utilisateur, point de fidelite, agence interne KORA

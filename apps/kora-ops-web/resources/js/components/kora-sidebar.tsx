@@ -37,6 +37,15 @@ import programming from '@/routes/programming';
 import { update as updatePushPreference } from '@/routes/settings/notifications/push';
 
 type NavPermission = string | string[] | null;
+type WalletNavCapability =
+    | 'walletAny'
+    | 'walletOpsView'
+    | 'walletRulesView'
+    | 'walletSettingsView'
+    | 'walletRestitutionQueueView'
+    | 'walletRestitutionAccess'
+    | 'walletRestitutionOwnView'
+    | 'walletRestitutionRequest';
 
 type NavChild = {
     title: string;
@@ -44,6 +53,7 @@ type NavChild = {
     permission: NavPermission;
     role?: string;
     exact?: boolean;
+    capability?: WalletNavCapability;
 };
 
 type NavEntry = {
@@ -52,6 +62,7 @@ type NavEntry = {
     icon: typeof LayoutDashboard;
     permission: NavPermission;
     exact?: boolean;
+    capability?: WalletNavCapability;
     children?: NavChild[];
 };
 
@@ -117,7 +128,8 @@ const koraPointAgentNavItems: NavEntry[] = [
         title: 'Restitutions Wallet',
         href: '/kora-point/wallet-restitutions',
         icon: Wallet,
-        permission: 'wallet.debit-counter',
+        permission: null,
+        capability: 'walletRestitutionRequest',
     },
 ];
 
@@ -175,7 +187,8 @@ const koraPointOrganizationNavItems: NavEntry[] = [
         title: 'Restitutions Wallet',
         href: '/kora-partner/wallet-restitutions',
         icon: Wallet,
-        permission: 'wallet.debit-counter',
+        permission: null,
+        capability: 'walletRestitutionRequest',
     },
     {
         title: 'Mon organisation',
@@ -315,6 +328,51 @@ const navItems: NavEntry[] = [
         permission: 'cash.view',
     },
     {
+        title: 'Wallet & fidélité',
+        href: '/wallet',
+        icon: Wallet,
+        permission: null,
+        capability: 'walletAny',
+        children: [
+            {
+                title: 'Pilotage',
+                href: '/wallet',
+                permission: null,
+                capability: 'walletOpsView',
+            },
+            {
+                title: 'Comptes',
+                href: '/wallet/accounts',
+                permission: null,
+                capability: 'walletOpsView',
+            },
+            {
+                title: 'Mouvements',
+                href: '/wallet/transactions',
+                permission: null,
+                capability: 'walletOpsView',
+            },
+            {
+                title: 'Règles de fidélité',
+                href: '/wallet/rules',
+                permission: null,
+                capability: 'walletRulesView',
+            },
+            {
+                title: 'Paramètres',
+                href: '/administration/settings/wallet',
+                permission: null,
+                capability: 'walletSettingsView',
+            },
+            {
+                title: 'Restitutions',
+                href: '/administration/wallet-restitutions',
+                permission: null,
+                capability: 'walletRestitutionAccess',
+            },
+        ],
+    },
+    {
         title: 'Finance',
         href: '/fiscal-invoices',
         icon: ReceiptText,
@@ -324,8 +382,6 @@ const navItems: NavEntry[] = [
             'expenses.view-agency',
             'expenses.view-network',
             'revenue.view',
-            'wallet.manage-restitutions',
-            'wallet.debit-counter',
         ],
         children: [
             {
@@ -351,14 +407,6 @@ const navItems: NavEntry[] = [
                     'expenses.view-own',
                     'expenses.view-agency',
                     'expenses.view-network',
-                ],
-            },
-            {
-                title: 'Restitutions Wallet',
-                href: '/administration/wallet-restitutions',
-                permission: [
-                    'wallet.manage-restitutions',
-                    'wallet.debit-counter',
                 ],
             },
         ],
@@ -655,6 +703,30 @@ export function KoraSidebar({
         return can(permission);
     };
 
+    const canAccessWalletCapability = (
+        capability?: WalletNavCapability,
+    ): boolean => {
+        if (!capability) {
+            return true;
+        }
+
+        const capabilities = auth?.user?.walletCapabilities;
+
+        if (capability === 'walletAny') {
+            return Object.values(capabilities ?? {}).some(Boolean);
+        }
+
+        if (capability === 'walletRestitutionAccess') {
+            return Boolean(
+                capabilities?.walletRestitutionQueueView ||
+                capabilities?.walletRestitutionOwnView ||
+                capabilities?.walletRestitutionRequest,
+            );
+        }
+
+        return Boolean(capabilities?.[capability]);
+    };
+
     const toggleGroup = (title: string) => {
         setOpenGroups((prev) =>
             prev.includes(title)
@@ -793,11 +865,13 @@ export function KoraSidebar({
                     const visibleChildren = item.children?.filter(
                         (child) =>
                             canAccess(child.permission) &&
+                            canAccessWalletCapability(child.capability) &&
                             (!child.role || hasRole(child.role)),
                     );
 
                     if (
                         !canAccess(item.permission) ||
+                        !canAccessWalletCapability(item.capability) ||
                         (item.href === '/cash' && !auth?.user?.canViewCash) ||
                         (item.href === '/tickets' &&
                             !auth?.user?.canViewTickets) ||

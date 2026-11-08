@@ -10,6 +10,7 @@ use App\Modules\Wallet\Http\Resources\WalletResource;
 use App\Modules\Wallet\Models\Wallet;
 use App\Modules\Wallet\Services\WalletLedgerService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * @group Wallet OPS
@@ -34,6 +35,7 @@ class OpsWalletLookupController extends Controller
         PassengerIdentityResolver $identityResolver,
         WalletLedgerService $ledger,
     ): JsonResponse {
+        Gate::authorize('lookup', Wallet::class);
         $normalized = $identityResolver->normalizePhone($request->string('phone')->value());
         abort_if($normalized === null, 422, 'Numéro de téléphone invalide.');
 

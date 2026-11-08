@@ -14,8 +14,10 @@ use App\Modules\Settings\Http\Requests\UpdateIntegrationsSettingsRequest;
 use App\Modules\Settings\Http\Requests\UpdateOperationsSettingsRequest;
 use App\Modules\Settings\Http\Requests\UpdateWalletSettingsRequest;
 use App\Modules\Settings\Services\SettingsPagePresenter;
+use App\Modules\Settings\Settings\WalletSettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -25,8 +27,14 @@ final class SettingsController
 
     public function index(Request $request): RedirectResponse
     {
+        $actor = $request->user();
+
         foreach (SettingsGroup::cases() as $group) {
-            if ($request->user()?->can($group->viewPermission())) {
+            $canView = $group === SettingsGroup::Wallet
+                ? ($actor !== null && Gate::forUser($actor)->allows('view', WalletSettings::class))
+                : ($actor?->can($group->viewPermission()) ?? false);
+
+            if ($canView) {
                 return to_route('administration.settings.'.$group->value);
             }
         }

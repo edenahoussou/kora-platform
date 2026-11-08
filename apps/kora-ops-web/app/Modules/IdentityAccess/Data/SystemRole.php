@@ -163,6 +163,8 @@ enum SystemRole: string
                 'profitability.export',
                 'wallet.debit-counter',
                 'wallet.manage-restitutions',
+                'wallet.ops.view',
+                'wallet.loyalty-rules.view',
             ],
             self::CommercialDirector => [
                 'kora-points.view', 'kora-points.manage', 'kora-points.terms', 'kora-points.documents.upload', 'kora-points.refund-request',
@@ -220,6 +222,9 @@ enum SystemRole: string
                 'profitability.export',
                 'wallet.manage-restitutions',
                 'wallet.adjust',
+                'wallet.ops.view',
+                'wallet.loyalty-rules.view',
+                'wallet.loyalty-rules.manage',
             ],
             self::GeneralManagement => [
                 'kora-points.view',
@@ -366,6 +371,9 @@ enum SystemRole: string
             'wallet.debit-counter',
             'wallet.manage-restitutions',
             'wallet.adjust',
+            'wallet.ops.view',
+            'wallet.loyalty-rules.view',
+            'wallet.loyalty-rules.manage',
         ];
     }
 

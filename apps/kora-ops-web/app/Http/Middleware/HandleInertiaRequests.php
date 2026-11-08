@@ -7,8 +7,13 @@ use App\Modules\Cash\Models\CashSession;
 use App\Modules\CompanyAccounts\Actions\ResolveReferentCompanyAccountAction;
 use App\Modules\Notifications\Actions\BuildSupportChatVisitorAction;
 use App\Modules\Settings\Settings\IntegrationsSettings;
+use App\Modules\Settings\Settings\WalletSettings;
 use App\Modules\Ticketing\Models\Ticket;
+use App\Modules\Wallet\Models\Wallet;
+use App\Modules\Wallet\Models\WalletLoyaltyRuleVersion;
+use App\Modules\Wallet\Models\WalletRestitution;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -45,6 +50,14 @@ class HandleInertiaRequests extends Middleware
         $settings = app(IntegrationsSettings::class);
         $referentResolver = app(ResolveReferentCompanyAccountAction::class);
         $referentAccount = $referentResolver->handle($user);
+        $walletCapabilities = $user === null ? [] : [
+            'walletOpsView' => Gate::forUser($user)->allows('viewAny', Wallet::class),
+            'walletRulesView' => Gate::forUser($user)->allows('viewAny', WalletLoyaltyRuleVersion::class),
+            'walletSettingsView' => Gate::forUser($user)->allows('view', WalletSettings::class),
+            'walletRestitutionQueueView' => Gate::forUser($user)->allows('viewQueue', WalletRestitution::class),
+            'walletRestitutionOwnView' => Gate::forUser($user)->allows('viewOwn', WalletRestitution::class),
+            'walletRestitutionRequest' => Gate::forUser($user)->allows('request', WalletRestitution::class),
+        ];
 
         return [
             ...parent::share($request),
@@ -60,6 +73,7 @@ class HandleInertiaRequests extends Middleware
                     'email_verified_at' => $user->email_verified_at?->toISOString(),
                     'permissions' => $user->getAllPermissions()->pluck('name')->toArray(),
                     'roles' => $user->getRoleNames()->toArray(),
+                    'walletCapabilities' => $walletCapabilities,
                 ] : null,
             ],
             'companyPortal' => $referentAccount === null ? null : [

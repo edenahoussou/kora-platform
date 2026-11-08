@@ -7,9 +7,11 @@ use App\Modules\Settings\Settings\WalletSettings;
 use App\Modules\Wallet\Data\WalletBalanceType;
 use App\Modules\Wallet\Data\WalletDirection;
 use App\Modules\Wallet\Data\WalletHoldStatus;
+use App\Modules\Wallet\Data\WalletLoyaltyRuleVersionStatus;
 use App\Modules\Wallet\Data\WalletTransactionReason;
 use App\Modules\Wallet\Models\Wallet;
 use App\Modules\Wallet\Models\WalletHold;
+use App\Modules\Wallet\Models\WalletLoyaltyRuleVersion;
 use App\Modules\Wallet\Models\WalletTransaction;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
@@ -345,6 +347,11 @@ final class WalletLedgerService
                 'idempotency_key' => $idempotencyKey,
                 'actor_user_id' => $actor?->getKey(),
                 'agency_id' => $agencyId,
+                'loyalty_rule_version_id' => $type === WalletBalanceType::Points
+                    ? WalletLoyaltyRuleVersion::query()
+                        ->where('status', WalletLoyaltyRuleVersionStatus::Active->value)
+                        ->value('id')
+                    : null,
                 'meta' => $meta === [] ? null : $meta,
                 'created_at' => now(),
             ]);

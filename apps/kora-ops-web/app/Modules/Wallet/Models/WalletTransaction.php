@@ -2,6 +2,7 @@
 
 namespace App\Modules\Wallet\Models;
 
+use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\Support\Models\KoraModel;
 use App\Modules\Wallet\Data\WalletBalanceType;
 use App\Modules\Wallet\Data\WalletDirection;
@@ -20,6 +21,7 @@ use Illuminate\Support\Carbon;
  * @property int $amount
  * @property WalletTransactionReason $reason
  * @property string $idempotency_key
+ * @property int|null $loyalty_rule_version_id
  * @property array<string, mixed>|null $meta
  * @property Carbon $created_at
  */
@@ -39,6 +41,7 @@ class WalletTransaction extends KoraModel
         'idempotency_key',
         'actor_user_id',
         'agency_id',
+        'loyalty_rule_version_id',
         'meta',
     ];
 
@@ -50,6 +53,22 @@ class WalletTransaction extends KoraModel
     public function wallet(): BelongsTo
     {
         return $this->belongsTo(Wallet::class);
+    }
+
+    /** @return BelongsTo<Agency, $this> */
+    public function agency(): BelongsTo
+    {
+        return $this->belongsTo(Agency::class);
+    }
+
+    /**
+     * Version de règle de fidélité active au moment de l'écriture, si elle existe.
+     *
+     * @return BelongsTo<WalletLoyaltyRuleVersion, $this>
+     */
+    public function loyaltyRuleVersion(): BelongsTo
+    {
+        return $this->belongsTo(WalletLoyaltyRuleVersion::class);
     }
 
     /**

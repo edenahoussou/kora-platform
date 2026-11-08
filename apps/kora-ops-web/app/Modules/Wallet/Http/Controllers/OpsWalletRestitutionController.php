@@ -20,6 +20,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -37,7 +38,10 @@ class OpsWalletRestitutionController extends Controller
     public function page(IndexWalletRestitutionsRequest $request): Response
     {
         $actor = $request->user();
-        $canManage = $actor?->can('wallet.manage-restitutions') ?? false;
+        $ability = Gate::allows('viewQueue', WalletRestitution::class) ? 'viewQueue' : 'viewOwn';
+        Gate::authorize($ability, WalletRestitution::class);
+        $canManage = Gate::allows('manage', WalletRestitution::class);
+        $canRequest = Gate::allows('request', WalletRestitution::class);
         $status = $request->validated('status');
 
         $query = WalletRestitution::query()
@@ -50,6 +54,11 @@ class OpsWalletRestitutionController extends Controller
 
         if (is_string($status) && $status !== '') {
             $query->where('status', $status);
+        }
+
+        $source = $request->validated('source');
+        if (is_string($source) && $source !== '') {
+            $query->where('uuid', $source);
         }
 
         $basePath = match (true) {
@@ -66,7 +75,7 @@ class OpsWalletRestitutionController extends Controller
             'basePath' => $basePath,
             'lookupPath' => str_replace('wallet-restitutions', 'wallet-lookup', $basePath),
             'permissions' => [
-                'canRequest' => $actor?->can('wallet.debit-counter') ?? false,
+                'canRequest' => $canRequest,
                 'canManage' => $canManage,
             ],
             'statuses' => [
@@ -88,7 +97,7 @@ class OpsWalletRestitutionController extends Controller
      */
     public function index(Request $request): AnonymousResourceCollection
     {
-        abort_unless($request->user()?->can('wallet.manage-restitutions'), 403);
+        Gate::authorize('viewAny', WalletRestitution::class);
 
         $query = WalletRestitution::query()
             ->with(['wallet.user', 'requestedBy', 'approvedBy'])
@@ -116,7 +125,7 @@ class OpsWalletRestitutionController extends Controller
         RequestRestitutionAction $requestRestitution,
         PassengerIdentityResolver $identityResolver,
     ): JsonResponse|RedirectResponse {
-        abort_unless($request->user()?->can('wallet.debit-counter'), 403);
+        Gate::authorize('request', WalletRestitution::class);
 
         $wallet = Wallet::query()
             ->with('user')
@@ -160,7 +169,7 @@ class OpsWalletRestitutionController extends Controller
         WalletRestitution $restitution,
         ApproveRestitutionAction $approveRestitution,
     ): JsonResponse|RedirectResponse {
-        abort_unless($request->user()?->can('wallet.manage-restitutions'), 403);
+        Gate::authorize('approve', $restitution);
 
         $restitution = $approveRestitution->handle($restitution, $request->user());
 
@@ -186,7 +195,7 @@ class OpsWalletRestitutionController extends Controller
         WalletRestitution $restitution,
         RejectRestitutionAction $rejectRestitution,
     ): JsonResponse|RedirectResponse {
-        abort_unless($request->user()?->can('wallet.manage-restitutions'), 403);
+        Gate::authorize('reject', $restitution);
 
         $restitution = $rejectRestitution->handle($restitution, $request->user(), $request->string('reason')->value());
 
@@ -212,7 +221,7 @@ class OpsWalletRestitutionController extends Controller
         WalletRestitution $restitution,
         MarkRestitutionPaidAction $markRestitutionPaid,
     ): JsonResponse|RedirectResponse {
-        abort_unless($request->user()?->can('wallet.manage-restitutions'), 403);
+        Gate::authorize('markPaid', $restitution);
 
         $restitution = $markRestitutionPaid->handle(
             $restitution,
