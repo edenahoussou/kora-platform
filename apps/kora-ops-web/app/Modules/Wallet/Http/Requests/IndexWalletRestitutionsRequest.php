@@ -13,10 +13,7 @@ class IndexWalletRestitutionsRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        $user = $this->user();
-
-        return $user !== null
-            && ($user->can('wallet.manage-restitutions') || $user->can('wallet.debit-counter'));
+        return true;
     }
 
     /**
@@ -26,6 +23,7 @@ class IndexWalletRestitutionsRequest extends FormRequest
     {
         return [
             'status' => ['nullable', Rule::enum(RestitutionStatus::class)],
+            'source' => ['nullable', 'uuid'],
         ];
     }
 }

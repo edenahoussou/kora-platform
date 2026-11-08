@@ -35,6 +35,7 @@ use App\Modules\Payments\Data\PaymentMethod;
 use App\Modules\SeatInventory\Actions\BuildCounterSaleSeatAvailabilityAction;
 use App\Modules\Ticketing\Data\TicketIssuanceStatus;
 use App\Modules\Ticketing\Jobs\IssueReservationTicketsJob;
+use App\Modules\Wallet\Models\Wallet;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -151,7 +152,7 @@ class KoraPointSaleController extends CounterSaleController
             'reservation' => $this->serializeReservation($reservation),
             'permissions' => [
                 'canCreate' => $health['sales_allowed'] && Gate::allows('createCounterSale', Reservation::class),
-                'canDebitWallet' => $user->can('wallet.debit-counter'),
+                'canDebitWallet' => Gate::forUser($user)->allows('lookup', Wallet::class),
             ],
             'cashSession' => $this->serializeCashSession(),
             'mobileMoneyAccounts' => $this->serializeMobileMoneyAccounts(),

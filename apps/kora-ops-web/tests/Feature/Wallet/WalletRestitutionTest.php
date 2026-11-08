@@ -43,7 +43,7 @@ it('runs the restitution workflow and debits the wallet once', function (): void
 
     $this->postJson('/api/v1/ops/wallet-restitutions/'.$uuid.'/mark-paid', [
         'payout_reference' => 'MM-2026-0001',
-    ])->assertUnprocessable();
+    ])->assertForbidden();
 
     expect($scenario['wallet']->fresh()->cash_balance)->toBe(6000);
 });

@@ -54,6 +54,7 @@ use App\Modules\SeatInventory\Data\CounterSaleSeatAvailabilityData;
 use App\Modules\Ticketing\Data\TicketIssuanceStatus;
 use App\Modules\Ticketing\Jobs\IssueReservationTicketsJob;
 use App\Modules\Ticketing\Models\Ticket;
+use App\Modules\Wallet\Models\Wallet;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
@@ -150,7 +151,7 @@ class CounterSaleController extends Controller
             'groupBookingSettings' => $this->serializeGroupBookingSettings(),
             'permissions' => [
                 'canCreate' => Gate::allows('createCounterSale', Reservation::class),
-                'canDebitWallet' => $request->user()?->can('wallet.debit-counter') ?? false,
+                'canDebitWallet' => Gate::allows('lookup', Wallet::class),
             ],
         ]);
     }

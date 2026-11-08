@@ -28,6 +28,7 @@ class DatabaseSeeder extends Seeder
             Mez57GroupPurchaseSeeder::class,
             KoraCompanyAccountSeeder::class,
             KoraExpenseCategorySeeder::class,
+            WalletLoyaltyRuleVersionSeeder::class,
         ]);
     }
 }

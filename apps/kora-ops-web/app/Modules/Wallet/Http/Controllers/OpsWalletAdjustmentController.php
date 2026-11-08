@@ -9,6 +9,7 @@ use App\Modules\Wallet\Http\Requests\WalletAdjustmentRequest;
 use App\Modules\Wallet\Http\Resources\WalletTransactionResource;
 use App\Modules\Wallet\Models\Wallet;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * @group Wallet OPS
@@ -32,7 +33,7 @@ class OpsWalletAdjustmentController extends Controller
         Wallet $wallet,
         RecordWalletAdjustmentAction $recordAdjustment,
     ): JsonResponse {
-        abort_unless($request->user()?->can('wallet.adjust'), 403);
+        Gate::authorize('adjust', $wallet);
 
         $transaction = $recordAdjustment->handle(
             wallet: $wallet,

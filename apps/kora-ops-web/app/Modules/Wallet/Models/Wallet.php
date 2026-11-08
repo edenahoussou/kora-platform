@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Modules\Support\Models\KoraModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -57,6 +58,12 @@ class Wallet extends KoraModel
     public function transactions(): HasMany
     {
         return $this->hasMany(WalletTransaction::class);
+    }
+
+    /** @return HasOne<WalletTransaction, $this> */
+    public function latestTransaction(): HasOne
+    {
+        return $this->hasOne(WalletTransaction::class)->latestOfMany('created_at');
     }
 
     /**

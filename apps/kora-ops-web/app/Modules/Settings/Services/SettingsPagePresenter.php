@@ -7,6 +7,8 @@ use App\Modules\BusNetwork\Data\LineStatus;
 use App\Modules\BusNetwork\Models\Line;
 use App\Modules\Settings\Contracts\SettingsCoordinator;
 use App\Modules\Settings\Data\SettingsGroup;
+use App\Modules\Settings\Settings\WalletSettings;
+use Illuminate\Support\Facades\Gate;
 
 final class SettingsPagePresenter
 {
@@ -28,10 +30,15 @@ final class SettingsPagePresenter
                 'sensitiveProperties' => $snapshot->sensitiveProperties,
                 'capturedAt' => $snapshot->capturedAt->format(DATE_ATOM),
             ],
-            'permissions' => [
-                'canView' => $actor->can($group->viewPermission()),
-                'canManage' => $actor->can($group->managePermission()),
-            ],
+            'permissions' => $group === SettingsGroup::Wallet
+                ? [
+                    'canView' => Gate::forUser($actor)->allows('view', WalletSettings::class),
+                    'canManage' => Gate::forUser($actor)->allows('update', WalletSettings::class),
+                ]
+                : [
+                    'canView' => $actor->can($group->viewPermission()),
+                    'canManage' => $actor->can($group->managePermission()),
+                ],
             'lineOptions' => $group === SettingsGroup::Operations
                 ? $this->lineOptions()
                 : [],

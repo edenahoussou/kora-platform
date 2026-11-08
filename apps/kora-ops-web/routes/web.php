@@ -40,6 +40,9 @@ use App\Modules\Ticketing\Http\Controllers\TicketPreviewController;
 use App\Modules\Ticketing\Http\Controllers\TicketViewController;
 use App\Modules\Tracking\Http\Controllers\FleetTrackingPageController;
 use App\Modules\Wallet\Http\Controllers\OpsWalletLookupController;
+use App\Modules\Wallet\Http\Controllers\OpsWalletLoyaltyRuleController;
+use App\Modules\Wallet\Http\Controllers\OpsWalletPageController;
+use App\Modules\Wallet\Models\Wallet;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
@@ -323,14 +326,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('ride/reconciliation', $comingSoon('Rapprochements RIDE', 'Comparez les courses, paiements, commissions et reversements.', 'KORA RIDE — V2'))->name('ride.reconciliation');
     Route::get('ride/profitability', $comingSoon('Rentabilité RIDE', 'Mesurez la contribution par zone, catégorie et période.', 'KORA RIDE — V2'))->name('ride.profitability');
 
-    // Wallet & fidélité — V2
-    Route::get('wallet', $comingSoon('Wallet & fidélité', 'Suivez les soldes, crédits, points et usages sur tous les services KORA.', 'Wallet — V2'))->name('wallet');
-    Route::get('wallet/dashboard', $comingSoon('Pilotage KORA Wallet', 'Suivez les soldes, crédits, points et usages sur tous les services KORA.', 'Wallet — V2'))->name('wallet.dashboard');
-    Route::get('wallet/accounts', $comingSoon('Comptes Wallet', 'Consultez les soldes, statuts, activité et sécurité des portefeuilles.', 'Wallet — V2'))->name('wallet.accounts');
-    Route::get('wallet/transactions', $comingSoon('Mouvements Wallet', 'Contrôlez crédits, débits, remboursements, points et paiements combinés.', 'Wallet — V2'))->name('wallet.transactions');
-    Route::get('wallet/rules', $comingSoon('Règles de fidélité', 'Configurez acquisition, utilisation, communication et expiration des points.', 'Wallet — V2'))->name('wallet.rules');
-    Route::get('wallet/expiry', $comingSoon('Expirations Wallet', 'Suivez les alertes J-30, J-7 et J-1 et les prolongations d’activité.', 'Wallet — V2'))->name('wallet.expiry');
-    Route::get('wallet/reconciliation', $comingSoon('Rapprochements Wallet', 'Rapprochez les mouvements Wallet avec billets, colis, RIDE et Mobile Money.', 'Wallet — V2'))->name('wallet.reconciliation');
+    // Wallet OPS — KORA BUS only. Read routes do not provision wallets.
+    Route::get('wallet', fn () => to_route('wallet.dashboard'))->name('wallet');
+    Route::get('wallet/dashboard', [OpsWalletPageController::class, 'dashboard'])->name('wallet.dashboard');
+    Route::get('wallet/accounts', [OpsWalletPageController::class, 'accounts'])->name('wallet.accounts');
+    Route::get('wallet/accounts/{wallet:uuid}', [OpsWalletPageController::class, 'account'])->name('wallet.accounts.show');
+    Route::get('wallet/transactions', [OpsWalletPageController::class, 'movements'])->name('wallet.transactions');
+    Route::get('wallet/transactions/{transaction:uuid}', [OpsWalletPageController::class, 'movement'])->name('wallet.transactions.show');
+    Route::get('wallet/rules', [OpsWalletLoyaltyRuleController::class, 'index'])->name('wallet.rules');
+    Route::post('wallet/rules', [OpsWalletLoyaltyRuleController::class, 'store'])->name('wallet.rules.store');
+    Route::patch('wallet/rules/{version:uuid}', [OpsWalletLoyaltyRuleController::class, 'update'])->name('wallet.rules.update');
+    Route::post('wallet/rules/{version:uuid}/simulate', [OpsWalletLoyaltyRuleController::class, 'simulate'])->name('wallet.rules.simulate');
+    Route::post('wallet/rules/{version:uuid}/schedule', [OpsWalletLoyaltyRuleController::class, 'schedule'])->name('wallet.rules.schedule');
+    Route::get('wallet/expiry', fn () => to_route('wallet.dashboard', ['focus' => 'expiry']))->name('wallet.expiry');
+    Route::get('wallet/reconciliation', fn () => to_route('wallet.transactions'))->name('wallet.reconciliation');
 
     // Réseau commercial — V2 (sauf dynamic-pricing qui est V1)
     Route::get('network-commercial', $comingSoon('Réseau commercial', 'Suivez l’activité et la performance du réseau de distribution.', 'Réseau commercial — V2'))->name('network-commercial');

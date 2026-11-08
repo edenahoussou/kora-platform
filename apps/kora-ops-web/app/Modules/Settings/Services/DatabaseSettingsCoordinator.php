@@ -12,6 +12,7 @@ use App\Modules\Settings\Data\SettingsGroup;
 use App\Modules\Settings\Data\SettingsSnapshot;
 use App\Modules\Settings\DTO\OperationsSettingsUpdate;
 use App\Modules\Settings\DTO\SettingsUpdate;
+use App\Modules\Settings\Settings\WalletSettings;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Support\Facades\Auth;
@@ -37,7 +38,7 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
             throw new AuthorizationException('An authenticated actor is required to read settings.');
         }
 
-        $this->authorize($group->viewPermission(), $actor);
+        $this->authorizeGroup($group, 'view', $actor);
 
         $settings = $this->settings($group);
 
@@ -57,7 +58,7 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
             throw new \InvalidArgumentException('The settings update does not belong to the selected group.');
         }
 
-        $this->authorize($group->managePermission(), $actor);
+        $this->authorizeGroup($group, 'update', $actor);
 
         return $this->persist($group, $update, $actor);
     }
@@ -540,6 +541,18 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
         if (enum_value($actor->status) !== UserStatus::Active->value || ! Gate::forUser($actor)->allows($permission)) {
             throw new AuthorizationException("Missing permission [{$permission}].");
         }
+    }
+
+    private function authorizeGroup(SettingsGroup $group, string $ability, User $actor): void
+    {
+        if ($group === SettingsGroup::Wallet) {
+            Gate::forUser($actor)->authorize($ability, WalletSettings::class);
+
+            return;
+        }
+
+        $permission = $ability === 'view' ? $group->viewPermission() : $group->managePermission();
+        $this->authorize($permission, $actor);
     }
 
     private function clearCache(SettingsGroup $group): void

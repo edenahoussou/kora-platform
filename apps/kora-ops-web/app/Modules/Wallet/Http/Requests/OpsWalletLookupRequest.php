@@ -11,7 +11,7 @@ class OpsWalletLookupRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()?->can('wallet.debit-counter') ?? false;
+        return true;
     }
 
     /**

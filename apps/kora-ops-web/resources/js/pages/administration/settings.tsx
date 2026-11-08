@@ -1266,7 +1266,7 @@ export default function SettingsPage({
                 </SettingsSection>
                 <SettingsSection
                     title="Fidélité"
-                    description="Le taux s’applique à la part monétaire des allocations figées de chaque jambe effectuée."
+                    description="Lecture seule des règles actives. Leur modification, simulation et programmation se font dans Wallet → Règles de fidélité."
                 >
                     <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
                         <SettingsField
@@ -1277,7 +1277,7 @@ export default function SettingsPage({
                             }
                             type="number"
                             suffix="pts base 10000"
-                            disabled={!permissions.canManage}
+                            disabled={true}
                             error={error('loyaltyEarnRateBasisPoints')}
                             onChange={(nextValue) =>
                                 setNumber(
@@ -1292,7 +1292,7 @@ export default function SettingsPage({
                             value={value('pointValueFcfa') as number}
                             type="number"
                             suffix="FCFA"
-                            disabled={!permissions.canManage}
+                            disabled={true}
                             error={error('pointValueFcfa')}
                             onChange={(nextValue) =>
                                 setNumber('pointValueFcfa', nextValue)
@@ -1304,7 +1304,7 @@ export default function SettingsPage({
                             value={value('pointsMinSpend') as number}
                             type="number"
                             suffix="points"
-                            disabled={!permissions.canManage}
+                            disabled={true}
                             error={error('pointsMinSpend')}
                             onChange={(nextValue) =>
                                 setNumber('pointsMinSpend', nextValue)
@@ -1316,7 +1316,7 @@ export default function SettingsPage({
                             value={value('bonusWelcomePoints') as number}
                             type="number"
                             suffix="points"
-                            disabled={!permissions.canManage}
+                            disabled={true}
                             error={error('bonusWelcomePoints')}
                             onChange={(nextValue) =>
                                 setNumber('bonusWelcomePoints', nextValue)
@@ -1328,7 +1328,7 @@ export default function SettingsPage({
                             value={value('bonusReferralPoints') as number}
                             type="number"
                             suffix="points"
-                            disabled={!permissions.canManage}
+                            disabled={true}
                             error={error('bonusReferralPoints')}
                             onChange={(nextValue) =>
                                 setNumber('bonusReferralPoints', nextValue)
@@ -1340,7 +1340,7 @@ export default function SettingsPage({
                             value={value('bonusAnniversaryPoints') as number}
                             type="number"
                             suffix="points"
-                            disabled={!permissions.canManage}
+                            disabled={true}
                             error={error('bonusAnniversaryPoints')}
                             onChange={(nextValue) =>
                                 setNumber('bonusAnniversaryPoints', nextValue)
@@ -1351,7 +1351,7 @@ export default function SettingsPage({
                             hint="Nième utilisation du mois calendaire déclenchant le bonus."
                             value={value('bonusUsageNth') as number}
                             type="number"
-                            disabled={!permissions.canManage}
+                            disabled={true}
                             error={error('bonusUsageNth')}
                             onChange={(nextValue) =>
                                 setNumber('bonusUsageNth', nextValue)
@@ -1363,7 +1363,7 @@ export default function SettingsPage({
                             value={value('bonusUsagePoints') as number}
                             type="number"
                             suffix="points"
-                            disabled={!permissions.canManage}
+                            disabled={true}
                             error={error('bonusUsagePoints')}
                             onChange={(nextValue) =>
                                 setNumber('bonusUsagePoints', nextValue)
@@ -1382,7 +1382,7 @@ export default function SettingsPage({
                             value={value('pointsExpiryMonths') as number}
                             type="number"
                             suffix="mois"
-                            disabled={!permissions.canManage}
+                            disabled={true}
                             error={error('pointsExpiryMonths')}
                             onChange={(nextValue) =>
                                 setNumber('pointsExpiryMonths', nextValue)
@@ -1392,7 +1392,7 @@ export default function SettingsPage({
                             label="Jalons de rappel"
                             hint="Jours avant expiration, séparés par des virgules."
                             value={reminderDays.join(', ')}
-                            disabled={!permissions.canManage}
+                            disabled={true}
                             error={error('pointsExpiryReminderDays')}
                             onChange={(nextValue) =>
                                 setValue(

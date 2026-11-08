@@ -9,6 +9,14 @@ export type User = {
     canViewTickets?: boolean;
     permissions?: string[];
     roles?: string[];
+    walletCapabilities?: {
+        walletOpsView?: boolean;
+        walletRulesView?: boolean;
+        walletSettingsView?: boolean;
+        walletRestitutionQueueView?: boolean;
+        walletRestitutionOwnView?: boolean;
+        walletRestitutionRequest?: boolean;
+    };
     [key: string]: unknown;
 };
 
