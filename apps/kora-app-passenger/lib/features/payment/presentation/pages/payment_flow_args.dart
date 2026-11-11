@@ -19,6 +19,7 @@ class PaymentFlowArgs {
     this.pollingInterval,
     this.departure,
     this.seatLabel,
+    this.isTopUp = false,
   });
 
   final Price total;
@@ -36,6 +37,14 @@ class PaymentFlowArgs {
 
   /// `polling_interval_seconds` : à quelle cadence interroger le serveur.
   final Duration? pollingInterval;
+
+  /// Vrai quand ce paiement alimente le Wallet.
+  ///
+  /// Les écrans d'issue sont les mêmes que pour un billet — c'est le
+  /// même paiement provider — mais ce qu'ils annoncent change : une
+  /// recharge n'a ni siège retenu, ni billet à afficher, et dire le
+  /// contraire inquiéterait pour rien.
+  final bool isTopUp;
 
   /// De quoi récapituler le voyage sur l'écran de confirmation.
   final Departure? departure;

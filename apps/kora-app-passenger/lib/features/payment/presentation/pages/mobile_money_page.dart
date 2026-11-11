@@ -293,8 +293,11 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
       return;
     }
 
-    final hold = context.read<SeatHoldBloc>().state.hold;
-    if (hold == null) {
+    // Une recharge n'a pas de réservation : le blocage de sièges ne la
+    // concerne pas.
+    final topUp = widget.args?.topUpAmount;
+    final hold = topUp == null ? context.read<SeatHoldBloc>().state.hold : null;
+    if (topUp == null && hold == null) {
       // Sans blocage, il n'y a pas de réservation à payer — un lien
       // profond, ou un retour après expiration.
       context.go(AppRouter.holdExpiredPath);
@@ -303,7 +306,10 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
 
     context.read<PaymentFlowBloc>().add(
       PaymentFlowStarted(
-        reservationId: hold.id,
+        reservationId: hold?.id,
+        topUpAmount: topUp,
+        walletAmount: widget.args?.walletAmount,
+        pointsAmount: widget.args?.pointsAmount,
         provider: provider.code,
         network: network,
         phone: '${_country.code}${_phone.text.replaceAll(RegExp(r'\D'), '')}',
@@ -321,7 +327,7 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
   void _onFlowChanged(BuildContext context, PaymentFlowState flow) {
     // Le paiement repris au lancement peut être celui d'une autre
     // réservation : il ne pilote pas cet écran-ci.
-    if (!paymentFlowMatchesHold(context, flow)) return;
+    if (!paymentFlowMatchesHold(context, flow, widget.args)) return;
 
     if (flow.hasFailed) {
       context.push(AppRouter.paymentFailedPath, extra: _flowArgs(flow.attempt));
@@ -410,6 +416,7 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
       pollingInterval: attempt?.pollingInterval,
       departure: widget.args!.departure,
       seatLabel: widget.args!.seatLabel,
+      isTopUp: widget.args!.isTopUp,
     );
   }
 
@@ -448,8 +455,11 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
 
     // Le paiement suit son cours ailleurs : on y ramène plutôt que de
     // laisser croire qu'il faut recommencer. Celui d'une autre
-    // réservation, lui, ne doit rien verrouiller ici.
-    if (flow.isPending && paymentFlowMatchesHold(context, flow)) {
+    // réservation — ou d'un billet, quand on recharge le Wallet — ne
+    // doit rien verrouiller ici : sans `args`, un vieux paiement
+    // remplaçait « Payer » par « Suivre le paiement en cours » et la
+    // recharge ne pouvait plus partir.
+    if (flow.isPending && paymentFlowMatchesHold(context, flow, widget.args)) {
       return KoraButton(
         label: l10n.paymentMomoResume,
         variant: KoraButtonVariant.ghost,
@@ -492,7 +502,11 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               ScreenHeader(
-                eyebrow: l10n.paymentMomoEyebrow(args.total.formatted),
+                // Une recharge n'achète pas de billet : le surtitre le
+                // dit, comme sur la feuille de la passerelle.
+                eyebrow: args.isTopUp
+                    ? l10n.paymentTopUpEyebrow
+                    : l10n.paymentMomoEyebrow(args.total.formatted),
                 title: l10n.paymentMomoTitle,
               ),
               Expanded(

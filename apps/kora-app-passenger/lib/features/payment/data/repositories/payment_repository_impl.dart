@@ -30,6 +30,8 @@ class PaymentRepositoryImpl with ApiFailureMapper implements PaymentRepository {
     required String idempotencyKey,
     String? network,
     String? phone,
+    int? walletAmount,
+    int? pointsAmount,
   }) {
     return attempt(
       () => _remote.initiate(

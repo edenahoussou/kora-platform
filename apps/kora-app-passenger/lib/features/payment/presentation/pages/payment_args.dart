@@ -14,6 +14,9 @@ class PaymentArgs {
     this.phone,
     this.departure,
     this.seatLabel,
+    this.topUpAmount,
+    this.walletAmount,
+    this.pointsAmount,
   });
 
   /// Le montant dû pour l'ensemble des voyageurs.
@@ -36,4 +39,26 @@ class PaymentArgs {
   /// et rappeler l'API pour réafficher ce qu'on sait déjà serait gratuit.
   final Departure? departure;
   final String? seatLabel;
+
+  /// Le montant d'une recharge du Wallet, quand l'écran d'encaissement
+  /// sert une recharge et non un billet.
+  ///
+  /// Une recharge n'a pas de réservation : c'est à ce champ que le
+  /// parcours reconnaît qu'il doit passer par `POST /wallet/topups`
+  /// plutôt que par `payments/initiate`. Les écrans d'encaissement sont
+  /// les mêmes — en refaire une copie pour la recharge laisserait les
+  /// deux parcours diverger à la première correction.
+  final int? topUpAmount;
+
+  /// Vrai quand cet encaissement alimente le Wallet.
+  bool get isTopUp => topUpAmount != null;
+
+  /// La part du billet déjà couverte par le solde Wallet, en francs, et
+  /// par les points, en points.
+  ///
+  /// Portées jusqu'à l'écran qui encaisse le reste : c'est le même
+  /// paiement, et le serveur a besoin des trois parts dans la même
+  /// demande pour que ses comptes tombent juste.
+  final int? walletAmount;
+  final int? pointsAmount;
 }

@@ -436,6 +436,129 @@ class AppLocalization {
   String get walletReasonUnknown => translate('wallet_reason_unknown');
   String get walletSoon => translate('wallet_soon');
 
+  // --------------------------------------------- écran Historique Wallet
+  String get walletHistoryTitle => translate('wallet_history_title');
+  String get walletHistoryEyebrow => translate('wallet_history_eyebrow');
+  String get walletHistoryFilterAll => translate('wallet_history_filter_all');
+  String get walletHistoryFilterCredits =>
+      translate('wallet_history_filter_credits');
+  String get walletHistoryFilterUses => translate('wallet_history_filter_uses');
+  String get walletHistoryErrorTitle => translate('wallet_history_error_title');
+  String get walletHistoryErrorText => translate('wallet_history_error_text');
+  String get walletHistoryEmptyTitle => translate('wallet_history_empty_title');
+  String get walletHistoryEmptyText => translate('wallet_history_empty_text');
+  String get walletHistoryEmptyFiltered =>
+      translate('wallet_history_empty_filtered');
+  String get walletHistoryMoreFailed => translate('wallet_history_more_failed');
+  String get walletHistoryEnd => translate('wallet_history_end');
+
+  // ----------------------------------------------- écran Recharge Wallet
+  String get walletTopUpTitle => translate('wallet_top_up_title');
+  String get walletTopUpCurrent => translate('wallet_top_up_current');
+  String get walletTopUpAmountLabel => translate('wallet_top_up_amount_label');
+  String get walletTopUpAmountHint => translate('wallet_top_up_amount_hint');
+  String get walletTopUpMethodLabel => translate('wallet_top_up_method_label');
+  String get walletTopUpMethodsEmpty =>
+      translate('wallet_top_up_methods_empty');
+  String get walletTopUpMethodsFailed =>
+      translate('wallet_top_up_methods_failed');
+  String get walletTopUpAction => translate('wallet_top_up_action');
+  String walletTopUpTooSmall(String min) =>
+      _withArgs('wallet_top_up_too_small', {'min': min});
+  String walletTopUpTooLarge(String max) =>
+      _withArgs('wallet_top_up_too_large', {'max': max});
+  String walletTopUpOverCap(String cap) =>
+      _withArgs('wallet_top_up_over_cap', {'cap': cap});
+  String get walletTopUpClosedTitle => translate('wallet_top_up_closed_title');
+  String get walletTopUpClosedText => translate('wallet_top_up_closed_text');
+  String get walletTopUpErrorTitle => translate('wallet_top_up_error_title');
+  String get walletTopUpErrorText => translate('wallet_top_up_error_text');
+  String get walletTopUpOpenedTitle => translate('wallet_top_up_opened_title');
+  String walletTopUpOpenedText(String amount) =>
+      _withArgs('wallet_top_up_opened_text', {'amount': amount});
+  String get walletTopUpEyebrow => translate('wallet_top_up_eyebrow');
+  String get walletTopUpNote => translate('wallet_top_up_note');
+  String get walletTopUpMethodTitle => translate('wallet_top_up_method_title');
+  String get walletTopUpMethodMomo => translate('wallet_top_up_method_momo');
+  String get walletTopUpMethodMomoLead =>
+      translate('wallet_top_up_method_momo_lead');
+  String get walletTopUpMethodCard => translate('wallet_top_up_method_card');
+  String get walletTopUpMethodCardLead =>
+      translate('wallet_top_up_method_card_lead');
+  String get walletTopUpNoAmount => translate('wallet_top_up_no_amount');
+  String get walletTopUpPaymentPending =>
+      translate('wallet_top_up_payment_pending');
+
+  // ------------------------- paiement d'une recharge (mêmes écrans)
+  String get paymentTopUpEyebrow => translate('payment_topup_eyebrow');
+  String get paymentTopUpPendingTitle =>
+      translate('payment_topup_pending_title');
+  String get paymentTopUpPendingText => translate('payment_topup_pending_text');
+  String get paymentTopUpPendingTextWidget =>
+      translate('payment_topup_pending_text_widget');
+  String get paymentTopUpFailedText => translate('payment_topup_failed_text');
+  String get paymentFailedProviderText =>
+      translate('payment_failed_provider_text');
+  String get paymentTopUpSuccessTitle =>
+      translate('payment_topup_success_title');
+  String paymentTopUpSuccessText(String amount) =>
+      _withArgs('payment_topup_success_text', {'amount': amount});
+  String get paymentTopUpSuccessAction =>
+      translate('payment_topup_success_action');
+
+  // ------------------------------------- écrans Services, Règles, Bonus
+  String get walletServicesTitle => translate('wallet_services_title');
+  String get walletServicesEyebrow => translate('wallet_services_eyebrow');
+  String get walletServiceBus => translate('wallet_service_bus');
+  String get walletServiceBusLead => translate('wallet_service_bus_lead');
+  String get walletServiceRide => translate('wallet_service_ride');
+  String get walletServiceRideLead => translate('wallet_service_ride_lead');
+  String get walletServiceParcels => translate('wallet_service_parcels');
+  String get walletServiceParcelsLead =>
+      translate('wallet_service_parcels_lead');
+  String get walletServicePremium => translate('wallet_service_premium');
+  String get walletServicePremiumLead =>
+      translate('wallet_service_premium_lead');
+  String get walletServiceSoon => translate('wallet_service_soon');
+  String walletServicesRule(String min) =>
+      _withArgs('wallet_services_rule', {'min': min});
+  String get walletServicesRuleUnknown =>
+      translate('wallet_services_rule_unknown');
+  String get walletServicesRules => translate('wallet_services_rules');
+  String get walletRulesTitle => translate('wallet_rules_title');
+  String get walletRulesEyebrow => translate('wallet_rules_eyebrow');
+  String walletRuleValue(String point, String value) =>
+      _withArgs('wallet_rule_value', {'point': point, 'value': value});
+  String get walletRuleValueUnknown => translate('wallet_rule_value_unknown');
+  String walletRuleSpend(String min) =>
+      _withArgs('wallet_rule_spend', {'min': min});
+  String get walletRuleSpendUnknown => translate('wallet_rule_spend_unknown');
+  String get walletRuleNoCashOut => translate('wallet_rule_no_cash_out');
+  String get walletRuleNoCashOutLead =>
+      translate('wallet_rule_no_cash_out_lead');
+  String get walletRuleNoTransfer => translate('wallet_rule_no_transfer');
+  String get walletRuleNoTransferLead =>
+      translate('wallet_rule_no_transfer_lead');
+  String get walletRuleNoBonus => translate('wallet_rule_no_bonus');
+  String get walletRuleNoBonusLead => translate('wallet_rule_no_bonus_lead');
+  String walletRuleExpiry(String months) =>
+      _withArgs('wallet_rule_expiry', {'months': months});
+  String walletRuleExpiryWithAlerts(String months, String alerts) => _withArgs(
+    'wallet_rule_expiry_with_alerts',
+    {'months': months, 'alerts': alerts},
+  );
+  String get walletRuleExpiryUnknown => translate('wallet_rule_expiry_unknown');
+  String get walletBonusTitle => translate('wallet_bonus_title');
+  String get walletBonusEyebrow => translate('wallet_bonus_eyebrow');
+  String get walletBonusEarned => translate('wallet_bonus_earned');
+  String get walletBonusEarnedUnknown =>
+      translate('wallet_bonus_earned_unknown');
+  String get walletBonusObtained => translate('wallet_bonus_obtained');
+  String get walletBonusPending => translate('wallet_bonus_pending');
+  String get walletBonusInvite => translate('wallet_bonus_invite');
+  String get walletBonusErrorTitle => translate('wallet_bonus_error_title');
+  String get walletBonusErrorText => translate('wallet_bonus_error_text');
+
   // ------------------------------------------------------- écran Profil
   String get profileWelcome => translate('profile_welcome');
   String profileMemberSince(int year) =>
@@ -559,6 +682,8 @@ class AppLocalization {
   String get paymentMethodWallet => translate('payment_method_wallet');
   String paymentMethodWalletLead(String balance) =>
       _withArgs('payment_method_wallet_lead', {'balance': balance});
+  String get paymentMethodWalletLeadPlain =>
+      translate('payment_method_wallet_lead_plain');
   String get paymentMethodCard => translate('payment_method_card');
   String get paymentMethodCardLead => translate('payment_method_card_lead');
   String paymentMethodHold(String time) =>
@@ -566,6 +691,8 @@ class AppLocalization {
   String get paymentMethodTotal => translate('payment_method_total');
   String paymentGatewayMomoLead(String gateway) =>
       _withArgs('payment_gateway_momo_lead', {'gateway': gateway});
+  String get paymentGatewayMomoLeadPlain =>
+      translate('payment_gateway_momo_lead_plain');
   String get paymentMomoTitle => translate('payment_momo_title');
   String paymentMomoEyebrow(String amount) =>
       _withArgs('payment_momo_eyebrow', {'amount': amount});
@@ -614,6 +741,12 @@ class AppLocalization {
   String get paymentWalletRemainder => translate('payment_wallet_remainder');
   String get paymentWalletConfirm => translate('payment_wallet_confirm');
   String get paymentWalletNotice => translate('payment_wallet_notice');
+  String get paymentWalletCashClosed => translate('payment_wallet_cash_closed');
+  String get paymentWalletPointsNone => translate('payment_wallet_points_none');
+  String paymentWalletPointsMinimum(String min) =>
+      _withArgs('payment_wallet_points_minimum', {'min': min});
+  String get paymentWalletUnavailable =>
+      translate('payment_wallet_unavailable');
   String get paymentCardTitle => translate('payment_card_title');
   String get paymentCardLead => translate('payment_card_lead');
   String get paymentCardEyebrow => translate('payment_card_eyebrow');
@@ -1280,6 +1413,17 @@ class AppLocalization {
   String get profileEditLastName => translate('profile_edit_last_name');
   String get profileEditPhone => translate('profile_edit_phone');
   String get profileEditPhoneLocked => translate('profile_edit_phone_locked');
+  String get profileEditPhoneHintFree =>
+      translate('profile_edit_phone_hint_free');
+  String get profileEditPhoneHelp => translate('profile_edit_phone_help');
+  String profileEditPhoneInvalid(String country, int digits) => _withArgs(
+    'profile_edit_phone_invalid',
+    {'country': country, 'digits': digits},
+  );
+  String get profileEditEmailHint => translate('profile_edit_email_hint');
+  String get profileEditEmailNone => translate('profile_edit_email_none');
+  String get profileEditEmailLocked => translate('profile_edit_email_locked');
+  String get profileEditPhoneAdd => translate('profile_edit_phone_add');
   String get profileEditEmail => translate('profile_edit_email');
   String get profileEditBirthDate => translate('profile_edit_birth_date');
   String get profileEditBirthDateHint =>

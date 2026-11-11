@@ -67,7 +67,12 @@ import '../../features/support/presentation/pages/contact_page.dart';
 import '../../features/support/presentation/pages/help_page.dart';
 import '../../features/support/presentation/pages/support_chat_page.dart';
 import '../../features/support/presentation/widgets/support_chat_fab.dart';
+import '../../features/wallet/presentation/pages/wallet_bonuses_page.dart';
+import '../../features/wallet/presentation/pages/wallet_history_page.dart';
 import '../../features/wallet/presentation/pages/wallet_page.dart';
+import '../../features/wallet/presentation/pages/wallet_services_page.dart';
+import '../../features/wallet/presentation/pages/wallet_top_up_method_page.dart';
+import '../../features/wallet/presentation/pages/wallet_top_up_page.dart';
 import '../../features/welcome/data/onboarding_store.dart';
 import '../../features/welcome/presentation/pages/onboarding_page.dart';
 import '../../features/welcome/presentation/pages/splash_page.dart';
@@ -135,6 +140,24 @@ class AppRouter {
   static const String accountDeletionPath = '/profile/securite/suppression';
   static const String preferencesPath = '/profile/preferences';
   static const String notificationsPath = '/notifications';
+
+  /// L'historique complet du Wallet (MEZ-160, point 3).
+  static const String walletHistoryPath = '/wallet/historique';
+
+  /// La recharge du Wallet (MEZ-160, point 2).
+  static const String walletTopUpPath = '/wallet/recharge';
+
+  /// Le choix du moyen de recharge.
+  static const String walletTopUpMethodPath = '/wallet/recharge/moyen';
+
+  /// Où dépenser son Wallet (MEZ-160).
+  static const String walletServicesPath = '/wallet/utiliser';
+
+  /// Les règles du Wallet.
+  static const String walletRulesPath = '/wallet/regles';
+
+  /// Les bonus fidélité.
+  static const String walletBonusesPath = '/wallet/bonus';
   static const String helpPath = '/aide';
   static const String contactPath = '/aide/contact';
 
@@ -504,6 +527,31 @@ class AppRouter {
         GoRoute(
           path: preferencesPath,
           builder: (context, state) => const PreferencesPage(),
+        ),
+        GoRoute(
+          path: walletHistoryPath,
+          builder: (context, state) => const WalletHistoryPage(),
+        ),
+        GoRoute(
+          path: walletTopUpPath,
+          builder: (context, state) => const WalletTopUpPage(),
+        ),
+        GoRoute(
+          path: walletTopUpMethodPath,
+          builder: (context, state) =>
+              WalletTopUpMethodPage(amount: state.extra as int?),
+        ),
+        GoRoute(
+          path: walletServicesPath,
+          builder: (context, state) => const WalletServicesPage(),
+        ),
+        GoRoute(
+          path: walletRulesPath,
+          builder: (context, state) => const WalletRulesPage(),
+        ),
+        GoRoute(
+          path: walletBonusesPath,
+          builder: (context, state) => const WalletBonusesPage(),
         ),
         GoRoute(
           path: notificationsPath,

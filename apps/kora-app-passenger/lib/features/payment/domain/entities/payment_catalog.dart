@@ -123,7 +123,14 @@ class PaymentMethod extends Equatable {
 
   /// Utilisable seulement si le moyen **et** au moins un de ses providers
   /// le sont : un moyen actif sans provider valide ne mène nulle part.
-  bool get isUsable => enabled && enabledProviders.isNotEmpty;
+  ///
+  /// Le Wallet fait exception : il n'a pas d'encaisseur, c'est le
+  /// serveur qui débite le solde. Lui demander un provider le rendait
+  /// inerte quoi qu'annonce le catalogue — la tuile restait grise alors
+  /// que le paiement était ouvert.
+  bool get isUsable =>
+      enabled &&
+      (code == PaymentCatalog.walletCode || enabledProviders.isNotEmpty);
 
   @override
   List<Object?> get props => [code, label, enabled, availability, providers];

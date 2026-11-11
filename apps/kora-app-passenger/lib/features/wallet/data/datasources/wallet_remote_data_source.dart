@@ -4,6 +4,7 @@ import '../../../../core/constants/api_constants.dart';
 import '../../../../core/network/api_json.dart';
 import '../../domain/entities/wallet_account.dart';
 import '../../domain/entities/wallet_movement.dart';
+import '../../domain/entities/wallet_top_up.dart';
 import '../../domain/repositories/wallet_repository.dart';
 import '../models/wallet_models.dart';
 
@@ -21,10 +22,7 @@ class WalletRemoteDataSource {
 
     // La réponse est un objet sous `data`, pas une liste : on ouvre
     // l'enveloppe à la main.
-    final body = ApiJson.map(response.data);
-    final data = body['data'] is Map ? ApiJson.map(body['data']) : body;
-
-    return WalletAccountModel.fromJson(data);
+    return WalletAccountModel.fromJson(_unwrap(response.data));
   }
 
   Future<WalletLedgerPage> fetchMovements({
@@ -45,6 +43,50 @@ class WalletRemoteDataSource {
       ],
       nextCursor: _nextCursor(body),
     );
+  }
+
+  /// Ouvre une recharge et le paiement provider qui la porte.
+  ///
+  /// [idempotencyKey] est ce qui empêche un double débit : rejouée, la
+  /// requête rend la recharge déjà créée (200 au lieu de 201) plutôt
+  /// que d'en ouvrir une seconde.
+  Future<WalletTopUp> initiateTopUp({
+    required int amount,
+    required String method,
+    required String provider,
+    required String idempotencyKey,
+    String? phone,
+    String? network,
+  }) async {
+    final response = await _dio.post<dynamic>(
+      ApiConstants.walletTopUps,
+      data: {
+        'amount': amount,
+        'method': method,
+        'provider': provider,
+        'idempotency_key': idempotencyKey,
+        // KKiaPay recueille réseau et numéro dans son widget ; la carte
+        // n'en a pas. Le serveur les refuse alors comme superflus.
+        'phone': ?phone,
+        'mobile_money_network': ?network,
+      },
+    );
+
+    return WalletTopUpModel.fromJson(_unwrap(response.data));
+  }
+
+  /// Relit une recharge, pour suivre son issue.
+  Future<WalletTopUp> fetchTopUp(String uuid) async {
+    final response = await _dio.get<dynamic>(ApiConstants.walletTopUp(uuid));
+
+    return WalletTopUpModel.fromJson(_unwrap(response.data));
+  }
+
+  /// Ouvre l'enveloppe `data` d'une ressource unique.
+  static Map<String, dynamic> _unwrap(Object? raw) {
+    final body = ApiJson.map(raw);
+
+    return body['data'] is Map ? ApiJson.map(body['data']) : body;
   }
 
   /// Le curseur de la page suivante.

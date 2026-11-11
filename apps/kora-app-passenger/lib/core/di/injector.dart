@@ -413,7 +413,11 @@ void _registerPaymentFeature() {
   );
 
   getIt.registerFactory<PaymentFlowBloc>(
-    () => PaymentFlowBloc(getIt(), getIt<PendingPaymentStore>()),
+    () => PaymentFlowBloc(
+      getIt(),
+      getIt<PendingPaymentStore>(),
+      getIt<WalletRepository>(),
+    ),
   );
 }
 

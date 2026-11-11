@@ -7,7 +7,6 @@ import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/screen_header.dart';
-import '../../../booking/domain/entities/price.dart';
 import '../../../booking/presentation/bloc/seat_hold_bloc.dart';
 import '../../domain/entities/payment_catalog.dart';
 import '../bloc/payment_catalog_bloc.dart';
@@ -38,10 +37,6 @@ class PaymentMethodPage extends StatelessWidget {
 
   /// `null` si l'écran est ouvert sans données (lien profond).
   final PaymentArgs? args;
-
-  /// Le solde du Wallet, repris tel quel de l'écran Wallet — la valeur de
-  /// démonstration de la maquette, l'API n'exposant pas encore de solde.
-  static const Price _walletBalance = Price(18750);
 
   @override
   Widget build(BuildContext context) {
@@ -226,9 +221,10 @@ class PaymentMethodPage extends StatelessWidget {
     return switch (method.code) {
       PaymentCatalog.mobileMoneyCode => l10n.paymentMethodMomoLead,
       PaymentCatalog.cardCode => l10n.paymentMethodCardLead,
-      PaymentCatalog.walletCode => l10n.paymentMethodWalletLead(
-        _walletBalance.formatted,
-      ),
+      // Pas de solde annoncé ici : il était écrit en dur, et l'écran
+      // suivant lit le vrai. Mieux vaut ne rien dire que mentir d'un
+      // chiffre.
+      PaymentCatalog.walletCode => l10n.paymentMethodWalletLeadPlain,
       // Sans libellé à nous, la ligne répétait le titre du serveur.
       _ => method.label,
     };

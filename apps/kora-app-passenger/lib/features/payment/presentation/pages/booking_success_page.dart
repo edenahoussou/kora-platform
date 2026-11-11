@@ -107,9 +107,18 @@ class _BookingSuccessPageState extends State<BookingSuccessPage> {
               const SizedBox(height: AppSpacing.lg),
               StateView(
                 icon: Icons.check_rounded,
-                title: l10n.bookingSuccessTitle,
-                message: l10n.bookingSuccessText,
-                primaryLabel: l10n.bookingSuccessTicket,
+                // Une recharge n'émet pas de billet : « Votre voyage
+                // est confirmé » suivi de « Afficher mon billet »
+                // enverrait le voyageur chercher un titre inexistant.
+                title: args.isTopUp
+                    ? l10n.paymentTopUpSuccessTitle
+                    : l10n.bookingSuccessTitle,
+                message: args.isTopUp
+                    ? l10n.paymentTopUpSuccessText(args.total.formatted)
+                    : l10n.bookingSuccessText,
+                primaryLabel: args.isTopUp
+                    ? l10n.paymentTopUpSuccessAction
+                    : l10n.bookingSuccessTicket,
                 // Un groupe a autant de billets que de voyageurs, chacun
                 // avec son QR : l'écran dédié les liste. Un voyageur seul
                 // n'a qu'un billet, et la liste des voyages y mène déjà.

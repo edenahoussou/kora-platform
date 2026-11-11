@@ -124,7 +124,9 @@ class _PaymentPendingPageState extends State<PaymentPendingPage> {
                 const SizedBox(height: AppSpacing.lg),
                 StateView(
                   icon: Icons.autorenew_rounded,
-                  title: l10n.paymentPendingTitle,
+                  title: args.isTopUp
+                      ? l10n.paymentTopUpPendingTitle
+                      : l10n.paymentPendingTitle,
                   // Le texte dit d'abord que le siège est gardé ; il ne
                   // change qu'une fois le délai dépassé, pour expliquer
                   // les boutons qui viennent d'apparaître.
@@ -136,6 +138,12 @@ class _PaymentPendingPageState extends State<PaymentPendingPage> {
                   // d'opérateur l'enverrait chercher quelque chose qui
                   // n'existe pas.
                   message: switch ((flow.attempt?.widget != null, _isLate)) {
+                    // Une recharge n'a pas de siège retenu : le dire
+                    // inquiéterait pour une réservation qui n'existe pas.
+                    (true, _) when args.isTopUp =>
+                      l10n.paymentTopUpPendingTextWidget,
+                    (false, _) when args.isTopUp =>
+                      l10n.paymentTopUpPendingText,
                     (true, false) => l10n.paymentPendingTextWidget,
                     (true, true) => l10n.paymentPendingSlowWidget,
                     (false, false) => l10n.paymentPendingText,

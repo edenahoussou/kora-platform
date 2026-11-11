@@ -18,6 +18,11 @@ abstract class PaymentRepository {
 
   /// Lance un paiement pour une réservation retenue.
   ///
+  /// [walletAmount] et [pointsAmount] règlent tout ou partie du billet
+  /// sur le Wallet. Le serveur en déduit le reste à encaisser et refuse
+  /// l'ensemble si les comptes ne tombent pas juste : c'est lui qui
+  /// arrête la répartition, l'app ne fait que proposer la sienne.
+  ///
   /// [method] vaut `mobile_money` ou `card`. [network] et [phone] ne
   /// concernent que les encaisseurs qui poussent eux-mêmes la demande
   /// sur le téléphone du payeur : KKiaPay les recueille dans son widget,
@@ -29,6 +34,8 @@ abstract class PaymentRepository {
     required String idempotencyKey,
     String? network,
     String? phone,
+    int? walletAmount,
+    int? pointsAmount,
   });
 
   /// Relit l'état d'un paiement.

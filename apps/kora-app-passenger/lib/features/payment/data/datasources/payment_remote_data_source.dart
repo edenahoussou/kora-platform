@@ -40,14 +40,22 @@ class PaymentRemoteDataSource {
     required String idempotencyKey,
     String? network,
     String? phone,
+    int? walletAmount,
+    int? pointsAmount,
   }) async {
     final response = await _dio.post<dynamic>(
       ApiConstants.paymentInitiate,
       data: {
         'reservation_uuid': reservationId,
         'method': method,
-        'provider': provider,
+        // `wallet` n'a pas d'encaisseur : le serveur refuse un provider
+        // sur un paiement que le solde règle en entier.
+        'provider': ?(provider.isEmpty ? null : provider),
         'idempotency_key': idempotencyKey,
+        // Omis quand ils sont nuls : le serveur distingue « pas de
+        // Wallet dans ce paiement » de « zéro franc de Wallet ».
+        'wallet_amount': ?walletAmount,
+        'points_amount': ?pointsAmount,
         // Le réseau et le numéro ne valent que pour un encaisseur qui
         // pousse la demande lui-même. KKiaPay les recueille dans son
         // widget, et la carte n'en a pas : le serveur les refuse alors

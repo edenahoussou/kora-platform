@@ -67,7 +67,9 @@ class _PaymentFailedPageState extends State<PaymentFailedPage> {
             builder: (context, flow) => ListView(
               children: [
                 ScreenHeader(
-                  eyebrow: l10n.paymentFailedEyebrow,
+                  eyebrow: args.isTopUp
+                      ? l10n.paymentTopUpEyebrow
+                      : l10n.paymentFailedEyebrow,
                   title: l10n.paymentFailedTitle,
                 ),
                 const HoldCountdown(margin: EdgeInsets.only(bottom: 11)),
@@ -79,7 +81,11 @@ class _PaymentFailedPageState extends State<PaymentFailedPage> {
                   StateView(
                     icon: Icons.error_outline_rounded,
                     title: l10n.paymentFailedTitle,
-                    message: l10n.paymentFailedText,
+                    // Une recharge ne relâche aucun siège : annoncer
+                    // le contraire ferait croire à un voyage perdu.
+                    message: args.isTopUp
+                        ? l10n.paymentTopUpFailedText
+                        : l10n.paymentFailedText,
                     primaryLabel: l10n.paymentFailedRetry,
                     onPrimary: () {
                       context.read<PaymentFlowBloc>().add(
@@ -92,8 +98,12 @@ class _PaymentFailedPageState extends State<PaymentFailedPage> {
                   StateView(
                     icon: Icons.error_outline_rounded,
                     title: l10n.paymentFailedTitle,
-                    // Ce que dit le serveur, s'il dit quelque chose.
-                    message: flow.errorMessage ?? l10n.paymentFailedHeldText,
+                    // Ce que dit le serveur, quand c'est écrit pour le
+                    // voyageur. « Failed to initiate FedaPay
+                    // transaction. » ne l'est pas : c'est une ligne de
+                    // journal, en anglais, qui n'apprend rien à qui vient
+                    // de voir son paiement refusé.
+                    message: _message(context, args, flow),
                     primaryLabel: l10n.paymentFailedRetryPayment,
                     // Le paiement refusé ne se relance pas tel quel : le
                     // bloc garde la demande en mémoire pour éviter le
@@ -121,4 +131,46 @@ class _PaymentFailedPageState extends State<PaymentFailedPage> {
       ),
     );
   }
+}
+
+/// Ce qu'on écrit sous « Paiement refusé ».
+///
+/// Un refus d'opérateur arrive parfois avec une phrase utile — « Solde
+/// insuffisant » — et parfois avec une trace technique en anglais. On ne
+/// montre que la première : l'autre inquiète sans rien expliquer, et
+/// laisse croire à un défaut de l'application.
+String _message(
+  BuildContext context,
+  PaymentFlowArgs args,
+  PaymentFlowState flow,
+) {
+  final l10n = context.l10n;
+  final fromServer = flow.errorMessage?.trim();
+
+  if (fromServer != null &&
+      fromServer.isNotEmpty &&
+      !_isTechnical(fromServer)) {
+    return fromServer;
+  }
+
+  return args.isTopUp
+      ? l10n.paymentTopUpFailedText
+      : l10n.paymentFailedProviderText;
+}
+
+/// Vrai pour un message qui n'a pas été écrit pour un voyageur.
+///
+/// On ne devine pas la langue : on reconnaît les tournures que les
+/// passerelles laissent passer — « Failed to … », « Internal … », une
+/// classe d'exception, une URL.
+bool _isTechnical(String message) {
+  final lowered = message.toLowerCase();
+
+  return lowered.startsWith('failed') ||
+      lowered.startsWith('error') ||
+      lowered.startsWith('internal') ||
+      lowered.startsWith('unable to') ||
+      lowered.contains('exception') ||
+      lowered.contains('http') ||
+      lowered.contains('null');
 }

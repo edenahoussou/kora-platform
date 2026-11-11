@@ -2,6 +2,7 @@ import '../../../../core/network/api_json.dart';
 import '../../../booking/domain/entities/price.dart';
 import '../../domain/entities/wallet_account.dart';
 import '../../domain/entities/wallet_movement.dart';
+import '../../domain/entities/wallet_top_up.dart';
 
 /// Couche DATA : le Wallet tel que `GET /api/v1/wallet` le rend.
 ///
@@ -97,5 +98,46 @@ abstract final class WalletMovementModel {
       referenceType: ApiJson.stringOrNull(reference['type']),
       referenceId: ApiJson.stringOrNull(reference['uuid']),
     );
+  }
+}
+
+/// Couche DATA : une recharge, telle que `POST /api/v1/wallet/topups` et
+/// `GET /api/v1/wallet/topups/{uuid}` la rendent.
+///
+/// ```json
+/// {
+///   "uuid": "…",
+///   "amount": 5000,
+///   "status": "pending",
+///   "payment": {
+///     "uuid": "…", "status": "pending",
+///     "provider": "kkiapay", "provider_reference": "…"
+///   },
+///   "created_at": "2026-11-08T00:12:00+00:00"
+/// }
+/// ```
+///
+/// Le bloc `payment` est **descriptif** : il n'a ni `next_action`, ni
+/// `widget`, ni `polling_interval_seconds`, que `PaymentResource` rend
+/// pour l'achat d'un billet. On garde donc son identifiant pour aller
+/// relire le paiement là où ces champs existent.
+abstract final class WalletTopUpModel {
+  static WalletTopUp fromJson(Map<String, dynamic> json) {
+    final payment = ApiJson.map(json['payment']);
+
+    return WalletTopUp(
+      id: ApiJson.string(json['uuid']),
+      amount: Price(ApiJson.intOrNull(json['amount']) ?? 0),
+      status: WalletTopUpStatus.of(ApiJson.string(json['status'])),
+      paymentId: ApiJson.stringOrNull(payment['uuid']),
+      paymentStatus: ApiJson.stringOrNull(payment['status']),
+      provider: ApiJson.stringOrNull(payment['provider']),
+      createdAt: _date(json['created_at']),
+    );
+  }
+
+  static DateTime? _date(Object? raw) {
+    final value = ApiJson.stringOrNull(raw);
+    return value == null ? null : DateTime.tryParse(value)?.toLocal();
   }
 }

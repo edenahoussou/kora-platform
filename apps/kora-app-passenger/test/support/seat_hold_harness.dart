@@ -402,6 +402,8 @@ mixin PaymentCatalogOnly implements PaymentRepository {
     required String idempotencyKey,
     String? network,
     String? phone,
+    int? walletAmount,
+    int? pointsAmount,
   }) => throw UnimplementedError('Ce double ne sert que pour le catalogue.');
 
   @override
@@ -445,6 +447,10 @@ class StubPaymentRepository implements PaymentRepository {
   /// Les clés d'idempotence reçues, dans l'ordre des demandes.
   final List<String> idempotencyKeys = [];
 
+  /// Les répartitions reçues — (solde, points) — pour vérifier qu'un
+  /// paiement mixte part bien avec ses trois parts.
+  final List<(int?, int?)> splits = [];
+
   int _statusReads = 0;
 
   @override
@@ -462,6 +468,8 @@ class StubPaymentRepository implements PaymentRepository {
     required String idempotencyKey,
     String? network,
     String? phone,
+    int? walletAmount,
+    int? pointsAmount,
   }) async {
     // Le réseau est absent d'un paiement par carte, et d'un Mobile Money
     // encaissé par le widget : la trace garde alors le seul moyen.
@@ -471,6 +479,7 @@ class StubPaymentRepository implements PaymentRepository {
     // La clé d'idempotence se relit dans les tests : c'est elle qui décide
     // si le serveur voit une demande neuve ou la relecture d'un refus.
     idempotencyKeys.add(idempotencyKey);
+    splits.add((walletAmount, pointsAmount));
     final failure = initiateFailure ?? this.failure;
     return failure != null ? Left(failure) : Right(attempt);
   }

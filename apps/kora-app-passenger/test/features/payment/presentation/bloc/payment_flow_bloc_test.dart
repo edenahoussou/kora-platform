@@ -34,6 +34,33 @@ void main() {
     nextAction: 'show_tickets',
   );
 
+  test('un paiement par Wallet part au serveur, sans encaisseur', () async {
+    // L'écran poussait vers « Votre voyage est confirmé » dès que le
+    // solde couvrait le total, **sans appeler l'API** : un billet
+    // déclaré payé que personne n'avait réglé. Le Wallet passe
+    // désormais par le serveur comme tout autre moyen — lui seul
+    // débite, et lui seul confirme.
+    final repository = StubPaymentRepository();
+    final bloc = PaymentFlowBloc(repository);
+    addTearDown(bloc.close);
+
+    bloc.add(
+      const PaymentFlowStarted(
+        reservationId: 'res-1',
+        method: 'wallet',
+        // Le solde ne transite par aucune passerelle : le serveur
+        // refuse un encaisseur sur ce moyen.
+        provider: '',
+        walletAmount: 9000,
+        pointsAmount: 3500,
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    expect(repository.calls, contains('initiate:'));
+    expect(repository.splits, [(9000, 3500)]);
+  });
+
   test('lance le paiement chez l’encaisseur du réseau choisi', () async {
     final repository = StubPaymentRepository();
     final bloc = PaymentFlowBloc(repository);

@@ -19,6 +19,7 @@ import 'package:kora_app_passenger/features/payment/presentation/pages/mobile_mo
 import 'package:kora_app_passenger/features/payment/presentation/pages/payment_args.dart';
 import 'package:kora_app_passenger/features/payment/presentation/pages/payment_method_page.dart';
 import 'package:kora_app_passenger/features/payment/presentation/pages/wallet_payment_page.dart';
+import 'package:kora_app_passenger/features/wallet/domain/entities/wallet_account.dart';
 
 import '../../../../support/seat_hold_harness.dart';
 
@@ -642,23 +643,53 @@ void main() {
   });
 
   group('Wallet', () {
-    testWidgets('affiche le solde et le reste à payer', (tester) async {
-      await pump(tester, const WalletPaymentPage(args: args));
+    /// Le Wallet tel que le serveur le rend, passé à l'écran pour ne pas
+    /// dépendre du réseau. L'écran l'a longtemps eu écrit en dur — c'est
+    /// précisément ce qu'on ne veut plus.
+    const account = WalletAccount(
+      id: 'w-1',
+      cash: Price(18750),
+      points: 2480,
+      rules: WalletRules(
+        cashEnabled: true,
+        pointsEnabled: true,
+        pointValue: 1,
+        pointsMinSpend: 100,
+      ),
+    );
+
+    testWidgets('affiche le solde du serveur et le reste à payer', (
+      tester,
+    ) async {
+      await pump(tester, const WalletPaymentPage(args: args, account: account));
 
       expect(find.text(money(18750)), findsOneWidget);
       expect(find.text('Total du billet'), findsOneWidget);
-      // 100 points d'office, donc 12 400 restants.
-      expect(find.text(money(12400)), findsOneWidget);
+      // Rien n'est engagé d'office : le reste vaut le billet entier.
+      expect(find.text(money(12500)), findsWidgets);
     });
 
     testWidgets('le crédit ajouté diminue le complément', (tester) async {
-      await pump(tester, const WalletPaymentPage(args: args));
+      await pump(tester, const WalletPaymentPage(args: args, account: account));
 
       await tester.tap(find.byIcon(Icons.add_rounded));
       await tester.pumpAndSettle();
 
-      // 1 000 de crédit + 100 points sur 12 500.
-      expect(find.text(money(11400)), findsOneWidget);
+      // 1 000 F de solde sur 12 500 : il reste 11 500.
+      expect(find.text(money(11500)), findsOneWidget);
+    });
+
+    testWidgets('sans Wallet lu, rien ne se répartit', (tester) async {
+      // L'écran ne connaît ni solde ni points : proposer un curseur
+      // laisserait engager une somme que le serveur refusera.
+      await pump(tester, const WalletPaymentPage(args: args), settle: false);
+      await tester.pump();
+
+      expect(find.byType(Slider), findsNothing);
+      final confirm = tester.widget<KoraButton>(
+        find.widgetWithText(KoraButton, 'Confirmer et continuer'),
+      );
+      expect(confirm.onPressed, isNull);
     });
   });
 

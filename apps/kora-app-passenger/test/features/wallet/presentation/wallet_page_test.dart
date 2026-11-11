@@ -17,6 +17,7 @@ import 'package:kora_app_passenger/core/l10n/app_localization.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/price.dart';
 import 'package:kora_app_passenger/features/wallet/domain/entities/wallet_account.dart';
 import 'package:kora_app_passenger/features/wallet/domain/entities/wallet_movement.dart';
+import 'package:kora_app_passenger/features/wallet/domain/entities/wallet_top_up.dart';
 import 'package:kora_app_passenger/features/wallet/domain/repositories/wallet_repository.dart';
 import 'package:kora_app_passenger/features/wallet/presentation/bloc/wallet_cubit.dart';
 import 'package:kora_app_passenger/features/wallet/presentation/pages/wallet_page.dart';
@@ -63,6 +64,22 @@ class _StubWalletRepository implements WalletRepository {
 
     return Right(WalletLedgerPage(movements: value));
   }
+
+  // La recharge a son propre écran et ses propres tests : ici elle n'a
+  // rien à faire, mais le contrat l'exige.
+  @override
+  Future<Either<Failure, WalletTopUp>> initiateTopUp({
+    required int amount,
+    required String method,
+    required String provider,
+    required String idempotencyKey,
+    String? phone,
+    String? network,
+  }) async => const Left(ServerFailure('Hors sujet ici.'));
+
+  @override
+  Future<Either<Failure, WalletTopUp>> fetchTopUp(String uuid) async =>
+      const Left(ServerFailure('Hors sujet ici.'));
 }
 
 void main() {
@@ -264,6 +281,51 @@ void main() {
         find.text('Mouvements indisponibles pour le moment.'),
         findsOneWidget,
       );
+    });
+  });
+
+  group('ce que le serveur a fermé', () {
+    // Les deux poches s'activent séparément. Sur staging aujourd'hui,
+    // `wallet_cash_enabled` est à faux : l'écran montrait quand même une
+    // carte « Solde Cash » et un bouton « Recharger » — une promesse que
+    // l'administration a fermée.
+    testWidgets('la poche cash fermée retire son solde et sa recharge', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        account: accountWith(
+          walletRules: const WalletRules(pointsEnabled: true, pointValue: 1),
+        ),
+      );
+
+      expect(find.text(const Price(18750).formatted), findsNothing);
+      expect(find.text('Recharger'), findsNothing);
+
+      // La fidélité, elle, reste ouverte : elle s'affiche.
+      expect(find.textContaining('2480'), findsOneWidget);
+      expect(find.text('Historique'), findsOneWidget);
+    });
+
+    testWidgets('la poche points fermée retire points, échéance et parrain', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        account: accountWith(
+          expiry: DateTime(2026, 11, 10),
+          walletRules: const WalletRules(cashEnabled: true),
+        ),
+      );
+
+      expect(find.textContaining('2480'), findsNothing);
+      expect(find.textContaining('expirent dans'), findsNothing);
+      expect(find.text('KORA-4F2A'), findsNothing);
+      expect(find.text('Bonus'), findsNothing);
+
+      // Le cash, lui, reste ouvert.
+      expect(find.text(const Price(18750).formatted), findsOneWidget);
+      expect(find.text('Recharger'), findsOneWidget);
     });
   });
 

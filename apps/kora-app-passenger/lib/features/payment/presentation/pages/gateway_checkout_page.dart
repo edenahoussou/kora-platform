@@ -86,7 +86,12 @@ class _GatewayCheckoutPageState extends State<GatewayCheckoutPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 ScreenHeader(
-                  eyebrow: _isCard
+                  // Une recharge n'achète pas de billet : le surtitre le
+                  // dit, sans quoi l'écran annonce « Billet KORA BUS »
+                  // au-dessus d'un montant qui alimente le Wallet.
+                  eyebrow: args.isTopUp
+                      ? l10n.paymentTopUpEyebrow
+                      : _isCard
                       ? l10n.paymentCardEyebrow
                       : l10n.paymentMomoEyebrow(args.total.formatted),
                   title: _isCard
@@ -109,7 +114,7 @@ class _GatewayCheckoutPageState extends State<GatewayCheckoutPage> {
                         child: Text(
                           _isCard
                               ? l10n.paymentCardLead
-                              : l10n.paymentGatewayMomoLead(_gatewayLabel()),
+                              : _leadForGateway(l10n),
                           style: AppTextStyles.body(
                             context.koraColors.textMuted,
                           ),
@@ -167,6 +172,20 @@ class _GatewayCheckoutPageState extends State<GatewayCheckoutPage> {
   /// Le nom de la passerelle, pour la phrase qui annonce sa fenêtre.
   String _gatewayLabel() => _provider(context)?.label ?? '';
 
+  /// La phrase qui annonce la fenêtre de la passerelle.
+  ///
+  /// Le catalogue n'est pas toujours lu quand l'écran se peint la
+  /// première fois : sans nom, la phrase se lisait « dans la fenêtre ,
+  /// qui s'ouvre ». On dit alors « la fenêtre sécurisée », ce qui reste
+  /// vrai et se lit.
+  String _leadForGateway(AppLocalization l10n) {
+    final label = _gatewayLabel();
+
+    return label.isEmpty
+        ? l10n.paymentGatewayMomoLeadPlain
+        : l10n.paymentGatewayMomoLead(label);
+  }
+
   void _pay(BuildContext context) {
     _requested = true;
 
@@ -179,8 +198,12 @@ class _GatewayCheckoutPageState extends State<GatewayCheckoutPage> {
       return;
     }
 
-    final hold = context.read<SeatHoldBloc>().state.hold;
-    if (hold == null) {
+    // Une recharge n'a pas de réservation : le blocage de sièges ne la
+    // concerne pas, et le renvoyer vers « réservation expirée » dirait
+    // au voyageur une chose qui n'a rien à voir avec ce qu'il fait.
+    final topUp = widget.args?.topUpAmount;
+    final hold = topUp == null ? context.read<SeatHoldBloc>().state.hold : null;
+    if (topUp == null && hold == null) {
       context.go(AppRouter.holdExpiredPath);
       return;
     }
@@ -190,7 +213,10 @@ class _GatewayCheckoutPageState extends State<GatewayCheckoutPage> {
     // de la transaction, pas par nous.
     context.read<PaymentFlowBloc>().add(
       PaymentFlowStarted(
-        reservationId: hold.id,
+        reservationId: hold?.id,
+        topUpAmount: topUp,
+        walletAmount: widget.args?.walletAmount,
+        pointsAmount: widget.args?.pointsAmount,
         method: widget.method,
         provider: provider.code,
       ),
@@ -204,7 +230,7 @@ class _GatewayCheckoutPageState extends State<GatewayCheckoutPage> {
   ) {
     // Le paiement repris au lancement peut être celui d'une autre
     // réservation : il ne pilote pas cet écran-ci.
-    if (!paymentFlowMatchesHold(context, flow)) return;
+    if (!paymentFlowMatchesHold(context, flow, args)) return;
 
     if (flow.hasFailed) {
       context.push(
@@ -293,6 +319,7 @@ class _GatewayCheckoutPageState extends State<GatewayCheckoutPage> {
       pollingInterval: attempt?.pollingInterval,
       departure: args.departure,
       seatLabel: args.seatLabel,
+      isTopUp: args.isTopUp,
     );
   }
 }

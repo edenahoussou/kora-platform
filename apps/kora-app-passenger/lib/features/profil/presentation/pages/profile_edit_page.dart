@@ -6,11 +6,13 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/di/injector.dart';
 import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/router/app_router.dart';
+import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../auth/domain/entities/auth_user.dart';
 import '../../../auth/domain/entities/phone_country.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../auth/presentation/widgets/phone_country_picker.dart';
 
 /// Modification du profil — écran `profile-edit` (PROFILE-02).
 ///
@@ -32,14 +34,34 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
   final _firstName = TextEditingController();
   final _lastName = TextEditingController();
   final _email = TextEditingController();
+  final _phone = TextEditingController();
 
   DateTime? _birthDate;
-  String? _phone;
   PhoneCountry _country = PhoneCountry.benin;
+
+  /// L'adresse de substitution que le serveur fabrique pour un compte
+  /// créé par téléphone (`traveler+<uuid>@accounts.kora.invalid`).
+  ///
+  /// Elle n'est jamais montrée — c'est un identifiant technique, pas une
+  /// adresse — mais l'API exige un email à chaque enregistrement : on la
+  /// garde pour la renvoyer telle quelle tant que le voyageur n'a pas
+  /// donné la sienne.
+  String? _placeholderEmail;
+
+  /// Le compte porte déjà un numéro.
+  ///
+  /// Le serveur ne dit pas **comment** le compte a été créé : ni canal
+  /// d'inscription, ni `phone_verified_at`. On le déduit donc de ce
+  /// qu'il rend. Un compte qui a un numéro s'est identifié avec — c'est
+  /// par lui qu'on se connecte, et le changer sans vérification
+  /// ouvrirait une porte. Un compte qui n'en a pas s'est inscrit par
+  /// email : le numéro reste à donner.
+  bool _hasPhone = false;
 
   bool _saving = false;
   String? _firstNameError;
   String? _emailError;
+  String? _phoneError;
   String? _serverError;
 
   /// L'utilisateur a commencé à modifier un champ : le profil relu du
@@ -63,25 +85,63 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     final parts = user.name.trim().split(RegExp(r'\s+'));
     _firstName.text = parts.isEmpty ? '' : parts.first;
     _lastName.text = parts.length > 1 ? parts.sublist(1).join(' ') : '';
-    _email.text = user.email;
     _birthDate = user.birthDate;
-    _phone = user.phone;
-    // Le numéro dit lui-même son pays quand il est international ;
-    // `country_code` ne sert qu'aux numéros gardés au format local.
-    _country =
-        PhoneCountry.fromPhone(user.phone) ??
-        PhoneCountry.fromCode(user.countryCode);
+
+    // Une adresse de substitution n'est pas une adresse : l'afficher
+    // montrait « traveler+6cac8eb6-…@accounts.kora.invalid » dans un
+    // champ censé porter l'email du voyageur.
+    final placeholder = _isPlaceholder(user.email);
+    _placeholderEmail = placeholder ? user.email : null;
+    _email.text = placeholder ? '' : user.email;
+    _hasPhone = (user.phone ?? '').trim().isNotEmpty;
+
+    _fillPhone(user.phone, user.countryCode);
   }
 
-  /// Le numéro tel qu'on le montre : indicatif, espace, numéro national.
-  ///
-  /// Un numéro déjà international n'en reçoit pas un second — c'est ce qui
-  /// affichait « +229 +2290197000000 ».
-  String get _phoneShown {
-    final phone = _phone?.trim();
-    if (phone == null || phone.isEmpty) return '';
+  /// Le numéro se modifie tant que le compte n'en a pas : c'est le cas
+  /// d'une inscription par email, où il reste à renseigner.
+  bool get _phoneEditable => !_hasPhone;
 
-    return '${_country.code} ${_country.nationalPart(phone)}';
+  /// L'adresse se modifie sauf quand elle **est** l'identifiant du
+  /// compte — une inscription par email, reconnaissable à une vraie
+  /// adresse sans numéro à côté.
+  bool get _emailEditable => _placeholderEmail != null || _hasPhone;
+
+  /// Vrai pour l'adresse que le serveur fabrique à un compte créé par
+  /// téléphone. Le domaine `.invalid` est réservé : rien n'y arrive.
+  static bool _isPlaceholder(String email) =>
+      email.trim().toLowerCase().endsWith('@$_placeholderDomain');
+
+  static const String _placeholderDomain = 'accounts.kora.invalid';
+
+  /// Sépare l'indicatif du numéro, sans jamais en recoller un second.
+  ///
+  /// Un numéro d'un pays hors catalogue — `+212…` — n'était reconnu par
+  /// personne : l'écran retombait sur le Bénin et affichait
+  /// « +229 +212662026060 ». Dans ce cas on laisse le numéro entier dans
+  /// le champ, avec son propre indicatif, plutôt que d'en inventer un.
+  void _fillPhone(String? phone, String? countryCode) {
+    final compact = phone?.replaceAll(RegExp(r'[^\d+]'), '') ?? '';
+    final known = PhoneCountry.fromPhone(compact);
+
+    if (known != null) {
+      _country = known;
+      _phone.text = known.nationalPart(compact);
+      return;
+    }
+
+    _country = PhoneCountry.fromCode(countryCode);
+    _phone.text = compact;
+  }
+
+  /// Le numéro à envoyer : l'indicatif choisi devant le numéro national,
+  /// ou le numéro tel quel s'il porte déjà le sien.
+  String? get _phoneToSend {
+    final typed = _phone.text.replaceAll(RegExp(r'[^\d+]'), '');
+    if (typed.isEmpty) return null;
+    if (typed.startsWith('+')) return typed;
+
+    return '${_country.code}$typed';
   }
 
   Future<void> _refresh() async {
@@ -106,6 +166,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     _firstName.dispose();
     _lastName.dispose();
     _email.dispose();
+    _phone.dispose();
     super.dispose();
   }
 
@@ -127,28 +188,47 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     final first = _firstName.text.trim();
     final last = _lastName.text.trim();
     final email = _email.text.trim();
+    final digits = _phone.text.replaceAll(RegExp(r'[^\d]'), '');
 
     setState(() {
       _firstNameError = first.isEmpty
           ? l10n.profileEditFirstNameRequired
           : null;
-      _emailError = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)
+      // Un champ laissé vide sur un compte sans adresse n'est pas une
+      // faute : on renverra la substitution du serveur. C'est une
+      // adresse saisie et mal formée qui en est une.
+      _emailError =
+          !_emailEditable ||
+              email.isEmpty && _placeholderEmail != null ||
+              RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)
           ? null
           : l10n.profileEditEmailInvalid;
+      // Le serveur compte les chiffres du pays : prévenir ici évite un
+      // aller-retour pour un numéro visiblement trop court.
+      _phoneError =
+          _phoneEditable &&
+              digits.isNotEmpty &&
+              _country.digits > 0 &&
+              !_phone.text.trim().startsWith('+') &&
+              digits.length != _country.digits
+          ? l10n.profileEditPhoneInvalid(_country.name, _country.digits)
+          : null;
       _serverError = null;
     });
 
-    if (_firstNameError != null || _emailError != null) return;
+    if (_firstNameError != null || _emailError != null || _phoneError != null) {
+      return;
+    }
 
     setState(() => _saving = true);
 
     final result = await getIt<AuthRepository>().updateProfile(
       name: '$first $last'.trim(),
-      email: email,
-      // Le téléphone n'est pas modifiable ici : on le renvoie tel quel,
-      // faute de quoi l'API l'effacerait.
-      phone: _phone,
-      countryCode: _phone == null ? null : _country.code,
+      // L'API exige une adresse à chaque enregistrement : sans saisie,
+      // on lui rend la sienne plutôt que d'empêcher de corriger un nom.
+      email: email.isEmpty ? (_placeholderEmail ?? '') : email,
+      phone: _phoneToSend,
+      countryCode: _phoneToSend == null ? null : _country.code,
       birthDate: _birthDate,
     );
     if (!mounted) return;
@@ -207,28 +287,87 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                       onChanged: (_) => _touched = true,
                     ),
                     const SizedBox(height: AppSpacing.md),
-                    // `disabled` dans la maquette : le numéro identifie le
-                    // compte auprès de l'opérateur, le changer sans
-                    // vérification ouvrirait une porte.
-                    KoraInput(
-                      label: l10n.profileEditPhone,
-                      controller: TextEditingController(text: _phoneShown),
-                      enabled: false,
+                    // Indicatif et numéro restent deux champs, lisibles
+                    // même figés : les coller en un seul affichait
+                    // « +229 +212662026060 » pour un numéro étranger.
+                    Text(
+                      l10n.profileEditPhone,
+                      style: TextStyle(
+                        color: context.koraTitleColor,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _CountryButton(
+                          country: _country,
+                          enabled: _phoneEditable && !_saving,
+                          onCountry: (country) => setState(() {
+                            _touched = true;
+                            _country = country;
+                            _phoneError = null;
+                          }),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: KoraInput(
+                            hint: _country.example.isEmpty
+                                ? l10n.profileEditPhoneHintFree
+                                : _country.example,
+                            controller: _phone,
+                            enabled: _phoneEditable && !_saving,
+                            keyboardType: TextInputType.phone,
+                            onChanged: (_) {
+                              _touched = true;
+                              if (_phoneError != null) {
+                                setState(() => _phoneError = null);
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (_phoneError != null) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        _phoneError!,
+                        style: AppTextStyles.caption(AppColors.danger),
+                      ),
+                    ],
                     const SizedBox(height: 6),
                     Text(
-                      l10n.profileEditPhoneLocked,
+                      _phoneEditable
+                          ? l10n.profileEditPhoneAdd
+                          : l10n.profileEditPhoneLocked,
                       style: AppTextStyles.caption(koraColors.textMuted),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     KoraInput(
                       label: l10n.profileEditEmail,
+                      hint: _emailEditable ? l10n.profileEditEmailHint : null,
                       controller: _email,
-                      enabled: !_saving,
+                      enabled: _emailEditable && !_saving,
                       errorText: _emailError,
                       keyboardType: TextInputType.emailAddress,
                       onChanged: (_) => _touched = true,
                     ),
+                    if (!_emailEditable) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        l10n.profileEditEmailLocked,
+                        style: AppTextStyles.caption(koraColors.textMuted),
+                      ),
+                    ] else if (_placeholderEmail != null &&
+                        _emailError == null) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        l10n.profileEditEmailNone,
+                        style: AppTextStyles.caption(koraColors.textMuted),
+                      ),
+                    ],
                     const SizedBox(height: AppSpacing.md),
                     _BirthDateField(
                       value: _birthDate,
@@ -298,6 +437,66 @@ class _BirthDateField extends StatelessWidget {
             text: value == null
                 ? ''
                 : '${pad(value!.day)} / ${pad(value!.month)} / ${value!.year}',
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// L'indicatif, ouvert sur la liste complète des pays — le même geste
+/// qu'à l'inscription, et la même feuille de recherche.
+class _CountryButton extends StatelessWidget {
+  const _CountryButton({
+    required this.country,
+    required this.enabled,
+    required this.onCountry,
+  });
+
+  final PhoneCountry country;
+  final bool enabled;
+  final ValueChanged<PhoneCountry> onCountry;
+
+  Future<void> _pick(BuildContext context) async {
+    final picked = await pickPhoneCountry(context);
+    if (picked != null) onCountry(picked);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final koraColors = context.koraColors;
+
+    return SizedBox(
+      width: 124,
+      height: 56,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: enabled ? () => _pick(context) : null,
+          borderRadius: BorderRadius.circular(AppRadius.base),
+          child: Ink(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppRadius.base),
+              border: Border.all(color: koraColors.line),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${country.flag}  ${country.code}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.body(koraColors.textPrimary),
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_drop_down,
+                  color: koraColors.textMuted,
+                  size: 20,
+                ),
+              ],
+            ),
           ),
         ),
       ),
