@@ -54,6 +54,17 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/kora-ops-web:latest
             ghcr.io/${{ github.repository_owner }}/kora-ops-web:${{ steps.tag.outputs.VERSION }}
 
+      - name: Build and push nginx image
+        uses: docker/build-push-action@v6
+        with:
+          context: infra/docker/nginx
+          file: infra/docker/nginx/Dockerfile
+          push: true
+          cache-from: type=gha,scope=kora-ops-web-nginx
+          cache-to: type=gha,mode=max,scope=kora-ops-web-nginx
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/kora-ops-web-nginx:latest
+
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
@@ -82,8 +93,8 @@ jobs:
             ls -t /opt/kora-prod/backups/db-backup-*.sql | tail -n +6 | xargs rm -f 2>/dev/null || true
 
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            docker compose -f docker-compose.prod.yml --env-file .env.prod pull app
-            docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+            docker compose -f docker-compose.prod.yml --env-file .env.prod pull
+            docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --no-build
             docker compose -f docker-compose.prod.yml --env-file .env.prod run --rm sync-public
             docker compose -f docker-compose.prod.yml --env-file .env.prod exec -T -u www-data app php artisan migrate --force
             docker compose -f docker-compose.prod.yml --env-file .env.prod exec -T -u www-data app php artisan db:seed --class=KoraBusRolePermissionSeeder --force

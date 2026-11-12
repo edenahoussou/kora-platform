@@ -1,0 +1,6 @@
+[Unit]
+Description=KORA VPS Docker storage prune (cache 7 jours, images, journaux)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/kora-docker-prune.sh

@@ -147,15 +147,27 @@ differt. En cas de besoin, regenerer les goldens localement puis committer :
 
 ## Rollback
 
+Le compose est en **pull-only** : on revient sur un tag d'image publie dans GHCR,
+jamais par `git checkout` + rebuild sur le VPS (voir « Stockage Docker du VPS »
+dans `deployment.md`).
+
 ### Staging
 
 ```bash
 ssh kora-vps
 cd /opt/kora-staging
-git log --oneline -5          # identifier le commit precedent
-git checkout <commit-precedent>
-docker compose -f docker-compose.staging.yml up -d --build
+
+# Tags staging-<sha> pousses par la CI a chaque deploiement
+docker images 'ghcr.io/edenahoussou/kora-ops-web' --format '{{.Tag}}\t{{.CreatedAt}}' | grep staging- | head -5
+
+# Revenir sur un build precedent
+KORA_IMAGE_TAG=staging-<sha> docker compose -f docker-compose.staging.yml pull
+KORA_IMAGE_TAG=staging-<sha> docker compose -f docker-compose.staging.yml up -d --no-build
 ```
+
+Le tag reste actif tant que `KORA_IMAGE_TAG` est exporte ; pour revenir au flux
+normal, retirer la variable (ou la commenter dans `.env.staging`) puis relancer
+`pull` + `up -d --no-build`.
 
 ### Production
 
@@ -163,11 +175,15 @@ docker compose -f docker-compose.staging.yml up -d --build
 ssh kora-vps
 cd /opt/kora-prod
 
-# Restaurer le backup DB
+# Restaurer le backup DB si la migration est en cause
 ls -t backups/db-backup-*.sql | head -5
 docker compose -f docker-compose.prod.yml exec -T postgres psql -U kora kora_prod < backups/db-backup-XXXX.sql
 
-# Revenir a un tag precedent
-git checkout v0.0.9
-docker compose -f docker-compose.prod.yml up -d --build
+# Revenir a un tag precedent (tags v* pousses par deploy-production)
+KORA_IMAGE_TAG=v1.0.4 docker compose -f docker-compose.prod.yml pull
+KORA_IMAGE_TAG=v1.0.4 docker compose -f docker-compose.prod.yml up -d --no-build
 ```
+
+Les tags `staging-<sha>` et `v*` restent sur GHCR meme apres une purge locale :
+la purge hebdomadaire du VPS ne supprime que les anciens tags locaux (les 2
+derniers `staging-<sha>` sont conserves).

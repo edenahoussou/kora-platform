@@ -2,10 +2,8 @@
 # Le container app tourne sous Supervisor : php-fpm + queue worker + scheduler.
 services:
   app: &application
-    image: ghcr.io/edenahoussou/kora-ops-web:latest
-    build:
-      context: .
-      dockerfile: infra/docker/kora-ops-web/Dockerfile.prod
+    image: ghcr.io/edenahoussou/kora-ops-web:${KORA_IMAGE_TAG:-latest}
+    pull_policy: always
     container_name: kora-prod-app
     working_dir: /app
     env_file: .env.prod
@@ -35,9 +33,8 @@ services:
     stop_grace_period: 90s
 
   nginx:
-    build:
-      context: infra/docker/nginx/
-      dockerfile: Dockerfile
+    image: ghcr.io/edenahoussou/kora-ops-web-nginx:latest
+    pull_policy: always
     container_name: kora-prod-nginx
     ports:
       - "9080:80"
@@ -53,7 +50,8 @@ services:
 
   # Copie les assets de l'image app vers le volume prod-public
   sync-public:
-    image: ghcr.io/edenahoussou/kora-ops-web:latest
+    image: ghcr.io/edenahoussou/kora-ops-web:${KORA_IMAGE_TAG:-latest}
+    pull_policy: always
     container_name: kora-prod-sync-public
     volumes:
       - prod-public:/sync
