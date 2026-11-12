@@ -51,11 +51,13 @@ final class KKiaPayAdapter implements PaymentProvider
                     'sandbox' => $this->environment !== 'production',
                     'amount' => $payment->provider_amount ?? $payment->amount,
                     'partnerId' => $payment->uuid,
-                    'paymentmethod' => ['momo', 'card', 'wallet'],
+                    'paymentmethod' => $payment->reservation_id === null
+                        ? [($payload['method'] ?? null) === 'card' ? 'card' : 'momo']
+                        : ['momo', 'card', 'wallet'],
                     'countries' => $this->countries,
                     'callback' => $this->callbackUrl,
                     'phone' => $payload['phone'] ?? null,
-                    'data' => "KORA BUS reservation {$payment->reservation->uuid}",
+                    'data' => $payment->providerDescription(),
                 ], fn ($value): bool => $value !== null),
             ],
             message: 'Ouvrez le widget KKiaPay avec cette configuration.',
@@ -120,12 +122,12 @@ final class KKiaPayAdapter implements PaymentProvider
         } catch (Throwable $e) {
             Log::error('KKiaPay verify failed', [
                 'payment_uuid' => $payment->uuid,
-                'error' => $e->getMessage(),
+                'exception' => $e::class,
             ]);
 
             return new ProviderResponse(
                 status: PaymentStatus::Pending,
-                payload: ['error' => $e->getMessage()],
+                payload: [],
                 message: 'Failed to query KKiaPay transaction.',
             );
         }
