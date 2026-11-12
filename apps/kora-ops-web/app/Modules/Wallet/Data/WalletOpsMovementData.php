@@ -22,6 +22,7 @@ class WalletOpsMovementData
         public ?array $source,
         public ?array $agency,
         public ?array $loyaltyRuleVersion,
+        public ?string $actorName,
         public string $createdAt,
     ) {}
 
@@ -40,6 +41,7 @@ class WalletOpsMovementData
             'source' => $this->source,
             'agency' => $this->agency,
             'loyaltyRuleVersion' => $this->loyaltyRuleVersion,
+            'actorName' => $this->actorName,
             'createdAt' => $this->createdAt,
         ];
     }

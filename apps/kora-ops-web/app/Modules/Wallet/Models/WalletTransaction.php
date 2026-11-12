@@ -2,6 +2,7 @@
 
 namespace App\Modules\Wallet\Models;
 
+use App\Models\User;
 use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\Support\Models\KoraModel;
 use App\Modules\Wallet\Data\WalletBalanceType;
@@ -59,6 +60,12 @@ class WalletTransaction extends KoraModel
     public function agency(): BelongsTo
     {
         return $this->belongsTo(Agency::class);
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function actor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'actor_user_id');
     }
 
     /**

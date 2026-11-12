@@ -336,9 +336,10 @@ const navItems: NavEntry[] = [
         children: [
             {
                 title: 'Pilotage',
-                href: '/wallet',
+                href: '/wallet/dashboard',
                 permission: null,
                 capability: 'walletOpsView',
+                exact: true,
             },
             {
                 title: 'Comptes',

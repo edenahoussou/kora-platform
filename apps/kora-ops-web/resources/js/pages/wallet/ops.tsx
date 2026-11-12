@@ -1,4 +1,4 @@
-import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import {
     Activity,
     ArrowDownLeft,
@@ -13,10 +13,8 @@ import {
     ChevronRight,
     CircleDollarSign,
     Coins,
-    Filter,
     Gift,
     History,
-    Landmark,
     LockKeyhole,
     Search,
     ShieldCheck,
@@ -24,12 +22,12 @@ import {
     Ticket,
     UserRound,
     Users,
-    WalletCards,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { toast } from 'sonner';
+import { FilterSelect } from '@/components/cash/cash-shared';
 import { KoraTable } from '@/components/kora-table';
 import type { PaginationMeta, TableColumn } from '@/components/kora-table';
 import { Button } from '@/components/ui/button';
@@ -101,6 +99,7 @@ type WalletMovement = {
     } | null;
     agency: { uuid: string; name: string } | null;
     loyaltyRuleVersion: { uuid: string; version: number } | null;
+    actorName: string | null;
     createdAt: string;
 };
 
@@ -126,6 +125,7 @@ type Filters = {
     agency_uuid?: string;
     from?: string;
     to?: string;
+    page?: number;
     per_page?: number;
 };
 
@@ -155,11 +155,13 @@ type Props = {
     };
     accounts?: Paginated<WalletAccount>;
     account?: WalletAccount;
+    returnUrl?: string;
     movements?: Paginated<WalletMovement>;
     movement?: WalletMovement;
     filters?: Filters;
     agencyOptions?: { uuid: string; name: string }[];
     activeRules?: LoyaltyRules;
+    activeRuleVersion?: number | null;
     versions?: RuleVersion[];
     draft?: { uuid: string; version: number; rules: LoyaltyRules } | null;
     capabilities?: {
@@ -167,15 +169,6 @@ type Props = {
         manageSettings?: boolean;
         hasScheduledVersion?: boolean;
     };
-};
-
-type WalletCapabilities = {
-    walletOpsView?: boolean;
-    walletRulesView?: boolean;
-    walletSettingsView?: boolean;
-    walletRestitutionQueueView?: boolean;
-    walletRestitutionOwnView?: boolean;
-    walletRestitutionRequest?: boolean;
 };
 
 const defaultRules: LoyaltyRules = {
@@ -199,6 +192,13 @@ const date = (value: string | null) =>
               dateStyle: 'medium',
               timeStyle: 'short',
           }).format(new Date(value))
+        : '—';
+
+const dateOnly = (value: string | null) =>
+    value
+        ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium' }).format(
+              new Date(value),
+          )
         : '—';
 
 const minimumLocalDateTime = () => {
@@ -252,15 +252,16 @@ function labelForStatus(status: string | undefined) {
 }
 
 function statusPill(status: string | undefined) {
-    const isActive = status === 'active';
+    const tone =
+        status === 'active'
+            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200'
+            : status === 'locked'
+              ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/50 dark:text-rose-200'
+              : 'bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-200';
 
     return (
         <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.6875rem] font-extrabold ${
-                isActive
-                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200'
-                    : 'bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-200'
-            }`}
+            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.6875rem] font-extrabold ${tone}`}
         >
             <span className="size-1.5 rounded-full bg-current" />
             {labelForStatus(status)}
@@ -268,106 +269,43 @@ function statusPill(status: string | undefined) {
     );
 }
 
-function movementHref(base: string, movement: WalletMovement) {
-    return `${base.replace(/\/$/, '')}/${movement.uuid}`;
-}
+function movementHref(
+    base: string,
+    movement: WalletMovement,
+    filters?: Filters,
+) {
+    const query = new URLSearchParams();
 
-function WalletNavigation({
-    active,
-    urls,
-}: {
-    active: View;
-    urls: Props['urls'];
-}) {
-    const { auth } = usePage().props as {
-        auth?: { user?: { walletCapabilities?: WalletCapabilities } };
-    };
-    const links = [
-        {
-            label: 'Pilotage',
-            href: urls.dashboard,
-            active: active === 'dashboard',
-            capability: 'walletOpsView' as const,
-        },
-        {
-            label: 'Comptes',
-            href: urls.accounts,
-            active: active === 'accounts' || active === 'account',
-            capability: 'walletOpsView' as const,
-        },
-        {
-            label: 'Mouvements',
-            href: urls.transactions,
-            active: active === 'transactions' || active === 'transaction',
-            capability: 'walletOpsView' as const,
-        },
-        {
-            label: 'Règles de fidélité',
-            href: urls.rules,
-            active: active === 'rules',
-            capability: 'walletRulesView' as const,
-        },
-        {
-            label: 'Paramètres',
-            href: urls.settings,
-            active: false,
-            capability: 'walletSettingsView' as const,
-        },
-        {
-            label: 'Restitutions',
-            href: urls.restitutions,
-            active: false,
-            capability: 'walletRestitutionAccess' as const,
-        },
-    ];
-    const capabilities = auth?.user?.walletCapabilities;
-    const visibleLinks = links.filter((link) => {
-        if (link.capability === 'walletRestitutionAccess') {
-            return Boolean(
-                capabilities?.walletRestitutionQueueView ||
-                capabilities?.walletRestitutionOwnView ||
-                capabilities?.walletRestitutionRequest,
-            );
+    Object.entries(filters ?? {}).forEach(([key, value]) => {
+        if (value !== undefined && value !== '') {
+            query.set(key, String(value));
         }
-
-        return Boolean(capabilities?.[link.capability]);
     });
 
-    return (
-        <nav
-            aria-label="Navigation Wallet"
-            className="cash-reveal flex gap-1 overflow-x-auto border-b border-border pb-1"
-        >
-            {visibleLinks.map((link) => (
-                <Link
-                    key={link.label}
-                    href={link.href}
-                    className={`shrink-0 rounded-t-xl px-3.5 py-2.5 text-xs font-extrabold transition-colors motion-reduce:transition-none sm:px-4 ${
-                        link.active
-                            ? 'border-b-2 border-gold bg-gold/10 text-foreground'
-                            : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground'
-                    }`}
-                >
-                    {link.label}
-                </Link>
-            ))}
-        </nav>
-    );
+    const search = query.toString();
+
+    return `${base.replace(/\/$/, '')}/${movement.uuid}${search ? `?${search}` : ''}`;
 }
 
 function PageFrame({
     title,
     description,
+    breadcrumb,
     view,
     urls,
     children,
+    actions,
+    showDescription = true,
     eyebrow = 'Wallet KORA BUS',
 }: {
     title: string;
     description: string;
+    breadcrumb?: string;
     view: View;
     urls: Props['urls'];
     children: React.ReactNode;
+    actions?: React.ReactNode;
+    showDescription?: boolean;
     eyebrow?: string;
 }) {
     return (
@@ -376,77 +314,83 @@ function PageFrame({
             <main className="cash-page flex flex-col gap-5 pb-8">
                 <header className="kora-page-head cash-reveal mb-1 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                     <div>
+                        {breadcrumb ? (
+                            <div className="kora-breadcrumb mb-2 text-[0.6875rem] text-muted-foreground">
+                                {breadcrumb}
+                            </div>
+                        ) : null}
                         <span className="section-kicker">{eyebrow}</span>
                         <h1 className="mt-1 text-2xl font-black tracking-tight text-foreground sm:text-[1.75rem]">
                             {title}
                         </h1>
-                        <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">
-                            {description}
-                        </p>
+                        {showDescription ? (
+                            <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">
+                                {description}
+                            </p>
+                        ) : null}
                     </div>
-                    {view === 'account' || view === 'transaction' ? (
-                        <Button variant="outline" asChild>
-                            <Link
-                                href={
-                                    view === 'account'
-                                        ? urls.accounts
-                                        : urls.transactions
-                                }
-                            >
-                                <ArrowLeft className="size-4" /> Retour à la
-                                liste
-                            </Link>
-                        </Button>
-                    ) : null}
+                    {actions ??
+                        (view === 'account' || view === 'transaction' ? (
+                            <Button variant="outline" asChild>
+                                <Link
+                                    href={
+                                        view === 'account'
+                                            ? urls.accounts
+                                            : urls.transactions
+                                    }
+                                >
+                                    <ArrowLeft className="size-4" /> Retour à la
+                                    liste
+                                </Link>
+                            </Button>
+                        ) : null)}
                 </header>
-                <WalletNavigation active={view} urls={urls} />
                 {children}
             </main>
         </>
     );
 }
 
-function StatCard({
-    icon: Icon,
-    label,
-    value,
-    detail,
-    tone,
-}: {
+type WalletDashboardMetric = {
     icon: LucideIcon;
     label: string;
+    note: string;
     value: string;
-    detail: string;
-    tone: 'blue' | 'green' | 'gold' | 'purple' | 'amber' | 'rose';
+    footer: string;
+    tone: 'navy' | 'gold' | 'digital' | 'emerald';
+};
+
+function WalletDashboardMetricCard({
+    metric,
+}: {
+    metric: WalletDashboardMetric;
 }) {
-    const tones = {
-        blue: 'border-sky-200/80 bg-sky-50/80 text-sky-800 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-200',
-        green: 'border-emerald-200/80 bg-emerald-50/80 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200',
-        gold: 'border-amber-200/80 bg-amber-50/90 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200',
-        purple: 'border-violet-200/80 bg-violet-50/80 text-violet-800 dark:border-violet-900 dark:bg-violet-950/30 dark:text-violet-200',
-        amber: 'border-orange-200/80 bg-orange-50/80 text-orange-800 dark:border-orange-900 dark:bg-orange-950/30 dark:text-orange-200',
-        rose: 'border-rose-200/80 bg-rose-50/80 text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200',
-    };
+    const Icon = metric.icon;
+    const toneClass = {
+        navy: 'cash-ledger-card-kpi-navy',
+        gold: 'cash-ledger-card-kpi-gold',
+        digital: 'cash-ledger-card-kpi-digital',
+        emerald: 'cash-ledger-card-kpi-emerald',
+    }[metric.tone];
 
     return (
-        <article
-            className={`cash-reveal rounded-2xl border p-4 shadow-[0_7px_24px_rgba(0,29,78,0.035)] sm:p-5 ${tones[tone]}`}
-        >
-            <div className="flex items-start justify-between gap-3">
-                <div>
-                    <p className="text-[0.7rem] font-extrabold tracking-wide uppercase opacity-75">
-                        {label}
-                    </p>
-                    <p className="mt-2 text-2xl font-black tracking-tight tabular-nums sm:text-[1.7rem]">
-                        {value}
-                    </p>
-                    <p className="mt-1 text-xs font-semibold opacity-75">
-                        {detail}
-                    </p>
+        <article className={`cash-ledger-card cash-reveal group ${toneClass}`}>
+            <div className="cash-ledger-head">
+                <div className="cash-ledger-identity">
+                    <span className="cash-ledger-brand">
+                        <Icon className="size-4" strokeWidth={1.8} />
+                    </span>
+                    <div>
+                        <span className="cash-ledger-title">
+                            {metric.label}
+                        </span>
+                        <small>{metric.note}</small>
+                    </div>
                 </div>
-                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white/70 shadow-sm dark:bg-black/10">
-                    <Icon className="size-5" />
-                </span>
+            </div>
+            <div className="cash-ledger-balance mb-0">
+                <span>{metric.footer}</span>
+                <strong>{metric.value}</strong>
             </div>
         </article>
     );
@@ -489,146 +433,23 @@ function MovementLink({
     );
 }
 
-function MovementTable({
-    data,
-    urls,
-    emptyTitle = 'Aucun mouvement Wallet',
-}: {
-    data: WalletMovement[];
-    urls: Props['urls'];
-    emptyTitle?: string;
-}) {
-    const columns: TableColumn<WalletMovement>[] = [
-        {
-            key: 'holder',
-            header: 'Titulaire',
-            render: (row) => (
-                <MovementLink movement={row} base={urls.transactions} />
-            ),
-        },
-        {
-            key: 'account',
-            header: 'Compte',
-            render: (row) => (
-                <Link
-                    href={`${urls.accounts}/${row.walletUuid}`}
-                    className="font-mono text-[0.7rem] text-muted-foreground hover:text-foreground"
-                >
-                    {row.walletUuid.slice(0, 8)}…
-                </Link>
-            ),
-        },
-        {
-            key: 'type',
-            header: 'Solde',
-            render: (row) => (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-[0.6875rem] font-extrabold text-foreground">
-                    {row.balanceType === 'cash' ? (
-                        <Banknote className="size-3.5" />
-                    ) : (
-                        <Coins className="size-3.5" />
-                    )}
-                    {row.balanceType === 'cash' ? 'Cash' : 'Points'}
-                </span>
-            ),
-        },
-        {
-            key: 'reason',
-            header: 'Motif',
-            render: (row) => (
-                <span className="text-xs font-bold text-foreground">
-                    {row.reasonLabel}
-                </span>
-            ),
-        },
-        {
-            key: 'amount',
-            header: 'Montant',
-            align: 'right',
-            render: (row) => (
-                <span
-                    className={`font-black tabular-nums ${row.direction === 'credit' ? 'text-emerald-700 dark:text-emerald-300' : 'text-foreground'}`}
-                >
-                    {row.direction === 'credit' ? '+' : '−'}
-                    {row.balanceType === 'cash'
-                        ? money(row.amount)
-                        : points(row.amount)}
-                </span>
-            ),
-        },
-        {
-            key: 'source',
-            header: 'Source BUS',
-            render: (row) =>
-                row.source ? (
-                    <span className="flex max-w-44 flex-col">
-                        <span className="truncate text-xs font-bold text-foreground">
-                            {row.source.label}
-                        </span>
-                        <span className="font-mono text-[0.65rem] text-muted-foreground">
-                            {row.source.uuid.slice(0, 8)}…
-                        </span>
-                    </span>
-                ) : (
-                    <span className="text-xs text-muted-foreground">—</span>
-                ),
-        },
-        {
-            key: 'agency',
-            header: 'Agence',
-            render: (row) => (
-                <span className="text-xs text-muted-foreground">
-                    {row.agency?.name ?? '—'}
-                </span>
-            ),
-        },
-    ];
-
-    return (
-        <KoraTable
-            variant="cash"
-            columns={columns}
-            data={data}
-            rowKey={(row) => row.uuid}
-            showHeader={false}
-            emptyTitle={emptyTitle}
-            emptyMessage="Les opérations BUS apparaîtront ici après les premiers mouvements du Wallet."
-            emptyIcon={Activity}
-        />
-    );
-}
-
-function FilterField({
-    icon: Icon,
-    label,
-    children,
-}: {
-    icon: LucideIcon;
-    label: string;
-    children: React.ReactNode;
-}) {
-    return (
-        <label className="block min-w-0">
-            <span className="mb-1.5 flex items-center gap-1.5 text-xs font-extrabold text-foreground">
-                <Icon className="size-3.5 text-muted-foreground" /> {label}
-            </span>
-            {children}
-        </label>
-    );
-}
-
 function FilterPanel({
-    kind,
     filters,
-    agencyOptions,
     baseUrl,
+    perPage,
 }: {
-    kind: 'accounts' | 'transactions';
     filters: Filters;
-    agencyOptions: NonNullable<Props['agencyOptions']>;
     baseUrl: string;
+    perPage: number;
 }) {
-    const [values, setValues] = useState<Filters>(filters);
+    const [values, setValues] = useState<Filters>(() => ({
+        search: filters.search ?? '',
+        balance_type: filters.balance_type ?? '',
+        direction: filters.direction ?? '',
+        reason: filters.reason ?? '',
+        from: filters.from ?? '',
+        to: filters.to ?? '',
+    }));
 
     const update = (field: keyof Filters, value: string) =>
         setValues((current) => ({ ...current, [field]: value }));
@@ -640,18 +461,29 @@ function FilterPanel({
                 ([, value]) => value !== '' && value !== undefined,
             ),
         );
-        router.get(baseUrl, query, {
-            preserveScroll: true,
-            preserveState: true,
-            replace: true,
-        });
+        router.get(
+            baseUrl,
+            { ...query, page: 1, per_page: perPage },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+            },
+        );
     };
 
     const reset = () => {
-        setValues({});
+        setValues({
+            search: '',
+            balance_type: '',
+            direction: '',
+            reason: '',
+            from: '',
+            to: '',
+        });
         router.get(
             baseUrl,
-            {},
+            { page: 1, per_page: perPage },
             { preserveScroll: true, preserveState: true, replace: true },
         );
     };
@@ -659,229 +491,566 @@ function FilterPanel({
     return (
         <form
             onSubmit={apply}
-            className="cash-filterbar cash-reveal flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-[0_8px_28px_rgba(0,29,78,0.035)]"
-            aria-label={
-                kind === 'accounts'
-                    ? 'Filtres des comptes Wallet'
-                    : 'Filtres des mouvements Wallet'
-            }
+            className="cash-reveal cash-reveal-delay-2 mb-3 flex flex-col gap-3 rounded-[var(--kora-radius)] border border-border bg-card p-3 sm:p-4"
+            aria-label="Filtres des mouvements Wallet"
         >
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <FilterField icon={Search} label="Titulaire, téléphone ou UUID">
-                    <span className="relative block">
-                        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                        <input
-                            value={values.search ?? ''}
-                            onChange={(event) =>
-                                update('search', event.target.value)
-                            }
-                            placeholder="Rechercher…"
-                            className="cash-filter-select w-full pl-9"
-                        />
-                    </span>
-                </FilterField>
-                {kind === 'accounts' ? (
-                    <>
-                        <FilterField icon={ShieldCheck} label="Statut passager">
-                            <select
-                                value={values.status ?? ''}
-                                onChange={(event) =>
-                                    update('status', event.target.value)
-                                }
-                                className="cash-filter-select w-full"
-                            >
-                                <option value="">Tous les statuts</option>
-                                <option value="active">Actif</option>
-                                <option value="suspended">Suspendu</option>
-                                <option value="locked">Verrouillé</option>
-                            </select>
-                        </FilterField>
-                        <FilterField icon={WalletCards} label="Type de solde">
-                            <select
-                                value={values.balance_type ?? ''}
-                                onChange={(event) =>
-                                    update('balance_type', event.target.value)
-                                }
-                                className="cash-filter-select w-full"
-                            >
-                                <option value="">Tous les comptes</option>
-                                <option value="cash">Cash positif</option>
-                                <option value="points">Points positifs</option>
-                            </select>
-                        </FilterField>
-                        <FilterField
-                            icon={CalendarClock}
-                            label="Échéance des points"
-                        >
-                            <select
-                                value={values.expiration ?? ''}
-                                onChange={(event) =>
-                                    update('expiration', event.target.value)
-                                }
-                                className="cash-filter-select w-full"
-                            >
-                                <option value="">Toutes les échéances</option>
-                                <option value="near">Proche échéance</option>
-                            </select>
-                        </FilterField>
-                    </>
-                ) : (
-                    <>
-                        <FilterField icon={WalletCards} label="Type de solde">
-                            <select
-                                value={values.balance_type ?? ''}
-                                onChange={(event) =>
-                                    update('balance_type', event.target.value)
-                                }
-                                className="cash-filter-select w-full"
-                            >
-                                <option value="">Tous les soldes</option>
-                                <option value="cash">Cash</option>
-                                <option value="points">Points</option>
-                            </select>
-                        </FilterField>
-                        <FilterField
-                            icon={ArrowUpRight}
-                            label="Sens du mouvement"
-                        >
-                            <select
-                                value={values.direction ?? ''}
-                                onChange={(event) =>
-                                    update('direction', event.target.value)
-                                }
-                                className="cash-filter-select w-full"
-                            >
-                                <option value="">Tous les sens</option>
-                                <option value="credit">Crédit</option>
-                                <option value="debit">Débit</option>
-                            </select>
-                        </FilterField>
-                        <FilterField icon={Filter} label="Motif">
-                            <select
-                                value={values.reason ?? ''}
-                                onChange={(event) =>
-                                    update('reason', event.target.value)
-                                }
-                                className="cash-filter-select w-full"
-                            >
-                                <option value="">Tous les motifs</option>
-                                {[
-                                    ['topup', 'Recharge'],
-                                    ['purchase', 'Achat de billet BUS'],
-                                    ['refund_cash', 'Remboursement cash'],
-                                    [
-                                        'refund_points',
-                                        'Remboursement de points',
-                                    ],
-                                    ['points_earn', 'Points gagnés'],
-                                    ['bonus_welcome', 'Bonus de bienvenue'],
-                                    ['bonus_referral', 'Bonus de parrainage'],
-                                    ['bonus_anniversary', 'Bonus anniversaire'],
-                                    ['bonus_usage', 'Bonus de fidélité'],
-                                    ['points_expire', 'Expiration de points'],
-                                    [
-                                        'points_correction',
-                                        'Correction de points',
-                                    ],
-                                    [
-                                        'compensation_offset',
-                                        'Compensation de points',
-                                    ],
-                                    ['restitution', 'Restitution'],
-                                    ['adjustment', 'Ajustement audité'],
-                                ].map(([value, label]) => (
-                                    <option key={value} value={value}>
-                                        {label}
-                                    </option>
-                                ))}
-                            </select>
-                        </FilterField>
-                    </>
-                )}
-                <FilterField icon={Landmark} label="Agence">
-                    <select
-                        value={values.agency_uuid ?? ''}
+            <div className="grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(12rem,0.7fr)_minmax(13rem,0.8fr)]">
+                <div className="flex min-w-0 items-center gap-2 md:col-span-2 xl:col-span-1">
+                    <Search className="cash-filter-icon size-4 shrink-0" />
+                    <input
+                        type="search"
+                        value={values.search ?? ''}
                         onChange={(event) =>
-                            update('agency_uuid', event.target.value)
+                            update('search', event.target.value)
                         }
-                        className="cash-filter-select w-full"
-                    >
-                        <option value="">Toutes les agences</option>
-                        {agencyOptions.map((agency) => (
-                            <option key={agency.uuid} value={agency.uuid}>
-                                {agency.name}
-                            </option>
-                        ))}
-                    </select>
-                </FilterField>
-                <FilterField icon={CalendarDays} label="Depuis le">
-                    <input
-                        type="date"
-                        value={values.from ?? ''}
-                        onChange={(event) => update('from', event.target.value)}
-                        className="cash-filter-select w-full"
+                        placeholder="Mouvement, titulaire, Wallet ou source BUS…"
+                        aria-label="Rechercher un mouvement, un titulaire, un Wallet ou une source BUS"
+                        className="cash-filter-search w-full min-w-0"
                     />
-                </FilterField>
-                <FilterField icon={CalendarDays} label="Jusqu’au">
-                    <input
-                        type="date"
-                        value={values.to ?? ''}
-                        onChange={(event) => update('to', event.target.value)}
-                        className="cash-filter-select w-full"
-                    />
-                </FilterField>
+                </div>
+                <FilterSelect
+                    label="Type de solde Wallet"
+                    value={values.balance_type ?? ''}
+                    onChange={(value) => update('balance_type', value)}
+                    options={[
+                        ['', 'Tous les soldes'],
+                        ['cash', 'Cash'],
+                        ['points', 'Points de fidélité'],
+                    ]}
+                />
+                <FilterSelect
+                    label="Motif"
+                    value={values.reason ?? ''}
+                    onChange={(value) => update('reason', value)}
+                    options={[
+                        ['', 'Tous les motifs'],
+                        ['topup', 'Recharge'],
+                        ['purchase', 'Achat de billet BUS'],
+                        ['refund_cash', 'Remboursement cash'],
+                        ['refund_points', 'Remboursement de points'],
+                        ['points_earn', 'Points gagnés'],
+                        ['bonus_welcome', 'Bonus de bienvenue'],
+                        ['bonus_referral', 'Bonus de parrainage'],
+                        ['bonus_anniversary', 'Bonus anniversaire'],
+                        ['bonus_usage', 'Bonus de fidélité'],
+                        ['points_expire', 'Expiration de points'],
+                        ['points_correction', 'Correction de points'],
+                        ['compensation_offset', 'Compensation de points'],
+                        ['restitution', 'Restitution'],
+                        ['adjustment', 'Ajustement audité'],
+                    ]}
+                />
             </div>
-            <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border/70 pt-3">
-                <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={reset}
-                >
-                    Réinitialiser
-                </Button>
-                <Button
-                    type="submit"
-                    size="sm"
-                    className="bg-[var(--kora)] text-white hover:bg-[var(--kora)]/90"
-                >
-                    <Search className="size-3.5" /> Appliquer les filtres
-                </Button>
+            <div className="grid min-w-0 gap-3 border-t border-border pt-3 md:grid-cols-2 xl:grid-cols-[minmax(12rem,0.65fr)_minmax(27rem,1.4fr)_auto]">
+                <FilterSelect
+                    label="Sens du mouvement"
+                    value={values.direction ?? ''}
+                    onChange={(value) => update('direction', value)}
+                    options={[
+                        ['', 'Tous les sens'],
+                        ['credit', 'Crédit'],
+                        ['debit', 'Débit'],
+                    ]}
+                />
+                <div className="flex min-w-0 flex-col gap-2 md:col-span-2 xl:col-span-1">
+                    <span className="flex items-center gap-1.5 text-xs font-extrabold text-muted-foreground">
+                        <CalendarDays className="size-3.5" /> Période
+                    </span>
+                    <div className="grid min-w-0 gap-2 sm:grid-cols-2">
+                        <label className="cash-filter-field relative block min-w-0">
+                            <span className="sr-only">Du</span>
+                            <input
+                                type="date"
+                                value={values.from ?? ''}
+                                onChange={(event) =>
+                                    update('from', event.target.value)
+                                }
+                                aria-label="Date de début"
+                                title="Du"
+                                className="cash-filter-select h-11 w-full !min-w-0 rounded-xl bg-muted/55 px-3 text-xs font-bold text-foreground ring-1 ring-black/[0.045] outline-none focus:bg-card focus:ring-2 focus:ring-gold/35"
+                            />
+                        </label>
+                        <label className="cash-filter-field relative block min-w-0">
+                            <span className="sr-only">Au</span>
+                            <input
+                                type="date"
+                                value={values.to ?? ''}
+                                onChange={(event) =>
+                                    update('to', event.target.value)
+                                }
+                                aria-label="Date de fin"
+                                title="Au"
+                                className="cash-filter-select h-11 w-full !min-w-0 rounded-xl bg-muted/55 px-3 text-xs font-bold text-foreground ring-1 ring-black/[0.045] outline-none focus:bg-card focus:ring-2 focus:ring-gold/35"
+                            />
+                        </label>
+                    </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 md:col-span-2 xl:col-span-1 xl:self-end">
+                    <button
+                        type="submit"
+                        className="btn btn-navy cash-filter-submit"
+                    >
+                        <SlidersHorizontal className="size-4" /> Filtrer
+                    </button>
+                    <button
+                        type="button"
+                        className="btn btn-ghost cash-filter-reset"
+                        onClick={reset}
+                    >
+                        Réinitialiser
+                    </button>
+                </div>
             </div>
         </form>
     );
 }
 
+type WalletAccountFilterState = {
+    search: string;
+    status: string;
+    balance_type: string;
+    expiration: string;
+    agency_uuid: string;
+};
+
+const emptyWalletAccountFilters: WalletAccountFilterState = {
+    search: '',
+    status: '',
+    balance_type: '',
+    expiration: '',
+    agency_uuid: '',
+};
+
+const walletAccountPageSize = 10;
+
+function walletExpiryWindowDays(rules?: LoyaltyRules): number {
+    const reminderDays = rules?.pointsExpiryReminderDays ?? [30, 7, 1];
+
+    return reminderDays.length > 0 ? Math.max(...reminderDays) : 30;
+}
+
+function isWalletAccountExpiringSoon(
+    account: WalletAccount,
+    reminderWindowDays: number,
+) {
+    if (!account.pointsExpiresAt || account.balances.points <= 0) {
+        return false;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const expiryWindowEnd = new Date(today);
+    expiryWindowEnd.setDate(expiryWindowEnd.getDate() + reminderWindowDays);
+    expiryWindowEnd.setHours(23, 59, 59, 999);
+
+    const expiryDate = new Date(account.pointsExpiresAt);
+
+    return expiryDate >= today && expiryDate <= expiryWindowEnd;
+}
+
+function walletAccountFiltersFromProps(
+    filters?: Filters,
+): WalletAccountFilterState {
+    return {
+        search: filters?.search ?? '',
+        status: filters?.status ?? '',
+        balance_type: filters?.balance_type ?? '',
+        expiration: filters?.expiration ?? '',
+        agency_uuid: filters?.agency_uuid ?? '',
+    };
+}
+
+function walletAccountQuery(
+    filters: WalletAccountFilterState,
+    page: number,
+    perPage: number,
+): Record<string, string | number> {
+    const query: Record<string, string | number> = {
+        page,
+        per_page: perPage,
+    };
+
+    if (filters.search.trim() !== '') {
+        query.search = filters.search.trim();
+    }
+
+    if (filters.status !== '') {
+        query.status = filters.status;
+    }
+
+    if (filters.balance_type !== '') {
+        query.balance_type = filters.balance_type;
+    }
+
+    if (filters.expiration !== '') {
+        query.expiration = filters.expiration;
+    }
+
+    if (filters.agency_uuid !== '') {
+        query.agency_uuid = filters.agency_uuid;
+    }
+
+    return query;
+}
+
+function walletAccountDetailHref(
+    base: string,
+    accountUuid: string,
+    filters?: Filters,
+): string {
+    const query = walletAccountQuery(
+        walletAccountFiltersFromProps(filters),
+        filters?.page ?? 1,
+        filters?.per_page ?? walletAccountPageSize,
+    );
+    const search = new URLSearchParams(
+        Object.entries(query).map(([key, value]) => [key, String(value)]),
+    ).toString();
+
+    return `${base.replace(/\/$/, '')}/${accountUuid}?${search}`;
+}
+
+function WalletAccountFilters({
+    values,
+    onChange,
+    onApply,
+    onReset,
+    agencyOptions,
+    expirationWindowDays,
+}: {
+    values: WalletAccountFilterState;
+    onChange: (field: keyof WalletAccountFilterState, value: string) => void;
+    onApply: (event: FormEvent<HTMLFormElement>) => void;
+    onReset: () => void;
+    agencyOptions: NonNullable<Props['agencyOptions']>;
+    expirationWindowDays: number;
+}) {
+    return (
+        <form
+            onSubmit={onApply}
+            className="cash-filterbar cash-reveal cash-reveal-delay-2"
+            aria-label="Filtres des comptes Wallet"
+        >
+            <Search className="cash-filter-icon size-4" />
+            <input
+                type="search"
+                value={values.search}
+                onChange={(event) => onChange('search', event.target.value)}
+                placeholder="Nom, téléphone ou UUID…"
+                aria-label="Rechercher par nom, téléphone ou UUID"
+                className="cash-filter-search"
+            />
+            <FilterSelect
+                label="Statut passager"
+                value={values.status}
+                onChange={(value) => onChange('status', value)}
+                options={[
+                    ['', 'Tous les statuts'],
+                    ['active', 'Actif'],
+                    ['suspended', 'Suspendu'],
+                    ['locked', 'Verrouillé'],
+                ]}
+            />
+            <FilterSelect
+                label="Solde positif"
+                value={values.balance_type}
+                onChange={(value) => onChange('balance_type', value)}
+                options={[
+                    ['', 'Cash ou points'],
+                    ['cash', 'Cash positif'],
+                    ['points', 'Points positifs'],
+                ]}
+            />
+            <FilterSelect
+                label="Échéance des points"
+                value={values.expiration}
+                onChange={(value) => onChange('expiration', value)}
+                options={[
+                    ['', 'Toutes les échéances'],
+                    ['near', `Dans les ${expirationWindowDays} jours`],
+                ]}
+            />
+            <FilterSelect
+                label="Agence de la dernière activité"
+                value={values.agency_uuid}
+                onChange={(value) => onChange('agency_uuid', value)}
+                options={[
+                    ['', 'Toutes les agences'],
+                    ...agencyOptions.map((agency) => [
+                        agency.uuid,
+                        agency.name,
+                    ]),
+                ]}
+            />
+            <button type="submit" className="btn btn-navy cash-filter-submit">
+                <SlidersHorizontal className="size-4" /> Filtrer
+            </button>
+            <button
+                type="button"
+                className="btn btn-ghost cash-filter-reset"
+                onClick={onReset}
+            >
+                Réinitialiser
+            </button>
+        </form>
+    );
+}
+
+function WalletAccountDetailContent({
+    account,
+    expirationWindowDays,
+}: {
+    account: WalletAccount;
+    expirationWindowDays: number;
+}) {
+    const movementColumns: TableColumn<WalletMovement>[] = [
+        {
+            key: 'movement',
+            header: 'Mouvement',
+            render: (movement) => (
+                <span className="block min-w-48">
+                    <span className="block font-extrabold text-foreground">
+                        {movement.reasonLabel}
+                    </span>
+                    <span className="mt-1 block text-xs text-muted-foreground">
+                        {date(movement.createdAt)}
+                    </span>
+                </span>
+            ),
+        },
+        {
+            key: 'balance',
+            header: 'Solde',
+            render: (movement) => (
+                <span
+                    className={`inline-flex rounded-full px-2.5 py-1 text-[0.625rem] font-extrabold ${movement.balanceType === 'cash' ? 'bg-sky-100 text-sky-800 dark:bg-sky-950/50 dark:text-sky-200' : 'bg-amber-100 text-amber-900 dark:bg-amber-950/50 dark:text-amber-200'}`}
+                >
+                    {movement.balanceType === 'cash' ? 'Cash' : 'Points'}
+                </span>
+            ),
+        },
+        {
+            key: 'source',
+            header: 'Source BUS',
+            render: (movement) => (
+                <span className="block min-w-40">
+                    <span className="block text-xs font-bold text-foreground">
+                        {movement.source?.label ?? 'Opération BUS'}
+                    </span>
+                    <span className="mt-1 block font-mono text-[0.65rem] text-muted-foreground">
+                        {movement.source?.uuid ?? 'Référence indisponible'}
+                    </span>
+                </span>
+            ),
+        },
+        {
+            key: 'agency',
+            header: 'Agence source',
+            render: (movement) => (
+                <span className="text-xs text-muted-foreground">
+                    {movement.agency?.name ?? '—'}
+                </span>
+            ),
+        },
+        {
+            key: 'amount',
+            header: 'Montant',
+            align: 'right',
+            render: (movement) => (
+                <span
+                    className={`font-extrabold tabular-nums ${movement.direction === 'credit' ? 'text-emerald-700 dark:text-emerald-300' : 'text-foreground'}`}
+                >
+                    {movement.direction === 'credit' ? '+' : '−'}
+                    {movement.balanceType === 'cash'
+                        ? money(movement.amount)
+                        : points(movement.amount)}
+                </span>
+            ),
+        },
+    ];
+
+    const isExpiringSoon = isWalletAccountExpiringSoon(
+        account,
+        expirationWindowDays,
+    );
+
+    return (
+        <div className="cash-reveal flex flex-col gap-5">
+            <section className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(18rem,0.85fr)]">
+                <section className="rounded-2xl border border-border bg-card p-5 shadow-[0_8px_28px_rgba(0,29,78,0.035)]">
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div className="flex min-w-0 items-start gap-3">
+                            <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-[var(--kora)]/10 text-[var(--kora)]">
+                                <UserRound className="size-5" />
+                            </span>
+                            <div className="min-w-0">
+                                <p className="text-sm font-extrabold text-foreground">
+                                    {account.holder.phone ?? 'Téléphone absent'}
+                                </p>
+                                <p className="mt-1 font-mono text-[0.6875rem] break-all text-muted-foreground">
+                                    UUID · {account.uuid}
+                                </p>
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                    Compte créé le {dateOnly(account.createdAt)}
+                                </p>
+                            </div>
+                        </div>
+                        {statusPill(account.holder.status)}
+                    </div>
+
+                    <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                        <article className="rounded-xl border border-border bg-muted/35 p-4">
+                            <div className="flex items-center gap-2 text-xs font-extrabold text-muted-foreground">
+                                <Banknote className="size-4" /> Cash
+                            </div>
+                            <p className="mt-2 text-2xl font-black text-foreground tabular-nums">
+                                {money(account.balances.cash)}
+                            </p>
+                        </article>
+                        <article className="rounded-xl border border-border bg-gold/10 p-4">
+                            <div className="flex items-center gap-2 text-xs font-extrabold text-amber-900 dark:text-amber-200">
+                                <Coins className="size-4" /> Points de fidélité
+                            </div>
+                            <p className="mt-2 text-2xl font-black text-foreground tabular-nums">
+                                {points(account.balances.points)}
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                Valeur d’usage ·{' '}
+                                {money(account.balances.pointsValue)}
+                            </p>
+                        </article>
+                    </div>
+                </section>
+
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                    <article className="rounded-2xl border border-border bg-card p-5 shadow-[0_8px_28px_rgba(0,29,78,0.035)]">
+                        <div className="flex items-center gap-2 text-xs font-extrabold text-muted-foreground">
+                            <CalendarClock className="size-4" /> Échéance des
+                            points
+                        </div>
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                            <p className="text-lg font-black text-foreground">
+                                {account.balances.points > 0
+                                    ? dateOnly(account.pointsExpiresAt)
+                                    : 'Aucun point actif'}
+                            </p>
+                            {isExpiringSoon ? (
+                                <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[0.625rem] font-extrabold text-amber-800 dark:bg-amber-950/50 dark:text-amber-200">
+                                    À surveiller
+                                </span>
+                            ) : null}
+                        </div>
+                        <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                            L’activité BUS qualifiante renouvelle la durée
+                            globale des points.
+                        </p>
+                    </article>
+                    <article className="rounded-2xl border border-border bg-card p-5 shadow-[0_8px_28px_rgba(0,29,78,0.035)]">
+                        <div className="flex items-center gap-2 text-xs font-extrabold text-muted-foreground">
+                            <ShieldCheck className="size-4" /> Compensation de
+                            fidélité
+                        </div>
+                        <p className="mt-3 text-lg font-black text-foreground">
+                            {points(account.pointsCompensationDue)}
+                        </p>
+                        <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                            {account.pointsCompensationDue > 0
+                                ? 'À déduire des prochains gains de fidélité.'
+                                : 'Aucune compensation en attente.'}
+                        </p>
+                    </article>
+                </div>
+            </section>
+            <section className="cash-reveal cash-reveal-delay-1 flex flex-col gap-3">
+                <div>
+                    <p className="section-kicker">Traçabilité KORA BUS</p>
+                    <h2 className="mt-1 text-lg font-black text-foreground">
+                        Mouvements liés à ce compte
+                    </h2>
+                </div>
+                <KoraTable
+                    variant="cash"
+                    columns={movementColumns}
+                    data={account.recentMovements}
+                    rowKey={(movement) => movement.uuid}
+                    showHeader={false}
+                    emptyTitle="Aucune activité BUS"
+                    emptyMessage="Les mouvements de ce compte apparaîtront ici après les premières opérations KORA BUS."
+                    emptyIcon={History}
+                />
+            </section>
+        </div>
+    );
+}
+
 function AccountsList({ props }: { props: Props }) {
-    const accounts = props.accounts;
-    const filters = props.filters ?? {};
-    const agencies = props.agencyOptions ?? [];
+    const [draftFilters, setDraftFilters] = useState<WalletAccountFilterState>(
+        () => walletAccountFiltersFromProps(props.filters),
+    );
+    const accountsPage = props.accounts;
+    const accounts = accountsPage?.data ?? [];
+    const perPage =
+        accountsPage?.per_page ??
+        props.filters?.per_page ??
+        walletAccountPageSize;
+    const expirationWindowDays = walletExpiryWindowDays(props.activeRules);
+
+    const updateDraftFilter = (
+        field: keyof WalletAccountFilterState,
+        value: string,
+    ) => {
+        setDraftFilters((current) => ({ ...current, [field]: value }));
+    };
+
+    const applyFilters = (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+
+        router.get(
+            props.urls.accounts,
+            walletAccountQuery(draftFilters, 1, perPage),
+            { preserveScroll: true, preserveState: true, replace: true },
+        );
+    };
+
+    const resetFilters = () => {
+        setDraftFilters(emptyWalletAccountFilters);
+        router.get(
+            props.urls.accounts,
+            { page: 1, per_page: perPage },
+            { preserveScroll: true, preserveState: true, replace: true },
+        );
+    };
+
     const columns: TableColumn<WalletAccount>[] = [
         {
-            key: 'holder',
-            header: 'Titulaire',
+            key: 'account',
+            header: 'Compte / titulaire',
             render: (row) => (
-                <Link
-                    href={`${props.urls.accounts}/${row.uuid}`}
-                    className="group flex min-w-48 items-center gap-3"
-                >
+                <span className="flex min-w-52 items-center gap-3">
                     <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[var(--kora)]/10 text-[var(--kora)]">
                         <UserRound className="size-4" />
                     </span>
                     <span className="min-w-0">
-                        <span className="block truncate font-extrabold text-foreground group-hover:text-[var(--kora)]">
+                        <span className="block truncate font-extrabold text-foreground">
                             {row.holder.name ?? 'Nom non renseigné'}
                         </span>
-                        <span className="block text-xs text-muted-foreground">
+                        <span className="mt-0.5 block text-xs text-muted-foreground">
                             {row.holder.phone ?? 'Téléphone absent'}
                         </span>
+                        <span
+                            title={row.uuid}
+                            className="mt-0.5 block truncate font-mono text-[0.625rem] text-muted-foreground"
+                        >
+                            UUID · {row.uuid.slice(0, 8).toUpperCase()}
+                        </span>
                     </span>
-                </Link>
+                </span>
             ),
         },
         {
             key: 'status',
-            header: 'Passager',
+            header: 'Statut passager',
             render: (row) => statusPill(row.holder.status),
         },
         {
@@ -911,111 +1080,33 @@ function AccountsList({ props }: { props: Props }) {
         },
         {
             key: 'expiry',
-            header: 'Échéance',
+            header: 'Échéance des points',
             render: (row) => (
-                <span className="text-xs text-muted-foreground">
-                    {date(row.pointsExpiresAt)}
-                </span>
-            ),
-        },
-        {
-            key: 'agency',
-            header: 'Dernière agence',
-            render: (row) => (
-                <span className="text-xs text-muted-foreground">
-                    {row.agency?.name ?? '—'}
+                <span className="flex min-w-32 flex-col items-start gap-1 text-xs">
+                    <span className="text-muted-foreground">
+                        {row.balances.points > 0
+                            ? dateOnly(row.pointsExpiresAt)
+                            : '—'}
+                    </span>
+                    {isWalletAccountExpiringSoon(row, expirationWindowDays) ? (
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[0.625rem] font-extrabold text-amber-800 dark:bg-amber-950/50 dark:text-amber-200">
+                            À surveiller
+                        </span>
+                    ) : null}
                 </span>
             ),
         },
         {
             key: 'activity',
-            header: 'Dernière activité',
+            header: 'Dernière activité BUS',
             render: (row) => (
-                <span className="text-xs text-muted-foreground">
-                    {date(row.lastActivityAt)}
-                </span>
-            ),
-        },
-    ];
-
-    return (
-        <>
-            <FilterPanel
-                key={JSON.stringify(filters)}
-                kind="accounts"
-                filters={filters}
-                agencyOptions={agencies}
-                baseUrl={props.urls.accounts}
-            />
-            <div className="cash-reveal cash-reveal-delay-1">
-                <KoraTable
-                    variant="cash"
-                    columns={columns}
-                    data={accounts?.data ?? []}
-                    rowKey={(row) => row.uuid}
-                    pagination={pagination(accounts, props.urls.accounts)}
-                    showHeader={false}
-                    emptyTitle="Aucun compte Wallet"
-                    emptyMessage="Aucun compte ne correspond aux filtres. Les Wallets sont créés lors du premier événement admissible."
-                    emptyIcon={Users}
-                />
-            </div>
-        </>
-    );
-}
-
-function Dashboard({ props }: { props: Props }) {
-    const data = props.dashboard;
-
-    if (!data) {
-        return null;
-    }
-
-    const movementColumns: TableColumn<WalletMovement>[] = [
-        {
-            key: 'holder',
-            header: 'Titulaire',
-            render: (row) => (
-                <MovementLink movement={row} base={props.urls.transactions} />
-            ),
-        },
-        {
-            key: 'reason',
-            header: 'Motif',
-            render: (row) => (
-                <span className="text-xs font-bold text-foreground">
-                    {row.reasonLabel}
-                </span>
-            ),
-        },
-        {
-            key: 'balance',
-            header: 'Solde',
-            render: (row) => (
-                <span className="text-xs font-semibold text-muted-foreground">
-                    {row.balanceType === 'cash' ? 'Cash' : 'Points'}
-                </span>
-            ),
-        },
-        {
-            key: 'amount',
-            header: 'Montant',
-            align: 'right',
-            render: (row) => (
-                <span className="font-black tabular-nums">
-                    {row.direction === 'credit' ? '+' : '−'}
-                    {row.balanceType === 'cash'
-                        ? money(row.amount)
-                        : points(row.amount)}
-                </span>
-            ),
-        },
-        {
-            key: 'agency',
-            header: 'Agence',
-            render: (row) => (
-                <span className="text-xs text-muted-foreground">
-                    {row.agency?.name ?? '—'}
+                <span className="block min-w-40">
+                    <span className="block text-xs text-foreground">
+                        {date(row.lastActivityAt)}
+                    </span>
+                    <span className="mt-1 block text-xs text-muted-foreground">
+                        {row.agency?.name ?? 'Aucune activité'}
+                    </span>
                 </span>
             ),
         },
@@ -1025,8 +1116,12 @@ function Dashboard({ props }: { props: Props }) {
             align: 'right',
             render: (row) => (
                 <Link
-                    href={movementHref(props.urls.transactions, row)}
-                    className="inline-flex items-center gap-1 text-xs font-extrabold text-[var(--kora)]"
+                    href={walletAccountDetailHref(
+                        props.urls.accounts,
+                        row.uuid,
+                        props.filters,
+                    )}
+                    className="btn btn-ghost min-h-9 px-2.5 text-xs"
                 >
                     Détail <ChevronRight className="size-3.5" />
                 </Link>
@@ -1036,97 +1131,371 @@ function Dashboard({ props }: { props: Props }) {
 
     return (
         <PageFrame
-            title="Pilotage Wallet BUS"
-            description="Vue d’ensemble des comptes voyageurs, des soldes, des échéances de points et des opérations en attente."
-            view="dashboard"
+            title="Comptes Wallet"
+            description="Retrouvez les comptes voyageurs, leurs soldes séparés et les échéances de points."
+            breadcrumb="KORA OPS / Wallet & fidélité / Comptes"
+            view="accounts"
             urls={props.urls}
         >
-            <section
-                className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
-                aria-label="Indicateurs Wallet BUS"
-            >
-                <StatCard
-                    icon={Users}
-                    label="Comptes voyageurs"
-                    value={data.accountCount.toLocaleString('fr-FR')}
-                    detail="Comptes Wallet provisionnés"
-                    tone="blue"
-                />
-                <StatCard
-                    icon={Banknote}
-                    label="Cash en circulation"
-                    value={money(data.cashTotal)}
-                    detail="Solde cash cumulé"
-                    tone="green"
-                />
-                <StatCard
-                    icon={Coins}
-                    label="Points en circulation"
-                    value={points(data.pointsTotal)}
-                    detail={`Valeur d’usage : ${money(data.pointsValue)}`}
-                    tone="gold"
-                />
-                <Link
-                    id="wallet-expiry"
-                    href={`${props.urls.accounts}?expiration=near`}
-                    className="block rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
-                >
-                    <StatCard
-                        icon={CalendarClock}
-                        label="Points proches d’expirer"
-                        value={points(data.expiringPoints)}
-                        detail={`${data.expiringAccountCount} comptes · ${money(data.expiringValue)} de valeur d’usage`}
-                        tone="purple"
-                    />
-                </Link>
-                <StatCard
-                    icon={CircleDollarSign}
-                    label="Recharges en attente"
-                    value={data.pendingTopUpCount.toLocaleString('fr-FR')}
-                    detail={money(data.pendingTopUpAmount)}
-                    tone="amber"
-                />
-                <Link
-                    href={props.urls.restitutions}
-                    className="block rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
-                >
-                    <StatCard
-                        icon={WalletCards}
-                        label="Restitutions à traiter"
-                        value={data.pendingRestitutionCount.toLocaleString(
-                            'fr-FR',
-                        )}
-                        detail={money(data.pendingRestitutionAmount)}
-                        tone="rose"
-                    />
-                </Link>
-            </section>
-
-            <section className="cash-reveal cash-reveal-delay-1 rounded-2xl border border-border bg-card p-4 shadow-[0_8px_28px_rgba(0,29,78,0.035)] sm:p-5">
-                <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-                    <div>
-                        <p className="section-kicker">Activité récente</p>
-                        <h2 className="mt-1 text-lg font-black text-foreground">
-                            Derniers mouvements BUS
-                        </h2>
-                    </div>
-                    <Button variant="outline" size="sm" asChild>
-                        <Link href={props.urls.transactions}>
-                            Tous les mouvements{' '}
-                            <ArrowRight className="size-3.5" />
-                        </Link>
-                    </Button>
-                </div>
+            <WalletAccountFilters
+                values={draftFilters}
+                onChange={updateDraftFilter}
+                onApply={applyFilters}
+                onReset={resetFilters}
+                agencyOptions={props.agencyOptions ?? []}
+                expirationWindowDays={expirationWindowDays}
+            />
+            <div className="cash-reveal cash-reveal-delay-1">
                 <KoraTable
                     variant="cash"
-                    columns={movementColumns}
-                    data={data.recentMovements}
+                    columns={columns}
+                    data={accounts}
                     rowKey={(row) => row.uuid}
+                    pagination={pagination(accountsPage, props.urls.accounts)}
                     showHeader={false}
-                    emptyTitle="Aucune activité pour le moment"
-                    emptyMessage="Les mouvements Wallet apparaîtront ici au fil des opérations KORA BUS."
-                    emptyIcon={History}
+                    emptyTitle="Aucun compte Wallet"
+                    emptyMessage="Aucun compte ne correspond aux filtres. Modifiez la recherche ou réinitialisez les filtres."
+                    emptyIcon={Users}
                 />
+            </div>
+        </PageFrame>
+    );
+}
+
+function Dashboard({ props }: { props: Props }) {
+    const dashboard = props.dashboard;
+    const activeRules = props.activeRules;
+    const expirationWindowDays = walletExpiryWindowDays(activeRules);
+    const recentMovements = dashboard?.recentMovements ?? [];
+    const metrics: WalletDashboardMetric[] = dashboard
+        ? [
+              {
+                  icon: Users,
+                  label: 'Comptes voyageurs',
+                  note: 'Comptes Wallet BUS provisionnés',
+                  value: dashboard.accountCount.toLocaleString('fr-FR'),
+                  footer: 'Comptes existants',
+                  tone: 'navy',
+              },
+              {
+                  icon: CalendarClock,
+                  label: 'Points proches de l’échéance',
+                  note: 'À moins de ' + expirationWindowDays + ' jours',
+                  value: points(dashboard.expiringPoints),
+                  footer:
+                      dashboard.expiringAccountCount.toLocaleString('fr-FR') +
+                      ' comptes · ' +
+                      money(dashboard.expiringValue),
+                  tone: 'gold',
+              },
+              {
+                  icon: Banknote,
+                  label: 'Recharges en attente',
+                  note: 'Recharge à confirmer ou traiter',
+                  value: money(dashboard.pendingTopUpAmount),
+                  footer:
+                      dashboard.pendingTopUpCount.toLocaleString('fr-FR') +
+                      ' recharge(s)',
+                  tone: 'digital',
+              },
+              {
+                  icon: ArrowDownLeft,
+                  label: 'Restitutions à traiter',
+                  note: 'Demandes ouvertes',
+                  value: money(dashboard.pendingRestitutionAmount),
+                  footer:
+                      dashboard.pendingRestitutionCount.toLocaleString(
+                          'fr-FR',
+                      ) + ' demande(s)',
+                  tone: 'emerald',
+              },
+          ]
+        : [];
+
+    const movementColumns: TableColumn<WalletMovement>[] = [
+        {
+            key: 'holder',
+            header: 'Mouvement',
+            render: (movement) => (
+                <span className="block min-w-48">
+                    <MovementLink
+                        movement={movement}
+                        base={props.urls.transactions}
+                    />
+                    <span className="mt-1 block pl-10 text-[0.6875rem] text-muted-foreground">
+                        {movement.reasonLabel}
+                    </span>
+                </span>
+            ),
+        },
+        {
+            key: 'balance',
+            header: 'Solde',
+            render: (movement) => (
+                <span
+                    className={
+                        'inline-flex rounded-full px-2.5 py-1 text-[0.625rem] font-extrabold ' +
+                        (movement.balanceType === 'cash'
+                            ? 'bg-sky-100 text-sky-800 dark:bg-sky-950/50 dark:text-sky-200'
+                            : 'bg-amber-100 text-amber-900 dark:bg-amber-950/50 dark:text-amber-200')
+                    }
+                >
+                    {movement.balanceType === 'cash' ? 'Cash' : 'Points'}
+                </span>
+            ),
+        },
+        {
+            key: 'agency',
+            header: 'Agence source',
+            render: (movement) => (
+                <span className="text-xs text-muted-foreground">
+                    {movement.agency?.name ?? '—'}
+                </span>
+            ),
+        },
+        {
+            key: 'amount',
+            header: 'Montant',
+            align: 'right',
+            render: (movement) => (
+                <span
+                    className={
+                        'text-xs font-black tabular-nums ' +
+                        (movement.direction === 'credit'
+                            ? 'text-emerald-700 dark:text-emerald-300'
+                            : 'text-foreground')
+                    }
+                >
+                    {movement.direction === 'credit' ? '+' : '−'}
+                    {movement.balanceType === 'cash'
+                        ? money(movement.amount)
+                        : points(movement.amount)}
+                </span>
+            ),
+        },
+    ];
+
+    return (
+        <PageFrame
+            title="Pilotage Wallet BUS"
+            description="Suivez les soldes, les points à échéance et les opérations Wallet à traiter."
+            breadcrumb="KORA OPS / Wallet & fidélité / Pilotage"
+            view="dashboard"
+            urls={props.urls}
+            actions={
+                <Button variant="kora" size="kora" asChild>
+                    <Link href={props.urls.transactions}>
+                        Contrôler les mouvements
+                        <ArrowUpRight className="size-4" />
+                    </Link>
+                </Button>
+            }
+        >
+            <section
+                aria-labelledby="wallet-dashboard-title"
+                className="cash-reveal relative isolate grid min-h-[21rem] overflow-hidden rounded-[1.75rem] bg-[var(--kora)] p-6 text-white shadow-[0_28px_65px_rgba(0,29,78,0.18)] ring-1 ring-black/10 sm:p-8 lg:grid-cols-[minmax(0,1.25fr)_minmax(20rem,0.75fr)] lg:items-center lg:gap-8 lg:p-10 dark:ring-white/10"
+            >
+                <div className="pointer-events-none absolute -right-24 -bottom-48 -z-10 size-[32rem] rounded-full border border-gold/15" />
+                <div className="pointer-events-none absolute top-8 -right-10 -z-10 size-52 rounded-full border border-white/10" />
+
+                <div className="relative z-10 flex flex-col justify-between gap-7">
+                    <div>
+                        <span className="mb-3 block text-[0.625rem] font-black tracking-[0.18em] text-gold uppercase">
+                            KORA BUS · Wallet
+                        </span>
+                        <h2
+                            id="wallet-dashboard-title"
+                            className="max-w-2xl text-[clamp(2rem,3.5vw,3.375rem)] leading-[1.02] font-extrabold tracking-[-0.045em] text-balance"
+                        >
+                            Soldes séparés,
+                            <br />
+                            <em className="font-normal text-gold not-italic">
+                                opérations traçables.
+                            </em>
+                        </h2>
+                        <p className="mt-4 max-w-[37.5rem] text-sm leading-[1.6] text-white/65">
+                            Consultez la valeur du cash et des points en
+                            circulation, puis ouvrez les comptes ou les
+                            mouvements associés.
+                        </p>
+                    </div>
+
+                    <div className="mt-1 flex flex-wrap gap-2.5">
+                        <Link
+                            href={props.urls.accounts}
+                            className="btn btn-primary"
+                        >
+                            Voir les comptes
+                            <ArrowUpRight className="size-4" />
+                        </Link>
+                        <Link
+                            href={props.urls.rules}
+                            className="inline-flex min-h-11 items-center gap-2 rounded-[0.75rem] border border-white/20 bg-white/[0.07] px-4 text-[0.75rem] font-extrabold text-white transition-colors duration-300 hover:border-white/40 hover:bg-white/12 focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--kora)] motion-reduce:transition-none"
+                        >
+                            Règles de fidélité
+                        </Link>
+                    </div>
+                </div>
+
+                <div className="relative z-10 mt-7 rounded-[1.375rem] border border-white/15 bg-white/[0.075] p-5 shadow-[inset_0_1px_rgba(255,255,255,0.1)] backdrop-blur-md sm:p-6 lg:mt-0">
+                    <span className="block text-[0.625rem] font-black tracking-[0.12em] text-white/50 uppercase">
+                        Cash en circulation
+                    </span>
+                    <strong className="mt-2 block text-[clamp(1.75rem,3vw,2.25rem)] leading-tight font-extrabold tracking-[-0.04em] tabular-nums">
+                        {dashboard ? money(dashboard.cashTotal) : '—'}
+                    </strong>
+                    <span className="mt-1 block text-xs text-white/55">
+                        Solde cash cumulé des Wallets passagers
+                    </span>
+                    <div className="mt-5 grid grid-cols-2 gap-4 border-t border-white/12 pt-4">
+                        <div>
+                            <span className="block text-[0.625rem] font-black tracking-[0.1em] text-white/45 uppercase">
+                                Points en circulation
+                            </span>
+                            <strong className="mt-1.5 block text-sm font-extrabold text-white tabular-nums">
+                                {dashboard
+                                    ? points(dashboard.pointsTotal)
+                                    : '—'}
+                            </strong>
+                        </div>
+                        <div>
+                            <span className="block text-[0.625rem] font-black tracking-[0.1em] text-white/45 uppercase">
+                                Valeur d’usage
+                            </span>
+                            <strong className="mt-1.5 block text-sm font-extrabold text-gold tabular-nums">
+                                {dashboard ? money(dashboard.pointsValue) : '—'}
+                            </strong>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section
+                aria-label="Indicateurs Wallet KORA BUS"
+                className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-4"
+            >
+                {metrics.map((metric) => (
+                    <WalletDashboardMetricCard
+                        key={metric.label}
+                        metric={metric}
+                    />
+                ))}
+            </section>
+
+            <section className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(18rem,0.85fr)]">
+                <div className="cash-reveal cash-reveal-delay-1 min-w-0">
+                    <KoraTable
+                        title="Derniers mouvements"
+                        subtitle="Opérations récentes du ledger Wallet BUS"
+                        icon={Activity}
+                        actions={
+                            <Button
+                                variant="kora-secondary"
+                                size="kora"
+                                asChild
+                            >
+                                <Link href={props.urls.transactions}>
+                                    Tout afficher
+                                    <ArrowRight className="size-3.5" />
+                                </Link>
+                            </Button>
+                        }
+                        columns={movementColumns}
+                        data={recentMovements}
+                        rowKey={(movement) => movement.uuid}
+                        emptyTitle="Aucun mouvement récent"
+                        emptyMessage="Les mouvements du Wallet BUS apparaîtront ici après les premières opérations."
+                        emptyIcon={Activity}
+                        variant="standard"
+                    />
+                </div>
+
+                <aside className="cash-reveal cash-reveal-delay-2 rounded-[var(--kora-radius)] border border-border bg-card p-5 shadow-[0_8px_30px_rgba(0,29,78,0.045)]">
+                    <div className="flex items-start justify-between gap-3">
+                        <div>
+                            <span className="section-kicker">
+                                Fidélité KORA BUS
+                            </span>
+                            <h2 className="mt-1 text-[0.9375rem] font-extrabold tracking-[-0.025em] text-foreground">
+                                Règles actives
+                            </h2>
+                        </div>
+                        {activeRules ? (
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[0.625rem] font-extrabold text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
+                                <BadgeCheck className="size-3.5" />
+                                {props.activeRuleVersion
+                                    ? 'Version ' +
+                                      props.activeRuleVersion +
+                                      ' · Active'
+                                    : 'Paramètres actifs'}
+                            </span>
+                        ) : null}
+                    </div>
+
+                    {activeRules ? (
+                        <dl className="mt-5 divide-y divide-border/70">
+                            <div className="flex items-baseline justify-between gap-3 py-3 first:pt-0">
+                                <dt className="text-xs text-muted-foreground">
+                                    Acquisition
+                                </dt>
+                                <dd className="text-right text-xs font-extrabold text-foreground">
+                                    {(
+                                        activeRules.loyaltyEarnRateBasisPoints /
+                                        100
+                                    ).toLocaleString('fr-FR')}{' '}
+                                    % du billet éligible
+                                </dd>
+                            </div>
+                            <div className="flex items-baseline justify-between gap-3 py-3">
+                                <dt className="text-xs text-muted-foreground">
+                                    Valeur d’un point
+                                </dt>
+                                <dd className="text-right text-xs font-extrabold text-foreground">
+                                    {activeRules.pointValueFcfa.toLocaleString(
+                                        'fr-FR',
+                                    )}{' '}
+                                    FCFA
+                                </dd>
+                            </div>
+                            <div className="flex items-baseline justify-between gap-3 py-3">
+                                <dt className="text-xs text-muted-foreground">
+                                    Utilisation minimale
+                                </dt>
+                                <dd className="text-right text-xs font-extrabold text-foreground">
+                                    {points(activeRules.pointsMinSpend)}
+                                </dd>
+                            </div>
+                            <div className="flex items-baseline justify-between gap-3 py-3 last:pb-0">
+                                <dt className="text-xs text-muted-foreground">
+                                    Expiration
+                                </dt>
+                                <dd className="text-right text-xs font-extrabold text-foreground">
+                                    {activeRules.pointsExpiryMonths} mois{' '}
+                                    {activeRules.pointsExpiryReminderDays
+                                        .length > 0
+                                        ? '· J−' +
+                                          activeRules.pointsExpiryReminderDays.join(
+                                              ' · J−',
+                                          )
+                                        : '· aucun rappel'}
+                                </dd>
+                            </div>
+                        </dl>
+                    ) : (
+                        <p className="mt-5 text-sm text-muted-foreground">
+                            Les paramètres actifs de fidélité sont
+                            indisponibles.
+                        </p>
+                    )}
+
+                    <Link
+                        href={props.urls.rules}
+                        className="group mt-5 inline-flex items-center gap-2 border-t border-border pt-4 text-xs font-extrabold text-[var(--kora)] transition-colors hover:text-gold motion-reduce:transition-none"
+                    >
+                        Consulter les règles
+                        <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-1 motion-reduce:transition-none" />
+                    </Link>
+                </aside>
             </section>
         </PageFrame>
     );
@@ -1139,189 +1508,140 @@ function AccountDetail({ props }: { props: Props }) {
         return null;
     }
 
+    const holderLabel = account.holder.name ?? 'Compte Wallet';
+    const returnUrl = props.returnUrl ?? props.urls.accounts;
+
     return (
         <PageFrame
-            title={account.holder.name ?? 'Compte Wallet'}
+            title={holderLabel}
             description="Fiche de compte passager KORA BUS avec soldes séparés, compensation et activité récente."
+            breadcrumb={
+                'KORA OPS / Wallet & fidélité / Comptes / ' + holderLabel
+            }
             view="account"
             urls={props.urls}
+            actions={
+                <Link href={returnUrl} className="btn btn-ghost">
+                    <ArrowLeft className="size-4" />
+                    Retour à la liste
+                </Link>
+            }
         >
-            <section className="cash-reveal grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-                <div className="rounded-2xl border border-border bg-card p-5 shadow-[0_8px_28px_rgba(0,29,78,0.035)]">
-                    <div className="flex flex-wrap items-start justify-between gap-4">
-                        <div className="flex items-start gap-3">
-                            <span className="grid size-12 place-items-center rounded-2xl bg-[var(--kora)]/10 text-[var(--kora)]">
-                                <UserRound className="size-5" />
-                            </span>
-                            <div>
-                                <p className="text-lg font-black text-foreground">
-                                    {account.holder.name ?? 'Nom non renseigné'}
-                                </p>
-                                <p className="mt-1 text-sm text-muted-foreground">
-                                    {account.holder.phone ?? 'Téléphone absent'}
-                                </p>
-                                <p className="mt-2 font-mono text-[0.6875rem] text-muted-foreground">
-                                    Compte {account.uuid}
-                                </p>
-                            </div>
-                        </div>
-                        {statusPill(account.holder.status)}
-                    </div>
-                    <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                        <div className="rounded-xl border border-border bg-muted/35 p-4">
-                            <div className="flex items-center gap-2 text-xs font-extrabold text-muted-foreground">
-                                <Banknote className="size-4" /> Solde cash
-                            </div>
-                            <p className="mt-2 text-2xl font-black text-foreground tabular-nums">
-                                {money(account.balances.cash)}
-                            </p>
-                            <p className="mt-1 text-xs text-muted-foreground">
-                                Fonds utilisables sur les achats KORA BUS
-                            </p>
-                        </div>
-                        <div className="rounded-xl border border-border bg-violet-50/60 p-4 dark:bg-violet-950/20">
-                            <div className="flex items-center gap-2 text-xs font-extrabold text-violet-800 dark:text-violet-200">
-                                <Coins className="size-4" /> Solde fidélité
-                            </div>
-                            <p className="mt-2 text-2xl font-black text-foreground tabular-nums">
-                                {points(account.balances.points)}
-                            </p>
-                            <p className="mt-1 text-xs text-muted-foreground">
-                                Valeur d’usage{' '}
-                                {money(account.balances.pointsValue)}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-                    <article className="rounded-2xl border border-border bg-card p-5 shadow-[0_8px_28px_rgba(0,29,78,0.035)]">
-                        <div className="flex items-center gap-2 text-xs font-extrabold text-muted-foreground">
-                            <CalendarClock className="size-4" /> Échéance des
-                            points
-                        </div>
-                        <p className="mt-3 text-lg font-black text-foreground">
-                            {date(account.pointsExpiresAt)}
-                        </p>
-                        <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                            Une nouvelle durée s’applique au prochain événement
-                            qualifiant. Une échéance déjà enregistrée reste
-                            inchangée.
-                        </p>
-                    </article>
-                    <article className="rounded-2xl border border-border bg-card p-5 shadow-[0_8px_28px_rgba(0,29,78,0.035)]">
-                        <div className="flex items-center gap-2 text-xs font-extrabold text-muted-foreground">
-                            <ShieldCheck className="size-4" /> Compensation
-                            fidélité
-                        </div>
-                        <p className="mt-3 text-lg font-black text-foreground">
-                            {points(account.pointsCompensationDue)}
-                        </p>
-                        <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                            Points à compenser sur les prochains gains après
-                            correction d’un voyage.
-                        </p>
-                    </article>
-                </div>
-            </section>
-
-            <section className="cash-reveal cash-reveal-delay-1 rounded-2xl border border-border bg-card p-4 shadow-[0_8px_28px_rgba(0,29,78,0.035)] sm:p-5">
-                <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-                    <div>
-                        <p className="section-kicker">Traçabilité BUS</p>
-                        <h2 className="mt-1 text-lg font-black text-foreground">
-                            Activité récente
-                        </h2>
-                    </div>
-                    <Link
-                        href={`${props.urls.transactions}?search=${account.uuid}`}
-                        className="inline-flex items-center gap-1 text-xs font-extrabold text-[var(--kora)]"
-                    >
-                        Tous les mouvements <ArrowRight className="size-3.5" />
-                    </Link>
-                </div>
-                <MovementTable
-                    data={account.recentMovements}
-                    urls={props.urls}
-                    emptyTitle="Aucun mouvement enregistré"
-                />
-            </section>
+            <WalletAccountDetailContent
+                account={account}
+                expirationWindowDays={walletExpiryWindowDays(props.activeRules)}
+            />
         </PageFrame>
     );
 }
 
 function TransactionsList({ props }: { props: Props }) {
+    const perPage = props.movements?.per_page ?? props.filters?.per_page ?? 25;
+
     return (
         <PageFrame
             title="Mouvements Wallet"
-            description="Journal consolidé des crédits et débits KORA BUS, avec accès au compte et à la source métier de chaque opération."
+            description="Journal des écritures effectivement passées sur les soldes cash et points KORA BUS, de la plus récente à la plus ancienne."
+            breadcrumb="KORA OPS / Wallet & fidélité / Mouvements"
             view="transactions"
             urls={props.urls}
         >
             <FilterPanel
                 key={JSON.stringify(props.filters ?? {})}
-                kind="transactions"
                 filters={props.filters ?? {}}
-                agencyOptions={props.agencyOptions ?? []}
                 baseUrl={props.urls.transactions}
+                perPage={perPage}
             />
             <div className="cash-reveal cash-reveal-delay-1">
                 <KoraTable
                     variant="cash"
                     columns={[
                         {
-                            key: 'holder',
-                            header: 'Titulaire',
+                            key: 'movement',
+                            header: 'Mouvement',
                             render: (row) => (
-                                <MovementLink
-                                    movement={row}
-                                    base={props.urls.transactions}
-                                />
+                                <Link
+                                    href={movementHref(
+                                        props.urls.transactions,
+                                        row,
+                                        props.filters,
+                                    )}
+                                    className="group flex min-w-44 flex-col items-start gap-1 text-left"
+                                >
+                                    <span
+                                        title={row.uuid}
+                                        className="font-mono text-[0.625rem] font-bold tracking-wide text-muted-foreground group-hover:text-[var(--kora)]"
+                                    >
+                                        {row.uuid.slice(0, 8).toUpperCase()}
+                                    </span>
+                                    <span className="text-xs font-extrabold text-foreground group-hover:text-[var(--kora)]">
+                                        {row.reasonLabel}
+                                    </span>
+                                    <span className="text-[0.6875rem] text-muted-foreground">
+                                        {date(row.createdAt)}
+                                    </span>
+                                </Link>
+                            ),
+                        },
+                        {
+                            key: 'account',
+                            header: 'Compte / titulaire',
+                            render: (row) => (
+                                <span className="block min-w-44">
+                                    <span className="block truncate text-xs font-extrabold text-foreground">
+                                        {row.holder.name ??
+                                            'Titulaire non renseigné'}
+                                    </span>
+                                    <span className="mt-0.5 block text-[0.6875rem] text-muted-foreground">
+                                        {row.holder.phone ?? 'Téléphone absent'}
+                                    </span>
+                                    <span
+                                        title={row.walletUuid}
+                                        className="mt-0.5 block font-mono text-[0.625rem] text-muted-foreground"
+                                    >
+                                        Wallet ·{' '}
+                                        {row.walletUuid
+                                            .slice(0, 8)
+                                            .toUpperCase()}
+                                    </span>
+                                </span>
                             ),
                         },
                         {
                             key: 'balance',
-                            header: 'Solde',
+                            header: 'Solde / sens',
                             render: (row) => (
-                                <span className="text-xs font-bold">
-                                    {row.balanceType === 'cash'
-                                        ? 'Cash'
-                                        : 'Points'}
-                                </span>
-                            ),
-                        },
-                        {
-                            key: 'direction',
-                            header: 'Sens',
-                            render: (row) => (
-                                <span
-                                    className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[0.6875rem] font-extrabold ${row.direction === 'credit' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200' : 'bg-rose-100 text-rose-800 dark:bg-rose-950/50 dark:text-rose-200'}`}
-                                >
-                                    {row.direction === 'credit' ? (
-                                        <ArrowDownLeft className="size-3" />
-                                    ) : (
-                                        <ArrowUpRight className="size-3" />
-                                    )}
-                                    {row.direction === 'credit'
-                                        ? 'Crédit'
-                                        : 'Débit'}
-                                </span>
-                            ),
-                        },
-                        {
-                            key: 'reason',
-                            header: 'Motif',
-                            render: (row) => (
-                                <span className="text-xs font-bold text-foreground">
-                                    {row.reasonLabel}
+                                <span className="flex min-w-24 flex-col items-start gap-1.5">
+                                    <span
+                                        className={`inline-flex rounded-full px-2.5 py-1 text-[0.625rem] font-extrabold ${row.balanceType === 'cash' ? 'bg-sky-100 text-sky-800 dark:bg-sky-950/50 dark:text-sky-200' : 'bg-amber-100 text-amber-900 dark:bg-amber-950/50 dark:text-amber-200'}`}
+                                    >
+                                        {row.balanceType === 'cash'
+                                            ? 'Cash'
+                                            : 'Points'}
+                                    </span>
+                                    <span
+                                        className={`inline-flex items-center gap-1 text-[0.6875rem] font-bold ${row.direction === 'credit' ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300'}`}
+                                    >
+                                        {row.direction === 'credit' ? (
+                                            <ArrowDownLeft className="size-3" />
+                                        ) : (
+                                            <ArrowUpRight className="size-3" />
+                                        )}
+                                        {row.direction === 'credit'
+                                            ? 'Crédit'
+                                            : 'Débit'}
+                                    </span>
                                 </span>
                             ),
                         },
                         {
                             key: 'amount',
-                            header: 'Montant',
+                            header: 'Montant signé',
                             align: 'right',
                             render: (row) => (
-                                <span className="font-black tabular-nums">
+                                <span
+                                    className={`font-black whitespace-nowrap tabular-nums ${row.direction === 'credit' ? 'text-emerald-700 dark:text-emerald-300' : 'text-foreground'}`}
+                                >
                                     {row.direction === 'credit' ? '+' : '−'}
                                     {row.balanceType === 'cash'
                                         ? money(row.amount)
@@ -1333,14 +1653,27 @@ function TransactionsList({ props }: { props: Props }) {
                             key: 'source',
                             header: 'Source BUS',
                             render: (row) => (
-                                <span className="text-xs text-muted-foreground">
-                                    {row.source?.label ?? '—'}
+                                <span className="block min-w-36">
+                                    <span className="block text-xs font-bold text-foreground">
+                                        {row.source?.label ??
+                                            'Aucune source liée'}
+                                    </span>
+                                    {row.source ? (
+                                        <span
+                                            title={row.source.uuid}
+                                            className="mt-0.5 block font-mono text-[0.625rem] text-muted-foreground"
+                                        >
+                                            {row.source.uuid
+                                                .slice(0, 8)
+                                                .toUpperCase()}
+                                        </span>
+                                    ) : null}
                                 </span>
                             ),
                         },
                         {
                             key: 'agency',
-                            header: 'Agence',
+                            header: 'Agence source',
                             render: (row) => (
                                 <span className="text-xs text-muted-foreground">
                                     {row.agency?.name ?? '—'}
@@ -1348,23 +1681,15 @@ function TransactionsList({ props }: { props: Props }) {
                             ),
                         },
                         {
-                            key: 'date',
-                            header: 'Date',
-                            render: (row) => (
-                                <span className="text-xs text-muted-foreground">
-                                    {date(row.createdAt)}
-                                </span>
-                            ),
-                        },
-                        {
                             key: 'detail',
-                            header: '',
+                            header: 'Détail',
                             align: 'right',
                             render: (row) => (
                                 <Link
                                     href={movementHref(
                                         props.urls.transactions,
                                         row,
+                                        props.filters,
                                     )}
                                     aria-label={`Détail du mouvement ${row.uuid}`}
                                     className="grid size-8 place-items-center rounded-lg border border-border text-muted-foreground hover:text-foreground"
@@ -1382,7 +1707,7 @@ function TransactionsList({ props }: { props: Props }) {
                     )}
                     showHeader={false}
                     emptyTitle="Aucun mouvement trouvé"
-                    emptyMessage="Modifiez les filtres ou revenez plus tard. Les données listées sont limitées au Wallet KORA BUS."
+                    emptyMessage="Aucune écriture du ledger ne correspond à ces filtres. Modifiez la recherche ou réinitialisez les filtres."
                     emptyIcon={Activity}
                 />
             </div>
@@ -1398,13 +1723,21 @@ function MovementDetail({ props }: { props: Props }) {
     }
 
     const isCredit = movement.direction === 'credit';
+    const returnUrl = props.returnUrl ?? props.urls.transactions;
 
     return (
         <PageFrame
             title="Détail du mouvement"
-            description="Écriture append-only du journal Wallet, reliée au compte, à son agence et à la source BUS connue."
+            description="Détail d’une écriture du ledger Wallet, de son compte et de sa source métier KORA BUS."
+            breadcrumb={`KORA OPS / Wallet & fidélité / Mouvements / ${movement.uuid}`}
             view="transaction"
             urls={props.urls}
+            actions={
+                <Link href={returnUrl} className="btn btn-ghost">
+                    <ArrowLeft className="size-4" />
+                    Retour aux mouvements
+                </Link>
+            }
         >
             <section className="cash-reveal grid gap-4 xl:grid-cols-[1fr_0.85fr]">
                 <article className="rounded-2xl border border-border bg-card p-5 shadow-[0_8px_28px_rgba(0,29,78,0.035)] sm:p-6">
@@ -1465,9 +1798,11 @@ function MovementDetail({ props }: { props: Props }) {
                                 Version de règle de fidélité
                             </p>
                             <p className="mt-1 text-sm font-bold text-foreground">
-                                {movement.loyaltyRuleVersion
-                                    ? `Version ${movement.loyaltyRuleVersion.version}`
-                                    : 'Non attribuée (mouvement antérieur)'}
+                                {movement.balanceType === 'cash'
+                                    ? 'Non applicable au solde cash'
+                                    : movement.loyaltyRuleVersion
+                                      ? `Version ${movement.loyaltyRuleVersion.version}`
+                                      : 'Aucune version associée à cette écriture antérieure'}
                             </p>
                         </div>
                     </div>
@@ -1481,6 +1816,12 @@ function MovementDetail({ props }: { props: Props }) {
                         <p className="mt-1 text-sm text-muted-foreground">
                             {movement.holder.phone ?? 'Téléphone absent'}
                         </p>
+                        <p
+                            title={movement.walletUuid}
+                            className="mt-2 font-mono text-[0.625rem] text-muted-foreground"
+                        >
+                            Wallet · {movement.walletUuid}
+                        </p>
                         <Link
                             href={`${props.urls.accounts}/${movement.walletUuid}`}
                             className="mt-4 inline-flex items-center gap-1 text-xs font-extrabold text-[var(--kora)]"
@@ -1488,6 +1829,16 @@ function MovementDetail({ props }: { props: Props }) {
                             Ouvrir le compte <ArrowRight className="size-3.5" />
                         </Link>
                     </article>
+                    {movement.actorName ? (
+                        <article className="rounded-2xl border border-border bg-card p-5 shadow-[0_8px_28px_rgba(0,29,78,0.035)]">
+                            <p className="section-kicker">
+                                Auteur de l’écriture
+                            </p>
+                            <p className="mt-2 font-extrabold text-foreground">
+                                {movement.actorName}
+                            </p>
+                        </article>
+                    ) : null}
                     <article className="rounded-2xl border border-border bg-card p-5 shadow-[0_8px_28px_rgba(0,29,78,0.035)]">
                         <p className="section-kicker">Rapprochement métier</p>
                         {movement.source ? (
@@ -1505,11 +1856,11 @@ function MovementDetail({ props }: { props: Props }) {
                                         variant="outline"
                                         className="mt-4"
                                     >
-                                        <a href={movement.source.url}>
+                                        <Link href={movement.source.url}>
                                             <Ticket className="size-3.5" /> Voir
                                             la source BUS{' '}
                                             <ArrowRight className="size-3.5" />
-                                        </a>
+                                        </Link>
                                     </Button>
                                 ) : (
                                     <p className="mt-3 text-xs text-muted-foreground">
@@ -2289,14 +2640,10 @@ export default function WalletOpsPage(props: Props) {
             return <Dashboard props={props} />;
         case 'accounts':
             return (
-                <PageFrame
-                    title="Comptes Wallet"
-                    description="Consultez les comptes provisionnés par l’activité passager, leurs soldes séparés et les échéances de fidélité."
-                    view="accounts"
-                    urls={props.urls}
-                >
-                    <AccountsList props={props} />
-                </PageFrame>
+                <AccountsList
+                    key={JSON.stringify(props.filters ?? {})}
+                    props={props}
+                />
             );
         case 'account':
             return <AccountDetail props={props} />;

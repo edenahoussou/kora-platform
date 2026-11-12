@@ -48,6 +48,7 @@ final class OpsWalletReader
             ->with([
                 'wallet.user',
                 'agency',
+                'actor',
                 'loyaltyRuleVersion',
                 'reference' => function (Relation $relation): void {
                     $this->eagerLoadPaymentReservation($relation);
@@ -117,7 +118,7 @@ final class OpsWalletReader
 
         if (filled($filters['agency_uuid'] ?? null)) {
             $agencyUuid = (string) $filters['agency_uuid'];
-            $query->whereHas('transactions.agency', fn (Builder $agencyQuery) => $agencyQuery->where('uuid', $agencyUuid));
+            $query->whereHas('latestTransaction.agency', fn (Builder $agencyQuery) => $agencyQuery->where('uuid', $agencyUuid));
         }
 
         if (filled($filters['from'] ?? null)) {
@@ -139,6 +140,7 @@ final class OpsWalletReader
             ->with([
                 'wallet.user',
                 'agency',
+                'actor',
                 'loyaltyRuleVersion',
                 'reference' => function (Relation $relation): void {
                     $this->eagerLoadPaymentReservation($relation);
@@ -164,22 +166,40 @@ final class OpsWalletReader
             ->with([
                 'wallet.user',
                 'agency',
+                'actor',
                 'loyaltyRuleVersion',
                 'reference' => function (Relation $relation): void {
                     $this->eagerLoadPaymentReservation($relation);
                 },
             ])
-            ->latest('created_at');
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
 
         $search = trim((string) ($filters['search'] ?? ''));
         if ($search !== '') {
-            $query->whereHas('wallet', function (Builder $walletQuery) use ($search): void {
-                $walletQuery->where('uuid', 'like', '%'.$search.'%')
-                    ->orWhereHas('user', function (Builder $userQuery) use ($search): void {
-                        $userQuery->where('name', 'like', '%'.$search.'%')
-                            ->orWhere('phone', 'like', '%'.$search.'%')
-                            ->orWhere('uuid', 'like', '%'.$search.'%');
+            $pattern = '%'.$search.'%';
+            $query->where(function (Builder $query) use ($pattern): void {
+                $query->where('uuid', 'like', $pattern)
+                    ->orWhereHas('wallet', function (Builder $walletQuery) use ($pattern): void {
+                        $walletQuery->where('uuid', 'like', $pattern)
+                            ->orWhereHas('user', function (Builder $userQuery) use ($pattern): void {
+                                $userQuery->where('name', 'like', $pattern)
+                                    ->orWhere('phone', 'like', $pattern)
+                                    ->orWhere('uuid', 'like', $pattern);
+                            });
                     });
+
+                $query->orWhereHasMorph(
+                    'reference',
+                    [Reservation::class, Payment::class, WalletRestitution::class, WalletTopUp::class, Wallet::class],
+                    function (Builder $sourceQuery, string $type) use ($pattern): void {
+                        $sourceQuery->where('uuid', 'like', $pattern);
+
+                        if ($type === Payment::class) {
+                            $sourceQuery->orWhereHas('reservation', fn (Builder $reservationQuery) => $reservationQuery->where('uuid', 'like', $pattern));
+                        }
+                    },
+                );
             });
         }
 
@@ -215,6 +235,7 @@ final class OpsWalletReader
         $transaction->loadMissing([
             'wallet.user',
             'agency',
+            'actor',
             'loyaltyRuleVersion',
             'reference' => function (Relation $relation): void {
                 $this->eagerLoadPaymentReservation($relation);
@@ -289,6 +310,7 @@ final class OpsWalletReader
                 'uuid' => (string) $transaction->loyaltyRuleVersion->uuid,
                 'version' => (int) $transaction->loyaltyRuleVersion->version,
             ],
+            actorName: $transaction->actor?->name,
             createdAt: $transaction->created_at->toIso8601String(),
         );
     }
@@ -318,7 +340,9 @@ final class OpsWalletReader
             $url = Route::has('manifest.reservations.show') ? route('manifest.reservations.show', $uuid) : null;
         } elseif ($reference instanceof Payment) {
             $reservation = $reference->reservation;
-            $label = 'Paiement BUS';
+            $label = $transaction->reason === WalletTransactionReason::TopUp
+                ? 'Paiement de recharge'
+                : 'Paiement BUS';
             if ($reservation !== null) {
                 $uuid = (string) $reservation->uuid;
                 $url = Route::has('manifest.reservations.show')
