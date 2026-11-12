@@ -12,7 +12,6 @@ log() { printf '%s %s\n' "$(date -Is)" "$*" >> "$LOG_FILE"; }
 log '=== début purge Docker ==='
 
 docker builder prune -f --filter until=168h >> "$LOG_FILE" 2>&1 || log 'builder prune: échec'
-docker image prune -f >> "$LOG_FILE" 2>&1 || log 'image prune: échec'
 
 # Tags staging-<sha> au-delà des N plus récents : re-tirables depuis GHCR si besoin.
 mapfile -t staging_tags < <(
@@ -45,6 +44,9 @@ for ref in "${obsolete[@]}"; do
         log "image conservée (utilisée par un conteneur): $ref"
     fi
 done
+
+# Les images supprimées laissent des couches orphelines : on les purge en dernier.
+docker image prune -f >> "$LOG_FILE" 2>&1 || log 'image prune: échec'
 
 journalctl --vacuum-size=200M >> "$LOG_FILE" 2>&1 || log 'journal vacuum: échec'
 
