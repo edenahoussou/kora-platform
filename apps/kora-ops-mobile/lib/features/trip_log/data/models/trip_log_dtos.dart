@@ -24,9 +24,12 @@ abstract final class TripLogDtos {
       lastKnownOdometerKm: _int(json['last_known_odometer_km']),
       start: _reading(OdometerKind.start, odometer['start']),
       end: _reading(OdometerKind.end, odometer['end']),
-      expenses: (json['expenses'] is List ? json['expenses'] as List : const [])
-          .whereType<Map>()
-          .map((Map raw) => expense(Map<String, dynamic>.from(raw)))
+      expenses: (json['expenses'] is List
+              ? json['expenses'] as List<dynamic>
+              : const <dynamic>[])
+          .whereType<Map<dynamic, dynamic>>()
+          .map((Map<dynamic, dynamic> raw) =>
+              expense(Map<String, dynamic>.from(raw)))
           .toList(),
     );
   }
