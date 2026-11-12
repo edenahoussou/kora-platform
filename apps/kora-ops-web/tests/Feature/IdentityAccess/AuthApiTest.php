@@ -88,6 +88,7 @@ it('completes registration with a pin, passenger role, trusted device and seven-
         ->assertCreated()
         ->assertJsonPath('data.token_type', 'Bearer')
         ->assertJsonPath('data.user.email', 'aicha@example.com')
+        ->assertJsonPath('data.user.registration_origin', 'email')
         ->assertJsonPath('data.device.name', 'Tecno Spark 20')
         ->assertJsonMissingPath('data.user.id')
         ->assertJsonMissingPath('data.user.pin_hash');
@@ -604,6 +605,7 @@ it('completes a phone registration and logs in by phone', function (): void {
     ])
         ->assertCreated()
         ->assertJsonPath('data.user.name', 'AHOUSSOU TONY')
+        ->assertJsonPath('data.user.registration_origin', 'phone')
         ->assertJsonPath('data.user.phone', '+2290153234060');
 
     $user = User::query()->where('phone', '+2290153234060')->firstOrFail();
@@ -651,6 +653,7 @@ it('claims an existing pin-less phone account at registration', function (): voi
         'email' => 'traveler+'.Str::uuid().'@accounts.kora.invalid',
         'phone' => '+2290153234060',
         'pin_hash' => null,
+        'registration_origin' => 'assisted',
         'email_verified_at' => null,
     ]);
 
@@ -668,7 +671,8 @@ it('claims an existing pin-less phone account at registration', function (): voi
         'device_fingerprint' => 'device-fingerprint-claim',
     ])
         ->assertCreated()
-        ->assertJsonPath('data.user.uuid', $existing->uuid);
+        ->assertJsonPath('data.user.uuid', $existing->uuid)
+        ->assertJsonPath('data.user.registration_origin', 'assisted');
 
     $existing->refresh();
 

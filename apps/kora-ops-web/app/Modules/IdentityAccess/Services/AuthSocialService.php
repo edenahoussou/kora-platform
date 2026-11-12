@@ -148,6 +148,7 @@ class AuthSocialService
         $name = $socialUser->getName() ?: $socialUser->getNickname() ?: 'Passager KORA';
 
         $user = User::create([
+            'registration_origin' => 'social',
             'name' => $name,
             'email' => $email,
             'status' => UserStatus::Active,

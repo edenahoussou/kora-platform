@@ -16,6 +16,8 @@ it('exposes the traveler wallet with balances and ux settings', function (): voi
         ->assertJsonPath('data.referral_code', $scenario['wallet']->referral_code)
         ->assertJsonPath('data.settings.wallet_cash_enabled', false)
         ->assertJsonPath('data.settings.points_min_spend', 100)
+        ->assertJsonPath('data.settings.points_expiry_reminder_days', [30, 7, 1])
+        ->assertJsonPath('data.settings.loyalty_bonuses.welcome_points', 500)
         ->assertJsonPath('data.settings.topup_amount_presets', [2000, 5000, 10000, 20000]);
 });
 
@@ -69,4 +71,19 @@ it('rejects an unknown referral code', function (): void {
     $this->postJson('/api/v1/wallet/referral', ['referral_code' => 'KUNKNOWN'])
         ->assertUnprocessable()
         ->assertJsonValidationErrors(['referral_code']);
+});
+
+it('keeps validated directions and balance filters across cursor pages', function (): void {
+    $wallet = walletForUser(User::factory()->create());
+    for ($index = 0; $index < 21; $index++) {
+        walletFund($wallet, WalletBalanceType::Cash, 1);
+    }
+    walletFund($wallet, WalletBalanceType::Points, 2);
+    Sanctum::actingAs($wallet->user);
+
+    $next = $this->getJson('/api/v1/wallet/transactions?balance_type=cash&direction=credit')
+        ->assertOk()->assertJsonCount(20, 'data')->json('links.next');
+    expect($next)->toContain('direction=credit', 'balance_type=cash');
+    $this->getJson($next)->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.direction', 'credit');
+    $this->getJson('/api/v1/wallet/transactions?direction=invalid')->assertUnprocessable();
 });

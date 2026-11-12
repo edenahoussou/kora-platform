@@ -67,7 +67,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['uuid', 'name', 'email', 'phone', 'country_code', 'job_title', 'department', 'location', 'birth_date', 'agency_id', 'status', 'pin_hash', 'password', 'must_change_password', 'password_changed_at'])]
+#[Fillable(['uuid', 'name', 'email', 'phone', 'country_code', 'registration_origin', 'job_title', 'department', 'location', 'birth_date', 'agency_id', 'status', 'pin_hash', 'password', 'must_change_password', 'password_changed_at'])]
 #[Hidden(['id', 'password', 'pin_hash', 'failed_pin_attempts', 'locked_until', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 #[ObservedBy([UserOpsSessionObserver::class])]
 class User extends Authenticatable implements HasMedia, PasskeyUser

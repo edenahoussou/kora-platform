@@ -86,6 +86,7 @@ class PhonePassengerIdentityResolver implements PassengerIdentityResolver
         }
 
         $user = User::query()->create([
+            'registration_origin' => 'assisted',
             'name' => trim($name),
             'email' => 'traveler+'.Str::uuid().'@'.OtpCodeChannel::PLACEHOLDER_EMAIL_DOMAIN,
             'phone' => $normalizedPhone,
