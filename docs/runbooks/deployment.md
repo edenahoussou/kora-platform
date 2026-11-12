@@ -108,6 +108,20 @@ ssh kora-vps 'docker buildx du | tail -2; systemctl list-timers | grep kora-dock
 
 Le resultat de chaque purge est journalise dans `/var/log/kora-docker-prune.log`.
 
+**Apres le redemarrage du daemon** : verifier que `kora-prod-app` est bien
+remonte. Horizon tente un arret propre en interrogeant Redis ; si Redis redemarre
+au meme moment, l'exception fait sortir supervisord et le conteneur reste en
+`Exited (0)` — `restart: unless-stopped` ne le relance pas (constate le
+12/11/2026). Remede :
+
+```bash
+ssh kora-vps 'docker start kora-prod-app'
+ssh kora-vps "curl -sS -o /dev/null -w 'prod %{http_code}\n' http://127.0.0.1:9080/api/v1/health"
+```
+
+Les conteneurs deja crees conservent leur ancienne configuration de logs : la
+rotation `20 Mo x 3` s'applique aux conteneurs recrees au prochain deploiement.
+
 L'espace disque est surveille par `health:check` (`UsedDiskSpaceCheck`) :
 *warning* a 75 %, *echec* (donc notification) a 85 %.
 
