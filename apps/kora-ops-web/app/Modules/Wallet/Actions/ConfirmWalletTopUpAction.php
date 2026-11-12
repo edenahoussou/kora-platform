@@ -3,12 +3,14 @@
 namespace App\Modules\Wallet\Actions;
 
 use App\Modules\Payments\Models\Payment;
+use App\Modules\Settings\Settings\WalletSettings;
 use App\Modules\Wallet\Data\WalletBalanceType;
 use App\Modules\Wallet\Data\WalletTopUpStatus;
 use App\Modules\Wallet\Data\WalletTransactionReason;
 use App\Modules\Wallet\Models\WalletTopUp;
 use App\Modules\Wallet\Services\WalletLedgerService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Crédite le Wallet uniquement après confirmation provider, une seule fois.
@@ -49,6 +51,11 @@ final class ConfirmWalletTopUpAction
                 ['payment_uuid' => $payment->uuid],
                 $payment,
             );
+
+            $cap = app(WalletSettings::class)->cashBalanceCap;
+            if ($cap !== null && $topup->wallet->cash_balance > $cap) {
+                DB::afterCommit(fn () => Log::warning('Wallet cash cap exceeded after verified top-up', ['topup_uuid' => $topup->uuid]));
+            }
 
             return $topup->fresh();
         });

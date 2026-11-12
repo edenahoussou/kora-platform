@@ -28,3 +28,4 @@ Schedule::command('wallet:expire-points')->dailyAt('03:20')->withoutOverlapping(
 Schedule::command('wallet:expiry-reminders')->dailyAt('08:00')->withoutOverlapping()->onOneServer();
 Schedule::command('wallet:anniversary-bonuses')->dailyAt('08:10')->withoutOverlapping()->onOneServer();
 Schedule::command('wallet:loyalty-rules:activate-scheduled')->everyMinute()->withoutOverlapping()->onOneServer();
+Schedule::command('wallet:reconcile-topups')->everyFiveMinutes()->withoutOverlapping()->onOneServer();

@@ -8,13 +8,16 @@ use App\Modules\Payments\Actions\CancelPaymentAction;
 use App\Modules\Payments\Actions\ConfirmPaymentAction;
 use App\Modules\Payments\Actions\InitiatePaymentAction;
 use App\Modules\Payments\Actions\VerifyPaymentAction;
+use App\Modules\Payments\Contracts\ProviderResponse;
 use App\Modules\Payments\Http\Requests\InitiatePaymentRequest;
 use App\Modules\Payments\Http\Resources\PaymentResource;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\PaymentManager;
-use Illuminate\Auth\Access\AuthorizationException;
+use App\Modules\Wallet\Actions\ReconcileWalletTopUpAction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 
 /**
  * @group Payments
@@ -259,12 +262,7 @@ class PaymentController extends Controller
      */
     public function show(Payment $payment, Request $request): JsonResponse
     {
-        $user = $request->user();
-        if ($user && $payment->reservation && $payment->reservation->created_by_user_id
-            && $payment->reservation->created_by_user_id !== $user->id
-            && $payment->reservation->payer_user_id !== $user->id) {
-            throw new AuthorizationException('Vous n\'avez pas accès à ce paiement.');
-        }
+        Gate::authorize('view', $payment);
 
         return (new PaymentResource($payment->loadMissing(['reservation.segments.departure'])))
             ->response()
@@ -310,15 +308,9 @@ class PaymentController extends Controller
                 return response()->json(['error' => 'Invalid webhook signature.'], 403);
             }
 
-            // Normalize the provider payload into KORA status.
-            $providerResponse = $adapter->verify($payment);
-
-            $updatedPayment = $confirmPayment->handle(
-                payment: $payment,
-                status: $providerResponse->isConfirmed() ? 'confirmed' : ($providerResponse->isFailed() ? 'failed' : 'pending'),
-                providerReference: $providerResponse->providerReference,
-                providerPayload: $providerResponse->payload,
-            );
+            $updatedPayment = $payment->reservation_id === null
+                ? app(ReconcileWalletTopUpAction::class)->verify($payment)
+                : $this->confirmProviderResponse($payment, $adapter->verify($payment), $confirmPayment);
 
             return response()->json([
                 'status' => $updatedPayment->status->value,
@@ -329,7 +321,7 @@ class PaymentController extends Controller
         }
 
         // Fallback for manual/test confirmations (no real provider).
-        abort_unless(app()->environment(['local', 'testing']), 403, 'Manual payment confirmation is disabled outside local and testing environments.');
+        abort_unless($payment->reservation_id !== null && app()->environment(['local', 'testing']), 403, 'Manual payment confirmation is disabled outside local and testing environments.');
 
         $validated = $request->validate([
             'status' => ['required', 'string', 'in:success,confirmed,failed'],
@@ -465,35 +457,45 @@ class PaymentController extends Controller
             return response()->json(['error' => 'Invalid webhook signature.'], 403);
         }
 
-        // Extract the payment reference from the webhook payload.
+        if ($providerKey === 'fedapay') {
+            $verifiedPayload = $verifiedPayload['entity'] ?? data_get($verifiedPayload, 'data.object') ?? $verifiedPayload;
+        }
+
         $paymentUuid = $verifiedPayload['custom_metadata']['kora_payment_uuid']
             ?? $verifiedPayload['externalId']
             ?? $verifiedPayload['partnerId']
             ?? null;
 
-        if ($paymentUuid === null) {
+        if ($paymentUuid instanceof \Stringable) {
+            $paymentUuid = (string) $paymentUuid;
+        }
+        if (! is_string($paymentUuid) || $paymentUuid === '') {
             return response()->json(['error' => 'Payment reference not found in webhook.'], 400);
         }
 
-        $payment = Payment::query()->where('uuid', $paymentUuid)->first();
+        abort_unless(Str::isUuid($paymentUuid), 404, 'Payment not found.');
+        $payment = Payment::query()->where('provider', $providerKey)->where('uuid', $paymentUuid)->first();
 
         if ($payment === null) {
             return response()->json(['error' => 'Payment not found.'], 404);
         }
 
-        // KKiaPay webhooks carry the transactionId needed for status polling.
-        if ($payment->provider_transaction_id === null && isset($verifiedPayload['transactionId'])) {
-            $payment->update(['provider_transaction_id' => (string) $verifiedPayload['transactionId']]);
+        $transactionId = match ($providerKey) {
+            'kkiapay' => $verifiedPayload['transactionId'] ?? null,
+            'fedapay' => $verifiedPayload['id'] ?? null,
+            default => null,
+        };
+        $transactionId = is_scalar($transactionId) && strlen((string) $transactionId) <= 128 ? (string) $transactionId : null;
+
+        if ($payment->reservation_id === null) {
+            $updatedPayment = app(ReconcileWalletTopUpAction::class)->verify($payment, $transactionId, $verifiedPayload);
+        } else {
+            if ($payment->provider_transaction_id === null && $providerKey === 'kkiapay' && $transactionId !== null) {
+                $payment->update(['provider_transaction_id' => $transactionId]);
+            }
+
+            $updatedPayment = $this->confirmProviderResponse($payment, $adapter->verify($payment), $confirmPayment);
         }
-
-        $providerResponse = $adapter->verify($payment);
-
-        $updatedPayment = $confirmPayment->handle(
-            payment: $payment,
-            status: $providerResponse->isConfirmed() ? 'confirmed' : ($providerResponse->isFailed() ? 'failed' : 'pending'),
-            providerReference: $providerResponse->providerReference,
-            providerPayload: $providerResponse->payload,
-        );
 
         return response()->json([
             'status' => $updatedPayment->status->value,
@@ -543,6 +545,9 @@ class PaymentController extends Controller
             ?? $request->input('transaction.id')
             ?? null;
 
+        $reference = is_string($reference) && strlen($reference) <= 255 ? $reference : null;
+        $transactionId = is_scalar($transactionId) && strlen((string) $transactionId) <= 128 ? (string) $transactionId : null;
+
         if ($reference === null && $transactionId === null) {
             return response()->json(['error' => 'No transaction reference found in callback.'], 400);
         }
@@ -550,10 +555,10 @@ class PaymentController extends Controller
         // Find the payment by provider_reference or provider_transaction_id.
         $payment = null;
         if ($reference !== null) {
-            $payment = Payment::query()->where('provider_reference', $reference)->first();
+            $payment = Payment::query()->where('provider', 'fedapay')->where('provider_reference', $reference)->first();
         }
         if ($payment === null && $transactionId !== null) {
-            $payment = Payment::query()->where('provider_transaction_id', $transactionId)->first();
+            $payment = Payment::query()->where('provider', 'fedapay')->where('provider_transaction_id', $transactionId)->first();
         }
 
         if ($payment === null) {
@@ -562,14 +567,9 @@ class PaymentController extends Controller
 
         // Always verify the real status via the FedaPay API.
         $adapter = $manager->resolve($payment->provider);
-        $providerResponse = $adapter->verify($payment);
-
-        $updatedPayment = $confirmPayment->handle(
-            payment: $payment,
-            status: $providerResponse->isConfirmed() ? 'confirmed' : ($providerResponse->isFailed() ? 'failed' : 'pending'),
-            providerReference: $providerResponse->providerReference,
-            providerPayload: $providerResponse->payload,
-        );
+        $updatedPayment = $payment->reservation_id === null
+            ? app(ReconcileWalletTopUpAction::class)->verify($payment)
+            : $this->confirmProviderResponse($payment, $adapter->verify($payment), $confirmPayment);
 
         return response()->json([
             'status' => $updatedPayment->status->value,
@@ -577,5 +577,15 @@ class PaymentController extends Controller
             'reservation_uuid' => $updatedPayment->reservation?->uuid,
             'reservation_status' => $updatedPayment->reservation?->status->value,
         ]);
+    }
+
+    private function confirmProviderResponse(Payment $payment, ProviderResponse $response, ConfirmPaymentAction $confirm): Payment
+    {
+        return $confirm->handle(
+            payment: $payment,
+            status: $response->isConfirmed() ? 'confirmed' : ($response->isFailed() ? 'failed' : 'pending'),
+            providerReference: $response->providerReference,
+            providerPayload: $response->payload,
+        );
     }
 }

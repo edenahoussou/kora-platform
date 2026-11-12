@@ -74,7 +74,6 @@ final class MtnMomoAdapter implements PaymentProvider
             if (! $response->ok()) {
                 Log::error('MTN MoMo token request failed', [
                     'status' => $response->status(),
-                    'body' => $response->body(),
                 ]);
 
                 throw new \RuntimeException('Failed to obtain MTN MoMo access token.');
@@ -119,25 +118,32 @@ final class MtnMomoAdapter implements PaymentProvider
 
     public function initiate(Payment $payment, array $payload = []): ProviderResponse
     {
-        try {
-            $referenceId = (string) Str::uuid();
+        $isTopUp = $payment->reservation_id === null;
+        $referenceId = $isTopUp ? $payment->uuid : (string) Str::uuid();
 
+        $submitted = false;
+
+        try {
             $body = [
                 'amount' => (string) ($payment->provider_amount ?? $payment->amount),
                 'currency' => $payment->provider_currency ?? $this->configuredCurrency(),
                 'externalId' => $payment->uuid,
                 'payer' => [
                     'partyIdType' => 'MSISDN',
-                    'partyId' => (string) ($payload['phone'] ?? ''),
+                    'partyId' => ltrim((string) ($payload['phone'] ?? ''), '+'),
                 ],
-                'payerMessage' => "KORA BUS reservation {$payment->reservation->uuid}",
+                'payerMessage' => $payment->providerDescription(),
                 'payeeNote' => "Payment {$payment->uuid}",
             ];
 
-            $response = Http::withHeaders($this->apiHeaders($referenceId))
+            $headers = $this->apiHeaders($referenceId);
+            if ($isTopUp) {
+                $payment->update(['provider_reference' => $referenceId]);
+            }
+            $submitted = true;
+            $response = Http::withHeaders($headers)
                 ->timeout(20)
                 ->connectTimeout(5)
-                ->retry(2, 100)
                 ->post("{$this->baseUrl()}/collection/v1_0/requesttopay", $body);
 
             // 202 Accepted means the request was accepted for processing.
@@ -145,12 +151,12 @@ final class MtnMomoAdapter implements PaymentProvider
                 Log::error('MTN MoMo requestToPay failed', [
                     'payment_uuid' => $payment->uuid,
                     'status' => $response->status(),
-                    'body' => $response->body(),
                 ]);
 
                 return new ProviderResponse(
-                    status: PaymentStatus::Failed,
-                    payload: ['error' => $response->body()],
+                    status: $isTopUp && ($response->serverError() || in_array($response->status(), [408, 409, 429], true)) ? PaymentStatus::Pending : PaymentStatus::Failed,
+                    providerReference: $referenceId,
+                    payload: ['initiation_issue' => 'provider_unavailable'],
                     message: 'MTN MoMo requestToPay was not accepted.',
                 );
             }
@@ -167,12 +173,13 @@ final class MtnMomoAdapter implements PaymentProvider
         } catch (Throwable $e) {
             Log::error('MTN MoMo initiate failed', [
                 'payment_uuid' => $payment->uuid,
-                'error' => $e->getMessage(),
+                'exception' => $e::class,
             ]);
 
             return new ProviderResponse(
-                status: PaymentStatus::Failed,
-                payload: ['error' => $e->getMessage()],
+                status: $isTopUp && $submitted ? PaymentStatus::Pending : PaymentStatus::Failed,
+                providerReference: $submitted ? $referenceId : null,
+                payload: ['initiation_issue' => 'provider_unavailable'],
                 message: 'Failed to initiate MTN MoMo payment.',
             );
         }
@@ -197,7 +204,7 @@ final class MtnMomoAdapter implements PaymentProvider
             if (! $response->ok()) {
                 return new ProviderResponse(
                     status: PaymentStatus::Pending,
-                    payload: ['error' => $response->body()],
+                    payload: [],
                     message: 'MTN MoMo transaction not yet available.',
                 );
             }
@@ -214,12 +221,12 @@ final class MtnMomoAdapter implements PaymentProvider
         } catch (Throwable $e) {
             Log::error('MTN MoMo verify failed', [
                 'payment_uuid' => $payment->uuid,
-                'error' => $e->getMessage(),
+                'exception' => $e::class,
             ]);
 
             return new ProviderResponse(
                 status: PaymentStatus::Pending,
-                payload: ['error' => $e->getMessage()],
+                payload: [],
                 message: 'Failed to query MTN MoMo transaction.',
             );
         }

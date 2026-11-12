@@ -4,6 +4,8 @@ namespace App\Modules\Payments\Http\Resources;
 
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Ticketing\Data\TicketIssuanceStatus;
+use App\Modules\Wallet\Data\WalletPurchaseFunding;
+use App\Modules\Wallet\Http\Resources\WalletTopUpResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -17,6 +19,16 @@ class PaymentResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        if ($this->reservation_id === null && $this->resource->walletTopUp()->exists()) {
+            return WalletTopUpResource::paymentDetails($this->resource) + [
+                'amount' => $this->amount,
+                'currency' => $this->currency,
+                'method' => $this->method?->value,
+                'provider_transaction_id' => $this->provider_transaction_id,
+                'reservation' => null,
+            ];
+        }
+
         $ticketIssuanceStatus = TicketIssuanceStatus::tryFrom((string) $this->reservation?->getRawOriginal('ticket_issuance_status'));
 
         return [
@@ -32,6 +44,10 @@ class PaymentResource extends JsonResource
             'provider_amount' => $this->provider_amount,
             'mobile_money_network' => $this->mobile_money_network?->value,
             'payer_phone' => $this->payer_phone,
+            'wallet_funding' => $this->when(
+                $this->wallet_funding !== null || isset($this->provider_payload['points_amount']) || isset($this->provider_payload['wallet_amount']),
+                fn () => WalletPurchaseFunding::fromPayment($this->resource)->toArray(),
+            ),
             'confirmed_at' => $this->confirmed_at?->toIso8601String(),
             'last_verified_at' => $this->last_verified_at?->toIso8601String(),
             'next_action' => $this->nextAction(),
@@ -42,7 +58,7 @@ class PaymentResource extends JsonResource
             ]),
             'expires_at' => $this->reservation?->expires_at?->toIso8601String(),
             'polling_interval_seconds' => 10,
-            'reservation' => $this->whenLoaded('reservation', fn () => [
+            'reservation' => $this->when($this->relationLoaded('reservation') && $this->reservation !== null, fn () => [
                 'uuid' => $this->reservation->uuid,
                 'status' => $this->reservation->status->value,
                 'departure_uuid' => $this->reservation?->primaryDeparture()?->uuid,

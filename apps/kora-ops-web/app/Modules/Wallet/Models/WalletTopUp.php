@@ -25,6 +25,8 @@ class WalletTopUp extends KoraModel
         'amount',
         'status',
         'idempotency_key',
+        'next_reconciliation_at',
+        'reconciliation_attempts',
     ];
 
     /**
@@ -56,6 +58,8 @@ class WalletTopUp extends KoraModel
     {
         return [
             'amount' => 'integer',
+            'next_reconciliation_at' => 'datetime',
+            'reconciliation_attempts' => 'integer',
             'status' => WalletTopUpStatus::class,
         ];
     }

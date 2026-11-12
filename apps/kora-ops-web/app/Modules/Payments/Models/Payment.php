@@ -11,8 +11,10 @@ use App\Modules\Payments\Data\MobileMoneyNetwork;
 use App\Modules\Payments\Data\PaymentMethod;
 use App\Modules\Payments\Data\PaymentStatus;
 use App\Modules\Support\Models\KoraModel;
+use App\Modules\Wallet\Models\WalletTopUp;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -32,6 +34,7 @@ use Illuminate\Support\Carbon;
  * @property int|null $cash_received_amount
  * @property int|null $change_amount
  * @property array<string, mixed>|null $provider_payload
+ * @property array<string, int>|null $wallet_funding
  */
 class Payment extends KoraModel
 {
@@ -66,6 +69,7 @@ class Payment extends KoraModel
         'status',
         'confirmed_at',
         'provider_payload',
+        'wallet_funding',
     ];
 
     /**
@@ -74,6 +78,21 @@ class Payment extends KoraModel
     public function reservation(): BelongsTo
     {
         return $this->belongsTo(Reservation::class);
+    }
+
+    /** @return HasOne<WalletTopUp, $this> */
+    public function walletTopUp(): HasOne
+    {
+        return $this->hasOne(WalletTopUp::class);
+    }
+
+    public function providerDescription(): string
+    {
+        if ($this->reservation !== null) {
+            return "KORA BUS reservation {$this->reservation->uuid}";
+        }
+
+        return 'KORA BUS recharge '.($this->walletTopUp->uuid ?? $this->uuid);
     }
 
     /**
@@ -128,6 +147,7 @@ class Payment extends KoraModel
             'verified_at' => 'datetime',
             'last_verified_at' => 'datetime',
             'provider_payload' => 'array',
+            'wallet_funding' => 'array',
         ];
     }
 }
