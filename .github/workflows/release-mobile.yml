@@ -44,7 +44,9 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: stable
+          # Même version figée que ci-flutter.yml : `stable` est mouvant
+          # et casse pub get quand la cible avance.
+          flutter-version: '3.44.8'
           cache: true
 
       - name: Install dependencies
