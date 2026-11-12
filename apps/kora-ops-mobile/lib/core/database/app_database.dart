@@ -52,6 +52,10 @@ import 'package:sqflite/sqflite.dart';
 ///   ajoute aussi à `manifest_cache` l'identité détaillée (prénom, nom,
 ///   téléphone, email) et les champs frontière complémentaires (type de
 ///   pièce, naissance, fièvre jaune) — voir `PassengerCorrectionRepository`.
+/// - `trip_log_operations` / `trip_log_cache` (v10) : carnet de bord du
+///   chauffeur et du convoyeur (kilométrage, carburant, péages, taxes
+///   frontières) — file des saisies hors ligne en attente d'envoi et
+///   dernier carnet connu par départ, voir `TripLogLocalDataSource`.
 ///
 /// Singleton : une seule connexion ouverte pour toute l'app (voir
 /// `injection.dart`), comme `SharedPreferences`/`FlutterSecureStorage` —
@@ -63,7 +67,7 @@ class AppDatabase {
   AppDatabase();
 
   static const String _fileName = 'kora_ops.db';
-  static const int _schemaVersion = 9;
+  static const int _schemaVersion = 10;
 
   Database? _database;
 
@@ -93,6 +97,7 @@ class AppDatabase {
         await _createIncidentOperations(db);
         await _createTrackingTables(db);
         await _createPassengerCorrectionOperations(db);
+        await _createTripLogTables(db);
       },
       onUpgrade: (Database db, int oldVersion, int newVersion) async {
         if (oldVersion < 2) {
@@ -122,8 +127,40 @@ class AppDatabase {
           await _addPassengerIdentityColumns(db);
           await _createPassengerCorrectionOperations(db);
         }
+        if (oldVersion < 10) {
+          await _createTripLogTables(db);
+        }
       },
     );
+  }
+
+  /// Carnet de bord (v10) : file des saisies hors ligne (`op_type` =
+  /// `odometer` ou `expense`, `payload` JSON, photo du ticket à part) et
+  /// cache du dernier carnet connu par départ.
+  Future<void> _createTripLogTables(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS trip_log_operations (
+        operation_uuid TEXT PRIMARY KEY,
+        departure_uuid TEXT NOT NULL,
+        op_type TEXT NOT NULL,
+        payload TEXT NOT NULL,
+        photo_path TEXT,
+        sync_status TEXT NOT NULL,
+        error TEXT,
+        created_at TEXT NOT NULL
+      )
+    ''');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_trip_log_operations_sync '
+      'ON trip_log_operations(sync_status, departure_uuid)',
+    );
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS trip_log_cache (
+        departure_uuid TEXT PRIMARY KEY,
+        payload TEXT NOT NULL,
+        fetched_at TEXT NOT NULL
+      )
+    ''');
   }
 
   Future<void> _createTerminalActivityLog(Database db) async {

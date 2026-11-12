@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../boarding/domain/repositories/boarding_repository.dart';
 import '../../../incidents/domain/repositories/incident_repository.dart';
 import '../../../seat_release/domain/repositories/seat_release_repository.dart';
+import '../../../trip_log/domain/repositories/trip_log_repository.dart';
 import '../../domain/entities/pending_operation.dart';
 import '../../domain/entities/sync_summary.dart';
 import '../../domain/repositories/sync_repository.dart';
@@ -29,13 +30,19 @@ class SyncCubit extends Cubit<SyncState> {
     this._seatReleaseRepository,
     this._incidentRepository, {
     Connectivity? connectivity,
+    TripLogRepository? tripLogRepository,
   })  : _connectivity = connectivity ?? Connectivity(),
+        _tripLogRepository = tripLogRepository,
         super(const SyncState());
 
   final SyncRepository _syncRepository;
   final BoardingRepository _boardingRepository;
   final SeatReleaseRepository _seatReleaseRepository;
   final IncidentRepository _incidentRepository;
+
+  /// Carnet de bord (kilométrage, carburant, péages) — facultatif pour ne
+  /// pas imposer de mock aux tests existants.
+  final TripLogRepository? _tripLogRepository;
   final Connectivity _connectivity;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
@@ -126,6 +133,7 @@ class SyncCubit extends Cubit<SyncState> {
 
     final result = await _syncRepository.syncPending();
     await _incidentRepository.retryPending();
+    await _tripLogRepository?.retryPending();
     final int remaining = await _totalPendingCount();
 
     result.when(
@@ -148,7 +156,8 @@ class SyncCubit extends Cubit<SyncState> {
     final int boarding = await _boardingRepository.totalPendingCount();
     final int seatReleases = await _seatReleaseRepository.totalPendingCount();
     final int incidents = await _incidentRepository.totalPendingCount();
-    return boarding + seatReleases + incidents;
+    final int tripLogs = await _tripLogRepository?.totalPendingCount() ?? 0;
+    return boarding + seatReleases + incidents + tripLogs;
   }
 
   @override

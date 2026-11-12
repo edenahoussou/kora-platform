@@ -65,6 +65,15 @@ abstract final class AppRoutes {
   /// Accueil et Manifeste.
   static const String incidentReport = '/tournee/manifeste/incident';
 
+  /// Carnet de bord du départ géré (chauffeur et convoyeur) : kilométrage
+  /// départ/arrivée, carburant, péages et taxes frontières — accessible
+  /// depuis la tuile « Carnet » de l'Accueil et le speed dial du Manifeste.
+  static const String tripLog = '/tournee/carnet-de-bord';
+
+  /// Déclaration d'une dépense de voyage (`extra` :
+  /// `TripExpenseFormArgs`).
+  static const String tripExpenseForm = '/tournee/carnet-de-bord/depense';
+
   /// Mise à jour non obligatoire de l'app (MEZ-150), ouverte depuis le
   /// prompt « Nouvelle version disponible ». Accessible connecté ou non
   /// (voir `AuthGuard`). La mise à jour OBLIGATOIRE n'est pas une route :

@@ -75,7 +75,7 @@ class AppConfig {
   /// utilisé pour la nouvelle valeur (sinon, rien à changer dans le code
   /// — voir docstring [ticketSigningPublicKeyBase64]).
   static const String _ticketSigningPublicKeyBase64 =
-      'la-cle-publique-base64-par-défaut-32-octets-ici';
+      '9csxdLdBfzIoFPHrt76YDy/F43oY6rtU6gCZEcSFE8A=';
 
   static AppConfig? _instance;
 
@@ -112,7 +112,7 @@ class AppConfig {
         _instance = AppConfig._(
           environment: env,
           appName: 'KORA OPS (dev)',
-          apiBaseUrl: 'http://192.168.1.26/kora-ops-web/public/',
+          apiBaseUrl: 'http://10.170.40.87/kora-ops-web/public/',
           enableDebugBanner: false,
           enableLogging: true,
           useMockHardware: resolveUseMockHardware(true),

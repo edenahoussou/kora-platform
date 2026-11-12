@@ -23,4 +23,20 @@ return [
     // écriture en base à chaque requête du terminal).
     'touch_interval_seconds' => (int) env('OPS_SESSION_TOUCH_INTERVAL_SECONDS', 60),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Terminal P501 obligatoire selon le rôle
+    |--------------------------------------------------------------------------
+    |
+    | Par défaut, seul le CHAUFFEUR (`bus_driver`, sans autre rôle terrain)
+    | utilise OPS Mobile sans terminal P501 : sa session est portée par son
+    | jeton Sanctum (appareil de confiance). Le convoyeur et les autres rôles
+    | terrain restent obligatoirement liés à un terminal.
+    |
+    | `true` : force le terminal pour TOUS les rôles, chauffeur compris.
+    |
+    */
+
+    'force_terminal_for_all' => (bool) env('OPS_FORCE_TERMINAL_FOR_ALL', false),
+
 ];

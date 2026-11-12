@@ -4,8 +4,6 @@ import {
     BusFront,
     CheckCircle2,
     Edit3,
-    Fuel,
-    Gauge,
     Navigation,
     RotateCcw,
     Shield,
@@ -17,6 +15,11 @@ import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { BusFormDialog } from '@/components/buses/bus-form-dialog';
 import type { BusRecord } from '@/components/buses/bus-form-dialog';
+import {
+    BusFuelTab,
+    BusMileageTab,
+} from '@/components/fleet/bus-trip-log-tabs';
+import type { BusTripLog } from '@/components/fleet/bus-trip-log-tabs';
 import { SeatStatusPopover } from '@/components/fleet/seat-status-popover';
 import type { SeatStatusChange } from '@/components/fleet/seat-status-popover';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
@@ -91,6 +94,7 @@ type PageProps = {
     compositions: { id: number; label: string; seatCount: number }[];
     amenities: AmenityOption[];
     timeline: TimelineEvent[];
+    tripLog: BusTripLog;
     permissions: {
         canUpdate: boolean;
         canDeactivate: boolean;
@@ -175,6 +179,7 @@ export default function FleetDetailPage({
     compositions,
     amenities,
     timeline,
+    tripLog,
     permissions,
 }: PageProps) {
     const [tab, setTab] = useState<Tab>('availability');
@@ -656,37 +661,11 @@ export default function FleetDetailPage({
                         />
                     )}
 
-                    {/* Tab: Carburant — placeholder FleetLite (Sprint 6) */}
-                    {tab === 'fuel' && (
-                        <PlaceholderTab
-                            icon={Fuel}
-                            title="Historique carburant"
-                            description="Pleins, stations et justificatifs de carburant."
-                            sprint="Sprint 6 — FleetLite"
-                            rows={[
-                                { label: 'Dernier plein', value: '—' },
-                                { label: 'Station', value: '—' },
-                                { label: 'Litres', value: '—' },
-                                { label: 'Montant', value: '—' },
-                            ]}
-                        />
-                    )}
+                    {/* Tab: Carburant — carnet de bord OPS Mobile */}
+                    {tab === 'fuel' && <BusFuelTab tripLog={tripLog} />}
 
-                    {/* Tab: Kilométrage — placeholder FleetLite (Sprint 6) */}
-                    {tab === 'mileage' && (
-                        <PlaceholderTab
-                            icon={Gauge}
-                            title="Relevés kilométriques"
-                            description="Kilométrage synchronisé depuis le GPS embarqué ou relevé conducteur."
-                            sprint="Sprint 6 — FleetLite"
-                            rows={[
-                                { label: 'Kilométrage actuel', value: '—' },
-                                { label: 'Source', value: '—' },
-                                { label: 'Dernier relevé', value: '—' },
-                                { label: 'État', value: '—' },
-                            ]}
-                        />
-                    )}
+                    {/* Tab: Kilométrage — carnet de bord OPS Mobile */}
+                    {tab === 'mileage' && <BusMileageTab tripLog={tripLog} />}
 
                     {/* Tab: Documents — placeholder FleetLite (Sprint 6) */}
                     {tab === 'documents' && (

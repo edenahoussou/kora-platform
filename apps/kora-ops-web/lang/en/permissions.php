@@ -19,4 +19,5 @@ return [
     'profitability.export' => 'Export profitability',
     'app-releases.view' => 'View mobile app releases',
     'app-releases.manage' => 'Publish and manage mobile app releases',
+    'trip-logs.create' => 'Record the trip log (mileage, fuel, tolls and taxes)',
 ];

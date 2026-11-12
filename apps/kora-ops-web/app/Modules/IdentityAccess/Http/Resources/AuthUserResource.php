@@ -3,6 +3,7 @@
 namespace App\Modules\IdentityAccess\Http\Resources;
 
 use App\Models\User;
+use App\Modules\IdentityAccess\Services\OpsSessionGuard;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -29,6 +30,11 @@ class AuthUserResource extends JsonResource
             'avatar_url' => $this->getFirstMediaUrl('avatar', 'thumb') ?: null,
             'status' => enum_value($this->status),
             'permissions' => $this->getAllPermissions()->pluck('name')->values(),
+            // OPS Mobile : rôles (codes système) et obligation de terminal
+            // P501 — le chauffeur seul en est dispensé, sauf si
+            // OPS_FORCE_TERMINAL_FOR_ALL=true (voir OpsSessionGuard).
+            'roles' => $this->getRoleNames()->values(),
+            'requires_terminal' => app(OpsSessionGuard::class)->requiresTerminal($this->resource),
         ];
     }
 }

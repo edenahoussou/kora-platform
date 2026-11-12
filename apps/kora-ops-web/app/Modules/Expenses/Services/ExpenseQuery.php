@@ -32,6 +32,7 @@ class ExpenseQuery
             'line',
             'departure.line',
             'maintenanceDetails',
+            'tripDetails',
         ]);
         if ($user->can('expenses.view-network')) {
             $query->when($filters['agency'] !== '', fn (Builder $query) => $query->whereHas('agency', fn (Builder $agency) => $agency->where('uuid', $filters['agency'])));

@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/errors/failures.dart';
+import '../../../../core/result/result.dart';
 import '../../domain/entities/auth_user.dart';
 import '../../domain/repositories/auth_repository.dart';
 
@@ -34,6 +37,11 @@ class AuthCubit extends Cubit<AuthState> {
       onSuccess: (session) async {
         if (session != null) {
           emit(AuthAuthenticated(session.user));
+          // Rôles, permissions et obligation de terminal peuvent avoir
+          // changé côté serveur (ex. nouvelle permission `trip-logs.create`,
+          // OPS_FORCE_TERMINAL_FOR_ALL basculé) : rafraîchis en tâche de
+          // fond, jamais bloquant (hors ligne → on garde le cache).
+          unawaited(_refreshUserInBackground());
           return;
         }
         emit(AuthUnauthenticated(
@@ -51,6 +59,25 @@ class AuthCubit extends Cubit<AuthState> {
         );
       },
     );
+  }
+
+  Future<void> _refreshUserInBackground() async {
+    try {
+      final Result<AuthUser> result = await _authRepository.refreshUser();
+      result.when(
+        onSuccess: (AuthUser user) {
+          final AuthState current = state;
+          if (!isClosed &&
+              current is AuthAuthenticated &&
+              current.user != user) {
+            emit(AuthAuthenticated(user));
+          }
+        },
+        onFailure: (_) {},
+      );
+    } on Object {
+      // Best-effort : le profil en cache reste valable.
+    }
   }
 
   /// Appelé par `AuthFlowBloc` une fois la connexion aboutie (PIN seul ou

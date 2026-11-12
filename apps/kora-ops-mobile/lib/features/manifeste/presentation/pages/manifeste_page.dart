@@ -166,6 +166,8 @@ class ManifestePage extends StatelessWidget {
         authState.user.can('departures.progress');
     final bool canReportIncident = authState is AuthAuthenticated &&
         authState.user.can('incidents.report');
+    final bool canTripLog =
+        authState is AuthAuthenticated && authState.user.canRecordTripLog;
     final ManifesteState state = context.watch<ManifesteCubit>().state;
 
     // Actions du Speed Dial (refonte UI/UX du 21/09/2026) : Scan et
@@ -204,6 +206,15 @@ class ManifestePage extends StatelessWidget {
           icon: progressStep.icon,
           label: progressStep.label,
           onPressed: () => progressDeparture(context, depart, progressStep),
+        ));
+      }
+      // Carnet de bord (chauffeur et convoyeur) : kilométrage départ /
+      // arrivée, plein de carburant, péages et taxes frontières.
+      if (canTripLog) {
+        speedDialActions.add(SpeedDialAction(
+          icon: Icons.local_gas_station_rounded,
+          label: 'Carnet de bord (km, carburant, péages)',
+          onPressed: () => context.push(AppRoutes.tripLog),
         ));
       }
       if (canReportIncident) {

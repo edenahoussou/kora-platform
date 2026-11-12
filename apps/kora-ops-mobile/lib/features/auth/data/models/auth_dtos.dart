@@ -83,6 +83,12 @@ abstract final class AuthDtos {
       status: data['status'] as String? ?? 'active',
       avatarUrl: data['avatar_url'] as String?,
       permissions: _strings(data['permissions']),
+      roles: _strings(data['roles']),
+      // Absent (ancien serveur) : terminal obligatoire, comportement
+      // historique.
+      requiresTerminal: data['requires_terminal'] is bool
+          ? data['requires_terminal'] as bool
+          : true,
     );
   }
 

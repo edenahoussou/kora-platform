@@ -87,4 +87,14 @@ class CrewDepartureScope
     {
         return $this->query($user, 'tracking.report')->whereKey($departure->getKey())->exists();
     }
+
+    /**
+     * OPS Mobile : peut saisir le carnet de bord du départ (kilométrage,
+     * carburant, péages, taxes frontières) — affecté au départ (non annulé)
+     * et permission `trip-logs.create` (chauffeur et convoyeur).
+     */
+    public function canRecordTripLog(User $user, Departure $departure): bool
+    {
+        return $this->query($user, 'trip-logs.create')->whereKey($departure->getKey())->exists();
+    }
 }

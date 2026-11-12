@@ -29,7 +29,9 @@
 	<!-- Caméra : scan des billets QR sur l'écran Scan boarding
 	     (mobile_scanner) — voir document.md § Scan boarding. -->
 	<key>NSCameraUsageDescription</key>
-	<string>KORA OPS a besoin d'accéder à l'appareil photo pour scanner les billets QR des passagers.</string>
+	<string>KORA OPS a besoin d'accéder à l'appareil photo pour scanner les billets QR des passagers et photographier les tickets de carburant et de péage.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>KORA OPS a besoin d'accéder à vos photos pour joindre un ticket de carburant ou un reçu de péage au carnet de bord.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

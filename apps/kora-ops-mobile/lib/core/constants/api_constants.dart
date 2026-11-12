@@ -48,6 +48,15 @@ abstract final class ApiConstants {
   static String opsDepartureDelay(String departureUuid) =>
       '$_v1/ops/departures/$departureUuid/delay';
 
+  /// Carnet de bord (chauffeur et convoyeur) : kilométrage départ/arrivée,
+  /// carburant, péages et taxes frontières — voir `OpsTripLogController`.
+  static String opsDepartureTripLog(String departureUuid) =>
+      '$_v1/ops/departures/$departureUuid/trip-log';
+  static String opsDepartureOdometer(String departureUuid) =>
+      '$_v1/ops/departures/$departureUuid/odometer';
+  static String opsDepartureTripExpenses(String departureUuid) =>
+      '$_v1/ops/departures/$departureUuid/trip-expenses';
+
   /// Signalement d'incident par le convoyeur (MEZ-98).
   static const String opsIncidents = '$_v1/ops/incidents';
 

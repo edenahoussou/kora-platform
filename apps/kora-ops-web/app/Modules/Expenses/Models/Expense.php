@@ -131,6 +131,17 @@ class Expense extends KoraModel implements HasMedia
         return $this->hasOne(ExpenseMaintenanceDetails::class);
     }
 
+    /**
+     * Détails terrain (carburant, péage, taxe frontière) quand la dépense
+     * vient du carnet de bord OPS Mobile.
+     *
+     * @return HasOne<ExpenseTripDetails, $this>
+     */
+    public function tripDetails(): HasOne
+    {
+        return $this->hasOne(ExpenseTripDetails::class);
+    }
+
     /** @return BelongsTo<CashSession, $this> */
     public function cashSession(): BelongsTo
     {

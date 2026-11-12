@@ -104,6 +104,8 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
           'status': session.user.status,
           'avatar_url': session.user.avatarUrl,
           'permissions': session.user.permissions,
+          'roles': session.user.roles,
+          'requires_terminal': session.user.requiresTerminal,
         },
         if (session.device != null)
           'device': <String, dynamic>{
@@ -135,6 +137,10 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
         permissions: (userJson['permissions'] as List<dynamic>? ?? const [])
             .map((value) => '$value')
             .toList(),
+        roles: (userJson['roles'] as List<dynamic>? ?? const [])
+            .map((value) => '$value')
+            .toList(),
+        requiresTerminal: userJson['requires_terminal'] as bool? ?? true,
       ),
       device: deviceJson == null
           ? null

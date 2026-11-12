@@ -14,6 +14,7 @@ class KoraExpenseCategorySeeder extends Seeder
             ['code' => 'fuel', 'label' => 'Carburant'],
             ['code' => 'maintenance', 'label' => 'Maintenance'],
             ['code' => 'tolls', 'label' => 'Péages'],
+            ['code' => 'border_taxes', 'label' => 'Taxes frontières'],
             ['code' => 'tires', 'label' => 'Pneus'],
             ['code' => 'insurance', 'label' => 'Assurance'],
             ['code' => 'leasing', 'label' => 'Leasing'],

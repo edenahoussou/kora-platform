@@ -98,7 +98,9 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: stable
+          # Même version figée que le job packages : `stable` est mouvant
+          # et casse pub get / le formatage quand la cible avance.
+          flutter-version: '3.44.8'
           cache: true
 
       - name: Install dependencies
@@ -164,7 +166,7 @@ jobs:
         if: steps.check.outputs.exists == 'true'
         uses: subosito/flutter-action@v2
         with:
-          channel: stable
+          flutter-version: '3.44.8'
           cache: true
 
       - name: Install dependencies
