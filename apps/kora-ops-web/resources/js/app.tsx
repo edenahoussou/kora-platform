@@ -10,6 +10,25 @@ import PublicLegalLayout from '@/layouts/public-legal-layout';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
+// Keep the retry marker across reloads of the same Vite entry.
+window.addEventListener('vite:preloadError', (event) => {
+    const storageKey = `kora_vite_preload_reloaded:${import.meta.url}`;
+
+    try {
+        if (window.sessionStorage.getItem(storageKey) === '1') {
+            return;
+        }
+
+        window.sessionStorage.setItem(storageKey, '1');
+    } catch {
+        // Reloading without a persistent guard could create a loop.
+        return;
+    }
+
+    event.preventDefault();
+    window.location.reload();
+});
+
 if (import.meta.env.VITE_SENTRY_DSN) {
     Sentry.init({
         dsn: import.meta.env.VITE_SENTRY_DSN,
