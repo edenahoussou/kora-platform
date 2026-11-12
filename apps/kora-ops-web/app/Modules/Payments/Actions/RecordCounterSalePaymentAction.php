@@ -30,9 +30,11 @@ use App\Modules\Payments\Data\PaymentMethod;
 use App\Modules\Payments\Data\PaymentStatus;
 use App\Modules\Payments\Models\AgencyPaymentAccount;
 use App\Modules\Payments\Models\Payment;
+use App\Modules\Settings\Settings\WalletSettings;
 use App\Modules\Ticketing\Data\TicketIssuanceStatus;
 use App\Modules\Ticketing\Models\Ticket;
 use App\Modules\Wallet\Actions\DebitWalletForSaleAction;
+use App\Modules\Wallet\Data\WalletPurchaseFunding;
 use App\Modules\Wallet\Models\Wallet;
 use App\Modules\Wallet\Services\WalletNotificationPublisher;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -458,7 +460,8 @@ class RecordCounterSalePaymentAction
             $walletAmount = (int) ($attributes['wallet_amount'] ?? 0);
             $pointsAmount = (int) ($attributes['points_amount'] ?? 0);
 
-            if ($walletAmount + $pointsAmount !== $total) {
+            $funding = WalletPurchaseFunding::purchase($total, $walletAmount, $pointsAmount, app(WalletSettings::class)->pointValueFcfa);
+            if ($funding->providerAmount !== 0) {
                 throw ValidationException::withMessages([
                     'wallet_amount' => 'Le solde Wallet et les points doivent couvrir la totalité de la vente.',
                 ]);
@@ -468,6 +471,7 @@ class RecordCounterSalePaymentAction
                 'reservation_id' => $reservation->getKey(),
                 'method' => $method,
                 'provider' => 'wallet',
+                'wallet_funding' => $funding->toArray(),
                 'idempotency_key' => (string) $attributes['idempotency_key'],
                 'amount' => $total,
                 'currency' => $reservation->currency,

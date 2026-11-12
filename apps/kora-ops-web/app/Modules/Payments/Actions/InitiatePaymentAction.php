@@ -15,6 +15,7 @@ use App\Modules\Wallet\Actions\FindOrCreateWalletAction;
 use App\Modules\Wallet\Actions\PlaceWalletHoldAction;
 use App\Modules\Wallet\Actions\ReleaseWalletHoldAction;
 use App\Modules\Wallet\Data\WalletBalanceType;
+use App\Modules\Wallet\Data\WalletPurchaseFunding;
 use App\Modules\Wallet\Models\Wallet;
 use App\Modules\Wallet\Models\WalletHold;
 use App\Modules\Wallet\Services\WalletLedgerService;
@@ -114,7 +115,7 @@ class InitiatePaymentAction
                 }
 
                 $total = (int) $lockedReservation->total_amount;
-                [$walletAmount, $pointsAmount, $providerPayable] = $this->resolveSplit(
+                $funding = $this->resolveSplit(
                     reservation: $lockedReservation,
                     user: $user,
                     method: $method,
@@ -123,6 +124,10 @@ class InitiatePaymentAction
                     pointsAmount: $pointsAmount,
                     mobileMoneyAmount: $mobileMoneyAmount,
                 );
+
+                $walletAmount = $funding->walletCash;
+                $pointsAmount = $funding->points;
+                $providerPayable = $funding->providerAmount;
 
                 $providerKey = $method === PaymentMethod::Wallet->value ? '' : (string) $provider;
                 $this->manager->assertAvailable($method, $providerKey, $mobileMoneyNetwork);
@@ -147,6 +152,7 @@ class InitiatePaymentAction
                     'mobile_money_network' => $mobileMoneyNetwork,
                     'payer_phone' => $phone,
                     'status' => PaymentStatus::Pending,
+                    'wallet_funding' => $walletAmount > 0 || $pointsAmount > 0 ? $funding->toArray() : null,
                     'provider_payload' => array_filter([
                         'method' => $method,
                         'phone' => $phone,
@@ -243,8 +249,6 @@ class InitiatePaymentAction
 
     /**
      * Valide la répartition points / cash Wallet / complément provider.
-     *
-     * @return array{0: int, 1: int, 2: int}
      */
     private function resolveSplit(
         Reservation $reservation,
@@ -254,15 +258,20 @@ class InitiatePaymentAction
         ?int $walletAmount,
         ?int $pointsAmount,
         ?int $mobileMoneyAmount,
-    ): array {
-        $walletAmount = max(0, (int) $walletAmount);
-        $pointsAmount = max(0, (int) $pointsAmount);
-        $providerPayable = max(0, $total - $walletAmount - $pointsAmount);
+    ): WalletPurchaseFunding {
+        $walletAmount = (int) $walletAmount;
+        $pointsAmount = (int) $pointsAmount;
+        $funding = WalletPurchaseFunding::purchase($total, $walletAmount, $pointsAmount, $this->walletSettings->pointValueFcfa);
+        $providerPayable = $funding->providerAmount;
 
         if ($method === PaymentMethod::Wallet->value && $providerPayable !== 0) {
             throw ValidationException::withMessages([
                 'wallet_amount' => 'Le solde Wallet et les points doivent couvrir la totalité du montant.',
             ]);
+        }
+
+        if ($method !== PaymentMethod::Wallet->value && $providerPayable === 0 && ($walletAmount > 0 || $pointsAmount > 0)) {
+            throw ValidationException::withMessages(['method' => 'Sélectionnez le Wallet lorsque ses soldes couvrent la totalité du billet.']);
         }
 
         if ($providerPayable > 0 && ! in_array($method, [PaymentMethod::MobileMoney->value, PaymentMethod::Card->value], true)) {
@@ -307,7 +316,7 @@ class InitiatePaymentAction
             }
         }
 
-        return [$walletAmount, $pointsAmount, $providerPayable];
+        return $funding;
     }
 
     private function walletOwner(Reservation $reservation, ?User $user): User

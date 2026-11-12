@@ -4,6 +4,8 @@ namespace App\Modules\Wallet\Actions;
 
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\Booking\Models\ReservationPassenger;
+use App\Modules\Payments\Data\PaymentRefundStatus;
+use App\Modules\Payments\Models\PaymentRefund;
 use App\Modules\Wallet\Data\WalletTransactionReason;
 use App\Modules\Wallet\Models\Wallet;
 use App\Modules\Wallet\Models\WalletTransaction;
@@ -30,13 +32,21 @@ final class ApplyLoyaltyCorrectionAction
         Reservation $reservation,
         ?int $refundedAmount = null,
         ?ReservationPassenger $passenger = null,
+        ?PaymentRefund $refund = null,
     ): void {
+        $previousPassengers = [];
         if ($passenger !== null) {
             $allocations = $reservation->total_snapshot['passenger_allocations'] ?? [];
             $passengerIndex = (int) ($passenger->passenger_index ?? 0);
             $total = (int) ($allocations[$passengerIndex] ?? 0);
         } else {
             $total = (int) $reservation->total_amount;
+            if ($refund !== null) {
+                $prior = $refund->payment->refunds()->whereNotNull('reservation_passenger_id')
+                    ->where('status', PaymentRefundStatus::Completed)->with('reservationPassenger')->get();
+                $previousPassengers = $prior->pluck('reservationPassenger.uuid')->filter()->all();
+                $total -= $prior->sum('amount');
+            }
         }
 
         $ratio = $refundedAmount === null || $total <= 0 ? 1.0 : min(1.0, $refundedAmount / $total);
@@ -50,6 +60,9 @@ final class ApplyLoyaltyCorrectionAction
             ->where('reference_id', $reservation->getKey())
             ->where('reason', WalletTransactionReason::PointsEarn->value)
             ->when($passenger !== null, fn ($query) => $query->whereJsonContains('meta->passenger_uuid', $passenger->uuid))
+            ->when($previousPassengers !== [], fn ($query) => $query->where(function ($query) use ($previousPassengers): void {
+                $query->whereNull('meta->passenger_uuid')->orWhereNotIn('meta->passenger_uuid', $previousPassengers);
+            }))
             ->selectRaw('wallet_id, SUM(amount) as total')
             ->groupBy('wallet_id')
             ->get();
@@ -70,7 +83,7 @@ final class ApplyLoyaltyCorrectionAction
             $this->ledger->correctPoints(
                 $wallet,
                 $toRevoke,
-                'loyalty:correction:'.$reservation->uuid.':'.($passenger === null ? 'reservation' : $passenger->uuid).':'.($refundedAmount ?? 'full'),
+                'loyalty:correction:'.($refund->reference ?? $reservation->uuid.':'.($passenger->uuid ?? 'reservation').':'.($refundedAmount ?? 'full')),
                 [
                     'reservation_uuid' => $reservation->uuid,
                     'passenger_uuid' => $passenger?->uuid,

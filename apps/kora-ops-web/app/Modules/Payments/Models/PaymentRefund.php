@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * @property PaymentRefundStatus $status
  * @property PaymentRefundDestination $destination
+ * @property array<string, mixed>|null $metadata
  */
 class PaymentRefund extends KoraModel
 {

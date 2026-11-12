@@ -67,6 +67,10 @@ final class PlaceWalletHoldAction
             ]);
         }
 
+        if ($pointsAmount > 0 && $pointsAmount < $this->settings->pointsMinSpend) {
+            throw ValidationException::withMessages(['points_amount' => 'Le minimum d’utilisation de points est de '.$this->settings->pointsMinSpend.' points.']);
+        }
+
         return DB::transaction(function () use ($wallet, $cashAmount, $pointsAmount, $idempotencyKey, $reservation, $payment): WalletHold {
             $locked = Wallet::query()->whereKey($wallet->getKey())->lockForUpdate()->firstOrFail();
 
