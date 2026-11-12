@@ -14,8 +14,8 @@ En cas de panne CI/CD, le deploiement peut se faire manuellement via SSH au VPS.
 ssh kora-vps
 cd /opt/kora-staging
 git pull origin main
-docker compose -f docker-compose.staging.yml build app
-docker compose -f docker-compose.staging.yml up -d
+docker compose -f docker-compose.staging.yml pull
+docker compose -f docker-compose.staging.yml up -d --no-build
 docker compose -f docker-compose.staging.yml exec app php artisan migrate --force
 docker compose -f docker-compose.staging.yml exec app php artisan db:seed --class=KoraBusRolePermissionSeeder --force
 docker compose -f docker-compose.staging.yml exec app php artisan db:seed --class=WalletLoyaltyRuleVersionSeeder --force
@@ -34,22 +34,96 @@ Les fichiers compose referencent l'image par son nom complet registry :
 **Piege** : builder avec un tag court (`-t kora-ops-web:latest`) cree une image
 distincte de celle que le compose attend — `docker compose up -d` ne detecte
 alors aucun changement et ne recree jamais le conteneur app (silencieusement).
-Toujours builder avec le tag exact du compose :
+Toujours builder avec le tag exact du compose.
+
+Depuis le passage en **pull-only** (voir « Stockage Docker du VPS »), le compose
+ne contient plus de section `build:` : un build local doit etre **pousse dans
+GHCR** puis tire, sinon `pull` ecrasera l'image locale.
 
 ```bash
-# Production (/opt/kora-prod)
-sudo docker build -f infra/docker/kora-ops-web/Dockerfile.prod \
-    -t ghcr.io/edenahoussou/kora-ops-web:latest /opt/kora-prod
-sudo docker compose -f /opt/kora-prod/docker-compose.prod.yml up -d
+# Production : build + push du tag attendu par le compose
+docker buildx build -f infra/docker/kora-ops-web/Dockerfile.prod \
+    --platform linux/amd64 \
+    --push \
+    -t ghcr.io/edenahoussou/kora-ops-web:latest .
 
-# Staging (/opt/kora-staging)
-sudo docker build -f infra/docker/kora-ops-web/Dockerfile.prod \
-    -t ghcr.io/edenahoussou/kora-ops-web:staging /opt/kora-staging
-sudo docker compose -f /opt/kora-staging/docker-compose.staging.yml up -d
+# Puis sur le VPS
+cd /opt/kora-prod
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d --no-build
+
+# Staging : meme chose avec le tag :staging
+docker buildx build -f infra/docker/kora-ops-web/Dockerfile.prod \
+    --platform linux/amd64 --push \
+    -t ghcr.io/edenahoussou/kora-ops-web:staging .
+```
+
+Si un build a malgre tout tourne sur le VPS, purger le cache dans la foulee
+pour ne pas recreer 50 Go :
+
+```bash
+sudo docker builder prune -f --filter until=168h
 ```
 
 Verifier que le nouveau code tourne reellement (ex. date de creation du conteneur
 ou presence d'un fichier modifie) : `docker inspect kora-prod-app --format '{{.Created}}'`.
+
+## Stockage Docker du VPS
+
+Le VPS ne construit pas d'image en regime normal : la CI build (cache GitHub
+Actions) et pousse sur GHCR, le VPS se contente de `pull`. Cette regle evite
+l'accumulation de cache de build sur `/` (incident du 12/11/2026 : 51 Go de
+cache, disque a 81 %).
+
+- `docker-compose.{staging,prod}.yml` : `pull_policy: always`, aucune section
+  `build:` (app, nginx et sync-public viennent de GHCR).
+- `KORA_IMAGE_TAG` (optionnel, dans `.env.staging` / `.env.prod`) : force un tag
+  precis pour un rollback, ex. `KORA_IMAGE_TAG=staging-<sha>` ou `v1.0.4`.
+  Sans valeur, `staging` (staging) et `latest` (prod) sont utilises.
+- `daemon.json` (`infra/vps/daemon.json`) : cache BuildKit plafonne a 8 Go,
+  rotation des logs conteneurs (20 Mo x 3).
+- Purge hebdomadaire `kora-docker-prune.timer` : cache de build > 7 jours,
+  images dangling, `staging-<sha>` au-dela des 2 plus recents, builds locaux
+  `kora-ops-wallet-candidate:*`, journaux systemd.
+
+### Installer le plafond et la purge
+
+```bash
+# 1. Plafond du cache + rotation des logs (redemarre Docker : coupure de quelques secondes)
+scp infra/vps/daemon.json kora-vps:/tmp/daemon.json
+ssh kora-vps 'sudo cp /etc/docker/daemon.json /etc/docker/daemon.json.bak 2>/dev/null; \
+    sudo mv /tmp/daemon.json /etc/docker/daemon.json && sudo systemctl restart docker'
+
+# 2. Purge hebdomadaire
+scp infra/vps/prune-docker.sh kora-vps:/tmp/prune-docker.sh
+scp infra/vps/kora-docker-prune.service infra/vps/kora-docker-prune.timer kora-vps:/tmp/
+ssh kora-vps 'sudo install -m 755 /tmp/prune-docker.sh /usr/local/bin/kora-docker-prune.sh && \
+    sudo install -m 644 /tmp/kora-docker-prune.service /etc/systemd/system/ && \
+    sudo install -m 644 /tmp/kora-docker-prune.timer /etc/systemd/system/ && \
+    sudo systemctl daemon-reload && sudo systemctl enable --now kora-docker-prune.timer'
+
+# 3. Verification
+ssh kora-vps 'docker buildx du | tail -2; systemctl list-timers | grep kora-docker-prune; df -h /'
+```
+
+Le resultat de chaque purge est journalise dans `/var/log/kora-docker-prune.log`.
+
+**Apres le redemarrage du daemon** : verifier que `kora-prod-app` est bien
+remonte. Horizon tente un arret propre en interrogeant Redis ; si Redis redemarre
+au meme moment, l'exception fait sortir supervisord et le conteneur reste en
+`Exited (0)` — `restart: unless-stopped` ne le relance pas (constate le
+12/11/2026). Remede :
+
+```bash
+ssh kora-vps 'docker start kora-prod-app'
+ssh kora-vps "curl -sS -o /dev/null -w 'prod %{http_code}\n' http://127.0.0.1:9080/api/v1/health"
+```
+
+Les conteneurs deja crees conservent leur ancienne configuration de logs : la
+rotation `20 Mo x 3` s'applique aux conteneurs recrees au prochain deploiement.
+
+L'espace disque est surveille par `health:check` (`UsedDiskSpaceCheck`) :
+*warning* a 75 %, *echec* (donc notification) a 85 %.
 
 ## Endpoints de health check
 

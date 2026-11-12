@@ -246,7 +246,9 @@ class AppServiceProvider extends ServiceProvider
             DatabaseCheck::new(),
             CacheCheck::new(),
             RedisCheck::new(),
-            UsedDiskSpaceCheck::new(),
+            UsedDiskSpaceCheck::new()
+                ->warnWhenUsedSpaceIsAbovePercentage(75)
+                ->failWhenUsedSpaceIsAbovePercentage(85),
             DebugModeCheck::new(),
             ScheduleCheck::new()->heartbeatMaxAgeInMinutes(5),
             QueueCheck::new(),
