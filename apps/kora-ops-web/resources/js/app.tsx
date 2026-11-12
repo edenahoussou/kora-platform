@@ -10,6 +10,20 @@ import PublicLegalLayout from '@/layouts/public-legal-layout';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
+// After a deploy, cached entries reference deleted hashed chunks. Reload once
+// so the browser fetches the fresh build instead of reporting a broken page.
+window.addEventListener('vite:preloadError', () => {
+    if (sessionStorage.getItem('kora_preload_reloaded') === '1') {
+        return;
+    }
+    sessionStorage.setItem('kora_preload_reloaded', '1');
+    window.location.reload();
+});
+
+window.addEventListener('load', () => {
+    sessionStorage.removeItem('kora_preload_reloaded');
+});
+
 if (import.meta.env.VITE_SENTRY_DSN) {
     Sentry.init({
         dsn: import.meta.env.VITE_SENTRY_DSN,
