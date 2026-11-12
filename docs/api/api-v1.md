@@ -55,3 +55,63 @@ Endpoints proteges par token Sanctum pour la consultation des billets du passage
 - `GET /api/v1/tickets` : liste paginee de tous les billets du passager authentifie (tous statuts confondus), avec un contrat enrichi pour l'ecran « Mes voyages » de l'app passager (route, date/heure de depart, siege, gare, montant, QR code, statut mappe en `confirmed` / `completed` / `cancelled`). Un billet appartient au passager si `created_by_user_id` ou `payer_user_id` de la reservation parente correspond a l'utilisateur connecte.
 - `GET /api/v1/tickets/{ticket_uuid}` : detail d'un billet individuel par UUID public, reserve au proprietaire de la reservation.
 - `GET /api/v1/bookings/{reservation_uuid}/tickets` : billets emis d'une reservation specifique (un par passager), apres confirmation du paiement.
+
+## Wallet passager
+
+Les routes Wallet ci-dessous utilisent le préfixe `/api/v1` et le jeton du voyageur.
+
+### Créer ou rejouer une recharge
+
+`POST /wallet/topups`
+
+```json
+{
+  "amount": 5000,
+  "method": "mobile_money",
+  "provider": "kkiapay",
+  "idempotency_key": "c64dbcce-cffa-464c-ab62-719c06755489"
+}
+```
+
+KKiaPay collecte le réseau dans le widget. Pour une recharge Mobile Money FedaPay ou MTN, fournir aussi `phone` et `mobile_money_network`. Le serveur retourne `201` pour une création et `200` lorsqu'il retrouve la recharge. Un rejeu réseau réutilise la clé. Une demande différente avec une clé déjà liée reçoit `409`.
+
+```json
+{
+  "data": {
+    "uuid": "13f884dc-1b38-4447-9167-05cb7ba11ab5",
+    "amount": 5000,
+    "status": "pending",
+    "payment": {
+      "uuid": "e87e9032-6ae4-43d9-ac9c-5570d524813f",
+      "status": "pending",
+      "provider": "kkiapay",
+      "provider_reference": null,
+      "next_action": "open_widget",
+      "widget": {
+        "key": "public-sandbox-key",
+        "sandbox": true,
+        "amount": 5000,
+        "partnerId": "e87e9032-6ae4-43d9-ac9c-5570d524813f",
+        "paymentmethod": ["momo"],
+        "countries": ["BJ"]
+      },
+      "checkout_url": null,
+      "polling_interval_seconds": 10,
+      "failure": null
+    }
+  }
+}
+```
+
+- `open_widget` ouvre le widget à partir de `payment.widget`. À son retour, transmettre le `transaction_id` à `POST /payments/{payment_uuid}/verify`, puis consulter `GET /wallet/topups/{uuid}` si le paiement reste en cours. Le retour du widget seul ne prouve pas l'encaissement.
+- `open_url` ouvre `payment.checkout_url` pour FedaPay carte. Au retour, appeler la vérification serveur. `verify` invite à vérifier l'état serveur, notamment après la demande Mobile Money sur le téléphone.
+- `wait` signale une initiation en cours ou indéterminée. Respecter l'intervalle de vérification et conserver les UUID. `retry` indique une tentative terminée en échec. Utiliser une nouvelle clé si le voyageur choisit de recommencer. `done` indique que la recharge a été créditée.
+- `payment.failure` contient, le cas échéant, `code`, `message`, `retryable` et `diagnostic_reference`. Joindre cette référence à un ticket support.
+
+`GET /wallet` expose `settings.points_expiry_reminder_days` et `settings.loyalty_bonuses` avec `welcome_points`, `referral_points`, `anniversary_points`, `usage_points` et `usage_threshold`.
+
+`GET /wallet/transactions?direction=credit&balance_type=points` accepte les deux filtres indépendamment. Les liens par curseur conservent les filtres. Le champ `direction` accepte `credit` ou `debit`.
+
+`GET /auth/me` et les réponses de session exposent `data.user.registration_origin`. Les valeurs sont `phone`, `email`, `assisted`, `social` et `unknown`.
+
+Pour acheter un billet, `points_amount` est un nombre de points et `wallet_amount` un montant cash en FCFA. Le complément opérateur correspond au prix moins le cash Wallet et la valeur des points. La réponse paiement expose `wallet_funding` avec ces deux quantités, `point_value_fcfa`, `points_value_fcfa` et `provider_amount_fcfa`.

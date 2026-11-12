@@ -12852,10 +12852,40 @@ paths:
       security: []
   /api/v1/wallet/transactions:
     get:
-      summary: "Liste l'historique Wallet, filtrable par nature de solde."
-      operationId: listeLhistoriqueWalletFiltrableParNatureDeSolde
+      summary: "Liste l'historique Wallet, filtrable par nature de solde et sens."
+      operationId: listeLhistoriqueWalletFiltrableParNatureDeSoldeEtSens
       description: ''
-      parameters: []
+      parameters:
+        -
+          in: query
+          name: balance_type
+          description: 'Solde Wallet (cash ou points).'
+          example: cash
+          required: false
+          schema:
+            type: string
+            description: 'Solde Wallet (cash ou points).'
+            example: cash
+        -
+          in: query
+          name: direction
+          description: 'Sens de l’écriture (credit ou debit).'
+          example: credit
+          required: false
+          schema:
+            type: string
+            description: 'Sens de l’écriture (credit ou debit).'
+            example: credit
+        -
+          in: query
+          name: cursor
+          description: 'Curseur fourni par la réponse précédente.'
+          example: null
+          required: false
+          schema:
+            type: string
+            description: 'Curseur fourni par la réponse précédente.'
+            example: null
       responses:
         200:
           description: ''
@@ -12949,7 +12979,6 @@ paths:
                         example: 20
       tags:
         - Wallet
-      security: []
   /api/v1/wallet/topups:
     post:
       summary: 'Initie une recharge Wallet via un provider de paiement existant.'
@@ -12973,6 +13002,11 @@ paths:
                       status: pending
                       provider: fedapay
                       provider_reference: null
+                      next_action: verify
+                      widget: null
+                      checkout_url: null
+                      polling_interval_seconds: 10
+                      failure: null
                     created_at: '2026-11-07T10:00:00+00:00'
                 properties:
                   data:
@@ -13003,6 +13037,24 @@ paths:
                             type: string
                             example: null
                             nullable: true
+                          next_action:
+                            type: string
+                            example: verify
+                          widget:
+                            type: string
+                            example: null
+                            nullable: true
+                          checkout_url:
+                            type: string
+                            example: null
+                            nullable: true
+                          polling_interval_seconds:
+                            type: integer
+                            example: 10
+                          failure:
+                            type: string
+                            example: null
+                            nullable: true
                       created_at:
                         type: string
                         example: '2026-11-07T10:00:00+00:00'
@@ -13020,8 +13072,21 @@ paths:
                     payment:
                       uuid: a4a5d8fd-8168-4f40-b6b5-437f97cf41f0
                       status: pending
-                      provider: fedapay
+                      provider: kkiapay
                       provider_reference: null
+                      next_action: open_widget
+                      widget:
+                        key: public-sandbox-key
+                        sandbox: true
+                        amount: 5000
+                        partnerId: a4a5d8fd-8168-4f40-b6b5-437f97cf41f0
+                        paymentmethod:
+                          - momo
+                        countries:
+                          - BJ
+                      checkout_url: null
+                      polling_interval_seconds: 10
+                      failure: null
                     created_at: '2026-11-07T10:00:00+00:00'
                 properties:
                   data:
@@ -13047,8 +13112,49 @@ paths:
                             example: pending
                           provider:
                             type: string
-                            example: fedapay
+                            example: kkiapay
                           provider_reference:
+                            type: string
+                            example: null
+                            nullable: true
+                          next_action:
+                            type: string
+                            example: open_widget
+                          widget:
+                            type: object
+                            properties:
+                              key:
+                                type: string
+                                example: public-sandbox-key
+                              sandbox:
+                                type: boolean
+                                example: false
+                              amount:
+                                type: integer
+                                example: 5000
+                              partnerId:
+                                type: string
+                                example: 00000000-0000-4000-8000-000000000000
+                              paymentmethod:
+                                type: array
+                                example:
+                                  - momo
+                                items:
+                                  type: string
+                              countries:
+                                type: array
+                                example:
+                                  - BJ
+                                items:
+                                  type: string
+                          checkout_url:
+                            type: string
+                            example: null
+                            nullable: true
+                          polling_interval_seconds:
+                            type: integer
+                            example: 10
+                          failure:
                             type: string
                             example: null
                             nullable: true
@@ -13112,7 +13218,6 @@ paths:
                 - method
                 - provider
                 - idempotency_key
-      security: []
   '/api/v1/wallet/topups/{uuid}':
     get:
       summary: "Retourne le statut d'une recharge du voyageur connecté."
@@ -13136,6 +13241,11 @@ paths:
                       status: pending
                       provider: fedapay
                       provider_reference: null
+                      next_action: verify
+                      widget: null
+                      checkout_url: null
+                      polling_interval_seconds: 10
+                      failure: null
                     created_at: '2026-11-07T10:00:00+00:00'
                 properties:
                   data:
@@ -13166,12 +13276,29 @@ paths:
                             type: string
                             example: null
                             nullable: true
+                          next_action:
+                            type: string
+                            example: verify
+                          widget:
+                            type: string
+                            example: null
+                            nullable: true
+                          checkout_url:
+                            type: string
+                            example: null
+                            nullable: true
+                          polling_interval_seconds:
+                            type: integer
+                            example: 10
+                          failure:
+                            type: string
+                            example: null
+                            nullable: true
                       created_at:
                         type: string
                         example: '2026-11-07T10:00:00+00:00'
       tags:
         - Wallet
-      security: []
     parameters:
       -
         in: path
