@@ -31,7 +31,7 @@ class StoreKoraPointVisitRequest extends FormRequest
             'score' => ['required', 'integer', 'between:0,10'],
             'report' => ['required', 'string', 'min:10', 'max:10000'],
             'photos' => ['nullable', 'array', 'max:5'],
-            'photos.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
+            'photos.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:102400'],
             'actions' => ['nullable', 'array', 'max:20'],
             'actions.*.label' => ['required_with:actions', 'string', 'min:3', 'max:255'],
             'actions.*.assignee_uuid' => ['required_with:actions', 'uuid', 'exists:users,uuid'],

@@ -263,8 +263,8 @@ export function KoraOrgFormDialog({ open, organization, onOpenChange }: Props) {
             return;
         }
 
-        if (file.size > 2 * 1024 * 1024) {
-            setLogoClientError('Le logo ne peut pas dépasser 2 Mo.');
+        if (file.size > 100 * 1024 * 1024) {
+            setLogoClientError('Le logo ne peut pas dépasser 100 Mo.');
 
             return;
         }
@@ -678,7 +678,7 @@ export function KoraOrgFormDialog({ open, organization, onOpenChange }: Props) {
                             </small>
                         ) : (
                             <small className="text-muted-foreground">
-                                PNG, JPEG ou WebP (2 Mo max). Affiché sur les
+                                PNG, JPEG ou WebP (100 Mo max). Affiché sur les
                                 points rattachés.
                             </small>
                         )}

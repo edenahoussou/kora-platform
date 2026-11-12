@@ -280,9 +280,9 @@ export function KoraPointSettlementDialog({
             return;
         }
 
-        if (file.size > 10 * 1024 * 1024) {
+        if (file.size > 100 * 1024 * 1024) {
             setError(
-                'Le fichier dépasse la taille maximale autorisée de 10 Mo.',
+                'Le fichier dépasse la taille maximale autorisée de 100 Mo.',
             );
 
             return;

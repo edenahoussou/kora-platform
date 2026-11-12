@@ -57,7 +57,7 @@ class SaveKoraPointOrganizationRequest extends FormRequest
             'tax_identifier' => ['nullable', 'string', 'max:120'],
             'phone' => ['nullable', 'string', 'max:40'],
             'address' => ['nullable', 'string', 'max:2000'],
-            'logo' => ['sometimes', 'nullable', 'image', 'mimes:jpeg,png,webp', 'max:2048'],
+            'logo' => ['sometimes', 'nullable', 'image', 'mimes:jpeg,png,webp', 'max:102400'],
             'remove_logo' => ['sometimes', 'boolean'],
             'points' => ['sometimes', 'array', 'max:100'],
             'points.*' => ['array:code,name,city,department,country,responsible_name,email,phone,address,latitude,longitude,ceiling_amount'],

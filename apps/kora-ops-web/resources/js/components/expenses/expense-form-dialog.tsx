@@ -65,7 +65,7 @@ type Props = {
     onSuccess?: () => void;
 };
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 Mo
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 Mo
 
 function formatMoney(amount: number | string): string {
     const num = typeof amount === 'string' ? Number(amount) : amount;
@@ -192,7 +192,7 @@ export function ExpenseFormDialog({
 
         if (file.size > MAX_FILE_SIZE) {
             setFileError(
-                `Le fichier est trop volumineux (${formatBytes(file.size)}). La taille maximale autorisée est de 5 Mo.`,
+                `Le fichier est trop volumineux (${formatBytes(file.size)}). La taille maximale autorisée est de 100 Mo.`,
             );
             form.setData('evidence', null);
 

@@ -142,7 +142,7 @@ export default function PartnerDocumentsPage({
                                 required
                             />
                             <span className="mt-1 block text-xs font-normal text-muted-foreground">
-                                PDF, JPG ou PNG · 10 Mo maximum.
+                                PDF, JPG ou PNG · 100 Mo maximum.
                             </span>
                             {form.errors.file ? (
                                 <span className="mt-1 block text-xs text-destructive">

@@ -88,7 +88,7 @@ type DraftAction = { label: string; assignee_uuid: string; due_date: string };
 type VisitPhotoPreview = { id: number; file: File; url: string };
 
 const visitPhotoTypes = ['image/jpeg', 'image/png', 'image/webp'];
-const maxVisitPhotoSize = 10 * 1024 * 1024;
+const maxVisitPhotoSize = 100 * 1024 * 1024;
 const maxVisitPhotoCount = 5;
 
 const visitLabels: Record<string, string> = {
@@ -596,7 +596,7 @@ function VisitModal({
                         className="mt-1 text-[0.7rem] text-muted-foreground"
                     >
                         Facultatives · {form.data.photos.length}/5 · JPEG, PNG
-                        ou WebP · 10 Mo maximum par fichier.
+                        ou WebP · 100 Mo maximum par fichier.
                     </p>
                     {photoClientErrors.length > 0 ||
                     Object.keys(form.errors).some((key) =>

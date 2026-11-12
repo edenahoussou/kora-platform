@@ -186,8 +186,8 @@ export function KoraPointFormDialog({
             return;
         }
 
-        if (file.size > 2 * 1024 * 1024) {
-            setLogoClientError('Le logo ne peut pas dépasser 2 Mo.');
+        if (file.size > 100 * 1024 * 1024) {
+            setLogoClientError('Le logo ne peut pas dépasser 100 Mo.');
 
             return;
         }
@@ -1301,7 +1301,7 @@ export function KoraPointFormDialog({
                                         Documents du Point autonome
                                     </strong>
                                     <small className="text-muted-foreground">
-                                        PDF, JPG ou PNG · 10 Mo maximum.
+                                        PDF, JPG ou PNG · 100 Mo maximum.
                                     </small>
                                 </div>
                                 <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">

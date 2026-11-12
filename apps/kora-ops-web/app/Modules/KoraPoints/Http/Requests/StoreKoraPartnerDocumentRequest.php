@@ -29,6 +29,6 @@ class StoreKoraPartnerDocumentRequest extends FormRequest
      */
     public function rules(): array
     {
-        return ['file' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'], 'kind' => ['required', 'in:identity,address,photo,bank_details,agreement,remittance_proof,refund_proof,other'], 'title' => ['required', 'string', 'max:255'], 'reference' => ['nullable', 'string', 'max:255'], 'signed_at' => ['nullable', 'date'], 'expires_at' => ['nullable', 'date', 'after_or_equal:signed_at']];
+        return ['file' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:102400'], 'kind' => ['required', 'in:identity,address,photo,bank_details,agreement,remittance_proof,refund_proof,other'], 'title' => ['required', 'string', 'max:255'], 'reference' => ['nullable', 'string', 'max:255'], 'signed_at' => ['nullable', 'date'], 'expires_at' => ['nullable', 'date', 'after_or_equal:signed_at']];
     }
 }

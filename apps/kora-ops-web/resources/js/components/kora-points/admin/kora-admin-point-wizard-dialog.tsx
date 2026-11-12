@@ -763,7 +763,7 @@ export function KoraAdminPointWizardDialog({
                                     />
                                     <small className="flex items-center gap-1 text-xs text-slate-500">
                                         <FileText className="size-3.5" />
-                                        PDF, JPG ou PNG, 10 Mo maximum. Le
+                                        PDF, JPG ou PNG, 100 Mo maximum. Le
                                         document sera rattaché au Point.
                                     </small>
                                 </label>
