@@ -113,6 +113,7 @@ class AuthSessionService
             }
 
             $user = User::query()->create([
+                'registration_origin' => $challengeIsEmail ? 'email' : 'phone',
                 'name' => $name !== '' ? $name : $this->defaultNameFromEmail((string) $email),
                 'email' => $email ?? 'traveler+'.Str::uuid().'@'.OtpCodeChannel::PLACEHOLDER_EMAIL_DOMAIN,
                 'phone' => $phone,

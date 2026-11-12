@@ -4,11 +4,16 @@ namespace App\Modules\Wallet\Actions;
 
 use App\Modules\Booking\Data\PayerType;
 use App\Modules\Booking\Models\Reservation;
+use App\Modules\Payments\Data\PaymentRefundStatus;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Wallet\Data\WalletBalanceType;
+use App\Modules\Wallet\Data\WalletHoldStatus;
+use App\Modules\Wallet\Data\WalletPurchaseFunding;
 use App\Modules\Wallet\Data\WalletTransactionReason;
 use App\Modules\Wallet\Models\Wallet;
+use App\Modules\Wallet\Models\WalletHold;
 use App\Modules\Wallet\Services\WalletLedgerService;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Route un remboursement vers le Wallet cash du payeur personnel, au prorata
@@ -42,44 +47,50 @@ final class RouteRefundToWalletAction
 
         $owner = $reservation->payer;
 
-        if ($owner === null) {
-            return null;
-        }
+        return DB::transaction(function () use ($reservation, $payment, $owner, $amount, $reference): ?array {
+            $payment = Payment::query()->where('id', $payment->getKey())->lockForUpdate()->firstOrFail();
+            $wallet = WalletHold::query()->where('payment_id', $payment->getKey())
+                ->where('status', WalletHoldStatus::Captured)->first()->wallet ?? null;
+            if ($wallet === null) {
+                if ($owner === null) {
+                    return null;
+                }
 
-        $wallet = $this->findOrCreateWallet->handle($owner);
-        $total = max(1, (int) $payment->amount);
-        $payload = $payment->provider_payload ?? [];
-        $pointsFunded = (int) ($payload['points_amount'] ?? 0);
-        $cashFunded = (int) ($payload['wallet_amount'] ?? 0);
+                $wallet = $this->findOrCreateWallet->handle($owner);
+            }
+            $completed = $payment->refunds()->where('status', PaymentRefundStatus::Completed)->get();
+            $previous = $completed->firstWhere('reference', $reference);
+            if ($previous !== null) {
+                return [
+                    'wallet' => $wallet,
+                    'points' => (int) ($previous->metadata['wallet_points'] ?? 0),
+                    'cash' => (int) ($previous->metadata['wallet_cash'] ?? 0),
+                ];
+            }
 
-        $pointsShare = min($amount, (int) floor($amount * $pointsFunded / $total));
-        $cashShare = min($amount - $pointsShare, (int) floor($amount * $cashFunded / $total));
-        $cashShare += $amount - $pointsShare - $cashShare;
+            $total = max(1, $payment->amount);
+            $cumulative = min($total, $amount + $completed->sum('amount'));
+            $funding = WalletPurchaseFunding::fromPayment($payment);
+            $pointsTarget = intdiv($cumulative * $funding->points, $total);
+            $cashTarget = intdiv($cumulative * max(0, $total - $funding->pointsValue), $total);
+            $points = max(0, $pointsTarget - $completed->sum(fn ($refund) => (int) ($refund->metadata['wallet_points'] ?? 0)));
+            $cash = max(0, $cashTarget - $completed->sum(fn ($refund) => (int) ($refund->metadata['wallet_cash'] ?? 0)));
 
-        if ($pointsShare > 0) {
-            $this->ledger->credit(
-                $wallet,
-                WalletBalanceType::Points,
-                $pointsShare,
-                WalletTransactionReason::RefundPoints,
-                'refund:'.$reference.':points',
-                ['reservation_uuid' => $reservation->uuid],
-                $reservation,
-            );
-        }
+            if ($points > 0) {
+                $this->ledger->credit(
+                    $wallet, WalletBalanceType::Points, $points, WalletTransactionReason::RefundPoints,
+                    'refund:'.$reference.':points', ['reservation_uuid' => $reservation->uuid], $reservation,
+                );
+            }
 
-        if ($cashShare > 0) {
-            $this->ledger->credit(
-                $wallet,
-                WalletBalanceType::Cash,
-                $cashShare,
-                WalletTransactionReason::RefundCash,
-                'refund:'.$reference.':cash',
-                ['reservation_uuid' => $reservation->uuid],
-                $reservation,
-            );
-        }
+            if ($cash > 0) {
+                $this->ledger->credit(
+                    $wallet, WalletBalanceType::Cash, $cash, WalletTransactionReason::RefundCash,
+                    'refund:'.$reference.':cash', ['reservation_uuid' => $reservation->uuid], $reservation,
+                );
+            }
 
-        return ['wallet' => $wallet, 'points' => $pointsShare, 'cash' => $cashShare];
+            return ['wallet' => $wallet, 'points' => $points, 'cash' => $cash];
+        });
     }
 }

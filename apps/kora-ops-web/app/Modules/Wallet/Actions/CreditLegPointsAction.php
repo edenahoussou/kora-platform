@@ -10,6 +10,7 @@ use App\Modules\Payments\Data\PaymentStatus;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Settings\Settings\WalletSettings;
 use App\Modules\Wallet\Data\LoyaltyBonusKind;
+use App\Modules\Wallet\Data\WalletPurchaseFunding;
 use App\Modules\Wallet\Data\WalletTransactionReason;
 use App\Modules\Wallet\Models\Wallet;
 use App\Modules\Wallet\Models\WalletUsage;
@@ -144,10 +145,9 @@ final class CreditLegPointsAction
             return 0;
         }
 
-        $pointsFunded = (int) ($payment?->provider_payload['points_amount'] ?? 0);
+        $pointsFunded = $payment === null ? 0 : WalletPurchaseFunding::fromPayment($payment)->pointsValue;
         $total = (int) $reservation->total_amount;
-        $pointsShare = $total > 0 ? (int) floor($base * $pointsFunded / $total) : 0;
-        $monetary = max(0, $base - $pointsShare);
+        $monetary = $total > 0 ? intdiv($base * max(0, $total - $pointsFunded), $total) : $base;
 
         return (int) floor($monetary * $this->settings->loyaltyEarnRateBasisPoints / 10000);
     }

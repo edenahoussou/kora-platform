@@ -22,6 +22,7 @@ class AuthUserResource extends JsonResource
             'uuid' => $this->uuid,
             'name' => $this->name,
             'email' => $this->email,
+            'registration_origin' => $this->registration_origin ?? 'unknown',
             'phone' => $this->phone,
             'country_code' => $this->country_code,
             'birth_date' => $this->birth_date,

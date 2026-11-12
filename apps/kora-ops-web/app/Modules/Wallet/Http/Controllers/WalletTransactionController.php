@@ -5,9 +5,12 @@ namespace App\Modules\Wallet\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Wallet\Actions\FindOrCreateWalletAction;
 use App\Modules\Wallet\Data\WalletBalanceType;
+use App\Modules\Wallet\Data\WalletDirection;
 use App\Modules\Wallet\Http\Resources\WalletTransactionResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 /**
  * @group Wallet
@@ -15,7 +18,13 @@ use Illuminate\Http\Request;
 class WalletTransactionController extends Controller
 {
     /**
-     * Liste l'historique Wallet, filtrable par nature de solde.
+     * Liste l'historique Wallet, filtrable par nature de solde et sens.
+     *
+     * @authenticated
+     *
+     * @queryParam balance_type string Solde Wallet (cash ou points). Example: cash
+     * @queryParam direction string Sens de l’écriture (credit ou debit). Example: credit
+     * @queryParam cursor string Curseur fourni par la réponse précédente. No-example
      *
      * @param  Request  $request  Requête avec `balance_type` optionnel
      * @param  FindOrCreateWalletAction  $findOrCreateWallet  Provisionnement du Wallet
@@ -25,15 +34,18 @@ class WalletTransactionController extends Controller
      */
     public function index(Request $request, FindOrCreateWalletAction $findOrCreateWallet): JsonResponse
     {
+        // Query parameters
+        $filters = Validator::make($request->query(), [
+            'balance_type' => ['sometimes', 'string', Rule::in(WalletBalanceType::values())],
+            'direction' => ['sometimes', 'string', Rule::in(WalletDirection::values())],
+        ])->validate();
         $wallet = $findOrCreateWallet->handle($request->user());
-        $balanceType = $request->query('balance_type');
-
         $query = $wallet->transactions()->with('reference')->orderByDesc('id');
 
-        if (is_string($balanceType) && in_array($balanceType, WalletBalanceType::values(), true)) {
-            $query->where('balance_type', $balanceType);
+        foreach ($filters as $column => $value) {
+            $query->where($column, $value);
         }
 
-        return WalletTransactionResource::collection($query->cursorPaginate(20))->response();
+        return WalletTransactionResource::collection($query->cursorPaginate(20)->appends($filters))->response();
     }
 }

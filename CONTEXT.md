@@ -240,9 +240,21 @@ _Avoid_: Solde unique melant argent et points, credit entreprise, portefeuille d
 Solde monetaire en FCFA du Wallet, alimente par les recharges numeriques et les remboursements personnels, utilisable pour les achats Bus. Il est distinct des points et ne suit pas leur expiration.
 _Avoid_: Points convertibles en argent, caisse de l'agent, credit entreprise
 
+**Recharge Wallet**:
+Demande du titulaire d'ajouter des fonds au solde cash. Un paiement operateur verifie donne lieu a un seul credit du Wallet.
+_Avoid_: Achat de billet, transfert entre Wallets
+
+**Financement du billet**:
+Repartition du prix paye entre le cash Wallet, la valeur d'usage des points depenses et l'eventuel complement monetaire. Le taux applique a l'achat fait foi pour les remboursements.
+_Avoid_: Nombre de points exprime en FCFA
+
 **Points de fidelite**:
 Unites de recompense propres au voyageur eligible, acquises par les voyages effectues et les bonus, utilisables pour payer des billets Bus. Leur valeur d'usage est de 1 point pour 1 FCFA ; ils ne constituent pas du cash retirable ou transferable.
 _Avoid_: Argent disponible, remise immediate sur le voyage qui les genere, KORA POINT
+
+**Ecriture du ledger Wallet**:
+Enregistrement immuable d'un credit ou d'un debit effectivement passe sur un seul solde cash ou points. Une operation peut produire plusieurs ecritures ; les demandes et autres operations en attente n'apparaissent dans le journal qu'apres leur comptabilisation.
+_Avoid_: Solde global, demande en attente, ligne historique modifiable ou supprimee
 
 **Version de regle de fidelite**:
 Ensemble publie et immuable des parametres d'acquisition, d'usage, de bonus et d'expiration des points KORA BUS. Une simulation est sans effet de bord ; une version programmee devient active a sa date d'effet. Les mouvements produits ensuite reference cette version, tandis que les echeances deja enregistrees restent inchangees.

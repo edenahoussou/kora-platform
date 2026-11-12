@@ -53,7 +53,7 @@ class CancelReservationAction
 
             $payment = $locked->payments()->where('status', PaymentStatus::Confirmed->value)->latest('id')->first();
             $amount = (int) $locked->total_amount;
-            if ($pointRefund && $payment !== null) {
+            if ($payment !== null) {
                 $amount = max(0, (int) $payment->amount - (int) $payment->refunds()->whereNotIn('status', [PaymentRefundStatus::Failed->value])->sum('amount'));
             }
             $locked->passengers()->where('status', 'active')->update(['status' => 'cancelled']);
@@ -178,7 +178,7 @@ class CancelReservationAction
             }
         }
 
-        $this->applyLoyaltyCorrection->handle($reservation, $amount, $passenger);
+        $this->applyLoyaltyCorrection->handle($reservation, $amount, $passenger, $refund);
     }
 
     private function authorize(Reservation $reservation, User $actor, bool $pointRefund = false): void

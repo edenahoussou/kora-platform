@@ -29,7 +29,9 @@ class WalletTransactionResource extends JsonResource
                 'type' => $this->reference_type,
                 'uuid' => $this->reference?->getAttribute('uuid'),
             ],
-            'meta' => $this->meta,
+            'meta' => $this->meta === null ? null : array_intersect_key($this->meta, array_flip([
+                'reservation_uuid', 'payment_uuid', 'departure_uuid', 'leg_order', 'bonus_kind', 'expires_at',
+            ])),
             'created_at' => $this->created_at->toIso8601String(),
         ];
     }

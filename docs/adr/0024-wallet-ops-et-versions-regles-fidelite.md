@@ -17,6 +17,8 @@ Le Wallet BUS disposait de contrats et d'opérations côté serveur, mais pas d'
 - Le pilotage agrège les comptes et mouvements KORA BUS, les soldes cash et points, la valeur d'usage des points, les échéances proches, les recharges en attente et les restitutions à traiter. Il ne présente pas de ventilation Ride/Colis ni de tendances estimées.
 - Les anciennes entrées Expiration et Rapprochement redirigent vers le pilotage ou la liste des mouvements. L'expiration est affichée sur le pilotage et la fiche du compte ; le mouvement fournit le lien vers sa source pour le rapprochement.
 - Les filtres s'appuient sur les attributs persistés : titulaire, téléphone, UUID, statut du passager, type de solde, sens, motif, date, échéance et agence.
+- La liste Mouvements est un journal des écritures immuables effectivement passées sur un solde cash ou points, triées de la plus récente à la plus ancienne. Les opérations en attente, dont les recharges non confirmées, restent hors de ce journal jusqu'à leur comptabilisation.
+- Une ligne correspond à une écriture du ledger ; plusieurs écritures peuvent partager la même source métier. La fiche montre le montant signé, le titulaire et son compte, la source BUS, l'agence, l'agent lorsqu'il est enregistré et la version de fidélité pour les mouvements de points. Elle ne reconstitue pas des soldes avant/après qui ne sont pas persistés.
 
 ### Autorisations
 

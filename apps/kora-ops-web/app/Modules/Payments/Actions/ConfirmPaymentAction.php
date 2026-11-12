@@ -14,8 +14,11 @@ use App\Modules\Ticketing\Jobs\IssueReservationTicketsJob;
 use App\Modules\Wallet\Actions\CaptureWalletHoldAction;
 use App\Modules\Wallet\Actions\ConfirmWalletTopUpAction;
 use App\Modules\Wallet\Actions\ReleaseWalletHoldAction;
+use App\Modules\Wallet\Data\WalletHoldStatus;
+use App\Modules\Wallet\Data\WalletPurchaseFunding;
 use App\Modules\Wallet\Models\WalletHold;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class ConfirmPaymentAction
@@ -54,6 +57,26 @@ class ConfirmPaymentAction
             $isPending = strtolower($status) === 'pending';
 
             $mergedPayload = array_merge($lockedPayment->provider_payload ?? [], $providerPayload);
+
+            if ($isSuccess && $lockedPayment->reservation_id !== null) {
+                $funding = WalletPurchaseFunding::fromPayment($lockedPayment);
+                if ($funding->walletCash > 0 || $funding->points > 0) {
+                    $hold = WalletHold::query()->where('payment_id', $lockedPayment->getKey())->lockForUpdate()->first();
+                    if ($hold === null || $hold->status === WalletHoldStatus::Released
+                        || ($hold->status === WalletHoldStatus::Active && $hold->expires_at->isPast())) {
+                        if ($lockedPayment->failure_code !== 'wallet_hold_unavailable') {
+                            $lockedPayment->update([
+                                'failure_code' => 'wallet_hold_unavailable',
+                                'failure_message' => 'Le financement de ce billet doit être vérifié par KORA.',
+                                'provider_reference' => $providerReference ?? $lockedPayment->provider_reference,
+                            ]);
+                            DB::afterCommit(fn () => Log::critical('Paid reservation requires OPS settlement after wallet hold expiry', ['payment_uuid' => $lockedPayment->uuid]));
+                        }
+
+                        return $lockedPayment;
+                    }
+                }
+            }
 
             if ($isSuccess) {
                 $lockedPayment->update([

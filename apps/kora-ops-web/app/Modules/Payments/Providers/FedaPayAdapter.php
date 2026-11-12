@@ -7,12 +7,15 @@ use App\Modules\Payments\Contracts\ProviderResponse;
 use App\Modules\Payments\Data\MobileMoneyNetwork;
 use App\Modules\Payments\Data\PaymentStatus;
 use App\Modules\Payments\Models\Payment;
+use FedaPay\Currency;
+use FedaPay\Error\Base;
 use FedaPay\FedaPay;
 use FedaPay\Transaction;
 use FedaPay\Webhook;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Throwable;
+use UnexpectedValueException;
 
 /**
  * FedaPay payment provider adapter.
@@ -72,90 +75,115 @@ final class FedaPayAdapter implements PaymentProvider
 
     public function initiate(Payment $payment, array $payload = []): ProviderResponse
     {
+        $isTopUp = $payment->reservation_id === null;
+        $method = $payload['method'] ?? null;
+        $phone = $this->extractPhone($payload);
+        $mode = $this->mobileMoneyModes[(string) ($payload['mobile_money_network'] ?? '')] ?? null;
+        if ($method === 'mobile_money' && ($mode === null || $phone['number'] === '')) {
+            return new ProviderResponse(
+                status: PaymentStatus::Failed,
+                payload: ['initiation_issue' => 'invalid_payment_details'],
+            );
+        }
+
+        $transactionId = $payment->provider_transaction_id;
+        $reference = $payment->provider_reference;
+
         try {
             $this->configure();
 
-            $phone = $this->extractPhone($payload);
-
-            $transactionData = [
-                'description' => "KORA BUS reservation {$payment->reservation->uuid}",
-                'amount' => $payment->provider_amount ?? $payment->amount,
-                'currency' => ['iso' => $payment->provider_currency ?? $payment->currency],
-                'callback_url' => $this->callbackUrl,
-                'custom_metadata' => [
-                    'kora_payment_uuid' => $payment->uuid,
-                    'kora_reservation_uuid' => $payment->reservation->uuid,
-                    'kora_idempotency_key' => $payment->idempotency_key,
-                ],
-            ];
-
-            if ($phone['number'] !== '') {
-                $transactionData['customer'] = [
-                    'firstname' => $payload['customer_firstname'] ?? 'Passager',
-                    'lastname' => $payload['customer_lastname'] ?? 'KORA',
-                    'email' => $payload['customer_email'] ?? "passager+{$payment->uuid}@koraexpress.app",
-                    'phone_number' => [
-                        'number' => $phone['number'],
-                        'country' => $phone['country'],
-                    ],
+            if ($transactionId !== null && $isTopUp) {
+                $transaction = $this->requireTransaction(Transaction::retrieve($transactionId));
+            } else {
+                $transactionData = [
+                    'description' => $payment->providerDescription(),
+                    'amount' => $payment->provider_amount ?? $payment->amount,
+                    'currency' => ['iso' => $payment->provider_currency ?? $payment->currency],
+                    'callback_url' => $this->callbackUrl,
+                    'custom_metadata' => array_filter([
+                        'kora_payment_uuid' => $payment->uuid,
+                        'kora_reservation_uuid' => $payment->reservation?->uuid,
+                        'kora_wallet_topup_uuid' => $payment->walletTopUp?->uuid,
+                    ]),
                 ];
-            }
 
-            /** @var mixed $transaction */
-            $transaction = Transaction::create($transactionData);
-
-            // Capture transaction id and reference before sendNow — the
-            // object returned by sendNow is a different FedaPayObject that
-            // does not expose these properties.
-            $reference = '';
-            $transactionId = null;
-            try {
-                $reference = (string) $transaction->reference;
-            } catch (Throwable) {
-            }
-            try {
-                $transactionId = (string) $transaction->id;
-            } catch (Throwable) {
-            }
-
-            if (($payload['method'] ?? null) === 'mobile_money') {
-                $network = (string) ($payload['mobile_money_network'] ?? '');
-                $mode = $this->mobileMoneyModes[$network] ?? null;
-
-                if ($mode === null || $phone['number'] === '') {
-                    throw new \InvalidArgumentException('Le réseau et le numéro sont nécessaires pour initier FedaPay.');
+                if ($phone['number'] !== '') {
+                    $transactionData['customer'] = [
+                        'firstname' => $payload['customer_firstname'] ?? 'Passager',
+                        'lastname' => $payload['customer_lastname'] ?? 'KORA',
+                        'email' => $payload['customer_email'] ?? "passager+{$payment->uuid}@koraexpress.app",
+                        'phone_number' => $phone,
+                    ];
                 }
 
-                $transaction->sendNow($mode, [
-                    'number' => $phone['number'],
-                    'country' => $phone['country'],
-                ]);
+                $transaction = $this->requireTransaction(Transaction::create($transactionData));
+                $transactionId = (string) $transaction->id;
+                $reference = (string) $transaction->reference;
+
+                if ($isTopUp) {
+                    $payment->update([
+                        'provider_transaction_id' => $transactionId,
+                        'provider_reference' => $reference,
+                        'provider_payload' => array_replace($payment->provider_payload ?? [], ['initiation_phase' => 'fedapay_token_pending']),
+                    ]);
+                }
             }
 
-            /** @var array<string, mixed> $transactionArray */
-            $transactionArray = is_object($transaction) && method_exists($transaction, 'toArray')
-                ? $transaction->toArray()
-                : [];
+            $instructions = [];
+            if ($method === 'mobile_money' && $isTopUp) {
+                $token = data_get($transaction->generateToken(), 'token');
+                if (! is_string($token) || $token === '') {
+                    throw new UnexpectedValueException('FedaPay payment token missing.');
+                }
+
+                $payment->update([
+                    'provider_payload' => array_replace($payment->provider_payload ?? [], ['initiation_phase' => 'fedapay_push_in_flight']),
+                ]);
+                $transaction->sendNowWithToken($mode, $token, ['phone_number' => $phone]);
+            } elseif ($method === 'mobile_money') {
+                $transaction->sendNow($mode, $phone);
+            } elseif ($method === 'card' && $isTopUp) {
+                $url = (string) data_get($transaction->generateToken(), 'url');
+                if (! filter_var($url, FILTER_VALIDATE_URL) || parse_url($url, PHP_URL_SCHEME) !== 'https') {
+                    throw new UnexpectedValueException('FedaPay checkout URL missing or invalid.');
+                }
+                $instructions['checkout_url'] = $url;
+            }
 
             return new ProviderResponse(
                 status: PaymentStatus::Pending,
                 providerReference: $reference,
+                payload: $instructions,
                 providerTransactionId: $transactionId,
-                payload: array_merge($transactionArray, array_filter(['id' => $transactionId])),
-                message: 'Transaction created on FedaPay.',
             );
         } catch (Throwable $e) {
-            Log::error('FedaPay initiate failed', [
+            $httpStatus = $e instanceof Base ? $e->getHttpStatus() : null;
+            $rejected = $transactionId === null && in_array($httpStatus, [400, 401, 403, 422], true);
+            $issue = in_array($httpStatus, [400, 422], true) ? 'invalid_payment_details' : 'provider_unavailable';
+            Log::warning('FedaPay initiation failed', [
                 'payment_uuid' => $payment->uuid,
-                'error' => $e->getMessage(),
+                'exception' => $e::class,
+                'http_status' => $httpStatus,
+                'phase' => $transactionId === null ? 'create' : 'checkout',
             ]);
 
             return new ProviderResponse(
-                status: PaymentStatus::Failed,
-                payload: ['error' => $e->getMessage()],
-                message: 'Failed to initiate FedaPay transaction.',
+                status: ! $isTopUp || $rejected ? PaymentStatus::Failed : PaymentStatus::Pending,
+                providerReference: $reference,
+                payload: ['initiation_issue' => $issue],
+                message: 'Impossible de démarrer le paiement FedaPay.',
+                providerTransactionId: $transactionId,
             );
         }
+    }
+
+    private function requireTransaction(mixed $transaction): Transaction
+    {
+        if (! $transaction instanceof Transaction) {
+            throw new UnexpectedValueException('FedaPay transaction missing.');
+        }
+
+        return $transaction;
     }
 
     public function verify(Payment $payment): ProviderResponse
@@ -193,23 +221,28 @@ final class FedaPayAdapter implements PaymentProvider
             } catch (Throwable) {
             }
             /** @var array<string, mixed> $payloadArray */
-            $payloadArray = is_object($transaction) && method_exists($transaction, 'toArray') ? $transaction->toArray() : [];
+            $payloadArray = $transaction->__toArray(true);
+
+            if ($payment->reservation_id === null && ! isset($payloadArray['currency']) && isset($payloadArray['currency_id'])) {
+                $payloadArray['currency'] = data_get(Currency::retrieve($payloadArray['currency_id']), 'iso');
+            }
 
             return new ProviderResponse(
                 status: $this->mapStatus($status),
                 providerReference: $reference,
                 payload: $payloadArray,
                 message: "FedaPay status: {$status}",
+                providerTransactionId: (string) $transaction->id,
             );
         } catch (Throwable $e) {
             Log::error('FedaPay verify failed', [
                 'payment_uuid' => $payment->uuid,
-                'error' => $e->getMessage(),
+                'exception' => $e::class,
             ]);
 
             return new ProviderResponse(
                 status: PaymentStatus::Pending,
-                payload: ['error' => $e->getMessage()],
+                payload: [],
                 message: 'Failed to query FedaPay transaction.',
             );
         }
@@ -237,7 +270,7 @@ final class FedaPayAdapter implements PaymentProvider
             Webhook::constructEvent($body, $signature, $this->webhookSecret);
         } catch (Throwable $e) {
             Log::warning('FedaPay webhook signature mismatch', [
-                'error' => $e->getMessage(),
+                'exception' => $e::class,
             ]);
 
             return null;

@@ -5,7 +5,8 @@ namespace App\Modules\Payments\Actions;
 use App\Models\User;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\PaymentManager;
-use Illuminate\Auth\Access\AuthorizationException;
+use App\Modules\Wallet\Actions\ReconcileWalletTopUpAction;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
 class VerifyPaymentAction
@@ -17,12 +18,14 @@ class VerifyPaymentAction
 
     public function handle(Payment $payment, User $user, ?string $providerTransactionId = null): Payment
     {
-        $payment->loadMissing('reservation');
+        Gate::forUser($user)->authorize('view', $payment);
 
-        if ($payment->reservation?->created_by_user_id !== null
-            && $payment->reservation->created_by_user_id !== $user->getKey()
-            && $payment->reservation->payer_user_id !== $user->getKey()) {
-            throw new AuthorizationException('Vous n’avez pas accès à ce paiement.');
+        if ($payment->reservation_id === null) {
+            if ($payment->status->isTerminal() && $providerTransactionId === null) {
+                return $payment;
+            }
+
+            return app(ReconcileWalletTopUpAction::class)->verify($payment, $payment->provider === 'kkiapay' ? $providerTransactionId : null);
         }
 
         if ($payment->status->isTerminal()) {

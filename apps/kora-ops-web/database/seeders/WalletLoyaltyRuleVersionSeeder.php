@@ -7,6 +7,7 @@ use App\Modules\Wallet\Data\WalletLoyaltyRuleSet;
 use App\Modules\Wallet\Data\WalletLoyaltyRuleVersionStatus;
 use App\Modules\Wallet\Models\WalletLoyaltyRuleVersion;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class WalletLoyaltyRuleVersionSeeder extends Seeder
 {
@@ -19,6 +20,7 @@ class WalletLoyaltyRuleVersionSeeder extends Seeder
         $settings = app(WalletSettings::class);
 
         WalletLoyaltyRuleVersion::query()->create([
+            'uuid' => (string) Str::uuid(),
             'version' => 1,
             'status' => WalletLoyaltyRuleVersionStatus::Active,
             'rules' => WalletLoyaltyRuleSet::fromSettings($settings),

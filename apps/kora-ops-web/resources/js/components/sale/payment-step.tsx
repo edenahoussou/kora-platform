@@ -63,6 +63,7 @@ type WalletLookup = {
     available: { cash: number; points: number };
     settings: {
         points_min_spend: number;
+        point_value_fcfa: number;
         wallet_cash_enabled: boolean;
         wallet_points_enabled: boolean;
     };
@@ -321,17 +322,19 @@ export function PaymentStep({
         reservation.payerType === 'company' &&
         reservation.companyAccount !== null;
     const companyCreditReady = isCompanyCredit;
+    const pointValue = wallet?.settings.point_value_fcfa ?? 1;
     const maximumPoints = wallet?.settings.wallet_points_enabled
-        ? Math.min(wallet.available.points, total)
+        ? Math.min(wallet.available.points, Math.floor(total / pointValue))
         : 0;
     const minimumPoints = wallet?.settings.points_min_spend ?? 100;
-    const walletCashAmount = total - walletPointsAmount;
+    const walletCashAmount = total - walletPointsAmount * pointValue;
     const walletCanCoverTotal = Boolean(
         wallet &&
-        wallet.settings.wallet_cash_enabled &&
+        (walletCashAmount === 0 || wallet.settings.wallet_cash_enabled) &&
         wallet.available.cash +
-            (maximumPoints >= minimumPoints ? maximumPoints : 0) >=
+            (maximumPoints >= minimumPoints ? maximumPoints * pointValue : 0) >=
             total &&
+        Number.isInteger(walletPointsAmount) &&
         walletPointsAmount <= maximumPoints &&
         (walletPointsAmount === 0 || walletPointsAmount >= minimumPoints) &&
         walletCashAmount <= wallet.available.cash,
@@ -420,21 +423,25 @@ export function PaymentStep({
             }
 
             setWallet(result.data);
-            const suggestedPoints = Math.max(
-                0,
-                Math.min(
-                    result.data.available.points,
-                    total - result.data.available.cash,
-                ),
+            const rate = result.data.settings.point_value_fcfa;
+            const limit = Math.min(
+                result.data.available.points,
+                Math.floor(total / rate),
             );
+            const cash = result.data.settings.wallet_cash_enabled
+                ? result.data.available.cash
+                : 0;
+            const required = Math.ceil(Math.max(0, total - cash) / rate);
             setWalletPointsAmount(
-                suggestedPoints > 0 &&
-                    suggestedPoints < result.data.settings.points_min_spend
+                required > 0 && result.data.settings.wallet_points_enabled
                     ? Math.min(
-                          result.data.available.points,
-                          result.data.settings.points_min_spend,
+                          limit,
+                          Math.max(
+                              required,
+                              result.data.settings.points_min_spend,
+                          ),
                       )
-                    : suggestedPoints,
+                    : 0,
             );
         } catch (error) {
             toast.error(
@@ -776,8 +783,9 @@ function WalletPaymentFields({
     onConfirmedChange: (confirmed: boolean) => void;
 }) {
     const minimumPoints = wallet?.settings.points_min_spend ?? 100;
+    const pointValue = wallet?.settings.point_value_fcfa ?? 1;
     const maximumPoints = wallet?.settings.wallet_points_enabled
-        ? Math.min(wallet.available.points, total)
+        ? Math.min(wallet.available.points, Math.floor(total / pointValue))
         : 0;
 
     return (
@@ -905,7 +913,11 @@ function WalletPaymentFields({
                             >
                                 Facultatif · minimum{' '}
                                 {minimumPoints.toLocaleString('fr-FR')} points
-                                quand utilisés.
+                                quand utilisés. Valeur utilisée{' '}
+                                {(pointsAmount * pointValue).toLocaleString(
+                                    'fr-FR',
+                                )}{' '}
+                                FCFA.
                             </p>
                         </div>
                     </div>

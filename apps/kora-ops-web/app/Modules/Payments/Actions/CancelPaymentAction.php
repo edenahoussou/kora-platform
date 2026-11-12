@@ -5,8 +5,8 @@ namespace App\Modules\Payments\Actions;
 use App\Models\User;
 use App\Modules\Payments\Data\PaymentStatus;
 use App\Modules\Payments\Models\Payment;
-use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
 class CancelPaymentAction
@@ -20,10 +20,10 @@ class CancelPaymentAction
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if ($lockedPayment->reservation?->created_by_user_id !== null
-                && $lockedPayment->reservation->created_by_user_id !== $user->getKey()
-                && $lockedPayment->reservation->payer_user_id !== $user->getKey()) {
-                throw new AuthorizationException('Vous n’avez pas accès à ce paiement.');
+            Gate::forUser($user)->authorize('view', $lockedPayment);
+
+            if ($lockedPayment->reservation_id === null) {
+                throw ValidationException::withMessages(['payment' => 'Une recharge doit être vérifiée auprès de l’opérateur avant de pouvoir être clôturée.']);
             }
 
             if ($lockedPayment->status !== PaymentStatus::Pending) {

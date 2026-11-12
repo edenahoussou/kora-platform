@@ -6,6 +6,8 @@ use App\Modules\Booking\Models\ReservationPassenger;
 use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\Wallet\Actions\ApplyLoyaltyCorrectionAction;
 use App\Modules\Wallet\Actions\CreditLegPointsAction;
+use App\Modules\Wallet\Actions\RouteRefundToWalletAction;
+use App\Modules\Wallet\Data\WalletPurchaseFunding;
 use App\Modules\Wallet\Data\WalletTransactionReason;
 use App\Modules\Wallet\Models\WalletTransaction;
 
@@ -97,4 +99,21 @@ it('limits an individual passenger loyalty correction to that passenger', functi
             ->where('wallet_id', $otherWallet->getKey())
             ->where('reason', WalletTransactionReason::PointsCorrection->value)
             ->count())->toBe(0);
+});
+
+it('carries the partial point refund remainder at the frozen rate and never turns it into cash', function (): void {
+    $scenario = walletScenario(['total' => 9]);
+    $payment = walletConfirmedPayment($scenario['reservation']);
+    $payment->update(['wallet_funding' => WalletPurchaseFunding::purchase(9, 0, 3, 3)->toArray()]);
+    $action = app(RouteRefundToWalletAction::class);
+    $first = $action->handle($scenario['reservation'], $payment, 5, 'first');
+    expect($first['points'])->toBe(1)->and($first['cash'])->toBe(0);
+    $payment->refunds()->create([
+        'reservation_id' => $scenario['reservation']->getKey(),
+        'amount' => 5, 'currency' => 'XOF', 'destination' => 'wallet_cash', 'status' => 'completed',
+        'reference' => 'first', 'idempotency_key' => 'refund-first', 'metadata' => ['wallet_points' => 1, 'wallet_cash' => 0],
+    ]);
+    $second = $action->handle($scenario['reservation'], $payment, 4, 'second');
+    expect($second['points'])->toBe(2)->and($second['cash'])->toBe(0)
+        ->and($scenario['wallet']->fresh()->points_balance)->toBe(3);
 });

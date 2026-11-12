@@ -5,7 +5,9 @@ use App\Modules\Payments\Actions\InitiatePaymentAction;
 use App\Modules\Payments\Data\PaymentStatus;
 use App\Modules\Payments\PaymentManager;
 use App\Modules\Payments\Providers\Fake\FakePaymentProvider;
+use App\Modules\Settings\Settings\WalletSettings;
 use App\Modules\Ticketing\Jobs\IssueReservationTicketsJob;
+use App\Modules\Wallet\Actions\ReleaseExpiredWalletHoldsAction;
 use App\Modules\Wallet\Data\WalletHoldStatus;
 use App\Modules\Wallet\Models\WalletHold;
 use Illuminate\Support\Facades\Queue;
@@ -164,4 +166,38 @@ it('never lets two holds exceed the available balance', function (): void {
 
     expect(WalletHold::query()->where('status', WalletHoldStatus::Active->value)->count())->toBe(1)
         ->and($first['payment']->status)->toBe(PaymentStatus::Pending);
+});
+
+it('freezes the point rate in the purchase and does not issue an underfunded ticket after hold expiry', function (): void {
+    walletCashEnabled();
+    $settings = app(WalletSettings::class);
+    $settings->pointValueFcfa = 3;
+    $settings->save();
+    $scenario = walletScenario(['cash' => 1000, 'points' => 1000]);
+
+    $payment = app(InitiatePaymentAction::class)->handle(
+        reservation: $scenario['reservation'],
+        user: $scenario['user'],
+        method: 'mobile_money',
+        provider: 'fedapay',
+        idempotencyKey: 'mixed-point-value',
+        phone: '+2290197421860',
+        mobileMoneyNetwork: 'mtn_momo',
+        walletAmount: 1000,
+        pointsAmount: 1000,
+        mobileMoneyAmount: 11000,
+    )['payment'];
+    expect($payment->wallet_funding)->toMatchArray([
+        'points_amount' => 1000, 'points_value_fcfa' => 3000, 'point_value_fcfa' => 3, 'provider_amount_fcfa' => 11000,
+    ]);
+
+    $settings->pointValueFcfa = 4;
+    $settings->save();
+    $this->travel(30)->minutes();
+    app(ReleaseExpiredWalletHoldsAction::class)->handle();
+    $updated = app(ConfirmPaymentAction::class)->handle($payment, 'success', 'late-receipt');
+    expect($updated->status)->toBe(PaymentStatus::Pending)
+        ->and($updated->failure_code)->toBe('wallet_hold_unavailable')
+        ->and($scenario['wallet']->fresh()->points_balance)->toBe(1000)
+        ->and($scenario['reservation']->fresh()->status->value)->toBe('held');
 });
