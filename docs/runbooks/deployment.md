@@ -192,6 +192,9 @@ server {
     listen 80;
     server_name staging.koraexpress.app;
 
+    # Doit couvrir la limite d'upload de la plateforme (100 Mo, voir uploads.ini).
+    client_max_body_size 100M;
+
     location / {
         proxy_pass http://127.0.0.1:8080;
         proxy_set_header Host $host;
@@ -206,6 +209,16 @@ server {
 sudo ln -s /etc/nginx/sites-available/kora-staging /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
 ```
+
+**Trois plafonds doivent rester alignes** pour un upload de 100 Mo : le nginx
+hote (`client_max_body_size`), le nginx du conteneur (`infra/docker/nginx/nginx.conf`)
+et PHP (`infra/docker/kora-ops-web/uploads.ini`). Un oubli sur le nginx hote
+renvoie un `413` avant meme d'atteindre l'application.
+
+**Piege** : ne jamais laisser de sauvegarde (`*.bak-*`) dans
+`/etc/nginx/sites-enabled/` — nginx charge tous les fichiers du dossier et les
+blocs en double pour un meme `server_name` sont ignores dans un ordre non
+garanti. Ranger les sauvegardes dans `/etc/nginx/backups/`.
 
 ### 3. Certificat SSL (certbot)
 
