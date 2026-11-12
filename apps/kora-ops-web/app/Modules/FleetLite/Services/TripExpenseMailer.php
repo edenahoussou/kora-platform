@@ -79,14 +79,13 @@ class TripExpenseMailer
      */
     private function activeEmails(Builder $query): array
     {
-        return $query
+        return array_values($query
             ->where('status', UserStatus::Active->value)
             ->whereNotNull('email')
             ->where('email', '!=', '')
             ->pluck('email')
             ->map(fn (mixed $email): string => (string) $email)
-            ->values()
-            ->all();
+            ->all());
     }
 
     /**

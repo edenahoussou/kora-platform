@@ -35,6 +35,9 @@ tags:
     name: 'OPS Mobile — Boarding'
     description: "\nContrôle serveur d'un billet (QR signé ou code court) pour un départ et\nune jambe précis, avec idempotence par operation_uuid et détection des\nconflits entre terminaux."
   -
+    name: 'OPS Mobile — Carnet de bord'
+    description: "\nSaisies terrain du chauffeur et du convoyeur sur un départ qui leur est\naffecté (permission `trip-logs.create`) : kilométrage départ/arrivée,\ncarburant (litres, prix, station, photo du ticket), péages et taxes\nfrontières. Les dépenses partent « en attente » de validation au bureau\n(module Dépenses) avec un e-mail détaillé aux opérations, administrateurs\nen copie.\n\nChauffeur : sans terminal P501 (sauf OPS_FORCE_TERMINAL_FOR_ALL=true) ;\nconvoyeur : en-tête X-Terminal-Serial et session OPS comme les autres\nroutes terrain."
+  -
     name: 'OPS Mobile — Departures'
     description: "\nDéparts et manifeste pour l'équipage terrain (convoyeur, chauffeur,\nchauffeur second, mécanicien) affecté — remplace les écrans mockés de\nMEZ-11. Authentification : auth:sanctum (login existant) + terminal\nenregistré et actif (middleware terminal.active)."
   -
@@ -6428,6 +6431,402 @@ paths:
         in: path
         name: ticket
         description: 'UUID public du billet.'
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/ops/departures/{departure_uuid}/trip-log':
+    get:
+      summary: "Carnet de bord du départ : relevés compteur et dépenses de voyage\nsaisies par l'équipage."
+      operationId: carnetDeBordDuDpartRelevsCompteurEtDpensesDeVoyageSaisiesParLquipage
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: 'Carnet de bord'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    departure_uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                    bus:
+                      uuid: …
+                      registration_number: 'AB 1234 RB'
+                    line_code: COT-LFW
+                    last_known_odometer_km: 182300
+                    odometer:
+                      start:
+                        uuid: …
+                        value_km: 182450
+                        recorded_at: '2026-10-27T07:55:00.000Z'
+                        recorded_by: 'Koffi A.'
+                      end: null
+                      distance_km: null
+                    expenses: []
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      departure_uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      bus:
+                        type: object
+                        properties:
+                          uuid:
+                            type: string
+                            example: …
+                          registration_number:
+                            type: string
+                            example: 'AB 1234 RB'
+                      line_code:
+                        type: string
+                        example: COT-LFW
+                      last_known_odometer_km:
+                        type: integer
+                        example: 182300
+                      odometer:
+                        type: object
+                        properties:
+                          start:
+                            type: object
+                            properties:
+                              uuid:
+                                type: string
+                                example: …
+                              value_km:
+                                type: integer
+                                example: 182450
+                              recorded_at:
+                                type: string
+                                example: '2026-10-27T07:55:00.000Z'
+                              recorded_by:
+                                type: string
+                                example: 'Koffi A.'
+                          end:
+                            type: string
+                            example: null
+                            nullable: true
+                          distance_km:
+                            type: string
+                            example: null
+                            nullable: true
+                      expenses:
+                        type: array
+                        example: []
+        403:
+          description: 'Départ non affecté'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: departure_not_assigned
+                    message: 'Ce départ ne vous est pas affecté.'
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: departure_not_assigned
+                      message:
+                        type: string
+                        example: 'Ce départ ne vous est pas affecté.'
+      tags:
+        - 'OPS Mobile — Carnet de bord'
+    parameters:
+      -
+        in: path
+        name: departure_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/ops/departures/{departure_uuid}/odometer':
+    put:
+      summary: "Enregistre ou corrige le kilométrage de départ (`start`) ou d'arrivée\n(`end`). L'arrivée ne peut pas être inférieure au départ."
+      operationId: enregistreOuCorrigeLeKilomtrageDeDpartstartOuDarriveendLarriveNePeutPastreInfrieureAuDpart
+      description: ''
+      parameters: []
+      responses:
+        422:
+          description: 'Arrivée < départ'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: odometer_inconsistent
+                    message: 'Le kilométrage d’arrivée (182 400 km) ne peut pas être inférieur à celui du départ (182 450 km).'
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: odometer_inconsistent
+                      message:
+                        type: string
+                        example: 'Le kilométrage d’arrivée (182 400 km) ne peut pas être inférieur à celui du départ (182 450 km).'
+      tags:
+        - 'OPS Mobile — Carnet de bord'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                kind:
+                  type: string
+                  description: 'start (départ) ou end (arrivée).'
+                  example: start
+                  enum:
+                    - start
+                    - end
+                value_km:
+                  type: integer
+                  description: 'Kilométrage affiché au compteur. Le champ value doit être au moins 0. Le champ value ne doit pas être supérieur à 9999999.'
+                  example: 182450
+                client_uuid:
+                  type: string
+                  description: 'UUID de la saisie côté mobile (file hors ligne). Le champ value doit être un UUID valide.'
+                  example: 00000000-0000-4000-8000-000000000000
+                  nullable: true
+                recorded_at:
+                  type: string
+                  description: 'Heure locale du relevé (ISO 8601). Le champ value doit être une date valide. Le champ value doit être une date antérieure ou égale à <code>+5 minutes</code>. Le champ value doit être une date postérieure à <code>-7 days</code>.'
+                  example: '2052-11-29'
+                  nullable: true
+              required:
+                - kind
+                - value_km
+    parameters:
+      -
+        in: path
+        name: departure_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/ops/departures/{departure_uuid}/trip-expenses':
+    post:
+      summary: "Déclare une dépense de voyage : carburant, péage ou taxe frontière\n(multipart si photo). Idempotent par `client_uuid`. Statut initial :\n`pending` (validation au bureau)."
+      operationId: dclareUneDpenseDeVoyageCarburantPageOuTaxeFrontiremultipartSiPhotoIdempotentParclientUuidStatutInitialpendingvalidationAuBureau
+      description: ''
+      parameters: []
+      responses:
+        201:
+          description: 'Plein enregistré'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: …
+                    reference: DEP-20261027-AB12
+                    client_uuid: …
+                    kind: fuel
+                    kind_label: Carburant
+                    amount: 44540
+                    currency: XOF
+                    liters: 65.5
+                    unit_price: 680
+                    station_label: 'Total Godomey'
+                    checkpoint_label: null
+                    country_code: null
+                    odometer_km: 182510
+                    payment_channel: cash
+                    occurred_at: '2026-10-27T08:30:00.000Z'
+                    status: pending
+                    status_label: 'En attente'
+                    rejection_reason: null
+                    has_photo: true
+                    submitted_by: 'Koffi A.'
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: …
+                      reference:
+                        type: string
+                        example: DEP-20261027-AB12
+                      client_uuid:
+                        type: string
+                        example: …
+                      kind:
+                        type: string
+                        example: fuel
+                      kind_label:
+                        type: string
+                        example: Carburant
+                      amount:
+                        type: integer
+                        example: 44540
+                      currency:
+                        type: string
+                        example: XOF
+                      liters:
+                        type: number
+                        example: 65.5
+                      unit_price:
+                        type: integer
+                        example: 680
+                      station_label:
+                        type: string
+                        example: 'Total Godomey'
+                      checkpoint_label:
+                        type: string
+                        example: null
+                        nullable: true
+                      country_code:
+                        type: string
+                        example: null
+                        nullable: true
+                      odometer_km:
+                        type: integer
+                        example: 182510
+                      payment_channel:
+                        type: string
+                        example: cash
+                      occurred_at:
+                        type: string
+                        example: '2026-10-27T08:30:00.000Z'
+                      status:
+                        type: string
+                        example: pending
+                      status_label:
+                        type: string
+                        example: 'En attente'
+                      rejection_reason:
+                        type: string
+                        example: null
+                        nullable: true
+                      has_photo:
+                        type: boolean
+                        example: false
+                      submitted_by:
+                        type: string
+                        example: 'Koffi A.'
+        409:
+          description: 'Identifiant déjà utilisé'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: trip_entry_uuid_conflict
+                    message: 'Cet identifiant de saisie est déjà utilisé.'
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: trip_entry_uuid_conflict
+                      message:
+                        type: string
+                        example: 'Cet identifiant de saisie est déjà utilisé.'
+      tags:
+        - 'OPS Mobile — Carnet de bord'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                client_uuid:
+                  type: string
+                  description: 'UUID de la saisie côté mobile (idempotence, file hors ligne). Le champ value doit être un UUID valide.'
+                  example: 00000000-0000-4000-8000-000000000000
+                kind:
+                  type: string
+                  description: 'fuel, toll ou border_tax.'
+                  example: fuel
+                  enum:
+                    - fuel
+                    - toll
+                    - border_tax
+                amount:
+                  type: integer
+                  description: 'Montant payé en XOF (obligatoire hors carburant). Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 50000000.'
+                  example: 45000
+                liters:
+                  type: number
+                  description: 'Litres (carburant). Le champ value doit être au moins 0.1. Le champ value ne doit pas être supérieur à 5000.'
+                  example: 65.5
+                  nullable: true
+                unit_price:
+                  type: integer
+                  description: 'Prix au litre en XOF (carburant). Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 100000.'
+                  example: 680
+                  nullable: true
+                station_label:
+                  type: string
+                  description: 'Station (carburant). Le champ value doit contenir au moins 2 caractères. Le champ value ne doit pas dépasser 160 caractères.'
+                  example: 'Total Godomey'
+                  nullable: true
+                checkpoint_label:
+                  type: string
+                  description: 'Poste de péage ou frontière. Le champ value doit contenir au moins 2 caractères. Le champ value ne doit pas dépasser 160 caractères.'
+                  example: 'Péage Ouèdo'
+                country_code:
+                  type: string
+                  description: 'Pays du poste (ISO 3166-1 alpha-2). Must contain only letters. Le champ value doit contenir 2 caractères.'
+                  example: TG
+                  nullable: true
+                odometer_km:
+                  type: integer
+                  description: 'Kilométrage au moment de la dépense. Le champ value doit être au moins 0. Le champ value ne doit pas être supérieur à 9999999.'
+                  example: 182510
+                  nullable: true
+                payment_channel:
+                  type: string
+                  description: 'cash (défaut), mtn_momo, moov_flooz, celtiis_cash.'
+                  example: cash
+                  enum:
+                    - cash
+                    - mtn_momo
+                    - moov_flooz
+                    - celtiis_cash
+                  nullable: true
+                occurred_at:
+                  type: string
+                  description: 'Heure locale de la dépense (ISO 8601). Le champ value doit être une date valide. Le champ value doit être une date antérieure ou égale à <code>+5 minutes</code>. Le champ value doit être une date postérieure à <code>-7 days</code>.'
+                  example: '2052-11-29'
+                  nullable: true
+                note:
+                  type: string
+                  description: 'Commentaire libre. Le champ value ne doit pas dépasser 500 caractères.'
+                  example: 'n'
+                  nullable: true
+                photo:
+                  type: string
+                  format: binary
+                  description: 'Photo du ticket (obligatoire pour le carburant). Must be a file. Le champ value ne doit pas dépasser 8192 kilo-octets.'
+                  nullable: true
+              required:
+                - client_uuid
+                - kind
+                - amount
+                - checkpoint_label
+    parameters:
+      -
+        in: path
+        name: departure_uuid
+        description: ''
         example: 00000000-0000-4000-8000-000000000000
         required: true
         schema:

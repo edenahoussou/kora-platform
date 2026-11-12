@@ -18,21 +18,11 @@ return new class extends Migration
             return;
         }
 
-        $categories = [
-            ['code' => 'fuel', 'label' => 'Carburant'],
-            ['code' => 'tolls', 'label' => 'Péages'],
-            ['code' => 'border_taxes', 'label' => 'Taxes frontières'],
-        ];
-
-        foreach ($categories as $category) {
-            if (DB::table('expense_categories')->where('code', $category['code'])->exists()) {
-                continue;
-            }
-
+        if (! DB::table('expense_categories')->where('code', 'border_taxes')->exists()) {
             DB::table('expense_categories')->insert([
                 'uuid' => (string) Str::uuid(),
-                'code' => $category['code'],
-                'label' => $category['label'],
+                'code' => 'border_taxes',
+                'label' => 'Taxes frontières',
                 'is_active' => true,
                 'created_at' => now(),
                 'updated_at' => now(),

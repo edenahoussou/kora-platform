@@ -186,7 +186,7 @@ class SubmitTripExpenseAction
         $parts = [sprintf('%s — saisi depuis OPS Mobile par %s', $kind->label(), $user->name)];
         $parts[] = sprintf(
             'Départ %s du %s',
-            $departure->line?->code ?? '—',
+            $departure->line->code ?? '—',
             $departure->scheduledDepartureAt()->setTimezone('Africa/Porto-Novo')->format('d/m/Y H:i'),
         );
 

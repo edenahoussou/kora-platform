@@ -103,10 +103,6 @@ class TripLogReadService
      */
     private function lastKnownOdometer(Departure $departure): ?int
     {
-        if ($departure->bus_id === null) {
-            return null;
-        }
-
         $value = DepartureOdometerReading::query()
             ->where('bus_id', $departure->bus_id)
             ->where('departure_id', '!=', $departure->getKey())

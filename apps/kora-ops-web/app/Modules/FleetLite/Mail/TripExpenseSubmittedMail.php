@@ -3,6 +3,7 @@
 namespace App\Modules\FleetLite\Mail;
 
 use App\Models\User;
+use App\Modules\Departures\Models\Departure;
 use App\Modules\Expenses\Models\Expense;
 use App\Modules\FleetLite\Data\OdometerReadingKind;
 use App\Modules\FleetLite\Data\TripExpenseKind;
@@ -15,6 +16,7 @@ use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Collection;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
@@ -47,7 +49,7 @@ class TripExpenseSubmittedMail extends Mailable implements ShouldQueue
             '[KORA OPS] Dépense de voyage à valider — %s %s XOF — %s',
             $kind?->label() ?? 'Dépense',
             $this->money((int) $expense->amount),
-            $expense->bus?->registration_number ?? $expense->reference,
+            $expense->bus !== null ? $expense->bus->registration_number : $expense->reference,
         ));
     }
 
@@ -56,13 +58,11 @@ class TripExpenseSubmittedMail extends Mailable implements ShouldQueue
         $expense = $this->expense();
         $details = $expense->tripDetails;
         $departure = $expense->departure;
-        $submitter = $details?->submitter ?? $expense->creator;
+        $submitter = $details?->submitter;
+        $submitter ??= $expense->creator;
         $timezone = 'Africa/Porto-Novo';
 
-        $readings = $departure === null
-            ? collect()
-            : DepartureOdometerReading::query()->where('departure_id', $departure->getKey())->get()
-                ->keyBy(fn (DepartureOdometerReading $reading): string => $reading->kind->value);
+        $readings = $this->odometerReadings($departure);
         $startKm = $readings->get(OdometerReadingKind::Start->value)?->value_km;
         $endKm = $readings->get(OdometerReadingKind::End->value)?->value_km;
         $distance = $startKm !== null && $endKm !== null ? $endKm - $startKm : null;
@@ -164,6 +164,19 @@ class TripExpenseSubmittedMail extends Mailable implements ShouldQueue
                 ->withMime((string) $media->mime_type))
             ->values()
             ->all();
+    }
+
+    /** @return Collection<string, DepartureOdometerReading> */
+    private function odometerReadings(?Departure $departure): Collection
+    {
+        if ($departure === null) {
+            return collect();
+        }
+
+        return DepartureOdometerReading::query()
+            ->where('departure_id', $departure->getKey())
+            ->get()
+            ->keyBy(fn (DepartureOdometerReading $reading): string => $reading->kind->value);
     }
 
     private function expense(): Expense

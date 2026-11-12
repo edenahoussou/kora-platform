@@ -118,7 +118,7 @@ class BusTripLogReadService
         ];
     }
 
-    /** @return array<string, mixed> */
+    /** @return array{stats: array<string, mixed>, items: list<array<string, mixed>>} */
     private function fuel(Bus $bus, bool $canViewAmounts): array
     {
         $expenses = Expense::query()
@@ -130,7 +130,7 @@ class BusTripLogReadService
             ->limit(self::LIMIT)
             ->get();
 
-        $items = $expenses->map(fn (Expense $expense): array => [
+        $items = array_values($expenses->map(fn (Expense $expense): array => [
             'uuid' => $expense->uuid,
             'reference' => $expense->reference,
             'occurredAt' => $expense->occurred_at->toIso8601String(),
@@ -145,7 +145,7 @@ class BusTripLogReadService
             'departureLabel' => $this->departureLabel($expense->departure),
             'hasEvidence' => $expense->hasMedia('evidence'),
             'url' => route('expenses.show', $expense->uuid),
-        ])->values()->all();
+        ])->all());
 
         $last = $items[0] ?? null;
 
