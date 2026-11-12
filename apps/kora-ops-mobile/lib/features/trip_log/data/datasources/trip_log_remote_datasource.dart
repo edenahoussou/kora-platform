@@ -35,8 +35,8 @@ class TripLogRemoteDataSourceImpl implements TripLogRemoteDataSource {
 
   @override
   Future<Map<String, dynamic>> fetch(String departureUuid) async {
-    final Response<dynamic> response =
-        await _dio.get<dynamic>(ApiConstants.opsDepartureTripLog(departureUuid));
+    final Response<dynamic> response = await _dio
+        .get<dynamic>(ApiConstants.opsDepartureTripLog(departureUuid));
     return TripLogDtos.unwrap(response.data);
   }
 

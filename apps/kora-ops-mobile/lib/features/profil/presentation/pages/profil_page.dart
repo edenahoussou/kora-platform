@@ -164,11 +164,12 @@ class ProfilPage extends StatelessWidget {
                       const SizedBox(height: AppSpacing.sm),
                       _AccountTile(
                         icon: Icons.point_of_sale,
-                        title:
-                            AppConfig.instance.terminalMode == TerminalMode.phone
-                                ? 'Terminal (téléphone)'
-                                : 'Terminal P501',
-                        subtitle: switch (context.watch<TerminalCubit>().state) {
+                        title: AppConfig.instance.terminalMode ==
+                                TerminalMode.phone
+                            ? 'Terminal (téléphone)'
+                            : 'Terminal P501',
+                        subtitle: switch (
+                            context.watch<TerminalCubit>().state) {
                           TerminalLinked(:final terminal) =>
                             'Lié — ${terminal.serialNumber}',
                           _ => 'Aucun terminal lié',

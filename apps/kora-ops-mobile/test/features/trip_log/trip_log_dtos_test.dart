@@ -4,7 +4,8 @@ import 'package:kora_ops_mobile/features/trip_log/domain/entities/trip_log.dart'
 
 void main() {
   test('lit le carnet de bord renvoyé par le serveur', () {
-    final TripLog log = TripLogDtos.tripLog(TripLogDtos.unwrap(<String, dynamic>{
+    final TripLog log =
+        TripLogDtos.tripLog(TripLogDtos.unwrap(<String, dynamic>{
       'data': <String, dynamic>{
         'departure_uuid': 'dep-1',
         'bus': <String, dynamic>{'registration_number': 'AB 1234 RB'},

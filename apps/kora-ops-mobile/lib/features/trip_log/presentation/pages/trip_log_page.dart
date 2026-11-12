@@ -39,7 +39,8 @@ class TripLogPage extends StatelessWidget {
 
     if (depart == null) {
       return const Scaffold(
-        appBar: ScreenHeader(eyebrow: 'Carnet de bord', title: 'Carnet de bord'),
+        appBar:
+            ScreenHeader(eyebrow: 'Carnet de bord', title: 'Carnet de bord'),
         body: AppStatePlaceholder.empty(
           message: 'Sélectionnez une course depuis l\'onglet Tournée.',
         ),
@@ -128,7 +129,8 @@ class _TripLogView extends StatelessWidget {
                     ),
                   _OdometerCard(
                     log: log,
-                    busRegistration: log.busRegistration ?? depart.vehiculeImmat,
+                    busRegistration:
+                        log.busRegistration ?? depart.vehiculeImmat,
                     onEdit: (OdometerKind kind) => _editOdometer(context, kind),
                   ),
                   const SizedBox(height: AppSpacing.lg),
@@ -326,7 +328,8 @@ class _OdometerRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text(kind.label, style: AppTextStyles.caption(colors.textMuted)),
+                  Text(kind.label,
+                      style: AppTextStyles.caption(colors.textMuted)),
                   const SizedBox(height: 2),
                   Text(
                     r == null ? 'À saisir' : formatKm(r.valueKm),

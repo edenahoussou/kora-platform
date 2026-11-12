@@ -232,8 +232,7 @@ class TripLogLocalDataSourceImpl implements TripLogLocalDataSource {
 
   @override
   Future<String> persistPhoto(String sourcePath, String clientUuid) async {
-    final String directory =
-        p.join(await getDatabasesPath(), 'trip_photos');
+    final String directory = p.join(await getDatabasesPath(), 'trip_photos');
     await Directory(directory).create(recursive: true);
     final String extension = p.extension(sourcePath).isEmpty
         ? '.jpg'

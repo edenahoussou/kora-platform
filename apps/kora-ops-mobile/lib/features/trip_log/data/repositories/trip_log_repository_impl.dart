@@ -61,12 +61,10 @@ class TripLogRepositoryImpl implements TripLogRepository {
 
     // Contrôle local (le serveur reste l'arbitre) : arrivée < départ.
     final TripLog current = await cached(departureUuid);
-    final int? startKm = kind == OdometerKind.end
-        ? current.start?.valueKm
-        : valueKm;
-    final int? endKm = kind == OdometerKind.start
-        ? current.end?.valueKm
-        : valueKm;
+    final int? startKm =
+        kind == OdometerKind.end ? current.start?.valueKm : valueKm;
+    final int? endKm =
+        kind == OdometerKind.start ? current.end?.valueKm : valueKm;
     if (startKm != null && endKm != null && endKm < startKm) {
       return Result<TripLog>.failure(ValidationFailure(
         'Le kilométrage d\'arrivée ($endKm km) ne peut pas être inférieur '
@@ -222,9 +220,8 @@ class TripLogRepositoryImpl implements TripLogRepository {
     }
 
     return TripLog(
-      departureUuid: base.departureUuid.isEmpty
-          ? departureUuid
-          : base.departureUuid,
+      departureUuid:
+          base.departureUuid.isEmpty ? departureUuid : base.departureUuid,
       busRegistration: base.busRegistration,
       lastKnownOdometerKm: base.lastKnownOdometerKm,
       start: start,
