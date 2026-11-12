@@ -95,7 +95,7 @@ export function CompanyTravelerImportModal({ open, onOpenChange }: Props) {
                                 <small>
                                     Première ligne = en-têtes (prenom, nom,
                                     telephone…). Formats acceptés : .xlsx, .xls,
-                                    .csv — 5 Mo max.
+                                    .csv — 100 Mo max.
                                 </small>
                             </div>
                         </div>

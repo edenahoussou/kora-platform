@@ -97,6 +97,9 @@ COPY infra/docker/kora-ops-web/supervisord.conf /etc/supervisor/conf.d/superviso
 # Durcissement : session upload progress (exploitable pour écrire dans les sessions)
 RUN echo 'session.upload_progress.enabled=Off' > /usr/local/etc/php/conf.d/zz-security-upload-progress.ini
 
+# Limite d'upload plateforme (100 Mo), alignee sur client_max_body_size nginx.
+COPY infra/docker/kora-ops-web/uploads.ini /usr/local/etc/php/conf.d/zz-uploads.ini
+
 EXPOSE 9000
 
 CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

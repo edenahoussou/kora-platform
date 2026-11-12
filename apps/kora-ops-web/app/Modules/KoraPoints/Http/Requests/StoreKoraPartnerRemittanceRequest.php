@@ -23,7 +23,7 @@ class StoreKoraPartnerRemittanceRequest extends FormRequest
             'sale_uuids.*' => ['required', 'uuid', 'distinct'],
             'method' => ['required', 'in:bank_transfer,bank_deposit,check,mobile_money'],
             'reference' => ['required', 'string', 'max:255'],
-            'proof' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
+            'proof' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:102400'],
             'bank_name' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ];
