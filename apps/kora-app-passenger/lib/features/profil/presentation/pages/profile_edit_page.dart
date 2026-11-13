@@ -49,14 +49,15 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
   String? _placeholderEmail;
 
   /// Le compte porte déjà un numéro.
-  ///
-  /// Le serveur ne dit pas **comment** le compte a été créé : ni canal
-  /// d'inscription, ni `phone_verified_at`. On le déduit donc de ce
-  /// qu'il rend. Un compte qui a un numéro s'est identifié avec — c'est
-  /// par lui qu'on se connecte, et le changer sans vérification
-  /// ouvrirait une porte. Un compte qui n'en a pas s'est inscrit par
-  /// email : le numéro reste à donner.
   bool _hasPhone = false;
+
+  /// Par où le compte a été ouvert, tel que le serveur le dit.
+  ///
+  /// L'écran le déduisait de ce qu'il voyait, faute de mieux. Le serveur
+  /// le rend maintenant, et distingue quatre cas au lieu de deux : une
+  /// connexion sociale s'identifie par son adresse, un compte ouvert au
+  /// guichet par son numéro.
+  RegistrationOrigin _origin = RegistrationOrigin.unknown;
 
   bool _saving = false;
   String? _firstNameError;
@@ -94,18 +95,28 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     _placeholderEmail = placeholder ? user.email : null;
     _email.text = placeholder ? '' : user.email;
     _hasPhone = (user.phone ?? '').trim().isNotEmpty;
+    _origin = user.registrationOrigin;
 
     _fillPhone(user.phone, user.countryCode);
   }
 
-  /// Le numéro se modifie tant que le compte n'en a pas : c'est le cas
-  /// d'une inscription par email, où il reste à renseigner.
-  bool get _phoneEditable => !_hasPhone;
+  /// Le numéro se modifie sauf quand il **est** l'identifiant du
+  /// compte : on se connecte avec, et le changer sans vérification
+  /// ouvrirait une porte.
+  ///
+  /// Pour un compte d'avant `registration_origin`, on retombe sur la
+  /// déduction d'avant : un compte qui porte un numéro s'est identifié
+  /// avec.
+  bool get _phoneEditable => _origin == RegistrationOrigin.unknown
+      ? !_hasPhone
+      : !_origin.identifiesByPhone;
 
   /// L'adresse se modifie sauf quand elle **est** l'identifiant du
-  /// compte — une inscription par email, reconnaissable à une vraie
-  /// adresse sans numéro à côté.
-  bool get _emailEditable => _placeholderEmail != null || _hasPhone;
+  /// compte — une inscription par email, ou une connexion sociale dont
+  /// l'adresse vient du fournisseur.
+  bool get _emailEditable => _origin == RegistrationOrigin.unknown
+      ? _placeholderEmail != null || _hasPhone
+      : !_origin.identifiesByEmail;
 
   /// Vrai pour l'adresse que le serveur fabrique à un compte créé par
   /// téléphone. Le domaine `.invalid` est réservé : rien n'y arrive.

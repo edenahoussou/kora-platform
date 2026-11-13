@@ -482,6 +482,62 @@ void main() {
       await tester.runAsync(held.close);
     });
 
+    testWidgets('l’écran Wallet ne suit pas un paiement lancé ailleurs', (
+      tester,
+    ) async {
+      // Paiement mixte : 1 000 F de solde, le reste en Mobile Money.
+      // L'écran Wallet passe alors la main au choix du moyen et ne
+      // demande rien au serveur — mais il reste vivant sous la pile.
+      //
+      // Son écoute réagissait quand même au paiement lancé par l'écran
+      // du dessus : la feuille KKiaPay s'ouvrait, et le suivi se posait
+      // **par-dessus** elle. Sur le téléphone, le voyageur voyait
+      // « Paiement en cours de vérification » sans avoir rien saisi, et
+      // ne retrouvait la feuille qu'en revenant en arrière.
+      //
+      // Ici, pousser une route ferait lever : aucun routeur n'est monté.
+      // Le test tient donc la règle par l'absence d'exception.
+      final flow = PaymentFlowBloc(
+        StubPaymentRepository(attempt: kStubPaymentAttempt),
+      );
+
+      // L'écran est monté **avant** que le paiement parte : c'est l'ordre
+      // réel, et le seul où son écoute peut réagir.
+      await pump(
+        tester,
+        const WalletPaymentPage(
+          args: args,
+          account: WalletAccount(
+            id: 'w-1',
+            cash: Price(18750),
+            points: 0,
+            rules: WalletRules(cashEnabled: true, pointValue: 1),
+          ),
+        ),
+        flow: flow,
+        hold: held,
+        settle: false,
+      );
+
+      // Le complément part depuis l'écran du dessus, pour la même
+      // réservation.
+      flow.add(
+        const PaymentFlowStarted(
+          reservationId: kHeldReservationId,
+          provider: 'kkiapay',
+          walletAmount: 1000,
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(find.text('Total du billet'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      await tester.runAsync(flow.close);
+      await tester.runAsync(held.close);
+    });
+
     testWidgets('celui de la réservation en cours, lui, se suit', (
       tester,
     ) async {

@@ -38,6 +38,13 @@ abstract class PaymentRepository {
     int? pointsAmount,
   });
 
+  /// Abandonne un paiement encore en vol, pour en ouvrir un autre.
+  ///
+  /// Une demande laissée en attente verrouille son montant : la clé
+  /// d'idempotence rend la même à chaque essai. L'abandonner est la
+  /// seule porte de sortie depuis l'app.
+  Future<Either<Failure, PaymentAttempt>> cancel(String paymentId);
+
   /// Relit l'état d'un paiement.
   Future<Either<Failure, PaymentAttempt>> status(String paymentId);
 

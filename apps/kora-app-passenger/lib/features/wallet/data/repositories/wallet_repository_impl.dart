@@ -20,8 +20,15 @@ class WalletRepositoryImpl with ApiFailureMapper implements WalletRepository {
   @override
   Future<Either<Failure, WalletLedgerPage>> fetchMovements({
     WalletBalanceKind? kind,
+    WalletDirection? direction,
     String? cursor,
-  }) => attempt(() => _remote.fetchMovements(kind: kind, cursor: cursor));
+  }) => attempt(
+    () => _remote.fetchMovements(
+      kind: kind,
+      direction: direction,
+      cursor: cursor,
+    ),
+  );
 
   @override
   Future<Either<Failure, WalletTopUp>> initiateTopUp({
@@ -41,6 +48,10 @@ class WalletRepositoryImpl with ApiFailureMapper implements WalletRepository {
       network: network,
     ),
   );
+
+  @override
+  Future<Either<Failure, WalletAccount>> attachReferral(String code) =>
+      attempt(() => _remote.attachReferral(code));
 
   @override
   Future<Either<Failure, WalletTopUp>> fetchTopUp(String uuid) =>

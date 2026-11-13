@@ -27,11 +27,16 @@ class WalletRemoteDataSource {
 
   Future<WalletLedgerPage> fetchMovements({
     WalletBalanceKind? kind,
+    WalletDirection? direction,
     String? cursor,
   }) async {
     final response = await _dio.get<dynamic>(
       ApiConstants.walletTransactions,
-      queryParameters: {'balance_type': ?kind?.name, 'cursor': ?cursor},
+      queryParameters: {
+        'balance_type': ?kind?.name,
+        'direction': ?direction?.name,
+        'cursor': ?cursor,
+      },
     );
 
     final body = ApiJson.map(response.data);
@@ -73,6 +78,19 @@ class WalletRemoteDataSource {
     );
 
     return WalletTopUpModel.fromJson(_unwrap(response.data));
+  }
+
+  /// Rattache un code parrain au compte.
+  ///
+  /// Le serveur rend le Wallet mis à jour : on le relit tel quel plutôt
+  /// que de deviner l'effet du rattachement côté app.
+  Future<WalletAccount> attachReferral(String code) async {
+    final response = await _dio.post<dynamic>(
+      ApiConstants.walletReferral,
+      data: {'referral_code': code},
+    );
+
+    return WalletAccountModel.fromJson(_unwrap(response.data));
   }
 
   /// Relit une recharge, pour suivre son issue.

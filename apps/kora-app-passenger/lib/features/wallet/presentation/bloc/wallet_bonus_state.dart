@@ -8,6 +8,9 @@ class WalletBonusState extends Equatable {
     this.isLoading = false,
     this.ledgerFailed = false,
     this.failure,
+    this.isAttaching = false,
+    this.referralFailure,
+    this.referralAttached = false,
   });
 
   /// Les quatre motifs que le serveur traite comme des bonus.
@@ -39,6 +42,17 @@ class WalletBonusState extends Equatable {
 
   final Failure? failure;
 
+  /// Le rattachement du code parrain est en vol.
+  final bool isAttaching;
+
+  /// Pourquoi le serveur a refusé le code : son propre code, un parrain
+  /// déjà rattaché, un compte qui a déjà voyagé, un code inconnu.
+  /// Distinct de [failure], qui porte l'échec de la lecture de l'écran.
+  final Failure? referralFailure;
+
+  /// Vrai juste après un rattachement accepté, le temps de le dire.
+  final bool referralAttached;
+
   bool get isFirstLoad => isLoading && account == null;
 
   /// Le total des points gagnés en bonus.
@@ -68,6 +82,10 @@ class WalletBonusState extends Equatable {
     bool? ledgerFailed,
     Failure? failure,
     bool clearFailure = false,
+    bool? isAttaching,
+    Failure? referralFailure,
+    bool clearReferralFailure = false,
+    bool? referralAttached,
   }) {
     return WalletBonusState(
       account: account ?? this.account,
@@ -75,6 +93,11 @@ class WalletBonusState extends Equatable {
       isLoading: isLoading ?? this.isLoading,
       ledgerFailed: ledgerFailed ?? this.ledgerFailed,
       failure: clearFailure ? null : (failure ?? this.failure),
+      isAttaching: isAttaching ?? this.isAttaching,
+      referralFailure: clearReferralFailure
+          ? null
+          : (referralFailure ?? this.referralFailure),
+      referralAttached: referralAttached ?? this.referralAttached,
     );
   }
 
@@ -85,5 +108,8 @@ class WalletBonusState extends Equatable {
     isLoading,
     ledgerFailed,
     failure,
+    isAttaching,
+    referralFailure,
+    referralAttached,
   ];
 }

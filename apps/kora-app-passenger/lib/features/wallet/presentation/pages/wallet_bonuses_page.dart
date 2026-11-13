@@ -62,7 +62,16 @@ class _BonusesView extends StatelessWidget {
                 title: l10n.walletBonusTitle,
               ),
               Expanded(
-                child: BlocBuilder<WalletBonusCubit, WalletBonusState>(
+                child: BlocConsumer<WalletBonusCubit, WalletBonusState>(
+                  // Le rattachement réussi se dit une fois : la carte de
+                  // saisie laisse ensuite place à la ligne « parrain
+                  // rattaché », qui ne raconte plus l'événement.
+                  listenWhen: (before, after) =>
+                      !before.referralAttached && after.referralAttached,
+                  listener: (context, state) => KoraToaster.show(
+                    context,
+                    context.l10n.walletReferralEntryDone,
+                  ),
                   builder: (context, state) => _body(context, state),
                 ),
               ),
@@ -101,13 +110,24 @@ class _BonusesView extends StatelessWidget {
         _EarnedCard(points: state.earned, hasFailed: state.ledgerFailed),
         const SizedBox(height: 12),
         for (final reason in WalletBonusState.order) ...[
-          _BonusRow(reason: reason, earned: state.earnedFor(reason)),
+          _BonusRow(
+            reason: reason,
+            earned: state.earnedFor(reason),
+            // Ce que la ligne rapporte, quand le serveur le dit.
+            worth: state.account?.rules.bonuses.pointsFor(reason),
+          ),
           const SizedBox(height: 8),
         ],
         const SizedBox(height: 6),
-        // Pas d'écran de parrainage à part : le code vit déjà sur
-        // l'onglet Wallet, et en faire une seconde page obligerait à
-        // tenir deux endroits à jour pour une seule chaîne.
+        // Le parrainage se joue dans les deux sens sur cet écran : on y
+        // partage son code, et on y rattache celui d'un autre. En faire
+        // une page à part obligerait à tenir deux endroits à jour.
+        _ReferralEntry(
+          attached: state.account?.hasReferrer ?? false,
+          isSending: state.isAttaching,
+          failure: state.referralFailure,
+        ),
+        const SizedBox(height: 12),
         KoraButton(
           label: l10n.walletBonusInvite,
           onPressed: () => _share(context, state.account?.referralCode),
@@ -115,6 +135,135 @@ class _BonusesView extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Rattacher le code d'un parrain — point 5 du ticket MEZ-160.
+///
+/// Le serveur tranche seul : son propre code, un parrain déjà
+/// rattaché, un compte qui a déjà voyagé, un code inconnu. L'app ne
+/// rejoue aucune de ces règles — elle envoie ce qui est tapé et montre
+/// la raison du refus. Rejouer les règles ici, c'est promettre un
+/// refus que le serveur n'aurait pas fait, ou l'inverse.
+class _ReferralEntry extends StatefulWidget {
+  const _ReferralEntry({
+    required this.attached,
+    required this.isSending,
+    required this.failure,
+  });
+
+  /// Un parrain est déjà rattaché : le champ n'a plus lieu d'être.
+  final bool attached;
+
+  final bool isSending;
+
+  /// Le refus du serveur, ou `null`.
+  final Failure? failure;
+
+  @override
+  State<_ReferralEntry> createState() => _ReferralEntryState();
+}
+
+class _ReferralEntryState extends State<_ReferralEntry> {
+  final _code = TextEditingController();
+
+  @override
+  void didUpdateWidget(_ReferralEntry old) {
+    super.didUpdateWidget(old);
+
+    // Rattaché : le champ disparaît, et ce qu'il contenait avec lui.
+    if (widget.attached && !old.attached) _code.clear();
+  }
+
+  @override
+  void dispose() {
+    _code.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
+    if (widget.attached) {
+      return KoraAlert(
+        icon: Icons.verified_rounded,
+        title: l10n.walletReferralAttached,
+      );
+    }
+
+    return KoraCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            l10n.walletReferralEntryTitle,
+            style: TextStyle(
+              color: context.koraTitleColor,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            l10n.walletReferralEntryText,
+            style: AppTextStyles.caption(context.koraColors.textMuted),
+          ),
+          const SizedBox(height: 10),
+          KoraInput(
+            controller: _code,
+            hint: l10n.walletReferralEntryHint,
+            enabled: !widget.isSending,
+            // Le serveur met le code en majuscules avant de chercher :
+            // le faire ici évite un refus qui ne tiendrait qu'à la
+            // casse de la frappe.
+            inputFormatters: [_UpperCase()],
+            onChanged: (_) => setState(() {}),
+          ),
+          if (_errorText(l10n) case final error?) ...[
+            const SizedBox(height: 6),
+            Text(error, style: AppTextStyles.caption(AppColors.danger)),
+          ],
+          const SizedBox(height: 10),
+          KoraButton(
+            label: l10n.walletReferralEntryAction,
+            isLoading: widget.isSending,
+            onPressed: _code.text.trim().isEmpty
+                ? null
+                : () => context.read<WalletBonusCubit>().attachReferral(
+                    _code.text,
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Ce qu'on dit du refus.
+  ///
+  /// Les raisons du serveur sont écrites pour le voyageur (« Ce code de
+  /// parrainage est inconnu. ») : on les montre telles quelles. Une
+  /// panne, elle, n'a rien à lui apprendre.
+  String? _errorText(AppLocalization l10n) => switch (widget.failure) {
+    null => null,
+    ServerFailure() || UnexpectedFailure() => l10n.walletReferralEntryFailed,
+    final failure => failure.message,
+  };
+}
+
+/// Met la saisie en majuscules au fil de la frappe.
+///
+/// Le serveur compare des majuscules : laisser passer « klv5sa3h »
+/// ferait répondre « code inconnu » pour une simple casse.
+class _UpperCase extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue previous,
+    TextEditingValue next,
+  ) => TextEditingValue(
+    text: next.text.toUpperCase(),
+    selection: next.selection,
+  );
 }
 
 /// `.card.gold` : le total gagné, lu dans le relevé.
@@ -185,12 +334,21 @@ class _EarnedCard extends StatelessWidget {
 
 /// `.bonus-row` : le pictogramme, l'intitulé, l'état et le montant.
 class _BonusRow extends StatelessWidget {
-  const _BonusRow({required this.reason, required this.earned});
+  const _BonusRow({
+    required this.reason,
+    required this.earned,
+    required this.worth,
+  });
 
   final WalletReason reason;
 
   /// Ce que ce bonus a rapporté, ou `null` s'il n'a jamais été crédité.
   final int? earned;
+
+  /// Ce qu'il rapporte selon le barème du serveur, ou `null` quand il
+  /// n'en dit rien. Un bonus à venir le montre pour qu'on sache ce qu'on
+  /// gagne ; un bonus obtenu montre plutôt ce qu'il a vraiment rapporté.
+  final int? worth;
 
   @override
   Widget build(BuildContext context) {
@@ -252,6 +410,11 @@ class _BonusRow extends StatelessWidget {
                 fontSize: 12,
                 fontWeight: FontWeight.w900,
               ),
+            )
+          else if (worth != null)
+            Text(
+              '+ ${l10n.walletPointsUnit('$worth')}',
+              style: AppTextStyles.caption(context.koraColors.textMuted),
             ),
         ],
       ),

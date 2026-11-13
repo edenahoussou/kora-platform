@@ -46,6 +46,7 @@ class _StubWallet implements WalletRepository {
   @override
   Future<Either<Failure, WalletLedgerPage>> fetchMovements({
     WalletBalanceKind? kind,
+    WalletDirection? direction,
     String? cursor,
   }) async => const Right(WalletLedgerPage(movements: []));
 
@@ -68,10 +69,18 @@ class _StubWallet implements WalletRepository {
         id: 't-1',
         amount: Price(amount),
         status: WalletTopUpStatus.pending,
-        paymentId: 'p-1',
+        attempt: const PaymentAttempt(
+          id: 'p-1',
+          status: PaymentAttemptStatus.pending,
+          nextAction: 'wait',
+        ),
       ),
     );
   }
+
+  @override
+  Future<Either<Failure, WalletAccount>> attachReferral(String code) async =>
+      throw UnimplementedError();
 
   @override
   Future<Either<Failure, WalletTopUp>> fetchTopUp(String uuid) async =>
@@ -102,6 +111,10 @@ class _StubPayments implements PaymentRepository {
     int? walletAmount,
     int? pointsAmount,
   }) async => const Left(ServerFailure('Hors sujet ici.'));
+
+  @override
+  Future<Either<Failure, PaymentAttempt>> cancel(String paymentId) async =>
+      const Left(ServerFailure('Hors sujet ici.'));
 
   @override
   Future<Either<Failure, PaymentAttempt>> status(String paymentId) async =>

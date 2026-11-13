@@ -150,13 +150,11 @@ class PaymentMethodPage extends StatelessWidget {
                 provider.collectsInApp
                     ? AppRouter.paymentGatewayMomoPath
                     : AppRouter.paymentMobileMoneyPath,
-                extra: PaymentArgs(
-                  total: args.total,
-                  provider: provider.code,
-                  phone: args.phone,
-                  departure: args.departure,
-                  seatLabel: args.seatLabel,
-                ),
+                // La part Wallet et les points voyagent avec : le
+                // serveur a besoin des trois parts dans la même demande,
+                // sans quoi il met le billet entier à la charge de la
+                // passerelle.
+                extra: args.withProvider(provider.code),
               ),
             ),
             const SizedBox(height: 10),

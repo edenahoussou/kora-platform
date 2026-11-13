@@ -260,6 +260,14 @@ class ApiConstants {
   static String paymentVerify(String paymentUuid) =>
       '$_v1/payments/$paymentUuid/verify';
 
+  /// `POST` : clôt un paiement encore en vol.
+  ///
+  /// Une demande laissée en attente verrouille son montant, puisque la
+  /// clé d'idempotence rend la même à chaque essai. L'abandonner est la
+  /// seule porte de sortie depuis l'app.
+  static String paymentCancel(String paymentUuid) =>
+      '$_v1/payments/$paymentUuid/cancel';
+
   // --- Reste de l'API : pas encore documenté ---
 
   static const String busBooking = '/bus/bookings';

@@ -407,6 +407,10 @@ mixin PaymentCatalogOnly implements PaymentRepository {
   }) => throw UnimplementedError('Ce double ne sert que pour le catalogue.');
 
   @override
+  Future<Either<Failure, PaymentAttempt>> cancel(String paymentId) =>
+      throw UnimplementedError('Ce double ne sert que pour le catalogue.');
+
+  @override
   Future<Either<Failure, PaymentAttempt>> status(String paymentId) =>
       throw UnimplementedError('Ce double ne sert que pour le catalogue.');
 
@@ -482,6 +486,12 @@ class StubPaymentRepository implements PaymentRepository {
     splits.add((walletAmount, pointsAmount));
     final failure = initiateFailure ?? this.failure;
     return failure != null ? Left(failure) : Right(attempt);
+  }
+
+  @override
+  Future<Either<Failure, PaymentAttempt>> cancel(String paymentId) async {
+    calls.add('cancel');
+    return Right(attempt);
   }
 
   @override

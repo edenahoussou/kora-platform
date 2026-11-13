@@ -96,6 +96,9 @@ abstract final class AuthDtos {
       email: data['email'] as String? ?? '',
       phone: data['phone'] as String?,
       countryCode: data['country_code'] as String?,
+      registrationOrigin: RegistrationOrigin.of(
+        data['registration_origin'] as String?,
+      ),
       birthDate: _date(data['birth_date']),
       status: data['status'] as String? ?? 'active',
       avatarUrl: data['avatar_url'] as String?,

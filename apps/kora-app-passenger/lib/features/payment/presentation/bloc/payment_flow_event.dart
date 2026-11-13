@@ -103,6 +103,15 @@ class PaymentFlowResumed extends PaymentFlowEvent {
   const PaymentFlowResumed();
 }
 
+/// Abandonne le paiement en cours, pour pouvoir en ouvrir un autre.
+///
+/// Distinct de [PaymentFlowReset], qui n'oublie que ce que l'app sait :
+/// ici on demande au serveur de clore la demande, faute de quoi sa clé
+/// d'idempotence continuerait de rendre la même.
+class PaymentFlowAbandoned extends PaymentFlowEvent {
+  const PaymentFlowAbandoned();
+}
+
 class PaymentFlowReset extends PaymentFlowEvent {
   const PaymentFlowReset();
 }

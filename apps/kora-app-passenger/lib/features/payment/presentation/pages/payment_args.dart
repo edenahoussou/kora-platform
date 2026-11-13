@@ -61,4 +61,23 @@ class PaymentArgs {
   /// demande pour que ses comptes tombent juste.
   final int? walletAmount;
   final int? pointsAmount;
+
+  /// Le même paiement, avec l'encaisseur choisi.
+  ///
+  /// L'écran des moyens n'ajoute que la passerelle. Il reconstruisait
+  /// `PaymentArgs` champ par champ, et y perdait la part Wallet : le
+  /// serveur recevait le billet entier à encaisser, et la feuille de la
+  /// passerelle réclamait le total au lieu du reste. Recopier ici une
+  /// fois pour toutes évite qu'un champ ajouté plus tard se perde de
+  /// nouveau en route.
+  PaymentArgs withProvider(String provider) => PaymentArgs(
+    total: total,
+    provider: provider,
+    phone: phone,
+    departure: departure,
+    seatLabel: seatLabel,
+    topUpAmount: topUpAmount,
+    walletAmount: walletAmount,
+    pointsAmount: pointsAmount,
+  );
 }

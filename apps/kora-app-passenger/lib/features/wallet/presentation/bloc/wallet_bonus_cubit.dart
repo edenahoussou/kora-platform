@@ -77,6 +77,42 @@ class WalletBonusCubit extends Cubit<WalletBonusState> {
     );
   }
 
+  /// Rattache un code parrain au compte.
+  ///
+  /// Le serveur tranche seul : il refuse son propre code, un second
+  /// parrain, un compte qui a déjà voyagé, un code inconnu. L'app ne
+  /// rejoue aucune de ces règles — elle envoie, et montre la raison du
+  /// refus telle quelle.
+  Future<void> attachReferral(String code) async {
+    final trimmed = code.trim().toUpperCase();
+    if (trimmed.isEmpty || state.isAttaching) return;
+
+    emit(
+      state.copyWith(
+        isAttaching: true,
+        clearReferralFailure: true,
+        referralAttached: false,
+      ),
+    );
+
+    final result = await _repository.attachReferral(trimmed);
+    if (isClosed) return;
+
+    result.fold(
+      (failure) =>
+          emit(state.copyWith(isAttaching: false, referralFailure: failure)),
+      // La réponse porte le Wallet à jour : on l'adopte au lieu de
+      // supposer ce que le rattachement a changé.
+      (account) => emit(
+        state.copyWith(
+          isAttaching: false,
+          account: account,
+          referralAttached: true,
+        ),
+      ),
+    );
+  }
+
   static bool _isBonus(WalletMovement movement) =>
       movement.isCredit &&
       WalletBonusState.bonusReasons.contains(movement.reason);

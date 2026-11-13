@@ -34,6 +34,44 @@ void main() {
     nextAction: 'show_tickets',
   );
 
+  test('changer d’encaisseur produit une demande neuve', () async {
+    // FedaPay et KKiaPay servent tous deux le Mobile Money. Sans
+    // l'encaisseur dans la clé, choisir l'un après l'autre rendait la
+    // même : le serveur rejouait la demande précédente, et la feuille
+    // KKiaPay s'ouvrait alors qu'on venait de choisir FedaPay.
+    final repository = StubPaymentRepository();
+    final bloc = PaymentFlowBloc(repository);
+    addTearDown(bloc.close);
+
+    bloc.add(
+      const PaymentFlowStarted(
+        reservationId: 'res-1',
+        provider: 'kkiapay',
+        phone: '+2290152235689',
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    // Un refus libère le verrou : la demande suivante peut partir.
+    bloc.add(const PaymentFlowReset());
+    await Future<void>.delayed(Duration.zero);
+
+    bloc.add(
+      const PaymentFlowStarted(
+        reservationId: 'res-1',
+        provider: 'fedapay',
+        phone: '+2290152235689',
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    expect(repository.idempotencyKeys.length, 2);
+    expect(
+      repository.idempotencyKeys[0],
+      isNot(equals(repository.idempotencyKeys[1])),
+    );
+  });
+
   test('un paiement par Wallet part au serveur, sans encaisseur', () async {
     // L'écran poussait vers « Votre voyage est confirmé » dès que le
     // solde couvrait le total, **sans appeler l'API** : un billet

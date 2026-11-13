@@ -18,11 +18,13 @@ abstract class WalletRepository {
 
   /// Le relevé, du plus récent au plus ancien.
   ///
-  /// [kind] restreint à l'un des deux soldes ; `null` les mêle, ce qui
-  /// est la vue par défaut. [cursor] enchaîne les pages — le serveur
-  /// pagine par curseur, pas par numéro de page.
+  /// [kind] restreint à l'un des deux soldes et [direction] au sens de
+  /// l'écriture ; `null` les mêle, ce qui est la vue par défaut.
+  /// [cursor] enchaîne les pages — le serveur pagine par curseur, pas
+  /// par numéro de page.
   Future<Either<Failure, WalletLedgerPage>> fetchMovements({
     WalletBalanceKind? kind,
+    WalletDirection? direction,
     String? cursor,
   });
 
@@ -39,6 +41,13 @@ abstract class WalletRepository {
     String? phone,
     String? network,
   });
+
+  /// Rattache un code parrain au compte, et rend le Wallet à jour.
+  ///
+  /// Le serveur n'accepte qu'une fois, et seulement avant la première
+  /// utilisation du filleul : passé là, il refuse avec la raison, que
+  /// l'écran montre telle quelle.
+  Future<Either<Failure, WalletAccount>> attachReferral(String code);
 
   /// Relit une recharge, pour suivre son issue.
   Future<Either<Failure, WalletTopUp>> fetchTopUp(String uuid);

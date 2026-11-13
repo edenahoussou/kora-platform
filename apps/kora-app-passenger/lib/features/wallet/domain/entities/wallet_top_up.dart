@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 import '../../../booking/domain/entities/price.dart';
+import '../../../payment/domain/entities/payment_attempt.dart';
 
 /// Où en est une recharge, côté serveur.
 enum WalletTopUpStatus {
@@ -28,9 +29,7 @@ class WalletTopUp extends Equatable {
     required this.id,
     required this.amount,
     required this.status,
-    this.paymentId,
-    this.paymentStatus,
-    this.provider,
+    this.attempt,
     this.createdAt,
   });
 
@@ -38,33 +37,26 @@ class WalletTopUp extends Equatable {
   final Price amount;
   final WalletTopUpStatus status;
 
-  /// Le paiement provider créé pour cette recharge.
+  /// Le paiement provider créé pour cette recharge, avec de quoi le
+  /// poursuivre.
   ///
-  /// C'est par lui qu'on ouvre la feuille de paiement : la réponse de
-  /// `POST /wallet/topups` ne porte aujourd'hui que son identifiant,
-  /// pas sa charge utile — voir [WalletTopUp] dans les notes de
-  /// MEZ-160 et `WalletTopUpResource` côté serveur.
-  final String? paymentId;
-
-  final String? paymentStatus;
-  final String? provider;
+  /// `POST /wallet/topups` ne rendait que son identifiant : il fallait
+  /// relire le paiement ailleurs pour obtenir la configuration du
+  /// widget et la conduite à tenir. Le serveur les rend désormais dans
+  /// la même réponse, et ce second appel a disparu.
+  final PaymentAttempt? attempt;
 
   final DateTime? createdAt;
 
   /// Vrai quand la recharge attend encore le provider.
   bool get isPending => status == WalletTopUpStatus.pending;
 
+  /// L'identifiant du paiement, quand il y en a un.
+  String? get paymentId => attempt?.id;
+
   /// Vrai quand il y a un paiement à poursuivre.
-  bool get canBeResumed => isPending && paymentId != null;
+  bool get canBeResumed => isPending && attempt != null;
 
   @override
-  List<Object?> get props => [
-    id,
-    amount,
-    status,
-    paymentId,
-    paymentStatus,
-    provider,
-    createdAt,
-  ];
+  List<Object?> get props => [id, amount, status, attempt, createdAt];
 }

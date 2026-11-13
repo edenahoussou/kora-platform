@@ -63,6 +63,18 @@ class _WalletPaymentPageState extends State<WalletPaymentPage> {
   bool _loading = true;
   String? _loadError;
 
+  /// Vrai seulement quand **cet écran** a lancé un paiement.
+  ///
+  /// Il ne le fait que dans un cas : le solde couvre tout le billet.
+  /// Dès qu'il reste un complément, l'écran passe la main au choix du
+  /// moyen et ne demande rien au serveur — mais il reste vivant sous la
+  /// pile. Sans ce drapeau, son écoute réagissait au paiement lancé par
+  /// l'écran du dessus : la feuille de l'encaisseur s'ouvrait, et le
+  /// suivi se posait **par-dessus** elle. Le voyageur voyait « paiement
+  /// en cours de vérification » sans avoir rien saisi, et ne retrouvait
+  /// la feuille qu'en revenant en arrière.
+  var _requested = false;
+
   @override
   void initState() {
     super.initState();
@@ -197,6 +209,8 @@ class _WalletPaymentPageState extends State<WalletPaymentPage> {
       return;
     }
 
+    _requested = true;
+
     context.read<PaymentFlowBloc>().add(
       PaymentFlowStarted(
         reservationId: hold.id,
@@ -217,6 +231,10 @@ class _WalletPaymentPageState extends State<WalletPaymentPage> {
     // Le paiement repris au lancement peut être celui d'une autre
     // réservation : il ne pilote pas cet écran-ci.
     if (!paymentFlowMatchesHold(context, flow, args)) return;
+
+    // Et même pour **cette** réservation : un paiement lancé ailleurs —
+    // le complément Mobile Money, la carte — ne regarde pas cet écran.
+    if (!_requested) return;
 
     final outcome = PaymentFlowArgs(
       total: args.total,

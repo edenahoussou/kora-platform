@@ -556,6 +556,20 @@ class AppLocalization {
   String get walletBonusObtained => translate('wallet_bonus_obtained');
   String get walletBonusPending => translate('wallet_bonus_pending');
   String get walletBonusInvite => translate('wallet_bonus_invite');
+  String get walletReferralEntryTitle =>
+      translate('wallet_referral_entry_title');
+  String get walletReferralEntryText => translate('wallet_referral_entry_text');
+  String get walletReferralEntryHint => translate('wallet_referral_entry_hint');
+  String get walletReferralEntryAction =>
+      translate('wallet_referral_entry_action');
+  String get walletReferralEntryDone => translate('wallet_referral_entry_done');
+  String get walletReferralEntryFailed =>
+      translate('wallet_referral_entry_failed');
+  String get walletReferralAttached => translate('wallet_referral_attached');
+  String get walletTopupNoteTitle => translate('wallet_topup_note_title');
+  String get paymentSecureWindowTitle =>
+      translate('payment_secure_window_title');
+  String get paymentCardSecureTitle => translate('payment_card_secure_title');
   String get walletBonusErrorTitle => translate('wallet_bonus_error_title');
   String get walletBonusErrorText => translate('wallet_bonus_error_text');
 
@@ -722,6 +736,8 @@ class AppLocalization {
   String get paymentMomoNoticeTitle => translate('payment_momo_notice_title');
   String get paymentMomoNotice => translate('payment_momo_notice');
   String get paymentMomoResume => translate('payment_momo_resume');
+  String get paymentAbandon => translate('payment_abandon');
+  String get paymentAbandonDone => translate('payment_abandon_done');
 
   String paymentMomoPay(String amount) =>
       _withArgs('payment_momo_pay', {'amount': amount});
@@ -1428,6 +1444,10 @@ class AppLocalization {
   String get profileEditBirthDate => translate('profile_edit_birth_date');
   String get profileEditBirthDateHint =>
       translate('profile_edit_birth_date_hint');
+  String get birthDatePromptTitle => translate('birth_date_prompt_title');
+  String get birthDatePromptText => translate('birth_date_prompt_text');
+  String get birthDatePromptAction => translate('birth_date_prompt_action');
+  String get birthDatePromptLater => translate('birth_date_prompt_later');
   String get profileEditSave => translate('profile_edit_save');
   String get profileEditSaved => translate('profile_edit_saved');
   String get profileEditFirstNameRequired =>

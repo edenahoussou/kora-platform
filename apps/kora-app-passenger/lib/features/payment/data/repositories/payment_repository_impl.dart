@@ -41,9 +41,15 @@ class PaymentRepositoryImpl with ApiFailureMapper implements PaymentRepository {
         idempotencyKey: idempotencyKey,
         network: network,
         phone: phone,
+        walletAmount: walletAmount,
+        pointsAmount: pointsAmount,
       ),
     );
   }
+
+  @override
+  Future<Either<Failure, PaymentAttempt>> cancel(String paymentId) =>
+      attempt(() => _remote.cancel(paymentId));
 
   @override
   Future<Either<Failure, PaymentAttempt>> status(String paymentId) =>

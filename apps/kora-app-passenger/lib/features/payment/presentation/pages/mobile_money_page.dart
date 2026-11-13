@@ -267,6 +267,19 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
     if (_operatorError != null || _phoneError != null) return;
     _requested = true;
 
+    // Un paiement de cet écran est déjà en vol : le Bloc refuse d'en
+    // relancer un, à juste titre, et le bouton n'émettait alors plus
+    // rien du tout. Le voyageur retapait sur un écran mort. On le mène
+    // au suivi, qui interroge le serveur jusqu'à l'issue.
+    final flow = context.read<PaymentFlowBloc>().state;
+    final pending = flow.attempt;
+    if (pending != null &&
+        pending.isPending &&
+        paymentFlowMatchesHold(context, flow, widget.args)) {
+      context.push(AppRouter.paymentPendingPath, extra: _flowArgs(pending));
+      return;
+    }
+
     // La passerelle vient de la carte touchée sur l'écran précédent :
     // FedaPay et KKiaPay servent les mêmes réseaux, et ce n'est donc pas
     // le réseau qui peut la désigner.
@@ -329,6 +342,14 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
     // réservation : il ne pilote pas cet écran-ci.
     if (!paymentFlowMatchesHold(context, flow, widget.args)) return;
 
+    // Cet écran ne réagit qu'au paiement **qu'il a lancé**. Sans cette
+    // condition, un paiement déjà en cours — une recharge du même
+    // montant laissée en attente — faisait sauter à l'écran de suivi
+    // dès l'ouverture : le voyageur n'avait jamais la main pour
+    // choisir son opérateur ni saisir son numéro. Le bouton, lui,
+    // propose déjà de suivre ce paiement-là.
+    if (!_requested) return;
+
     if (flow.hasFailed) {
       context.push(AppRouter.paymentFailedPath, extra: _flowArgs(flow.attempt));
       return;
@@ -342,7 +363,7 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
       // KKiaPay n'a pas d'API de poussée : `initiate` n'a contacté
       // personne et rend de quoi ouvrir sa feuille. C'est elle qui
       // recueille le code du payeur, pas l'opérateur sur son téléphone.
-      if (_requested && attempt != null && attempt.needsWidget) {
+      if (attempt != null && attempt.needsWidget) {
         unawaited(_collect(context, attempt));
         return;
       }
@@ -450,6 +471,13 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
   /// Les deux boutons de l'écran d'échec continuent de fonctionner : ils
   /// remettent le paiement à zéro avant de revenir, si bien qu'on retrouve
   /// ici un « Payer » vivant.
+  /// Clôt la demande en cours, puis rend la main.
+  void _abandon(BuildContext context) {
+    _requested = false;
+    context.read<PaymentFlowBloc>().add(const PaymentFlowAbandoned());
+    KoraToaster.show(context, context.l10n.paymentAbandonDone);
+  }
+
   Widget _payButton(BuildContext context, PaymentFlowState flow) {
     final l10n = context.l10n;
 
@@ -460,13 +488,29 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
     // remplaçait « Payer » par « Suivre le paiement en cours » et la
     // recharge ne pouvait plus partir.
     if (flow.isPending && paymentFlowMatchesHold(context, flow, widget.args)) {
-      return KoraButton(
-        label: l10n.paymentMomoResume,
-        variant: KoraButtonVariant.ghost,
-        onPressed: () => context.push(
-          AppRouter.paymentPendingPath,
-          extra: _flowArgs(flow.attempt),
-        ),
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          KoraButton(
+            label: l10n.paymentMomoResume,
+            variant: KoraButtonVariant.ghost,
+            onPressed: () => context.push(
+              AppRouter.paymentPendingPath,
+              extra: _flowArgs(flow.attempt),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          // Sans cette porte, une demande en attente verrouillait son
+          // montant : la clé d'idempotence rendait la même à chaque
+          // essai, et le voyageur ne pouvait ni la payer ni en ouvrir
+          // une autre.
+          KoraButton(
+            label: l10n.paymentAbandon,
+            variant: KoraButtonVariant.ghost,
+            onPressed: () => _abandon(context),
+          ),
+        ],
       );
     }
 

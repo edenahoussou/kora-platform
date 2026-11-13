@@ -37,13 +37,9 @@ class WalletHistoryState extends Equatable {
 
   final Failure? failure;
 
-  /// Ce que l'écran montre, une fois la vue appliquée.
-  List<WalletMovement> get visible {
-    final sense = direction;
-    if (sense == null) return movements;
-
-    return movements.where((m) => m.direction == sense).toList();
-  }
+  /// Ce que l'écran montre. Le serveur a déjà trié : la liste est la
+  /// vue.
+  List<WalletMovement> get visible => movements;
 
   bool get hasMore => cursor != null;
 
@@ -53,7 +49,7 @@ class WalletHistoryState extends Equatable {
 
   /// Vrai quand le serveur a répondu qu'il n'y a rien — à ne pas
   /// confondre avec « on ne sait pas encore ».
-  bool get isEmpty => hasLoaded && visible.isEmpty;
+  bool get isEmpty => hasLoaded && movements.isEmpty;
 
   WalletHistoryState copyWith({
     WalletDirection? direction,

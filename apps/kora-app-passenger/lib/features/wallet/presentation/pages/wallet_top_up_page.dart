@@ -172,14 +172,14 @@ class _TopUpViewState extends State<_TopUpView> {
           ),
         ],
         const SizedBox(height: 12),
-        // `.card.mist` de la maquette : la règle qui surprend le plus —
-        // recharger ne rapporte aucun point.
-        KoraCard(
-          variant: KoraCardVariant.mist,
-          child: Text(
-            l10n.walletTopUpNote,
-            style: AppTextStyles.body(context.koraColors.textMuted),
-          ),
+        // La règle qui surprend le plus — recharger ne rapporte aucun
+        // point — mérite mieux que la card `mist` de la maquette : sur
+        // un fond clair elle se confondait avec la page, et personne ne
+        // lisait la seule phrase qui corrige une attente fausse.
+        KoraAlert(
+          icon: Icons.info_outline_rounded,
+          title: l10n.walletTopupNoteTitle,
+          message: l10n.walletTopUpNote,
         ),
         const SizedBox(height: 14),
         KoraButton(

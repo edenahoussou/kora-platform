@@ -31,8 +31,8 @@ class _PagedRepository implements WalletRepository {
   /// Les index d'appel qui doivent échouer.
   final Set<int> failOn;
 
-  /// Ce qui a été demandé : (filtre de solde, curseur).
-  final List<(WalletBalanceKind?, String?)> calls = [];
+  /// Ce qui a été demandé : (filtre de solde, sens, curseur).
+  final List<(WalletBalanceKind?, WalletDirection?, String?)> calls = [];
 
   @override
   Future<Either<Failure, WalletAccount>> fetchAccount() async =>
@@ -41,10 +41,11 @@ class _PagedRepository implements WalletRepository {
   @override
   Future<Either<Failure, WalletLedgerPage>> fetchMovements({
     WalletBalanceKind? kind,
+    WalletDirection? direction,
     String? cursor,
   }) async {
     final index = calls.length;
-    calls.add((kind, cursor));
+    calls.add((kind, direction, cursor));
 
     if (failOn.contains(index)) return const Left(ServerFailure('Panne.'));
     if (index >= pages.length) {
@@ -64,6 +65,10 @@ class _PagedRepository implements WalletRepository {
     String? phone,
     String? network,
   }) async => const Left(ServerFailure('Hors sujet ici.'));
+
+  @override
+  Future<Either<Failure, WalletAccount>> attachReferral(String code) async =>
+      throw UnimplementedError();
 
   @override
   Future<Either<Failure, WalletTopUp>> fetchTopUp(String uuid) async =>
@@ -111,7 +116,7 @@ void main() {
       expect(cubit.state.movements.map((m) => m.id), ['m-1', 'm-2', 'm-3']);
       // Plus de curseur : on est au bout, et le pied doit le dire.
       expect(cubit.state.hasMore, isFalse);
-      expect(repository.calls, [(null, null), (null, 'c1')]);
+      expect(repository.calls, [(null, null, null), (null, null, 'c1')]);
 
       await cubit.close();
     });
@@ -221,15 +226,18 @@ void main() {
       expect(find.text('Recharge'), findsOneWidget);
     });
 
-    testWidgets('un onglet ne montre que les écritures de ce sens', (
+    testWidgets('un onglet demande ce sens au serveur et montre sa réponse', (
       tester,
     ) async {
-      await pump(
+      // Le tri se faisait dans l'app, ce qui obligeait à lire des pages
+      // entières pour en garder trois lignes. `GET /wallet/transactions`
+      // accepte `direction` : c'est lui qui trie, et l'onglet relit.
+      final repository = await pump(
         tester,
         pages: [
+          WalletLedgerPage(movements: [movement(375)]),
           WalletLedgerPage(
             movements: [
-              movement(375),
               movement(
                 6000,
                 kind: WalletBalanceKind.cash,
@@ -242,14 +250,14 @@ void main() {
       );
 
       expect(find.text('Points gagnés'), findsOneWidget);
-      expect(find.text('Paiement'), findsOneWidget);
 
       // `KoraTag` met ses libellés en capitales.
       await tester.tap(find.text('UTILISATIONS'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Points gagnés'), findsNothing);
+      expect(repository.calls.last, (null, WalletDirection.debit, null));
       expect(find.text('Paiement'), findsOneWidget);
+      expect(find.text('Points gagnés'), findsNothing);
     });
 
     testWidgets('un relevé vide le dit sans accuser une panne', (tester) async {

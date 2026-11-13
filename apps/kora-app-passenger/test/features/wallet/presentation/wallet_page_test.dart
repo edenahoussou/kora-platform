@@ -55,6 +55,7 @@ class _StubWalletRepository implements WalletRepository {
   @override
   Future<Either<Failure, WalletLedgerPage>> fetchMovements({
     WalletBalanceKind? kind,
+    WalletDirection? direction,
     String? cursor,
   }) async {
     calls.add('movements');
@@ -76,6 +77,10 @@ class _StubWalletRepository implements WalletRepository {
     String? phone,
     String? network,
   }) async => const Left(ServerFailure('Hors sujet ici.'));
+
+  @override
+  Future<Either<Failure, WalletAccount>> attachReferral(String code) async =>
+      throw UnimplementedError();
 
   @override
   Future<Either<Failure, WalletTopUp>> fetchTopUp(String uuid) async =>

@@ -90,6 +90,21 @@ class PaymentRemoteDataSource {
   /// l'interrogeant chez KKiaPay : la réponse du widget ne vaut rien par
   /// elle-même. La liaison est définitive côté serveur — un identifiant
   /// divergent sur un paiement déjà lié est rejeté (422).
+  /// Abandonne un paiement encore en vol.
+  ///
+  /// Sans ça, une demande laissée en attente verrouille son montant :
+  /// la clé d'idempotence rend la même demande à chaque essai, et le
+  /// voyageur ne peut ni la payer ni en ouvrir une autre.
+  Future<PaymentAttempt> cancel(String paymentId) async {
+    final response = await _dio.post<dynamic>(
+      ApiConstants.paymentCancel(paymentId),
+    );
+
+    return PaymentAttemptModel.fromJson(
+      ApiJson.map(_payload(response.data)),
+    ).toEntity();
+  }
+
   Future<PaymentAttempt> verify(
     String paymentId, {
     String? transactionId,

@@ -16,27 +16,21 @@ part 'wallet_history_state.dart';
 /// expirent — et une pagination par numéro ferait alors sauter ou
 /// répéter des écritures.
 ///
-/// **Le filtre crédits / utilisations se fait ici, pas au serveur** :
-/// `GET /wallet/transactions` n'accepte que `balance_type`, il n'a pas
-/// de paramètre de sens. On lit donc le relevé entier et on le trie à
-/// l'affichage — en continuant de charger tant qu'un filtre actif n'a
-/// pas de quoi remplir l'écran, sans quoi une page de vingt débits
-/// afficherait « aucun crédit » alors que la suite en contient.
+/// Le tri crédits / utilisations se fait **au serveur** depuis que
+/// `GET /wallet/transactions` accepte `direction`. L'app le faisait
+/// elle-même, ce qui l'obligeait à lire des pages entières pour en
+/// garder trois lignes.
 class WalletHistoryCubit extends Cubit<WalletHistoryState> {
   WalletHistoryCubit(this._repository) : super(const WalletHistoryState());
 
-  /// En dessous, un filtre actif va chercher la page suivante : sinon
-  /// l'écran paraîtrait vide alors que le relevé continue.
-  static const int _minimumVisible = 12;
-
   final WalletRepository _repository;
 
-  /// (Re)lit le relevé depuis le début.
+  /// (Re)lit le relevé depuis le début, pour la vue en cours.
   Future<void> load() async {
     if (state.isLoading) return;
     emit(state.copyWith(isLoading: true));
 
-    final result = await _repository.fetchMovements();
+    final result = await _repository.fetchMovements(direction: state.direction);
     if (isClosed) return;
 
     result.fold(
@@ -52,20 +46,32 @@ class WalletHistoryCubit extends Cubit<WalletHistoryState> {
         ),
       ),
     );
-
-    await _fillFilter();
   }
 
-  /// Change la vue. Rien n'est redemandé au serveur : le relevé est déjà
-  /// là, seul l'affichage change — et on complète si le filtre vide
-  /// l'écran.
+  /// Change la vue et relit depuis le début.
+  ///
+  /// Un curseur appartient à la requête qui l'a produit : le rejouer sur
+  /// une autre vue enchaînerait deux listes qui n'ont rien à voir.
   Future<void> filter(WalletDirection? direction) async {
     if (direction == state.direction) return;
-    emit(
-      state.copyWith(direction: direction, clearDirection: direction == null),
-    );
 
-    await _fillFilter();
+    emit(WalletHistoryState(direction: direction, isLoading: true));
+
+    final result = await _repository.fetchMovements(direction: direction);
+    if (isClosed) return;
+
+    result.fold(
+      (failure) =>
+          emit(WalletHistoryState(direction: direction, failure: failure)),
+      (page) => emit(
+        WalletHistoryState(
+          direction: direction,
+          movements: page.movements,
+          cursor: page.nextCursor,
+          hasLoaded: true,
+        ),
+      ),
+    );
   }
 
   /// Charge la page suivante et l'ajoute à la fin.
@@ -78,7 +84,10 @@ class WalletHistoryCubit extends Cubit<WalletHistoryState> {
 
     emit(state.copyWith(isLoadingMore: true, clearMoreFailed: true));
 
-    final result = await _repository.fetchMovements(cursor: cursor);
+    final result = await _repository.fetchMovements(
+      direction: state.direction,
+      cursor: cursor,
+    );
     if (isClosed) return;
 
     result.fold(
@@ -92,20 +101,5 @@ class WalletHistoryCubit extends Cubit<WalletHistoryState> {
         ),
       ),
     );
-  }
-
-  /// Complète tant qu'un filtre actif n'a pas de quoi remplir l'écran.
-  Future<void> _fillFilter() async {
-    while (!isClosed &&
-        state.direction != null &&
-        state.hasMore &&
-        !state.moreFailed &&
-        state.visible.length < _minimumVisible) {
-      final before = state.movements.length;
-      await loadMore();
-      // Garde-fou : un serveur qui rendrait un curseur sans écriture
-      // ferait tourner cette boucle indéfiniment.
-      if (state.movements.length == before) return;
-    }
   }
 }

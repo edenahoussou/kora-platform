@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -19,6 +21,7 @@ import '../../domain/entities/wallet_account.dart';
 import '../../domain/entities/wallet_movement.dart';
 import '../../domain/repositories/wallet_repository.dart';
 import '../bloc/wallet_cubit.dart';
+import '../bloc/wallet_refresh.dart';
 import '../widgets/wallet_balance_card.dart';
 import '../widgets/wallet_movement_tile.dart';
 
@@ -47,7 +50,7 @@ class WalletPage extends StatelessWidget {
     return BlocProvider<WalletCubit>(
       create: (_) =>
           (existing ?? WalletCubit(getIt<WalletRepository>()))..load(),
-      child: _WalletView(today: today),
+      child: _WalletGate(today: today),
     );
   }
 }
@@ -65,13 +68,48 @@ String _failureText(AppLocalization l10n, Failure? failure) =>
       _ => failure.message,
     };
 
+/// Relit le Wallet quand quelque chose l'a fait bouger ailleurs.
+///
+/// L'onglet naît une fois et son cubit lit le solde à la création. Après
+/// une recharge confirmée, le voyageur y revenait sur l'ancien solde et
+/// devait tirer pour rafraîchir.
+class _WalletGate extends StatefulWidget {
+  const _WalletGate({this.today});
+
+  final DateTime? today;
+
+  @override
+  State<_WalletGate> createState() => _WalletGateState();
+}
+
+class _WalletGateState extends State<_WalletGate> {
+  StreamSubscription<void>? _watch;
+
+  @override
+  void initState() {
+    super.initState();
+
+    if (!getIt.isRegistered<WalletRefresh>()) return;
+
+    _watch = getIt<WalletRefresh>().changes.listen((_) {
+      if (mounted) unawaited(context.read<WalletCubit>().load());
+    });
+  }
+
+  @override
+  void dispose() {
+    unawaited(_watch?.cancel());
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => _WalletView(today: widget.today);
+}
+
 class _WalletView extends StatelessWidget {
   const _WalletView({this.today});
 
   final DateTime? today;
-
-  void _soon(BuildContext context) =>
-      KoraToaster.show(context, context.l10n.walletSoon);
 
   @override
   Widget build(BuildContext context) {
@@ -92,7 +130,10 @@ class _WalletView extends StatelessWidget {
                 title: l10n.walletTitle,
                 action: KoraIconButton(
                   icon: Icons.north_east_rounded,
-                  onTap: () => _soon(context),
+                  // La flèche de l'en-tête ouvre les Mouvements : elle
+                  // ne promettait rien d'autre, et un bouton qui
+                  // répond « bientôt » use la patience pour rien.
+                  onTap: () => context.push(AppRouter.walletHistoryPath),
                 ),
               ),
               Expanded(
@@ -147,11 +188,10 @@ class _WalletView extends StatelessWidget {
             const SizedBox(height: 9),
           ],
           if (rules.pointsEnabled) ...[
-            _PointsStrip(
-              points: account.points,
-              value: account.pointsValue,
-              onTap: () => _soon(context),
-            ),
+            // Sans destination, la carte ne réagit pas : un appui qui
+            // ne fait qu'afficher « bientôt » donne l'impression d'un
+            // écran cassé.
+            _PointsStrip(points: account.points, value: account.pointsValue),
             const SizedBox(height: 6),
             // L'échéance se lit en permanence, pas seulement quand elle
             // approche : des points qui tombent sans prévenir passent
@@ -211,19 +251,13 @@ class _WalletView extends StatelessWidget {
 /// d'un liseré blanc.
 /// `.wallet-points-strip` : les points de fidélité et leur contre-valeur.
 class _PointsStrip extends StatelessWidget {
-  const _PointsStrip({
-    required this.points,
-    required this.value,
-    required this.onTap,
-  });
+  const _PointsStrip({required this.points, required this.value});
 
   final int points;
 
   /// La contre-valeur en francs, calculée avec le taux du serveur : un
   /// point ne vaut pas forcément un franc, c'est un réglage.
   final Price value;
-
-  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -232,58 +266,48 @@ class _PointsStrip extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final strong = isDark ? koraColors.textPrimary : AppColors.kora;
 
+    // Une carte qui se lit, pas un bouton : rien ne s'ouvre derrière
+    // les points pour l'instant, et un appui qui ne répond que
+    // « bientôt » fait passer l'écran pour cassé.
     return Material(
       color: koraColors.surface,
       borderRadius: BorderRadius.circular(15),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(15),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: koraColors.line),
-          ),
-          child: Row(
-            children: [
-              WalletRoundIcon(icon: Icons.star_rounded, color: strong),
-              const SizedBox(width: 9),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      l10n.walletPointsLabel,
-                      style: TextStyle(
-                        color: koraColors.textMuted,
-                        fontSize: 10,
-                      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: koraColors.line),
+        ),
+        child: Row(
+          children: [
+            WalletRoundIcon(icon: Icons.star_rounded, color: strong),
+            const SizedBox(width: 9),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    l10n.walletPointsLabel,
+                    style: TextStyle(color: koraColors.textMuted, fontSize: 10),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    // Les deux sont affichés pour que la valeur soit
+                    // lisible sans calcul.
+                    l10n.walletPointsValue('$points', value.formatted),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: strong,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
                     ),
-                    const SizedBox(height: 3),
-                    Text(
-                      // Les deux sont affichés pour que la valeur soit
-                      // lisible sans calcul.
-                      l10n.walletPointsValue('$points', value.formatted),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: strong,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              const SizedBox(width: AppSpacing.sm),
-              Icon(
-                Icons.chevron_right_rounded,
-                size: 18,
-                color: koraColors.textMuted,
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

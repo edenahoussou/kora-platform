@@ -32,6 +32,7 @@ class PaymentFlowBloc extends Bloc<PaymentFlowEvent, PaymentFlowState> {
     on<PaymentFlowPolled>(_onPolled);
     on<PaymentFlowVerifyRequested>(_onVerifyRequested);
     on<PaymentFlowResumed>(_onResumed);
+    on<PaymentFlowAbandoned>(_onAbandoned);
     on<PaymentFlowReset>(_onReset);
   }
 
@@ -51,6 +52,23 @@ class PaymentFlowBloc extends Bloc<PaymentFlowEvent, PaymentFlowState> {
   final WalletRepository? _wallet;
 
   Timer? _poller;
+
+  /// Ce qui distingue les demandes de **ce lancement-ci** de l'app.
+  ///
+  /// La clé d'idempotence ne décrivait que la demande : même montant,
+  /// même passerelle, même répartition donnaient la même clé d'un
+  /// lancement à l'autre. Recharger 5 000 F par KKiaPay une seconde
+  /// fois rejouait donc la recharge de la veille : le serveur rendait
+  /// le paiement **déjà réglé**, l'app affichait « Recharge confirmée »
+  /// sans que la feuille de paiement s'ouvre, et le solde ne bougeait
+  /// pas d'un franc.
+  ///
+  /// Le filet qui reste contre le double débit est celui qui compte :
+  /// une demande en vol n'est jamais relancée (voir [_onStarted]), et
+  /// la clé reste stable tant que le voyageur réessaie la même.
+  final String _launch = DateTime.now().microsecondsSinceEpoch.toRadixString(
+    36,
+  );
 
   @override
   Future<void> close() {
@@ -82,7 +100,13 @@ class PaymentFlowBloc extends Bloc<PaymentFlowEvent, PaymentFlowState> {
     // demande elle-même, pas à ce qu'elle règle.
     final source = event.reservationId ?? topUpTag(event.topUpAmount);
     final same = paying == null || paying == source;
-    if (state.isStarting || (same && current != null && !current.isRefused)) {
+    // Une recharge **confirmée** ne ferme pas la porte à la suivante :
+    // remettre deux fois le même montant est banal, alors qu'un billet
+    // ne se paie qu'une fois. Sans cette exception, « Payer » restait
+    // sans effet après une recharge réussie du même montant.
+    final again = event.topUpAmount != null && (current?.isConfirmed ?? false);
+    if (state.isStarting ||
+        (same && current != null && !current.isRefused && !again)) {
       return;
     }
 
@@ -93,6 +117,10 @@ class PaymentFlowBloc extends Bloc<PaymentFlowEvent, PaymentFlowState> {
         // Retenue dès le lancement : c'est elle que la trace de reprise
         // rattachera au paiement si l'app se ferme avant le verdict.
         reservationId: source,
+        // Nouvelle recharge, clé neuve : sinon le serveur rejouerait
+        // celle qu'il vient de confirmer.
+        round: again ? state.round + 1 : state.round,
+        clearAttempt: again,
       ),
     );
 
@@ -126,15 +154,12 @@ class PaymentFlowBloc extends Bloc<PaymentFlowEvent, PaymentFlowState> {
     );
   }
 
-  /// Ouvre une recharge, puis relit le paiement qu'elle a créé.
+  /// Ouvre une recharge.
   ///
-  /// Deux appels au lieu d'un : `POST /wallet/topups` ne rend du
-  /// paiement que son identifiant et son état — ni `next_action`, ni la
-  /// configuration du widget, ni l'intervalle de relecture, que
-  /// `PaymentResource` rend pour l'achat d'un billet. On va donc les
-  /// chercher là où ils existent. Le jour où `WalletTopUpResource`
-  /// portera la même charge utile, ce second appel disparaît et rien
-  /// d'autre ne bouge.
+  /// Un seul appel : `POST /wallet/topups` rend maintenant le paiement
+  /// avec de quoi le poursuivre — la conduite à tenir, la configuration
+  /// du widget, l'intervalle de relecture. L'app relisait le paiement
+  /// ailleurs faute de ces champs.
   Future<Either<Failure, PaymentAttempt>> _initiateTopUp(
     PaymentFlowStarted event,
   ) async {
@@ -229,6 +254,30 @@ class PaymentFlowBloc extends Bloc<PaymentFlowEvent, PaymentFlowState> {
     );
   }
 
+  /// Clôt le paiement en cours côté serveur, puis oublie tout.
+  ///
+  /// Le round avance : la prochaine demande portera une clé neuve, que
+  /// le serveur ne confondra pas avec celle qu'on vient d'abandonner.
+  Future<void> _onAbandoned(
+    PaymentFlowAbandoned event,
+    Emitter<PaymentFlowState> emit,
+  ) async {
+    final paymentId = state.attempt?.id;
+    _poller?.cancel();
+
+    if (paymentId != null) {
+      // Un abandon qui échoue ne doit pas retenir le voyageur : le
+      // serveur finira par expirer la demande, et l'app repart avec une
+      // clé neuve de toute façon.
+      await _repository.cancel(paymentId);
+      if (isClosed) return;
+    }
+
+    unawaited(_pending?.clear());
+
+    emit(PaymentFlowState(round: state.round + 1));
+  }
+
   void _onReset(PaymentFlowReset event, Emitter<PaymentFlowState> emit) {
     _poller?.cancel();
     // Tout repart de zéro, sauf le numéro d'essai : c'est lui qui fera du
@@ -251,6 +300,11 @@ class PaymentFlowBloc extends Bloc<PaymentFlowEvent, PaymentFlowState> {
   String _keyFor(PaymentFlowStarted event) {
     // Le moyen entre dans la clé : payer par carte après un refus en
     // Mobile Money est une demande neuve, pas la relecture de l'ancienne.
+    //
+    // **L'encaisseur aussi.** Deux passerelles servent le Mobile Money :
+    // sans lui, choisir FedaPay après KKiaPay produisait la même clé, le
+    // serveur rejouait la demande KKiaPay, et sa feuille s'ouvrait alors
+    // que le voyageur venait d'en choisir une autre.
     final phone = (event.phone ?? '').replaceAll(RegExp(r'\D'), '');
     final network = event.network ?? '';
     final source = event.reservationId ?? topUpTag(event.topUpAmount);
@@ -258,8 +312,8 @@ class PaymentFlowBloc extends Bloc<PaymentFlowEvent, PaymentFlowState> {
     // 3 000 F sont deux demandes, pas la relecture de la même.
     final split = '${event.walletAmount ?? 0}-${event.pointsAmount ?? 0}';
 
-    return 'kora-$source-${event.method}-$network-$phone-$split'
-        '-${state.round}';
+    return 'kora-$_launch-$source-${event.method}-${event.provider}'
+        '-$network-$phone-$split-${state.round}';
   }
 
   /// De quoi nommer une recharge là où le code attend une réservation.

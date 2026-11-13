@@ -144,6 +144,9 @@ class AppRouter {
   /// L'historique complet du Wallet (MEZ-160, point 3).
   static const String walletHistoryPath = '/wallet/historique';
 
+  /// L'onglet Wallet.
+  static const String walletPath = '/wallet';
+
   /// La recharge du Wallet (MEZ-160, point 2).
   static const String walletTopUpPath = '/wallet/recharge';
 
@@ -970,7 +973,7 @@ class AppRouter {
             StatefulShellBranch(
               routes: [
                 GoRoute(
-                  path: '/wallet',
+                  path: walletPath,
                   builder: (context, state) => const WalletPage(),
                 ),
               ],

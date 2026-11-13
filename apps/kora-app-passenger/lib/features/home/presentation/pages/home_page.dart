@@ -11,6 +11,7 @@ import '../../../auth/domain/entities/auth_user.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../booking/domain/entities/city.dart';
 import '../../../booking/presentation/pages/bus_search_page.dart';
+import '../../../profil/presentation/widgets/birth_date_prompt.dart';
 import '../bloc/home_bloc.dart';
 import '../widgets/home_hero.dart';
 import '../widgets/home_quick_grid.dart';
@@ -69,45 +70,56 @@ class _HomeView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            HomeHero(
-              greeting: _greeting(context),
-              // Coupures de ligne explicites, portées par la
-              // traduction : la maquette compose ce titre sur 3 lignes,
-              // et un retour automatique dépendrait de la largeur.
-              title: context.l10n.homeTitle,
-              onNotificationsTap: () =>
-                  context.push(AppRouter.notificationsPath),
-            ),
-            // La carte de recherche chevauche l'en-tête de 49px
-            // (`.floating-search { margin-top: -49px }`). `Transform` ne
-            // modifiant pas la hauteur occupée, l'espace ainsi libéré en
-            // bas de page est repris dans le `SizedBox` final.
-            Transform.translate(
-              offset: const Offset(0, -49),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 18),
-                child: BlocBuilder<HomeBloc, HomeState>(
-                  builder: (context, state) => switch (state.status) {
-                    HomeStatus.loading => const _HomeLoading(),
-                    HomeStatus.failure => _HomeError(
-                      message: state.errorMessage,
-                      onRetry: () =>
-                          context.read<HomeBloc>().add(const HomeStarted()),
-                    ),
-                    HomeStatus.success => _HomeContent(state: state),
-                  },
+    // Le profil sans date de naissance se voit proposer de la
+    // renseigner, une fois. L'accueil est le seul écran que tout le
+    // monde traverse après la connexion.
+    final user = context.select<AuthBloc, AuthUser?>(
+      (bloc) => bloc.state.session?.user,
+    );
+
+    return BirthDatePromptGate(
+      isSignedIn: user != null,
+      hasBirthDate: user?.birthDate != null,
+      child: Scaffold(
+        body: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              HomeHero(
+                greeting: _greeting(context),
+                // Coupures de ligne explicites, portées par la
+                // traduction : la maquette compose ce titre sur 3 lignes,
+                // et un retour automatique dépendrait de la largeur.
+                title: context.l10n.homeTitle,
+                onNotificationsTap: () =>
+                    context.push(AppRouter.notificationsPath),
+              ),
+              // La carte de recherche chevauche l'en-tête de 49px
+              // (`.floating-search { margin-top: -49px }`). `Transform` ne
+              // modifiant pas la hauteur occupée, l'espace ainsi libéré en
+              // bas de page est repris dans le `SizedBox` final.
+              Transform.translate(
+                offset: const Offset(0, -49),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 18),
+                  child: BlocBuilder<HomeBloc, HomeState>(
+                    builder: (context, state) => switch (state.status) {
+                      HomeStatus.loading => const _HomeLoading(),
+                      HomeStatus.failure => _HomeError(
+                        message: state.errorMessage,
+                        onRetry: () =>
+                            context.read<HomeBloc>().add(const HomeStarted()),
+                      ),
+                      HomeStatus.success => _HomeContent(state: state),
+                    },
+                  ),
                 ),
               ),
-            ),
-            // Dégage la barre de navigation basse (76px + ses marges),
-            // moins les 49px déjà libérés par le décalage ci-dessus.
-            const SizedBox(height: 50),
-          ],
+              // Dégage la barre de navigation basse (76px + ses marges),
+              // moins les 49px déjà libérés par le décalage ci-dessus.
+              const SizedBox(height: 50),
+            ],
+          ),
         ),
       ),
     );

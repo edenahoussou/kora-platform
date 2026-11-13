@@ -1,12 +1,59 @@
 import 'package:equatable/equatable.dart';
 
 import '../../../booking/domain/entities/price.dart';
+import 'wallet_movement.dart';
 
 /// Les règles du Wallet, arrêtées côté serveur.
 ///
 /// Aucune n'est écrite dans l'app : le minimum de points utilisable, les
 /// paliers de recharge ou la valeur d'un point se règlent dans
 /// l'administration et changent sans republier l'application.
+/// Ce que rapporte chaque bonus, tel que l'administration le règle.
+///
+/// L'écran Bonus ne montrait que ce qui avait déjà été crédité : le
+/// barème n'était pas exposé, et l'écrire dans l'app aurait promis des
+/// points qu'un changement de réglage aurait démentis. Le serveur le
+/// rend maintenant.
+class WalletBonusScale extends Equatable {
+  const WalletBonusScale({
+    this.welcomePoints = 0,
+    this.referralPoints = 0,
+    this.anniversaryPoints = 0,
+    this.usagePoints = 0,
+    this.usageThreshold = 0,
+  });
+
+  final int welcomePoints;
+  final int referralPoints;
+  final int anniversaryPoints;
+
+  /// Ce que rapporte la [usageThreshold]-ième utilisation du mois.
+  final int usagePoints;
+  final int usageThreshold;
+
+  /// Ce que rapporte [reason], ou `null` quand le serveur n'en dit rien.
+  int? pointsFor(WalletReason reason) {
+    final value = switch (reason) {
+      WalletReason.bonusWelcome => welcomePoints,
+      WalletReason.bonusReferral => referralPoints,
+      WalletReason.bonusAnniversary => anniversaryPoints,
+      WalletReason.bonusUsage => usagePoints,
+      _ => 0,
+    };
+
+    return value > 0 ? value : null;
+  }
+
+  @override
+  List<Object?> get props => [
+    welcomePoints,
+    referralPoints,
+    anniversaryPoints,
+    usagePoints,
+    usageThreshold,
+  ];
+}
+
 class WalletRules extends Equatable {
   const WalletRules({
     this.cashEnabled = false,
@@ -19,6 +66,7 @@ class WalletRules extends Equatable {
     this.cashBalanceCap,
     this.topupPresets = const [],
     this.expiryReminderDays = const [],
+    this.bonuses = const WalletBonusScale(),
   });
 
   /// Les deux soldes s'activent séparément : la fidélité peut tourner
@@ -49,6 +97,9 @@ class WalletRules extends Equatable {
   /// échéance selon une règle qui ne serait pas la sienne.
   final List<int> expiryReminderDays;
 
+  /// Ce que rapporte chaque bonus de fidélité.
+  final WalletBonusScale bonuses;
+
   /// La contre-valeur en francs d'un nombre de points.
   Price valueOf(int points) => Price(points * pointValue);
 
@@ -64,6 +115,7 @@ class WalletRules extends Equatable {
     cashBalanceCap,
     topupPresets,
     expiryReminderDays,
+    bonuses,
   ];
 }
 

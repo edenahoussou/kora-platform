@@ -1,5 +1,6 @@
 import '../../../../core/network/api_json.dart';
 import '../../../booking/domain/entities/price.dart';
+import '../../../payment/data/models/payment_attempt_model.dart';
 import '../../domain/entities/wallet_account.dart';
 import '../../domain/entities/wallet_movement.dart';
 import '../../domain/entities/wallet_top_up.dart';
@@ -48,9 +49,20 @@ abstract final class WalletAccountModel {
       topupMax: ApiJson.intOrNull(json['topup_max_amount']),
       cashBalanceCap: ApiJson.intOrNull(json['cash_balance_cap']),
       topupPresets: _ints(json['topup_amount_presets']),
-      // Absent de la réponse aujourd'hui : l'app n'affiche alors aucune
-      // alerte d'expiration plutôt que d'en inventer le seuil.
       expiryReminderDays: _ints(json['points_expiry_reminder_days']),
+      bonuses: _bonuses(ApiJson.map(json['loyalty_bonuses'])),
+    );
+  }
+
+  /// Le barème des bonus. Un montant absent reste à zéro : l'écran
+  /// affiche alors la ligne sans promettre de valeur.
+  static WalletBonusScale _bonuses(Map<String, dynamic> json) {
+    return WalletBonusScale(
+      welcomePoints: ApiJson.intOrNull(json['welcome_points']) ?? 0,
+      referralPoints: ApiJson.intOrNull(json['referral_points']) ?? 0,
+      anniversaryPoints: ApiJson.intOrNull(json['anniversary_points']) ?? 0,
+      usagePoints: ApiJson.intOrNull(json['usage_points']) ?? 0,
+      usageThreshold: ApiJson.intOrNull(json['usage_threshold']) ?? 0,
     );
   }
 
@@ -117,21 +129,22 @@ abstract final class WalletMovementModel {
 /// }
 /// ```
 ///
-/// Le bloc `payment` est **descriptif** : il n'a ni `next_action`, ni
-/// `widget`, ni `polling_interval_seconds`, que `PaymentResource` rend
-/// pour l'achat d'un billet. On garde donc son identifiant pour aller
-/// relire le paiement là où ces champs existent.
+/// Le bloc `payment` porte désormais la même charge utile que pour
+/// l'achat d'un billet — `next_action`, `widget`, `checkout_url`,
+/// `polling_interval_seconds`, `failure` — et se lit donc avec le même
+/// analyseur. L'app relisait le paiement ailleurs faute de ces champs ;
+/// ce second appel a disparu.
 abstract final class WalletTopUpModel {
   static WalletTopUp fromJson(Map<String, dynamic> json) {
-    final payment = ApiJson.map(json['payment']);
+    final payment = json['payment'];
 
     return WalletTopUp(
       id: ApiJson.string(json['uuid']),
       amount: Price(ApiJson.intOrNull(json['amount']) ?? 0),
       status: WalletTopUpStatus.of(ApiJson.string(json['status'])),
-      paymentId: ApiJson.stringOrNull(payment['uuid']),
-      paymentStatus: ApiJson.stringOrNull(payment['status']),
-      provider: ApiJson.stringOrNull(payment['provider']),
+      attempt: payment is Map
+          ? PaymentAttemptModel.fromJson(ApiJson.map(payment)).toEntity()
+          : null,
       createdAt: _date(json['created_at']),
     );
   }
