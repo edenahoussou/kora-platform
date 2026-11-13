@@ -27,7 +27,6 @@ class WalletResource extends JsonResource
             'cash_balance' => (int) $this->cash_balance,
             'points_balance' => (int) $this->points_balance,
             'points_expires_at' => $this->points_expires_at?->toIso8601String(),
-            'points_compensation_due' => (int) $this->points_compensation_due,
             'referral_code' => $this->referral_code,
             'referred_by' => $this->referred_by_user_id !== null,
             'holder' => [

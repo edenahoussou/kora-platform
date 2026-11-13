@@ -87,3 +87,13 @@ it('keeps validated directions and balance filters across cursor pages', functio
     $this->getJson($next)->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.direction', 'credit');
     $this->getJson('/api/v1/wallet/transactions?direction=invalid')->assertUnprocessable();
 });
+
+it('does not expose the internal points compensation debt to the traveler', function (): void {
+    $scenario = walletScenario(['points' => 100]);
+    $scenario['wallet']->update(['points_compensation_due' => 400]);
+    Sanctum::actingAs($scenario['user']);
+
+    $this->getJson('/api/v1/wallet')
+        ->assertOk()
+        ->assertJsonMissingPath('data.points_compensation_due');
+});
