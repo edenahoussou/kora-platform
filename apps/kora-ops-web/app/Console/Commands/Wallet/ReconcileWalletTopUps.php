@@ -24,7 +24,7 @@ class ReconcileWalletTopUps extends Command
 
         foreach ($query->orderBy('id')->get() as $topup) {
             if ($this->option('dry-run')) {
-                $this->line($topup->uuid.' '.($reconcile->neverStarted($topup->payment) ? 'never_started' : 'verify_provider'));
+                $this->line($topup->uuid.' '.$reconcile->state($topup));
 
                 continue;
             }
