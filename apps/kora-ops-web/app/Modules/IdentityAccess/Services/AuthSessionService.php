@@ -130,6 +130,8 @@ class AuthSessionService
             $user->assignRole('passenger');
         }
 
+        $challenge->update(['user_id' => $user->id]);
+
         return $this->issueSessionForDevice($user, $input);
     }
 
