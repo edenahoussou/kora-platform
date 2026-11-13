@@ -335,10 +335,10 @@ function widgetKkiaPayProvider(): PaymentProvider
     return $provider;
 }
 
-function bindWalletTopUpProvider(PaymentProvider $kkiapay): void
+function bindWalletTopUpProvider(PaymentProvider $kkiapay, string $provider = 'kkiapay'): void
 {
     $manager = new PaymentManager;
-    (new ReflectionClass($manager))->getProperty('resolved')->setValue($manager, ['kkiapay' => $kkiapay]);
+    (new ReflectionClass($manager))->getProperty('resolved')->setValue($manager, [$provider => $kkiapay]);
     app()->instance(PaymentManager::class, $manager);
 }
 
@@ -411,5 +411,88 @@ it('expires a top-up that never got a payment hand-off so its amount is availabl
     bindWalletTopUpProvider(widgetKkiaPayProvider());
     $this->postJson('/api/v1/wallet/topups', array_replace($payload, ['idempotency_key' => (string) Str::uuid()]))
         ->assertCreated();
+    $this->travelBack();
+});
+
+function unavailableMobileMoneyProvider(string $provider): PaymentProvider
+{
+    $mock = Mockery::mock(PaymentProvider::class);
+    $mock->shouldReceive('initiate')->andReturnUsing(function (Payment $payment) use ($provider): ProviderResponse {
+        $payment->update($provider === 'fedapay'
+            ? ['provider_transaction_id' => 'TX-'.$payment->uuid, 'provider_reference' => 'FEDA-'.$payment->uuid]
+            : ['provider_reference' => $payment->uuid]);
+
+        return new ProviderResponse(
+            status: PaymentStatus::Pending,
+            providerReference: $payment->provider_reference,
+            providerTransactionId: $payment->provider_transaction_id,
+            payload: ['initiation_issue' => 'provider_unavailable'],
+        );
+    });
+    $mock->shouldReceive('verify')->andReturn(new ProviderResponse(PaymentStatus::Pending));
+
+    return $mock;
+}
+
+it('does not block another amount when the provider initiation failed with a reference', function (): void {
+    walletCashEnabled();
+    bindWalletTopUpProvider(unavailableMobileMoneyProvider('mtn_momo'), 'mtn_momo');
+    $scenario = walletScenario();
+    Sanctum::actingAs($scenario['user']);
+
+    $first = $this->postJson('/api/v1/wallet/topups', walletTopUpPayload(['provider' => 'mtn_momo']))
+        ->assertCreated()->assertJsonPath('data.payment.next_action', 'verify')->json('data.uuid');
+
+    $this->postJson('/api/v1/wallet/topups', walletTopUpPayload([
+        'provider' => 'mtn_momo', 'amount' => 3000, 'idempotency_key' => (string) Str::uuid(),
+    ]))->assertCreated();
+
+    expect(WalletTopUp::query()->where('uuid', $first)->firstOrFail()->payment->provider_reference)->not->toBeNull()
+        ->and(WalletTopUp::query()->where('status', 'pending')->count())->toBe(2);
+});
+
+it('expires a FedaPay or MTN top-up stuck after a failed push', function (string $provider): void {
+    walletCashEnabled();
+    bindWalletTopUpProvider(unavailableMobileMoneyProvider($provider), $provider);
+    $scenario = walletScenario();
+    Sanctum::actingAs($scenario['user']);
+
+    $uuid = $this->postJson('/api/v1/wallet/topups', walletTopUpPayload(['provider' => $provider]))
+        ->assertCreated()->json('data.uuid');
+    $topup = WalletTopUp::query()->where('uuid', $uuid)->firstOrFail();
+
+    $this->travel(16)->minutes();
+    $topup->update(['next_reconciliation_at' => now()]);
+    $this->artisan('wallet:reconcile-topups')->assertSuccessful();
+
+    expect($topup->fresh()->status->value)->toBe('failed')
+        ->and($topup->payment->fresh()->status->value)->toBe('failed')
+        ->and($topup->payment->fresh()->failure_code)->toBe('provider_initiation_failed')
+        ->and($scenario['wallet']->fresh()->cash_balance)->toBe(0);
+
+    $this->postJson('/api/v1/wallet/topups', walletTopUpPayload([
+        'provider' => $provider, 'amount' => 3000, 'idempotency_key' => (string) Str::uuid(),
+    ]))->assertCreated();
+    $this->travelBack();
+})->with(['fedapay', 'mtn_momo']);
+
+it('keeps refusing another amount while an initiation is still unaccounted for', function (): void {
+    walletCashEnabled();
+    bindWalletTopUpProvider(unavailableMobileMoneyProvider('mtn_momo'), 'mtn_momo');
+    Sanctum::actingAs(User::factory()->create());
+    $payload = walletTopUpPayload(['provider' => 'mtn_momo']);
+    $uuid = $this->postJson('/api/v1/wallet/topups', $payload)->assertCreated()->json('data.uuid');
+
+    WalletTopUp::query()->where('uuid', $uuid)->firstOrFail()->payment->update([
+        'provider_reference' => null,
+        'failure_code' => null,
+        'provider_payload' => ['purpose' => 'wallet_topup', 'initiation_phase' => 'starting'],
+    ]);
+
+    $other = array_replace($payload, ['amount' => 3000, 'idempotency_key' => (string) Str::uuid()]);
+    $this->postJson('/api/v1/wallet/topups', $other)->assertStatus(409);
+
+    $this->travel(16)->minutes();
+    $this->postJson('/api/v1/wallet/topups', $other)->assertCreated();
     $this->travelBack();
 });

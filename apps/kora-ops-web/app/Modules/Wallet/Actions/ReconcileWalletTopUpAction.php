@@ -195,14 +195,39 @@ final class ReconcileWalletTopUpAction
         return $payment->status === PaymentStatus::Pending
             && blank($payment->provider_transaction_id)
             && blank($payment->provider_reference)
-            && ! isset($payment->provider_payload['widget'])
-            && ! isset($payment->provider_payload['checkout_url']);
+            && ! $this->hasPaymentHandoff($payment);
+    }
+
+    /**
+     * Indique qu'un moyen de paiement a réellement été remis au client
+     * (widget KKiaPay ou URL de paiement FedaPay).
+     */
+    public function hasPaymentHandoff(Payment $payment): bool
+    {
+        return isset($payment->provider_payload['widget']) || isset($payment->provider_payload['checkout_url']);
+    }
+
+    /**
+     * Indique qu'une recharge encore en attente interdit un autre montant.
+     *
+     * Une initiation qui a échoué sans remettre de moyen de paiement, ou qui a
+     * dépassé le délai d'initiation, ne doit plus bloquer le voyageur : FedaPay
+     * et MTN MoMo écrivent une référence avant l'appel prestataire, donc une
+     * référence seule ne prouve pas que le client puisse payer.
+     */
+    public function blocksNewTopUp(Payment $payment): bool
+    {
+        return $payment->status === PaymentStatus::Pending
+            && ! $this->hasPaymentHandoff($payment)
+            && ($payment->provider_payload['initiation_phase'] ?? null) !== 'ready'
+            && ! $this->initiationFailed($payment)
+            && ! $this->initiationExpired($payment);
     }
 
     /**
      * Classe la recharge pour la commande de rapprochement.
      *
-     * @return string `confirm_topup`, `close_failed`, `awaiting_initiation` ou `verify_provider`
+     * @return string `confirm_topup`, `close_failed`, `expire_stale`, `awaiting_initiation` ou `verify_provider`
      */
     public function state(WalletTopUp $topup): string
     {
@@ -211,6 +236,7 @@ final class ReconcileWalletTopUpAction
         return match (true) {
             $payment->status === PaymentStatus::Confirmed => 'confirm_topup',
             $payment->status !== PaymentStatus::Pending => 'close_failed',
+            ! $this->hasPaymentHandoff($payment) && ($this->initiationExpired($payment) || $this->provenLegacyFailure($payment)) => 'expire_stale',
             $this->awaitingInitiation($payment) => 'awaiting_initiation',
             default => 'verify_provider',
         };
@@ -236,12 +262,11 @@ final class ReconcileWalletTopUpAction
             return;
         }
 
-        if (! $this->awaitingInitiation($payment)) {
+        if ($this->hasPaymentHandoff($payment)) {
             return;
         }
 
-        $ttl = app(WalletSettings::class)->topupInitiationTtlMinutes;
-        if ($this->provenLegacyFailure($payment) || $payment->created_at?->lte(now()->subMinutes($ttl)) === true) {
+        if ($this->provenLegacyFailure($payment) || $this->initiationExpired($payment)) {
             $this->expireInitiation($payment);
 
             return;
@@ -264,20 +289,52 @@ final class ReconcileWalletTopUpAction
 
         $candidate = $payment->provider_payload['reconciliation_candidate'] ?? [];
         $payment = $this->verify($payment, $candidate['id'] ?? null, $candidate['event'] ?? []);
-        if ($payment->status === PaymentStatus::Pending && $payment->last_verified_at?->gte(now()->subMinute()) && $payment->provider === 'fedapay'
-            && filled($payment->provider_transaction_id)
-            && ($payment->provider_payload['initiation_phase'] ?? null) === 'fedapay_token_pending') {
+        if ($payment->status !== PaymentStatus::Pending || $this->hasPaymentHandoff($payment)) {
+            return;
+        }
+
+        if ($this->provenLegacyFailure($payment) || $this->initiationExpired($payment)) {
+            $this->expireInitiation($payment);
+
+            return;
+        }
+
+        if ($this->canReinitiate($payment)) {
             $this->start($topup);
         }
     }
 
     /**
-     * Seuls les prestataires dont l'initiation est une configuration cliente
-     * (widget KKiaPay) peuvent être relancés sans effet de bord prestataire.
+     * Une initiation déjà engagée peut être relancée sans effet de bord lorsque
+     * le prestataire n'a rien remis au client : widget KKiaPay, reprise d'un
+     * jeton FedaPay, ou échec d'initiation sans moyen de paiement.
      */
     private function canReinitiate(Payment $payment): bool
     {
-        return $payment->provider === 'kkiapay';
+        if ($payment->provider === 'kkiapay') {
+            return true;
+        }
+
+        return $this->initiationFailed($payment)
+            || ($payment->provider_payload['initiation_phase'] ?? null) === 'fedapay_token_pending';
+    }
+
+    /**
+     * Indique qu'une initiation a été tentée puis abandonnée avant tout moyen
+     * de paiement : le montant est toujours disponible côté client.
+     */
+    private function initiationFailed(Payment $payment): bool
+    {
+        return filled($payment->failure_code)
+            || isset($payment->provider_payload['initiation_issue'])
+            || filled($payment->provider_payload['error'] ?? null);
+    }
+
+    private function initiationExpired(Payment $payment): bool
+    {
+        $ttl = app(WalletSettings::class)->topupInitiationTtlMinutes;
+
+        return $payment->created_at?->lte(now()->subMinutes($ttl)) === true;
     }
 
     private function provenLegacyFailure(Payment $payment): bool
@@ -292,7 +349,7 @@ final class ReconcileWalletTopUpAction
     {
         DB::transaction(function () use ($payment): void {
             $locked = Payment::query()->where('id', $payment->getKey())->lockForUpdate()->firstOrFail();
-            if (! $this->awaitingInitiation($locked)) {
+            if ($locked->status !== PaymentStatus::Pending || $this->hasPaymentHandoff($locked)) {
                 return;
             }
 
