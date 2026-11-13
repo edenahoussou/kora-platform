@@ -6602,7 +6602,7 @@ paths:
                 recorded_at:
                   type: string
                   description: 'Heure locale du relevé (ISO 8601). Le champ value doit être une date valide. Le champ value doit être une date antérieure ou égale à <code>+5 minutes</code>. Le champ value doit être une date postérieure à <code>-7 days</code>.'
-                  example: '2052-11-29'
+                  example: '2052-11-30'
                   nullable: true
               required:
                 - kind
@@ -6805,7 +6805,7 @@ paths:
                 occurred_at:
                   type: string
                   description: 'Heure locale de la dépense (ISO 8601). Le champ value doit être une date valide. Le champ value doit être une date antérieure ou égale à <code>+5 minutes</code>. Le champ value doit être une date postérieure à <code>-7 days</code>.'
-                  example: '2052-11-29'
+                  example: '2052-11-30'
                   nullable: true
                 note:
                   type: string
