@@ -5,6 +5,7 @@ namespace App\Modules\Departures\Actions;
 use App\Modules\Departures\Data\DepartureStatus;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\Wallet\Jobs\CreditDepartureLoyaltyJob;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class ChangeDepartureStatusAction
@@ -29,20 +30,26 @@ class ChangeDepartureStatusAction
      */
     public function execute(Departure $departure, DepartureStatus $targetStatus, array $attributes = []): Departure
     {
-        $current = DepartureStatus::from((string) $departure->getRawOriginal('status'));
+        return DB::transaction(function () use ($departure, $targetStatus, $attributes): Departure {
+            $departure = Departure::query()->lockForUpdate()->findOrFail($departure->id);
+            $current = $departure->status;
 
-        if (! $this->canTransition($current, $targetStatus)) {
-            throw ValidationException::withMessages([
-                'status' => "Transition invalide : {$current->label()} → {$targetStatus->label()}.",
-            ]);
-        }
+            if (! $this->canTransition($current, $targetStatus)) {
+                throw ValidationException::withMessages([
+                    'status' => "Transition invalide : {$current->label()} → {$targetStatus->label()}.",
+                ]);
+            }
 
-        $departure->update(['status' => $targetStatus, ...$attributes]);
+            if ($targetStatus === DepartureStatus::Departed) {
+                $attributes['departed_at'] ??= now();
+            }
+            $departure->update(['status' => $targetStatus, ...$attributes]);
 
-        if ($targetStatus === DepartureStatus::Arrived) {
-            CreditDepartureLoyaltyJob::dispatch((int) $departure->getKey())->afterCommit();
-        }
+            if ($targetStatus === DepartureStatus::Arrived) {
+                CreditDepartureLoyaltyJob::dispatch((int) $departure->getKey())->afterCommit();
+            }
 
-        return $departure->refresh();
+            return $departure->refresh();
+        });
     }
 }
