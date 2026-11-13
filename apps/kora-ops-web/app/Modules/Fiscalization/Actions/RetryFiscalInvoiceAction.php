@@ -6,6 +6,7 @@ use App\Jobs\FiscalizeReservationInvoiceJob;
 use App\Models\User;
 use App\Modules\Fiscalization\Data\FiscalInvoiceStatus;
 use App\Modules\Fiscalization\Models\FiscalInvoice;
+use App\Modules\Parcels\Jobs\FiscalizeParcelInvoiceJob;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
@@ -29,7 +30,11 @@ class RetryFiscalInvoiceAction
             return $locked;
         }, attempts: 3);
 
-        FiscalizeReservationInvoiceJob::dispatch($retry->reservation_id);
+        if ($retry->parcel_charge_id !== null) {
+            FiscalizeParcelInvoiceJob::dispatch($retry->id);
+        } else {
+            FiscalizeReservationInvoiceJob::dispatch($retry->reservation_id);
+        }
 
         return $retry;
     }

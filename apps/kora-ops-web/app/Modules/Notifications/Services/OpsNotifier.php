@@ -15,6 +15,7 @@ use App\Modules\IdentityAccess\Models\TerminalSession;
 use App\Modules\Notifications\Actions\PublishOpsNotificationAction;
 use App\Modules\Notifications\Data\OpsNotificationDraft;
 use App\Modules\Notifications\Data\OpsNotificationType;
+use App\Modules\Parcels\Models\Parcel;
 use App\Modules\Sync\Models\SyncBatch;
 use App\Modules\Sync\Models\SyncOperation;
 use Illuminate\Support\Collection;
@@ -382,6 +383,16 @@ class OpsNotifier
             $departure,
             $terminal,
         );
+    }
+
+    public function parcelAlert(Parcel $parcel, string $key, bool $finance): void
+    {
+        $type = $finance ? OpsNotificationType::ParcelPaymentReconciliation : OpsNotificationType::ParcelIncident;
+        $recipients = $this->resolver->usersWithPermission($finance ? 'parcels.finance' : 'parcels.network');
+        $this->publish($type, $type->value.':'.$key, $type->title(), [
+            'parcel_uuid' => $parcel->uuid,
+            'reference' => $parcel->reference,
+        ], $recipients, null);
     }
 
     public function fiscalizationFailed(FiscalInvoice $invoice): void

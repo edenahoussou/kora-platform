@@ -48,6 +48,7 @@ class InitiateCreditNoteAction
             $creditNote = FiscalInvoice::query()->create([
                 'uuid' => $uuid,
                 'reservation_id' => $locked->reservation_id,
+                'parcel_charge_id' => $locked->parcel_charge_id,
                 'payment_id' => $locked->payment_id,
                 'kora_reference' => 'KORA-AVOIR-'.$uuid,
                 'status' => FiscalInvoiceStatus::Pending,

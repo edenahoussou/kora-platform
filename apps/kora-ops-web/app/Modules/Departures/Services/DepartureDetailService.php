@@ -9,6 +9,7 @@ use App\Modules\Boarding\Models\SeatReleaseEvent;
 use App\Modules\Booking\Data\ReservationSegmentStatus;
 use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\Departures\Models\Departure;
+use App\Modules\Parcels\Services\ParcelRevenue;
 use Illuminate\Support\Facades\Gate;
 
 /**
@@ -58,6 +59,7 @@ class DepartureDetailService
         return [
             'departure' => $this->serializeDeparture($departure),
             'passengers' => $segments->map(fn (ReservationSegment $segment): array => $this->manifestSerializer->row($segment, $ticketsByPassengerId, $canViewTickets, $departure->status))->values(),
+            'parcelSummary' => $user->can('parcels.network') ? app(ParcelRevenue::class)->departure($departure) : null,
             'boardingSummary' => $this->manifestSerializer->summary($segments, $departure->status),
             'timeline' => $this->buildTimeline($departure),
             'permissions' => [

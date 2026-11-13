@@ -25,9 +25,12 @@ describe('SystemRole enum', function (): void {
     });
 
     it('returns permissions for each role', function (): void {
-        expect(SystemRole::Passenger->permissions())->toBe(['bookings.create', 'bookings.view-own', 'bookings.cancel', 'tickets.view', 'company-accounts.view', 'company-portal.access'])
+        expect(SystemRole::Passenger->permissions())->toBe(['parcels.customer', 'bookings.create', 'bookings.view-own', 'bookings.cancel', 'tickets.view', 'company-accounts.view', 'company-portal.access'])
             ->and(SystemRole::BusDriver->permissions())->toBe(['departures.progress', 'incidents.report', 'departures.view', 'notifications.view', 'trip-logs.create'])
-            ->and(SystemRole::Conductor->permissions())->toContain('boarding.scan', 'seat-releases.create')
+            ->and(SystemRole::Conductor->permissions())->toContain('boarding.scan', 'seat-releases.create', 'parcels.scan')
+            ->and(SystemRole::Conductor->permissions())->not->toContain('parcels.view', 'parcels.finance')
+            ->and(SystemRole::GeneralManagement->permissions())->toContain('parcels.view', 'parcels.network')
+            ->and(SystemRole::GeneralManagement->permissions())->not->toContain('parcels.intake', 'parcels.handoff', 'parcels.finance')
             ->and(SystemRole::KoraPointSupervisor->permissions())->toContain('kora-points.remit')
             ->and(SystemRole::KoraPointSupervisor->permissions())->not->toContain('kora-points.finance')
             ->and(SystemRole::CommercialDirector->permissions())->toContain('agencies.view', 'agencies.create', 'agencies.update', 'agencies.deactivate')
@@ -64,8 +67,8 @@ describe('SystemRole enum', function (): void {
             ->and($all)->toContain('wallet.debit-counter', 'wallet.manage-restitutions', 'wallet.adjust')
             ->and($all)->toContain('wallet.ops.view', 'wallet.loyalty-rules.view', 'wallet.loyalty-rules.manage')
             ->and($all)->toContain('trip-logs.create')
-            ->and($all)->toHaveCount(108)
-            ->and(count(array_unique($all)))->toBe(108);
+            ->and($all)->toHaveCount(119)
+            ->and(count(array_unique($all)))->toBe(119);
     });
 
     it('registers every permission declared by a system role', function (): void {

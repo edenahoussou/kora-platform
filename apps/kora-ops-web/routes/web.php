@@ -288,7 +288,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // =========================================================
     // V1 secondary — Colis & Wallet Lite (stubs)
     // =========================================================
-    Route::inertia('parcels', 'parcels')->name('parcels');
+    Route::inertia('parcels', 'parcels')->middleware('can:parcels.view')->name('parcels');
+    Route::prefix('parcels/data')->name('parcels.data.')->group(base_path('routes/parcels-ops.php'));
 
     // =========================================================
     // V2 — Placeholders (coming-soon page)

@@ -51,6 +51,7 @@ class PaymentResource extends JsonResource
             'confirmed_at' => $this->confirmed_at?->toIso8601String(),
             'last_verified_at' => $this->last_verified_at?->toIso8601String(),
             'next_action' => $this->nextAction(),
+            'checkout_url' => $this->when($this->parcel_charge_id !== null && isset($this->provider_payload['checkout_url']), fn () => $this->provider_payload['checkout_url']),
             'widget' => $this->when($this->provider === 'kkiapay', fn () => $this->provider_payload['widget'] ?? null),
             'failure' => $this->when($this->failure_code !== null || $this->failure_message !== null, [
                 'code' => $this->failure_code,
@@ -74,6 +75,10 @@ class PaymentResource extends JsonResource
 
     private function nextAction(): string
     {
+        if ($this->parcel_charge_id !== null && $this->status->value === 'confirmed') {
+            return $this->failure_code === 'parcel_reconciliation_required' ? 'contact_support' : 'show_parcel';
+        }
+
         if ($this->status->value === 'pending') {
             return 'verify';
         }

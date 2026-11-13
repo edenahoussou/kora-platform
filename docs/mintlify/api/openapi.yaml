@@ -32,6 +32,15 @@ tags:
     name: Health
     description: "\nApplication health and liveness probes for load balancers and monitoring."
   -
+    name: 'KORA App Colis'
+    description: ''
+  -
+    name: 'KORA OPS Colis'
+    description: ''
+  -
+    name: 'KORA OPS Paramètres Colis'
+    description: ''
+  -
     name: 'OPS Mobile — Boarding'
     description: "\nContrôle serveur d'un billet (QR signé ou code court) pour un départ et\nune jambe précis, avec idempotence par operation_uuid et détection des\nconflits entre terminaux."
   -
@@ -6097,6 +6106,2761 @@ paths:
       tags:
         - Health
       security: []
+  /api/v1/parcels/corridors:
+    get:
+      summary: 'Lister les corridors Colis ouverts.'
+      operationId: listerLesCorridorsColisOuverts
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+      tags:
+        - 'KORA App Colis'
+      security: []
+  /api/v1/parcels/quote:
+    post:
+      summary: 'Estimer le prix selon le poids déclaré.'
+      operationId: estimerLePrixSelonLePoidsDclar
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    estimated: true
+                    weight_grams: 5000
+                    total: 1500
+                    net: 1271
+                    tax: 229
+                    currency: XOF
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      estimated:
+                        type: boolean
+                        example: false
+                      weight_grams:
+                        type: integer
+                        example: 5000
+                      total:
+                        type: integer
+                        example: 1500
+                      net:
+                        type: integer
+                        example: 1271
+                      tax:
+                        type: integer
+                        example: 229
+                      currency:
+                        type: string
+                        example: XOF
+        409:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Opération incompatible avec l’état du colis ou du corridor.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Opération incompatible avec l’état du colis ou du corridor.'
+        422:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Les données de cette opération sont invalides.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Les données de cette opération sont invalides.'
+      tags:
+        - 'KORA App Colis'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                corridor_uuid:
+                  type: string
+                  description: 'Le champ value doit être un UUID valide.'
+                  example: 00000000-0000-4000-8000-000000000000
+                weight_grams:
+                  type: integer
+                  description: 'Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 1000000.'
+                  example: 7
+              required:
+                - corridor_uuid
+                - weight_grams
+      security: []
+  '/api/v1/parcels/tracking/{reference}':
+    get:
+      summary: 'Suivre un colis par référence logistique.'
+      operationId: suivreUnColisParRfrenceLogistique
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    status: in_transit
+                    origin: Cotonou
+                    destination: Parakou
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                        example: in_transit
+                      origin:
+                        type: string
+                        example: Cotonou
+                      destination:
+                        type: string
+                        example: Parakou
+      tags:
+        - 'KORA App Colis'
+      security: []
+    parameters:
+      -
+        in: path
+        name: reference
+        description: ''
+        example: KC-64255931-42326
+        required: true
+        schema:
+          type: string
+  '/api/v1/parcels/shared/{token}':
+    get:
+      summary: 'Suivre un colis par lien partagé.'
+      operationId: suivreUnColisParLienPartag
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    status: in_transit
+                    origin: Cotonou
+                    destination: Parakou
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                        example: in_transit
+                      origin:
+                        type: string
+                        example: Cotonou
+                      destination:
+                        type: string
+                        example: Parakou
+      tags:
+        - 'KORA App Colis'
+      security: []
+    parameters:
+      -
+        in: path
+        name: token
+        description: ''
+        example: LG4QbddZ1ySN2uuMQeICeDI7xc8ZgO7KvMWYPh34NncBs5Cv
+        required: true
+        schema:
+          type: string
+  /api/v1/parcels:
+    get:
+      summary: 'Consulter ses envois et réceptions.'
+      operationId: consulterSesEnvoisEtRceptions
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+      tags:
+        - 'KORA App Colis'
+    post:
+      summary: 'Pré-enregistrer un envoi.'
+      operationId: prEnregistrerUnEnvoi
+      description: ''
+      parameters: []
+      responses:
+        201:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+      tags:
+        - 'KORA App Colis'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                corridor_uuid:
+                  type: string
+                  description: 'Le champ value doit être un UUID valide.'
+                  example: 00000000-0000-4000-8000-000000000000
+                weight_grams:
+                  type: integer
+                  description: 'Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 1000000.'
+                  example: 7
+                sender_name:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 120 caractères.'
+                  example: z
+                sender_phone:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 32 caractères.'
+                  example: m
+                  nullable: true
+                recipient_name:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 120 caractères.'
+                  example: i
+                recipient_phone:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 32 caractères.'
+                  example: 'y'
+                contents:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 500 caractères.'
+                  example: v
+              required:
+                - corridor_uuid
+                - weight_grams
+                - sender_name
+                - recipient_name
+                - recipient_phone
+                - contents
+  '/api/v1/parcels/{uuid}':
+    get:
+      summary: 'Consulter un colis et ses jalons.'
+      operationId: consulterUnColisEtSesJalons
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+      tags:
+        - 'KORA App Colis'
+    parameters:
+      -
+        in: path
+        name: uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/parcels/{parcel_uuid}/cancel':
+    post:
+      summary: 'Annuler un pré-enregistrement.'
+      operationId: annulerUnPrEnregistrement
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+        409:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Opération incompatible avec l’état du colis ou du corridor.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Opération incompatible avec l’état du colis ou du corridor.'
+      tags:
+        - 'KORA App Colis'
+    parameters:
+      -
+        in: path
+        name: parcel_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/parcels/{parcel_uuid}/share':
+    post:
+      summary: 'Créer ou remplacer le lien de suivi.'
+      operationId: crerOuRemplacerLeLienDeSuivi
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+      tags:
+        - 'KORA App Colis'
+    delete:
+      summary: 'Révoquer le lien de suivi.'
+      operationId: rvoquerLeLienDeSuivi
+      description: ''
+      parameters: []
+      responses:
+        204:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example: {}
+                properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+      tags:
+        - 'KORA App Colis'
+    parameters:
+      -
+        in: path
+        name: parcel_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/parcels/{parcel_uuid}/incidents':
+    post:
+      summary: 'Signaler un problème sur un colis.'
+      operationId: signalerUnProblmeSurUnColis
+      description: ''
+      parameters: []
+      responses:
+        201:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+        409:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Opération incompatible avec l’état du colis ou du corridor.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Opération incompatible avec l’état du colis ou du corridor.'
+      tags:
+        - 'KORA App Colis'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                kind:
+                  type: string
+                  description: ''
+                  example: loss
+                  enum:
+                    - loss
+                    - damage
+                    - custody_discrepancy
+                description:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 2000 caractères.'
+                  example: 'Eius et animi quos velit et.'
+              required:
+                - kind
+                - description
+    parameters:
+      -
+        in: path
+        name: parcel_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/parcels/{parcel_uuid}/documents':
+    get:
+      summary: 'Récupérer le QR ou le reçu fiscal.'
+      operationId: rcuprerLeQROuLeReuFiscal
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+        409:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Opération incompatible avec l’état du colis ou du corridor.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Opération incompatible avec l’état du colis ou du corridor.'
+      tags:
+        - 'KORA App Colis'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                kind:
+                  type: string
+                  description: ''
+                  example: label
+                  enum:
+                    - label
+                    - receipt
+                    - return_receipt
+                  nullable: true
+    parameters:
+      -
+        in: path
+        name: parcel_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/parcels/{parcel_uuid}/payment-methods':
+    get:
+      summary: 'Lister les moyens de paiement du corridor.'
+      operationId: listerLesMoyensDePaiementDuCorridor
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+      tags:
+        - 'KORA App Colis'
+    parameters:
+      -
+        in: path
+        name: parcel_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/parcels/{parcel_uuid}/payments':
+    post:
+      summary: 'Initier le paiement du devis pesé.'
+      operationId: initierLePaiementDuDevisPes
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+        409:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Le montant doit correspondre au dernier devis pesé ou un paiement est en cours.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Le montant doit correspondre au dernier devis pesé ou un paiement est en cours.'
+        422:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Les données de cette opération sont invalides.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Les données de cette opération sont invalides.'
+      tags:
+        - 'KORA App Colis'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                idempotency_key:
+                  type: string
+                  description: 'Le champ value doit être un UUID valide.'
+                  example: 00000000-0000-4000-8000-000000000000
+                method:
+                  type: string
+                  description: ''
+                  example: cash
+                  enum:
+                    - cash
+                    - mobile_money
+                    - card
+                    - wallet
+                amount:
+                  type: integer
+                  description: 'Le champ value doit être au moins 1.'
+                  example: 67
+                provider:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 32 caractères.'
+                  example: z
+                  nullable: true
+                mobile_money_network:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 32 caractères.'
+                  example: m
+                  nullable: true
+                wallet_amount:
+                  type: integer
+                  description: 'Le champ value doit être au moins 0.'
+                  example: 8
+                  nullable: true
+                points_amount:
+                  type: integer
+                  description: 'Le champ value doit être au moins 0.'
+                  example: 76
+                  nullable: true
+                cash_received_amount:
+                  type: integer
+                  description: 'Le champ value doit être au moins 1.'
+                  example: 16
+                  nullable: true
+                agency_payment_account_uuid:
+                  type: string
+                  description: 'Le champ value doit être un UUID valide.'
+                  example: 00000000-0000-4000-8000-000000000000
+                  nullable: true
+                provider_reference:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 128 caractères.'
+                  example: j
+                  nullable: true
+              required:
+                - idempotency_key
+                - method
+                - amount
+    parameters:
+      -
+        in: path
+        name: parcel_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/parcels/{parcel_uuid}/payments/{uuid}':
+    get:
+      summary: 'Consulter une tentative de paiement Colis.'
+      operationId: consulterUneTentativeDePaiementColis
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+      tags:
+        - 'KORA App Colis'
+    parameters:
+      -
+        in: path
+        name: parcel_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+      -
+        in: path
+        name: uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/parcels/{parcel_uuid}/payments/{payment_uuid}/verify':
+    post:
+      summary: 'Vérifier la transaction auprès du prestataire.'
+      operationId: vrifierLaTransactionAuprsDuPrestataire
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+      tags:
+        - 'KORA App Colis'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                transaction_id:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 128 caractères.'
+                  example: b
+                  nullable: true
+    parameters:
+      -
+        in: path
+        name: parcel_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+      -
+        in: path
+        name: payment_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/ops/parcels/departures/{departure_uuid}/manifest':
+    get:
+      summary: 'Télécharger le manifeste de soute versionné.'
+      operationId: tlchargerLeManifesteDeSouteVersionn
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+      tags:
+        - 'KORA OPS Colis'
+    parameters:
+      -
+        in: path
+        name: departure_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/ops/parcels/departures/{departure_uuid}/scan':
+    post:
+      summary: 'Enregistrer un scan logistique en ligne.'
+      operationId: enregistrerUnScanLogistiqueEnLigne
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    reference: KC-20261112-12345
+                    status: in_transit
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      reference:
+                        type: string
+                        example: KC-20261112-12345
+                      status:
+                        type: string
+                        example: in_transit
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+        409:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Le scan est incompatible avec le départ, l’arrêt ou l’état de garde.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Le scan est incompatible avec le départ, l’arrêt ou l’état de garde.'
+        422:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Les données de cette opération sont invalides.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Les données de cette opération sont invalides.'
+      tags:
+        - 'KORA OPS Colis'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reference:
+                  type: string
+                  description: 'Must match the regex /^KC-[0-9]{8}-[0-9]{5}$/.'
+                  example: KC-64255931-42326
+                stop_uuid:
+                  type: string
+                  description: 'Le champ value doit être un UUID valide.'
+                  example: 00000000-0000-4000-8000-000000000000
+                direction:
+                  type: string
+                  description: ''
+                  example: load
+                  enum:
+                    - load
+                    - unload
+                operation_uuid:
+                  type: string
+                  description: 'Le champ value doit être un UUID valide.'
+                  example: 00000000-0000-4000-8000-000000000000
+                observed_at:
+                  type: string
+                  description: 'Le champ value doit être une date valide.'
+                  example: '2026-11-13T09:01:29'
+              required:
+                - reference
+                - stop_uuid
+                - direction
+                - operation_uuid
+                - observed_at
+    parameters:
+      -
+        in: path
+        name: departure_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/ops/parcels/{parcel_uuid}/print-results':
+    post:
+      summary: 'Journaliser le résultat d’une impression sur le P501.'
+      operationId: journaliserLeRsultatDuneImpressionSurLeP501
+      description: ''
+      parameters: []
+      responses:
+        204:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example: {}
+                properties: {}
+        409:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Le résultat de l’impression a déjà été enregistré.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Le résultat de l’impression a déjà été enregistré.'
+      tags:
+        - 'KORA OPS Colis'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                print_job_uuid:
+                  type: string
+                  description: 'Le champ value doit être un UUID valide.'
+                  example: 00000000-0000-4000-8000-000000000000
+                outcome:
+                  type: string
+                  description: ''
+                  example: printed
+                  enum:
+                    - printed
+                    - failed
+              required:
+                - print_job_uuid
+                - outcome
+    parameters:
+      -
+        in: path
+        name: parcel_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  /api/v1/ops/parcels:
+    get:
+      summary: 'Lister et filtrer les colis du périmètre OPS.'
+      operationId: listerEtFiltrerLesColisDuPrimtreOPS
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+      tags:
+        - 'KORA OPS Colis'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 32 caractères.'
+                  example: b
+                  nullable: true
+                reference:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 17 caractères.'
+                  example: ngzmiyv
+                  nullable: true
+                corridor_uuid:
+                  type: string
+                  description: 'Le champ value doit être un UUID valide.'
+                  example: 00000000-0000-4000-8000-000000000000
+                  nullable: true
+                page:
+                  type: integer
+                  description: 'Le champ value doit être au moins 1.'
+                  example: 4
+                  nullable: true
+    post:
+      summary: 'Pré-enregistrer un colis au guichet.'
+      operationId: prEnregistrerUnColisAuGuichet
+      description: ''
+      parameters: []
+      responses:
+        201:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+      tags:
+        - 'KORA OPS Colis'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                corridor_uuid:
+                  type: string
+                  description: 'Le champ value doit être un UUID valide.'
+                  example: 00000000-0000-4000-8000-000000000000
+                weight_grams:
+                  type: integer
+                  description: 'Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 1000000.'
+                  example: 7
+                sender_name:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 120 caractères.'
+                  example: z
+                sender_phone:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 32 caractères.'
+                  example: m
+                  nullable: true
+                recipient_name:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 120 caractères.'
+                  example: i
+                recipient_phone:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 32 caractères.'
+                  example: 'y'
+                contents:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 500 caractères.'
+                  example: v
+              required:
+                - corridor_uuid
+                - weight_grams
+                - sender_name
+                - recipient_name
+                - recipient_phone
+                - contents
+  /api/v1/ops/parcels/indicators:
+    get:
+      summary: 'Compter les colis par statut.'
+      operationId: compterLesColisParStatut
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+      tags:
+        - 'KORA OPS Colis'
+  '/api/v1/ops/parcels/{uuid}':
+    get:
+      summary: 'Consulter un dossier Colis.'
+      operationId: consulterUnDossierColis
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+      tags:
+        - 'KORA OPS Colis'
+    parameters:
+      -
+        in: path
+        name: uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/ops/parcels/{parcel_uuid}/inspect':
+    post:
+      summary: 'Peser le colis et confirmer le devis ou enregistrer un refus.'
+      operationId: peserLeColisEtConfirmerLeDevisOuEnregistrerUnRefus
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+        409:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Opération incompatible avec l’état du colis ou du corridor.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Opération incompatible avec l’état du colis ou du corridor.'
+        422:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Les données de cette opération sont invalides.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Les données de cette opération sont invalides.'
+      tags:
+        - 'KORA OPS Colis'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                weight_grams:
+                  type: integer
+                  description: 'This field is required unless <code>category</code> is in <code>refused</code>. Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 1000000.'
+                  example: 1
+                category:
+                  type: string
+                  description: ''
+                  example: allowed
+                  enum:
+                    - allowed
+                    - cash
+                    - flammable
+                    - chemical
+                    - undeclared_medicine
+                    - weapon
+                    - refused
+                cash_value:
+                  type: integer
+                  description: 'This field is required when <code>category</code> is <code>cash</code>. Le champ value doit être au moins 0.'
+                  example: 39
+                reason:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 500 caractères.'
+                  example: g
+                  nullable: true
+              required:
+                - category
+    parameters:
+      -
+        in: path
+        name: parcel_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/ops/parcels/{parcel_uuid}/cancel':
+    post:
+      summary: 'Annuler une demande au guichet.'
+      operationId: annulerUneDemandeAuGuichet
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+        409:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Opération incompatible avec l’état du colis ou du corridor.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Opération incompatible avec l’état du colis ou du corridor.'
+      tags:
+        - 'KORA OPS Colis'
+    parameters:
+      -
+        in: path
+        name: parcel_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/ops/parcels/{parcel_uuid}/pay':
+    post:
+      summary: 'Encaisser un devis définitif au guichet.'
+      operationId: encaisserUnDevisDfinitifAuGuichet
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+        409:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Le montant doit correspondre au dernier devis pesé ou un paiement est en cours.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Le montant doit correspondre au dernier devis pesé ou un paiement est en cours.'
+        422:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Les données de cette opération sont invalides.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Les données de cette opération sont invalides.'
+      tags:
+        - 'KORA OPS Colis'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                idempotency_key:
+                  type: string
+                  description: 'Le champ value doit être un UUID valide.'
+                  example: 00000000-0000-4000-8000-000000000000
+                method:
+                  type: string
+                  description: ''
+                  example: cash
+                  enum:
+                    - cash
+                    - mobile_money
+                    - card
+                    - wallet
+                amount:
+                  type: integer
+                  description: 'Le champ value doit être au moins 1.'
+                  example: 67
+                provider:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 32 caractères.'
+                  example: z
+                  nullable: true
+                mobile_money_network:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 32 caractères.'
+                  example: m
+                  nullable: true
+                wallet_amount:
+                  type: integer
+                  description: 'Le champ value doit être au moins 0.'
+                  example: 8
+                  nullable: true
+                points_amount:
+                  type: integer
+                  description: 'Le champ value doit être au moins 0.'
+                  example: 76
+                  nullable: true
+                cash_received_amount:
+                  type: integer
+                  description: 'Le champ value doit être au moins 1.'
+                  example: 16
+                  nullable: true
+                agency_payment_account_uuid:
+                  type: string
+                  description: 'Le champ value doit être un UUID valide.'
+                  example: 00000000-0000-4000-8000-000000000000
+                  nullable: true
+                provider_reference:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 128 caractères.'
+                  example: j
+                  nullable: true
+              required:
+                - idempotency_key
+                - method
+                - amount
+    parameters:
+      -
+        in: path
+        name: parcel_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/ops/parcels/{parcel_uuid}/ready':
+    post:
+      summary: 'Valider le colis au hub d’origine.'
+      operationId: validerLeColisAuHubDorigine
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+        409:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Opération incompatible avec l’état du colis ou du corridor.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Opération incompatible avec l’état du colis ou du corridor.'
+      tags:
+        - 'KORA OPS Colis'
+    parameters:
+      -
+        in: path
+        name: parcel_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/ops/parcels/{parcel_uuid}/assign':
+    post:
+      summary: 'Affecter le colis à un départ Bus direct.'
+      operationId: affecterLeColisUnDpartBusDirect
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+        409:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Capacité de soute insuffisante ou hubs incompatibles avec le départ.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Capacité de soute insuffisante ou hubs incompatibles avec le départ.'
+      tags:
+        - 'KORA OPS Colis'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                departure_uuid:
+                  type: string
+                  description: 'Le champ value doit être un UUID valide.'
+                  example: 00000000-0000-4000-8000-000000000000
+              required:
+                - departure_uuid
+    parameters:
+      -
+        in: path
+        name: parcel_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/ops/parcels/{parcel_uuid}/unload-at-origin':
+    post:
+      summary: 'Corriger la garde par déchargement au hub d’origine.'
+      operationId: corrigerLaGardeParDchargementAuHubDorigine
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+        409:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Opération incompatible avec l’état du colis ou du corridor.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Opération incompatible avec l’état du colis ou du corridor.'
+      tags:
+        - 'KORA OPS Colis'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 500 caractères.'
+                  example: b
+              required:
+                - reason
+    parameters:
+      -
+        in: path
+        name: parcel_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/ops/parcels/{parcel_uuid}/receive':
+    post:
+      summary: 'Confirmer la réception au hub et émettre le code de retrait.'
+      operationId: confirmerLaRceptionAuHubEtmettreLeCodeDeRetrait
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+        409:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Opération incompatible avec l’état du colis ou du corridor.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Opération incompatible avec l’état du colis ou du corridor.'
+      tags:
+        - 'KORA OPS Colis'
+    parameters:
+      -
+        in: path
+        name: parcel_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/ops/parcels/{parcel_uuid}/reissue-code':
+    post:
+      summary: 'Révoquer et renouveler le code de retrait.'
+      operationId: rvoquerEtRenouvelerLeCodeDeRetrait
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+      tags:
+        - 'KORA OPS Colis'
+    parameters:
+      -
+        in: path
+        name: parcel_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/ops/parcels/{parcel_uuid}/release':
+    post:
+      summary: 'Remettre le colis contre un code ou une vérification autorisée.'
+      operationId: remettreLeColisContreUnCodeOuUneVrificationAutorise
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+        409:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Opération incompatible avec l’état du colis ou du corridor.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Opération incompatible avec l’état du colis ou du corridor.'
+        422:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Les données de cette opération sont invalides.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Les données de cette opération sont invalides.'
+        429:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Nombre maximal d’essais de retrait atteint.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Nombre maximal d’essais de retrait atteint.'
+      tags:
+        - 'KORA OPS Colis'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                  description: 'This field is required when <code>identity_type</code> is not present. Le champ value doit contenir 6 caractères.'
+                  example: bngzmi
+                identity_type:
+                  type: string
+                  description: 'This field is required when <code>code</code> is not present.'
+                  example: national_id
+                  enum:
+                    - national_id
+                    - passport
+                    - driving_licence
+                reason:
+                  type: string
+                  description: 'This field is required when <code>identity_type</code> is present. Le champ value ne doit pas dépasser 500 caractères.'
+                  example: 'y'
+    parameters:
+      -
+        in: path
+        name: parcel_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/ops/parcels/{parcel_uuid}/return-charge':
+    post:
+      summary: 'Préparer l’encaissement du retour.'
+      operationId: prparerLencaissementDuRetour
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+        409:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Opération incompatible avec l’état du colis ou du corridor.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Opération incompatible avec l’état du colis ou du corridor.'
+      tags:
+        - 'KORA OPS Colis'
+    parameters:
+      -
+        in: path
+        name: parcel_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/ops/parcels/{parcel_uuid}/documents':
+    get:
+      summary: 'Récupérer les données ESC/POS de l’étiquette ou du reçu.'
+      operationId: rcuprerLesDonnesESCPOSDeLtiquetteOuDuReu
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+        409:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Opération incompatible avec l’état du colis ou du corridor.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Opération incompatible avec l’état du colis ou du corridor.'
+      tags:
+        - 'KORA OPS Colis'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                kind:
+                  type: string
+                  description: ''
+                  example: label
+                  enum:
+                    - label
+                    - receipt
+                    - return_receipt
+                  nullable: true
+    parameters:
+      -
+        in: path
+        name: parcel_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/ops/parcels/{parcel_uuid}/incidents':
+    post:
+      summary: 'Ouvrir un dossier d’incident bloquant.'
+      operationId: ouvrirUnDossierDincidentBloquant
+      description: ''
+      parameters: []
+      responses:
+        201:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+        409:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Opération incompatible avec l’état du colis ou du corridor.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Opération incompatible avec l’état du colis ou du corridor.'
+      tags:
+        - 'KORA OPS Colis'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                kind:
+                  type: string
+                  description: ''
+                  example: loss
+                  enum:
+                    - loss
+                    - damage
+                    - custody_discrepancy
+                description:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 2000 caractères.'
+                  example: 'Eius et animi quos velit et.'
+              required:
+                - kind
+                - description
+    parameters:
+      -
+        in: path
+        name: parcel_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/ops/parcels/{parcel_uuid}/incidents/{incident_uuid}/resolve':
+    post:
+      summary: 'Résoudre le dossier d’incident.'
+      operationId: rsoudreLeDossierDincident
+      description: ''
+      parameters: []
+      responses:
+        204:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example: {}
+                properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+      tags:
+        - 'KORA OPS Colis'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 500 caractères.'
+                  example: b
+              required:
+                - reason
+    parameters:
+      -
+        in: path
+        name: parcel_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+      -
+        in: path
+        name: incident_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/ops/parcels/{parcel_uuid}/payments':
+    get:
+      summary: 'Consulter les encaissements et les rapprochements d’un dossier Colis.'
+      operationId: consulterLesEncaissementsEtLesRapprochementsDunDossierColis
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: []
+                properties:
+                  data:
+                    type: array
+                    example: []
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour le rapprochement.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour le rapprochement.'
+      tags:
+        - 'KORA OPS Colis'
+    parameters:
+      -
+        in: path
+        name: parcel_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/ops/parcels/{parcel_uuid}/refunds':
+    post:
+      summary: 'Autoriser une restitution Colis.'
+      operationId: autoriserUneRestitutionColis
+      description: ''
+      parameters: []
+      responses:
+        201:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+        409:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Opération incompatible avec l’état du colis ou du corridor.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Opération incompatible avec l’état du colis ou du corridor.'
+      tags:
+        - 'KORA OPS Colis'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payment_uuid:
+                  type: string
+                  description: 'Le champ value doit être un UUID valide.'
+                  example: 00000000-0000-4000-8000-000000000000
+                idempotency_key:
+                  type: string
+                  description: 'Le champ value doit être un UUID valide.'
+                  example: 00000000-0000-4000-8000-000000000000
+                amount:
+                  type: integer
+                  description: 'Le champ value doit être au moins 1.'
+                  example: 27
+                reason:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 500 caractères.'
+                  example: i
+              required:
+                - payment_uuid
+                - idempotency_key
+                - amount
+                - reason
+    parameters:
+      -
+        in: path
+        name: parcel_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/ops/parcels/{parcel_uuid}/refunds/{refund_uuid}/complete':
+    post:
+      summary: 'Enregistrer l’exécution de la restitution.'
+      operationId: enregistrerLexcutionDeLaRestitution
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+        409:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Opération incompatible avec l’état du colis ou du corridor.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Opération incompatible avec l’état du colis ou du corridor.'
+      tags:
+        - 'KORA OPS Colis'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                proof:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 255 caractères.'
+                  example: b
+                cash_ledger_uuid:
+                  type: string
+                  description: 'Le champ value doit être un UUID valide.'
+                  example: 00000000-0000-4000-8000-000000000000
+                  nullable: true
+              required:
+                - proof
+    parameters:
+      -
+        in: path
+        name: parcel_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+      -
+        in: path
+        name: refund_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  /api/v1/ops/parcels/configuration:
+    get:
+      summary: 'Consulter les hubs, corridors et tarifs.'
+      operationId: consulterLesHubsCorridorsEtTarifs
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+      tags:
+        - 'KORA OPS Paramètres Colis'
+  /api/v1/ops/parcels/hubs:
+    put:
+      summary: 'Configurer un hub de dépôt et retrait.'
+      operationId: configurerUnHubDeDptEtRetrait
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+      tags:
+        - 'KORA OPS Paramètres Colis'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                agency_uuid:
+                  type: string
+                  description: 'Le champ value doit être un UUID valide.'
+                  example: 00000000-0000-4000-8000-000000000000
+                stop_uuid:
+                  type: string
+                  description: 'Le champ value doit être un UUID valide.'
+                  example: 00000000-0000-4000-8000-000000000000
+                enabled:
+                  type: boolean
+                  description: ''
+                  example: false
+              required:
+                - agency_uuid
+                - stop_uuid
+                - enabled
+  /api/v1/ops/parcels/corridors:
+    put:
+      summary: 'Configurer et activer un corridor Colis.'
+      operationId: configurerEtActiverUnCorridorColis
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+        409:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Opération incompatible avec l’état du colis ou du corridor.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Opération incompatible avec l’état du colis ou du corridor.'
+      tags:
+        - 'KORA OPS Paramètres Colis'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                origin_hub_uuid:
+                  type: string
+                  description: 'Le champ value doit être un UUID valide.'
+                  example: 00000000-0000-4000-8000-000000000000
+                destination_hub_uuid:
+                  type: string
+                  description: 'The value and <code>origin_hub_uuid</code> must be different. Le champ value doit être un UUID valide.'
+                  example: 00000000-0000-4000-8000-000000000000
+                enabled:
+                  type: boolean
+                  description: ''
+                  example: false
+                wallet_cash_enabled:
+                  type: boolean
+                  description: ''
+                  example: false
+              required:
+                - origin_hub_uuid
+                - destination_hub_uuid
+                - enabled
+                - wallet_cash_enabled
+  '/api/v1/ops/parcels/corridors/{corridor_uuid}/tariffs':
+    post:
+      summary: 'Publier une version de tarif.'
+      operationId: publierUneVersionDeTarif
+      description: ''
+      parameters: []
+      responses:
+        201:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+      tags:
+        - 'KORA OPS Paramètres Colis'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                base_amount:
+                  type: integer
+                  description: 'Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 10000000.'
+                  example: 1
+                step_amount:
+                  type: integer
+                  description: 'Le champ value doit être au moins 0. Le champ value ne doit pas être supérieur à 1000000.'
+                  example: 22
+                step_grams:
+                  type: integer
+                  description: 'Le champ value doit être au moins 100. Le champ value ne doit pas être supérieur à 30000.'
+                  example: 7
+                maximum_grams:
+                  type: integer
+                  description: 'Le champ value ne doit pas être supérieur à 30000.'
+                  example: 16
+                return_amount:
+                  type: integer
+                  description: 'Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 10000000.'
+                  example: 17
+              required:
+                - base_amount
+                - step_amount
+                - step_grams
+                - maximum_grams
+                - return_amount
+    parameters:
+      -
+        in: path
+        name: corridor_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/ops/parcels/departures/{departure_uuid}/capacity':
+    put:
+      summary: 'Configurer la capacité Colis du départ.'
+      operationId: configurerLaCapacitColisDuDpart
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+        409:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Opération incompatible avec l’état du colis ou du corridor.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Opération incompatible avec l’état du colis ou du corridor.'
+      tags:
+        - 'KORA OPS Paramètres Colis'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                capacity_grams:
+                  type: integer
+                  description: 'Le champ value doit être au moins 0. Le champ value ne doit pas être supérieur à 10000000.'
+                  example: 1
+              required:
+                - capacity_grams
+    parameters:
+      -
+        in: path
+        name: departure_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
   /api/v1/ops/boarding:
     post:
       summary: "Valide un scan d'embarquement."

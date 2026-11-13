@@ -186,6 +186,12 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
 
         if ($group === SettingsGroup::Operations) {
             return [
+                'parcelIntakeExpiryHours' => ['required', 'integer', 'between:1,720'],
+                'parcelFirstReminderDays' => ['required', 'integer', 'min:1'],
+                'parcelSecondReminderDays' => ['required', 'integer', 'gt:parcelFirstReminderDays'],
+                'parcelReturnDays' => ['required', 'integer', 'gt:parcelSecondReminderDays', 'max:365'],
+                'parcelHandoffMaxAttempts' => ['required', 'integer', 'between:1,20'],
+                'parcelFiscalAlertHours' => ['required', 'integer', 'between:1,23'],
                 'koraPointCommissionBasisPoints' => ['nullable', 'integer', 'between:0,10000'],
                 'koraPointCeilingAmount' => ['nullable', 'integer', 'min:0', 'max:1000000000000'],
                 'koraPointGraceDays' => ['required', 'integer', 'between:0,365'],

@@ -5,6 +5,7 @@ namespace App\Modules\Profitability\Services;
 use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\Line;
 use App\Modules\Finance\Data\RevenuePeriod;
+use App\Modules\Parcels\Services\ParcelRevenue;
 use App\Modules\Profitability\Data\CostCategory;
 use App\Modules\Profitability\Data\CostSourceStatus;
 use App\Modules\Profitability\Data\EntityScope;
@@ -141,7 +142,7 @@ class ProfitabilityReport
         $previous = $this->financials($period->comparisonPeriod(), $scope);
         $cards = $this->cards($axis, $financials, $previous, $period);
 
-        $revenueNet = (int) $financials['revenue']['total']['net'];
+        $revenueNet = (int) ($financials['revenue']['total']['net'] + $financials['parcelRevenue']['net']);
         $costTotal = (int) $financials['costs']['total'];
         $result = $revenueNet - $costTotal;
         $seatsSold = array_sum(array_column($financials['revenue']['byDeparture'], 'seatsSold'));
@@ -167,11 +168,21 @@ class ProfitabilityReport
             $scope,
         );
 
+        $parcelRevenueByDeparture = [];
+        foreach ($financials['parcelRevenue']['byDeparture'] as $departureId => $amount) {
+            $parcelRevenueByDeparture[] = [
+                'departureUuid' => $financials['departureMeta'][$departureId]['uuid'],
+                'amount' => $amount,
+            ];
+        }
+
         $report = [
             'currency' => 'XOF',
             'axis' => $axis->value,
             'generatedAt' => CarbonImmutable::now('UTC')->toIso8601String(),
             'entity' => $scope?->toArray(),
+            'parcelUnassignedNet' => $financials['parcelRevenue']['unassigned'],
+            'parcelRevenueByDeparture' => $parcelRevenueByDeparture,
             'hero' => [
                 'revenueNet' => $revenueNet,
                 'costAssigned' => (int) $financials['costs']['assigned'],
@@ -262,6 +273,11 @@ class ProfitabilityReport
         return [
             'period' => $period,
             'revenue' => $revenue,
+            'parcelRevenue' => app(ParcelRevenue::class)->profitability(
+                $period, array_keys($departureMeta),
+                $scope?->type === ProfitabilityAxis::Agency ? $scope->id : null,
+                $scope === null || $scope->type === ProfitabilityAxis::Agency,
+            ),
             'costs' => $costs,
             'distances' => $distances,
             'departureMeta' => $departureMeta,
@@ -465,7 +481,7 @@ class ProfitabilityReport
      */
     private function periodCard(string $key, string $label, string $subtitle, array $financials): array
     {
-        $revenueNet = (int) $financials['revenue']['total']['net'];
+        $revenueNet = (int) ($financials['revenue']['total']['net'] + $financials['parcelRevenue']['net']);
         $seatsSold = array_sum(array_column($financials['revenue']['byDeparture'], 'seatsSold'));
         $capacity = array_sum(array_map(static fn (array $meta): int => (int) ($meta['capacity'] ?? 0), $financials['departureMeta']));
 
@@ -580,8 +596,8 @@ class ProfitabilityReport
      */
     private function pnl(array $financials, array $previous): array
     {
-        $revenueNet = (int) $financials['revenue']['total']['net'];
-        $previousRevenueNet = (int) $previous['revenue']['total']['net'];
+        $revenueNet = (int) ($financials['revenue']['total']['net'] + $financials['parcelRevenue']['net']);
+        $previousRevenueNet = (int) ($previous['revenue']['total']['net'] + $previous['parcelRevenue']['net']);
         $costs = $financials['costs'];
         $previousCosts = $previous['costs'];
 
@@ -589,18 +605,18 @@ class ProfitabilityReport
             'key' => 'ticket_revenue',
             'label' => 'CA billets',
             'source' => 'KORA OPS',
-            'amount' => $revenueNet,
+            'amount' => $financials['revenue']['total']['net'],
             'status' => CostSourceStatus::Available->value,
-            'sharePercent' => $revenueNet > 0 ? 100.0 : null,
-            'evolutionPercent' => $this->evolution($revenueNet, $previousRevenueNet),
+            'sharePercent' => $revenueNet > 0 ? round($financials['revenue']['total']['net'] / $revenueNet * 100, 1) : null,
+            'evolutionPercent' => $this->evolution($financials['revenue']['total']['net'], $previous['revenue']['total']['net']),
         ], [
             'key' => 'parcel_revenue',
             'label' => 'CA colis',
             'source' => 'Module Colis',
-            'amount' => null,
-            'status' => CostSourceStatus::OutOfScope->value,
-            'sharePercent' => null,
-            'evolutionPercent' => null,
+            'amount' => $financials['parcelRevenue']['enabled'] ? $financials['parcelRevenue']['net'] : null,
+            'status' => $financials['parcelRevenue']['enabled'] ? CostSourceStatus::Available->value : CostSourceStatus::OutOfScope->value,
+            'sharePercent' => $revenueNet > 0 && $financials['parcelRevenue']['enabled'] ? round($financials['parcelRevenue']['net'] / $revenueNet * 100, 1) : null,
+            'evolutionPercent' => $this->evolution($financials['parcelRevenue']['net'], $previous['parcelRevenue']['net']),
         ]];
 
         foreach (CostCategory::POST_ORDER as $code) {

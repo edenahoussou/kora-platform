@@ -44,6 +44,7 @@ enum SystemRole: string
             self::KoraPointSupervisor => ['kora-points.view', 'kora-points.manage', 'kora-points.remit', 'kora-points.documents.upload', 'notifications.view', 'wallet.debit-counter'],
             self::KoraPointTreasurer => ['kora-points.view', 'kora-points.remit', 'kora-points.documents.upload', 'notifications.view'],
             self::Passenger => [
+                'parcels.customer',
                 'bookings.create',
                 'bookings.view-own',
                 'bookings.cancel',
@@ -64,6 +65,7 @@ enum SystemRole: string
                 'notifications.view',
             ],
             self::Conductor => [
+                'parcels.scan',
                 'departures.progress',
                 'incidents.report',
                 'notifications.view',
@@ -76,6 +78,7 @@ enum SystemRole: string
                 'trip-logs.create',
             ],
             self::AgencyAgent => [
+                'parcels.view', 'parcels.intake', 'parcels.handoff',
                 'incidents.report',
                 'notifications.view',
                 'bookings.view',
@@ -96,6 +99,7 @@ enum SystemRole: string
                 'wallet.debit-counter',
             ],
             self::AgencyManager => [
+                'parcels.view', 'parcels.intake', 'parcels.handoff', 'parcels.override',
                 'incidents.report',
                 'notifications.view',
                 'agencies.view',
@@ -129,6 +133,7 @@ enum SystemRole: string
                 'wallet.debit-counter',
             ],
             self::OperationsDirector => [
+                'parcels.view', 'parcels.network', 'parcels.assign', 'parcels.configure', 'parcels.override',
                 'notifications.view',
                 'tickets.view-network',
                 'agencies.view',
@@ -169,6 +174,7 @@ enum SystemRole: string
                 'wallet.loyalty-rules.view',
             ],
             self::CommercialDirector => [
+                'parcels.view', 'parcels.network', 'parcels.tariffs',
                 'kora-points.view', 'kora-points.manage', 'kora-points.terms', 'kora-points.documents.upload', 'kora-points.refund-request',
                 'notifications.view',
                 'tickets.view-network',
@@ -199,6 +205,7 @@ enum SystemRole: string
                 'profitability.export',
             ],
             self::Daf => [
+                'parcels.view', 'parcels.network', 'parcels.finance',
                 'kora-points.view', 'kora-points.finance', 'kora-points.refund-request',
                 'notifications.view',
                 'tickets.view-network',
@@ -229,6 +236,7 @@ enum SystemRole: string
                 'wallet.loyalty-rules.manage',
             ],
             self::GeneralManagement => [
+                'parcels.view', 'parcels.network',
                 'kora-points.view',
                 'notifications.view',
                 'tickets.view-network',
@@ -276,6 +284,7 @@ enum SystemRole: string
     public static function allPermissions(): array
     {
         return [
+            'parcels.assign', 'parcels.configure', 'parcels.customer', 'parcels.finance', 'parcels.handoff', 'parcels.intake', 'parcels.network', 'parcels.override', 'parcels.scan', 'parcels.tariffs', 'parcels.view',
             'kora-points.view', 'kora-points.manage', 'kora-points.terms', 'kora-points.documents.upload', 'kora-points.remit', 'kora-points.refund-request', 'kora-points.finance', 'kora-points.visits.actions.update',
             'departures.progress',
             'incidents.report',

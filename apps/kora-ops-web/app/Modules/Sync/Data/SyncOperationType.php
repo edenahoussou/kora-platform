@@ -11,6 +11,8 @@ enum SyncOperationType: string
     case BoardingScan = 'boarding.scan';
     case BoardingNoShow = 'boarding.no_show';
     case SeatRelease = 'seat_release';
+    case ParcelLoad = 'parcel.load';
+    case ParcelUnload = 'parcel.unload';
 
     /**
      * Les opérations qui libèrent un siège (no-show, descente anticipée)
@@ -22,6 +24,8 @@ enum SyncOperationType: string
         return match ($this) {
             self::SeatRelease, self::BoardingNoShow => 0,
             self::BoardingScan => 1,
+            self::ParcelLoad => 2,
+            self::ParcelUnload => 3,
         };
     }
 }

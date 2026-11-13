@@ -11,6 +11,7 @@ use App\Modules\Finance\Data\RevenuePeriod;
 use App\Modules\Finance\Data\RevenueRefundEvent;
 use App\Modules\Fiscalization\Data\FiscalInvoiceStatus;
 use App\Modules\Fiscalization\Models\FiscalInvoice;
+use App\Modules\Parcels\Services\ParcelRevenue;
 use App\Modules\Payments\Data\PaymentMethod;
 use App\Modules\Payments\Data\PaymentRefundStatus;
 use App\Modules\Payments\Data\PaymentStatus;
@@ -66,6 +67,7 @@ class ConsolidatedRevenueReport
 
         return [
             'summary' => $summary,
+            'parcelRevenue' => app(ParcelRevenue::class)->totals($period),
             'comparison' => $this->comparison($summary, $comparisonSummary),
             'timeline' => $this->timeline($period, $payments, $refundEvents['current']),
             'byChannel' => $this->byChannel($payments, $refundEvents['current']),
@@ -113,6 +115,11 @@ class ConsolidatedRevenueReport
             $this->aggregateSheet('Agences', $agencyRows),
             $this->aggregateSheet('Canaux', $report['byChannel']),
             $this->sourceSheet($report['paymentSources']),
+            ...(($report['parcelRevenue']['entryCount'] ?? 0) > 0 ? [[
+                'title' => 'Colis',
+                'headers' => ['Date', 'Type', 'UUID écriture', 'Colis', 'Hub', 'Origine', 'Destination', 'Départ', 'Moyen de paiement', 'HT XOF', 'TTC XOF'],
+                'rows' => app(ParcelRevenue::class)->export($period),
+            ]] : []),
             [
                 'title' => 'Écritures',
                 'headers' => ['Type', 'Date économique', 'UUID écriture', 'UUID paiement', 'Réservation', 'Agence / périmètre', 'Canal final', 'Source d’encaissement', 'Intégration', 'Réseau', 'Montant XOF', 'Statut'],
@@ -183,6 +190,7 @@ class ConsolidatedRevenueReport
     {
         $payments = Payment::query()
             ->with('reservation.sellingAgency')
+            ->whereNull('parcel_charge_id')
             ->where('status', PaymentStatus::Confirmed->value)
             ->where('currency', self::CURRENCY)
             ->where('confirmed_at', '>=', $period->startUtc())
@@ -274,6 +282,7 @@ class ConsolidatedRevenueReport
 
         return Payment::query()
             ->with($relations)
+            ->whereNull('parcel_charge_id')
             ->where('status', PaymentStatus::Confirmed->value)
             ->where('currency', self::CURRENCY)
             ->where('confirmed_at', '>=', $start)
@@ -743,6 +752,7 @@ class ConsolidatedRevenueReport
         if ($sessionIds !== []) {
             $sessionPayments = Payment::query()
                 ->whereIn('cash_session_id', $sessionIds)
+                ->whereNull('parcel_charge_id')
                 ->where('status', PaymentStatus::Confirmed->value)
                 ->where('currency', self::CURRENCY)
                 ->whereIn('method', [PaymentMethod::Cash->value, PaymentMethod::MobileMoney->value])
@@ -822,6 +832,7 @@ class ConsolidatedRevenueReport
     private function currencyControl(RevenuePeriod $period): array
     {
         $currencies = Payment::query()
+            ->whereNull('parcel_charge_id')
             ->where('status', PaymentStatus::Confirmed->value)
             ->where('currency', '!=', self::CURRENCY)
             ->where('confirmed_at', '>=', $period->startUtc())

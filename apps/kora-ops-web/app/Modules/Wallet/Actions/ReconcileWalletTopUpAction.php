@@ -117,8 +117,8 @@ final class ReconcileWalletTopUpAction
         return DB::transaction(function () use ($payment, $response, $receipt): Payment {
             $locked = Payment::query()->where('id', $payment->getKey())->lockForUpdate()->firstOrFail();
             $key = ['provider' => $locked->provider, 'transaction_reference' => $receipt];
-            DB::table('wallet_topup_provider_receipts')->insertOrIgnore($key + ['payment_id' => $locked->getKey()]);
-            $owner = DB::table('wallet_topup_provider_receipts')->where($key)->value('payment_id');
+            DB::table('payment_provider_receipts')->insertOrIgnore($key + ['payment_id' => $locked->getKey()]);
+            $owner = DB::table('payment_provider_receipts')->where($key)->value('payment_id');
             if ((int) $owner !== (int) $locked->getKey()) {
                 Log::warning('Wallet top-up receipt already attributed', ['payment_uuid' => $locked->uuid]);
 
@@ -128,7 +128,7 @@ final class ReconcileWalletTopUpAction
             if ($locked->status->isTerminal()) {
                 $recorded = $locked->provider_transaction_id ?? $locked->provider_reference;
                 if ($response->isConfirmed() && ($locked->status !== PaymentStatus::Confirmed || $recorded !== $receipt)
-                    && DB::table('wallet_topup_provider_receipts')->where($key)->whereNull('ops_reported_at')->update(['ops_reported_at' => now()]) > 0) {
+                    && DB::table('payment_provider_receipts')->where($key)->whereNull('ops_reported_at')->update(['ops_reported_at' => now()]) > 0) {
                     DB::afterCommit(fn () => Log::critical('Wallet top-up encashment requires OPS settlement', [
                         'payment_uuid' => $locked->uuid,
                         'provider' => $locked->provider,

@@ -15,15 +15,18 @@ use App\Modules\Departures\Models\Departure;
 use App\Modules\IdentityAccess\Actions\RecordTerminalSyncAction;
 use App\Modules\IdentityAccess\Models\TerminalP501;
 use App\Modules\Notifications\Services\OpsNotifier;
+use App\Modules\Parcels\Services\ParcelTransport;
 use App\Modules\Sync\Data\SyncBatchStatus;
 use App\Modules\Sync\Data\SyncOperationStatus;
 use App\Modules\Sync\Data\SyncOperationType;
 use App\Modules\Sync\Models\SyncBatch;
 use App\Modules\Sync\Models\SyncOperation;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Throwable;
 
 /**
@@ -52,6 +55,8 @@ class ProcessSyncBatchAction
     public function execute(TerminalP501 $terminal, User $agent, string $batchUuid, array $operations): SyncBatch
     {
         $batch = SyncBatch::query()->where('uuid', $batchUuid)->first();
+
+        abort_if($batch !== null && ($batch->terminal_p501_id !== $terminal->id || $batch->submitted_by !== $agent->id), 409);
 
         // Lot déjà traité (ou en cours) : rejoué à l'identique, jamais retraité.
         if ($batch !== null && $batch->status !== SyncBatchStatus::Failed) {
@@ -146,6 +151,8 @@ class ProcessSyncBatchAction
         // (dans ce lot ou un précédent) n'est jamais retraitée.
         $existing = SyncOperation::query()->where('operation_uuid', $op['operation_uuid'])->first();
 
+        abort_if($existing !== null && ! $existing->batch()->where('terminal_p501_id', $terminal->id)->where('submitted_by', $agent->id)->exists(), 409);
+
         // Une opération qui a un résultat n'est jamais retraitée. Sans résultat,
         // elle est restée en plan (lot échoué en cours de route) : on la traite.
         if ($existing !== null && $existing->result !== null) {
@@ -199,11 +206,52 @@ class ProcessSyncBatchAction
             return match ($type) {
                 SyncOperationType::BoardingScan => $this->dispatchBoardingScan($departure, $terminal, $agent, $payload, $operationUuid, $localRecordedAt),
                 SyncOperationType::BoardingNoShow => $this->dispatchIndividualNoShow($departure, $terminal, $agent, $payload, $operationUuid, $localRecordedAt),
+                SyncOperationType::ParcelLoad, SyncOperationType::ParcelUnload => $this->dispatchParcelScan($type, $departure, $terminal, $agent, $payload, $operationUuid, $localRecordedAt),
                 SyncOperationType::SeatRelease => $this->dispatchSeatRelease($departure, $terminal, $agent, $payload, $operationUuid, $localRecordedAt),
             };
         } catch (BoardingTicketUnknownException|SeatReleaseTicketUnknownException $e) {
             return $this->genericRejection('ticket_unknown', $e->getMessage(), 'Vérifiez le billet et réessayez.');
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function dispatchParcelScan(SyncOperationType $type, Departure $departure, TerminalP501 $terminal, User $agent, array $payload, string $operationUuid, CarbonInterface $localRecordedAt): array
+    {
+        $reference = $payload['reference'] ?? null;
+        $stopUuid = $payload['stop_uuid'] ?? null;
+        if (! is_string($reference) || ! preg_match('/^KC-[0-9]{8}-[0-9]{5}$/', $reference) || ! is_string($stopUuid)) {
+            return $this->genericRejection('invalid_parcel_scan', 'Référence Colis ou arrêt invalide.', 'Vérifiez le manifeste de soute.');
+        }
+
+        try {
+            $parcel = app(ParcelTransport::class)->scan($departure, $agent, $terminal, $reference, $stopUuid,
+                $type === SyncOperationType::ParcelLoad, $localRecordedAt, $operationUuid);
+        } catch (ModelNotFoundException) {
+            return $this->genericRejection('parcel_unknown', 'Colis introuvable.', 'Vérifiez le manifeste de soute.');
+        } catch (HttpExceptionInterface $exception) {
+            if ($exception->getStatusCode() === 409) {
+                return array_replace($this->genericRejection('parcel_scan_conflict', $exception->getMessage(), 'Actualisez le manifeste et contactez le hub.'), [
+                    'status' => SyncOperationStatus::Conflict->value,
+                ]);
+            }
+            if ($exception->getStatusCode() !== 403) {
+                throw $exception;
+            }
+
+            return $this->genericRejection('permission_denied', 'Permission refusée pour ce scan.', 'Vérifiez l’affectation de l’équipage.');
+        }
+
+        return [
+            'status' => SyncOperationStatus::Accepted->value,
+            'code' => 'parcel_scan_accepted',
+            'message' => 'Scan Colis enregistré.',
+            'recommendedAction' => null,
+            'entityType' => 'parcel',
+            'entityUuid' => $parcel->uuid,
+        ];
     }
 
     /**

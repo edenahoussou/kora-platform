@@ -26,6 +26,7 @@ class FiscalInvoice extends KoraModel
     protected $fillable = [
         'uuid',
         'reservation_id',
+        'parcel_charge_id',
         'payment_id',
         'kora_reference',
         'mecef_uid',

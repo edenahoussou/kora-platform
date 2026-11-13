@@ -35,11 +35,13 @@ enum OpsNotificationType: string
     case AssistedBookingRequested = 'assisted_booking_requested';
     case AssistedBookingReassigned = 'assisted_booking_reassigned';
     case DepartureDelayed = 'departure_delayed';
+    case ParcelIncident = 'parcel_incident';
+    case ParcelPaymentReconciliation = 'parcel_payment_reconciliation';
 
     public function severity(): OpsNotificationSeverity
     {
         return match ($this) {
-            self::TerminalRevoked, self::ScanConflict, self::IncidentCritical, self::FiscalizationFailed => OpsNotificationSeverity::Critical,
+            self::TerminalRevoked, self::ScanConflict, self::IncidentCritical, self::FiscalizationFailed, self::ParcelIncident, self::ParcelPaymentReconciliation => OpsNotificationSeverity::Critical,
             self::ManifestStale, self::OperationRejected, self::SyncFailed, self::PrintError, self::IncidentReported, self::CashSessionLeftOpen, self::CashSessionForceClosed => OpsNotificationSeverity::Warning,
             self::DepartureAssigned, self::DepartureModified, self::SyncCompleted, self::NoShowClosed, self::DepartureDeparted, self::CashVarianceSubmitted, self::AssistedBookingRequested, self::AssistedBookingReassigned, self::DepartureDelayed => OpsNotificationSeverity::Info,
         };
@@ -68,6 +70,8 @@ enum OpsNotificationType: string
             self::AssistedBookingRequested => 'Nouvelle demande d’assistance',
             self::AssistedBookingReassigned => 'Demande réaffectée',
             self::DepartureDelayed => 'Départ retardé',
+            self::ParcelIncident => 'Incident Colis',
+            self::ParcelPaymentReconciliation => 'Paiement Colis à rapprocher',
         };
     }
 
@@ -82,7 +86,7 @@ enum OpsNotificationType: string
             self::SyncFailed => OpsNotificationAction::RetrySync,
             self::PrintError => OpsNotificationAction::CheckPrinter,
             self::SyncCompleted => OpsNotificationAction::None,
-            self::FiscalizationFailed, self::CashVarianceSubmitted, self::CashSessionLeftOpen, self::CashSessionForceClosed, self::AssistedBookingRequested, self::AssistedBookingReassigned => OpsNotificationAction::None,
+            self::FiscalizationFailed, self::CashVarianceSubmitted, self::CashSessionLeftOpen, self::CashSessionForceClosed, self::AssistedBookingRequested, self::AssistedBookingReassigned, self::ParcelIncident, self::ParcelPaymentReconciliation => OpsNotificationAction::None,
         };
     }
 

@@ -43,6 +43,7 @@ class Payment extends KoraModel
     protected $fillable = [
         'uuid',
         'reservation_id',
+        'parcel_charge_id',
         'method',
         'agency_payment_account_id',
         'cash_session_id',
@@ -88,6 +89,10 @@ class Payment extends KoraModel
 
     public function providerDescription(): string
     {
+        if ($this->parcel_charge_id !== null) {
+            return "KORA COLIS {$this->uuid}";
+        }
+
         if ($this->reservation !== null) {
             return "KORA BUS reservation {$this->reservation->uuid}";
         }
