@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Modules\Notifications\Notifications\PassengerInboxNotification;
 use App\Modules\Payments\Actions\ConfirmPaymentAction;
 use App\Modules\Payments\Contracts\PaymentProvider;
 use App\Modules\Payments\Contracts\ProviderResponse;
@@ -17,6 +18,7 @@ use App\Modules\Wallet\Models\WalletTopUp;
 use FedaPay\HttpClient\ClientInterface;
 use FedaPay\Requestor;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Notification;
 use Kkiapay\Kkiapay;
 use Laravel\Sanctum\Sanctum;
 
@@ -495,4 +497,23 @@ it('keeps refusing another amount while an initiation is still unaccounted for',
     $this->travel(16)->minutes();
     $this->postJson('/api/v1/wallet/topups', $other)->assertCreated();
     $this->travelBack();
+});
+
+it('notifies the traveler once when the top-up is confirmed', function (): void {
+    Notification::fake();
+    walletCashEnabled();
+    $scenario = walletScenario();
+    Sanctum::actingAs($scenario['user']);
+
+    $uuid = $this->postJson('/api/v1/wallet/topups', walletTopUpPayload())->assertCreated()->json('data.uuid');
+    $topup = WalletTopUp::query()->where('uuid', $uuid)->firstOrFail();
+    $confirm = app(ConfirmPaymentAction::class);
+
+    $confirm->handle($topup->payment, 'success', 'PROVIDER-REF');
+    Notification::assertSentTimes(PassengerInboxNotification::class, 1);
+
+    $confirm->handle($topup->payment->fresh(), 'success', 'PROVIDER-REF');
+    Notification::assertSentTimes(PassengerInboxNotification::class, 1);
+
+    expect($scenario['wallet']->fresh()->cash_balance)->toBe(5000);
 });

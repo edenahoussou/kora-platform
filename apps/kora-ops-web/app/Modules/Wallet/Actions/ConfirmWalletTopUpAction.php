@@ -9,6 +9,7 @@ use App\Modules\Wallet\Data\WalletTopUpStatus;
 use App\Modules\Wallet\Data\WalletTransactionReason;
 use App\Modules\Wallet\Models\WalletTopUp;
 use App\Modules\Wallet\Services\WalletLedgerService;
+use App\Modules\Wallet\Services\WalletNotificationPublisher;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -19,8 +20,12 @@ final class ConfirmWalletTopUpAction
 {
     /**
      * @param  WalletLedgerService  $ledger  Écritures du ledger
+     * @param  WalletNotificationPublisher  $notifications  Notifications voyageur
      */
-    public function __construct(private readonly WalletLedgerService $ledger) {}
+    public function __construct(
+        private readonly WalletLedgerService $ledger,
+        private readonly WalletNotificationPublisher $notifications,
+    ) {}
 
     /**
      * Crédite le Wallet après confirmation provider, une seule fois.
@@ -30,7 +35,9 @@ final class ConfirmWalletTopUpAction
      */
     public function confirm(Payment $payment): ?WalletTopUp
     {
-        return DB::transaction(function () use ($payment): ?WalletTopUp {
+        $credited = null;
+
+        $topup = DB::transaction(function () use ($payment, &$credited): ?WalletTopUp {
             $topup = WalletTopUp::query()
                 ->where('payment_id', $payment->getKey())
                 ->lockForUpdate()
@@ -41,6 +48,7 @@ final class ConfirmWalletTopUpAction
             }
 
             $topup->update(['status' => WalletTopUpStatus::Confirmed]);
+            $credited = $topup;
 
             $this->ledger->credit(
                 $topup->wallet,
@@ -59,6 +67,12 @@ final class ConfirmWalletTopUpAction
 
             return $topup->fresh();
         });
+
+        if ($credited !== null) {
+            $this->notifications->topUpConfirmed($credited->wallet->refresh(), (int) $credited->amount);
+        }
+
+        return $topup;
     }
 
     /**
