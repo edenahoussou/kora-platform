@@ -388,6 +388,7 @@ final class OpsWalletReader
             WalletTransactionReason::CompensationOffset => 'Compensation de points',
             WalletTransactionReason::Restitution => 'Restitution',
             WalletTransactionReason::Adjustment => 'Ajustement audité',
+            WalletTransactionReason::UnconfirmedBookingSettlement => 'Régularisation réservation',
         };
     }
 

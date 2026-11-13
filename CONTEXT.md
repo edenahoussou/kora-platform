@@ -248,6 +248,18 @@ _Avoid_: Achat de billet, transfert entre Wallets
 Repartition du prix paye entre le cash Wallet, la valeur d'usage des points depenses et l'eventuel complement monetaire. Le taux applique a l'achat fait foi pour les remboursements.
 _Avoid_: Nombre de points exprime en FCFA
 
+**Remboursement Wallet exclusif**:
+Regle fondamentale du domaine KORA : tout remboursement, restitution ou regularisation de paiement est integralement et obligatoirement credite sur le solde cash du Wallet du voyageur. Aucun remboursement n'est execute en especes ni retrograde via l'API d'un fournisseur Mobile Money.
+_Avoid_: Remboursement externe via passerelle Mobile Money, sortie d'especes au guichet pour achat en ligne
+
+**Hold de financement mixte**:
+Blocage temporaire de securite pose sur le solde cash ou les points du Wallet lors de l'initiation d'un paiement mixte (Wallet + complement Mobile Money externe). Il garantit la disponibilite de la part Wallet pendant l'execution de l'appel externe et ne doit etre libere que sur echec avere ou expiration formelle du paiement externe.
+_Avoid_: Liberation prematuree du hold pendant qu'une intention de paiement externe est encore en cours
+
+**Regularisation d'incident de billetterie**:
+Operation financiere automatique ou supervisee intervenant lorsqu'un paiement externe a ete encaisse avec succes mais que le billet ne peut etre emis (siege plus disponible ou solde Wallet disparu). La part externe encaissee est alors immediatement portee au credit du solde cash du Wallet avec le motif comptable `unconfirmed_booking_settlement`.
+_Avoid_: Dossier sans suite avec fonds externes captures, annulation silencieuse sans credit Wallet
+
 **Points de fidelite**:
 Unites de recompense propres au voyageur eligible, acquises par les voyages effectues et les bonus, utilisables pour payer des billets Bus. Leur valeur d'usage est de 1 point pour 1 FCFA ; ils ne constituent pas du cash retirable ou transferable.
 _Avoid_: Argent disponible, remise immediate sur le voyage qui les genere, KORA POINT

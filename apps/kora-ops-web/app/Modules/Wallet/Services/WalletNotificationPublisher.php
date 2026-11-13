@@ -63,6 +63,25 @@ final class WalletNotificationPublisher
     }
 
     /**
+     * Notifie la régularisation d'une réservation non confirmée sur le Wallet.
+     *
+     * @param  Wallet  $wallet  Wallet crédité
+     * @param  int  $amount  Montant crédité
+     * @param  string  $reservationReference  Référence de la réservation expirée
+     */
+    public function bookingSettlementCredited(Wallet $wallet, int $amount, string $reservationReference): void
+    {
+        $this->publish(
+            $wallet,
+            'wallet_booking_settlement_credited',
+            'Remboursement sur votre Wallet',
+            sprintf('Votre réservation %s a expiré. Votre paiement de %s FCFA a été crédité sur votre Wallet KORA. Nouveau solde : %s FCFA.', $reservationReference, $this->money($amount), $this->money((int) $wallet->cash_balance)),
+            null,
+            ['amount' => $amount, 'reservation_reference' => $reservationReference],
+        );
+    }
+
+    /**
      * Notifie des points gagnés sur une jambe.
      *
      * @param  Wallet  $wallet  Wallet crédité

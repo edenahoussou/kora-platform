@@ -25,6 +25,7 @@ enum WalletTransactionReason: string
     case CompensationOffset = 'compensation_offset';
     case Restitution = 'restitution';
     case Adjustment = 'adjustment';
+    case UnconfirmedBookingSettlement = 'unconfirmed_booking_settlement';
 
     /**
      * Indique si le motif est un gain de points (soumis à compensation).

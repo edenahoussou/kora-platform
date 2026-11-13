@@ -23,14 +23,31 @@ final class ReleaseExpiredWalletHoldsAction
     public function handle(): int
     {
         $holds = WalletHold::query()
+            ->with(['reservation', 'payment'])
             ->where('status', WalletHoldStatus::Active->value)
             ->where('expires_at', '<=', now())
             ->get();
 
+        $releasedCount = 0;
+
         foreach ($holds as $hold) {
+            // Si le hold est rattaché à une réservation encore active (Held et non expirée)
+            // avec un paiement encore en cours d'attente opérateur, on protège le hold.
+            $reservation = $hold->reservation;
+            $payment = $hold->payment;
+
+            if ($reservation !== null
+                && $reservation->status->value === 'held'
+                && ($reservation->expires_at === null || $reservation->expires_at->isFuture())
+                && $payment !== null
+                && $payment->status->value === 'pending') {
+                continue;
+            }
+
             $this->releaseHold->handle($hold);
+            $releasedCount++;
         }
 
-        return $holds->count();
+        return $releasedCount;
     }
 }
