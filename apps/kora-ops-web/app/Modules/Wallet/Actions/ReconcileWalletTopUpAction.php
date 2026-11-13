@@ -88,6 +88,10 @@ final class ReconcileWalletTopUpAction
         }
 
         $response = $this->manager->resolve($payment->provider)->verify($candidate);
+        if ($this->shouldReopenStaleKkiapayWidget($payment, $candidate, $response)) {
+            return $this->releaseStaleKkiapayTransaction($payment, $candidate->provider_transaction_id);
+        }
+
         $data = $response->payload;
         $correlation = match ($payment->provider) {
             'fedapay' => data_get($data, 'custom_metadata.kora_payment_uuid'),
@@ -335,6 +339,54 @@ final class ReconcileWalletTopUpAction
         $ttl = app(WalletSettings::class)->topupInitiationTtlMinutes;
 
         return $payment->created_at?->lte(now()->subMinutes($ttl)) === true;
+    }
+
+    private function shouldReopenStaleKkiapayWidget(
+        Payment $payment,
+        Payment $candidate,
+        ProviderResponse $response,
+    ): bool {
+        $providerError = filter_var($response->payload['error'] ?? null, FILTER_VALIDATE_INT);
+
+        return $payment->provider === 'kkiapay'
+            && $payment->status === PaymentStatus::Pending
+            && filled($candidate->provider_transaction_id)
+            && $response->status === PaymentStatus::Pending
+            && in_array($providerError, [400, 404, 422, 502, 503], true)
+            && $this->initiationExpired($payment);
+    }
+
+    private function releaseStaleKkiapayTransaction(Payment $payment, string $transactionId): Payment
+    {
+        return DB::transaction(function () use ($payment, $transactionId): Payment {
+            $locked = Payment::query()->whereKey($payment->getKey())->lockForUpdate()->firstOrFail();
+            if ($locked->status !== PaymentStatus::Pending) {
+                return $locked;
+            }
+            if (filled($locked->provider_transaction_id) && $locked->provider_transaction_id !== $transactionId) {
+                return $locked;
+            }
+
+            $payload = $locked->provider_payload ?? [];
+            $staleTransactionIds = array_values(array_unique([
+                ...($payload['stale_transaction_ids'] ?? []),
+                $transactionId,
+            ]));
+            $payload['stale_transaction_ids'] = array_slice($staleTransactionIds, -10);
+            unset($payload['reconciliation_candidate']);
+
+            $locked->update([
+                'provider_transaction_id' => null,
+                'provider_payload' => $payload,
+                'last_verified_at' => now(),
+            ]);
+
+            Log::warning('Stale KKiaPay wallet top-up transaction released for retry', [
+                'payment_uuid' => $locked->uuid,
+            ]);
+
+            return $locked->refresh();
+        });
     }
 
     private function provenLegacyFailure(Payment $payment): bool

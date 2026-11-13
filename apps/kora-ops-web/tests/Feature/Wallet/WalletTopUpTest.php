@@ -337,6 +337,39 @@ function widgetKkiaPayProvider(): PaymentProvider
     return $provider;
 }
 
+function unavailableKkiaPayVerificationProvider(): PaymentProvider
+{
+    $provider = Mockery::mock(PaymentProvider::class);
+    $provider->shouldReceive('initiate')->andReturnUsing(fn (Payment $payment): ProviderResponse => new ProviderResponse(
+        status: PaymentStatus::Pending,
+        payload: ['widget' => ['key' => 'public-key', 'amount' => $payment->amount, 'partnerId' => $payment->uuid]],
+    ));
+    $provider->shouldReceive('verify')->andReturn(new ProviderResponse(
+        status: PaymentStatus::Pending,
+        payload: ['error' => 502],
+    ));
+
+    return $provider;
+}
+
+function confirmedKkiaPayVerificationProvider(): PaymentProvider
+{
+    $provider = Mockery::mock(PaymentProvider::class);
+    $provider->shouldReceive('verify')->andReturnUsing(fn (Payment $payment): ProviderResponse => new ProviderResponse(
+        status: PaymentStatus::Confirmed,
+        providerReference: $payment->provider_transaction_id,
+        providerTransactionId: $payment->provider_transaction_id,
+        payload: [
+            'status' => 'SUCCESS',
+            'amount' => $payment->provider_amount,
+            'currency' => $payment->provider_currency,
+            'partnerId' => $payment->uuid,
+        ],
+    ));
+
+    return $provider;
+}
+
 function bindWalletTopUpProvider(PaymentProvider $kkiapay, string $provider = 'kkiapay'): void
 {
     $manager = new PaymentManager;
@@ -388,6 +421,43 @@ it('retries a KKiaPay initiation during reconciliation instead of waiting foreve
     expect($topup->fresh()->status->value)->toBe('pending')
         ->and($topup->payment->fresh()->provider_payload['initiation_phase'])->toBe('ready')
         ->and($topup->payment->fresh()->provider_payload['widget']['amount'])->toBe(5000);
+});
+
+it('reopens a stale KKiaPay widget when its recorded transaction can no longer be verified', function (): void {
+    walletCashEnabled();
+    bindWalletTopUpProvider(unavailableKkiaPayVerificationProvider());
+    $scenario = walletScenario();
+    Sanctum::actingAs($scenario['user']);
+
+    $payload = walletTopUpPayload(['provider' => 'kkiapay']);
+    $uuid = $this->postJson('/api/v1/wallet/topups', $payload)
+        ->assertCreated()->assertJsonPath('data.payment.next_action', 'open_widget')->json('data.uuid');
+    $topup = WalletTopUp::query()->where('uuid', $uuid)->firstOrFail();
+    $payment = $topup->payment;
+    $payment->update(['provider_transaction_id' => '123456789']);
+
+    $this->postJson("/api/v1/payments/{$payment->uuid}/verify")
+        ->assertOk()
+        ->assertJsonPath('data.next_action', 'verify')
+        ->assertJsonPath('data.provider_transaction_id', '123456789');
+
+    $this->travel(16)->minutes();
+    $this->postJson('/api/v1/wallet/topups', array_replace($payload, ['idempotency_key' => (string) Str::uuid()]))
+        ->assertOk()->assertJsonPath('data.payment.next_action', 'verify');
+
+    $this->postJson("/api/v1/payments/{$payment->uuid}/verify")
+        ->assertOk()
+        ->assertJsonPath('data.next_action', 'open_widget')
+        ->assertJsonPath('data.provider_transaction_id', null);
+
+    expect($payment->fresh()->provider_payload['stale_transaction_ids'])->toBe(['123456789']);
+
+    bindWalletTopUpProvider(confirmedKkiaPayVerificationProvider());
+    $this->postJson("/api/v1/payments/{$payment->uuid}/verify", ['transaction_id' => '123456789'])
+        ->assertOk()
+        ->assertJsonPath('data.next_action', 'done');
+    expect($scenario['wallet']->fresh()->cash_balance)->toBe(5000);
+    $this->travelBack();
 });
 
 it('expires a top-up that never got a payment hand-off so its amount is available again', function (): void {
