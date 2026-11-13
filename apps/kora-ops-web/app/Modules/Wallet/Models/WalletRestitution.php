@@ -45,6 +45,21 @@ class WalletRestitution extends KoraModel
     }
 
     /**
+     * Montant déjà engagé par les restitutions en attente d'approbation ou de versement.
+     *
+     * @param  Wallet  $wallet  Wallet contrôlé
+     * @param  WalletRestitution|null  $except  Restitution exclue du calcul
+     */
+    public static function reservedAmount(Wallet $wallet, ?self $except = null): int
+    {
+        return (int) self::query()
+            ->where('wallet_id', $wallet->getKey())
+            ->whereIn('status', [RestitutionStatus::Requested->value, RestitutionStatus::Approved->value])
+            ->when($except !== null, fn ($query) => $query->whereKeyNot($except->getKey()))
+            ->sum('amount');
+    }
+
+    /**
      * Auteur de la demande.
      *
      * @return BelongsTo<User, $this>

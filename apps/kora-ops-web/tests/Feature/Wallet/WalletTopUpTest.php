@@ -1,7 +1,12 @@
 <?php
 
 use App\Models\User;
+use App\Modules\Notifications\Notifications\PassengerInboxNotification;
 use App\Modules\Payments\Actions\ConfirmPaymentAction;
+use App\Modules\Payments\Contracts\PaymentProvider;
+use App\Modules\Payments\Contracts\ProviderResponse;
+use App\Modules\Payments\Data\PaymentStatus;
+use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\PaymentManager;
 use App\Modules\Payments\Providers\Fake\FakePaymentProvider;
 use App\Modules\Payments\Providers\FedaPayAdapter;
@@ -13,6 +18,7 @@ use App\Modules\Wallet\Models\WalletTopUp;
 use FedaPay\HttpClient\ClientInterface;
 use FedaPay\Requestor;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Notification;
 use Kkiapay\Kkiapay;
 use Laravel\Sanctum\Sanctum;
 
@@ -303,9 +309,211 @@ it('only closes proven legacy initiation failures in reconciliation', function (
     $failedTopUp->update(['next_reconciliation_at' => now()]);
     $unknownTopUp->update(['next_reconciliation_at' => now()]);
 
-    $this->artisan('wallet:reconcile-topups --dry-run')->expectsOutput($failed.' never_started')->assertSuccessful();
+    $this->artisan('wallet:reconcile-topups --dry-run')->expectsOutput($failed.' close_failed')->assertSuccessful();
     expect($failedTopUp->fresh()->status->value)->toBe('pending');
     $this->artisan('wallet:reconcile-topups')->assertSuccessful();
     expect($failedTopUp->fresh()->status->value)->toBe('failed')
         ->and($unknownTopUp->fresh()->status->value)->toBe('pending');
+});
+
+function failingKkiaPayProvider(): PaymentProvider
+{
+    $provider = Mockery::mock(PaymentProvider::class);
+    $provider->shouldReceive('initiate')->andThrow(new RuntimeException('KKiaPay sandbox unavailable'));
+    $provider->shouldReceive('verify')->andReturn(new ProviderResponse(PaymentStatus::Pending));
+
+    return $provider;
+}
+
+function widgetKkiaPayProvider(): PaymentProvider
+{
+    $provider = Mockery::mock(PaymentProvider::class);
+    $provider->shouldReceive('initiate')->andReturnUsing(fn (Payment $payment): ProviderResponse => new ProviderResponse(
+        status: PaymentStatus::Pending,
+        payload: ['widget' => ['key' => 'public-key', 'amount' => $payment->amount, 'partnerId' => $payment->uuid]],
+    ));
+    $provider->shouldReceive('verify')->andReturn(new ProviderResponse(PaymentStatus::Pending));
+
+    return $provider;
+}
+
+function bindWalletTopUpProvider(PaymentProvider $kkiapay, string $provider = 'kkiapay'): void
+{
+    $manager = new PaymentManager;
+    (new ReflectionClass($manager))->getProperty('resolved')->setValue($manager, [$provider => $kkiapay]);
+    app()->instance(PaymentManager::class, $manager);
+}
+
+it('reopens the KKiaPay widget when an uninitiated top-up is replayed', function (): void {
+    walletCashEnabled();
+    bindWalletTopUpProvider(failingKkiaPayProvider());
+    $scenario = walletScenario();
+    Sanctum::actingAs($scenario['user']);
+
+    $payload = walletTopUpPayload(['provider' => 'kkiapay']);
+    $uuid = $this->postJson('/api/v1/wallet/topups', $payload)
+        ->assertCreated()
+        ->assertJsonPath('data.payment.next_action', 'wait')
+        ->assertJsonPath('data.payment.widget', null)
+        ->json('data.uuid');
+
+    $this->postJson('/api/v1/wallet/topups', array_replace($payload, ['amount' => 4900, 'idempotency_key' => (string) Str::uuid()]))
+        ->assertCreated();
+
+    bindWalletTopUpProvider(widgetKkiaPayProvider());
+    $this->postJson('/api/v1/wallet/topups', array_replace($payload, ['idempotency_key' => (string) Str::uuid()]))
+        ->assertOk()
+        ->assertJsonPath('data.uuid', $uuid)
+        ->assertJsonPath('data.payment.next_action', 'open_widget')
+        ->assertJsonPath('data.payment.widget.amount', 5000);
+
+    expect($uuid)->not->toBeEmpty()
+        ->and(WalletTopUp::query()->where('uuid', $uuid)->firstOrFail()->payment->provider_payload['initiation_phase'])->toBe('ready');
+});
+
+it('retries a KKiaPay initiation during reconciliation instead of waiting forever', function (): void {
+    walletCashEnabled();
+    bindWalletTopUpProvider(failingKkiaPayProvider());
+    $scenario = walletScenario();
+    Sanctum::actingAs($scenario['user']);
+
+    $uuid = $this->postJson('/api/v1/wallet/topups', walletTopUpPayload(['provider' => 'kkiapay']))
+        ->assertCreated()->assertJsonPath('data.payment.next_action', 'wait')->json('data.uuid');
+    $topup = WalletTopUp::query()->where('uuid', $uuid)->firstOrFail();
+    $topup->update(['next_reconciliation_at' => now()]);
+
+    bindWalletTopUpProvider(widgetKkiaPayProvider());
+    $this->artisan('wallet:reconcile-topups')->assertSuccessful();
+
+    expect($topup->fresh()->status->value)->toBe('pending')
+        ->and($topup->payment->fresh()->provider_payload['initiation_phase'])->toBe('ready')
+        ->and($topup->payment->fresh()->provider_payload['widget']['amount'])->toBe(5000);
+});
+
+it('expires a top-up that never got a payment hand-off so its amount is available again', function (): void {
+    walletCashEnabled();
+    bindWalletTopUpProvider(failingKkiaPayProvider());
+    $scenario = walletScenario();
+    Sanctum::actingAs($scenario['user']);
+
+    $payload = walletTopUpPayload(['provider' => 'kkiapay']);
+    $uuid = $this->postJson('/api/v1/wallet/topups', $payload)
+        ->assertCreated()->assertJsonPath('data.payment.next_action', 'wait')->json('data.uuid');
+    $topup = WalletTopUp::query()->where('uuid', $uuid)->firstOrFail();
+
+    $this->travel(16)->minutes();
+    $topup->update(['next_reconciliation_at' => now()]);
+    $this->artisan('wallet:reconcile-topups')->assertSuccessful();
+
+    expect($topup->fresh()->status->value)->toBe('failed')
+        ->and($topup->payment->fresh()->status->value)->toBe('failed')
+        ->and($topup->payment->fresh()->failure_code)->toBe('provider_initiation_failed')
+        ->and($scenario['wallet']->fresh()->cash_balance)->toBe(0);
+
+    bindWalletTopUpProvider(widgetKkiaPayProvider());
+    $this->postJson('/api/v1/wallet/topups', array_replace($payload, ['idempotency_key' => (string) Str::uuid()]))
+        ->assertCreated();
+    $this->travelBack();
+});
+
+function unavailableMobileMoneyProvider(string $provider): PaymentProvider
+{
+    $mock = Mockery::mock(PaymentProvider::class);
+    $mock->shouldReceive('initiate')->andReturnUsing(function (Payment $payment) use ($provider): ProviderResponse {
+        $payment->update($provider === 'fedapay'
+            ? ['provider_transaction_id' => 'TX-'.$payment->uuid, 'provider_reference' => 'FEDA-'.$payment->uuid]
+            : ['provider_reference' => $payment->uuid]);
+
+        return new ProviderResponse(
+            status: PaymentStatus::Pending,
+            providerReference: $payment->provider_reference,
+            providerTransactionId: $payment->provider_transaction_id,
+            payload: ['initiation_issue' => 'provider_unavailable'],
+        );
+    });
+    $mock->shouldReceive('verify')->andReturn(new ProviderResponse(PaymentStatus::Pending));
+
+    return $mock;
+}
+
+it('does not block another amount when the provider initiation failed with a reference', function (): void {
+    walletCashEnabled();
+    bindWalletTopUpProvider(unavailableMobileMoneyProvider('mtn_momo'), 'mtn_momo');
+    $scenario = walletScenario();
+    Sanctum::actingAs($scenario['user']);
+
+    $first = $this->postJson('/api/v1/wallet/topups', walletTopUpPayload(['provider' => 'mtn_momo']))
+        ->assertCreated()->assertJsonPath('data.payment.next_action', 'verify')->json('data.uuid');
+
+    $this->postJson('/api/v1/wallet/topups', walletTopUpPayload([
+        'provider' => 'mtn_momo', 'amount' => 3000, 'idempotency_key' => (string) Str::uuid(),
+    ]))->assertCreated();
+
+    expect(WalletTopUp::query()->where('uuid', $first)->firstOrFail()->payment->provider_reference)->not->toBeNull()
+        ->and(WalletTopUp::query()->where('status', 'pending')->count())->toBe(2);
+});
+
+it('expires a FedaPay or MTN top-up stuck after a failed push', function (string $provider): void {
+    walletCashEnabled();
+    bindWalletTopUpProvider(unavailableMobileMoneyProvider($provider), $provider);
+    $scenario = walletScenario();
+    Sanctum::actingAs($scenario['user']);
+
+    $uuid = $this->postJson('/api/v1/wallet/topups', walletTopUpPayload(['provider' => $provider]))
+        ->assertCreated()->json('data.uuid');
+    $topup = WalletTopUp::query()->where('uuid', $uuid)->firstOrFail();
+
+    $this->travel(16)->minutes();
+    $topup->update(['next_reconciliation_at' => now()]);
+    $this->artisan('wallet:reconcile-topups')->assertSuccessful();
+
+    expect($topup->fresh()->status->value)->toBe('failed')
+        ->and($topup->payment->fresh()->status->value)->toBe('failed')
+        ->and($topup->payment->fresh()->failure_code)->toBe('provider_initiation_failed')
+        ->and($scenario['wallet']->fresh()->cash_balance)->toBe(0);
+
+    $this->postJson('/api/v1/wallet/topups', walletTopUpPayload([
+        'provider' => $provider, 'amount' => 3000, 'idempotency_key' => (string) Str::uuid(),
+    ]))->assertCreated();
+    $this->travelBack();
+})->with(['fedapay', 'mtn_momo']);
+
+it('keeps refusing another amount while an initiation is still unaccounted for', function (): void {
+    walletCashEnabled();
+    bindWalletTopUpProvider(unavailableMobileMoneyProvider('mtn_momo'), 'mtn_momo');
+    Sanctum::actingAs(User::factory()->create());
+    $payload = walletTopUpPayload(['provider' => 'mtn_momo']);
+    $uuid = $this->postJson('/api/v1/wallet/topups', $payload)->assertCreated()->json('data.uuid');
+
+    WalletTopUp::query()->where('uuid', $uuid)->firstOrFail()->payment->update([
+        'provider_reference' => null,
+        'failure_code' => null,
+        'provider_payload' => ['purpose' => 'wallet_topup', 'initiation_phase' => 'starting'],
+    ]);
+
+    $other = array_replace($payload, ['amount' => 3000, 'idempotency_key' => (string) Str::uuid()]);
+    $this->postJson('/api/v1/wallet/topups', $other)->assertStatus(409);
+
+    $this->travel(16)->minutes();
+    $this->postJson('/api/v1/wallet/topups', $other)->assertCreated();
+    $this->travelBack();
+});
+
+it('notifies the traveler once when the top-up is confirmed', function (): void {
+    Notification::fake();
+    walletCashEnabled();
+    $scenario = walletScenario();
+    Sanctum::actingAs($scenario['user']);
+
+    $uuid = $this->postJson('/api/v1/wallet/topups', walletTopUpPayload())->assertCreated()->json('data.uuid');
+    $topup = WalletTopUp::query()->where('uuid', $uuid)->firstOrFail();
+    $confirm = app(ConfirmPaymentAction::class);
+
+    $confirm->handle($topup->payment, 'success', 'PROVIDER-REF');
+    Notification::assertSentTimes(PassengerInboxNotification::class, 1);
+
+    $confirm->handle($topup->payment->fresh(), 'success', 'PROVIDER-REF');
+    Notification::assertSentTimes(PassengerInboxNotification::class, 1);
+
+    expect($scenario['wallet']->fresh()->cash_balance)->toBe(5000);
 });

@@ -2,6 +2,8 @@
 
 use App\Modules\Settings\Settings\WalletSettings;
 use App\Modules\Wallet\Actions\ExpireWalletPointsAction;
+use App\Modules\Wallet\Actions\PlaceWalletHoldAction;
+use App\Modules\Wallet\Actions\ReleaseWalletHoldAction;
 use App\Modules\Wallet\Actions\SendPointsExpiryRemindersAction;
 use App\Modules\Wallet\Data\WalletBalanceType;
 use App\Modules\Wallet\Data\WalletTransactionReason;
@@ -69,4 +71,31 @@ it('rearms the expiry window when points are refunded', function (): void {
 
     expect($scenario['wallet']->fresh()->points_expires_at->isFuture())->toBeTrue()
         ->and(app(ExpireWalletPointsAction::class)->handle())->toBe(0);
+});
+
+it('skips a wallet whose points are held instead of aborting the whole run', function (): void {
+    $held = walletScenario(['points' => 500]);
+    $held['wallet']->update(['points_expires_at' => now()->subDay()]);
+    app(PlaceWalletHoldAction::class)->handle($held['wallet'], 0, 500, 'expiry-hold', $held['reservation']);
+
+    $free = walletScenario(['points' => 200]);
+    $free['wallet']->update(['points_expires_at' => now()->subDay()]);
+
+    expect(app(ExpireWalletPointsAction::class)->handle())->toBe(1)
+        ->and($held['wallet']->fresh()->points_balance)->toBe(500)
+        ->and($held['wallet']->fresh()->points_expires_at)->not->toBeNull()
+        ->and($free['wallet']->fresh()->points_balance)->toBe(0);
+});
+
+it('expires the points once the hold is released', function (): void {
+    $scenario = walletScenario(['points' => 500]);
+    $scenario['wallet']->update(['points_expires_at' => now()->subDay()]);
+    $hold = app(PlaceWalletHoldAction::class)->handle($scenario['wallet'], 0, 500, 'expiry-hold-2', $scenario['reservation']);
+
+    expect(app(ExpireWalletPointsAction::class)->handle())->toBe(0);
+
+    app(ReleaseWalletHoldAction::class)->handle($hold);
+
+    expect(app(ExpireWalletPointsAction::class)->handle())->toBe(1)
+        ->and($scenario['wallet']->fresh()->points_balance)->toBe(0);
 });

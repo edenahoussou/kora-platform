@@ -24,6 +24,7 @@ final class UpdateWalletSettingsRequest extends SettingsUpdateRequest
             'topupMaxAmount',
             'cashBalanceCap',
             'topupAmountPresets',
+            'topupInitiationTtlMinutes',
         ];
         $loyaltyFields = [
             'loyaltyEarnRateBasisPoints',
@@ -45,6 +46,7 @@ final class UpdateWalletSettingsRequest extends SettingsUpdateRequest
         $rules['values.topupMinAmount'] = ['sometimes', 'nullable', 'integer', 'min:0', 'max:100000000'];
         $rules['values.topupMaxAmount'] = ['sometimes', 'nullable', 'integer', 'min:0', 'max:100000000'];
         $rules['values.cashBalanceCap'] = ['sometimes', 'nullable', 'integer', 'min:0', 'max:100000000'];
+        $rules['values.topupInitiationTtlMinutes'] = ['sometimes', 'integer', 'between:1,1440'];
         $rules['values.topupAmountPresets'] = ['sometimes', 'array', 'min:1', 'max:8'];
         $rules['values.topupAmountPresets.*'] = ['required', 'integer', 'between:1,100000000'];
 

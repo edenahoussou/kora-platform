@@ -1,10 +1,13 @@
 <?php
 
 use App\Modules\Departures\Data\DepartureStatus;
+use App\Modules\Notifications\Notifications\PassengerInboxNotification;
 use App\Modules\Wallet\Actions\CreditLegPointsAction;
 use App\Modules\Wallet\Data\WalletTransactionReason;
+use App\Modules\Wallet\Models\Wallet;
 use App\Modules\Wallet\Models\WalletTransaction;
 use App\Modules\Wallet\Models\WalletUsage;
+use Illuminate\Support\Facades\Notification;
 
 function walletBoardedScenario(int $pointsFunded = 0): array
 {
@@ -43,6 +46,31 @@ it('is idempotent when the same leg is credited twice', function (): void {
         ->and(WalletTransaction::query()
             ->where('reason', WalletTransactionReason::PointsEarn->value)
             ->count())->toBe(1);
+});
+
+it('reports and notifies nothing when the daily catch-up replays a credited leg', function (): void {
+    Notification::fake();
+    $scenario = walletBoardedScenario();
+    $action = app(CreditLegPointsAction::class);
+
+    expect($action->handle($scenario['reservation']))->toBe(300);
+    Notification::assertSentTimes(PassengerInboxNotification::class, 2);
+
+    expect($action->handle($scenario['reservation']->fresh()))->toBe(0)
+        ->and($scenario['wallet']->fresh()->points_balance)->toBe(800);
+
+    Notification::assertSentTimes(PassengerInboxNotification::class, 2);
+});
+
+it('keeps the deferred compensation when a credited leg is replayed', function (): void {
+    $scenario = walletBoardedScenario();
+    $action = app(CreditLegPointsAction::class);
+    $action->handle($scenario['reservation']);
+
+    Wallet::query()->whereKey($scenario['wallet']->getKey())->update(['points_compensation_due' => 500]);
+
+    expect($action->handle($scenario['reservation']->fresh()))->toBe(0)
+        ->and($scenario['wallet']->fresh()->points_compensation_due)->toBe(500);
 });
 
 it('does not credit a leg that was never boarded', function (): void {

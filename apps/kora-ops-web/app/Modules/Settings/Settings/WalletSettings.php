@@ -43,6 +43,8 @@ final class WalletSettings extends Settings
 
     public ?int $cashBalanceCap = null;
 
+    public int $topupInitiationTtlMinutes = 15;
+
     /** @var array<int, int> */
     public array $topupAmountPresets = [2000, 5000, 10000, 20000];
 

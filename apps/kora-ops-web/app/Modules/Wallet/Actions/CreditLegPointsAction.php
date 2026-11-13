@@ -83,7 +83,7 @@ final class CreditLegPointsAction
                 continue;
             }
 
-            $this->ledger->creditPointsWithCompensation(
+            $transaction = $this->ledger->creditPointsWithCompensation(
                 $wallet,
                 $points,
                 WalletTransactionReason::PointsEarn,
@@ -96,6 +96,10 @@ final class CreditLegPointsAction
                 ],
                 $reservation,
             );
+
+            if ($transaction === null || ! $transaction->wasRecentlyCreated) {
+                continue;
+            }
 
             $credited += $points;
             $this->notifications->pointsCredited($wallet, $points);

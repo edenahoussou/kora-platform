@@ -37,7 +37,7 @@ final class RequestRestitutionAction
             throw ValidationException::withMessages(['amount' => 'Le montant de la restitution doit être positif.']);
         }
 
-        if ($amount > $this->ledger->availableBalance($wallet, WalletBalanceType::Cash)) {
+        if ($amount > $this->availableForRestitution($wallet)) {
             throw ValidationException::withMessages([
                 'amount' => 'Le solde Wallet disponible est insuffisant pour cette restitution.',
             ]);
@@ -50,5 +50,14 @@ final class RequestRestitutionAction
             'requested_by_user_id' => $requester->getKey(),
             'note' => $note,
         ]);
+    }
+
+    /**
+     * Disponible cash diminué des restitutions déjà demandées ou approuvées.
+     */
+    private function availableForRestitution(Wallet $wallet): int
+    {
+        return $this->ledger->availableBalance($wallet, WalletBalanceType::Cash)
+            - WalletRestitution::reservedAmount($wallet);
     }
 }

@@ -69,10 +69,14 @@ final class RouteRefundToWalletAction
             }
 
             $total = max(1, $payment->amount);
-            $cumulative = min($total, $amount + $completed->sum('amount'));
+            $cumulative = min($total, $amount + (int) $completed->sum('amount'));
             $funding = WalletPurchaseFunding::fromPayment($payment);
             $pointsTarget = intdiv($cumulative * $funding->points, $total);
-            $cashTarget = intdiv($cumulative * max(0, $total - $funding->pointsValue), $total);
+            // Au taux 1:1, la part cash est le complément exact de la part points ;
+            // deux arrondis séparés perdraient 1 FCFA à chaque remboursement partiel.
+            $cashTarget = $funding->pointRate === 1
+                ? $cumulative - $pointsTarget
+                : intdiv($cumulative * max(0, $total - $funding->pointsValue), $total);
             $points = max(0, $pointsTarget - $completed->sum(fn ($refund) => (int) ($refund->metadata['wallet_points'] ?? 0)));
             $cash = max(0, $cashTarget - $completed->sum(fn ($refund) => (int) ($refund->metadata['wallet_cash'] ?? 0)));
 

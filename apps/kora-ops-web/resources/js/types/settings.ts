@@ -57,6 +57,7 @@ export type WalletSettingsValues = {
     topupMinAmount: number | null;
     topupMaxAmount: number | null;
     cashBalanceCap: number | null;
+    topupInitiationTtlMinutes: number;
     topupAmountPresets: number[];
 };
 
