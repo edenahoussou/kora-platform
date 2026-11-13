@@ -126,6 +126,10 @@ final class WalletLedgerService
         return DB::transaction(function () use ($wallet, $amount, $reason, $idempotencyKey, $meta, $reference, $actor, $agencyId): WalletTransaction {
             $transaction = $this->credit($wallet, WalletBalanceType::Points, $amount, $reason, $idempotencyKey, $meta, $reference, $actor, $agencyId);
 
+            if (! $transaction->wasRecentlyCreated) {
+                return $transaction;
+            }
+
             $locked = Wallet::query()->whereKey($wallet->getKey())->lockForUpdate()->firstOrFail();
             $due = (int) $locked->points_compensation_due;
 
@@ -170,6 +174,11 @@ final class WalletLedgerService
 
         DB::transaction(function () use ($wallet, $amount, $idempotencyKey, $meta, $reference, $actor): void {
             $locked = Wallet::query()->whereKey($wallet->getKey())->lockForUpdate()->firstOrFail();
+
+            if (! $this->claimCorrection($locked, $amount, $idempotencyKey)) {
+                return;
+            }
+
             $available = max(0, (int) $locked->points_balance - $this->heldAmount($locked, WalletBalanceType::Points));
             $recovered = min($amount, $available);
 
@@ -192,7 +201,31 @@ final class WalletLedgerService
                 $locked->points_compensation_due = (int) $locked->points_compensation_due + $remainder;
                 $locked->save();
             }
+
+            DB::table('wallet_points_corrections')
+                ->where('idempotency_key', $idempotencyKey)
+                ->update(['recovered' => $recovered, 'deferred' => $remainder]);
         });
+    }
+
+    /**
+     * Réserve la clé de correction : une même reprise n'est appliquée qu'une fois,
+     * y compris lorsque tout le montant part en compensation différée.
+     */
+    private function claimCorrection(Wallet $wallet, int $amount, string $idempotencyKey): bool
+    {
+        if (WalletTransaction::query()->where('idempotency_key', $idempotencyKey)->exists()) {
+            return false;
+        }
+
+        return DB::table('wallet_points_corrections')->insertOrIgnore([
+            'wallet_id' => $wallet->getKey(),
+            'idempotency_key' => $idempotencyKey,
+            'amount' => $amount,
+            'recovered' => 0,
+            'deferred' => 0,
+            'created_at' => now(),
+        ]) > 0;
     }
 
     /**
