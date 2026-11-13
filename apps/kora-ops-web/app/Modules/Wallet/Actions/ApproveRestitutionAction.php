@@ -34,9 +34,10 @@ final class ApproveRestitutionAction
             throw ValidationException::withMessages(['status' => 'Cette restitution n’est plus en attente d’approbation.']);
         }
 
-        if ((int) $restitution->amount > $this->ledger->availableBalance($restitution->wallet, WalletBalanceType::Cash)) {
+        if (WalletRestitution::reservedAmount($restitution->wallet)
+            > $this->ledger->availableBalance($restitution->wallet, WalletBalanceType::Cash)) {
             throw ValidationException::withMessages([
-                'amount' => 'Le solde Wallet disponible ne couvre plus cette restitution.',
+                'amount' => 'Le solde Wallet disponible ne couvre plus les restitutions en attente.',
             ]);
         }
 

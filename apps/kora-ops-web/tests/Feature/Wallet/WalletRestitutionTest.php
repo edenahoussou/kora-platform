@@ -150,3 +150,52 @@ it('records an audited wallet adjustment', function (): void {
 
     expect($scenario['wallet']->fresh()->points_balance)->toBe(150);
 });
+
+it('reserves the balance for restitutions already requested', function (): void {
+    $scenario = walletScenario(['cash' => 10000]);
+    $requester = User::factory()->create();
+    $requester->assignRole('agency_agent');
+    Sanctum::actingAs($requester);
+
+    $payload = [
+        'wallet_uuid' => $scenario['wallet']->uuid,
+        'holder_phone' => $scenario['user']->phone,
+        'holder_confirmed' => true,
+        'amount' => 10000,
+    ];
+
+    $this->postJson('/api/v1/ops/wallet-restitutions', $payload)->assertCreated();
+    $this->postJson('/api/v1/ops/wallet-restitutions', $payload)
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['amount']);
+
+    expect(WalletRestitution::query()->count())->toBe(1)
+        ->and($scenario['wallet']->fresh()->cash_balance)->toBe(10000);
+});
+
+it('refuses to approve when pending restitutions exceed the balance', function (): void {
+    $scenario = walletScenario(['cash' => 10000]);
+    $requester = User::factory()->create();
+    $requester->assignRole('agency_agent');
+    $approver = User::factory()->create();
+    $approver->assignRole('daf');
+    $first = WalletRestitution::query()->create([
+        'wallet_id' => $scenario['wallet']->getKey(),
+        'amount' => 10000,
+        'status' => RestitutionStatus::Requested,
+        'requested_by_user_id' => $requester->getKey(),
+    ]);
+    WalletRestitution::query()->create([
+        'wallet_id' => $scenario['wallet']->getKey(),
+        'amount' => 10000,
+        'status' => RestitutionStatus::Requested,
+        'requested_by_user_id' => $requester->getKey(),
+    ]);
+
+    Sanctum::actingAs($approver);
+    $this->postJson('/api/v1/ops/wallet-restitutions/'.$first->uuid.'/approve')
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['amount']);
+
+    expect($first->fresh()->status)->toBe(RestitutionStatus::Requested);
+});
