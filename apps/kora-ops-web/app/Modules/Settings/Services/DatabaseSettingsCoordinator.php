@@ -263,6 +263,7 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
                 'topupMinAmount' => ['nullable', 'integer', 'min:0', 'max:100000000'],
                 'topupMaxAmount' => ['nullable', 'integer', 'min:0', 'max:100000000'],
                 'cashBalanceCap' => ['nullable', 'integer', 'min:0', 'max:100000000'],
+                'topupInitiationTtlMinutes' => ['required', 'integer', 'between:1,1440'],
                 'topupAmountPresets' => ['required', 'array', 'min:1', 'max:8'],
                 'topupAmountPresets.*' => ['required', 'integer', 'between:1,100000000'],
             ];
