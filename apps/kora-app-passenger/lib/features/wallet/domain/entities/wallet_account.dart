@@ -133,7 +133,6 @@ class WalletAccount extends Equatable {
     required this.points,
     required this.rules,
     this.pointsExpireAt,
-    this.compensationDue = 0,
     this.referralCode,
     this.hasReferrer = false,
   });
@@ -151,10 +150,6 @@ class WalletAccount extends Equatable {
   /// Quand les points tombent, faute d'activité. `null` s'il n'y a pas
   /// d'échéance — un solde vide, ou une expiration désactivée.
   final DateTime? pointsExpireAt;
-
-  /// Des points dus au voyageur que le serveur n'a pas encore pu
-  /// créditer. Affiché tel quel, jamais ajouté au solde par l'app.
-  final int compensationDue;
 
   /// Le code à partager pour parrainer. `null` tant que le serveur n'en
   /// a pas attribué.
@@ -203,7 +198,6 @@ class WalletAccount extends Equatable {
     points,
     rules,
     pointsExpireAt,
-    compensationDue,
     referralCode,
     hasReferrer,
   ];

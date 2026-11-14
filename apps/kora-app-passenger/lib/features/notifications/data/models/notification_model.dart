@@ -40,6 +40,11 @@ abstract final class NotificationModel {
     'departure_reminder' => NotificationKind.reminder,
     final value when value.startsWith('departure_') => NotificationKind.delay,
     final value when value.startsWith('refund_') => NotificationKind.wallet,
+    // `wallet_topup_confirmed`, `wallet_points_expiring`,
+    // `wallet_restitution_paid`, `wallet_bonus_*`… Le serveur les émet
+    // tous sous ce préfixe, et ils tombaient dans le repli : une
+    // recharge confirmée s'affichait avec le pictogramme d'un billet.
+    final value when value.startsWith('wallet_') => NotificationKind.wallet,
     _ => NotificationKind.ticket,
   };
 }

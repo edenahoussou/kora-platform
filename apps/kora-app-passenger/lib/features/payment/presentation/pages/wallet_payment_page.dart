@@ -346,10 +346,12 @@ class _WalletPaymentPageState extends State<WalletPaymentPage> {
                       SectionTitle(title: l10n.paymentWalletAmountTitle),
                       _CreditStepper(
                         label: l10n.paymentWalletAmountLabel,
-                        value: Price(
-                          _credit,
-                          currency: args.total.currency,
-                        ).formatted,
+                        value: _credit,
+                        currency: args.total.currency,
+                        maximum: _maxCredit,
+                        onChanged: (value) => setState(
+                          () => _credit = value.clamp(0, _maxCredit),
+                        ),
                         onMinus: _credit > 0
                             ? () => _shiftCredit(-WalletPaymentPage.creditStep)
                             : null,
@@ -485,18 +487,118 @@ class _BalanceCard extends StatelessWidget {
 }
 
 /// `.wallet-amount-control` : le montant encadré de ses deux boutons.
-class _CreditStepper extends StatelessWidget {
+/// Le montant du Wallet à engager : deux boutons, et la saisie directe.
+///
+/// Les pas de 1 000 F vont vite pour une somme ronde, mais pas pour
+/// « 2 350 », ni pour vider un solde à 43 600 : le voyageur tapait
+/// quarante fois sur `+`. Le champ se saisit donc aussi au clavier, et
+/// ce qu'il porte pilote le détail du bas — total, part Wallet, reste à
+/// payer — comme le font les deux boutons.
+///
+/// Le montant est borné à [maximum] : au-delà, la répartition ne
+/// tomberait pas juste et le serveur refuserait la demande. Plutôt que
+/// de laisser taper une somme qui sera rejetée, le champ s'arrête au
+/// plafond.
+class _CreditStepper extends StatefulWidget {
   const _CreditStepper({
     required this.label,
     required this.value,
+    required this.currency,
+    required this.maximum,
+    required this.onChanged,
     required this.onMinus,
     required this.onPlus,
   });
 
   final String label;
-  final String value;
+  final int value;
+  final String currency;
+
+  /// Le plus grand montant engageable : le solde, moins ce que les
+  /// points couvrent déjà.
+  final int maximum;
+
+  final ValueChanged<int> onChanged;
   final VoidCallback? onMinus;
   final VoidCallback? onPlus;
+
+  @override
+  State<_CreditStepper> createState() => _CreditStepperState();
+}
+
+class _CreditStepperState extends State<_CreditStepper> {
+  late final TextEditingController _controller = TextEditingController(
+    text: Price.group(widget.value),
+  );
+  final FocusNode _focus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _focus.addListener(() {
+      if (_focus.hasFocus) {
+        // Toucher le champ en sélectionne tout le contenu : la frappe
+        // remplace le montant au lieu de s'y insérer. Sans ça, un champ
+        // à « 0 » touché puis tapé « 1250 » donnait 12 500 — le curseur
+        // s'était posé avant le zéro.
+        _controller.selection = TextSelection(
+          baseOffset: 0,
+          extentOffset: _controller.text.length,
+        );
+
+        return;
+      }
+
+      // Un champ vidé puis quitté ne doit pas rester vide : il vaut
+      // zéro, et c'est zéro qu'il faut lire.
+      if (_controller.text.isEmpty) {
+        _controller.text = Price.group(widget.value);
+      }
+    });
+  }
+
+  @override
+  void didUpdateWidget(_CreditStepper old) {
+    super.didUpdateWidget(old);
+
+    // Les boutons, et le plafond qui descend quand les points montent,
+    // changent le montant sans passer par le champ. On le resynchronise
+    // — mais seulement quand il dit autre chose, sinon le curseur
+    // sauterait à chaque frappe.
+    if (widget.value != _read(_controller.text)) _write(widget.value);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  /// Le montant que porte le champ, séparateurs de milliers ignorés.
+  int _read(String text) =>
+      int.tryParse(text.replaceAll(RegExp('[^0-9]'), '')) ?? 0;
+
+  void _write(int amount) {
+    final text = Price.group(amount);
+    _controller.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+  }
+
+  void _onChanged(String text) {
+    // Champ vidé : on laisse le voyageur retaper sans lui remettre un
+    // « 0 » sous les doigts. Le détail du bas, lui, compte zéro.
+    if (text.isEmpty) {
+      widget.onChanged(0);
+      return;
+    }
+
+    final amount = _read(text).clamp(0, widget.maximum);
+    if (Price.group(amount) != text) _write(amount);
+    if (amount != widget.value) widget.onChanged(amount);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -505,20 +607,59 @@ class _CreditStepper extends StatelessWidget {
     return KoraCard(
       child: Row(
         children: [
-          _StepButton(icon: Icons.remove_rounded, onTap: onMinus),
+          _StepButton(icon: Icons.remove_rounded, onTap: widget.onMinus),
           Expanded(
             child: Column(
               children: [
-                Text(label, style: AppTextStyles.caption(koraColors.textMuted)),
-                const SizedBox(height: 2),
                 Text(
-                  value,
-                  style: AppTextStyles.titleMedium(context.koraTitleColor),
+                  widget.label,
+                  style: AppTextStyles.caption(koraColors.textMuted),
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Le champ se cale sur son contenu pour rester collé
+                    // à sa devise : en pleine largeur, tout l'espace
+                    // libre les séparerait.
+                    //
+                    // Sans fond ni bordure, il se lit comme le montant
+                    // qu'il remplace — le thème KORA habille ses champs
+                    // d'un fond arrondi, qui ferait ici une pastille au
+                    // milieu d'une carte qui en est déjà une.
+                    Flexible(
+                      child: IntrinsicWidth(
+                        child: TextField(
+                          controller: _controller,
+                          focusNode: _focus,
+                          keyboardType: TextInputType.number,
+                          textAlign: TextAlign.center,
+                          style: AppTextStyles.titleMedium(
+                            context.koraTitleColor,
+                          ),
+                          decoration: const InputDecoration(
+                            isDense: true,
+                            filled: false,
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          onChanged: _onChanged,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      widget.currency,
+                      style: AppTextStyles.titleMedium(context.koraTitleColor),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-          _StepButton(icon: Icons.add_rounded, onTap: onPlus),
+          _StepButton(icon: Icons.add_rounded, onTap: widget.onPlus),
         ],
       ),
     );

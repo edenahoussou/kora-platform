@@ -13,7 +13,6 @@ import '../../domain/entities/wallet_top_up.dart';
 ///   "cash_balance": 18750,
 ///   "points_balance": 2480,
 ///   "points_expires_at": "2027-04-30T23:59:59+00:00",
-///   "points_compensation_due": 0,
 ///   "referral_code": "KORA-4F2A",
 ///   "referred_by": false,
 ///   "settings": { "point_value_fcfa": 1, "points_min_spend": 100, … }
@@ -29,7 +28,6 @@ abstract final class WalletAccountModel {
       cash: Price(ApiJson.intOrNull(json['cash_balance']) ?? 0),
       points: ApiJson.intOrNull(json['points_balance']) ?? 0,
       pointsExpireAt: _date(json['points_expires_at']),
-      compensationDue: ApiJson.intOrNull(json['points_compensation_due']) ?? 0,
       referralCode: ApiJson.stringOrNull(json['referral_code']),
       hasReferrer: json['referred_by'] == true,
       rules: _rules(ApiJson.map(json['settings'])),

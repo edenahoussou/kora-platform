@@ -735,6 +735,54 @@ void main() {
       expect(find.text(money(11500)), findsOneWidget);
     });
 
+    testWidgets('le montant se saisit au clavier', (tester) async {
+      // Au pas de 1 000 F, vider un solde ou viser 2 350 demandait des
+      // dizaines d'appuis. Ce qui est tapé doit piloter le détail du bas
+      // exactement comme les deux boutons.
+      await pump(tester, const WalletPaymentPage(args: args, account: account));
+
+      await tester.enterText(find.byType(TextField), '2350');
+      await tester.pumpAndSettle();
+
+      // 12 500 - 2 350 : le complément suit la frappe.
+      expect(find.text(money(10150)), findsOneWidget);
+    });
+
+    testWidgets('la saisie s’arrête au plafond', (tester) async {
+      // Au-delà, la répartition ne tomberait pas juste et le serveur
+      // refuserait la demande : mieux vaut border que laisser taper une
+      // somme qui sera rejetée.
+      await pump(tester, const WalletPaymentPage(args: args, account: account));
+
+      await tester.enterText(find.byType(TextField), '999999');
+      await tester.pumpAndSettle();
+
+      // Le billet coûte 12 500 et le solde en couvre plus : le plafond,
+      // c'est le billet. Il ne reste rien à régler ailleurs.
+      expect(find.text(money(0)), findsOneWidget);
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller?.text,
+        Price.group(12500),
+      );
+    });
+
+    testWidgets('les boutons et le champ disent la même chose', (tester) async {
+      // Le champ ne doit pas rester sur sa valeur quand le montant
+      // change ailleurs : les deux pilotent le même montant.
+      await pump(tester, const WalletPaymentPage(args: args, account: account));
+
+      await tester.enterText(find.byType(TextField), '2000');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.add_rounded));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller?.text,
+        Price.group(3000),
+      );
+      expect(find.text(money(9500)), findsOneWidget);
+    });
+
     testWidgets('sans Wallet lu, rien ne se répartit', (tester) async {
       // L'écran ne connaît ni solde ni points : proposer un curseur
       // laisserait engager une somme que le serveur refusera.

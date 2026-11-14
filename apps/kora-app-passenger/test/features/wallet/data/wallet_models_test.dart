@@ -17,7 +17,6 @@ void main() {
         'cash_balance': 18750,
         'points_balance': 2480,
         'points_expires_at': '2027-04-30T23:59:59+00:00',
-        'points_compensation_due': 120,
         'referral_code': 'KORA-4F2A',
         'referred_by': true,
         'settings': {
@@ -37,7 +36,6 @@ void main() {
       expect(account.cash, const Price(18750));
       expect(account.points, 2480);
       expect(account.pointsExpireAt?.year, 2027);
-      expect(account.compensationDue, 120);
       expect(account.referralCode, 'KORA-4F2A');
       expect(account.hasReferrer, isTrue);
 
