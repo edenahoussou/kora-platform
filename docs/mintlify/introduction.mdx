@@ -4,11 +4,7 @@ description: "Présentation de KORA BUS, plateforme de transport interurbain en 
 ---
 
 
-**KORA BUS** est la plateforme de transport interurbain du MVP validé par le client. Cette documentation s'adresse aux **développeurs** intégrant l'API REST V1 dans :
-
-- **KORA App Passager** — application mobile client (Flutter) : recherche, réservation, paiement, billet, suivi.
-- **KORA OPS Mobile / P501** — application terrain interne (Android) : planning, manifeste, scan, embarquement.
-- **Intégrations tierces** — tout système consommant l'API publique KORA BUS.
+Cette documentation couvre l’API REST V1 utilisée par **KORA App Passager**, l’application mobile client de KORA BUS.
 
 ## Périmètre MVP
 
@@ -28,16 +24,13 @@ L'API V1 expose actuellement :
     Cycle de vie, voyageurs, libération
   </Card>
   <Card title="Paiements" icon="credit-card" href="/reference/payments/initiate">
-    Initiation, polling, webhook
+    Initiation, vérification et suivi du statut
   </Card>
-  <Card title="Santé" icon="heart-pulse" href="/reference/health">
-    Healthcheck, liveness
+  <Card title="Wallet et fidélité" icon="wallet" href="/reference/wallet/overview">
+    Soldes, transactions, recharges et parrainage
   </Card>
 </CardGroup>
 
-<Note>
-  Les modules **Ride**, **Wallet**, **Colis**, **KORA POINT** et la comptabilité **SYSCOHADA** complète sont hors MVP Bus. Ils seront ajoutés dans une phase ultérieure.
-</Note>
 
 ## Parcours d'intégration recommandé
 
@@ -54,7 +47,7 @@ L'API V1 expose actuellement :
     Concepts, guides pratiques et bonnes pratiques.
   </Card>
   <Card title="API Reference" icon="code" href="/reference/introduction">
-    Référence complète de tous les endpoints, paramètres et réponses.
+    Référence des endpoints passager, paramètres et réponses.
   </Card>
   <Card title="Sécurité" icon="shield-check" href="/security/best-practices">
     Tokens, OTP, appareils de confiance, rate limiting.

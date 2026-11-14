@@ -2,7 +2,12 @@
 
 declare(strict_types=1);
 
-$openApiPath = dirname(__DIR__, 3).'/docs/mintlify/api/openapi.yaml';
+use Symfony\Component\Yaml\Yaml;
+
+require dirname(__DIR__).'/vendor/autoload.php';
+
+$docsPath = dirname(__DIR__, 3).'/docs/mintlify';
+$openApiPath = $docsPath.'/api/openapi.yaml';
 $openApi = file_get_contents($openApiPath);
 
 if ($openApi === false) {
@@ -10,18 +15,6 @@ if ($openApi === false) {
     exit(1);
 }
 
-$openApi = preg_replace(
-    '/^  title: .*$/m',
-    "  title: 'Kora Platforme Web API Documentation'",
-    $openApi,
-    1,
-);
-$openApi = preg_replace(
-    '/^  - url: .*$/m',
-    "  - url: 'https://staging.koraexpress.app'\n    description: Staging\n  - url: 'https://prod.koraexpress.app'\n    description: Production",
-    $openApi,
-    1,
-);
 $openApi = preg_replace_callback(
     '/^(\s+example: )[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/mi',
     static fn (array $matches): string => $matches[1].'00000000-0000-4000-8000-000000000000',
@@ -68,27 +61,6 @@ if ($normalizedOpenApi === null || $normalizedOpenApi === $openApi) {
 
 $openApi = $normalizedOpenApi;
 
-// Scribe discovers Laravel's broadcasting authorization route but cannot infer
-// its dynamically generated channel authorization response.
-$broadcastingPath = '/api/v1/broadcasting/auth';
-$broadcastingPathPattern = sprintf(
-    '/(  %s:\n    get:\n.*?      responses:) \{\}/s',
-    preg_quote($broadcastingPath, '/'),
-);
-$normalizedOpenApi = preg_replace(
-    $broadcastingPathPattern,
-    "$1\n        200:\n          description: Channel authorization payload for an authenticated subscriber.\n        403:\n          description: The authenticated user is not authorized to subscribe to the channel.",
-    $openApi,
-    1,
-);
-
-if ($normalizedOpenApi === null || $normalizedOpenApi === $openApi) {
-    fwrite(STDERR, "Unable to normalize the broadcasting authorization response in the OpenAPI specification.\n");
-    exit(1);
-}
-
-$openApi = $normalizedOpenApi;
-
 if (! str_contains($openApi, 'securitySchemes:')) {
     $openApi = preg_replace(
         '/^tags:\n/m',
@@ -121,7 +93,65 @@ foreach (['quotes', 'holds'] as $resource) {
     );
 }
 
-if ($openApi === null || file_put_contents($openApiPath, $openApi) === false) {
-    fwrite(STDERR, "Unable to normalize generated OpenAPI specification.\n");
+if ($openApi === null) {
+    throw new RuntimeException('Unable to normalize generated OpenAPI specification.');
+}
+
+$navigation = json_decode(file_get_contents($docsPath.'/docs.json'), true, flags: JSON_THROW_ON_ERROR)['navigation'];
+$spec = Yaml::parse($openApi, Yaml::PARSE_OBJECT_FOR_MAP);
+$passengerOperations = [];
+$passengerTags = [];
+
+array_walk_recursive($navigation, static function (mixed $page) use ($docsPath, $spec, &$passengerOperations, &$passengerTags): void {
+    if (! is_string($page) || ! str_starts_with($page, 'reference/')) {
+        return;
+    }
+
+    $contents = file_get_contents($docsPath.'/'.$page.'.mdx');
+    if ($contents === false) {
+        throw new RuntimeException("Unable to read Mintlify reference page: {$page}");
+    }
+
+    if (! preg_match('/^---\R(.*?)\R---/s', $contents, $matches)) {
+        return;
+    }
+
+    $api = Yaml::parse($matches[1])['api'] ?? null;
+    if ($api === null) {
+        return;
+    }
+
+    [$method, $path] = explode(' ', $api, 2);
+    $method = strtolower($method);
+    $operation = $spec->paths->{$path}->{$method} ?? throw new RuntimeException("OpenAPI operation not found for {$page}: {$api}");
+    if (isset($passengerOperations[$path][$method])) {
+        throw new RuntimeException("Duplicate Mintlify reference operation: {$api}");
+    }
+
+    $passengerOperations[$path][$method] = true;
+    foreach ($operation->tags ?? [] as $tag) {
+        $passengerTags[$tag] = true;
+    }
+});
+
+if ($passengerOperations === []) {
+    throw new RuntimeException('No passenger operations found in the Mintlify navigation.');
+}
+
+$spec->info->title = 'KORA BUS API Passager';
+$spec->info->description = 'API REST V1 de l’application mobile passager KORA BUS.';
+$spec->servers = [
+    ['url' => 'https://staging.koraexpress.app', 'description' => 'Staging'],
+    ['url' => 'https://prod.koraexpress.app', 'description' => 'Production'],
+];
+$spec->paths = (object) array_intersect_key((array) $spec->paths, $passengerOperations);
+foreach ($spec->paths as $path => $item) {
+    $spec->paths->{$path} = (object) array_intersect_key((array) $item, $passengerOperations[$path] + ['parameters' => true]);
+}
+$spec->tags = array_values(array_filter($spec->tags, static fn (object $tag): bool => isset($passengerTags[$tag->name])));
+$normalizedOpenApi = Yaml::dump($spec, 20, 2, Yaml::DUMP_EMPTY_ARRAY_AS_SEQUENCE | Yaml::DUMP_OBJECT_AS_MAP);
+
+if (file_put_contents($openApiPath, $normalizedOpenApi) === false) {
+    fwrite(STDERR, "Unable to write the Mintlify OpenAPI specification.\n");
     exit(1);
 }

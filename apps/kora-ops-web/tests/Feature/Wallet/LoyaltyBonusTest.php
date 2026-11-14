@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Settings\Settings\WalletSettings;
+use App\Modules\Wallet\Actions\AttachReferralCodeAction;
 use App\Modules\Wallet\Actions\CreditLegPointsAction;
 use App\Modules\Wallet\Actions\GrantAnniversaryBonusesAction;
 use App\Modules\Wallet\Models\Wallet;
@@ -40,10 +41,17 @@ it('grants the nth-usage bonus once per calendar month', function (): void {
 
 it('grants the referral bonus to the referrer at the referee first use', function (): void {
     $referrer = walletScenario();
-    $referee = walletUsageScenario();
-    $referee['wallet']->update(['referred_by_user_id' => $referrer['user']->getKey()]);
+    $referee = walletScenario();
+    walletConfirmedPayment($referee['reservation']);
+    app(AttachReferralCodeAction::class)->handle($referee['wallet'], $referrer['wallet']->referral_code);
 
-    app(CreditLegPointsAction::class)->handle($referee['reservation']->fresh());
+    $action = app(CreditLegPointsAction::class);
+    expect($action->handle($referee['reservation']->fresh()))->toBe(0)
+        ->and($referrer['wallet']->refresh()->points_balance)->toBe(0);
+
+    $referee['segment']->update(['status' => 'boarded']);
+    $action->handle($referee['reservation']->fresh());
+    $action->handle($referee['reservation']->fresh());
 
     expect($referrer['wallet']->fresh()->points_balance)->toBe(200)
         ->and($referee['wallet']->fresh()->points_balance)->toBe(800);

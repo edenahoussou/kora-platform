@@ -1,0 +1,101 @@
+---
+title: Annuler un passager
+description: "Annule un seul passager dans une réservation de groupe et libère ses segments."
+api: POST /api/v1/bookings/{reservation_uuid}/passengers/{passenger_uuid}/cancel
+---
+
+Annule un seul passager dans une réservation de groupe et libère ses segments. Le backend traite la part remboursable de ce passager si le paiement a déjà été confirmé.
+
+## Paramètres
+
+<ParamField path="reservation_uuid" type="UUID" required>
+  UUID public de la réservation obtenu lors du blocage des sièges.
+</ParamField>
+
+<ParamField path="passenger_uuid" type="UUID" required>
+  UUID du passager dans la liste `data.passengers` de la réservation.
+</ParamField>
+
+<RequestExample>
+
+```bash cURL
+curl -X POST 'https://staging.koraexpress.app/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70/passengers/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb71/cancel' \
+  -H 'Authorization: Bearer <token-de-session>' \
+  -H 'Accept: application/json'
+```
+
+```javascript JavaScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70/passengers/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb71/cancel', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
+});
+const body = await res.json();
+```
+
+```typescript TypeScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70/passengers/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb71/cancel', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
+});
+const body: { data: { uuid: string; status: string; passengers: unknown[] } } = await res.json();
+const passengers = body.data.passengers;
+```
+
+```dart Dart
+final res = await authDio.post('/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70/passengers/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb71/cancel');
+final data = res.data['data'];
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "data": {
+    "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+    "status": "held",
+    "total_amount": 12500,
+    "currency": "XOF",
+    "segments": [],
+    "passengers": []
+  }
+}
+```
+
+```json 401
+{
+  "message": "Unauthenticated."
+}
+```
+
+```json 403
+{
+  "message": "This action is unauthorized."
+}
+```
+
+</ResponseExample>
+
+## Réponse
+
+<ResponseField name="data" type="object" required>
+  Réservation mise à jour. Consultez les [champs de réservation](/reference/booking/reservation).
+</ResponseField>
+
+<ResponseField name="data.passengers" type="object[]">
+  Voyageurs de la réservation et leur état après traitement.
+</ResponseField>
+
+<ResponseField name="data.status" type="string">
+  Statut global de la réservation. Si tous les passagers sont annulés, la réservation est annulée.
+</ResponseField>
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `200` | Réservation retournée après traitement. Répéter l’annulation du même passager est sans effet. |
+| `401` | Jeton de session absent ou invalide. |
+| `403` | Le voyageur ne peut pas agir sur cette réservation. |
+| `404` | Réservation ou passager introuvable, ou passager rattaché à une autre réservation. |

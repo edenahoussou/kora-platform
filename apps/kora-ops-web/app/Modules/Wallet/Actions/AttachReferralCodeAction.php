@@ -3,6 +3,8 @@
 namespace App\Modules\Wallet\Actions;
 
 use App\Modules\Wallet\Models\Wallet;
+use App\Modules\Wallet\Services\WalletNotificationPublisher;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -10,6 +12,8 @@ use Illuminate\Validation\ValidationException;
  */
 final class AttachReferralCodeAction
 {
+    public function __construct(private WalletNotificationPublisher $notifications) {}
+
     /**
      * Rattache le parrain une seule fois, avant tout usage du filleul.
      *
@@ -21,36 +25,42 @@ final class AttachReferralCodeAction
      */
     public function handle(Wallet $wallet, string $code): Wallet
     {
-        $normalized = strtoupper(trim($code));
+        return DB::transaction(function () use ($wallet, $code): Wallet {
+            $wallet = Wallet::query()->whereKey($wallet->getKey())->lockForUpdate()->firstOrFail();
 
-        if ($normalized === '' || $normalized === $wallet->referral_code) {
-            throw ValidationException::withMessages([
-                'referral_code' => 'Vous ne pouvez pas utiliser votre propre code de parrainage.',
-            ]);
-        }
+            $normalized = strtoupper(trim($code));
 
-        if ($wallet->referred_by_user_id !== null) {
-            throw ValidationException::withMessages([
-                'referral_code' => 'Un code de parrainage est déjà rattaché à ce compte.',
-            ]);
-        }
+            if ($normalized === '' || $normalized === $wallet->referral_code) {
+                throw ValidationException::withMessages([
+                    'referral_code' => 'Vous ne pouvez pas utiliser votre propre code de parrainage.',
+                ]);
+            }
 
-        if ($wallet->usages()->exists()) {
-            throw ValidationException::withMessages([
-                'referral_code' => 'Le code de parrainage doit être saisi avant la première utilisation.',
-            ]);
-        }
+            if ($wallet->referred_by_user_id !== null) {
+                throw ValidationException::withMessages([
+                    'referral_code' => 'Un code de parrainage est déjà rattaché à ce compte.',
+                ]);
+            }
 
-        $referrer = Wallet::query()->where('referral_code', $normalized)->first();
+            if ($wallet->usages()->exists()) {
+                throw ValidationException::withMessages([
+                    'referral_code' => 'Le code de parrainage doit être saisi avant la première utilisation.',
+                ]);
+            }
 
-        if ($referrer === null) {
-            throw ValidationException::withMessages([
-                'referral_code' => 'Ce code de parrainage est inconnu.',
-            ]);
-        }
+            $referrer = Wallet::query()->where('referral_code', $normalized)->first();
 
-        $wallet->update(['referred_by_user_id' => $referrer->user_id]);
+            if ($referrer === null) {
+                throw ValidationException::withMessages([
+                    'referral_code' => 'Ce code de parrainage est inconnu.',
+                ]);
+            }
 
-        return $wallet->fresh();
+            $wallet->update(['referred_by_user_id' => $referrer->user_id]);
+
+            $this->notifications->referralAttached($referrer, $wallet);
+
+            return $wallet;
+        });
     }
 }

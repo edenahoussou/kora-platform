@@ -1,7 +1,7 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "KORA BUS API",
+  "name": "KORA BUS API Passager",
   "colors": {
     "primary": "#1A56DB",
     "light": "#FCD34D",
@@ -57,13 +57,6 @@
                   "guides/notifications",
                   "guides/preferences",
                   "guides/error-handling"
-                ]
-              },
-              {
-                "group": "Webhooks",
-                "icon": "webhook",
-                "pages": [
-                  "guides/webhooks"
                 ]
               }
             ]
@@ -121,7 +114,10 @@
                   "reference/booking/itinerary-holds",
                   "reference/booking/reservation",
                   "reference/booking/promo-code",
-                  "reference/booking/passengers"
+                  "reference/booking/passengers",
+                  "reference/booking/release",
+                  "reference/booking/cancel",
+                  "reference/booking/cancel-passenger"
                 ]
               },
               {
@@ -145,16 +141,18 @@
                   "reference/payments/tickets",
                   "reference/payments/tickets-list",
                   "reference/payments/ticket",
-                  "reference/payments/ticket-pdf",
-                  "reference/payments/confirm"
+                  "reference/payments/ticket-pdf"
                 ]
               },
               {
-                "group": "Santé",
-                "icon": "heart-pulse",
+                "group": "Wallet et fidélité",
+                "icon": "wallet",
                 "pages": [
-                  "reference/health",
-                  "reference/health-ping"
+                  "reference/wallet/overview",
+                  "reference/wallet/transactions",
+                  "reference/wallet/topup-create",
+                  "reference/wallet/topup-status",
+                  "reference/wallet/referral"
                 ]
               },
               {
@@ -165,7 +163,8 @@
                   "reference/notifications/unread-count",
                   "reference/notifications/read",
                   "reference/notifications/read-all",
-                  "reference/notifications/firebase-configuration"
+                  "reference/notifications/firebase-configuration",
+                  "reference/notifications/support-chat-configuration"
                 ]
               }
             ]

@@ -1,14 +1,14 @@
 ---
 title: Révoquer un appareil
 description: "Endpoint DELETE /api/v1/auth/devices/{device} de l'API KORA BUS : révocation d'un appareil de confiance, OTP requis à la prochaine connexion."
-api: DELETE /api/v1/auth/devices/{device}
+api: DELETE /api/v1/auth/devices/{uuid}
 ---
 
 Révoque un appareil. L'appareil révoqué devra refaire un OTP à la prochaine connexion. Révoquer l'appareil courant déconnecte immédiatement l'utilisateur.
 
 ## Paramètres
 
-<ParamField path="device" type="UUID" required>
+<ParamField path="uuid" type="UUID" required>
   UUID de l'appareil à révoquer.
 </ParamField>
 

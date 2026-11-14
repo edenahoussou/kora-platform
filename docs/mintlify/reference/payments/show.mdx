@@ -1,14 +1,14 @@
 ---
 title: Consulter un paiement
 description: "GET /api/v1/payments/{uuid} : consulter le statut d'un paiement KORA BUS et poller après verify jusqu'au statut terminal et l'émission des billets."
-api: GET /api/v1/payments/{payment_uuid}
+api: GET /api/v1/payments/{uuid}
 ---
 
 Retourne le statut courant d'un paiement via `PaymentResource`. La relation `reservation` est **toujours chargée** dans cet endpoint (`loadMissing(['reservation.departure'])`). À appeler après `POST /payments/{uuid}/verify` pour rafraîchir l'état jusqu'à l'émission des billets.
 
 ## Paramètres
 
-<ParamField path="payment_uuid" type="UUID" required>
+<ParamField path="uuid" type="UUID" required>
   UUID du paiement (route model binding sur colonne `uuid`).
 </ParamField>
 

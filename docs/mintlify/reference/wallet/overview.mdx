@@ -1,0 +1,193 @@
+---
+title: Consulter le Wallet et son code de parrainage
+description: "Retourne les soldes cash et points, les paramètres de fidélité et le code de parrainage du voyageur connecté."
+api: GET /api/v1/wallet
+---
+
+Retourne les soldes cash et points, les paramètres de fidélité et le code de parrainage du voyageur connecté. Si le compte n’a pas encore de Wallet, le backend le crée avec son code dès cet appel. Pour le partage, utilisez `data.referral_code`.
+
+## Paramètres
+
+Cette opération accepte uniquement le jeton Bearer. La requête ne requiert ni paramètre ni corps.
+
+<RequestExample>
+
+```bash cURL
+curl -X GET 'https://staging.koraexpress.app/api/v1/wallet' \
+  -H 'Authorization: Bearer <token-de-session>' \
+  -H 'Accept: application/json'
+```
+
+```javascript JavaScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/wallet', {
+  method: 'GET',
+  headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
+});
+const body = await res.json();
+```
+
+```typescript TypeScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/wallet', {
+  method: 'GET',
+  headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
+});
+const body: { data: { referral_code: string; referred_by: boolean } } = await res.json();
+const codeToShare = body.data.referral_code;
+```
+
+```dart Dart
+final res = await authDio.get('/api/v1/wallet');
+final data = res.data['data'];
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "data": {
+    "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e",
+    "cash_balance": 0,
+    "points_balance": 0,
+    "points_expires_at": null,
+    "referral_code": "KABCDEFG",
+    "referred_by": false,
+    "holder": {
+      "name": "Aïcha Hounkpè",
+      "phone": "+22997000000"
+    },
+    "settings": {
+      "wallet_cash_enabled": false,
+      "wallet_points_enabled": true,
+      "point_value_fcfa": 1,
+      "points_min_spend": 100,
+      "points_expiry_months": 6,
+      "points_expiry_reminder_days": [
+        30,
+        7,
+        1
+      ],
+      "loyalty_bonuses": {
+        "welcome_points": 500,
+        "referral_points": 200,
+        "anniversary_points": 100,
+        "usage_points": 50,
+        "usage_threshold": 5
+      },
+      "topup_min_amount": null,
+      "topup_max_amount": null,
+      "cash_balance_cap": null,
+      "topup_amount_presets": [
+        2000,
+        5000,
+        10000,
+        20000
+      ],
+      "wallet_hold_ttl_minutes": 15
+    },
+    "created_at": "2026-11-07T10:00:00+00:00"
+  }
+}
+```
+
+```json 401
+{
+  "message": "Unauthenticated."
+}
+```
+
+</ResponseExample>
+
+## Réponse
+
+<ResponseField name="data.uuid" type="UUID" required>
+  Identifiant public du Wallet.
+</ResponseField>
+
+<ResponseField name="data.cash_balance" type="integer" required>
+  Solde cash en FCFA.
+</ResponseField>
+
+<ResponseField name="data.points_balance" type="integer" required>
+  Solde de points de fidélité.
+</ResponseField>
+
+<ResponseField name="data.points_expires_at" type="string">
+  Échéance des points au format ISO 8601, ou `null`.
+</ResponseField>
+
+<ResponseField name="data.referral_code" type="string" required>
+  Code personnel que le voyageur peut afficher, copier ou partager.
+</ResponseField>
+
+<ResponseField name="data.referred_by" type="boolean" required>
+  Indique si un parrain est déjà rattaché.
+</ResponseField>
+
+<ResponseField name="data.holder" type="object" required>
+  Nom et numéro de téléphone du titulaire. Le numéro peut être nul.
+</ResponseField>
+
+<ResponseField name="data.settings" type="object" required>
+  Paramètres Wallet actifs à utiliser pour afficher les fonctionnalités et leurs limites.
+</ResponseField>
+
+<ResponseField name="data.settings.wallet_cash_enabled" type="boolean">
+  Disponibilité du solde cash et des recharges.
+</ResponseField>
+
+<ResponseField name="data.settings.wallet_points_enabled" type="boolean">
+  Disponibilité du solde points.
+</ResponseField>
+
+<ResponseField name="data.settings.point_value_fcfa" type="integer">
+  Valeur d’utilisation d’un point en FCFA.
+</ResponseField>
+
+<ResponseField name="data.settings.points_min_spend" type="integer">
+  Quantité minimale de points à dépenser.
+</ResponseField>
+
+<ResponseField name="data.settings.points_expiry_months" type="integer">
+  Durée de validité des points en mois.
+</ResponseField>
+
+<ResponseField name="data.settings.points_expiry_reminder_days" type="integer[]">
+  Échéances de rappel avant expiration, en jours.
+</ResponseField>
+
+<ResponseField name="data.settings.loyalty_bonuses" type="object">
+  Montants des bonus et seuil d’utilisation.
+</ResponseField>
+
+<ResponseField name="data.settings.topup_min_amount" type="integer">
+  Montant minimal de recharge ou `null`.
+</ResponseField>
+
+<ResponseField name="data.settings.topup_max_amount" type="integer">
+  Montant maximal de recharge ou `null`.
+</ResponseField>
+
+<ResponseField name="data.settings.cash_balance_cap" type="integer">
+  Plafond du solde cash ou `null`.
+</ResponseField>
+
+<ResponseField name="data.settings.topup_amount_presets" type="integer[]">
+  Montants de recharge proposés par défaut.
+</ResponseField>
+
+<ResponseField name="data.settings.wallet_hold_ttl_minutes" type="integer">
+  Durée de blocage des fonds Wallet lors d’un paiement, en minutes.
+</ResponseField>
+
+<ResponseField name="data.created_at" type="string" required>
+  Date de création du Wallet au format ISO 8601.
+</ResponseField>
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `200` | Wallet du voyageur retourné. |
+| `401` | Jeton de session absent ou invalide. |
