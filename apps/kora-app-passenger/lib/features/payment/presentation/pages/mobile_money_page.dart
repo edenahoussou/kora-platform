@@ -267,6 +267,19 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
     if (_operatorError != null || _phoneError != null) return;
     _requested = true;
 
+    // Un paiement de cet écran est déjà en vol : le Bloc refuse d'en
+    // relancer un, à juste titre, et le bouton n'émettait alors plus
+    // rien du tout. Le voyageur retapait sur un écran mort. On le mène
+    // au suivi, qui interroge le serveur jusqu'à l'issue.
+    final flow = context.read<PaymentFlowBloc>().state;
+    final pending = flow.attempt;
+    if (pending != null &&
+        pending.isPending &&
+        paymentFlowMatchesHold(context, flow, widget.args)) {
+      context.push(AppRouter.paymentPendingPath, extra: _flowArgs(pending));
+      return;
+    }
+
     // La passerelle vient de la carte touchée sur l'écran précédent :
     // FedaPay et KKiaPay servent les mêmes réseaux, et ce n'est donc pas
     // le réseau qui peut la désigner.
@@ -293,8 +306,11 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
       return;
     }
 
-    final hold = context.read<SeatHoldBloc>().state.hold;
-    if (hold == null) {
+    // Une recharge n'a pas de réservation : le blocage de sièges ne la
+    // concerne pas.
+    final topUp = widget.args?.topUpAmount;
+    final hold = topUp == null ? context.read<SeatHoldBloc>().state.hold : null;
+    if (topUp == null && hold == null) {
       // Sans blocage, il n'y a pas de réservation à payer — un lien
       // profond, ou un retour après expiration.
       context.go(AppRouter.holdExpiredPath);
@@ -303,7 +319,10 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
 
     context.read<PaymentFlowBloc>().add(
       PaymentFlowStarted(
-        reservationId: hold.id,
+        reservationId: hold?.id,
+        topUpAmount: topUp,
+        walletAmount: widget.args?.walletAmount,
+        pointsAmount: widget.args?.pointsAmount,
         provider: provider.code,
         network: network,
         phone: '${_country.code}${_phone.text.replaceAll(RegExp(r'\D'), '')}',
@@ -321,7 +340,15 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
   void _onFlowChanged(BuildContext context, PaymentFlowState flow) {
     // Le paiement repris au lancement peut être celui d'une autre
     // réservation : il ne pilote pas cet écran-ci.
-    if (!paymentFlowMatchesHold(context, flow)) return;
+    if (!paymentFlowMatchesHold(context, flow, widget.args)) return;
+
+    // Cet écran ne réagit qu'au paiement **qu'il a lancé**. Sans cette
+    // condition, un paiement déjà en cours — une recharge du même
+    // montant laissée en attente — faisait sauter à l'écran de suivi
+    // dès l'ouverture : le voyageur n'avait jamais la main pour
+    // choisir son opérateur ni saisir son numéro. Le bouton, lui,
+    // propose déjà de suivre ce paiement-là.
+    if (!_requested) return;
 
     if (flow.hasFailed) {
       context.push(AppRouter.paymentFailedPath, extra: _flowArgs(flow.attempt));
@@ -336,7 +363,7 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
       // KKiaPay n'a pas d'API de poussée : `initiate` n'a contacté
       // personne et rend de quoi ouvrir sa feuille. C'est elle qui
       // recueille le code du payeur, pas l'opérateur sur son téléphone.
-      if (_requested && attempt != null && attempt.needsWidget) {
+      if (attempt != null && attempt.needsWidget) {
         unawaited(_collect(context, attempt));
         return;
       }
@@ -410,6 +437,7 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
       pollingInterval: attempt?.pollingInterval,
       departure: widget.args!.departure,
       seatLabel: widget.args!.seatLabel,
+      isTopUp: widget.args!.isTopUp,
     );
   }
 
@@ -443,20 +471,46 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
   /// Les deux boutons de l'écran d'échec continuent de fonctionner : ils
   /// remettent le paiement à zéro avant de revenir, si bien qu'on retrouve
   /// ici un « Payer » vivant.
+  /// Clôt la demande en cours, puis rend la main.
+  void _abandon(BuildContext context) {
+    _requested = false;
+    context.read<PaymentFlowBloc>().add(const PaymentFlowAbandoned());
+    KoraToaster.show(context, context.l10n.paymentAbandonDone);
+  }
+
   Widget _payButton(BuildContext context, PaymentFlowState flow) {
     final l10n = context.l10n;
 
     // Le paiement suit son cours ailleurs : on y ramène plutôt que de
     // laisser croire qu'il faut recommencer. Celui d'une autre
-    // réservation, lui, ne doit rien verrouiller ici.
-    if (flow.isPending && paymentFlowMatchesHold(context, flow)) {
-      return KoraButton(
-        label: l10n.paymentMomoResume,
-        variant: KoraButtonVariant.ghost,
-        onPressed: () => context.push(
-          AppRouter.paymentPendingPath,
-          extra: _flowArgs(flow.attempt),
-        ),
+    // réservation — ou d'un billet, quand on recharge le Wallet — ne
+    // doit rien verrouiller ici : sans `args`, un vieux paiement
+    // remplaçait « Payer » par « Suivre le paiement en cours » et la
+    // recharge ne pouvait plus partir.
+    if (flow.isPending && paymentFlowMatchesHold(context, flow, widget.args)) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          KoraButton(
+            label: l10n.paymentMomoResume,
+            variant: KoraButtonVariant.ghost,
+            onPressed: () => context.push(
+              AppRouter.paymentPendingPath,
+              extra: _flowArgs(flow.attempt),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          // Sans cette porte, une demande en attente verrouillait son
+          // montant : la clé d'idempotence rendait la même à chaque
+          // essai, et le voyageur ne pouvait ni la payer ni en ouvrir
+          // une autre.
+          KoraButton(
+            label: l10n.paymentAbandon,
+            variant: KoraButtonVariant.ghost,
+            onPressed: () => _abandon(context),
+          ),
+        ],
       );
     }
 
@@ -492,7 +546,11 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               ScreenHeader(
-                eyebrow: l10n.paymentMomoEyebrow(args.total.formatted),
+                // Une recharge n'achète pas de billet : le surtitre le
+                // dit, comme sur la feuille de la passerelle.
+                eyebrow: args.isTopUp
+                    ? l10n.paymentTopUpEyebrow
+                    : l10n.paymentMomoEyebrow(args.total.formatted),
                 title: l10n.paymentMomoTitle,
               ),
               Expanded(

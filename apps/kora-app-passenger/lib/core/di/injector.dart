@@ -63,6 +63,7 @@ import '../../features/payment/data/repositories/payment_repository_impl.dart';
 import '../../features/payment/domain/repositories/payment_repository.dart';
 import '../../features/payment/presentation/bloc/payment_catalog_bloc.dart';
 import '../../features/payment/presentation/bloc/payment_flow_bloc.dart';
+import '../../features/profil/data/birth_date_prompt_store.dart';
 import '../../features/support/data/datasources/support_chat_remote_data_source.dart';
 import '../../features/support/data/repositories/support_chat_repository_impl.dart';
 import '../../features/support/domain/repositories/support_chat_repository.dart';
@@ -70,6 +71,10 @@ import '../../features/theme/data/datasources/theme_local_data_source.dart';
 import '../../features/theme/data/repositories/theme_repository_impl.dart';
 import '../../features/theme/domain/repositories/theme_repository.dart';
 import '../../features/theme/presentation/bloc/theme_bloc.dart';
+import '../../features/wallet/data/datasources/wallet_remote_data_source.dart';
+import '../../features/wallet/data/repositories/wallet_repository_impl.dart';
+import '../../features/wallet/domain/repositories/wallet_repository.dart';
+import '../../features/wallet/presentation/bloc/wallet_refresh.dart';
 import '../../features/welcome/data/onboarding_store.dart';
 import '../constants/api_constants.dart';
 import '../constants/storage_keys.dart';
@@ -124,6 +129,9 @@ Future<void> _registerExternalDependencies() async {
   // Lu par le garde de navigation à chaque changement de route : il doit
   // répondre sans attendre, d'où la lecture synchrone de SharedPreferences.
   getIt.registerLazySingleton<OnboardingStore>(() => OnboardingStore(getIt()));
+  getIt.registerLazySingleton<BirthDatePromptStore>(
+    () => BirthDatePromptStore(getIt()),
+  );
 
   getIt.registerLazySingleton<FlutterSecureStorage>(
     () => const FlutterSecureStorage(),
@@ -192,6 +200,17 @@ void _registerCore() {
   );
   getIt.registerLazySingleton<NotificationRepository>(
     () => NotificationRepositoryImpl(getIt<NotificationRemoteDataSource>()),
+  );
+
+  // --- Wallet KORA BUS ---
+  //
+  // Deux soldes tenus par le serveur (MEZ-160) : l'app les lit, elle
+  // n'en tient aucun elle-même.
+  getIt.registerLazySingleton<WalletRemoteDataSource>(
+    () => WalletRemoteDataSource(getIt<Dio>()),
+  );
+  getIt.registerLazySingleton<WalletRepository>(
+    () => WalletRepositoryImpl(getIt<WalletRemoteDataSource>()),
   );
 
   // --- Notifications push ---
@@ -346,6 +365,7 @@ void _registerBookingFeature() {
   // Le signal « une réservation a changé » : l'onglet Voyages s'y accroche
   // pour relire ses billets après une annulation.
   getIt.registerLazySingleton<BookingRefresh>(BookingRefresh.new);
+  getIt.registerLazySingleton<WalletRefresh>(WalletRefresh.new);
   getIt.registerFactory<CancelTicketCubit>(
     () => CancelTicketCubit(getIt(), getIt()),
   );
@@ -399,7 +419,11 @@ void _registerPaymentFeature() {
   );
 
   getIt.registerFactory<PaymentFlowBloc>(
-    () => PaymentFlowBloc(getIt(), getIt<PendingPaymentStore>()),
+    () => PaymentFlowBloc(
+      getIt(),
+      getIt<PendingPaymentStore>(),
+      getIt<WalletRepository>(),
+    ),
   );
 }
 

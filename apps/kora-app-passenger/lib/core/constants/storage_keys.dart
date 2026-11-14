@@ -12,6 +12,10 @@ class StorageKeys {
   static const String onboardingSeen = 'kora_onboarding_seen';
   static const String preferredLanguage = 'kora_preferred_language';
 
+  /// L'invitation à renseigner sa date de naissance a déjà été posée.
+  /// Sans elle, elle se rouvrirait à chaque passage par l'accueil.
+  static const String birthDatePrompt = 'kora_birth_date_prompt_seen';
+
   /// Les réservations confiées à une agence depuis ce téléphone : l'API
   /// ne les liste pas.
   static const String assistedBookings = 'kora_assisted_bookings';

@@ -21,6 +21,7 @@ import 'package:kora_app_passenger/core/l10n/app_localization.dart';
 import 'package:kora_app_passenger/core/router/app_router.dart';
 import 'package:kora_app_passenger/core/utils/date_formats.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_data_source.dart';
+import 'package:kora_app_passenger/features/wallet/presentation/pages/wallet_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -181,6 +182,30 @@ void main() {
         reason: 'onglet "$label" absent de la bottom nav',
       );
     }
+  });
+
+  testWidgets('l’onglet Wallet ouvre le Wallet, pas un écran d’attente', (
+    tester,
+  ) async {
+    // L'onglet est resté longtemps inerte : la branche ouvrait un
+    // `ComingSoonPage` et la barre refusait son index. Le Wallet était
+    // écrit, branché sur l'API, et personne ne pouvait l'atteindre.
+    seedSession();
+    await pumpApp(tester);
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 300));
+    }
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(KoraBottomNav),
+        matching: find.text('Wallet'),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.byType(WalletPage), findsOneWidget);
   });
 
   testWidgets('la connexion mène à la saisie du PIN', (tester) async {

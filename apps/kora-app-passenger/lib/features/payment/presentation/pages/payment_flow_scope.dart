@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../booking/presentation/bloc/seat_hold_bloc.dart';
 import '../bloc/payment_flow_bloc.dart';
+import 'payment_args.dart';
 
 /// Vrai quand l'état du parcours parle bien de la réservation en cours.
 ///
@@ -18,11 +19,23 @@ import '../bloc/payment_flow_bloc.dart';
 /// de l'ancienne, et le bouton « Payer » devenait « Reprendre » — c'est-à-
 /// dire que la nouvelle réservation ne se payait plus du tout.
 ///
+/// Une **recharge** n'a pas de blocage de sièges : sans [args], tout
+/// paiement repris passait ce filtre et pilotait l'écran de recharge —
+/// c'est ainsi qu'un vieux paiement de billet y annonçait « votre siège
+/// reste réservé ». On compare alors à la recharge en cours.
+///
 /// Un parcours encore vierge (`reservationId` nul) et un écran sans
 /// blocage passent : il n'y a alors rien qui diverge.
-bool paymentFlowMatchesHold(BuildContext context, PaymentFlowState flow) {
+bool paymentFlowMatchesHold(
+  BuildContext context,
+  PaymentFlowState flow, [
+  PaymentArgs? args,
+]) {
   final paying = flow.reservationId;
   if (paying == null) return true;
+
+  final topUp = args?.topUpAmount;
+  if (topUp != null) return paying == PaymentFlowBloc.topUpTag(topUp);
 
   final hold = context.read<SeatHoldBloc>().state.hold?.id;
   if (hold == null) return true;

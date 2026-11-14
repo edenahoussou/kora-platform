@@ -8,16 +8,33 @@ sealed class PaymentFlowEvent extends Equatable {
 }
 
 /// Le voyageur lance le paiement.
+///
+/// Deux sources possibles, et une seule à la fois : une réservation à
+/// régler ([reservationId]), ou une recharge du Wallet
+/// ([topUpAmount]). Le reste du parcours est identique — même attente,
+/// même relecture, mêmes écrans — parce que c'est le même paiement
+/// provider ; seule la façon de l'ouvrir diffère.
 class PaymentFlowStarted extends PaymentFlowEvent {
   const PaymentFlowStarted({
-    required this.reservationId,
     required this.provider,
+    this.reservationId,
+    this.topUpAmount,
     this.method = PaymentCatalog.mobileMoneyCode,
     this.network,
     this.phone,
-  });
+    this.walletAmount,
+    this.pointsAmount,
+  }) : assert(
+         (reservationId == null) != (topUpAmount == null),
+         'Un paiement règle une réservation ou alimente le Wallet, '
+         'jamais les deux ni aucun des deux.',
+       );
 
-  final String reservationId;
+  /// La réservation à régler. `null` pour une recharge.
+  final String? reservationId;
+
+  /// Le montant d'une recharge du Wallet. `null` pour un billet.
+  final int? topUpAmount;
 
   /// L'encaisseur (`fedapay`, `kkiapay`), déduit du réseau par le
   /// catalogue — ou imposé par le moyen, pour la carte.
@@ -36,8 +53,26 @@ class PaymentFlowStarted extends PaymentFlowEvent {
   /// que [network].
   final String? phone;
 
+  /// La part du billet réglée sur le solde Wallet, en francs.
+  final int? walletAmount;
+
+  /// La part réglée en points de fidélité, en points.
+  ///
+  /// Le serveur la retranche du total en francs : c'est sa règle, et
+  /// elle ne vaut que tant qu'un point vaut un franc.
+  final int? pointsAmount;
+
   @override
-  List<Object?> get props => [reservationId, provider, method, network, phone];
+  List<Object?> get props => [
+    reservationId,
+    topUpAmount,
+    provider,
+    method,
+    network,
+    phone,
+    walletAmount,
+    pointsAmount,
+  ];
 }
 
 /// Un tour de relecture, émis par la minuterie interne.
@@ -66,6 +101,15 @@ class PaymentFlowVerifyRequested extends PaymentFlowEvent {
 /// serveur, lui, a pu confirmer entre-temps.
 class PaymentFlowResumed extends PaymentFlowEvent {
   const PaymentFlowResumed();
+}
+
+/// Abandonne le paiement en cours, pour pouvoir en ouvrir un autre.
+///
+/// Distinct de [PaymentFlowReset], qui n'oublie que ce que l'app sait :
+/// ici on demande au serveur de clore la demande, faute de quoi sa clé
+/// d'idempotence continuerait de rendre la même.
+class PaymentFlowAbandoned extends PaymentFlowEvent {
+  const PaymentFlowAbandoned();
 }
 
 class PaymentFlowReset extends PaymentFlowEvent {

@@ -67,6 +67,12 @@ import '../../features/support/presentation/pages/contact_page.dart';
 import '../../features/support/presentation/pages/help_page.dart';
 import '../../features/support/presentation/pages/support_chat_page.dart';
 import '../../features/support/presentation/widgets/support_chat_fab.dart';
+import '../../features/wallet/presentation/pages/wallet_bonuses_page.dart';
+import '../../features/wallet/presentation/pages/wallet_history_page.dart';
+import '../../features/wallet/presentation/pages/wallet_page.dart';
+import '../../features/wallet/presentation/pages/wallet_services_page.dart';
+import '../../features/wallet/presentation/pages/wallet_top_up_method_page.dart';
+import '../../features/wallet/presentation/pages/wallet_top_up_page.dart';
 import '../../features/welcome/data/onboarding_store.dart';
 import '../../features/welcome/presentation/pages/onboarding_page.dart';
 import '../../features/welcome/presentation/pages/splash_page.dart';
@@ -134,6 +140,27 @@ class AppRouter {
   static const String accountDeletionPath = '/profile/securite/suppression';
   static const String preferencesPath = '/profile/preferences';
   static const String notificationsPath = '/notifications';
+
+  /// L'historique complet du Wallet (MEZ-160, point 3).
+  static const String walletHistoryPath = '/wallet/historique';
+
+  /// L'onglet Wallet.
+  static const String walletPath = '/wallet';
+
+  /// La recharge du Wallet (MEZ-160, point 2).
+  static const String walletTopUpPath = '/wallet/recharge';
+
+  /// Le choix du moyen de recharge.
+  static const String walletTopUpMethodPath = '/wallet/recharge/moyen';
+
+  /// Où dépenser son Wallet (MEZ-160).
+  static const String walletServicesPath = '/wallet/utiliser';
+
+  /// Les règles du Wallet.
+  static const String walletRulesPath = '/wallet/regles';
+
+  /// Les bonus fidélité.
+  static const String walletBonusesPath = '/wallet/bonus';
   static const String helpPath = '/aide';
   static const String contactPath = '/aide/contact';
 
@@ -503,6 +530,31 @@ class AppRouter {
         GoRoute(
           path: preferencesPath,
           builder: (context, state) => const PreferencesPage(),
+        ),
+        GoRoute(
+          path: walletHistoryPath,
+          builder: (context, state) => const WalletHistoryPage(),
+        ),
+        GoRoute(
+          path: walletTopUpPath,
+          builder: (context, state) => const WalletTopUpPage(),
+        ),
+        GoRoute(
+          path: walletTopUpMethodPath,
+          builder: (context, state) =>
+              WalletTopUpMethodPage(amount: state.extra as int?),
+        ),
+        GoRoute(
+          path: walletServicesPath,
+          builder: (context, state) => const WalletServicesPage(),
+        ),
+        GoRoute(
+          path: walletRulesPath,
+          builder: (context, state) => const WalletRulesPage(),
+        ),
+        GoRoute(
+          path: walletBonusesPath,
+          builder: (context, state) => const WalletBonusesPage(),
         ),
         GoRoute(
           path: notificationsPath,
@@ -903,12 +955,10 @@ class AppRouter {
                 ),
               ],
             ),
-            // Colis et Wallet : les écrans existent (`ColisPage`,
-            // `WalletPage`), dessinés d'après la maquette, mais leurs
-            // fonctionnalités ne sont pas écrites — ni domaine, ni
-            // source de données. L'onglet s'ouvre donc sur du vide, le
-            // temps que la feature arrive : il remontrera l'écran
-            // complet d'une ligne, sans rien avoir à redessiner.
+            // Colis : l'écran existe, dessiné d'après la maquette, mais
+            // sa fonctionnalité n'est pas écrite — ni domaine, ni source
+            // de données. L'onglet s'ouvre donc sur du vide, le temps
+            // que la feature arrive.
             StatefulShellBranch(
               routes: [
                 GoRoute(
@@ -923,11 +973,8 @@ class AppRouter {
             StatefulShellBranch(
               routes: [
                 GoRoute(
-                  path: '/wallet',
-                  builder: (context, state) => ComingSoonPage(
-                    eyebrow: context.l10n.walletEyebrow,
-                    title: context.l10n.walletTitle,
-                  ),
+                  path: walletPath,
+                  builder: (context, state) => const WalletPage(),
                 ),
               ],
             ),
@@ -949,10 +996,9 @@ class AppRouter {
 /// L'onglet Voyages dans la barre du bas, dans l'ordre des branches.
 const int _voyagesBranch = 1;
 
-/// Les deux onglets qui attendent leur feature : leurs écrans dorment
-/// dans le dépôt, et l'app ne les ouvre pas.
+/// L'onglet qui attend sa feature : son écran dort dans le dépôt, et
+/// l'app ne l'ouvre pas.
 const int _colisBranch = 2;
-const int _walletBranch = 3;
 
 /// Le `Scaffold` commun à tous les onglets : il porte la [KoraBottomNav]
 /// et affiche la branche active via [navigationShell].
@@ -988,11 +1034,11 @@ class _ScaffoldWithNavBar extends StatelessWidget {
           ],
           currentIndex: navigationShell.currentIndex,
           onTap: (index) {
-            // Colis et Wallet n'ont pas encore de fonctionnalité : leurs
-            // écrans dorment dans le dépôt et l'onglet ne montrerait
-            // qu'un en-tête. L'appui ne mène donc nulle part, comme la
-            // tuile de l'accueil et celle de KORA Ride.
-            if (index == _colisBranch || index == _walletBranch) return;
+            // Colis n'a pas encore de fonctionnalité : son écran dort
+            // dans le dépôt et l'onglet ne montrerait qu'un en-tête.
+            // L'appui ne mène donc nulle part, comme la tuile de
+            // l'accueil et celle de KORA Ride.
+            if (index == _colisBranch) return;
 
             // Ouvrir Voyages relit les billets : l'émission suit le
             // paiement de quelques secondes, et la branche garde son

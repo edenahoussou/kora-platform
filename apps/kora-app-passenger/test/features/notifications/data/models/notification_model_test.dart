@@ -48,6 +48,13 @@ void main() {
       'departure_modified': NotificationKind.delay,
       'refund_succeeded': NotificationKind.wallet,
       'refund_pending': NotificationKind.wallet,
+      // Le serveur émet tout le Wallet sous ce préfixe. Ils tombaient
+      // dans le repli : une recharge confirmée s'affichait avec le
+      // pictogramme d'un billet.
+      'wallet_topup_confirmed': NotificationKind.wallet,
+      'wallet_points_expiring': NotificationKind.wallet,
+      'wallet_restitution_paid': NotificationKind.wallet,
+      'wallet_bonus_welcome': NotificationKind.wallet,
     };
 
     for (final entry in expected.entries) {

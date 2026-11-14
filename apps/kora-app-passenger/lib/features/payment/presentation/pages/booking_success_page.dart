@@ -10,6 +10,7 @@ import '../../../booking/presentation/bloc/cancel_ticket_cubit.dart';
 import '../../../booking/presentation/bloc/seat_hold_bloc.dart';
 import '../../../booking/presentation/pages/group_tickets_page.dart';
 import '../../../booking/presentation/widgets/state_view.dart';
+import '../../../wallet/presentation/bloc/wallet_refresh.dart';
 import 'payment_flow_args.dart';
 import 'payment_method_page.dart';
 
@@ -61,6 +62,21 @@ class _BookingSuccessPageState extends State<BookingSuccessPage> {
       if (getIt.isRegistered<BookingRefresh>()) {
         getIt<BookingRefresh>().notify();
       }
+
+      // L'onglet Wallet est resté en mémoire lui aussi. Un billet réglé
+      // en partie avec le solde le laissait sur le montant d'avant
+      // l'achat : le voyageur venait vérifier son crédit après avoir
+      // payé, et lisait un chiffre faux jusqu'à ce qu'il tire pour
+      // rafraîchir.
+      //
+      // Le signal part sans condition. Savoir *si* le Wallet a servi
+      // demanderait de porter la répartition jusqu'ici, et c'est
+      // précisément un champ recopié d'écran en écran qui avait déjà
+      // laissé tomber cette part en route. Une lecture du solde de trop
+      // ne coûte rien ; un solde faux coûte un appel au support.
+      if (getIt.isRegistered<WalletRefresh>()) {
+        getIt<WalletRefresh>().notify();
+      }
     });
   }
 
@@ -71,6 +87,13 @@ class _BookingSuccessPageState extends State<BookingSuccessPage> {
   /// l'onglet Voyages, comme on le faisait, le laissait devant une liste
   /// qui ne connaît pas encore sa réservation — le bouton semblait ne
   /// rien faire.
+  /// Ramène à l'onglet Wallet.
+  ///
+  /// Il n'a rien à redemander ici : le signal est parti dès l'arrivée
+  /// sur cet écran, pour que l'onglet soit juste aussi quand on y va
+  /// par la barre du bas plutôt que par ce bouton.
+  void _openWallet(BuildContext context) => context.go(AppRouter.walletPath);
+
   void _openTickets(BuildContext context) {
     final reservationId = _reservationId;
 
@@ -107,13 +130,27 @@ class _BookingSuccessPageState extends State<BookingSuccessPage> {
               const SizedBox(height: AppSpacing.lg),
               StateView(
                 icon: Icons.check_rounded,
-                title: l10n.bookingSuccessTitle,
-                message: l10n.bookingSuccessText,
-                primaryLabel: l10n.bookingSuccessTicket,
+                // Une recharge n'émet pas de billet : « Votre voyage
+                // est confirmé » suivi de « Afficher mon billet »
+                // enverrait le voyageur chercher un titre inexistant.
+                title: args.isTopUp
+                    ? l10n.paymentTopUpSuccessTitle
+                    : l10n.bookingSuccessTitle,
+                message: args.isTopUp
+                    ? l10n.paymentTopUpSuccessText(args.total.formatted)
+                    : l10n.bookingSuccessText,
+                primaryLabel: args.isTopUp
+                    ? l10n.paymentTopUpSuccessAction
+                    : l10n.bookingSuccessTicket,
                 // Un groupe a autant de billets que de voyageurs, chacun
                 // avec son QR : l'écran dédié les liste. Un voyageur seul
                 // n'a qu'un billet, et la liste des voyages y mène déjà.
-                onPrimary: () => _openTickets(context),
+                //
+                // Une recharge, elle, n'a pas de billet : le bouton
+                // disait « Voir mon Wallet » et menait aux voyages. On
+                // changeait le mot sans changer la porte.
+                onPrimary: () =>
+                    args.isTopUp ? _openWallet(context) : _openTickets(context),
                 secondaryLabel: l10n.holdExpiredSecondary,
                 onSecondary: () => context.go('/home'),
               ),

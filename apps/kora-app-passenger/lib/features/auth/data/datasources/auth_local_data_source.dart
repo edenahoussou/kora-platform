@@ -153,6 +153,7 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
     'email': user.email,
     'phone': user.phone,
     'country_code': user.countryCode,
+    'registration_origin': user.registrationOrigin.name,
     'birth_date': user.birthDate?.toIso8601String(),
     'status': user.status,
     'avatar_url': user.avatarUrl,
