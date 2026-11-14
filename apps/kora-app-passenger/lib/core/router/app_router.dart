@@ -106,15 +106,13 @@ import '../widgets/coming_soon_page.dart';
 class AppRouter {
   const AppRouter._();
 
-  /// Chemin de l'écran de connexion — seule route accessible sans session
-  /// active (voir `redirect` ci-dessous).
+  /// Chemin de l'écran de connexion, accessible sans session (voir
+  /// `_publicPaths` et `_redirect` ci-dessous).
   static const String loginPath = '/login';
 
-  /// Écran de bienvenue, premier affiché au lancement.
-  ///
-  /// Il se montre à **chaque** démarrage : mémoriser qu'il a déjà été vu
-  /// demande de stocker un indicateur (`SharedPreferences`), ce que fera la
-  /// feature `auth` en même temps qu'elle saura si quelqu'un est connecté.
+  /// Écran de lancement : affiché le temps que `AuthBloc` connaisse la
+  /// session, puis `_redirect` enchaîne sur l'onboarding à la première
+  /// ouverture, sinon sur la bienvenue.
   static const String splashPath = '/splash';
 
   /// Les trois temps montrés à la première ouverture seulement.
@@ -670,11 +668,8 @@ class AppRouter {
         GoRoute(
           path: welcomePath,
           builder: (context, state) => WelcomePage(
-            // Les deux actions mènent à l'inscription et à la connexion, qui
-            // n'existent pas encore (voir GUIDE.md §13). En attendant,
-            // « Créer mon compte » entre dans l'app pour que le parcours Bus
-            // reste accessible, et « J'ai déjà un compte » ouvre l'écran de
-            // connexion, même s'il n'est qu'un placeholder.
+            // Les deux actions mènent aux écrans réels d'inscription et de
+            // connexion (`signupPath`, `loginPath`).
             onCreateAccount: () => context.push(signupPath),
             onLogin: () => context.push(loginPath),
           ),

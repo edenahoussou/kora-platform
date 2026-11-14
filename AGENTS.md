@@ -2,15 +2,17 @@
 
 ## Scope
 
-This monorepo hosts the validated KORA BUS MVP. Read `CONTEXT.md` before changing domain names, scope, or module boundaries. The MVP is Bus only: do not introduce KORA Ride, KORA Driver, Wallet, Colis, KORA POINT, full SYSCOHADA accounting, payroll, or advanced fleet modules without an explicit change request.
+This monorepo hosts the KORA platform. The KORA BUS MVP is delivered and in operation, and the Wallet, loyalty, and KORA POINT modules are shipped as well (see the phase table in `README.md`). KORA Colis interurbain is the next phase; its foundation is under review on the `feat/colis-socle` branch and must not be assumed available on `main`.
+
+Read `CONTEXT.md` before changing domain names, scope, or module boundaries. KORA Ride, KORA Driver, home delivery/VTC, full SYSCOHADA accounting, payroll, and advanced fleet modules remain out of scope: do not introduce them without an explicit change request (ADR or ticket) that supersedes this line and updates the `README.md` phase table.
 
 ## App-Specific Guides
 
 Follow the closest `AGENTS.md` for the files you edit:
 
 - `apps/kora-ops-web/AGENTS.md`: Laravel, React/Inertia, API, migrations, and backend tests.
-- `apps/kora-app-passenger/AGENTS.md`: future Flutter passenger Bus app.
-- `apps/kora-ops-mobile/AGENTS.md`: future Flutter Android/P501 field operations app.
+- `apps/kora-app-passenger/AGENTS.md`: Flutter passenger Bus and Wallet app.
+- `apps/kora-ops-mobile/AGENTS.md`: Flutter Android/P501 field operations app (not KORA Driver).
 
 Shared contracts and packages live in `packages/`. Architecture decisions, API notes, delivery notes, and runbooks live in `docs/`.
 
