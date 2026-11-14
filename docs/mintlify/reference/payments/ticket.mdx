@@ -1,14 +1,14 @@
 ---
 title: Consulter un billet
 description: "GET /api/v1/tickets/{uuid} : consulter un billet KORA BUS individuel par UUID public, réservé au propriétaire authentifié de la réservation."
-api: GET /api/v1/tickets/{ticket_uuid}
+api: GET /api/v1/tickets/{uuid}
 ---
 
 Retourne un billet individuel via `TicketResource`. Le billet est rattaché à une réservation ; l'utilisateur authentifié doit en être le propriétaire.
 
 ## Paramètres
 
-<ParamField path="ticket_uuid" type="UUID" required>
+<ParamField path="uuid" type="UUID" required>
   UUID public du billet (route model binding sur colonne `uuid`).
 </ParamField>
 

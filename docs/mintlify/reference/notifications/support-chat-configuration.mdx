@@ -1,0 +1,114 @@
+---
+title: Configuration du chat d’assistance
+description: "Récupère la configuration tawk.to du chat d’assistance pour le voyageur connecté."
+api: GET /api/v1/auth/passenger/support-chat-configuration
+---
+
+Récupère la configuration tawk.to du chat d’assistance pour le voyageur connecté. Vérifiez `data.enabled` avant d’initialiser le widget ou d’ouvrir le chat.
+
+## Paramètres
+
+Cette opération accepte uniquement le jeton Bearer. La requête ne requiert ni paramètre ni corps.
+
+<RequestExample>
+
+```bash cURL
+curl -X GET 'https://staging.koraexpress.app/api/v1/auth/passenger/support-chat-configuration' \
+  -H 'Authorization: Bearer <token-de-session>' \
+  -H 'Accept: application/json'
+```
+
+```javascript JavaScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/auth/passenger/support-chat-configuration', {
+  method: 'GET',
+  headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
+});
+const body = await res.json();
+```
+
+```typescript TypeScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/auth/passenger/support-chat-configuration', {
+  method: 'GET',
+  headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
+});
+const body: { data: { enabled: boolean; direct_chat_url?: string } } = await res.json();
+const chatUrl = body.data.enabled ? body.data.direct_chat_url : undefined;
+```
+
+```dart Dart
+final res = await authDio.get('/api/v1/auth/passenger/support-chat-configuration');
+final data = res.data['data'];
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 Activé
+{
+  "data": {
+    "enabled": true,
+    "property_id": "abc123def456",
+    "widget_id": "default",
+    "direct_chat_url": "https://tawk.to/chat/abc123def456/default",
+    "secure_hash": "hmac-sha256",
+    "visitor": {
+      "name": "Awa Kora",
+      "email": "awa@kora.test",
+      "phone": "+22997000000",
+      "jobTitle": null,
+      "agency": null,
+      "role": "Passager"
+    }
+  }
+}
+```
+
+```json 200 Désactivé
+{
+  "data": {
+    "enabled": false
+  }
+}
+```
+
+```json 401
+{
+  "message": "Unauthenticated."
+}
+```
+
+</ResponseExample>
+
+## Réponse
+
+<ResponseField name="data.enabled" type="boolean" required>
+  Indique si l’assistance est disponible. Les autres champs sont renvoyés quand elle est activée.
+</ResponseField>
+
+<ResponseField name="data.property_id" type="string">
+  Identifiant public de la propriété tawk.to.
+</ResponseField>
+
+<ResponseField name="data.widget_id" type="string">
+  Identifiant du widget tawk.to.
+</ResponseField>
+
+<ResponseField name="data.direct_chat_url" type="string">
+  Lien d’accès direct au chat.
+</ResponseField>
+
+<ResponseField name="data.secure_hash" type="string">
+  Signature du visiteur calculée côté serveur, ou `null`.
+</ResponseField>
+
+<ResponseField name="data.visitor" type="object">
+  Profil associé à la session de chat.
+</ResponseField>
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `200` | Configuration retournée. Si l’assistance est indisponible, la réponse contient uniquement `data.enabled: false`. |
+| `401` | Jeton de session absent ou invalide. |

@@ -17,12 +17,15 @@ class WalletReferralController extends Controller
     /**
      * Rattache un code parrain au Wallet du voyageur connecté.
      *
+     * @authenticated
+     *
      * @param  AttachReferralRequest  $request  Code parrain validé
      * @param  FindOrCreateWalletAction  $findOrCreateWallet  Provisionnement du Wallet
      * @param  AttachReferralCodeAction  $attachReferralCode  Contrôles et rattachement
      * @return JsonResponse Wallet mis à jour
      *
      * @response 200 {"data":{"uuid":"9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e","cash_balance":0,"points_balance":0,"referral_code":"KORA-ABC123","referred_by":true}}
+     * @response 422 {"message":"Le code de parrainage doit être saisi avant la première utilisation.","errors":{"referral_code":["Le code de parrainage doit être saisi avant la première utilisation."]}}
      */
     public function store(
         AttachReferralRequest $request,

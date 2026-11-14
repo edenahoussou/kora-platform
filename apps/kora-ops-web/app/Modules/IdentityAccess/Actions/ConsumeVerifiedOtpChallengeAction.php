@@ -9,11 +9,12 @@ use Illuminate\Validation\ValidationException;
 
 class ConsumeVerifiedOtpChallengeAction
 {
-    public function handle(string $challengeUuid, OtpPurpose $purpose, string $verificationToken): AuthOtpChallenge
+    public function handle(string $challengeUuid, OtpPurpose $purpose, string $verificationToken, bool $lockForUpdate = false): AuthOtpChallenge
     {
         $challenge = AuthOtpChallenge::query()
             ->where('uuid', $challengeUuid)
             ->where('purpose', $purpose->value)
+            ->when($lockForUpdate, fn ($query) => $query->lockForUpdate())
             ->first();
 
         if (

@@ -17,6 +17,17 @@ use Illuminate\Support\Facades\Notification;
  */
 final class WalletNotificationPublisher
 {
+    public function referralAttached(Wallet $referrer, Wallet $referee): void
+    {
+        Notification::sendNow($referrer->user, new PassengerInboxNotification(
+            dedupeKey: 'wallet:referral_attached:'.$referee->uuid,
+            type: 'wallet_referral_attached',
+            title: 'Code de parrainage utilisé',
+            message: 'Votre code de parrainage a été utilisé. Votre bonus sera crédité après le premier billet utilisé par votre filleul.',
+            data: ['resource' => 'wallet', 'wallet_uuid' => $referrer->uuid],
+        ));
+    }
+
     /**
      * Notifie un débit Wallet effectué au guichet.
      *

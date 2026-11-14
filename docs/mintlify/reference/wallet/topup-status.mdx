@@ -1,0 +1,144 @@
+---
+title: Consulter le statut d’une recharge Wallet
+description: "Consulte le statut d’une recharge après son initiation ou après le retour du parcours de paiement."
+api: GET /api/v1/wallet/topups/{uuid}
+---
+
+Consulte le statut d’une recharge après son initiation ou après le retour du parcours de paiement. Arrêtez la consultation périodique quand `data.status` vaut `confirmed` ou `failed`.
+
+## Paramètres
+
+<ParamField path="uuid" type="UUID" required>
+  UUID de la recharge retourné par l’endpoint d’initiation.
+</ParamField>
+
+<RequestExample>
+
+```bash cURL
+curl -X GET 'https://staging.koraexpress.app/api/v1/wallet/topups/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e' \
+  -H 'Authorization: Bearer <token-de-session>' \
+  -H 'Accept: application/json'
+```
+
+```javascript JavaScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/wallet/topups/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e', {
+  method: 'GET',
+  headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
+});
+const body = await res.json();
+```
+
+```typescript TypeScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/wallet/topups/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e', {
+  method: 'GET',
+  headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
+});
+const body: { data: { status: "pending" | "confirmed" | "failed" } } = await res.json();
+const keepPolling = body.data.status === "pending";
+```
+
+```dart Dart
+final res = await authDio.get('/api/v1/wallet/topups/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e');
+final data = res.data['data'];
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "data": {
+    "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e",
+    "amount": 5000,
+    "status": "pending",
+    "payment": {
+      "uuid": "a4a5d8fd-8168-4f40-b6b5-437f97cf41f0",
+      "status": "pending",
+      "provider": "fedapay",
+      "provider_reference": null,
+      "next_action": "verify",
+      "widget": null,
+      "checkout_url": null,
+      "polling_interval_seconds": 10,
+      "failure": null
+    },
+    "created_at": "2026-11-07T10:00:00+00:00"
+  }
+}
+```
+
+```json 401
+{
+  "message": "Unauthenticated."
+}
+```
+
+</ResponseExample>
+
+## Réponse
+
+<ResponseField name="data.uuid" type="UUID" required>
+  Identifiant de la recharge à utiliser pour consulter son statut.
+</ResponseField>
+
+<ResponseField name="data.amount" type="integer" required>
+  Montant de la recharge en FCFA.
+</ResponseField>
+
+<ResponseField name="data.status" type="string" required>
+  État de la recharge parmi `pending`, `confirmed` et `failed`. Les deux derniers sont terminaux.
+</ResponseField>
+
+<ResponseField name="data.payment" type="object">
+  Détails du paiement associé, ou `null`.
+</ResponseField>
+
+<ResponseField name="data.payment.uuid" type="UUID">
+  Identifiant du paiement associé.
+</ResponseField>
+
+<ResponseField name="data.payment.status" type="string">
+  État du paiement.
+</ResponseField>
+
+<ResponseField name="data.payment.provider" type="string">
+  Prestataire de paiement.
+</ResponseField>
+
+<ResponseField name="data.payment.provider_reference" type="string">
+  Référence du prestataire ou `null`.
+</ResponseField>
+
+<ResponseField name="data.payment.next_action" type="string">
+  Action indiquée par le serveur parmi `open_widget`, `open_url`, `verify`, `wait`, `done` et `retry`.
+</ResponseField>
+
+<ResponseField name="data.payment.widget" type="object">
+  Configuration du paiement pour `open_widget`.
+</ResponseField>
+
+<ResponseField name="data.payment.checkout_url" type="string">
+  URL de paiement à ouvrir pour `open_url`.
+</ResponseField>
+
+<ResponseField name="data.payment.polling_interval_seconds" type="integer">
+  Intervalle entre les consultations de statut.
+</ResponseField>
+
+<ResponseField name="data.payment.failure" type="object">
+  Détails de l’échec si disponibles, avec `code`, `message`, `retryable` et `diagnostic_reference`.
+</ResponseField>
+
+<ResponseField name="data.created_at" type="string" required>
+  Date de création au format ISO 8601.
+</ResponseField>
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `200` | Recharge et état du paiement retournés. |
+| `401` | Jeton de session absent ou invalide. |
+| `403` | Accès au paiement associé refusé. |
+| `404` | Aucune recharge avec cet UUID pour le voyageur connecté. |
