@@ -1,6 +1,6 @@
 # KORA BUS
 
-KORA BUS est le contexte du MVP valide par le client. Ce glossaire fixe le vocabulaire commun entre le client, le pilotage projet et l'equipe technique.
+KORA BUS est le socle du MVP valide par le client, aujourd'hui livre et etendu par le Wallet, la fidelite et KORA POINT. Ce glossaire fixe le vocabulaire commun entre le client, le pilotage projet et l'equipe technique.
 
 ## Paramétrage runtime
 
@@ -22,19 +22,23 @@ Tout paramètre lié à l'exploitation ou au suivi (seuils, délais, tolérances
 ## Language
 
 **Ecosysteme KORA cible**:
-A terme, KORA comprend une application client multi-service, une application conducteurs Ride, une application operationnelle mobile Bus/terrain et un ERP web interne.
+A terme, KORA comprend une application client multi-service, une application conducteurs Ride, une application operationnelle mobile Bus/terrain et un ERP web interne. Le colis interurbain est la prochaine extension livree de la plateforme.
 _Avoid_: MVP super-app
 
 **MVP KORA BUS**:
-Plateforme Bus exploitable de bout en bout en 12 semaines, couvrant vente, paiement, billet, fiscalisation, exploitation, embarquement hors ligne et revente de segments liberes. Le perimetre produit inclut desormais le Wallet et la fidelite Bus selon [MEZ-49](docs/mez-49-compte-voyageur-wallet-fidelite.md), sans signifier que ces fonctions sont deja implementees.
-_Avoid_: MVP super-app, MVP Colis, portefeuille multi-service generaliste
+Plateforme Bus livree et exploitable de bout en bout, couvrant vente, paiement, billet, fiscalisation, exploitation, embarquement hors ligne et revente de segments liberes. Le MVP est termine et en exploitation : il reste la reference du socle Bus, et les extensions posterieures ne redefinissent pas son perimetre.
+_Avoid_: MVP super-app, MVP Colis, MVP en cours, perimetre MVP etendu sans ADR
+
+**Phase post-MVP**:
+Extension de perimetre livree apres le MVP Bus, portee par son propre ADR, son propre plan de recette et sa propre entree dans le tableau des phases du `README.md`. Extensions actuelles : Wallet et fidelite Bus ([MEZ-49](docs/mez-49-compte-voyageur-wallet-fidelite.md)), KORA POINT, puis Colis interurbain.
+_Avoid_: Retour dans le MVP, extension sans ADR ni ticket de changement
 
 **KORA App**:
-Application mobile client cible. A terme elle portera Bus, Ride, Colis et Wallet. Dans le MVP, elle porte le parcours passager Bus et l'acces au Wallet Bus defini par MEZ-49.
-_Avoid_: Creer Ride ou Colis dans le MVP
+Application mobile client cible. A terme elle portera Bus, Ride, Colis et Wallet. Elle porte deja le parcours passager Bus et l'acces au Wallet Bus defini par MEZ-49.
+_Avoid_: Creer Ride ou Colis dans l'application avant leur phase
 
 **KORA App Passager Bus**:
-Perimetre MVP de KORA App : rechercher un depart, reserver, payer, consulter un billet, suivre le bus et acceder a son compte et a son Wallet Bus.
+Perimetre client livre : rechercher un depart, reserver, payer, consulter un billet, suivre le bus et acceder a son compte et a son Wallet Bus. L'acces Colis y sera ajoute avec la phase Colis.
 _Avoid_: App client generique
 
 **KORA OPS Web**:
@@ -74,8 +78,12 @@ Propriete d'une release applicative. Toute version installee anterieure a la der
 _Avoid_: Prompt fermable pour une MAJ obligatoire
 
 **KORA Driver**:
-Application mobile future pour les conducteurs Ride/VTC/moto/keke. Elle est hors MVP Bus.
+Application mobile future pour les conducteurs Ride/VTC/moto/keke. Elle est hors perimetre actuel.
 _Avoid_: Utiliser ce nom pour les chauffeurs de bus
+
+**KORA Colis**:
+Extension post-MVP des envois de hub KORA a hub KORA sur un depart Bus direct, couvrant la demande d'envoi, la pesee, la tarification, les charges payables et la garde du colis jusqu'a sa remise. La collecte et la livraison a domicile relevent de la phase VTC ; le depot et le retrait en KORA POINT sont une livraison ulterieure.
+_Avoid_: Livraison a domicile dans la phase Colis, module Colis autonome hors Bus
 
 **Depart**:
 Rotation planifiee d'un bus sur une ligne, a une date et une heure donnees.

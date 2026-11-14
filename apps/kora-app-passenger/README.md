@@ -1,10 +1,15 @@
 # KORA App Passager Bus
 
-Application mobile Flutter du parcours passager Bus de KORA EXPRESS
-(Clean Architecture + Bloc). Emplacement du périmètre MVP Bus de KORA
-App : à terme, KORA App pourra porter Bus, Ride, Colis et Wallet, mais
-dans le MVP ce projet reste limité au parcours passager Bus (voir
-[AGENTS.md](AGENTS.md)).
+Application mobile Flutter du parcours passager de KORA EXPRESS
+(Clean Architecture + Bloc), dans KORA App. Le socle Bus est livré et en
+exploitation : recherche et réservation, paiement Mobile Money ou Wallet,
+billet, suivi du bus, assistance, groupes. L'app porte aussi le compte
+voyageur et le Wallet Bus (solde cash, points, recharge, historique,
+règles, bonus et parrainage). L'onglet Colis est un écran d'attente,
+en attendant la phase Colis (voir [AGENTS.md](AGENTS.md)).
+
+Documentation API mobile : [kora-express.mintlify.app](https://kora-express.mintlify.app)
+(authentification, parcours passager, endpoints et exemples Dart).
 
 Pour un guide détaillé (tutoriels feature/Bloc, design system, mode
 clair/sombre, génération de code...), voir [GUIDE.md](GUIDE.md).
@@ -53,49 +58,42 @@ lib/
 ├── app.dart                        # Widget racine : BlocProvider + MaterialApp.router
 │
 ├── core/                           # Tout ce qui est PARTAGÉ entre les features
-│   ├── constants/
-│   │   ├── api_constants.dart      # Timeouts, chemins d'endpoints (pas d'URL ici, voir env/)
-│   │   ├── app_constants.dart      # Constantes générales (pagination, cache...)
-│   │   └── storage_keys.dart       # Clés SharedPreferences / FlutterSecureStorage
-│   ├── di/
-│   │   └── injector.dart           # Configuration get_it (service locator)
-│   ├── env/
-│   │   └── app_env.dart            # AppEnv : config par environnement (dev/staging/prod)
-│   ├── utils/
-│   │   └── date_formats.dart       # Formats de date/heure fr_FR (intl)
-│   ├── error/
-│   │   ├── failures.dart           # Failure (domain) — ServerFailure, NetworkFailure...
-│   │   └── exceptions.dart         # Exception (data) — ServerException...
-│   ├── network/
-│   │   └── models/
-│   │       └── user_model.dart     # Exemple de modèle freezed + json_serializable
-│   ├── router/
-│   │   ├── app_router.dart         # Config go_router (StatefulShellRoute, bottom nav, auth guard)
-│   │   └── auth_guard.dart         # AuthGuard : vérifie la présence d'un token pour le redirect
-│   └── usecases/
-│       └── usecase.dart            # Classe de base UseCase<Type, Params>
+│   ├── constants/                  # Endpoints, pagination, clés de stockage
+│   ├── di/injector.dart            # Configuration get_it (service locator)
+│   ├── env/app_env.dart            # AppEnv : config par environnement (dev/staging/prod)
+│   ├── error/                      # Failure, Exception, mapping des erreurs API
+│   ├── l10n/                       # Localisation de l'interface
+│   ├── network/                    # Helpers JSON, expiration de session
+│   ├── push/                       # Firebase, notifications locales, listeners
+│   ├── router/                     # go_router, bottom nav, garde d'authentification
+│   ├── services/                   # Permissions système
+│   ├── update/                     # Force-update et gate de version
+│   ├── usecases/                   # Classe de base UseCase<Type, Params>
+│   ├── utils/                      # Dates fr_FR, téléphone, couleurs de titre
+│   └── widgets/                    # Composants transverses (en-têtes, calendrier...)
 │
 └── features/                       # Un dossier par feature, en couches data/domain/presentation
-    ├── theme/                      # Feature complète (référence à suivre pour toute nouvelle feature)
-    │   ├── data/{datasources,repositories}/
-    │   ├── domain/{entities,repositories}/
-    │   └── presentation/{bloc,widgets}/
-    ├── auth/presentation/pages/    # LoginPage : placeholder, destination du guard tant que la feature n'est pas écrite
-    ├── booking/                    # Parcours de réservation Bus (données mockées Sprint 1)
-    │   ├── data/{datasources,repositories}/  # booking_mock_data.dart = le jeu de test, à supprimer au Sprint 2
-    │   ├── domain/{entities,repositories,usecases}/  # City, Line, Departure, Seat, Price...
-    │   └── presentation/pages/     # DeparturesPage (liste des départs — en cours)
-    ├── home/presentation/          # Onglet Accueil : recherche de départs (bloc + widgets + page)
-    ├── voyages/presentation/pages/ # Placeholder "texte centré"
-    ├── colis/presentation/pages/   # Placeholder "texte centré"
-    ├── wallet/presentation/pages/  # Placeholder "texte centré"
-    └── profil/presentation/pages/  # Placeholder "texte centré"
+    ├── welcome/                    # Splash et onboarding
+    ├── auth/                       # Connexion, inscription, OTP, PIN, nouvel appareil
+    ├── home/                       # Accueil et recherche de départ
+    ├── booking/                    # Départs, sièges, passagers, billets, assistance, groupes
+    ├── payment/                    # Paiement Mobile Money et retours de paiement
+    ├── wallet/                     # Solde cash, points, recharge, historique, règles, bonus
+    ├── colis/                      # Écran d'attente de la phase Colis
+    ├── notifications/              # Centre de notifications
+    ├── support/                    # Aide, contact, chat support
+    ├── profil/                     # Compte, préférences, sécurité, suppression
+    ├── language/                   # Choix de langue
+    └── theme/                      # Mode clair / sombre
 
 assets/
 └── images/kora_logo.png
 
 test/
-└── widget_test.dart                # Test de fumée : l'app démarre, la bottom nav et Accueil s'affichent
+├── core/                           # Tests des briques transverses
+├── features/                       # Tests par feature (booking, wallet, auth...)
+├── support/                        # Fakes, fixtures et helpers
+└── widget_test.dart                # Test de fumée : l'app démarre et la bottom nav s'affiche
 ```
 
 Ce que **ce dossier ne contient pas**, car partagé avec les autres apps
