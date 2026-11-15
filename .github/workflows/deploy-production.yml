@@ -44,6 +44,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=kora-ops-web
           build-args: |
             VITE_APP_ENV=production
+            VITE_APP_VERSION=${{ steps.tag.outputs.VERSION }}
             VITE_SENTRY_DSN=${{ vars.SENTRY_DSN_PUBLIC }}
             SENTRY_RELEASE=${{ steps.tag.outputs.VERSION }}
             SENTRY_ORG=${{ vars.SENTRY_ORG }}

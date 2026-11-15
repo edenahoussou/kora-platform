@@ -64,11 +64,13 @@ RUN mkdir -p storage/app/private storage/app/public storage/framework/cache/data
 # transite par un secret BuildKit pour ne jamais finir dans les layers.
 ARG VITE_SENTRY_DSN=
 ARG VITE_APP_ENV=
+ARG VITE_APP_VERSION=
 ARG SENTRY_RELEASE=
 ARG SENTRY_ORG=
 ARG SENTRY_PROJECT=
 ENV VITE_SENTRY_DSN=${VITE_SENTRY_DSN} \
     VITE_APP_ENV=${VITE_APP_ENV} \
+    VITE_APP_VERSION=${VITE_APP_VERSION} \
     VITE_SENTRY_RELEASE=${SENTRY_RELEASE} \
     SENTRY_RELEASE=${SENTRY_RELEASE} \
     SENTRY_ORG=${SENTRY_ORG} \
