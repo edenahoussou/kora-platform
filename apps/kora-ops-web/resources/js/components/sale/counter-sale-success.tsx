@@ -276,7 +276,6 @@ function TicketCard({
                         value={formatStopSchedule(
                             firstLeg?.departureAt,
                             firstLeg?.departureTimezone,
-                            departure?.line.isInternational,
                         )}
                     />
                     <TicketField
@@ -284,7 +283,6 @@ function TicketCard({
                         value={formatStopSchedule(
                             lastLeg?.arrivalAt,
                             lastLeg?.arrivalTimezone,
-                            departure?.line.isInternational,
                         )}
                     />
                     {ticket.legs.length > 1 &&
@@ -292,7 +290,7 @@ function TicketCard({
                             <TicketField
                                 key={leg.legOrder}
                                 label={`${leg.direction === 'inbound' ? 'Retour' : 'Aller'} · ${leg.originStop} → ${leg.destinationStop}`}
-                                value={`Montée : ${formatStopSchedule(leg.departureAt, leg.departureTimezone, true)} · Descente : ${formatStopSchedule(leg.arrivalAt, leg.arrivalTimezone, true)}`}
+                                value={`Montée : ${formatStopSchedule(leg.departureAt, leg.departureTimezone)} · Descente : ${formatStopSchedule(leg.arrivalAt, leg.arrivalTimezone)}`}
                             />
                         ))}
                     <TicketField

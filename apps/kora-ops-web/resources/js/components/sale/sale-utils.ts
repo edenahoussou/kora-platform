@@ -89,13 +89,12 @@ export function formatIsoDate(
 export function formatStopSchedule(
     iso: string | null | undefined,
     timeZone?: string | null,
-    showTimezone = false,
 ): string {
     if (!iso || Number.isNaN(new Date(iso).getTime())) {
         return 'Horaire non disponible';
     }
 
-    return `${formatShortDate(formatIsoDate(iso, timeZone))} à ${formatIsoTime(iso, timeZone)}${showTimezone && timeZone ? ` (${timeZone})` : ''}`;
+    return `${formatShortDate(formatIsoDate(iso, timeZone))} à ${formatIsoTime(iso, timeZone)}${timeZone ? ` (${timeZone})` : ''}`;
 }
 
 /**
