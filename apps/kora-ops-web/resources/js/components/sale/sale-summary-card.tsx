@@ -147,7 +147,6 @@ export function SaleSummaryCard({
                                 {formatStopSchedule(
                                     leg.departureAt,
                                     leg.departureTimezone,
-                                    leg.line.isInternational,
                                 )}
                             </div>
                             <div>
@@ -155,7 +154,6 @@ export function SaleSummaryCard({
                                 {formatStopSchedule(
                                     leg.arrivalAt,
                                     leg.arrivalTimezone,
-                                    leg.line.isInternational,
                                 )}
                             </div>
                         </div>
@@ -175,11 +173,19 @@ export function SaleSummaryCard({
                         {firstLeg.originStop.city} →{' '}
                         {lastLeg.destinationStop.city}
                     </h3>
+                    {selectedInbound && <small>Aller</small>}
                     <p>
+                        Montée à {firstLeg.originStop.city} :{' '}
                         {formatStopSchedule(
                             firstLeg.departureAt,
                             firstLeg.departureTimezone,
-                            firstLeg.line.isInternational,
+                        )}
+                    </p>
+                    <p>
+                        Arrivée à {lastLeg.destinationStop.city} :{' '}
+                        {formatStopSchedule(
+                            lastLeg.arrivalAt,
+                            lastLeg.arrivalTimezone,
                         )}
                     </p>
                 </div>

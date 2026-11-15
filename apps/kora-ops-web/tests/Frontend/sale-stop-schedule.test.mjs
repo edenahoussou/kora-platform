@@ -33,7 +33,7 @@ test('keeps boarding and arrival dates at J+2 in each stop timezone', () => {
         assert.equal(formatIsoDate(arrival, 'Africa/Porto-Novo'), '2026-09-10');
         assert.equal(formatIsoTime(arrival, 'Africa/Porto-Novo'), '03:15');
         assert.match(
-            formatStopSchedule(arrival, 'Africa/Porto-Novo', true),
+            formatStopSchedule(arrival, 'Africa/Porto-Novo'),
             /10 sept. 2026 à 03:15 \(Africa\/Porto-Novo\)/,
         );
     }
@@ -48,4 +48,15 @@ test('does not substitute a departure time for a missing stop schedule', () => {
 test('preserves a published local offset when timezone metadata is absent', () => {
     assert.equal(formatIsoTime('2026-09-10T03:15:00+01:00'), '03:15');
     assert.equal(formatIsoDate('2026-09-10T03:15:00+01:00'), '2026-09-10');
+});
+
+test('always includes the configured timezone in basket schedules', () => {
+    assert.equal(
+        formatStopSchedule('2026-11-24T08:00:00+01:00', 'Africa/Porto-Novo'),
+        '24 nov. 2026 à 08:00 (Africa/Porto-Novo)',
+    );
+    assert.equal(
+        formatStopSchedule('2026-11-24T16:00:00+01:00', 'Africa/Porto-Novo'),
+        '24 nov. 2026 à 16:00 (Africa/Porto-Novo)',
+    );
 });

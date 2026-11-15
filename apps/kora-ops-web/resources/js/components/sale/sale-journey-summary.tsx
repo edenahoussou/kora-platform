@@ -80,7 +80,6 @@ type LegInfo = {
     departureAt: string | null;
     departureTimezone: string | null;
     arrivalTimezone: string | null;
-    isInternational: boolean;
     arrivalAt: string | null;
     amount: number | null;
     currency: string | null;
@@ -149,9 +148,6 @@ function buildDirectionGroups(
                     null,
                 arrivalTimezone:
                     first?.arrivalTimezone ?? quoteLeg?.arrivalTimezone ?? null,
-                isInternational:
-                    quoteLeg?.line.isInternational ??
-                    first?.departureTimezone !== first?.arrivalTimezone,
                 amount: quoteLeg?.amount ?? null,
                 currency:
                     quoteLeg?.currency ?? itineraryQuote?.currency ?? null,
@@ -198,9 +194,11 @@ export function SaleJourneySummary({
 
     const isRoundTrip = directionGroups.length > 1;
     const isMultiLeg = directionGroups.some((group) => group.legs.length > 1);
-    const allLegs = directionGroups.flatMap((group) => group.legs);
-    const firstLeg = allLegs[0];
-    const lastLeg = allLegs[allLegs.length - 1];
+    const outboundLegs =
+        directionGroups.find((group) => group.direction === 'outbound')?.legs ??
+        [];
+    const firstLeg = outboundLegs[0];
+    const lastLeg = outboundLegs.at(-1);
 
     // Passenger count: passengers are only persisted at the next step,
     // so derive the count from segment passenger indexes (or fall back
@@ -246,7 +244,6 @@ export function SaleJourneySummary({
             : returnDestination;
         const firstLegInGroup = group.legs[0];
         const lastLegInGroup = group.legs[group.legs.length - 1];
-        const isInternational = group.legs.some((leg) => leg.isInternational);
 
         return (
             <div key={group.direction} className="summary-direction-block">
@@ -267,7 +264,6 @@ export function SaleJourneySummary({
                         {formatStopSchedule(
                             firstLegInGroup?.departureAt,
                             firstLegInGroup?.departureTimezone,
-                            isInternational,
                         )}
                     </span>
                     <span>
@@ -275,7 +271,6 @@ export function SaleJourneySummary({
                         {formatStopSchedule(
                             lastLegInGroup?.arrivalAt,
                             lastLegInGroup?.arrivalTimezone,
-                            isInternational,
                         )}
                     </span>
                 </div>
@@ -303,7 +298,6 @@ export function SaleJourneySummary({
                                         {formatStopSchedule(
                                             leg.departureAt,
                                             leg.departureTimezone,
-                                            leg.isInternational,
                                         )}
                                     </div>
                                     <div>
@@ -311,7 +305,6 @@ export function SaleJourneySummary({
                                         {formatStopSchedule(
                                             leg.arrivalAt,
                                             leg.arrivalTimezone,
-                                            leg.isInternational,
                                         )}
                                     </div>
                                     {leg.busRegistration && (
@@ -382,6 +375,21 @@ export function SaleJourneySummary({
                         ? `${outboundOrigin} → ${outboundDestination}`
                         : 'Vente guichet'}
                 </h3>
+                {isRoundTrip && <small>Aller</small>}
+                <p>
+                    Montée à {outboundOrigin ?? '—'} :{' '}
+                    {formatStopSchedule(
+                        firstLeg?.departureAt,
+                        firstLeg?.departureTimezone,
+                    )}
+                </p>
+                <p>
+                    Arrivée à {outboundDestination ?? '—'} :{' '}
+                    {formatStopSchedule(
+                        lastLeg?.arrivalAt,
+                        lastLeg?.arrivalTimezone,
+                    )}
+                </p>
                 {isRoundTrip && (
                     <p className="summary-hero-return">
                         <ArrowRight className="size-3" />

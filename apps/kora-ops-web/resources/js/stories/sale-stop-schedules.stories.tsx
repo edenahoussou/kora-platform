@@ -180,3 +180,90 @@ export const MissingStopSchedule: Story = {
         </div>
     ),
 };
+
+const accraToParakou: SaleItinerary = {
+    ...itinerary,
+    totalAmount: 25500,
+    departureAt: '2026-11-23T07:00:00+01:00',
+    arrivalAt: '2026-11-24T16:00:00+01:00',
+    legs: [
+        {
+            ...leg,
+            departureDate: '2026-11-22',
+            departureAt: '2026-11-23T07:00:00+01:00',
+            arrivalAt: '2026-11-23T12:50:00+01:00',
+            departureTimezone: 'Africa/Porto-Novo',
+            arrivalTimezone: 'Africa/Porto-Novo',
+            line: { ...leg.line, code: 'POR-ABJ', name: 'Porto Novo–Abidjan' },
+            destinationStop: {
+                ...leg.destinationStop,
+                uuid: 'cotonou',
+                name: 'Arrêt Cotonou',
+                city: 'Cotonou',
+            },
+            amount: 18000,
+        },
+        {
+            ...leg,
+            legOrder: 2,
+            departureDate: '2026-11-24',
+            departureAt: '2026-11-24T08:00:00+01:00',
+            arrivalAt: '2026-11-24T16:00:00+01:00',
+            departureTimezone: 'Africa/Porto-Novo',
+            arrivalTimezone: 'Africa/Porto-Novo',
+            line: {
+                ...leg.line,
+                code: 'COT-PARAKOU',
+                name: 'Cotonou–Parakou',
+                isInternational: false,
+            },
+            originStop: {
+                ...leg.originStop,
+                uuid: 'cotonou',
+                name: 'Arrêt Cotonou',
+                city: 'Cotonou',
+                country: 'BJ',
+            },
+            amount: 7500,
+        },
+    ],
+};
+
+const accraReservation: SaleReservation = {
+    ...reservation,
+    totalAmount: accraToParakou.totalAmount,
+    passengerAllocations: [accraToParakou.totalAmount],
+    segments: accraToParakou.legs.map((item, index) => ({
+        ...reservation.segments[index],
+        originStop: item.originStop.name,
+        destinationStop: item.destinationStop.name,
+        originStopCity: item.originStop.city,
+        destinationStopCity: item.destinationStop.city,
+        departureDate: item.departureDate,
+        departureAt: item.departureAt,
+        arrivalAt: item.arrivalAt,
+        departureTimezone: item.departureTimezone,
+        arrivalTimezone: item.arrivalTimezone,
+        lineCode: item.line.code,
+    })),
+};
+
+export const AccraCotonouParakou: Story = {
+    render: () => (
+        <div className="sale-page mx-auto grid max-w-3xl items-start gap-6 p-6 md:grid-cols-2">
+            <SaleSummaryCard
+                selectedItinerary={accraToParakou}
+                passengerCount={1}
+                selectedSeatCodes={['2A']}
+                quote={null}
+                reservation={null}
+                processing={false}
+            />
+            <SaleJourneySummary
+                departure={null}
+                reservation={accraReservation}
+                variant="passengers"
+            />
+        </div>
+    ),
+};

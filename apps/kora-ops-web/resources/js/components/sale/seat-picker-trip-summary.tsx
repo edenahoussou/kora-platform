@@ -36,18 +36,10 @@ export function SeatPickerTripSummary({ leg, availableCount }: Props) {
             <div className="seat-trip-details">
                 <span>
                     Montée :{' '}
-                    {formatStopSchedule(
-                        leg.departureAt,
-                        leg.departureTimezone,
-                        leg.line.isInternational,
-                    )}
+                    {formatStopSchedule(leg.departureAt, leg.departureTimezone)}
                     <br />
                     Descente :{' '}
-                    {formatStopSchedule(
-                        leg.arrivalAt,
-                        leg.arrivalTimezone,
-                        leg.line.isInternational,
-                    )}
+                    {formatStopSchedule(leg.arrivalAt, leg.arrivalTimezone)}
                 </span>
                 <strong>{availableCount} places disponibles</strong>
             </div>
