@@ -13,6 +13,7 @@ use App\Modules\Booking\Http\Requests\ItineraryQuoteRequest;
 use App\Modules\Booking\Http\Requests\ItinerarySearchRequest;
 use App\Modules\Booking\Http\Resources\ReservationResource;
 use App\Modules\Booking\Models\ItineraryQuote;
+use App\Modules\Booking\Services\DepartureStopTimeResolver;
 use App\Modules\Booking\Services\ItineraryData;
 use App\Modules\Booking\Services\ItineraryLegData;
 use App\Modules\Booking\Services\ItinerarySearchService;
@@ -31,6 +32,7 @@ class ItineraryController extends Controller
 {
     public function __construct(
         private ItinerarySearchService $itinerarySearch,
+        private DepartureStopTimeResolver $stopTimeResolver,
     ) {}
 
     /**
@@ -119,7 +121,9 @@ class ItineraryController extends Controller
      *           "service_class_code": "standard",
      *           "service_class_name": "Standard",
      *           "departure_at": "2026-09-07T13:00:00+00:00",
-     *           "arrival_at": "2026-09-07T23:00:00+00:00"
+     *           "arrival_at": "2026-09-07T23:00:00+00:00",
+     *           "departure_timezone": "Africa/Accra",
+     *           "arrival_timezone": "Africa/Accra"
      *         }
      *       ]
      *     }
@@ -440,8 +444,10 @@ class ItineraryController extends Controller
             'available_seats_count' => $leg->availableSeatsCount,
             'service_class_code' => $leg->serviceClassCode,
             'service_class_name' => $leg->serviceClassName,
-            'departure_at' => $leg->departureAt->toIso8601String(),
-            'arrival_at' => $leg->arrivalAt->toIso8601String(),
+            'departure_at' => $leg->departureAt->setTimezone($this->stopTimeResolver->timezoneFor($leg->departure, $leg->originStop))->toIso8601String(),
+            'arrival_at' => $leg->arrivalAt->setTimezone($this->stopTimeResolver->timezoneFor($leg->departure, $leg->destinationStop))->toIso8601String(),
+            'departure_timezone' => $this->stopTimeResolver->timezoneFor($leg->departure, $leg->originStop),
+            'arrival_timezone' => $this->stopTimeResolver->timezoneFor($leg->departure, $leg->destinationStop),
         ];
     }
 

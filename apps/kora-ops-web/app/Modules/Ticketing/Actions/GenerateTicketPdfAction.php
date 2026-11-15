@@ -5,7 +5,6 @@ namespace App\Modules\Ticketing\Actions;
 use App\Modules\Booking\Actions\DescribeReservationDiscountAction;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\Booking\Models\ReservationSegment;
-use App\Modules\Booking\Services\DepartureStopTimeResolver;
 use App\Modules\Fiscalization\Models\FiscalInvoice;
 use App\Modules\Ticketing\Models\Ticket;
 use Carbon\CarbonInterface;
@@ -21,7 +20,7 @@ use Spatie\Browsershot\Browsershot;
 class GenerateTicketPdfAction
 {
     public function __construct(
-        private readonly DepartureStopTimeResolver $stopTimeResolver,
+        private readonly BuildTicketLegDataAction $buildLegData,
         private readonly GenerateTicketQrCodeAction $generateQr,
         private readonly ResolveTicketAmountAction $resolveTicketAmount,
         private readonly DescribeReservationDiscountAction $describeDiscount,
@@ -196,36 +195,7 @@ class GenerateTicketPdfAction
      */
     private function legData(ReservationSegment $segment): array
     {
-        $departure = $segment->departure;
-        $originStop = $segment->originStop;
-        $destinationStop = $segment->destinationStop;
-
-        $departureAt = $originStop !== null
-            ? $this->stopTimeResolver->departureAt($departure, $originStop)
-            : null;
-
-        $direction = $segment->direction ?? 'outbound';
-        $directionLabel = $direction === 'inbound' ? 'Retour' : 'Aller';
-
-        $departureTime = '—';
-        if ($departureAt !== null) {
-            $departureTime = $departureAt->setTimezone(
-                $departure->departure_timezone ?? config('app.timezone'),
-            )->format('H:i');
-        } else {
-            $departureTime = $departure->departure_time ?? '—';
-        }
-
-        return [
-            'directionLabel' => $directionLabel,
-            'originCity' => $this->stopCity($originStop) ?? '—',
-            'destinationCity' => $this->stopCity($destinationStop) ?? '—',
-            'dateLabel' => $this->formatDate($departure?->departure_date),
-            'departureTime' => $departureTime,
-            'lineCode' => $departure->line->code ?? '—',
-            'busRegistration' => $departure->bus->registration_number ?? '—',
-            'seatCode' => $segment->seat->code ?? '—',
-        ];
+        return $this->buildLegData->execute($segment);
     }
 
     /**

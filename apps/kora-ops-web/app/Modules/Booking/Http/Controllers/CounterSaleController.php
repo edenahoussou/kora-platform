@@ -477,6 +477,7 @@ class CounterSaleController extends Controller
         return [
             'legOrder' => $leg->legOrder,
             'direction' => $direction,
+            ...$this->stopTimeResolver->displaySchedule($leg->departure, $leg->originStop, $leg->destinationStop),
             'departureUuid' => $leg->departure->uuid,
             'departureDate' => $leg->departure->departure_date?->toDateString(),
             'departureTime' => $leg->departure->departure_time,
@@ -513,8 +514,6 @@ class CounterSaleController extends Controller
             'availableSeatsCount' => $leg->availableSeatsCount,
             'serviceClassCode' => $leg->serviceClassCode,
             'serviceClassName' => $leg->serviceClassName,
-            'departureAt' => $leg->departureAt->toISOString(),
-            'arrivalAt' => $leg->arrivalAt->toISOString(),
         ];
     }
 
@@ -718,6 +717,7 @@ class CounterSaleController extends Controller
         return [
             'legOrder' => $leg->leg_order,
             'direction' => $leg->direction,
+            ...$this->stopTimeResolver->displaySchedule($departure, $leg->originStop, $leg->destinationStop),
             'departureUuid' => $departure->uuid,
             'departureDate' => $departure->departure_date?->toDateString(),
             'departureTime' => $departure->departure_time,
@@ -757,8 +757,6 @@ class CounterSaleController extends Controller
             'availableSeatsCount' => 0,
             'serviceClassCode' => null,
             'serviceClassName' => null,
-            'departureAt' => $this->stopTimeResolver->departureAt($departure, $leg->originStop)?->toISOString(),
-            'arrivalAt' => $this->stopTimeResolver->arrivalAt($departure, $leg->destinationStop)?->toISOString(),
         ];
     }
 
@@ -1008,12 +1006,7 @@ class CounterSaleController extends Controller
                 'lineCode' => $segment->departure?->line?->code,
                 'lineName' => $segment->departure?->line?->name,
                 'busRegistration' => $segment->departure?->bus?->registration_number,
-                'departureAt' => $segment->departure && $segment->originStop
-                    ? $this->stopTimeResolver->departureAt($segment->departure, $segment->originStop)?->toISOString()
-                    : null,
-                'arrivalAt' => $segment->departure && $segment->destinationStop
-                    ? $this->stopTimeResolver->arrivalAt($segment->departure, $segment->destinationStop)?->toISOString()
-                    : null,
+                ...$this->stopTimeResolver->displaySchedule($segment->departure, $segment->originStop, $segment->destinationStop),
                 'status' => (string) $segment->getRawOriginal('status'),
             ])->values()->all(),
             'passengers' => $reservation->passengers->map(fn (ReservationPassenger $passenger): array => [
@@ -1103,6 +1096,7 @@ class CounterSaleController extends Controller
         if ($passenger !== null) {
             $legs = $passenger->segments->sortBy('leg_order')->map(function ($segment): array {
                 return [
+                    ...$this->stopTimeResolver->displaySchedule($segment->departure, $segment->originStop, $segment->destinationStop),
                     'direction' => $segment->direction,
                     'legOrder' => $segment->leg_order,
                     'originStop' => $segment->originStop?->name,

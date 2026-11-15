@@ -31,6 +31,33 @@ final class DepartureStopTimeResolver
         return null;
     }
 
+    public function timezoneFor(Departure $departure, Stop $stop): string
+    {
+        foreach ($departure->stop_times ?? [] as $stopTime) {
+            if (($stopTime['stop_uuid'] ?? null) === $stop->uuid) {
+                return $stopTime['timezone'] ?? $departure->departure_timezone ?? config('app.timezone');
+            }
+        }
+
+        return $departure->departure_timezone ?? config('app.timezone');
+    }
+
+    /** @return array{departureAt: ?string, arrivalAt: ?string, departureTimezone: ?string, arrivalTimezone: ?string} */
+    public function displaySchedule(?Departure $departure, ?Stop $origin, ?Stop $destination): array
+    {
+        $departureTimezone = $departure !== null && $origin !== null ? $this->timezoneFor($departure, $origin) : null;
+        $arrivalTimezone = $departure !== null && $destination !== null ? $this->timezoneFor($departure, $destination) : null;
+
+        return [
+            'departureAt' => $departure !== null && $origin !== null
+                ? $this->departureAt($departure, $origin)?->setTimezone($departureTimezone)->toIso8601String() : null,
+            'arrivalAt' => $departure !== null && $destination !== null
+                ? $this->arrivalAt($departure, $destination)?->setTimezone($arrivalTimezone)->toIso8601String() : null,
+            'departureTimezone' => $departureTimezone,
+            'arrivalTimezone' => $arrivalTimezone,
+        ];
+    }
+
     /**
      * Return the 0-based position of the stop in the departure's circulation
      * order (the order defined by stop_times, which may be reversed for
@@ -63,7 +90,6 @@ final class DepartureStopTimeResolver
             }
 
             $minutes = $stopTime[$field] ?? null;
-            $timezone = $stopTime['timezone'] ?? $departure->departure_timezone ?? config('app.timezone');
 
             if (! is_int($minutes) && ! (is_string($minutes) && is_numeric($minutes))) {
                 return null;

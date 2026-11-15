@@ -2,6 +2,8 @@
 
 namespace App\Modules\Ticketing\Http\Resources;
 
+use App\Modules\Booking\Models\ReservationSegment;
+use App\Modules\Booking\Services\DepartureStopTimeResolver;
 use App\Modules\Ticketing\Models\Ticket;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -32,6 +34,7 @@ class TicketResource extends JsonResource
                 'last_name' => $passenger->last_name,
             ],
             'segments' => $segments->map(fn ($segment): array => [
+                ...$this->segmentSchedule($segment),
                 'leg_order' => $segment->leg_order,
                 'departure_uuid' => $segment->departure?->uuid,
                 'origin_stop_uuid' => $segment->originStop?->uuid,
@@ -40,6 +43,19 @@ class TicketResource extends JsonResource
                 'seat_code' => $segment->seat?->code,
                 'status' => $segment->status->value,
             ])->values(),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function segmentSchedule(ReservationSegment $segment): array
+    {
+        $schedule = app(DepartureStopTimeResolver::class)->displaySchedule($segment->departure, $segment->originStop, $segment->destinationStop);
+
+        return [
+            'departure_at' => $schedule['departureAt'],
+            'arrival_at' => $schedule['arrivalAt'],
+            'departure_timezone' => $schedule['departureTimezone'],
+            'arrival_timezone' => $schedule['arrivalTimezone'],
         ];
     }
 }
