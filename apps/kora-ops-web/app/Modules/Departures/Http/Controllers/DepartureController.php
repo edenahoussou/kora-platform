@@ -376,6 +376,7 @@ class DepartureController extends Controller
     {
         return PhysicalStop::query()
             ->where('status', 'active')
+            ->whereHas('stops')
             ->whereNotNull('city')
             ->distinct()
             ->orderBy('city')
@@ -388,6 +389,7 @@ class DepartureController extends Controller
     {
         return PhysicalStop::query()
             ->where('status', 'active')
+            ->whereHas('stops')
             ->orderBy('city')
             ->orderBy('name')
             ->get(['uuid', 'name', 'city'])

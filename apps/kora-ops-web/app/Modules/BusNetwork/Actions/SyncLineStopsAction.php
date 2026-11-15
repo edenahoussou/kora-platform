@@ -2,7 +2,9 @@
 
 namespace App\Modules\BusNetwork\Actions;
 
+use App\Modules\BusNetwork\Data\StopStatus;
 use App\Modules\BusNetwork\Models\Line;
+use App\Modules\BusNetwork\Models\PhysicalStop;
 use App\Modules\BusNetwork\Models\Stop;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -27,6 +29,7 @@ class SyncLineStopsAction
             }
 
             $existingStops = $line->stops()->get()->keyBy('uuid');
+            $previousPhysicalIds = $existingStops->pluck('physical_stop_id')->filter()->unique()->all();
             $incomingUuids = collect($stops)->pluck('uuid')->filter()->all();
 
             // Décale les ordres existants : UNIQUE (line_id, stop_order) interdit les échanges directs
@@ -67,6 +70,12 @@ class SyncLineStopsAction
 
                     $stop->delete();
                 });
+
+            PhysicalStop::query()
+                ->whereIn('id', $previousPhysicalIds)
+                ->where('status', StopStatus::Active->value)
+                ->whereDoesntHave('stops')
+                ->update(['status' => StopStatus::Archived->value]);
         });
     }
 }

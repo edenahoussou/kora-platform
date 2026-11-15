@@ -170,7 +170,7 @@ export function LineCreatorStudio({
         null,
     );
 
-    // Renommage inline du libellé d'un arrêt (propre à la ligne)
+    // Nommage inline d'un nouveau point d'arrêt (les points existants gardent leur nom)
     const [editingStopUuid, setEditingStopUuid] = useState<string | null>(null);
     const [editingStopName, setEditingStopName] = useState('');
 
@@ -693,7 +693,7 @@ export function LineCreatorStudio({
         setStops(newStops);
     };
 
-    // Renommer le libellé d'un arrêt pour cette ligne uniquement
+    // Nommer un nouveau point d'arrêt (nom partagé par toutes les lignes)
     const startRenameStop = (stop: LineStopRecord) => {
         setEditingStopUuid(stop.uuid);
         setEditingStopName(stop.name);
@@ -1427,21 +1427,23 @@ export function LineCreatorStudio({
                                                     {activeDirection ===
                                                         'outbound' && (
                                                         <div className="flex items-center gap-1 opacity-70 transition-opacity group-hover:opacity-100">
-                                                            <button
-                                                                type="button"
-                                                                onClick={(
-                                                                    e,
-                                                                ) => {
-                                                                    e.stopPropagation();
-                                                                    startRenameStop(
-                                                                        stop,
-                                                                    );
-                                                                }}
-                                                                className="rounded p-1 hover:bg-muted"
-                                                                title="Renommer le libellé"
-                                                            >
-                                                                <Pencil className="size-3.5" />
-                                                            </button>
+                                                            {!stop.physicalStopUuid && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(
+                                                                        e,
+                                                                    ) => {
+                                                                        e.stopPropagation();
+                                                                        startRenameStop(
+                                                                            stop,
+                                                                        );
+                                                                    }}
+                                                                    className="rounded p-1 hover:bg-muted"
+                                                                    title="Nommer le nouveau point d'arrêt"
+                                                                >
+                                                                    <Pencil className="size-3.5" />
+                                                                </button>
+                                                            )}
                                                             <button
                                                                 type="button"
                                                                 onClick={(

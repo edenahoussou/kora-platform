@@ -123,6 +123,7 @@ class LineController extends Controller
     {
         return PhysicalStop::query()
             ->where('status', 'active')
+            ->whereHas('stops')
             ->orderBy('city')
             ->orderBy('name')
             ->get()

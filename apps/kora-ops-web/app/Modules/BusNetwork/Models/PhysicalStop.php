@@ -22,6 +22,30 @@ class PhysicalStop extends KoraModel
         'status',
     ];
 
+    /** Stop label columns are a copy of the physical stop: propagate every change. */
+    protected static function booted(): void
+    {
+        static::updated(function (PhysicalStop $physicalStop): void {
+            if ($physicalStop->wasChanged(['name', 'city', 'country', 'latitude', 'longitude'])) {
+                $physicalStop->stops()->update(self::canonicalStopAttributes($physicalStop));
+            }
+        });
+    }
+
+    /**
+     * @return array{name: string, city: string, country: string, latitude: float|null, longitude: float|null}
+     */
+    public static function canonicalStopAttributes(PhysicalStop $physicalStop): array
+    {
+        return [
+            'name' => (string) $physicalStop->name,
+            'city' => (string) $physicalStop->city,
+            'country' => (string) $physicalStop->country,
+            'latitude' => $physicalStop->latitude !== null ? (float) $physicalStop->latitude : null,
+            'longitude' => $physicalStop->longitude !== null ? (float) $physicalStop->longitude : null,
+        ];
+    }
+
     /**
      * @return HasMany<Stop, $this>
      */
