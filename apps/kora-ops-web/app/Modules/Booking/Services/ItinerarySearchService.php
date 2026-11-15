@@ -3,6 +3,7 @@
 namespace App\Modules\Booking\Services;
 
 use App\Modules\Booking\Models\ReservationSegment;
+use App\Modules\BusNetwork\Actions\FindOrCreatePhysicalStopAction;
 use App\Modules\BusNetwork\Data\StopStatus;
 use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\Line;
@@ -291,6 +292,65 @@ class ItinerarySearchService
         }
 
         return $this->sortItinerariesBy($itineraries, $sortBy ?? 'connections', $sortDirection);
+    }
+
+    /**
+     * Active physical stops of a city, compared case- and accent-insensitively.
+     *
+     * @return list<string>
+     */
+    public function physicalStopUuidsForCity(string $city): array
+    {
+        $normalized = FindOrCreatePhysicalStopAction::normalize($city);
+
+        $uuids = [];
+
+        /** @var PhysicalStop $stop */
+        foreach (PhysicalStop::query()->where('status', 'active')->whereNotNull('city')->get(['uuid', 'city']) as $stop) {
+            if (FindOrCreatePhysicalStopAction::normalize((string) $stop->city) === $normalized) {
+                $uuids[] = (string) $stop->uuid;
+            }
+        }
+
+        return $uuids;
+    }
+
+    /**
+     * Runs the search for every origin/destination stop pair and merges deduplicated results.
+     *
+     * @param  list<string>  $originUuids
+     * @param  list<string>  $destinationUuids
+     * @return list<ItineraryData>
+     */
+    public function searchBetweenStops(
+        array $originUuids,
+        array $destinationUuids,
+        CarbonImmutable $date,
+        int $passengerCount = 1,
+        ?string $sortBy = null,
+        string $sortDirection = 'asc',
+        ?string $serviceClassCode = null,
+        ?int $upcomingDays = null,
+    ): array {
+        $merged = [];
+
+        foreach ($originUuids as $originUuid) {
+            foreach ($destinationUuids as $destinationUuid) {
+                if ($originUuid === $destinationUuid) {
+                    continue;
+                }
+
+                $results = $upcomingDays !== null
+                    ? $this->searchUpcoming($originUuid, $destinationUuid, $date, $upcomingDays, $passengerCount, $sortBy, $sortDirection, $serviceClassCode)
+                    : $this->search($originUuid, $destinationUuid, $date, $passengerCount, $sortBy, $sortDirection, $serviceClassCode);
+
+                foreach ($results as $itinerary) {
+                    $merged[$this->itineraryKey($itinerary)] ??= $itinerary;
+                }
+            }
+        }
+
+        return $this->sortItinerariesBy(array_values($merged), $sortBy ?? 'connections', $sortDirection);
     }
 
     /**

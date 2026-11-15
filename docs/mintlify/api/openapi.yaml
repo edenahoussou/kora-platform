@@ -650,23 +650,47 @@ paths:
         -
           in: query
           name: from_physical_stop_uuid
-          description: 'UUID of the origin physical stop.'
+          description: 'UUID of a single origin physical stop. Takes precedence over from_city. Required without from_city.'
           example: 00000000-0000-4000-8000-000000000000
-          required: true
+          required: false
           schema:
             type: string
-            description: 'UUID of the origin physical stop.'
+            description: 'UUID of a single origin physical stop. Takes precedence over from_city. Required without from_city.'
             example: 00000000-0000-4000-8000-000000000000
+            nullable: true
         -
           in: query
           name: to_physical_stop_uuid
-          description: 'UUID of the destination physical stop.'
+          description: 'UUID of a single destination physical stop. Takes precedence over to_city. Required without to_city.'
           example: 00000000-0000-4000-8000-000000000000
-          required: true
+          required: false
           schema:
             type: string
-            description: 'UUID of the destination physical stop.'
+            description: 'UUID of a single destination physical stop. Takes precedence over to_city. Required without to_city.'
             example: 00000000-0000-4000-8000-000000000000
+            nullable: true
+        -
+          in: query
+          name: from_city
+          description: 'Origin city name, as returned by `GET /bus/cities` (searches every active stop of the city). Required without from_physical_stop_uuid.'
+          example: Cotonou
+          required: false
+          schema:
+            type: string
+            description: 'Origin city name, as returned by `GET /bus/cities` (searches every active stop of the city). Required without from_physical_stop_uuid.'
+            example: Cotonou
+            nullable: true
+        -
+          in: query
+          name: to_city
+          description: 'Destination city name (searches every active stop of the city). Required without to_physical_stop_uuid.'
+          example: Parakou
+          required: false
+          schema:
+            type: string
+            description: 'Destination city name (searches every active stop of the city). Required without to_physical_stop_uuid.'
+            example: Parakou
+            nullable: true
         -
           in: query
           name: date

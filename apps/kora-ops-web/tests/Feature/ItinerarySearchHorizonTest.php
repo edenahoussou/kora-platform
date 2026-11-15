@@ -61,6 +61,57 @@ it('finds a leg whose boarding falls on the search date even when departure_date
         ->and($response->json('data.0.departure_at'))->toBe('2026-09-06T06:00:00+00:00');
 });
 
+it('searches by city across every active stop of the city, like the counter', function (): void {
+    $scenario = longTripConnectionScenario();
+    // A second stop in the origin city, listed first, that no line serves.
+    PhysicalStop::create(['name' => 'Annexe', 'city' => 'Origincity', 'country' => 'GH', 'status' => 'active']);
+
+    $byUuid = $this->getJson('/api/v1/bus/itineraries?'.http_build_query([
+        'from_physical_stop_uuid' => $scenario['originPhysical']->uuid,
+        'to_physical_stop_uuid' => $scenario['destinationPhysical']->uuid,
+        'date' => '2026-09-05',
+    ]))->assertOk();
+
+    $byCity = $this->getJson('/api/v1/bus/itineraries?'.http_build_query([
+        'from_city' => 'origincity',
+        'to_city' => 'Northville',
+        'date' => '2026-09-05',
+    ]))->assertOk();
+
+    expect($byCity->json('data'))->toHaveCount(1)
+        ->and($byCity->json('data'))->toBe($byUuid->json('data'));
+});
+
+it('searches a round trip by city', function (): void {
+    longTripConnectionScenario();
+
+    $this->getJson('/api/v1/bus/itineraries?'.http_build_query([
+        'from_city' => 'Origincity',
+        'to_city' => 'Northville',
+        'date' => '2026-09-05',
+        'trip_type' => 'round_trip',
+    ]))->assertOk()
+        ->assertJsonCount(1, 'outbound')
+        ->assertJsonStructure(['outbound', 'inbound']);
+});
+
+it('requires either a city or a physical stop on each side', function (): void {
+    $this->getJson('/api/v1/bus/itineraries?'.http_build_query([
+        'to_city' => 'Northville',
+        'date' => '2026-09-05',
+    ]))->assertUnprocessable()->assertJsonValidationErrors(['from_city', 'from_physical_stop_uuid']);
+});
+
+it('returns no itinerary for an unknown city', function (): void {
+    longTripConnectionScenario();
+
+    $this->getJson('/api/v1/bus/itineraries?'.http_build_query([
+        'from_city' => 'Atlantis',
+        'to_city' => 'Northville',
+        'date' => '2026-09-05',
+    ]))->assertOk()->assertJsonCount(0, 'data');
+});
+
 /** @return array<string, mixed> */
 function longTripConnectionScenario(): array
 {

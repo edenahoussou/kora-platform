@@ -53,7 +53,8 @@ class SyncLineStopsAction
                 $existing = ! empty($data['uuid']) ? $existingStops->get($data['uuid']) : null;
 
                 if ($existing instanceof Stop) {
-                    $existing->update($attributes);
+
+                    Stop::query()->whereKey($existing->id)->update($attributes);
                 } else {
                     $line->stops()->create([...$attributes, 'uuid' => Str::uuid()->toString()]);
                 }
