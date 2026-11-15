@@ -49,6 +49,18 @@ _Avoid_: Back-office generique
 Application mobile interne Android/P501 pour chauffeurs Bus, convoyeurs, agences et operations terrain, incluant planning, manifeste, scan, impression, descente anticipee et mode hors ligne.
 _Avoid_: KORA Driver
 
+**Ville**:
+Localite que le voyageur recherche (« Cotonou », « Parakou »). Une ville regroupe un ou plusieurs points d'arret ; une meme ville s'ecrit toujours de la meme facon.
+_Avoid_: Confondre ville et arret, saisir deux orthographes d'une meme ville
+
+**Point d'arret**:
+Lieu physique ou un bus prend ou depose des voyageurs (gare, carrefour), situe dans une ville et partage par toutes les lignes qui y passent. Il porte seul le nom affiche partout, la ville et la position GPS.
+_Avoid_: Gare (sauf si c'en est une), arret de ligne
+
+**Arret de ligne**:
+Passage d'une ligne par un point d'arret, avec son rang et sa distance depuis l'origine. Il n'a pas de nom propre : il affiche celui de son point d'arret.
+_Avoid_: Libelle propre a une ligne, ville
+
 **Terminal P501**:
 Materiel P501 physique enregistre dans KORA OPS et identifie par un numero de serie unique. Il peut ouvrir une session OPS Mobile uniquement lorsqu'il est autorise, affecte selon les regles du domaine et controle par le serveur.
 _Avoid_: Appareil de confiance d'un utilisateur, telephone de secours, B501

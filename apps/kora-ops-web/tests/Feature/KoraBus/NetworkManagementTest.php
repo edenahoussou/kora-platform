@@ -112,7 +112,7 @@ it('creates a line with nested stops referencing existing physical stops', funct
     $line = Line::query()->where('code', 'L5')->firstOrFail();
     expect($line->name)->toBe('Ligne littorale')
         ->and($line->stops()->count())->toBe(2)
-        ->and($line->stops()->orderBy('stop_order')->first()->name)->toBe('Cotonou');
+        ->and($line->stops()->orderBy('stop_order')->first()->name)->toBe('Cotonou L5');
 });
 
 it('rejects a stop whose declared city differs from the linked physical stop city', function (): void {
@@ -231,15 +231,15 @@ it('reuses an existing physical stop when the map point is within ~300 meters', 
         'status' => 'draft',
         'stops' => [
             [
-                'name' => 'Bohicon ~11m',
-                'city' => 'Bohicon',
+                'name' => 'gare de bohicon',
+                'city' => 'bohicon',
                 'country' => 'BJ',
                 'stop_order' => 1,
                 'km_from_origin' => 0,
                 'latitude' => 7.17825,
                 'longitude' => 2.06675,
                 'physical_stop' => [
-                    'name' => 'Bohicon ~11m',
+                    'name' => 'gare de bohicon',
                     'city' => 'Bohicon',
                     'country' => 'BJ',
                     'latitude' => 7.17825,
@@ -261,7 +261,71 @@ it('reuses an existing physical stop when the map point is within ~300 meters', 
     $firstStop = $line->stops()->orderBy('stop_order')->firstOrFail();
 
     expect($firstStop->physical_stop_id)->toBe($existing->id)
+        ->and($firstStop->name)->toBe('Gare de Bohicon')
+        ->and($firstStop->city)->toBe('Bohicon')
         ->and(PhysicalStop::query()->count())->toBe(2);
+});
+
+it('refuses to silently attach a map point to a nearby physical stop with another name', function (): void {
+    makePhysicalStop(['name' => 'Gare de Bohicon', 'city' => 'Bohicon', 'latitude' => 7.1782, 'longitude' => 2.0667]);
+
+    $this->actingAs(networkManager())->post(route('network.store'), [
+        'code' => 'L15',
+        'name' => 'Ligne conflit',
+        'type' => 'nationale',
+        'status' => 'draft',
+        'stops' => [[
+            'name' => 'Carrefour Bohicon',
+            'city' => 'Bohicon',
+            'country' => 'BJ',
+            'stop_order' => 1,
+            'latitude' => 7.17825,
+            'longitude' => 2.06675,
+            'physical_stop' => ['name' => 'Carrefour Bohicon', 'city' => 'Bohicon', 'country' => 'BJ', 'latitude' => 7.17825, 'longitude' => 2.06675],
+        ]],
+    ])->assertSessionHasErrors('stops.0.name');
+
+    expect(Line::query()->where('code', 'L15')->exists())->toBeFalse()
+        ->and(PhysicalStop::query()->count())->toBe(1);
+});
+
+it('propagates a physical stop rename to every line stop', function (): void {
+    $physical = makePhysicalStop(['name' => 'Gare Jonquet']);
+    $stopA = makeStop(makeLine(), $physical, 1);
+    $stopB = makeStop(makeLine(), $physical, 1);
+
+    $physical->update(['name' => 'Gare routière de Jonquet']);
+
+    expect($stopA->refresh()->name)->toBe('Gare routière de Jonquet')
+        ->and($stopB->refresh()->name)->toBe('Gare routière de Jonquet');
+});
+
+it('archives physical stops left without any line stop after a sync', function (): void {
+    $line = makeLine();
+    $kept = makePhysicalStop(['name' => 'Cotonou gardé']);
+    $dropped = makePhysicalStop(['name' => 'Parakou retiré', 'city' => 'Parakou']);
+    makeStop($line, $kept, 1);
+    makeStop($line, $dropped, 2);
+
+    $this->actingAs(networkManager())->put(route('network.update', $line), [
+        'stops' => [
+            ['name' => 'x', 'city' => 'Cotonou', 'country' => 'BJ', 'stop_order' => 1, 'physical_stop_uuid' => $kept->uuid],
+        ],
+    ])->assertRedirect(route('network.index', absolute: false));
+
+    expect($dropped->refresh()->status->value)->toBe('archived')
+        ->and($kept->refresh()->status->value)->toBe('active');
+});
+
+it('reports diverging stop labels without writing in dry run, then realigns with --apply', function (): void {
+    $physical = makePhysicalStop(['name' => 'Gare de Parakou', 'city' => 'Parakou']);
+    $stop = makeStop(makeLine(), $physical, 1, ['name' => 'Parakou centre']);
+
+    $this->artisan('bus:realign-stop-labels')->assertSuccessful();
+    expect($stop->refresh()->name)->toBe('Parakou centre');
+
+    $this->artisan('bus:realign-stop-labels', ['--apply' => true])->assertSuccessful();
+    expect($stop->refresh()->name)->toBe('Gare de Parakou');
 });
 
 it('creates a bidirectional line and exposes the flag in the list', function (): void {
@@ -348,9 +412,9 @@ it('synchronizes stops on update: update in place, create, delete and re-sequenc
 
     expect($ordered)->toHaveCount(2)
         ->and($ordered[0]->uuid)->toBe($stopB->uuid)
-        ->and($ordered[0]->name)->toBe('Parakou Nord')
+        ->and($ordered[0]->name)->toBe('Parakou L6')
         ->and($ordered[0]->stop_order)->toBe(1)
-        ->and($ordered[1]->name)->toBe('Bohicon')
+        ->and($ordered[1]->name)->toBe('Bohicon L6')
         ->and($ordered[1]->stop_order)->toBe(2)
         ->and(Stop::withTrashed()->find($stopA->id)->trashed())->toBeTrue();
 });
@@ -373,7 +437,7 @@ it('allows re-syncing stops after a previous sync removed a stop', function (): 
     ]))->assertRedirect(route('network.index', absolute: false));
 
     // 2ème édition : réordonne les arrêts restants — doit réussir malgré le fantôme
-    $bohicon = $line->stops()->where('name', 'Bohicon')->firstOrFail();
+    $bohicon = $line->stops()->where('name', 'Bohicon L7')->firstOrFail();
 
     $this->actingAs(networkManager())->put(route('network.update', $line), $payload([
         ['uuid' => $bohicon->uuid, 'name' => 'Bohicon', 'city' => 'Bohicon', 'country' => 'BJ', 'stop_order' => 1, 'km_from_origin' => 0, 'physical_stop_uuid' => $bohiconPhysical->uuid],
