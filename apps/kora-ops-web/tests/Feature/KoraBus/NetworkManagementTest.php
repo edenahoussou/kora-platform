@@ -419,6 +419,24 @@ it('synchronizes stops on update: update in place, create, delete and re-sequenc
         ->and(Stop::withTrashed()->find($stopA->id)->trashed())->toBeTrue();
 });
 
+it('keeps sequential stop orders even when positions are unchanged', function (): void {
+    $line = makeLine();
+    $a = makePhysicalStop(['name' => 'Cotonou ordre']);
+    $b = makePhysicalStop(['name' => 'Parakou ordre', 'city' => 'Parakou']);
+    $stopA = makeStop($line, $a, 1);
+    $stopB = makeStop($line, $b, 2, ['km_from_origin' => 420]);
+
+    $this->actingAs(networkManager())->put(route('network.update', $line), [
+        'stops' => [
+            ['uuid' => $stopA->uuid, 'name' => 'x', 'city' => 'Cotonou', 'country' => 'BJ', 'stop_order' => 1, 'km_from_origin' => 0, 'physical_stop_uuid' => $a->uuid],
+            ['uuid' => $stopB->uuid, 'name' => 'x', 'city' => 'Parakou', 'country' => 'BJ', 'stop_order' => 2, 'km_from_origin' => 420, 'physical_stop_uuid' => $b->uuid],
+        ],
+    ])->assertRedirect(route('network.index', absolute: false));
+
+    expect($line->stops()->orderBy('stop_order')->pluck('stop_order')->all())
+        ->toBe([1, 2]);
+});
+
 it('allows re-syncing stops after a previous sync removed a stop', function (): void {
     $line = makeLine(['code' => 'L7']);
     $cotonouPhysical = makePhysicalStop(['name' => 'Cotonou L7']);
