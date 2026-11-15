@@ -53,9 +53,7 @@ class SyncLineStopsAction
                 $existing = ! empty($data['uuid']) ? $existingStops->get($data['uuid']) : null;
 
                 if ($existing instanceof Stop) {
-                    // Requête directe : après le décalage +1000, le modèle en
-                    // mémoire n'est pas « dirty » si son rang final est
-                    // inchangé, et un update() classique n'écrirait rien.
+
                     Stop::query()->whereKey($existing->id)->update($attributes);
                 } else {
                     $line->stops()->create([...$attributes, 'uuid' => Str::uuid()->toString()]);
