@@ -628,6 +628,10 @@ class AppLocalization {
   String get signupSwitchToEmail => translate('signup_switch_to_email');
   String get signupEmailProtected => translate('signup_email_protected');
   String get signupSubmit => translate('signup_submit');
+  String get signupReferralToggle => translate('signup_referral_toggle');
+  String get signupReferralLabel => translate('signup_referral_label');
+  String get signupReferralHint => translate('signup_referral_hint');
+  String get signupReferralText => translate('signup_referral_text');
   // --- Centre d'aide et contact (PROFILE-05, PROFILE-06) ---
   String get helpEyebrow => translate('help_eyebrow');
   String get helpTitle => translate('help_title');

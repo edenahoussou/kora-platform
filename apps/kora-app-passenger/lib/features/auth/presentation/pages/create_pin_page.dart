@@ -3,7 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 
 import '../../../../core/l10n/app_localization.dart';
+import '../../../../core/utils/referral_code.dart';
 import '../../../../core/widgets/screen_header.dart';
+import '../../domain/entities/otp_purpose.dart';
 import '../bloc/auth_flow_bloc.dart';
 import '../widgets/pin_pad.dart';
 
@@ -63,6 +65,20 @@ class CreatePinPage extends StatefulWidget {
 class _CreatePinPageState extends State<CreatePinPage> {
   static const int _pinLength = 4;
 
+  /// Le code de parrainage, facultatif : il part avec la création du
+  /// compte, le serveur ne l'accepte nulle part ailleurs dans le
+  /// parcours.
+  final _referral = TextEditingController();
+
+  /// Le champ a été dépliné par le lien : replié, il ne concerne pas
+  /// ceux qui n'ont pas de code.
+  bool _referralOpen = false;
+
+  /// Le code a été retouché depuis le dernier envoi : le refus affiché
+  /// portait sur l'ancien, il n'a plus rien à dire de ce qui est à
+  /// l'écran.
+  bool _referralEdited = false;
+
   String _pin = '';
   String? _error;
 
@@ -70,6 +86,12 @@ class _CreatePinPageState extends State<CreatePinPage> {
   String? _chosen;
 
   bool get _isConfirming => _chosen != null;
+
+  @override
+  void dispose() {
+    _referral.dispose();
+    super.dispose();
+  }
 
   void _press(String key) {
     setState(() {
@@ -114,9 +136,18 @@ class _CreatePinPageState extends State<CreatePinPage> {
       return;
     }
 
-    setState(() => _error = null);
+    final code = _referral.text.trim();
 
-    context.read<AuthFlowBloc>().add(AuthFlowPinSubmitted(_pin));
+    setState(() {
+      _error = null;
+      _referralEdited = false;
+    });
+
+    context.read<AuthFlowBloc>().add(
+      // Vide, le code ne part pas du tout : une clé présente ferait
+      // refuser l'activation d'un compte préexistant sans PIN.
+      AuthFlowPinSubmitted(_pin, referralCode: code.isEmpty ? null : code),
+    );
     widget.onSubmit?.call(_pin);
   }
 
@@ -163,6 +194,30 @@ class _CreatePinPageState extends State<CreatePinPage> {
                       builder: (context, flow) => Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
+                          // Le parrainage se rattache **en créant** le
+                          // compte, et c'est cet écran qui le crée : un
+                          // PIN réinitialisé n'ouvre aucun compte, le
+                          // champ n'y a donc rien à faire.
+                          if (flow.purpose == OtpPurpose.registration) ...[
+                            _ReferralField(
+                              controller: _referral,
+                              // Un refus déplie le champ de lui-même :
+                              // sinon son message resterait caché.
+                              isOpen:
+                                  _referralOpen ||
+                                  flow.referralError.isNotEmpty,
+                              enabled: !flow.isSubmitting,
+                              error: _referralEdited ? '' : flow.referralError,
+                              onOpen: () =>
+                                  setState(() => _referralOpen = true),
+                              onChanged: (_) {
+                                if (!_referralEdited) {
+                                  setState(() => _referralEdited = true);
+                                }
+                              },
+                            ),
+                            const SizedBox(height: 12),
+                          ],
                           KoraButton(
                             label: 'Continuer',
                             isLoading: flow.isSubmitting,
@@ -212,6 +267,75 @@ class _CreatePinPageState extends State<CreatePinPage> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Le code de parrainage de l'inscription — règles de fidélité MEZ-49.
+///
+/// Replié derrière un lien : la plupart des voyageurs n'ont pas de code,
+/// et un champ de plus sous le pavé numérique se lirait comme une étape
+/// obligatoire du parcours.
+///
+/// Rien n'est vérifié ici. Le serveur seul sait si un code existe, à qui
+/// il appartient et s'il est encore rattachable ; rejouer ses règles,
+/// c'est promettre un refus qu'il n'aurait pas fait, ou l'inverse. On
+/// envoie ce qui est tapé, et on montre la raison du refus sous le
+/// champ — le PIN et le code OTP restent en main pour réessayer.
+class _ReferralField extends StatelessWidget {
+  const _ReferralField({
+    required this.controller,
+    required this.isOpen,
+    required this.enabled,
+    required this.error,
+    required this.onOpen,
+    required this.onChanged,
+  });
+
+  final TextEditingController controller;
+  final bool isOpen;
+  final bool enabled;
+
+  /// Ce que le serveur reproche au code (`errors.referral_code`), vide
+  /// quand il n'y a rien à reprocher.
+  final String error;
+
+  final VoidCallback onOpen;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
+    if (!isOpen) {
+      return Center(
+        child: TextButton(
+          onPressed: enabled ? onOpen : null,
+          child: Text(l10n.signupReferralToggle),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        KoraInput(
+          label: l10n.signupReferralLabel,
+          hint: l10n.signupReferralHint,
+          controller: controller,
+          enabled: enabled,
+          // Majuscules et longueur maximale : le serveur compare des
+          // majuscules et refuse au-delà de 24 caractères.
+          inputFormatters: referralCodeFormatters(),
+          errorText: error.isEmpty ? null : error,
+          onChanged: onChanged,
+        ),
+        const SizedBox(height: 6),
+        Text(
+          l10n.signupReferralText,
+          style: AppTextStyles.caption(context.koraColors.textMuted),
+        ),
+      ],
     );
   }
 }

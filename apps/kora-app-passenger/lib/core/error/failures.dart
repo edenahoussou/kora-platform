@@ -41,7 +41,18 @@ class CacheFailure extends Failure {
 /// Les données saisies par l'utilisateur ne sont pas valides
 /// (formulaire, ex: email mal formé).
 class ValidationFailure extends Failure {
-  const ValidationFailure(super.message);
+  const ValidationFailure(super.message, {this.field});
+
+  /// Le champ refusé par le serveur (`referral_code`), quand sa réponse
+  /// n'en nomme qu'un.
+  ///
+  /// Un 422 qui ne porte que sur un champ se corrige dans ce champ :
+  /// l'écran y pose le message, au lieu de l'afficher au milieu du
+  /// formulaire où rien n'indique quoi changer.
+  final String? field;
+
+  @override
+  List<Object?> get props => [message, field];
 }
 
 /// Erreur d'authentification (token expiré, identifiants invalides).

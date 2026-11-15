@@ -76,12 +76,17 @@ class AuthFlowCodeResent extends AuthFlowEvent {
 /// Écran « Créez votre PIN » : termine l'inscription, ou réinitialise le
 /// PIN selon le motif du parcours.
 class AuthFlowPinSubmitted extends AuthFlowEvent {
-  const AuthFlowPinSubmitted(this.pin);
+  const AuthFlowPinSubmitted(this.pin, {this.referralCode});
 
   final String pin;
 
+  /// Le code de parrainage facultatif, saisi sur le même écran : c'est
+  /// la création du compte qui le rattache, et elle n'a lieu qu'ici.
+  /// Vide ou `null`, l'inscription se termine sans parrain.
+  final String? referralCode;
+
   @override
-  List<Object?> get props => [pin];
+  List<Object?> get props => [pin, referralCode];
 }
 
 /// Boutons Google / Facebook / TikTok, une fois le jeton du fournisseur

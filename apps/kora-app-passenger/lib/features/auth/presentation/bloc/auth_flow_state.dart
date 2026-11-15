@@ -37,6 +37,7 @@ class AuthFlowState extends Equatable {
     this.registrationName = '',
     this.pendingPin = '',
     this.errorMessage = '',
+    this.referralError = '',
     this.isAccountLocked = false,
     this.accountExists = false,
     this.deviceName = '',
@@ -83,6 +84,15 @@ class AuthFlowState extends Equatable {
 
   final String errorMessage;
 
+  /// Pourquoi le serveur a refusé le code de parrainage de
+  /// l'inscription — son `errors.referral_code`.
+  ///
+  /// À part de [errorMessage] parce que la suite n'est pas la même : ce
+  /// n'est pas l'inscription qui a échoué sur le fond, c'est un champ
+  /// facultatif à corriger ou à retirer. L'écran le montre sous ce
+  /// champ, PIN et code OTP toujours en main.
+  final String referralError;
+
   /// Compte bloqué après trop d'erreurs de PIN : l'écran propose alors le
   /// déverrouillage plutôt qu'un simple message d'échec.
   final bool isAccountLocked;
@@ -110,6 +120,7 @@ class AuthFlowState extends Equatable {
     String? registrationName,
     String? pendingPin,
     String? errorMessage,
+    String? referralError,
     bool? isAccountLocked,
     bool? accountExists,
     String? deviceName,
@@ -126,6 +137,7 @@ class AuthFlowState extends Equatable {
       registrationName: registrationName ?? this.registrationName,
       pendingPin: pendingPin ?? this.pendingPin,
       errorMessage: errorMessage ?? this.errorMessage,
+      referralError: referralError ?? this.referralError,
       isAccountLocked: isAccountLocked ?? this.isAccountLocked,
       accountExists: accountExists ?? this.accountExists,
       deviceName: deviceName ?? this.deviceName,
@@ -145,6 +157,7 @@ class AuthFlowState extends Equatable {
     registrationName,
     pendingPin,
     errorMessage,
+    referralError,
     isAccountLocked,
     accountExists,
     deviceName,

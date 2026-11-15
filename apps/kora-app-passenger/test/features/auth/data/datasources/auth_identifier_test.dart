@@ -185,5 +185,42 @@ void main() {
     // vaudrait effacement côté serveur.
     expect(body.containsKey('email'), isFalse);
     expect(body.containsKey('phone'), isFalse);
+    // Sans code de parrainage, pas de clé du tout : envoyée vide, elle
+    // ferait refuser l'activation d'un compte préexistant sans PIN.
+    expect(body.containsKey('referral_code'), isFalse);
+  });
+
+  test('le code de parrainage part tel qu’il a été saisi', () async {
+    when(
+      () => dio.post<dynamic>(
+        any(),
+        data: any(named: 'data'),
+        options: any(named: 'options'),
+      ),
+    ).thenAnswer(
+      (_) async => _response({
+        'token': 'jeton',
+        'user': {
+          'uuid': 'user-1',
+          'name': 'Aïcha HOUNKPE',
+          'email': 'aicha@example.com',
+          'status': 'active',
+        },
+      }),
+    );
+
+    await dataSource.completeRegistration(
+      verification: const OtpVerification(
+        challengeUuid: 'challenge-3',
+        purpose: OtpPurpose.registration,
+        verificationToken: 'jeton-de-verification',
+      ),
+      pin: '1234',
+      device: _device,
+      name: 'Aïcha HOUNKPE',
+      referralCode: 'KA1B2C3D',
+    );
+
+    expect(lastBody()['referral_code'], 'KA1B2C3D');
   });
 }
