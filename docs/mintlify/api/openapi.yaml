@@ -823,6 +823,8 @@ paths:
                           service_class_name: Standard
                           departure_at: '2026-09-07T13:00:00+00:00'
                           arrival_at: '2026-09-07T23:00:00+00:00'
+                          departure_timezone: Africa/Accra
+                          arrival_timezone: Africa/Accra
                 properties:
                   data:
                     type: array
@@ -880,6 +882,8 @@ paths:
                             service_class_name: Standard
                             departure_at: '2026-09-07T13:00:00+00:00'
                             arrival_at: '2026-09-07T23:00:00+00:00'
+                            departure_timezone: Africa/Accra
+                            arrival_timezone: Africa/Accra
                     items:
                       type: object
                       properties:
@@ -949,6 +953,8 @@ paths:
                               service_class_name: Standard
                               departure_at: '2026-09-07T13:00:00+00:00'
                               arrival_at: '2026-09-07T23:00:00+00:00'
+                              departure_timezone: Africa/Accra
+                              arrival_timezone: Africa/Accra
                           items:
                             type: object
                             properties:
@@ -1083,6 +1089,12 @@ paths:
                               arrival_at:
                                 type: string
                                 example: '2026-09-07T23:00:00+00:00'
+                              departure_timezone:
+                                type: string
+                                example: Africa/Accra
+                              arrival_timezone:
+                                type: string
+                                example: Africa/Accra
       tags:
         - Bus
       requestBody:
@@ -5820,6 +5832,10 @@ paths:
                           destination_stop_uuid: stp23456-6789-abcd-ef01-23456789abcd
                           seat_uuid: seat123-4567-89ab-cdef-0123456789ab
                           seat_code: 12A
+                          departure_at: '2026-08-20T08:30:00+01:00'
+                          arrival_at: '2026-08-20T15:30:00+01:00'
+                          departure_timezone: Africa/Porto-Novo
+                          arrival_timezone: Africa/Porto-Novo
                           status: active
                 properties:
                   data:
@@ -5844,6 +5860,10 @@ paths:
                             destination_stop_uuid: stp23456-6789-abcd-ef01-23456789abcd
                             seat_uuid: seat123-4567-89ab-cdef-0123456789ab
                             seat_code: 12A
+                            departure_at: '2026-08-20T08:30:00+01:00'
+                            arrival_at: '2026-08-20T15:30:00+01:00'
+                            departure_timezone: Africa/Porto-Novo
+                            arrival_timezone: Africa/Porto-Novo
                             status: active
                     items:
                       type: object
@@ -5888,6 +5908,10 @@ paths:
                               destination_stop_uuid: stp23456-6789-abcd-ef01-23456789abcd
                               seat_uuid: seat123-4567-89ab-cdef-0123456789ab
                               seat_code: 12A
+                              departure_at: '2026-08-20T08:30:00+01:00'
+                              arrival_at: '2026-08-20T15:30:00+01:00'
+                              departure_timezone: Africa/Porto-Novo
+                              arrival_timezone: Africa/Porto-Novo
                               status: active
                           items:
                             type: object
@@ -5910,6 +5934,18 @@ paths:
                               seat_code:
                                 type: string
                                 example: 12A
+                              departure_at:
+                                type: string
+                                example: '2026-08-20T08:30:00+01:00'
+                              arrival_at:
+                                type: string
+                                example: '2026-08-20T15:30:00+01:00'
+                              departure_timezone:
+                                type: string
+                                example: Africa/Porto-Novo
+                              arrival_timezone:
+                                type: string
+                                example: Africa/Porto-Novo
                               status:
                                 type: string
                                 example: active
@@ -5952,7 +5988,7 @@ paths:
     get:
       summary: 'List all tickets belonging to the authenticated passenger.'
       operationId: listAllTicketsBelongingToTheAuthenticatedPassenger
-      description: "Returns every issued ticket for which the authenticated user is either\nthe creator (`created_by_user_id`) or the payer (`payer_user_id`) of the\nunderlying reservation, across all statuses. The response is paginated\nand uses the `PassengerTicketResource` contract, which maps backend\nstatuses to the app-facing vocabulary (confirmed / completed / cancelled)."
+      description: "Boarding and arrival timestamps refer to the purchased stops, include\ntheir local UTC offsets, and are null when no stop schedule is available.\nSegments are ordered and retain outbound/inbound direction for connections.\n\nReturns every issued ticket for which the authenticated user is either\nthe creator (`created_by_user_id`) or the payer (`payer_user_id`) of the\nunderlying reservation, across all statuses. The response is paginated\nand uses the `PassengerTicketResource` contract, which maps backend\nstatuses to the app-facing vocabulary (confirmed / completed / cancelled)."
       parameters:
         -
           in: query
@@ -5996,9 +6032,26 @@ paths:
                         stop_name: 'Malanville Centre'
                       departure:
                         uuid: dep12345-6789-abcd-ef01-23456789abcd
-                        departs_at: '2026-08-04T07:30:00+00:00'
+                        departs_at: '2026-08-04T08:30:00+01:00'
+                        timezone: Africa/Porto-Novo
+                        arrives_at: '2026-08-04T15:30:00+01:00'
+                        arrival_timezone: Africa/Porto-Novo
                         line_name: Cotonou-Malanville
                         line_code: L1
+                      segments:
+                        -
+                          leg_order: 1
+                          direction: outbound
+                          departure_uuid: dep12345-6789-abcd-ef01-23456789abcd
+                          origin_stop_uuid: origin-stop-uuid
+                          destination_stop_uuid: destination-stop-uuid
+                          origin_city: Cotonou
+                          destination_city: Malanville
+                          seat_code: 4A
+                          departure_at: '2026-08-04T08:30:00+01:00'
+                          arrival_at: '2026-08-04T15:30:00+01:00'
+                          departure_timezone: Africa/Porto-Novo
+                          arrival_timezone: Africa/Porto-Novo
                       seat:
                         uuid: seat123-4567-89ab-cdef-0123456789ab
                         code: 4A
@@ -6033,9 +6086,26 @@ paths:
                           stop_name: 'Malanville Centre'
                         departure:
                           uuid: dep12345-6789-abcd-ef01-23456789abcd
-                          departs_at: '2026-08-04T07:30:00+00:00'
+                          departs_at: '2026-08-04T08:30:00+01:00'
+                          timezone: Africa/Porto-Novo
+                          arrives_at: '2026-08-04T15:30:00+01:00'
+                          arrival_timezone: Africa/Porto-Novo
                           line_name: Cotonou-Malanville
                           line_code: L1
+                        segments:
+                          -
+                            leg_order: 1
+                            direction: outbound
+                            departure_uuid: dep12345-6789-abcd-ef01-23456789abcd
+                            origin_stop_uuid: origin-stop-uuid
+                            destination_stop_uuid: destination-stop-uuid
+                            origin_city: Cotonou
+                            destination_city: Malanville
+                            seat_code: 4A
+                            departure_at: '2026-08-04T08:30:00+01:00'
+                            arrival_at: '2026-08-04T15:30:00+01:00'
+                            departure_timezone: Africa/Porto-Novo
+                            arrival_timezone: Africa/Porto-Novo
                         seat:
                           uuid: seat123-4567-89ab-cdef-0123456789ab
                           code: 4A
@@ -6110,13 +6180,77 @@ paths:
                               example: dep12345-6789-abcd-ef01-23456789abcd
                             departs_at:
                               type: string
-                              example: '2026-08-04T07:30:00+00:00'
+                              example: '2026-08-04T08:30:00+01:00'
+                            timezone:
+                              type: string
+                              example: Africa/Porto-Novo
+                            arrives_at:
+                              type: string
+                              example: '2026-08-04T15:30:00+01:00'
+                            arrival_timezone:
+                              type: string
+                              example: Africa/Porto-Novo
                             line_name:
                               type: string
                               example: Cotonou-Malanville
                             line_code:
                               type: string
                               example: L1
+                        segments:
+                          type: array
+                          example:
+                            -
+                              leg_order: 1
+                              direction: outbound
+                              departure_uuid: dep12345-6789-abcd-ef01-23456789abcd
+                              origin_stop_uuid: origin-stop-uuid
+                              destination_stop_uuid: destination-stop-uuid
+                              origin_city: Cotonou
+                              destination_city: Malanville
+                              seat_code: 4A
+                              departure_at: '2026-08-04T08:30:00+01:00'
+                              arrival_at: '2026-08-04T15:30:00+01:00'
+                              departure_timezone: Africa/Porto-Novo
+                              arrival_timezone: Africa/Porto-Novo
+                          items:
+                            type: object
+                            properties:
+                              leg_order:
+                                type: integer
+                                example: 1
+                              direction:
+                                type: string
+                                example: outbound
+                              departure_uuid:
+                                type: string
+                                example: dep12345-6789-abcd-ef01-23456789abcd
+                              origin_stop_uuid:
+                                type: string
+                                example: origin-stop-uuid
+                              destination_stop_uuid:
+                                type: string
+                                example: destination-stop-uuid
+                              origin_city:
+                                type: string
+                                example: Cotonou
+                              destination_city:
+                                type: string
+                                example: Malanville
+                              seat_code:
+                                type: string
+                                example: 4A
+                              departure_at:
+                                type: string
+                                example: '2026-08-04T08:30:00+01:00'
+                              arrival_at:
+                                type: string
+                                example: '2026-08-04T15:30:00+01:00'
+                              departure_timezone:
+                                type: string
+                                example: Africa/Porto-Novo
+                              arrival_timezone:
+                                type: string
+                                example: Africa/Porto-Novo
                         seat:
                           type: object
                           properties:
@@ -6185,6 +6319,10 @@ paths:
                         destination_stop_uuid: stp23456-6789-abcd-ef01-23456789abcd
                         seat_uuid: seat123-4567-89ab-cdef-0123456789ab
                         seat_code: 12A
+                        departure_at: '2026-08-20T08:30:00+01:00'
+                        arrival_at: '2026-08-20T15:30:00+01:00'
+                        departure_timezone: Africa/Porto-Novo
+                        arrival_timezone: Africa/Porto-Novo
                         status: active
                 properties:
                   data:
@@ -6230,6 +6368,10 @@ paths:
                             destination_stop_uuid: stp23456-6789-abcd-ef01-23456789abcd
                             seat_uuid: seat123-4567-89ab-cdef-0123456789ab
                             seat_code: 12A
+                            departure_at: '2026-08-20T08:30:00+01:00'
+                            arrival_at: '2026-08-20T15:30:00+01:00'
+                            departure_timezone: Africa/Porto-Novo
+                            arrival_timezone: Africa/Porto-Novo
                             status: active
                         items:
                           type: object
@@ -6252,6 +6394,18 @@ paths:
                             seat_code:
                               type: string
                               example: 12A
+                            departure_at:
+                              type: string
+                              example: '2026-08-20T08:30:00+01:00'
+                            arrival_at:
+                              type: string
+                              example: '2026-08-20T15:30:00+01:00'
+                            departure_timezone:
+                              type: string
+                              example: Africa/Porto-Novo
+                            arrival_timezone:
+                              type: string
+                              example: Africa/Porto-Novo
                             status:
                               type: string
                               example: active

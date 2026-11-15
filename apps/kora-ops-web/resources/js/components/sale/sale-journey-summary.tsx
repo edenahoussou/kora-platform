@@ -25,7 +25,7 @@ import type {
     SaleReservation,
     SaleSearch,
 } from './sale-types';
-import { formatDayMonth, formatIsoTime, formatMoney } from './sale-utils';
+import { formatMoney, formatStopSchedule } from './sale-utils';
 import { useHoldCountdown } from './use-hold-countdown';
 
 type CashBreakdown = {
@@ -78,6 +78,9 @@ type LegInfo = {
     lineCode: string | null;
     busRegistration: string | null;
     departureAt: string | null;
+    departureTimezone: string | null;
+    arrivalTimezone: string | null;
+    isInternational: boolean;
     arrivalAt: string | null;
     amount: number | null;
     currency: string | null;
@@ -140,6 +143,15 @@ function buildDirectionGroups(
                 departureAt:
                     first?.departureAt ?? quoteLeg?.departureAt ?? null,
                 arrivalAt: first?.arrivalAt ?? quoteLeg?.arrivalAt ?? null,
+                departureTimezone:
+                    first?.departureTimezone ??
+                    quoteLeg?.departureTimezone ??
+                    null,
+                arrivalTimezone:
+                    first?.arrivalTimezone ?? quoteLeg?.arrivalTimezone ?? null,
+                isInternational:
+                    quoteLeg?.line.isInternational ??
+                    first?.departureTimezone !== first?.arrivalTimezone,
                 amount: quoteLeg?.amount ?? null,
                 currency:
                     quoteLeg?.currency ?? itineraryQuote?.currency ?? null,
@@ -234,20 +246,13 @@ export function SaleJourneySummary({
             : returnDestination;
         const firstLegInGroup = group.legs[0];
         const lastLegInGroup = group.legs[group.legs.length - 1];
-        const directionDate = isOutbound
-            ? (search?.date ?? firstLegInGroup?.departureDate ?? null)
-            : (search?.returnDate ?? firstLegInGroup?.departureDate ?? null);
-        const directionDepartTime = firstLegInGroup?.departureAt ?? null;
-        const directionArriveTime = lastLegInGroup?.arrivalAt ?? null;
+        const isInternational = group.legs.some((leg) => leg.isInternational);
 
         return (
             <div key={group.direction} className="summary-direction-block">
                 <div className="summary-direction-header">
                     <span className="summary-direction-label">
                         {DIRECTION_LABEL[group.direction] ?? group.direction}
-                    </span>
-                    <span className="summary-direction-date">
-                        {directionDate ? formatDayMonth(directionDate) : '—'}
                     </span>
                 </div>
                 <div className="summary-direction-route">
@@ -258,15 +263,20 @@ export function SaleJourneySummary({
                 <div className="summary-direction-times">
                     <span>
                         <Clock3 className="size-3" />
-                        {directionDepartTime
-                            ? formatIsoTime(directionDepartTime)
-                            : '—'}
+                        Montée :{' '}
+                        {formatStopSchedule(
+                            firstLegInGroup?.departureAt,
+                            firstLegInGroup?.departureTimezone,
+                            isInternational,
+                        )}
                     </span>
-                    <ArrowRight className="size-3" />
                     <span>
-                        {directionArriveTime
-                            ? formatIsoTime(directionArriveTime)
-                            : '—'}
+                        Descente :{' '}
+                        {formatStopSchedule(
+                            lastLegInGroup?.arrivalAt,
+                            lastLegInGroup?.arrivalTimezone,
+                            isInternational,
+                        )}
                     </span>
                 </div>
 
@@ -288,16 +298,25 @@ export function SaleJourneySummary({
                                         '—'}
                                 </div>
                                 <div className="summary-leg-schedule">
-                                    {leg.departureAt
-                                        ? formatIsoTime(leg.departureAt)
-                                        : '—'}
-                                    {' → '}
-                                    {leg.arrivalAt
-                                        ? formatIsoTime(leg.arrivalAt)
-                                        : '—'}
-                                    {leg.busRegistration
-                                        ? ` · ${leg.busRegistration}`
-                                        : ''}
+                                    <div>
+                                        Montée :{' '}
+                                        {formatStopSchedule(
+                                            leg.departureAt,
+                                            leg.departureTimezone,
+                                            leg.isInternational,
+                                        )}
+                                    </div>
+                                    <div>
+                                        Descente :{' '}
+                                        {formatStopSchedule(
+                                            leg.arrivalAt,
+                                            leg.arrivalTimezone,
+                                            leg.isInternational,
+                                        )}
+                                    </div>
+                                    {leg.busRegistration && (
+                                        <div>{leg.busRegistration}</div>
+                                    )}
                                 </div>
                                 {leg.amount !== null && leg.currency && (
                                     <div className="summary-leg-price">

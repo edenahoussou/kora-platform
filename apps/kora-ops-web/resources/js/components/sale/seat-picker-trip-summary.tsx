@@ -1,5 +1,5 @@
 import type { SaleItineraryLeg } from './sale-types';
-import { formatIsoDate, formatIsoTime, formatShortDate } from './sale-utils';
+import { formatStopSchedule } from './sale-utils';
 
 type Props = {
     leg: SaleItineraryLeg;
@@ -35,8 +35,19 @@ export function SeatPickerTripSummary({ leg, availableCount }: Props) {
             </div>
             <div className="seat-trip-details">
                 <span>
-                    {formatShortDate(formatIsoDate(leg.departureAt))} ·{' '}
-                    {formatIsoTime(leg.departureAt)}
+                    Montée :{' '}
+                    {formatStopSchedule(
+                        leg.departureAt,
+                        leg.departureTimezone,
+                        leg.line.isInternational,
+                    )}
+                    <br />
+                    Descente :{' '}
+                    {formatStopSchedule(
+                        leg.arrivalAt,
+                        leg.arrivalTimezone,
+                        leg.line.isInternational,
+                    )}
                 </span>
                 <strong>{availableCount} places disponibles</strong>
             </div>

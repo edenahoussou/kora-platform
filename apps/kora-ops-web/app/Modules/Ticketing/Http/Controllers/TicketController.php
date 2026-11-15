@@ -25,6 +25,10 @@ class TicketController extends Controller
     /**
      * List all tickets belonging to the authenticated passenger.
      *
+     * Boarding and arrival timestamps refer to the purchased stops, include
+     * their local UTC offsets, and are null when no stop schedule is available.
+     * Segments are ordered and retain outbound/inbound direction for connections.
+     *
      * Returns every issued ticket for which the authenticated user is either
      * the creator (`created_by_user_id`) or the payer (`payer_user_id`) of the
      * underlying reservation, across all statuses. The response is paginated
@@ -63,10 +67,27 @@ class TicketController extends Controller
      *       },
      *       "departure": {
      *         "uuid": "dep12345-6789-abcd-ef01-23456789abcd",
-     *         "departs_at": "2026-08-04T07:30:00+00:00",
+     *         "departs_at": "2026-08-04T08:30:00+01:00",
+     *         "timezone": "Africa/Porto-Novo",
+     *         "arrives_at": "2026-08-04T15:30:00+01:00",
+     *         "arrival_timezone": "Africa/Porto-Novo",
      *         "line_name": "Cotonou-Malanville",
      *         "line_code": "L1"
      *       },
+     *       "segments": [{
+     *         "leg_order": 1,
+     *         "direction": "outbound",
+     *         "departure_uuid": "dep12345-6789-abcd-ef01-23456789abcd",
+     *         "origin_stop_uuid": "origin-stop-uuid",
+     *         "destination_stop_uuid": "destination-stop-uuid",
+     *         "origin_city": "Cotonou",
+     *         "destination_city": "Malanville",
+     *         "seat_code": "4A",
+     *         "departure_at": "2026-08-04T08:30:00+01:00",
+     *         "arrival_at": "2026-08-04T15:30:00+01:00",
+     *         "departure_timezone": "Africa/Porto-Novo",
+     *         "arrival_timezone": "Africa/Porto-Novo"
+     *       }],
      *       "seat": {
      *         "uuid": "seat123-4567-89ab-cdef-0123456789ab",
      *         "code": "4A"
@@ -132,6 +153,10 @@ class TicketController extends Controller
      *           "destination_stop_uuid": "stp23456-6789-abcd-ef01-23456789abcd",
      *           "seat_uuid": "seat123-4567-89ab-cdef-0123456789ab",
      *           "seat_code": "12A",
+     *           "departure_at": "2026-08-20T08:30:00+01:00",
+     *           "arrival_at": "2026-08-20T15:30:00+01:00",
+     *           "departure_timezone": "Africa/Porto-Novo",
+     *           "arrival_timezone": "Africa/Porto-Novo",
      *           "status": "active"
      *         }
      *       ]
@@ -183,6 +208,10 @@ class TicketController extends Controller
      *         "destination_stop_uuid": "stp23456-6789-abcd-ef01-23456789abcd",
      *         "seat_uuid": "seat123-4567-89ab-cdef-0123456789ab",
      *         "seat_code": "12A",
+     *         "departure_at": "2026-08-20T08:30:00+01:00",
+     *         "arrival_at": "2026-08-20T15:30:00+01:00",
+     *         "departure_timezone": "Africa/Porto-Novo",
+     *         "arrival_timezone": "Africa/Porto-Novo",
      *         "status": "active"
      *       }
      *     ]

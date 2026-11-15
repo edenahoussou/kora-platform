@@ -400,8 +400,23 @@
                             <div class="ticket-leg-route">{{ $leg['originCity'] }} &rarr;
                                 {{ $leg['destinationCity'] }}</div>
                             <div class="ticket-leg-details">
-                                {{ $leg['dateLabel'] }} &middot; {{ $leg['lineCode'] }}<br>
-                                Départ {{ $leg['departureTime'] }} &middot; Siège {{ $leg['seatCode'] }}<br>
+                                {{ $leg['lineCode'] }} &middot; Siège {{ $leg['seatCode'] }}<br>
+                                Montée
+                                @if ($leg['departureAt'])
+                                    {{ $leg['dateLabel'] }} à {{ $leg['departureTime'] }}
+                                    @if ($leg['isInternational']) ({{ $leg['departureTimezone'] }}) @endif
+                                @else
+                                    Horaire non disponible
+                                @endif<br>
+
+                                Descente
+                                @if ($leg['arrivalAt'])
+                                    {{ $leg['arrivalDateLabel'] }} à {{ $leg['arrivalTime'] }}
+                                    @if ($leg['isInternational']) ({{ $leg['arrivalTimezone'] }}) @endif
+                                @else
+                                    Horaire non disponible
+                                @endif<br>
+
                                 Bus {{ $leg['busRegistration'] }}
                             </div>
                         </div>

@@ -12,7 +12,7 @@ import { retry } from '@/routes/sale/tickets';
 import tickets from '@/routes/tickets';
 import { ReceiptQr } from './receipt-qr';
 import type { SaleDeparture, SaleReservation, SaleTicket } from './sale-types';
-import { formatMoney, formatTime } from './sale-utils';
+import { formatMoney, formatStopSchedule } from './sale-utils';
 
 export function CounterSaleSuccess({
     departure,
@@ -224,6 +224,14 @@ function TicketCard({
         (item) => item.uuid === ticket.passengerUuid,
     );
     const ticketAmount = ticket.allocationAmount;
+    const firstLeg = ticket.legs[0];
+    const lastLeg = ticket.legs
+        .filter(
+            (leg) =>
+                (leg.direction ?? 'outbound') ===
+                (firstLeg?.direction ?? 'outbound'),
+        )
+        .at(-1);
 
     return (
         <article
@@ -264,19 +272,29 @@ function TicketCard({
                         }
                     />
                     <TicketField
-                        label="Date"
-                        value={formatTicketDate(
-                            departure?.departureDate ?? null,
+                        label="Montée"
+                        value={formatStopSchedule(
+                            firstLeg?.departureAt,
+                            firstLeg?.departureTimezone,
+                            departure?.line.isInternational,
                         )}
                     />
                     <TicketField
-                        label="Départ estimé"
-                        value={
-                            departure
-                                ? `${departure.line.code} · ${formatTime(departure.departureTime)}`
-                                : '—'
-                        }
+                        label="Descente"
+                        value={formatStopSchedule(
+                            lastLeg?.arrivalAt,
+                            lastLeg?.arrivalTimezone,
+                            departure?.line.isInternational,
+                        )}
                     />
+                    {ticket.legs.length > 1 &&
+                        ticket.legs.map((leg) => (
+                            <TicketField
+                                key={leg.legOrder}
+                                label={`${leg.direction === 'inbound' ? 'Retour' : 'Aller'} · ${leg.originStop} → ${leg.destinationStop}`}
+                                value={`Montée : ${formatStopSchedule(leg.departureAt, leg.departureTimezone, true)} · Descente : ${formatStopSchedule(leg.arrivalAt, leg.arrivalTimezone, true)}`}
+                            />
+                        ))}
                     <TicketField
                         label="Sièges"
                         value={
@@ -384,21 +402,6 @@ function stopCode(city: string | undefined): string {
               .slice(0, 3)
               .toUpperCase()
         : '—';
-}
-
-function formatTicketDate(value: string | null): string {
-    if (!value) {
-        return '—';
-    }
-
-    return new Intl.DateTimeFormat('fr-FR', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-    })
-        .format(new Date(`${value}T12:00:00`))
-        .replace('.', '')
-        .toUpperCase();
 }
 
 function shortUuid(uuid: string): string {

@@ -27,7 +27,11 @@ it('searches, quotes and holds a two-leg itinerary without trusting client prici
         .'&to_physical_stop_uuid='.$scenario['destinationPhysical']->uuid
         .'&date='.$scenario['departureDate'].'&passenger_count=1');
 
-    $search->assertOk()->assertJsonCount(1, 'data');
+    $search->assertOk()->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.legs.0.departure_at', $scenario['departureDate'].'T08:00:00+01:00')
+        ->assertJsonPath('data.0.legs.0.arrival_at', $scenario['departureDate'].'T09:00:00+00:00')
+        ->assertJsonPath('data.0.legs.0.departure_timezone', 'Africa/Porto-Novo')
+        ->assertJsonPath('data.0.legs.0.arrival_timezone', 'Africa/Lome');
     $legs = $search->json('data.0.legs');
     expect($legs)->toHaveCount(2);
 

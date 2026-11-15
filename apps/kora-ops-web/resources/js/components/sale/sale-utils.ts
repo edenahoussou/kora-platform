@@ -41,47 +41,61 @@ export function formatTime(value: string | null): string {
     return value ? value.slice(0, 5) : '—';
 }
 
-/**
- * Convert an ISO UTC timestamp (e.g. "2026-09-07T05:00:00.000Z") to a
- * local "HH:MM" string using the browser's timezone. This is essential
- * for displaying stop-specific departure/arrival times that are stored
- * as UTC instants — without conversion, times appear off by the UTC
- * offset (e.g. 05:00 UTC shown as 05:00 instead of 06:00 in UTC+1).
- */
-export function formatIsoTime(iso: string | null): string {
-    if (!iso) {
-        return '—';
+/** Format a published stop instant independently of the device timezone. */
+export function formatIsoTime(
+    iso: string | null,
+    timeZone?: string | null,
+): string {
+    if (!iso || Number.isNaN(new Date(iso).getTime())) {
+        return 'Horaire non disponible';
     }
 
-    const date = new Date(iso);
-
-    if (Number.isNaN(date.getTime())) {
-        return '—';
+    if (!timeZone) {
+        return iso.slice(11, 16);
     }
 
-    return date.toTimeString().slice(0, 5);
+    return new Intl.DateTimeFormat('fr-FR', {
+        timeZone,
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
+    }).format(new Date(iso));
 }
 
-/**
- * Convert an ISO UTC timestamp to a local "YYYY-MM-DD" string using the
- * browser's timezone. Mirrors formatIsoTime for date display.
- */
-export function formatIsoDate(iso: string | null): string {
-    if (!iso) {
+export function formatIsoDate(
+    iso: string | null,
+    timeZone?: string | null,
+): string {
+    if (!iso || Number.isNaN(new Date(iso).getTime())) {
         return '';
     }
 
-    const date = new Date(iso);
-
-    if (Number.isNaN(date.getTime())) {
-        return '';
+    if (!timeZone) {
+        return iso.slice(0, 10);
     }
 
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
+    const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    }).formatToParts(new Date(iso));
+    const part = (type: string) =>
+        parts.find((item) => item.type === type)?.value;
 
-    return `${y}-${m}-${d}`;
+    return `${part('year')}-${part('month')}-${part('day')}`;
+}
+
+export function formatStopSchedule(
+    iso: string | null | undefined,
+    timeZone?: string | null,
+    showTimezone = false,
+): string {
+    if (!iso || Number.isNaN(new Date(iso).getTime())) {
+        return 'Horaire non disponible';
+    }
+
+    return `${formatShortDate(formatIsoDate(iso, timeZone))} à ${formatIsoTime(iso, timeZone)}${showTimezone && timeZone ? ` (${timeZone})` : ''}`;
 }
 
 /**

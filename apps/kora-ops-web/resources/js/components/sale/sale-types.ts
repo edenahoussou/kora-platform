@@ -133,6 +133,11 @@ export type SaleTicket = {
     status: string;
     legs: Array<{
         legOrder: number;
+        direction?: 'outbound' | 'inbound';
+        departureAt?: string | null;
+        arrivalAt?: string | null;
+        departureTimezone?: string | null;
+        arrivalTimezone?: string | null;
         originStop: string | null;
         destinationStop: string | null;
         seatCode: string | null;
@@ -301,6 +306,8 @@ export type SaleItineraryLeg = {
     serviceClassName: string | null;
     departureAt: string;
     arrivalAt: string;
+    departureTimezone?: string | null;
+    arrivalTimezone?: string | null;
 };
 
 export type SaleItinerary = {
@@ -310,6 +317,8 @@ export type SaleItinerary = {
     currency: string;
     departureAt: string;
     arrivalAt: string;
+    departureTimezone?: string | null;
+    arrivalTimezone?: string | null;
     connectionMarginMinutes: number;
     legs: SaleItineraryLeg[];
 };
@@ -478,6 +487,8 @@ export type SaleReservation = {
         busRegistration?: string | null;
         departureAt?: string | null;
         arrivalAt?: string | null;
+        departureTimezone?: string | null;
+        arrivalTimezone?: string | null;
         status: string;
         passengerIndex?: number | null;
         legOrder?: number;
