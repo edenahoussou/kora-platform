@@ -671,31 +671,22 @@ class ItinerarySearchService
         // The DB query result is the same for the same (lineIds, date) pair.
         // The earliestDeparture filter is applied in PHP below, so we can
         // cache the raw query result and re-filter per recursive call.
-        // We query two days (date and date+1) to allow overnight connections
-        // where the first leg arrives after midnight and the connecting leg
-        // departs the next morning.
+        // Load window = configured search days around the date: covers
+        // multi-day trips still on the road and connecting legs on date+2+.
         $cacheKey = md5(implode(',', $lineIds).'|'.$date->toDateString());
 
         if (! isset($this->departuresCache[$cacheKey])) {
+            $windowDays = max(1, min(30, app(OperationsSettings::class)->defaultSearchDays));
+
             // Query only the departures table — lines, buses, and their
             // relations are loaded once via preloadNetworkData and attached
             // manually, avoiding repeated eager-load queries across days.
             $departures = Departure::query()
-                ->whereDate('departure_date', $date)
+                ->whereDate('departure_date', '>=', $date->subDays($windowDays))
+                ->whereDate('departure_date', '<=', $date->addDays($windowDays))
                 ->where('status', DepartureStatus::Scheduled->value)
                 ->whereIn('line_id', $lineIds)
                 ->get();
-
-            // Also load departures for the next day to support overnight
-            // connections within the max-wait window.
-            $nextDay = $date->addDay();
-            $nextDayDepartures = Departure::query()
-                ->whereDate('departure_date', $nextDay)
-                ->where('status', DepartureStatus::Scheduled->value)
-                ->whereIn('line_id', $lineIds)
-                ->get();
-
-            $departures = $departures->merge($nextDayDepartures);
 
             $this->preloadNetworkData($departures);
 
