@@ -80,6 +80,36 @@ class TicketCard extends StatelessWidget {
               letterSpacing: -0.475,
             ),
           ),
+          // Ce que la liste ne disait pas : aller simple, aller-retour
+          // ou correspondance se ressemblaient tous, « Cotonou →
+          // Natitingou » et rien d'autre. Le voyageur ne savait pas, en
+          // parcourant ses billets, lequel l'oblige à changer de bus ni
+          // lequel couvre son retour.
+          if (_kindLabel(l10n) case final kind?) ...[
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                const Icon(
+                  Icons.alt_route_rounded,
+                  size: 13,
+                  color: AppColors.gold,
+                ),
+                const SizedBox(width: AppSpacing.xs),
+                Flexible(
+                  child: Text(
+                    kind,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.gold,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 5),
           Text(
             '${KoraDateFormats.dayMonthIn(departure.departsAt, l10n.languageCode)}'
@@ -136,6 +166,19 @@ class TicketCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// `Aller-retour · 1 correspondance`, ou rien à dire sur un aller
+  /// simple et direct — le cas courant, qui n'a pas besoin d'une ligne
+  /// pour l'annoncer.
+  String? _kindLabel(AppLocalization l10n) {
+    final parts = [
+      if (ticket.isRoundTrip) l10n.ticketsRoundTrip,
+      if (ticket.isConnecting)
+        l10n.departuresConnectionsTag(ticket.connectionsCount),
+    ];
+
+    return parts.isEmpty ? null : parts.join(' · ');
   }
 
   String _statusLabel(AppLocalization l10n) => switch (ticket.status) {

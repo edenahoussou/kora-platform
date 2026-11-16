@@ -10,6 +10,8 @@ import 'package:kora_app_passenger/features/booking/data/datasources/booking_moc
 import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/group_payer.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/group_quote.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/itinerary.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/journey.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/passenger.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/price.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/search_criteria.dart';
@@ -72,7 +74,10 @@ void main() {
 
     bloc.add(
       SeatHoldCheckoutRequested(
-        departure: departure,
+        journey: Journey(
+          outbound: Itinerary.direct(departure),
+          seatsByLeg: [seats],
+        ),
         quote: quote,
         passengers: travellersFor(seats),
       ),
@@ -94,7 +99,10 @@ void main() {
 
     bloc.add(
       SeatHoldCheckoutRequested(
-        departure: departure,
+        journey: Journey(
+          outbound: Itinerary.direct(departure),
+          seatsByLeg: [seats],
+        ),
         quote: quote,
         passengers: travellersFor(seats),
       ),
@@ -112,7 +120,10 @@ void main() {
 
     bloc.add(
       SeatHoldCheckoutRequested(
-        departure: departure,
+        journey: Journey(
+          outbound: Itinerary.direct(departure),
+          seatsByLeg: [seats],
+        ),
         quote: quote,
         passengers: travellersFor(seats),
       ),
@@ -131,7 +142,10 @@ void main() {
 
     bloc.add(
       SeatHoldCheckoutRequested(
-        departure: departure,
+        journey: Journey(
+          outbound: Itinerary.direct(departure),
+          seatsByLeg: [seats],
+        ),
         quote: quote,
         passengers: travellersFor(seats),
       ),
@@ -149,7 +163,10 @@ void main() {
 
     bloc.add(
       SeatHoldCheckoutRequested(
-        departure: departure,
+        journey: Journey(
+          outbound: Itinerary.direct(departure),
+          seatsByLeg: [seats],
+        ),
         quote: quote,
         passengers: travellersFor(seats),
         payer: const GroupPayer.company(accountId: 'ca-1', name: 'STB SARL'),
@@ -173,7 +190,10 @@ void main() {
 
     bloc.add(
       SeatHoldCheckoutRequested(
-        departure: departure,
+        journey: Journey(
+          outbound: Itinerary.direct(departure),
+          seatsByLeg: [seats],
+        ),
         quote: quote,
         passengers: travellersFor(seats),
       ),

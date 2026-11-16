@@ -6,24 +6,30 @@ import 'package:equatable/equatable.dart';
 /// ville de départ et une ville d'arrivée, et une [Line] relie deux
 /// villes entre elles.
 ///
-/// [station] est le nom de la gare KORA de la ville (ex: `St Michel` à
-/// Cotonou). Il vaut `null` pour les villes qui n'ont qu'un seul point
-/// d'arrêt — dans ce cas la maquette n'affiche que le nom de la ville
-/// (`Malanville`), sans séparateur.
+/// [station] est le nom de l'arrêt KORA d'où part ou arrive le bus (ex:
+/// `St Michel` à Cotonou). Il ne sert qu'à **décrire un trajet trouvé** —
+/// le point d'embarquement d'un tronçon — et vaut `null` partout
+/// ailleurs, notamment dans le sélecteur, qui ne montre que des villes.
+///
+/// La recherche, elle, se fait au **nom de la ville** : `bus/itineraries`
+/// accepte `from_city` et `to_city`, et c'est le serveur qui explore tous
+/// les points d'arrêt de la ville. L'app n'a donc plus à choisir une gare
+/// pour le voyageur — c'est ce choix impossible qui lui faisait annoncer
+/// « Aucun voyage ce jour-là » quand la ville en avait deux et que les
+/// départs étaient sur l'autre.
 class City extends Equatable {
   const City({
     required this.id,
     required this.name,
     required this.code,
     this.station,
-    this.physicalStopId,
   });
 
-  /// Ville désignée par son seul nom, sans arrêt physique.
+  /// Ville désignée par son seul nom.
   ///
   /// Sert aux jeux de démonstration et aux villes reconstruites depuis un
-  /// billet : sans [physicalStopId] elles ne peuvent pas servir de départ
-  /// à une recherche, puisque `bus/itineraries` travaille sur des arrêts.
+  /// billet. Elle vaut une ville du catalogue pour chercher : le serveur
+  /// compare les noms sans tenir compte de la casse ni des accents.
   factory City.named(String name) => City(
     id: name,
     name: name,
@@ -35,30 +41,25 @@ class City extends Equatable {
   final String id;
 
   /// Nom affiché de la ville (ex: `Cotonou`).
+  ///
+  /// C'est aussi la clé envoyée à l'API : il part **tel que reçu** de
+  /// `bus/cities`.
   final String name;
 
   /// Code à 3 lettres imprimé sur le billet (ex: `CTN`).
   final String code;
 
-  /// Gare KORA desservie dans cette ville (ex: `St Michel`), ou `null`.
+  /// Arrêt KORA d'un tronçon trouvé (ex: `St Michel`), ou `null`.
   final String? station;
 
-  /// L'arrêt physique par lequel on cherche un itinéraire.
-  ///
-  /// `bus/itineraries` exige `from_physical_stop_uuid` et
-  /// `to_physical_stop_uuid` : depuis MEZ-63, le nom de la ville ne suffit
-  /// plus. `null` pour une ville qui n'en a pas — jeu de démonstration, ou
-  /// ville relue d'un billet —, et la recherche est alors impossible.
-  final String? physicalStopId;
-
   /// Vrai quand cette ville peut servir de point de départ ou d'arrivée à
-  /// une recherche.
-  bool get isSearchable => physicalStopId != null && physicalStopId!.isNotEmpty;
+  /// une recherche : il suffit qu'elle ait un nom.
+  bool get isSearchable => name.isNotEmpty;
 
   /// Libellé complet tel qu'affiché dans le champ de recherche :
   /// `Cotonou · St Michel`, ou simplement `Malanville` sans gare.
   String get label => station == null ? name : '$name · $station';
 
   @override
-  List<Object?> get props => [id, name, code, station, physicalStopId];
+  List<Object?> get props => [id, name, code, station];
 }

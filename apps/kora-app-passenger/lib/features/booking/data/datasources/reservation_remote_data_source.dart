@@ -8,10 +8,10 @@ import '../../domain/entities/departure.dart';
 import '../../domain/entities/group_payer.dart';
 import '../../domain/entities/group_quote.dart';
 import '../../domain/entities/group_ticket.dart';
+import '../../domain/entities/journey.dart';
 import '../../domain/entities/passenger.dart';
 import '../../domain/entities/price.dart';
 import '../../domain/entities/reservation_pricing.dart';
-import '../../domain/entities/seat.dart';
 import '../../domain/entities/seat_hold.dart';
 import '../models/company_account_model.dart';
 import '../models/group_quote_model.dart';
@@ -35,15 +35,16 @@ class ReservationRemoteDataSource {
   /// `itinerary-quotes` le remplace pour tout le monde — un voyageur seul
   /// est un groupe d'un, que le barème laissera simplement au plein tarif.
   ///
-  /// Un aller-retour tient dans **le même devis** : aller puis retour dans
-  /// un seul tableau `legs`, `leg_order` suivant cette liste concaténée et
-  /// `direction` distinguant les deux sens. C'est la convention du guichet
+  /// Tout le voyage tient dans **le même devis** : les tronçons de
+  /// l'aller puis ceux du retour dans un seul tableau `legs`, `leg_order`
+  /// suivant cette liste concaténée et `direction` distinguant les deux
+  /// sens. C'est la convention du guichet
   /// (`CounterSaleController::buildItineraryLegs`), et c'est elle qui
-  /// permet un seul blocage et un seul paiement pour les deux trajets.
+  /// permet un seul blocage et un seul paiement — pour les deux sens d'un
+  /// aller-retour comme pour les deux bus d'une correspondance.
   Future<GroupQuote> groupQuote({
-    required Departure departure,
+    required Journey journey,
     required int passengers,
-    Departure? returnDeparture,
     String? promoCode,
   }) async {
     final response = await _dio.post<dynamic>(
@@ -53,17 +54,7 @@ class ReservationRemoteDataSource {
         // MEZ-73 : le code se donne au devis, et seulement là. Le serveur
         // calcule la remise ; un code refusé répond 422 sur `promo_code`.
         'promo_code': ?promoCode,
-        'legs': [
-          // `direction` reste tu sur un aller simple : le serveur retombe
-          // sur `outbound`, et la requête garde la forme éprouvée en ligne.
-          _legJson(
-            departure,
-            order: 1,
-            direction: returnDeparture == null ? null : 'outbound',
-          ),
-          if (returnDeparture != null)
-            _legJson(returnDeparture, order: 2, direction: 'inbound'),
-        ],
+        'legs': _legsJson(journey),
       },
     );
 
@@ -109,22 +100,25 @@ class ReservationRemoteDataSource {
   /// places retirées de la vente.
   ///
   /// L'ordre des sièges fait foi : le voyageur d'indice `i` occupe le
-  /// i-ième siège choisi, et c'est ce même ordre que suivra le formulaire
-  /// des identités. Sur un aller-retour il occupe aussi le i-ième siège de
-  /// [returnSeats] — les deux trajets partent dans le même blocage, chacun
-  /// sous son `leg_order`.
+  /// i-ième siège de chaque tronçon, et c'est ce même ordre que suivra le
+  /// formulaire des identités. Tous les tronçons partent dans le même
+  /// blocage, chacun sous son `leg_order` — les deux sens d'un
+  /// aller-retour comme les deux bus d'une correspondance.
   Future<SeatHold> holdGroup({
     required GroupQuote quote,
-    required List<Seat> seats,
+    required Journey journey,
     required GroupPayer payer,
     required String idempotencyKey,
-    List<Seat>? returnSeats,
   }) async {
-    // Un siège de retour par voyageur, sinon le serveur refuserait le
-    // blocage entier — autant le dire ici, où la cause est lisible.
-    if (returnSeats != null && returnSeats.length != seats.length) {
+    final seatsByLeg = journey.seatsByLeg;
+
+    // Un siège par voyageur sur chaque tronçon, sinon le serveur
+    // refuserait le blocage entier — autant le dire ici, où la cause est
+    // lisible.
+    if (seatsByLeg.length != journey.legs.length ||
+        seatsByLeg.any((seats) => seats.length != journey.passengerCount)) {
       throw const ServerException(
-        'Chaque voyageur doit avoir un siège au retour.',
+        'Chaque voyageur doit avoir un siège sur chaque trajet.',
       );
     }
 
@@ -136,13 +130,17 @@ class ReservationRemoteDataSource {
         // Tu par défaut : le serveur retombe alors sur le titulaire.
         if (payer.isCompany) 'payer': payer.toJson(),
         'passengers': [
-          for (var index = 0; index < seats.length; index++)
+          for (var index = 0; index < journey.passengerCount; index++)
             {
               'passenger_index': index,
+              // `leg_order` suit l'ordre du devis : les tronçons de
+              // l'aller, puis ceux du retour.
               'seat_assignments': [
-                {'leg_order': 1, 'seat_uuid': seats[index].id},
-                if (returnSeats != null)
-                  {'leg_order': 2, 'seat_uuid': returnSeats[index].id},
+                for (var leg = 0; leg < seatsByLeg.length; leg++)
+                  {
+                    'leg_order': leg + 1,
+                    'seat_uuid': seatsByLeg[leg][index].id,
+                  },
               ],
             },
         ],
@@ -253,6 +251,33 @@ class ReservationRemoteDataSource {
 /// `direction` n'est envoyé que sur un aller-retour : le serveur le
 /// considère facultatif et retombe sur `outbound`, et le taire garde à
 /// l'aller simple la requête vérifiée sur la staging.
+/// Les tronçons d'un voyage, dans l'ordre où on les prend.
+///
+/// Un aller-retour les enchaîne : les tronçons de l'aller d'abord, ceux
+/// du retour ensuite, `leg_order` courant sur toute la liste. Le
+/// serveur en accepte six, ce qui couvre une correspondance dans chaque
+/// sens.
+///
+/// `direction` reste tu sur un aller simple : le serveur retombe sur
+/// `outbound`, et la requête garde la forme éprouvée en ligne.
+List<Map<String, dynamic>> _legsJson(Journey journey) {
+  final legs = [
+    for (final leg in journey.outbound.legs)
+      (leg: leg, direction: journey.isRoundTrip ? 'outbound' : null),
+    for (final leg in journey.inbound?.legs ?? const <Departure>[])
+      (leg: leg, direction: 'inbound'),
+  ];
+
+  return [
+    for (var index = 0; index < legs.length; index++)
+      _legJson(
+        legs[index].leg,
+        order: index + 1,
+        direction: legs[index].direction,
+      ),
+  ];
+}
+
 Map<String, dynamic> _legJson(
   Departure departure, {
   required int order,

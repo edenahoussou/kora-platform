@@ -7,16 +7,17 @@ import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/screen_header.dart';
-import '../../domain/entities/departure.dart';
+import '../../domain/entities/itinerary.dart';
+import '../../domain/entities/journey.dart';
 import '../bloc/group_quote_cubit.dart';
 import 'seats_page.dart';
 
 /// Ce qu'attend [GroupDiscountPage] : le départ choisi et le nombre de
 /// voyageurs, de quoi demander le devis puis enchaîner sur les sièges.
 class GroupDiscountArgs {
-  const GroupDiscountArgs({required this.departure, required this.passengers});
+  const GroupDiscountArgs({required this.itinerary, required this.passengers});
 
-  final Departure departure;
+  final Itinerary itinerary;
   final int passengers;
 }
 
@@ -53,7 +54,7 @@ class _GroupDiscountPageState extends State<GroupDiscountPage> {
     if (args == null) return;
 
     context.read<GroupQuoteCubit>().load(
-      departure: args.departure,
+      journey: Journey(outbound: args.itinerary),
       passengers: args.passengers,
     );
   }
@@ -61,7 +62,10 @@ class _GroupDiscountPageState extends State<GroupDiscountPage> {
   void _openSeats(GroupDiscountArgs args) {
     context.pushReplacement(
       AppRouter.seatsPath,
-      extra: SeatsArgs(departure: args.departure, passengers: args.passengers),
+      extra: SeatsArgs(
+        journey: Journey(outbound: args.itinerary),
+        passengers: args.passengers,
+      ),
     );
   }
 
@@ -82,7 +86,7 @@ class _GroupDiscountPageState extends State<GroupDiscountPage> {
               BlocBuilder<GroupQuoteCubit, GroupQuoteState>(
                 builder: (context, state) {
                   final quote =
-                      state.matches(args.departure.id, args.passengers)
+                      state.matches(args.itinerary.id, args.passengers)
                       ? state.quote
                       : null;
                   final discount = quote?.discount;

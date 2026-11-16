@@ -80,6 +80,7 @@ import '../../features/welcome/presentation/pages/welcome_page.dart';
 import '../di/injector.dart';
 import '../l10n/app_localization.dart';
 import '../widgets/coming_soon_page.dart';
+import 'auth_flow_navigator.dart';
 
 /// Couche CORE : configuration centrale de la navigation avec `go_router`.
 ///
@@ -444,7 +445,7 @@ class AppRouter {
         ShellRoute(
           builder: (context, state, child) => BlocProvider<AuthFlowBloc>(
             create: (_) => getIt<AuthFlowBloc>(),
-            child: _AuthFlowNavigator(child: child),
+            child: AuthFlowNavigator(child: child),
           ),
           routes: [
             GoRoute(
@@ -807,10 +808,8 @@ class AppRouter {
                 final args = state.extra as SeatsArgs?;
 
                 return SeatsPage(
-                  departure: args?.departure,
+                  journey: args?.journey,
                   passengers: args?.passengers ?? 1,
-                  returnDeparture: args?.returnDeparture,
-                  outbound: args?.outbound,
                 );
               },
             ),
@@ -819,12 +818,7 @@ class AppRouter {
               builder: (context, state) {
                 final args = state.extra as PassengerFormArgs?;
 
-                return PassengerFormPage(
-                  departure: args?.departure,
-                  seats: args?.seats ?? const [],
-                  returnDeparture: args?.returnDeparture,
-                  returnSeats: args?.returnSeats,
-                );
+                return PassengerFormPage(journey: args?.journey);
               },
             ),
             GoRoute(
@@ -833,10 +827,8 @@ class AppRouter {
                 final args = state.extra as SummaryArgs?;
 
                 return SummaryPage(
-                  departure: args?.departure,
+                  journey: args?.journey,
                   passengers: args?.passengers ?? const [],
-                  returnDeparture: args?.returnDeparture,
-                  returnSeats: args?.returnSeats,
                 );
               },
             ),
@@ -912,9 +904,9 @@ class AppRouter {
             final args = state.extra as DepartureDetailArgs?;
 
             return DepartureDetailPage(
-              departure: args?.departure,
+              itinerary: args?.itinerary,
               passengers: args?.passengers ?? 1,
-              returnDeparture: args?.returnDeparture,
+              returnItinerary: args?.returnItinerary,
             );
           },
         ),
@@ -1053,60 +1045,6 @@ class _ScaffoldWithNavBar extends StatelessWidget {
           },
         ),
       ),
-    );
-  }
-}
-
-/// Traduit l'étape du parcours d'authentification en navigation.
-///
-/// Les écrans se contentent d'envoyer des événements ; c'est ici, en un
-/// seul endroit, qu'on décide où ils mènent. Sans ça, chaque écran
-/// devrait connaître le suivant — or l'écran de code peut mener au choix
-/// d'un PIN, à l'accueil ou nulle part, selon le motif de l'OTP.
-class _AuthFlowNavigator extends StatelessWidget {
-  const _AuthFlowNavigator({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocListener<AuthFlowBloc, AuthFlowState>(
-      listenWhen: (previous, current) => previous.step != current.step,
-      listener: (context, flow) {
-        switch (flow.step) {
-          case AuthFlowStep.identifier:
-            // Retour au début : après un PIN réinitialisé, on se
-            // reconnecte avec le nouveau code.
-            context.go(AppRouter.loginPath, extra: flow.identifier);
-          case AuthFlowStep.newDevice:
-            context.push(AppRouter.newDevicePath);
-          case AuthFlowStep.code:
-            context.push(AppRouter.otpPath);
-          case AuthFlowStep.pin:
-            context.push(AppRouter.createPinPath);
-          case AuthFlowStep.done:
-            final session = flow.session;
-            if (session == null) return;
-
-            // La session ouverte passe au bloc qui la porte pour toute
-            // l'app ; le garde de navigation s'appuie sur lui.
-            context.read<AuthBloc>().add(AuthSessionOpened(session));
-
-            // Une inscription se termine par les autorisations, où le
-            // nouveau venu donne son nom et son téléphone. Une connexion
-            // — même sur un appareil inconnu — va droit à l'accueil : le
-            // profil est déjà rempli.
-            //
-            // On lit `justRegistered`, pas `purpose` : ce dernier vaut
-            // `registration` par défaut et une connexion ordinaire ne le
-            // change jamais, ce qui renvoyait tout le monde aux
-            // autorisations à chaque fois.
-            context.go(
-              flow.justRegistered ? AppRouter.permissionsPath : '/home',
-            );
-        }
-      },
-      child: child,
     );
   }
 }

@@ -12,13 +12,13 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:kora_app_passenger/core/l10n/app_localization.dart';
 import 'package:kora_app_passenger/core/utils/date_formats.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_mock_data.dart';
-import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/itinerary.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/search_criteria.dart';
 import 'package:kora_app_passenger/features/booking/presentation/pages/return_departures_page.dart';
 
 void main() {
-  late Departure outbound;
-  late List<Departure> inbound;
+  late Itinerary outbound;
+  late List<Itinerary> inbound;
 
   setUpAll(() async {
     await initializeDateFormatting(KoraDateFormats.locale);
@@ -29,22 +29,27 @@ void main() {
     final cotonou = kMockCities.firstWhere((city) => city.id == 'ctn');
     final malanville = kMockCities.firstWhere((city) => city.id == 'mlv');
 
-    outbound = mockDeparturesFor(
-      SearchCriteria(
-        origin: cotonou,
-        destination: malanville,
-        date: DateTime(2026, 8, 14),
-      ),
-    ).first;
+    outbound = Itinerary.direct(
+      mockDeparturesFor(
+        SearchCriteria(
+          origin: cotonou,
+          destination: malanville,
+          date: DateTime(2026, 8, 14),
+        ),
+      ).first,
+    );
 
     // Le retour, c'est la même liaison prise à l'envers.
-    inbound = mockDeparturesFor(
-      SearchCriteria(
-        origin: malanville,
-        destination: cotonou,
-        date: DateTime(2026, 8, 20),
-      ),
-    ).take(2).toList();
+    inbound = [
+      for (final departure in mockDeparturesFor(
+        SearchCriteria(
+          origin: malanville,
+          destination: cotonou,
+          date: DateTime(2026, 8, 20),
+        ),
+      ).take(2))
+        Itinerary.direct(departure),
+    ];
   });
 
   Future<void> pump(WidgetTester tester, ReturnDeparturesArgs? args) async {
@@ -74,7 +79,7 @@ void main() {
       tester,
       ReturnDeparturesArgs(
         outbound: outbound,
-        departures: inbound,
+        itineraries: inbound,
         returnDate: DateTime(2026, 8, 20),
       ),
     );
@@ -88,13 +93,13 @@ void main() {
     // obligerait à se souvenir de ce qu'on vient de prendre.
     await pump(
       tester,
-      ReturnDeparturesArgs(outbound: outbound, departures: inbound),
+      ReturnDeparturesArgs(outbound: outbound, itineraries: inbound),
     );
 
     expect(find.text('ALLER CHOISI'), findsOneWidget);
     expect(
       find.textContaining(
-        '${outbound.line.origin.name} → ${outbound.line.destination.name}',
+        '${outbound.origin.name} → ${outbound.destination.name}',
       ),
       findsOneWidget,
     );
@@ -103,7 +108,7 @@ void main() {
   testWidgets('un seul retour se dit au singulier', (tester) async {
     await pump(
       tester,
-      ReturnDeparturesArgs(outbound: outbound, departures: [inbound.first]),
+      ReturnDeparturesArgs(outbound: outbound, itineraries: [inbound.first]),
     );
 
     expect(find.text('1 retour disponible'), findsOneWidget);
@@ -116,7 +121,7 @@ void main() {
     // rien à proposer. Laisser une liste muette n'apprendrait rien.
     await pump(
       tester,
-      ReturnDeparturesArgs(outbound: outbound, departures: const []),
+      ReturnDeparturesArgs(outbound: outbound, itineraries: const []),
     );
 
     expect(find.text('Aucun retour ce jour-là'), findsOneWidget);

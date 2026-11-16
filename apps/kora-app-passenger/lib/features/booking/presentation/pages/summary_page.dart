@@ -12,11 +12,11 @@ import '../../../../core/widgets/screen_header.dart';
 import '../../../../core/widgets/section_title.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../payment/presentation/pages/payment_args.dart';
-import '../../domain/entities/departure.dart';
 import '../../domain/entities/group_quote.dart';
+import '../../domain/entities/itinerary.dart';
+import '../../domain/entities/journey.dart';
 import '../../domain/entities/passenger.dart';
 import '../../domain/entities/price.dart';
-import '../../domain/entities/seat.dart';
 import '../bloc/group_payer_cubit.dart';
 import '../bloc/group_quote_cubit.dart';
 import '../bloc/seat_hold_bloc.dart';
@@ -28,21 +28,14 @@ import 'assistance_request_page.dart';
 
 /// Données passées à [SummaryPage] par `go_router` (`extra`).
 class SummaryArgs {
-  const SummaryArgs({
-    required this.departure,
-    required this.passengers,
-    this.returnDeparture,
-    this.returnSeats,
-  });
+  const SummaryArgs({required this.journey, required this.passengers});
 
-  final Departure departure;
+  /// Le voyage entier — aller, retour éventuel, et les sièges de chaque
+  /// tronçon. C'est lui que porte le devis : n'en envoyer qu'une partie
+  /// afficherait une fraction du prix que le serveur débitera.
+  final Journey journey;
+
   final List<Passenger> passengers;
-
-  /// Le retour d’un aller-retour, porté jusqu’au devis.
-  final Departure? returnDeparture;
-
-  /// Les sièges du retour, un par voyageur et dans le même ordre.
-  final List<Seat>? returnSeats;
 }
 
 /// Récapitulatif avant paiement — écran `summary` de la maquette : rappel
@@ -56,24 +49,14 @@ class SummaryArgs {
 class SummaryPage extends StatefulWidget {
   const SummaryPage({
     super.key,
-    required this.departure,
+    required this.journey,
     this.passengers = const [],
-    this.returnDeparture,
-    this.returnSeats,
   });
 
   /// `null` si l'écran est ouvert sans données (lien profond).
-  final Departure? departure;
+  final Journey? journey;
 
   final List<Passenger> passengers;
-
-  /// Le retour d'un aller-retour. Le devis doit le porter, sinon le prix
-  /// affiché ne couvre que la moitié du voyage.
-  final Departure? returnDeparture;
-
-  /// Les sièges du retour : le voyageur en a deux, et n'en montrer qu'un
-  /// laisserait croire que le retour n'a pas de place attribuée.
-  final List<Seat>? returnSeats;
 
   @override
   State<SummaryPage> createState() => _SummaryPageState();
@@ -88,24 +71,24 @@ class _SummaryPageState extends State<SummaryPage> {
     // groupe. Demandé une fois à l'ouverture, et non dans `build` — un
     // écran qui émet un état pendant sa construction fait sauter Flutter,
     // et celui-ci se reconstruit à chaque battement du décompte.
-    final departure = widget.departure;
-    if (departure == null || widget.passengers.isEmpty) return;
+    final journey = widget.journey;
+    if (journey == null || widget.passengers.isEmpty) return;
 
+    // Le voyage entier : sans ses correspondances ni son retour, le
+    // devis ne couvrirait qu'un bus — l'écran annoncerait une fraction
+    // du prix, et le serveur débiterait le tout.
     context.read<GroupQuoteCubit>().load(
-      departure: departure,
+      journey: journey,
       passengers: widget.passengers.length,
-      // Sans le retour, le devis ne couvrirait que l'aller : l'écran
-      // annoncerait la moitié du prix, et le serveur débiterait le tout.
-      returnDeparture: widget.returnDeparture,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final departure = widget.departure;
+    final journey = widget.journey;
     final passengers = widget.passengers;
 
-    if (departure == null || passengers.isEmpty) {
+    if (journey == null || passengers.isEmpty) {
       return const Scaffold(
         body: SafeArea(
           child: Padding(
@@ -120,12 +103,7 @@ class _SummaryPageState extends State<SummaryPage> {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 18),
-          child: _SummaryContent(
-            departure: departure,
-            passengers: passengers,
-            returnDeparture: widget.returnDeparture,
-            returnSeats: widget.returnSeats,
-          ),
+          child: _SummaryContent(journey: journey, passengers: passengers),
         ),
       ),
     );
@@ -133,17 +111,10 @@ class _SummaryPageState extends State<SummaryPage> {
 }
 
 class _SummaryContent extends StatelessWidget {
-  const _SummaryContent({
-    required this.departure,
-    required this.passengers,
-    this.returnDeparture,
-    this.returnSeats,
-  });
+  const _SummaryContent({required this.journey, required this.passengers});
 
-  final Departure departure;
+  final Journey journey;
   final List<Passenger> passengers;
-  final Departure? returnDeparture;
-  final List<Seat>? returnSeats;
 
   @override
   Widget build(BuildContext context) {
@@ -160,12 +131,7 @@ class _SummaryContent extends StatelessWidget {
               BookingProgress(step: 5, label: l10n.summaryEyebrow),
               const SizedBox(height: 11),
               const HoldCountdown(margin: EdgeInsets.only(bottom: 11)),
-              _TripCard(
-                departure: departure,
-                passengers: passengers,
-                returnDeparture: returnDeparture,
-                returnSeats: returnSeats,
-              ),
+              _TripCard(journey: journey, passengers: passengers),
               SectionTitle(
                 title: l10n.summaryPassengers,
                 actionLabel: l10n.summaryEdit,
@@ -175,26 +141,16 @@ class _SummaryContent extends StatelessWidget {
               ),
               _PassengersCard(passengers: passengers),
               SectionTitle(title: l10n.summaryPromoTitle),
-              _PromoCodeCard(
-                departure: departure,
-                passengers: passengers,
-                returnDeparture: returnDeparture,
-                returnSeats: returnSeats,
-              ),
+              _PromoCodeCard(journey: journey, passengers: passengers),
               SectionTitle(title: l10n.summaryPriceDetail),
-              _PriceCard(departure: departure, passengers: passengers),
+              _PriceCard(journey: journey, passengers: passengers),
               const SizedBox(height: AppSpacing.lg),
             ],
           ),
         ),
         Padding(
           padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-          child: _CheckoutButton(
-            departure: departure,
-            passengers: passengers,
-            returnDeparture: returnDeparture,
-            returnSeats: returnSeats,
-          ),
+          child: _CheckoutButton(journey: journey, passengers: passengers),
         ),
       ],
     );
@@ -211,17 +167,10 @@ class _SummaryContent extends StatelessWidget {
 ///   et le dit ;
 /// * **autre refus** — le message du serveur, et le voyageur reste ici.
 class _CheckoutButton extends StatefulWidget {
-  const _CheckoutButton({
-    required this.departure,
-    required this.passengers,
-    this.returnDeparture,
-    this.returnSeats,
-  });
+  const _CheckoutButton({required this.journey, required this.passengers});
 
-  final Departure departure;
+  final Journey journey;
   final List<Passenger> passengers;
-  final Departure? returnDeparture;
-  final List<Seat>? returnSeats;
 
   @override
   State<_CheckoutButton> createState() => _CheckoutButtonState();
@@ -233,22 +182,18 @@ class _CheckoutButtonState extends State<_CheckoutButton> {
   /// sa fin ouvrirait aussi le paiement d'ici.
   var _mine = false;
 
-  Departure get departure => widget.departure;
+  Journey get journey => widget.journey;
   List<Passenger> get passengers => widget.passengers;
-  Departure? get returnDeparture => widget.returnDeparture;
-  List<Seat>? get returnSeats => widget.returnSeats;
 
   void _checkout(BuildContext context) {
     _mine = true;
     context.read<SeatHoldBloc>().add(
       SeatHoldCheckoutRequested(
-        departure: departure,
+        journey: journey,
         passengers: passengers,
         // Le devis que l'écran affiche : le voyageur paie le prix qu'il
         // vient de lire.
-        quote: _shownQuote(context, departure, passengers.length),
-        returnDeparture: returnDeparture,
-        returnSeats: returnSeats,
+        quote: _shownQuote(context, journey, passengers.length),
         // Choisi sur l'écran de groupe, en amont du plan.
         payer: context.read<GroupPayerCubit>().state.payer,
       ),
@@ -261,12 +206,12 @@ class _CheckoutButtonState extends State<_CheckoutButton> {
       // Le total est arrêté ici, puis transporté : le recalculer sur chaque
       // écran de paiement ferait dépendre la somme du chemin emprunté.
       extra: PaymentArgs(
-        total: _payableTotal(context, departure, passengers.length),
+        total: _payableTotal(context, journey, passengers.length),
         // Le numéro du compte, proposé au débit Mobile Money : c'est celui
         // que le voyageur a sous la main, et le retaper à ce stade
         // n'apporte rien.
         phone: context.read<AuthBloc>().state.session?.user.phone,
-        departure: departure,
+        departure: journey.outbound.first,
         seatLabel: passengers
             .map((passenger) => passenger.seat.label)
             .join(', '),
@@ -279,11 +224,9 @@ class _CheckoutButtonState extends State<_CheckoutButton> {
     context.push(
       AppRouter.assistanceRequestPath,
       extra: AssistanceArgs(
-        departure: departure,
+        journey: journey,
         passengers: passengers,
-        quote: _shownQuote(context, departure, passengers.length),
-        returnDeparture: returnDeparture,
-        returnSeats: returnSeats,
+        quote: _shownQuote(context, journey, passengers.length),
       ),
     );
   }
@@ -368,12 +311,12 @@ class _CheckoutButtonState extends State<_CheckoutButton> {
 
 /// Le devis affiché : celui du code promo quand il y en a un, celui du
 /// tunnel sinon. `null` si le serveur n'a pas encore répondu.
-GroupQuote? _shownQuote(BuildContext context, Departure departure, int count) {
+GroupQuote? _shownQuote(BuildContext context, Journey journey, int count) {
   final promo = context.read<SeatHoldBloc>().state.quote;
   if (promo != null) return promo;
 
   final state = context.read<GroupQuoteCubit>().state;
-  return state.matches(departure.id, count) ? state.quote : null;
+  return state.matches(journey.outbound.id, count) ? state.quote : null;
 }
 
 /// Le montant à afficher sur les écrans de paiement.
@@ -383,43 +326,36 @@ GroupQuote? _shownQuote(BuildContext context, Departure departure, int count) {
 /// partir du `reservation_uuid` : ce total-ci ne sert qu'à l'affichage, et
 /// c'est justement pour cela qu'il doit s'accorder avec le récapitulatif
 /// que le voyageur vient de lire.
-Price _payableTotal(BuildContext context, Departure departure, int count) {
+Price _payableTotal(BuildContext context, Journey journey, int count) {
   // Le devis bloqué, ou à défaut celui qu'affiche l'écran : c'est son total
   // que le serveur débitera.
-  final quote = _shownQuote(context, departure, count);
+  final quote = _shownQuote(context, journey, count);
   if (quote != null) return quote.total;
 
-  return departure.price * count.clamp(1, 99);
+  return journey.total * count.clamp(1, 99);
 }
 
 /// `.card.navy` : le voyage tel qu'il a été choisi.
 class _TripCard extends StatelessWidget {
-  const _TripCard({
-    required this.departure,
-    required this.passengers,
-    this.returnDeparture,
-    this.returnSeats,
-  });
+  const _TripCard({required this.journey, required this.passengers});
 
-  final Departure departure;
+  final Journey journey;
   final List<Passenger> passengers;
-  final Departure? returnDeparture;
-  final List<Seat>? returnSeats;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final line = departure.line;
-    final returnSeats = this.returnSeats;
+    final departure = journey.outbound.first;
+    final origin = journey.outbound.origin;
 
-    // Les sièges du voyageur : le sien à l'aller, et celui du retour quand
-    // il y en a un.
+    // Les sièges du voyageur : un par bus qu'il prendra. N'en montrer
+    // qu'un laisserait croire que les autres n'ont pas de place
+    // attribuée.
     final seats = [
-      for (final (index, passenger) in passengers.indexed)
-        if (returnSeats != null && index < returnSeats.length)
-          l10n.summarySeatsRound(passenger.seat.label, returnSeats[index].label)
-        else
-          passenger.seat.label,
+      for (final index in List.generate(passengers.length, (i) => i))
+        journey.seatsOf(index).isEmpty
+            ? passengers[index].seat.label
+            : journey.seatsOf(index).map((seat) => seat.label).join(' · '),
     ].join(', ');
 
     return KoraCard(
@@ -456,7 +392,8 @@ class _TripCard extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           Text(
-            '${line.origin.name} → ${line.destination.name}',
+            '${journey.outbound.origin.name} → '
+            '${journey.outbound.destination.name}',
             style: const TextStyle(
               color: AppColors.white,
               fontSize: 19,
@@ -465,8 +402,8 @@ class _TripCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            '${KoraDateFormats.capitalize(KoraDateFormats.weekdayDayMonth.format(departure.departsAt))} · '
-            '${KoraDateFormats.time.format(departure.departsAt)}',
+            '${KoraDateFormats.capitalize(KoraDateFormats.weekdayDayMonth.format(journey.outbound.departsAt))} · '
+            '${KoraDateFormats.time.format(journey.outbound.departsAt)}',
             style: TextStyle(
               color: AppColors.white.withValues(alpha: 0.7),
               fontSize: 12,
@@ -474,15 +411,22 @@ class _TripCard extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            _boardingPoint(l10n, line.origin.station, line.origin.name),
+            _boardingPoint(l10n, origin.station, origin.name),
             style: TextStyle(
               color: AppColors.white.withValues(alpha: 0.7),
               fontSize: 12,
             ),
           ),
+          // Le changement de bus se dit ici aussi : c'est le dernier
+          // écran avant de payer, et personne ne doit découvrir sa
+          // correspondance en montant dans le bus.
+          if (!journey.outbound.isDirect) ...[
+            const SizedBox(height: 4),
+            _ConnectionLine(itinerary: journey.outbound),
+          ],
           // Le retour a son propre bus et son propre horaire : le taire
           // laisserait le voyageur vérifier la moitié de ce qu'il paie.
-          if (returnDeparture != null) ...[
+          if (journey.inbound case final inbound?) ...[
             const Divider(height: 26, color: Colors.white24),
             Text(
               l10n.summaryReturn.toUpperCase(),
@@ -495,8 +439,7 @@ class _TripCard extends StatelessWidget {
             ),
             const SizedBox(height: 5),
             Text(
-              '${returnDeparture!.line.origin.name} → '
-              '${returnDeparture!.line.destination.name}',
+              '${inbound.origin.name} → ${inbound.destination.name}',
               style: const TextStyle(
                 color: AppColors.white,
                 fontSize: 15,
@@ -505,21 +448,25 @@ class _TripCard extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              '${KoraDateFormats.capitalize(KoraDateFormats.weekdayDayMonth.format(returnDeparture!.departsAt))} · '
-              '${KoraDateFormats.time.format(returnDeparture!.departsAt)}',
+              '${KoraDateFormats.capitalize(KoraDateFormats.weekdayDayMonth.format(inbound.departsAt))} · '
+              '${KoraDateFormats.time.format(inbound.departsAt)}',
               style: TextStyle(
                 color: AppColors.white.withValues(alpha: 0.7),
                 fontSize: 12,
               ),
             ),
+            if (!inbound.isDirect) ...[
+              const SizedBox(height: 4),
+              _ConnectionLine(itinerary: inbound),
+            ],
           ],
         ],
       ),
     );
   }
 
-  /// `Gare KORA St Michel` quand la ville a une gare nommée, sinon son nom
-  /// seul — toutes n'en ont qu'une, sans nom propre.
+  /// Le point d'embarquement : `Gare KORA St Michel` quand l'arrêt a un
+  /// nom propre, sinon le nom de la ville.
   String _boardingPoint(
     AppLocalization l10n,
     String? station,
@@ -601,10 +548,42 @@ class _PassengersCard extends StatelessWidget {
 /// recherche, juste à la remise près. Faire attendre le voyageur devant un
 /// écran vide pour une ligne de détail coûterait plus que de lui montrer
 /// un total sans son détail.
-class _PriceCard extends StatelessWidget {
-  const _PriceCard({required this.departure, required this.passengers});
+/// Le changement de bus, sur la carte navy du récapitulatif.
+class _ConnectionLine extends StatelessWidget {
+  const _ConnectionLine({required this.itinerary});
 
-  final Departure departure;
+  final Itinerary itinerary;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Icon(Icons.alt_route_rounded, size: 13, color: AppColors.gold),
+        const SizedBox(width: AppSpacing.xs),
+        Expanded(
+          child: Text(
+            context.l10n.departuresConnections(
+              itinerary.connectionsCount,
+              itinerary.connectionCities.map((city) => city.name).join(' · '),
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: AppColors.gold,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PriceCard extends StatelessWidget {
+  const _PriceCard({required this.journey, required this.passengers});
+
+  final Journey journey;
   final List<Passenger> passengers;
 
   @override
@@ -621,12 +600,13 @@ class _PriceCard extends StatelessWidget {
         );
         final quote =
             repriced ??
-            (state.matches(departure.id, count) ? state.quote : null);
+            (state.matches(journey.outbound.id, count) ? state.quote : null);
 
         // Le tarif unitaire du serveur s'il l'a donné, celui de la
-        // recherche sinon.
-        final unit = quote?.unitPrice ?? departure.price;
-        final subtotal = quote?.subtotal ?? departure.price * count;
+        // recherche sinon — et c'est le prix du voyage entier, tous ses
+        // bus compris.
+        final unit = quote?.unitPrice ?? journey.total;
+        final subtotal = quote?.subtotal ?? journey.total * count;
         final total = quote?.total ?? subtotal;
         final discount = quote?.discount;
 
@@ -635,8 +615,8 @@ class _PriceCard extends StatelessWidget {
             children: [
               _PriceRow(
                 label: count > 1
-                    ? '$count billets ${departure.comfort.label}'
-                    : '1 billet ${departure.comfort.label}',
+                    ? '$count billets ${journey.outbound.first.comfort.label}'
+                    : '1 billet ${journey.outbound.first.comfort.label}',
                 value: subtotal.formatted,
               ),
               if (count > 1) ...[
@@ -777,17 +757,10 @@ class _MissingReservation extends StatelessWidget {
 /// fait de même sans code. Un code refusé ne lâche rien : il affiche la
 /// raison du serveur, et le voyageur peut payer au tarif normal.
 class _PromoCodeCard extends StatefulWidget {
-  const _PromoCodeCard({
-    required this.departure,
-    required this.passengers,
-    this.returnDeparture,
-    this.returnSeats,
-  });
+  const _PromoCodeCard({required this.journey, required this.passengers});
 
-  final Departure departure;
+  final Journey journey;
   final List<Passenger> passengers;
-  final Departure? returnDeparture;
-  final List<Seat>? returnSeats;
 
   @override
   State<_PromoCodeCard> createState() => _PromoCodeCardState();
@@ -805,12 +778,10 @@ class _PromoCodeCardState extends State<_PromoCodeCard> {
   void _apply(BuildContext context, {String? code}) {
     context.read<SeatHoldBloc>().add(
       SeatHoldRepriceRequested(
-        departure: widget.departure,
+        journey: widget.journey,
         passengers: widget.passengers,
         // Vide : le serveur retire la remise en cours.
         promoCode: code ?? _controller.text,
-        returnDeparture: widget.returnDeparture,
-        returnSeats: widget.returnSeats,
         payer: context.read<GroupPayerCubit>().state.payer,
       ),
     );

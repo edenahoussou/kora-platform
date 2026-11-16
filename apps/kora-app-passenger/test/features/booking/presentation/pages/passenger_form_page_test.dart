@@ -13,6 +13,8 @@ import 'package:kora_app_passenger/core/utils/date_formats.dart';
 import 'package:kora_app_passenger/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_mock_data.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/itinerary.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/journey.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/search_criteria.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/seat.dart';
 import 'package:kora_app_passenger/features/booking/presentation/bloc/seat_hold_bloc.dart';
@@ -105,8 +107,12 @@ void main() {
           path: '/',
           builder: (_, _) => withSeatHold(
             PassengerFormPage(
-              departure: international ? crossBorder : departure,
-              seats: freeSeats.take(passengers).toList(),
+              journey: Journey(
+                outbound: Itinerary.direct(
+                  international ? crossBorder : departure,
+                ),
+                seatsByLeg: [freeSeats.take(passengers).toList()],
+              ),
             ),
             bloc: holdBloc,
             auth: authBloc,
@@ -127,10 +133,7 @@ void main() {
           builder: (context, state) {
             final args = state.extra! as SummaryArgs;
             return withSeatHold(
-              SummaryPage(
-                departure: args.departure,
-                passengers: args.passengers,
-              ),
+              SummaryPage(journey: args.journey, passengers: args.passengers),
               bloc: holdBloc,
               auth: authBloc,
             );
@@ -453,7 +456,9 @@ void main() {
           GlobalCupertinoLocalizations.delegate,
         ],
         home: withSeatHold(
-          PassengerFormPage(departure: departure),
+          PassengerFormPage(
+            journey: Journey(outbound: Itinerary.direct(departure)),
+          ),
           bloc: holdBloc,
           auth: authBloc,
         ),

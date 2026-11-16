@@ -9,6 +9,7 @@ import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/date_formats.dart';
 import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/screen_header.dart';
+import '../../../../core/widgets/section_title.dart';
 import '../../domain/entities/ticket.dart';
 import '../bloc/cancel_ticket_cubit.dart';
 import '../bloc/ticket_document_cubit.dart';
@@ -69,6 +70,14 @@ class TicketDetailPage extends StatelessWidget {
                   padding: const EdgeInsets.only(bottom: 100),
                   children: [
                     _Summary(ticket: ticket, today: today),
+                    // Un billet de correspondance détaille ses bus : le
+                    // titre annonce Cotonou → Natitingou, et c'est ici
+                    // qu'on apprend qu'on descend à Bohicon, à quelle
+                    // heure et sur quelle place.
+                    if (ticket.isConnecting) ...[
+                      SectionTitle(title: l10n.ticketDetailLegs),
+                      _Legs(ticket: ticket),
+                    ],
                     const SizedBox(height: 13),
                     _Actions(
                       ticket: ticket,
@@ -328,6 +337,100 @@ class _ActionsState extends State<_Actions> {
 }
 
 /// La carte navy du haut : délai, siège, date et heure, gare de départ.
+/// Les bus du voyage, l'un sous l'autre.
+class _Legs extends StatelessWidget {
+  const _Legs({required this.ticket});
+
+  final Ticket ticket;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final koraColors = context.koraColors;
+
+    // Un aller-retour met ses deux sens dans la même liste : sans un mot
+    // pour les séparer, le billet annonçait un troisième bus qui
+    // repartait d'où l'on venait, comme s'il fallait le prendre dans la
+    // foulée.
+    final hasReturn = ticket.legs.any((leg) => leg.isReturn);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final (index, leg) in ticket.legs.indexed) ...[
+          if (hasReturn &&
+              (index == 0 || ticket.legs[index - 1].isReturn != leg.isReturn))
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text(
+                (leg.isReturn
+                        ? l10n.departuresDirectionInbound
+                        : l10n.departuresDirectionOutbound)
+                    .toUpperCase(),
+                style: const TextStyle(
+                  color: AppColors.gold,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ),
+          KoraCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '${leg.origin} → ${leg.destination}',
+                        style: TextStyle(
+                          color: context.koraTitleColor,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    if (leg.seatCode.isNotEmpty) ...[
+                      const SizedBox(width: AppSpacing.sm),
+                      KoraTag(
+                        label: l10n.ticketDetailLegSeat(leg.seatCode),
+                        variant: KoraTagVariant.gold,
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _hours(l10n, leg),
+                  style: AppTextStyles.caption(koraColors.textMuted),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ],
+    );
+  }
+
+  /// `06:00 → 07:31`, ou l'heure connue seule. Le serveur laisse ces
+  /// heures nulles quand l'arrêt n'a pas d'horaire : mieux vaut n'en
+  /// annoncer aucune que d'en inventer une.
+  String _hours(AppLocalization l10n, TicketLeg leg) {
+    final departs = leg.departsAt;
+    final arrives = leg.arrivesAt;
+
+    final parts = [
+      if (departs != null) KoraDateFormats.timeIn(departs, l10n.languageCode),
+      if (arrives != null) KoraDateFormats.timeIn(arrives, l10n.languageCode),
+    ];
+
+    return parts.join(' → ');
+  }
+}
+
 class _Summary extends StatelessWidget {
   const _Summary({required this.ticket, required this.today});
 

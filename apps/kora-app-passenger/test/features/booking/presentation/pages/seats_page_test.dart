@@ -10,6 +10,8 @@ import 'package:kora_app_passenger/core/di/injector.dart';
 import 'package:kora_app_passenger/core/l10n/app_localization.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_mock_data.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/itinerary.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/journey.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/price.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/search_criteria.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/seat.dart';
@@ -85,7 +87,10 @@ void main() {
           GlobalCupertinoLocalizations.delegate,
         ],
         home: withSeatHold(
-          SeatsPage(departure: departure, passengers: passengers),
+          SeatsPage(
+            journey: Journey(outbound: Itinerary.direct(departure)),
+            passengers: passengers,
+          ),
           bloc: holdBloc,
           groupQuote: groupQuote,
         ),
@@ -339,7 +344,10 @@ void main() {
     // voyageur lisait 284 400, puis 316 000 sous le plan.
     final quote = GroupQuoteCubit(StubReservationRepository());
     addTearDown(quote.close);
-    await quote.load(departure: departure, passengers: 5);
+    await quote.load(
+      journey: Journey(outbound: Itinerary.direct(departure)),
+      passengers: 5,
+    );
 
     await pumpSeats(tester, passengers: 5, groupQuote: quote);
 

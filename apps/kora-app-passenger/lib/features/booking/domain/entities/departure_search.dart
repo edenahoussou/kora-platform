@@ -1,11 +1,14 @@
 import 'package:equatable/equatable.dart';
 
-import 'departure.dart';
+import 'itinerary.dart';
 
 /// Couche DOMAIN : ce que rend une recherche de trajets.
 ///
-/// Un aller simple n'a que des départs ; un aller-retour en a de deux
-/// sortes, que le serveur rend dans deux listes séparées
+/// Chaque entrée est un [Itinerary] : un trajet direct, ou un voyage à
+/// correspondance dont les tronçons se réservent ensemble.
+///
+/// Un aller simple n'a qu'un sens ; un aller-retour en a deux, que le
+/// serveur rend dans deux listes séparées
 /// (`{outbound, inbound}`) parce qu'ils ne se choisissent pas ensemble :
 /// le voyageur prend son aller, puis son retour.
 ///
@@ -17,14 +20,14 @@ import 'departure.dart';
 class DepartureSearch extends Equatable {
   const DepartureSearch({required this.outbound, this.inbound});
 
-  const DepartureSearch.oneWay(List<Departure> departures)
-    : this(outbound: departures);
+  const DepartureSearch.oneWay(List<Itinerary> itineraries)
+    : this(outbound: itineraries);
 
-  /// Les départs de l'aller.
-  final List<Departure> outbound;
+  /// Les voyages de l'aller.
+  final List<Itinerary> outbound;
 
-  /// Les départs du retour, ou `null` si aucun retour n'a été demandé.
-  final List<Departure>? inbound;
+  /// Les voyages du retour, ou nul si aucun retour n'a été demandé.
+  final List<Itinerary>? inbound;
 
   bool get isRoundTrip => inbound != null;
 

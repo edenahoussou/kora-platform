@@ -2,6 +2,7 @@ import '../../../../core/network/api_json.dart';
 import '../../domain/entities/amenity.dart';
 import '../../domain/entities/city.dart';
 import '../../domain/entities/departure.dart';
+import '../../domain/entities/itinerary.dart';
 import '../../domain/entities/line.dart';
 import '../../domain/entities/price.dart';
 
@@ -11,12 +12,12 @@ import '../../domain/entities/price.dart';
 /// le même : la recherche rend des **itinéraires**, chacun composé d'un ou
 /// plusieurs tronçons, là où l'ancienne rendait des départs à plat.
 ///
-/// L'app ne sait afficher qu'un trajet direct. Un itinéraire à
-/// correspondance est donc écarté par [toEntity] plutôt que réduit à son
-/// premier tronçon — montrer « Cotonou → Abidjan » pour un trajet qui
-/// impose un changement à Lomé serait un mensonge sur le voyage vendu. Les
-/// écrans de correspondance de la maquette (BUS-24, BUS-25) restent à
-/// faire.
+/// Les correspondances sont rendues telles quelles : un itinéraire à
+/// deux tronçons devient un [Itinerary] à deux tronçons, et c'est le
+/// tunnel qui en fait une seule réservation. Les écarter — ce que
+/// faisait cette classe tant que l'app ne savait pas les afficher —
+/// revenait à annoncer « Aucun voyage ce jour-là » sur un Porto-Novo →
+/// Parakou que le serveur savait composer.
 class ItineraryModel {
   const ItineraryModel._(this._json);
 
@@ -29,13 +30,49 @@ class ItineraryModel {
   int get connectionsCount =>
       ApiJson.intOrNull(_json['connections_count']) ?? 0;
 
-  /// Le départ correspondant, ou `null` si l'itinéraire n'est pas direct
-  /// ou si sa date est illisible.
-  Departure? toEntity() {
-    final legs = ApiJson.list(_json['legs']);
-    if (connectionsCount != 0 || legs.length != 1) return null;
+  /// Le voyage correspondant, ou `null` quand la réponse ne permet pas de
+  /// le lire : aucun tronçon, ou un tronçon sans date.
+  ///
+  /// Un tronçon illisible écarte **tout l'itinéraire** : en garder la
+  /// moitié vendrait un voyage qui ne mène pas où il est annoncé.
+  Itinerary? toEntity() {
+    final raw = ApiJson.list(_json['legs']);
+    if (raw.isEmpty) return null;
 
-    final leg = legs.first;
+    final legs = <Departure>[];
+    for (final leg in raw) {
+      final departure = _legOf(leg);
+      if (departure == null) return null;
+      legs.add(departure);
+    }
+
+    // Le serveur donne les heures du voyage entier : elles comprennent
+    // l'attente aux correspondances, qu'aucune addition de durées de
+    // lignes ne donnerait.
+    final departsAt =
+        _dateOrNull(_json['departure_at']) ?? legs.first.departsAt;
+    final arrivesAt = _dateOrNull(_json['arrival_at']) ?? legs.last.arrivesAt;
+
+    final margin = ApiJson.intOrNull(_json['connection_margin_minutes']);
+
+    return Itinerary(
+      legs: legs,
+      // `total_amount` porte le voyage entier ; l'addition des tronçons
+      // n'en est qu'un repli quand le serveur se tait.
+      total: Price(
+        ApiJson.intOrNull(_json['total_amount']) ??
+            legs.fold(0, (sum, leg) => sum + leg.price.amount),
+      ),
+      departsAt: departsAt,
+      arrivesAt: arrivesAt,
+      connectionMargin: margin == null || legs.length == 1
+          ? null
+          : Duration(minutes: margin),
+    );
+  }
+
+  /// Un tronçon, ou `null` si sa date est illisible.
+  static Departure? _legOf(Map<String, dynamic> leg) {
     final departsAt = _dateOrNull(leg['departure_at']);
     if (departsAt == null) return null;
 
@@ -62,6 +99,7 @@ class ItineraryModel {
         distanceKm: ApiJson.intOrNull(line['distance_km']) ?? 0,
       ),
       departsAt: departsAt,
+      arrival: _dateOrNull(leg['arrival_at']),
       comfort: _comfortOf(ApiJson.string(leg['service_class_code'])),
       price: Price(ApiJson.intOrNull(leg['amount']) ?? 0),
       seatsTotal: ApiJson.intOrNull(bus['seat_count']) ?? 0,

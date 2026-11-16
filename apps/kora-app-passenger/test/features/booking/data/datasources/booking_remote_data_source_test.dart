@@ -23,18 +23,8 @@ void main() {
   late MockBookingDataSource pending;
   late BookingRemoteDataSourceImpl dataSource;
 
-  const cotonou = City(
-    id: 'Cotonou',
-    name: 'Cotonou',
-    code: 'COT',
-    physicalStopId: '74703fce-3358-429d-9994-6b323664a419',
-  );
-  const abidjan = City(
-    id: 'Abidjan',
-    name: 'Abidjan',
-    code: 'ABI',
-    physicalStopId: 'f2b528f4-3c99-461f-ac4e-a10f0721b388',
-  );
+  const cotonou = City(id: 'Cotonou', name: 'Cotonou', code: 'COT');
+  const abidjan = City(id: 'Abidjan', name: 'Abidjan', code: 'ABI');
   final criteria = SearchCriteria(
     origin: cotonou,
     destination: abidjan,
@@ -75,17 +65,14 @@ void main() {
         ),
       ).called(1);
       expect(cities.map((city) => city.name), [
-        // Rendues dans l'ordre alphabétique, pas dans celui de l'API.
-        // Bohicon manque à l'appel : le catalogue ne lui rattache aucun
-        // arrêt physique, et la recherche n'aurait rien à interroger.
+        // Rendues dans l'ordre alphabétique, pas dans celui de l'API, et
+        // une seule fois chacune — même Cotonou, que le catalogue
+        // dessert par plusieurs arrêts.
         'Abidjan',
+        'Bohicon',
         'Cotonou',
       ]);
       expect(cities.first.id, 'Abidjan');
-      expect(
-        cities.first.physicalStopId,
-        'f2b528f4-3c99-461f-ac4e-a10f0721b388',
-      );
     });
 
     test('écarte une entrée sans nom de ville', () async {
@@ -172,8 +159,11 @@ void main() {
       ).captured.single;
 
       expect(captured, {
-        'from_physical_stop_uuid': '74703fce-3358-429d-9994-6b323664a419',
-        'to_physical_stop_uuid': 'f2b528f4-3c99-461f-ac4e-a10f0721b388',
+        // La ville, pas l'arrêt : c'est le serveur qui explore les points
+        // d'arrêt, et c'est ce qui rend une correspondance trouvable
+        // entre deux lignes qui ne s'arrêtent pas au même endroit.
+        'from_city': 'Cotonou',
+        'to_city': 'Abidjan',
         'date': '2026-08-20',
         'passenger_count': 1,
       });
@@ -226,13 +216,38 @@ void main() {
       expect(captured['passenger_count'], 5);
     });
 
-    test('une ville sans arrêt desservi n’est jamais envoyée', () async {
+    test('une ville relue d’un billet se cherche comme les autres', () async {
+      // Elle n'a que son nom, et c'est tout ce qu'il faut désormais :
+      // avant, faute d'arrêt physique, « Repartir » menait à une erreur.
+      stubGet(const {'data': <dynamic>[]});
+
+      await dataSource.searchDepartures(
+        SearchCriteria(
+          origin: City.named('Cotonou'),
+          destination: abidjan,
+          date: DateTime(2026, 8, 20),
+        ),
+      );
+
+      final captured =
+          verify(
+                () => dio.get<dynamic>(
+                  any(),
+                  queryParameters: captureAny(named: 'queryParameters'),
+                ),
+              ).captured.single
+              as Map<String, dynamic>;
+
+      expect(captured['from_city'], 'Cotonou');
+    });
+
+    test('une ville sans nom n’est jamais envoyée', () async {
       // Le serveur répondrait 422. Échouer ici donne un message que
       // l'écran sait afficher, plutôt qu'une erreur de validation brute.
       await expectLater(
         dataSource.searchDepartures(
           SearchCriteria(
-            origin: City.named('Cotonou'),
+            origin: City.named(''),
             destination: abidjan,
             date: DateTime(2026, 8, 20),
           ),
@@ -256,8 +271,11 @@ void main() {
       final search = await dataSource.searchDepartures(criteria);
 
       expect(search.outbound, hasLength(1));
-      expect(search.outbound.single.id, '56f674c2-7795-4427-9839-ff5de7345ade');
-      expect(search.outbound.single.price.amount, 31600);
+      expect(
+        search.outbound.single.first.id,
+        '56f674c2-7795-4427-9839-ff5de7345ade',
+      );
+      expect(search.outbound.single.total.amount, 31600);
       // Aucun retour demandé : il n'y a pas d'étape de retour du tout.
       expect(search.inbound, isNull);
       expect(search.isRoundTrip, isFalse);
@@ -269,24 +287,20 @@ void main() {
       expect((await dataSource.searchDepartures(criteria)).outbound, isEmpty);
     });
 
-    test('écarte les correspondances sans perdre les directs', () async {
-      // L'app ne sait afficher qu'un trajet direct ; le serveur, lui, rend
-      // les deux dans la même liste.
+    test('rend les correspondances avec les directs', () async {
+      // Le serveur rend les deux dans la même liste. Les écarter — ce que
+      // faisait l'app — répondait « Aucun voyage ce jour-là » sur une
+      // liaison qu'il savait composer.
       stubGet({
-        'data': [
-          kItinerary,
-          {
-            ...kItinerary,
-            'connections_count': 1,
-            'legs': [kItineraryLeg, kItineraryLeg],
-          },
-        ],
+        'data': [kItinerary, kConnectedItinerary],
       });
 
-      expect(
-        (await dataSource.searchDepartures(criteria)).outbound,
-        hasLength(1),
-      );
+      final outbound = (await dataSource.searchDepartures(criteria)).outbound;
+
+      expect(outbound, hasLength(2));
+      expect(outbound.first.isDirect, isTrue);
+      expect(outbound.last.connectionsCount, 1);
+      expect(outbound.last.legs, hasLength(2));
     });
   });
 
@@ -318,8 +332,8 @@ void main() {
       ).captured.single;
 
       expect(captured, {
-        'from_physical_stop_uuid': '74703fce-3358-429d-9994-6b323664a419',
-        'to_physical_stop_uuid': 'f2b528f4-3c99-461f-ac4e-a10f0721b388',
+        'from_city': 'Cotonou',
+        'to_city': 'Abidjan',
         'date': '2026-08-20',
         'passenger_count': 1,
         'trip_type': 'round_trip',
@@ -337,7 +351,7 @@ void main() {
       expect(search.isRoundTrip, isTrue);
       expect(search.outbound, hasLength(1));
       expect(search.inbound, hasLength(1));
-      expect(search.outbound.single.price.amount, 31600);
+      expect(search.outbound.single.total.amount, 31600);
     });
 
     test('un retour sans départ reste un aller-retour, mais vide', () async {
@@ -419,23 +433,21 @@ void main() {
       expect(captured.containsKey('return_date'), isFalse);
     });
 
-    test('écarte les correspondances dans les deux sens', () async {
-      final connecting = {
-        ...kItinerary,
-        'connections_count': 1,
-        'legs': [kItineraryLeg, kItineraryLeg],
-      };
+    test('les correspondances passent dans les deux sens', () async {
       stubGet(
         roundTripResponse(
-          outbound: [kItinerary, connecting],
-          inbound: [connecting],
+          outbound: [kItinerary, kConnectedItinerary],
+          inbound: [kConnectedItinerary],
         ),
       );
 
       final search = await dataSource.searchDepartures(roundTrip());
 
-      expect(search.outbound, hasLength(1));
-      expect(search.inbound, isEmpty);
+      expect(search.outbound, hasLength(2));
+      // Un retour à correspondance se réserve comme un autre : c'est le
+      // même devis, le même blocage et le même paiement.
+      expect(search.inbound, hasLength(1));
+      expect(search.inbound!.single.isDirect, isFalse);
     });
   });
 
@@ -447,6 +459,7 @@ void main() {
       String status = 'confirmed',
       String seat = '4A',
       String departsAt = '2099-08-04T07:30:00+00:00',
+      List<Map<String, dynamic>>? segments,
     }) => {
       'uuid': uuid,
       'short_code': 'K${uuid.toUpperCase()}',
@@ -478,7 +491,39 @@ void main() {
         'line_code': 'L1',
       },
       'seat': {'uuid': 'seat-$seat', 'code': seat},
+      'segments': ?segments,
     };
+
+    /// Les tronçons d'un billet de correspondance, tels que
+    /// `PassengerTicketResource` les rend : ordonnés, avec leur sens,
+    /// leurs villes, la place de ce bus-là et les heures de l'arrêt
+    /// acheté.
+    const connecting = [
+      {
+        'leg_order': 1,
+        'direction': 'outbound',
+        'departure_uuid': 'dep-1',
+        'origin_city': 'Cotonou',
+        'destination_city': 'Bohicon',
+        'seat_code': '4A',
+        'departure_at': '2099-08-04T07:30:00+00:00',
+        'arrival_at': '2099-08-04T09:01:00+00:00',
+        'departure_timezone': 'Africa/Porto-Novo',
+        'arrival_timezone': 'Africa/Porto-Novo',
+      },
+      {
+        'leg_order': 2,
+        'direction': 'outbound',
+        'departure_uuid': 'dep-2',
+        'origin_city': 'Bohicon',
+        'destination_city': 'Natitingou',
+        'seat_code': '3C',
+        'departure_at': '2099-08-04T10:06:00+00:00',
+        'arrival_at': '2099-08-04T14:44:00+00:00',
+        'departure_timezone': 'Africa/Porto-Novo',
+        'arrival_timezone': 'Africa/Porto-Novo',
+      },
+    ];
 
     Map<String, dynamic> page(
       List<Map<String, dynamic>> data, {
@@ -493,6 +538,35 @@ void main() {
         'total': data.length,
       },
     };
+
+    test('un billet de correspondance garde ses bus', () async {
+      // Le serveur rend les tronçons depuis le correctif des horaires
+      // d'arrêt : sans eux, le billet annonçait « Cotonou → Natitingou »
+      // sans dire qu'on descend à Bohicon, ni sur quelle place on
+      // remonte.
+      stubGet(page([ticketJson(uuid: 't1', segments: connecting)]));
+
+      final ticket = (await dataSource.getTickets()).single;
+
+      expect(ticket.isConnecting, isTrue);
+      expect(ticket.connectionCities, ['Bohicon']);
+      expect(ticket.legs, hasLength(2));
+      expect(ticket.legs.first.seatCode, '4A');
+      expect(ticket.legs.last.seatCode, '3C');
+      expect(
+        ticket.legs.last.departsAt,
+        DateTime.utc(2099, 8, 4, 10, 6).toLocal(),
+      );
+    });
+
+    test('un billet direct ne se dit pas à correspondance', () async {
+      stubGet(page([ticketJson(uuid: 't1')]));
+
+      final ticket = (await dataSource.getTickets()).single;
+
+      expect(ticket.isConnecting, isFalse);
+      expect(ticket.legs, isEmpty);
+    });
 
     test('lit l’endpoint du serveur, jamais le jeu de démonstration', () async {
       stubGet(page([ticketJson(uuid: 't1')]));

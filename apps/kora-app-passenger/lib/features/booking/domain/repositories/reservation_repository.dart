@@ -2,13 +2,12 @@ import 'package:dartz/dartz.dart';
 
 import '../../../../core/error/failures.dart';
 import '../entities/company_account.dart';
-import '../entities/departure.dart';
 import '../entities/group_payer.dart';
 import '../entities/group_quote.dart';
 import '../entities/group_ticket.dart';
+import '../entities/journey.dart';
 import '../entities/passenger.dart';
 import '../entities/reservation_pricing.dart';
-import '../entities/seat.dart';
 import '../entities/seat_hold.dart';
 
 /// Couche DOMAIN : retenir des sièges, puis les rendre.
@@ -48,10 +47,9 @@ abstract class ReservationRepository {
   /// blocage, donc un seul paiement.
   Future<Either<Failure, SeatHold>> holdGroup({
     required GroupQuote quote,
-    required List<Seat> seats,
+    required Journey journey,
     required GroupPayer payer,
     required String idempotencyKey,
-    List<Seat>? returnSeats,
   });
 
   /// Fige le prix du trajet pour [passengers] voyageurs, remise comprise.
@@ -62,12 +60,11 @@ abstract class ReservationRepository {
   /// seul comme le groupe, un voyageur seul étant un groupe d'un que le
   /// barème laisse au plein tarif.
   ///
-  /// Un aller-retour tient dans le même devis : [returnDeparture] en est
-  /// le second tronçon, et son total couvre les deux trajets.
+  /// Tout le voyage tient dans le même devis : les tronçons de l'aller,
+  /// puis ceux du retour, et son total les couvre tous.
   Future<Either<Failure, GroupQuote>> groupQuote({
-    required Departure departure,
+    required Journey journey,
     required int passengers,
-    Departure? returnDeparture,
     String? promoCode,
   });
 

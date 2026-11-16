@@ -38,14 +38,14 @@ class DeparturesState extends Equatable {
   const DeparturesState({
     this.status = DeparturesStatus.loading,
     this.criteria,
-    this.departures = const [],
+    this.itineraries = const [],
     this.sortField = DepartureSortField.hour,
     this.sortDescending = false,
     this.timeSlots = const {},
     this.isRefreshing = false,
     this.errorMessage,
     this.refreshError,
-    this.returnDepartures,
+    this.returnItineraries,
   });
 
   final DeparturesStatus status;
@@ -55,20 +55,23 @@ class DeparturesState extends Equatable {
   /// annoncer le trajet cherché.
   final SearchCriteria? criteria;
 
-  /// Tous les départs rendus par la recherche, filtres et tri non
-  /// appliqués — voir [visibleDepartures]. Sur un aller-retour, ceux de
+  /// Tous les voyages rendus par la recherche, filtres et tri non
+  /// appliqués — voir [visibleItineraries]. Sur un aller-retour, ceux de
   /// l'aller.
-  final List<Departure> departures;
+  ///
+  /// Un voyage est direct ou à correspondance : les deux se listent sur
+  /// le même écran, et c'est la carte qui dit lequel on regarde.
+  final List<Itinerary> itineraries;
 
-  /// Les départs du retour, ou `null` sur un aller simple.
+  /// Les voyages du retour, ou `null` sur un aller simple.
   ///
   /// Rendus par la même recherche que l'aller — le serveur les donne
   /// ensemble — mais listés sur leur propre écran : le voyageur choisit
   /// son aller, puis son retour. Une liste vide n'est pas `null` : il y a
   /// bien une étape de retour, et elle n'a rien à proposer.
-  final List<Departure>? returnDepartures;
+  final List<Itinerary>? returnItineraries;
 
-  bool get isRoundTrip => returnDepartures != null;
+  bool get isRoundTrip => returnItineraries != null;
 
   final DepartureSortField sortField;
 
@@ -96,7 +99,7 @@ class DeparturesState extends Equatable {
   /// Aucun départ sur cette liaison ce jour-là. C'est un succès, pas une
   /// erreur : l'écran a un état dédié qui propose de changer la date ou le
   /// trajet.
-  bool get isEmpty => status == DeparturesStatus.success && departures.isEmpty;
+  bool get isEmpty => status == DeparturesStatus.success && itineraries.isEmpty;
 
   /// Des départs existent, mais les filtres les écartent tous. Un cas très
   /// différent de [isEmpty] : ici la liaison est desservie, c'est la
@@ -104,39 +107,44 @@ class DeparturesState extends Equatable {
   /// filtres, pas de changer de date.
   bool get isFilteredEmpty =>
       status == DeparturesStatus.success &&
-      departures.isNotEmpty &&
-      visibleDepartures.isEmpty;
+      itineraries.isNotEmpty &&
+      visibleItineraries.isEmpty;
 
   bool get hasFilters => timeSlots.isNotEmpty;
 
-  /// Les départs filtrés puis ordonnés — ce que l'écran affiche.
+  /// Les voyages filtrés puis ordonnés — ce que l'écran affiche.
   ///
-  /// Les départs complets ferment toujours la marche, quel que soit le
+  /// Les voyages complets ferment toujours la marche, quel que soit le
   /// tri **et son sens** : les proposer en tête n'aiderait personne, et
-  /// inverser le tri ne doit pas les faire remonter.
-  List<Departure> get visibleDepartures {
-    final visible = departures.where(_matchesFilters).toList();
+  /// inverser le tri ne doit pas les faire remonter. À tri égal, le
+  /// direct passe devant la correspondance — c'est l'ordre que le
+  /// serveur applique lui aussi par défaut.
+  List<Itinerary> get visibleItineraries {
+    final visible = itineraries.where(_matchesFilters).toList();
 
     visible.sort((a, b) {
       if (a.isSoldOut != b.isSoldOut) return a.isSoldOut ? 1 : -1;
 
       final comparison = switch (sortField) {
         DepartureSortField.hour => a.departsAt.compareTo(b.departsAt),
-        DepartureSortField.price => a.price.amount.compareTo(b.price.amount),
-        DepartureSortField.duration => a.line.duration.compareTo(
-          b.line.duration,
-        ),
+        DepartureSortField.price => a.total.amount.compareTo(b.total.amount),
+        // La durée du voyage entier, attentes de correspondance
+        // comprises : additionner les durées de lignes mettrait une
+        // correspondance de trois heures devant un direct.
+        DepartureSortField.duration => a.duration.compareTo(b.duration),
       };
 
-      return sortDescending ? -comparison : comparison;
+      if (comparison != 0) return sortDescending ? -comparison : comparison;
+
+      return a.connectionsCount.compareTo(b.connectionsCount);
     });
 
     return visible;
   }
 
-  bool _matchesFilters(Departure departure) {
+  bool _matchesFilters(Itinerary itinerary) {
     if (timeSlots.isEmpty) return true;
-    return timeSlots.any((slot) => slot.contains(departure.departsAt));
+    return timeSlots.any((slot) => slot.contains(itinerary.departsAt));
   }
 
   /// `3 départs disponibles` — titre de l'écran, qui ne compte que les
@@ -144,7 +152,7 @@ class DeparturesState extends Equatable {
   /// titre qui annoncerait 4 départs au-dessus d'une liste filtrée à 2
   /// serait un mensonge.
   int get availableCount =>
-      visibleDepartures.where((departure) => !departure.isSoldOut).length;
+      visibleItineraries.where((itinerary) => !itinerary.isSoldOut).length;
 
   /// Tous les départs réservables de la liaison, **filtres ignorés**.
   ///
@@ -154,15 +162,15 @@ class DeparturesState extends Equatable {
   /// puis « 2 départs ce matin ». Sans cette seconde ligne, il faudrait
   /// que le titre suive les filtres — voir [availableCount].
   int get totalAvailableCount =>
-      departures.where((departure) => !departure.isSoldOut).length;
+      itineraries.where((itinerary) => !itinerary.isSoldOut).length;
 
   /// Le prix le plus bas et le plus haut des départs affichés, pour le
   /// récapitulatif. `null` quand la liste est vide.
   (Price, Price)? get visiblePriceRange {
     final prices =
-        visibleDepartures
-            .where((departure) => !departure.isSoldOut)
-            .map((departure) => departure.price)
+        visibleItineraries
+            .where((itinerary) => !itinerary.isSoldOut)
+            .map((itinerary) => itinerary.total)
             .toList()
           ..sort((a, b) => a.amount.compareTo(b.amount));
 
@@ -173,19 +181,19 @@ class DeparturesState extends Equatable {
   DeparturesState copyWith({
     DeparturesStatus? status,
     SearchCriteria? criteria,
-    List<Departure>? departures,
+    List<Itinerary>? itineraries,
     DepartureSortField? sortField,
     bool? sortDescending,
     Set<DepartureTimeSlot>? timeSlots,
     bool? isRefreshing,
     String? errorMessage,
     String? refreshError,
-    List<Departure>? returnDepartures,
+    List<Itinerary>? returnItineraries,
   }) {
     return DeparturesState(
       status: status ?? this.status,
       criteria: criteria ?? this.criteria,
-      departures: departures ?? this.departures,
+      itineraries: itineraries ?? this.itineraries,
       sortField: sortField ?? this.sortField,
       sortDescending: sortDescending ?? this.sortDescending,
       timeSlots: timeSlots ?? this.timeSlots,
@@ -196,16 +204,16 @@ class DeparturesState extends Equatable {
       // consommé une fois puis disparaît ; le reconduire d'un état à
       // l'autre le ferait réapparaître au moindre changement de tri.
       refreshError: refreshError,
-      returnDepartures: returnDepartures ?? this.returnDepartures,
+      returnItineraries: returnItineraries ?? this.returnItineraries,
     );
   }
 
   @override
   List<Object?> get props => [
-    returnDepartures,
+    returnItineraries,
     status,
     criteria,
-    departures,
+    itineraries,
     sortField,
     sortDescending,
     timeSlots,

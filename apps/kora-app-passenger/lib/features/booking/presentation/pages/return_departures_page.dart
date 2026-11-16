@@ -8,7 +8,7 @@ import '../../../../core/utils/date_formats.dart';
 import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../home/presentation/bloc/home_bloc.dart';
-import '../../domain/entities/departure.dart';
+import '../../domain/entities/itinerary.dart';
 import '../widgets/departure_tile.dart';
 import '../widgets/state_view.dart';
 import 'bus_search_page.dart';
@@ -20,8 +20,8 @@ import 'departure_detail_page.dart';
 /// qu'on vient changer, et la voir affichée dit laquelle n'a rien donné.
 BusSearchArgs _searchAgain(ReturnDeparturesArgs args) => BusSearchArgs(
   tripType: TripType.roundtrip,
-  origin: args.outbound.line.origin,
-  destination: args.outbound.line.destination,
+  origin: args.outbound.origin,
+  destination: args.outbound.destination,
   date: args.outbound.departsAt,
   returnDate: args.returnDate,
   passengers: args.passengers,
@@ -31,17 +31,18 @@ BusSearchArgs _searchAgain(ReturnDeparturesArgs args) => BusSearchArgs(
 class ReturnDeparturesArgs {
   const ReturnDeparturesArgs({
     required this.outbound,
-    required this.departures,
+    required this.itineraries,
     this.passengers = 1,
     this.returnDate,
   });
 
-  /// L'aller déjà choisi. Rappelé en tête d'écran, et repris ensuite
-  /// jusqu'au devis : les deux trajets se paient ensemble.
-  final Departure outbound;
+  /// L'aller déjà choisi, correspondances comprises. Rappelé en tête
+  /// d'écran, et repris ensuite jusqu'au devis : les deux sens se paient
+  /// ensemble.
+  final Itinerary outbound;
 
   /// Les retours proposés, tels que la recherche les a rendus.
-  final List<Departure> departures;
+  final List<Itinerary> itineraries;
 
   final int passengers;
 
@@ -69,7 +70,7 @@ class ReturnDeparturesPage extends StatelessWidget {
     if (args == null) return const _MissingArgs();
 
     final l10n = context.l10n;
-    final departures = args.departures;
+    final itineraries = args.itineraries;
     final returnDate = args.returnDate;
 
     return Scaffold(
@@ -92,12 +93,12 @@ class ReturnDeparturesPage extends StatelessWidget {
                           l10n.languageCode,
                         ),
                       ),
-                title: departures.isEmpty
+                title: itineraries.isEmpty
                     ? l10n.returnResultsEmptyHeading
-                    : l10n.returnResultsTitle(departures.length),
+                    : l10n.returnResultsTitle(itineraries.length),
               ),
               Expanded(
-                child: departures.isEmpty
+                child: itineraries.isEmpty
                     ? _Empty(args: args)
                     : _List(args: args),
               ),
@@ -119,19 +120,19 @@ class _List extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.only(bottom: AppSpacing.xl),
       children: [
-        _OutboundReminder(departure: args.outbound),
+        _OutboundReminder(outbound: args.outbound),
         const SizedBox(height: AppSpacing.md),
-        for (final departure in args.departures) ...[
+        for (final itinerary in args.itineraries) ...[
           DepartureTile(
-            departure: departure,
+            itinerary: itinerary,
             direction: TripDirection.inbound,
-            // Le détail reçoit les deux trajets : c'est à partir de là
-            // que le devis couvre l'aller-retour entier.
+            // Le détail reçoit les deux sens : c'est à partir de là que
+            // le devis couvre l'aller-retour entier.
             onTap: () => context.push(
               AppRouter.departureDetailPath,
               extra: DepartureDetailArgs(
-                departure: args.outbound,
-                returnDeparture: departure,
+                itinerary: args.outbound,
+                returnItinerary: itinerary,
                 passengers: args.passengers,
               ),
             ),
@@ -146,9 +147,9 @@ class _List extends StatelessWidget {
 /// `.outbound-reminder` de la maquette : l'aller reste sous les yeux
 /// pendant qu'on choisit le retour.
 class _OutboundReminder extends StatelessWidget {
-  const _OutboundReminder({required this.departure});
+  const _OutboundReminder({required this.outbound});
 
-  final Departure departure;
+  final Itinerary outbound;
 
   @override
   Widget build(BuildContext context) {
@@ -180,10 +181,10 @@ class _OutboundReminder extends StatelessWidget {
           ),
           const SizedBox(height: 3),
           Text(
-            '${departure.line.origin.name} → '
-            '${departure.line.destination.name} · '
-            '${KoraDateFormats.weekdayDayMonthIn(departure.departsAt, l10n.languageCode)} · '
-            '${KoraDateFormats.time.format(departure.departsAt)}',
+            '${outbound.origin.name} → '
+            '${outbound.destination.name} · '
+            '${KoraDateFormats.weekdayDayMonthIn(outbound.departsAt, l10n.languageCode)} · '
+            '${KoraDateFormats.time.format(outbound.departsAt)}',
             style: TextStyle(
               color: textColor,
               fontSize: 11,
@@ -213,7 +214,7 @@ class _Empty extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.only(bottom: AppSpacing.xl),
       children: [
-        _OutboundReminder(departure: args.outbound),
+        _OutboundReminder(outbound: args.outbound),
         const SizedBox(height: AppSpacing.lg),
         StateView(
           icon: Icons.event_busy_rounded,

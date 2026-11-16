@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/router/app_router.dart';
+import '../../domain/entities/itinerary.dart';
+import '../../domain/entities/journey.dart';
 import '../bloc/seat_hold_bloc.dart';
 import '../widgets/state_view.dart';
 import 'seats_page.dart';
@@ -51,7 +53,11 @@ class HoldExpiredPage extends StatelessWidget {
                     : () => context.pushReplacement(
                         AppRouter.seatsPath,
                         extra: SeatsArgs(
-                          departure: departure,
+                          // Le voyage reprend à son premier bus : les
+                          // sièges de tous ses tronçons sont à rechoisir.
+                          journey: Journey(
+                            outbound: Itinerary.direct(departure),
+                          ),
                           passengers: holdState.passengers,
                         ),
                       ),
