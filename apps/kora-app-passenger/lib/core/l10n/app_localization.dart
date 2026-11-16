@@ -628,7 +628,7 @@ class AppLocalization {
   String get signupSwitchToEmail => translate('signup_switch_to_email');
   String get signupEmailProtected => translate('signup_email_protected');
   String get signupSubmit => translate('signup_submit');
-  String get signupReferralToggle => translate('signup_referral_toggle');
+  String get signupReferralSkip => translate('signup_referral_skip');
   String get signupReferralLabel => translate('signup_referral_label');
   String get signupReferralHint => translate('signup_referral_hint');
   String get signupReferralText => translate('signup_referral_text');

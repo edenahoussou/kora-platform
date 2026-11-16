@@ -4,6 +4,7 @@ import 'package:flutter_design_system/flutter_design_system.dart';
 
 import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/utils/phone_number.dart';
+import '../../../../core/utils/referral_code.dart';
 import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../domain/entities/phone_country.dart';
@@ -48,6 +49,11 @@ class _SignupEmailPageState extends State<SignupEmailPage> {
   final _phone = TextEditingController();
   final _name = TextEditingController();
 
+  /// Le code d'un proche qui a invité le voyageur. Facultatif, et
+  /// recueilli ici plutôt qu'au choix du PIN : il appartient à ce qu'on
+  /// renseigne sur soi, pas à un écran de sécurité.
+  final _referral = TextEditingController();
+
   /// Le téléphone par défaut : c'est le premier identifiant du
   /// voyageur au Bénin, et celui qui reçoit le code sur WhatsApp.
   /// L'adresse reste à un lien de là, pour qui préfère la sienne.
@@ -65,6 +71,7 @@ class _SignupEmailPageState extends State<SignupEmailPage> {
     _email.dispose();
     _phone.dispose();
     _name.dispose();
+    _referral.dispose();
     super.dispose();
   }
 
@@ -115,12 +122,17 @@ class _SignupEmailPageState extends State<SignupEmailPage> {
     // C'est cet événement qui demande le code à l'API et fait avancer le
     // parcours vers l'écran OTP. Sans lui, le bouton ne fait rien.
     final identifier = _identifier;
+    final referral = _referral.text.trim();
+
     context.read<AuthFlowBloc>().add(
       AuthFlowIdentifierSubmitted(
         identifier: identifier,
         // Porté jusqu'à `register/complete`, où le serveur l'exige pour
         // une inscription par téléphone.
         name: _mode == _SignupMode.phone ? _name.text.trim() : null,
+        // Porté jusque-là lui aussi : c'est la création du compte qui
+        // rattache le parrain, et elle n'a lieu qu'au bout du parcours.
+        referralCode: referral.isEmpty ? null : referral,
       ),
     );
     widget.onSubmit?.call(identifier);
@@ -185,6 +197,10 @@ class _SignupEmailPageState extends State<SignupEmailPage> {
                     const SizedBox(height: 18),
                     if (_mode == _SignupMode.email)
                       KoraInput(
+                        // Les champs se désignent par leur clé, et non
+                        // par leur rang : un champ ajouté au formulaire
+                        // déplaçait tous les suivants.
+                        key: const Key('signup-email'),
                         label: l10n.signupEmailLabel,
                         // Pas de valeur pré-remplie, contrairement à la
                         // maquette : sur un formulaire de création de
@@ -204,6 +220,7 @@ class _SignupEmailPageState extends State<SignupEmailPage> {
                       // ferait échouer la création du compte pour un
                       // champ qu'on n'a jamais montré.
                       KoraInput(
+                        key: const Key('signup-name'),
                         label: l10n.signupNameLabel,
                         hint: l10n.signupNameHint,
                         controller: _name,
@@ -235,6 +252,7 @@ class _SignupEmailPageState extends State<SignupEmailPage> {
                           const SizedBox(width: AppSpacing.sm),
                           Expanded(
                             child: KoraInput(
+                              key: const Key('signup-phone'),
                               hint: _country.example,
                               controller: _phone,
                               keyboardType: TextInputType.phone,
@@ -249,6 +267,26 @@ class _SignupEmailPageState extends State<SignupEmailPage> {
                         ],
                       ),
                     ],
+                    const SizedBox(height: AppSpacing.md),
+                    // Facultatif, et à sa place ici : le voyageur qui a
+                    // reçu un code l'a sous les yeux au moment où il se
+                    // présente, pas trois écrans plus loin au moment de
+                    // choisir un PIN.
+                    KoraInput(
+                      key: const Key('signup-referral'),
+                      label: l10n.signupReferralLabel,
+                      hint: l10n.signupReferralHint,
+                      controller: _referral,
+                      // Majuscules et longueur maximale : le serveur
+                      // compare des majuscules et refuse au-delà de 24
+                      // caractères.
+                      inputFormatters: referralCodeFormatters(),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      l10n.signupReferralText,
+                      style: AppTextStyles.caption(koraColors.textMuted),
+                    ),
                     const SizedBox(height: AppSpacing.md),
                     KoraCard(
                       variant: KoraCardVariant.mist,

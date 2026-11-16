@@ -48,7 +48,13 @@ class _RefusedReferralRepository extends StubAuthRepository {
     String? countryCode,
     String? referralCode,
   }) async {
-    calls.add('completeRegistration:$pin:parrain=$referralCode');
+    final sent = referralCode == null || referralCode.isEmpty
+        ? ''
+        : ':parrain=$referralCode';
+    calls.add('completeRegistration:$pin$sent');
+
+    // Sans code, plus rien à refuser : le compte se crée.
+    if (sent.isEmpty) return Right(StubAuthRepository.session);
 
     return const Left(
       ValidationFailure(
@@ -286,6 +292,7 @@ void main() {
     WidgetTester tester,
     AuthRepository repository, {
     OtpPurpose purpose = OtpPurpose.registration,
+    String? referralCode,
   }) async {
     tester.view.physicalSize = const Size(390 * 3, 1200 * 3);
     tester.view.devicePixelRatio = 3;
@@ -296,6 +303,7 @@ void main() {
         AuthFlowIdentifierSubmitted(
           identifier: 'aicha@example.com',
           purpose: purpose,
+          referralCode: referralCode,
         ),
       );
     addTearDown(flow.close);
@@ -328,107 +336,59 @@ void main() {
     }
   }
 
-  group('code de parrainage', () {
-    testWidgets('replié par défaut, il s’ouvre par son lien', (tester) async {
-      // Un champ de plus sous le pavé numérique se lirait comme une
-      // étape obligatoire : la plupart des voyageurs n'ont pas de code.
-      await pumpAtPinStep(tester, StubAuthRepository());
-
-      expect(find.text('J’ai un code de parrainage'), findsOneWidget);
-      expect(find.byType(TextField), findsNothing);
-
-      await tester.tap(find.text('J’ai un code de parrainage'));
-      await tester.pumpAndSettle();
-
-      expect(find.byType(TextField), findsOneWidget);
-      expect(find.text('Code de parrainage (facultatif)'), findsOneWidget);
-    });
-
-    testWidgets('part avec le PIN, en majuscules', (tester) async {
-      final repository = StubAuthRepository();
-      await pumpAtPinStep(tester, repository);
-
-      await tester.tap(find.text('J’ai un code de parrainage'));
-      await tester.pumpAndSettle();
-
-      // Le serveur compare des majuscules : une frappe en minuscules ne
-      // doit pas valoir « code inconnu ».
-      await tester.enterText(find.byType(TextField), 'ka1b2c3d');
-      await tester.pumpAndSettle();
-
-      await enterPinTwice(tester, '1234');
-
-      expect(
-        repository.calls,
-        contains('completeRegistration:1234:parrain=KA1B2C3D'),
-      );
-    });
-
-    testWidgets('laissé vide, il ne part pas du tout', (tester) async {
-      // Une clé `referral_code` vide ferait refuser l'activation d'un
-      // compte préexistant sans PIN.
-      final repository = StubAuthRepository();
-      await pumpAtPinStep(tester, repository);
-
-      await tester.tap(find.text('J’ai un code de parrainage'));
-      await tester.pumpAndSettle();
-      await enterPinTwice(tester, '1234');
-
-      expect(repository.calls, contains('completeRegistration:1234'));
-    });
-
-    testWidgets('un PIN réinitialisé ne le demande pas', (tester) async {
-      // `pin_reset` ne crée aucun compte : il n'y a rien à parrainer.
-      await pumpAtPinStep(
-        tester,
-        StubAuthRepository(),
-        purpose: OtpPurpose.pinReset,
-      );
-
-      expect(find.textContaining('code de parrainage'), findsNothing);
-    });
-
-    testWidgets('le refus se lit sous le champ, PIN toujours en main', (
-      tester,
-    ) async {
+  group('code de parrainage refusé', () {
+    testWidgets('le refus se lit ici, PIN toujours en main', (tester) async {
+      // Le code a été saisi au formulaire, deux écrans plus tôt, mais
+      // c'est ici qu'il se rattache — et ici que le serveur le refuse.
       final repository = _RefusedReferralRepository();
-      final flow = await pumpAtPinStep(tester, repository);
+      final flow = await pumpAtPinStep(
+        tester,
+        repository,
+        referralCode: 'INCONNU',
+      );
 
-      await tester.tap(find.text('J’ai un code de parrainage'));
-      await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField), 'INCONNU');
-      await tester.pumpAndSettle();
       await enterPinTwice(tester, '1234');
 
+      expect(find.text('Ce code de parrainage est inconnu.'), findsOneWidget);
       // Le message du serveur, et lui seul : annoncer en plus un échec
       // au milieu de l'écran laisserait croire qu'il faut tout refaire.
-      expect(find.text('Ce code de parrainage est inconnu.'), findsOneWidget);
       expect(flow.state.errorMessage, isEmpty);
       // Le parcours n'a pas reculé : le code OTP vaut toujours, le PIN
-      // est gardé, il n'y a que le code à corriger ou à retirer.
+      // est gardé.
       expect(flow.state.step, AuthFlowStep.pin);
       expect(flow.state.verification, isNotNull);
     });
 
-    testWidgets('le refus s’efface dès que le code est retouché', (
+    testWidgets('on peut terminer sans le code', (tester) async {
+      // Revenir au formulaire redemanderait un code OTP : on laisse
+      // plutôt finir l'inscription sans parrain. Le Wallet le
+      // rattrapera tant que le voyageur n'a pas voyagé.
+      final repository = _RefusedReferralRepository();
+      final flow = await pumpAtPinStep(
+        tester,
+        repository,
+        referralCode: 'INCONNU',
+      );
+
+      await enterPinTwice(tester, '1234');
+      expect(find.text('Continuer sans ce code'), findsOneWidget);
+
+      await tester.tap(find.text('Continuer sans ce code'));
+      await tester.pumpAndSettle();
+
+      // Le second envoi part sans le code, et le compte se crée.
+      expect(repository.calls.last, 'completeRegistration:1234');
+      expect(flow.state.step, AuthFlowStep.done);
+    });
+
+    testWidgets('rien à proposer quand le serveur ne refuse rien', (
       tester,
     ) async {
-      final repository = _RefusedReferralRepository();
-      await pumpAtPinStep(tester, repository);
+      await pumpAtPinStep(tester, StubAuthRepository());
 
-      await tester.tap(find.text('J’ai un code de parrainage'));
-      await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField), 'INCONNU');
-      await tester.pumpAndSettle();
       await enterPinTwice(tester, '1234');
-      expect(find.text('Ce code de parrainage est inconnu.'), findsOneWidget);
 
-      // Le refus portait sur le code envoyé : il ne dit plus rien du
-      // code qui est à l'écran.
-      await tester.enterText(find.byType(TextField), 'AUTRE');
-      await tester.pumpAndSettle();
-
-      expect(find.text('Ce code de parrainage est inconnu.'), findsNothing);
+      expect(find.text('Continuer sans ce code'), findsNothing);
     });
   });
 }

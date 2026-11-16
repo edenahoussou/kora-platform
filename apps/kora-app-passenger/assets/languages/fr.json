@@ -307,7 +307,7 @@
   "signup_switch_to_email": "Inscription avec votre adresse e-mail ?",
   "signup_email_protected": "Votre email sert d’identifiant KORA et reste protégé.",
   "signup_submit": "Recevoir mon code",
-  "signup_referral_toggle": "J’ai un code de parrainage",
+  "signup_referral_skip": "Continuer sans ce code",
   "signup_referral_label": "Code de parrainage (facultatif)",
   "signup_referral_hint": "KA1B2C3D",
   "signup_referral_text": "Le code de la personne qui vous a invité. Vous pourrez encore l’ajouter depuis votre Wallet, avant votre premier voyage.",

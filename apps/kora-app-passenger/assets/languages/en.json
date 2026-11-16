@@ -307,7 +307,7 @@
   "signup_switch_to_email": "Sign up with your email address?",
   "signup_email_protected": "Your email is your KORA ID and stays protected.",
   "signup_submit": "Send me the code",
-  "signup_referral_toggle": "I have a referral code",
+  "signup_referral_skip": "Continue without this code",
   "signup_referral_label": "Referral code (optional)",
   "signup_referral_hint": "KA1B2C3D",
   "signup_referral_text": "The code of whoever invited you. You can still add it from your Wallet, before your first trip.",

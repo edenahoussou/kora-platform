@@ -35,6 +35,7 @@ class AuthFlowState extends Equatable {
     this.session,
     this.identifier = '',
     this.registrationName = '',
+    this.registrationReferralCode = '',
     this.pendingPin = '',
     this.errorMessage = '',
     this.referralError = '',
@@ -77,6 +78,11 @@ class AuthFlowState extends Equatable {
   /// l'écran du code.
   final String registrationName;
 
+  /// Le code de parrainage saisi au formulaire d'inscription, gardé
+  /// jusqu'à la création du compte — c'est `register/complete` qui le
+  /// rattache, et elle n'a lieu qu'au bout du parcours.
+  final String registrationReferralCode;
+
   /// PIN saisi lors d'une connexion, gardé le temps d'un aller-retour par
   /// l'OTP : le serveur le redemande quand on rappelle `login` avec le
   /// `verification_token`, et le faire retaper serait absurde.
@@ -118,6 +124,7 @@ class AuthFlowState extends Equatable {
     AuthSession? session,
     String? identifier,
     String? registrationName,
+    String? registrationReferralCode,
     String? pendingPin,
     String? errorMessage,
     String? referralError,
@@ -135,6 +142,8 @@ class AuthFlowState extends Equatable {
       session: session ?? this.session,
       identifier: identifier ?? this.identifier,
       registrationName: registrationName ?? this.registrationName,
+      registrationReferralCode:
+          registrationReferralCode ?? this.registrationReferralCode,
       pendingPin: pendingPin ?? this.pendingPin,
       errorMessage: errorMessage ?? this.errorMessage,
       referralError: referralError ?? this.referralError,
@@ -155,6 +164,7 @@ class AuthFlowState extends Equatable {
     session,
     identifier,
     registrationName,
+    registrationReferralCode,
     pendingPin,
     errorMessage,
     referralError,

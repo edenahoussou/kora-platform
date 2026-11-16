@@ -50,6 +50,7 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
         identifier: event.identifier,
         purpose: event.purpose,
         registrationName: event.name,
+        registrationReferralCode: event.referralCode,
       ),
     );
 
@@ -265,7 +266,14 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
     if (verification == null) return;
 
     emit(
-      state.copyWith(isSubmitting: true, errorMessage: '', referralError: ''),
+      state.copyWith(
+        isSubmitting: true,
+        errorMessage: '',
+        referralError: '',
+        // Repartir sans le code, c'est l'oublier pour de bon : sans ça,
+        // un second essai le renverrait au serveur.
+        registrationReferralCode: event.withReferralCode ? null : '',
+      ),
     );
 
     // Un PIN choisi après un `pin_reset` ne crée pas de compte : il
@@ -294,7 +302,11 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
       // Renseigné pour une inscription par téléphone, vide sinon : le
       // serveur dérive alors le nom de l'adresse.
       name: state.registrationName,
-      referralCode: event.referralCode,
+      // Recueilli au formulaire, deux écrans plus tôt. Mis de côté quand
+      // le serveur l'a refusé et que le voyageur passe outre.
+      referralCode: event.withReferralCode
+          ? state.registrationReferralCode
+          : null,
     );
 
     emit(

@@ -3,9 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 
 import '../../../../core/l10n/app_localization.dart';
-import '../../../../core/utils/referral_code.dart';
 import '../../../../core/widgets/screen_header.dart';
-import '../../domain/entities/otp_purpose.dart';
 import '../bloc/auth_flow_bloc.dart';
 import '../widgets/pin_pad.dart';
 
@@ -65,20 +63,6 @@ class CreatePinPage extends StatefulWidget {
 class _CreatePinPageState extends State<CreatePinPage> {
   static const int _pinLength = 4;
 
-  /// Le code de parrainage, facultatif : il part avec la création du
-  /// compte, le serveur ne l'accepte nulle part ailleurs dans le
-  /// parcours.
-  final _referral = TextEditingController();
-
-  /// Le champ a été dépliné par le lien : replié, il ne concerne pas
-  /// ceux qui n'ont pas de code.
-  bool _referralOpen = false;
-
-  /// Le code a été retouché depuis le dernier envoi : le refus affiché
-  /// portait sur l'ancien, il n'a plus rien à dire de ce qui est à
-  /// l'écran.
-  bool _referralEdited = false;
-
   String _pin = '';
   String? _error;
 
@@ -86,12 +70,6 @@ class _CreatePinPageState extends State<CreatePinPage> {
   String? _chosen;
 
   bool get _isConfirming => _chosen != null;
-
-  @override
-  void dispose() {
-    _referral.dispose();
-    super.dispose();
-  }
 
   void _press(String key) {
     setState(() {
@@ -136,18 +114,11 @@ class _CreatePinPageState extends State<CreatePinPage> {
       return;
     }
 
-    final code = _referral.text.trim();
+    setState(() => _error = null);
 
-    setState(() {
-      _error = null;
-      _referralEdited = false;
-    });
-
-    context.read<AuthFlowBloc>().add(
-      // Vide, le code ne part pas du tout : une clé présente ferait
-      // refuser l'activation d'un compte préexistant sans PIN.
-      AuthFlowPinSubmitted(_pin, referralCode: code.isEmpty ? null : code),
-    );
+    // Le code de parrainage voyage dans le parcours depuis le
+    // formulaire : cet écran n'a que le PIN à donner.
+    context.read<AuthFlowBloc>().add(AuthFlowPinSubmitted(_pin));
     widget.onSubmit?.call(_pin);
   }
 
@@ -194,27 +165,24 @@ class _CreatePinPageState extends State<CreatePinPage> {
                       builder: (context, flow) => Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          // Le parrainage se rattache **en créant** le
-                          // compte, et c'est cet écran qui le crée : un
-                          // PIN réinitialisé n'ouvre aucun compte, le
-                          // champ n'y a donc rien à faire.
-                          if (flow.purpose == OtpPurpose.registration) ...[
-                            _ReferralField(
-                              controller: _referral,
-                              // Un refus déplie le champ de lui-même :
-                              // sinon son message resterait caché.
-                              isOpen:
-                                  _referralOpen ||
-                                  flow.referralError.isNotEmpty,
-                              enabled: !flow.isSubmitting,
-                              error: _referralEdited ? '' : flow.referralError,
-                              onOpen: () =>
-                                  setState(() => _referralOpen = true),
-                              onChanged: (_) {
-                                if (!_referralEdited) {
-                                  setState(() => _referralEdited = true);
-                                }
-                              },
+                          // Le code de parrainage a été saisi au
+                          // formulaire, mais c'est ici qu'il se rattache
+                          // — et ici que le serveur peut le refuser. Le
+                          // renvoyer au formulaire redemanderait un code
+                          // OTP ; on propose donc de terminer sans lui,
+                          // ce que le Wallet rattrapera tant que le
+                          // voyageur n'a pas voyagé.
+                          if (flow.referralError.isNotEmpty) ...[
+                            _RefusedReferral(
+                              message: flow.referralError,
+                              onContinue: flow.isSubmitting
+                                  ? null
+                                  : () => context.read<AuthFlowBloc>().add(
+                                      AuthFlowPinSubmitted(
+                                        _pin,
+                                        withReferralCode: false,
+                                      ),
+                                    ),
                             ),
                             const SizedBox(height: 12),
                           ],
@@ -271,71 +239,55 @@ class _CreatePinPageState extends State<CreatePinPage> {
   }
 }
 
-/// Le code de parrainage de l'inscription — règles de fidélité MEZ-49.
+/// Le code de parrainage refusé par le serveur, au moment de créer le
+/// compte.
 ///
-/// Replié derrière un lien : la plupart des voyageurs n'ont pas de code,
-/// et un champ de plus sous le pavé numérique se lirait comme une étape
-/// obligatoire du parcours.
-///
-/// Rien n'est vérifié ici. Le serveur seul sait si un code existe, à qui
-/// il appartient et s'il est encore rattachable ; rejouer ses règles,
-/// c'est promettre un refus qu'il n'aurait pas fait, ou l'inverse. On
-/// envoie ce qui est tapé, et on montre la raison du refus sous le
-/// champ — le PIN et le code OTP restent en main pour réessayer.
-class _ReferralField extends StatelessWidget {
-  const _ReferralField({
-    required this.controller,
-    required this.isOpen,
-    required this.enabled,
-    required this.error,
-    required this.onOpen,
-    required this.onChanged,
-  });
+/// Le voyageur l'a saisi au formulaire, deux écrans plus tôt, et il ne
+/// peut pas y retourner sans redemander un code OTP. On lui dit ce que
+/// le serveur reproche au code — ses messages sont écrits pour lui —
+/// et on lui laisse terminer sans. Le Wallet rattrape le parrainage
+/// tant qu'aucun billet n'a été utilisé.
+class _RefusedReferral extends StatelessWidget {
+  const _RefusedReferral({required this.message, required this.onContinue});
 
-  final TextEditingController controller;
-  final bool isOpen;
-  final bool enabled;
-
-  /// Ce que le serveur reproche au code (`errors.referral_code`), vide
-  /// quand il n'y a rien à reprocher.
-  final String error;
-
-  final VoidCallback onOpen;
-  final ValueChanged<String> onChanged;
+  final String message;
+  final VoidCallback? onContinue;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
 
-    if (!isOpen) {
-      return Center(
-        child: TextButton(
-          onPressed: enabled ? onOpen : null,
-          child: Text(l10n.signupReferralToggle),
-        ),
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        KoraInput(
-          label: l10n.signupReferralLabel,
-          hint: l10n.signupReferralHint,
-          controller: controller,
-          enabled: enabled,
-          // Majuscules et longueur maximale : le serveur compare des
-          // majuscules et refuse au-delà de 24 caractères.
-          inputFormatters: referralCodeFormatters(),
-          errorText: error.isEmpty ? null : error,
-          onChanged: onChanged,
-        ),
-        const SizedBox(height: 6),
-        Text(
-          l10n.signupReferralText,
-          style: AppTextStyles.caption(context.koraColors.textMuted),
-        ),
-      ],
+    return KoraCard(
+      variant: KoraCardVariant.mist,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.info_outline_rounded,
+                size: 18,
+                color: AppColors.gold,
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  message,
+                  style: AppTextStyles.body(context.koraColors.textMuted),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          KoraButton(
+            label: l10n.signupReferralSkip,
+            variant: KoraButtonVariant.secondary,
+            onPressed: onContinue,
+          ),
+        ],
+      ),
     );
   }
 }
