@@ -14,6 +14,7 @@ class AuthFlowIdentifierSubmitted extends AuthFlowEvent {
     required this.identifier,
     this.purpose = OtpPurpose.registration,
     this.name,
+    this.referralCode,
   });
 
   /// Téléphone au format international (`+22997…`) ou adresse e-mail.
@@ -26,8 +27,13 @@ class AuthFlowIdentifierSubmitted extends AuthFlowEvent {
   /// jusqu'au choix du PIN.
   final String? name;
 
+  /// Le code de parrainage facultatif, recueilli sur le même formulaire
+  /// que l'identifiant. Il voyage lui aussi jusqu'à la création du
+  /// compte : c'est elle, et elle seule, qui le rattache.
+  final String? referralCode;
+
   @override
-  List<Object?> get props => [identifier, purpose, name];
+  List<Object?> get props => [identifier, purpose, name, referralCode];
 }
 
 /// Écran de connexion : téléphone + PIN.
@@ -76,12 +82,20 @@ class AuthFlowCodeResent extends AuthFlowEvent {
 /// Écran « Créez votre PIN » : termine l'inscription, ou réinitialise le
 /// PIN selon le motif du parcours.
 class AuthFlowPinSubmitted extends AuthFlowEvent {
-  const AuthFlowPinSubmitted(this.pin);
+  const AuthFlowPinSubmitted(this.pin, {this.withReferralCode = true});
 
   final String pin;
 
+  /// Emporte le code de parrainage recueilli au formulaire.
+  ///
+  /// Mis à faux pour **repartir sans lui** : le serveur l'a refusé, et
+  /// le voyageur choisit de terminer son inscription quand même. Il
+  /// pourra le rattacher ensuite depuis son Wallet, tant qu'il n'a pas
+  /// voyagé.
+  final bool withReferralCode;
+
   @override
-  List<Object?> get props => [pin];
+  List<Object?> get props => [pin, withReferralCode];
 }
 
 /// Boutons Google / Facebook / TikTok, une fois le jeton du fournisseur

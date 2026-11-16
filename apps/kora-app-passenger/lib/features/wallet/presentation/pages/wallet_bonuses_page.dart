@@ -6,6 +6,7 @@ import 'package:flutter_design_system/flutter_design_system.dart';
 import '../../../../core/di/injector.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/l10n/app_localization.dart';
+import '../../../../core/utils/referral_code.dart';
 import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../booking/presentation/widgets/state_view.dart';
@@ -214,10 +215,9 @@ class _ReferralEntryState extends State<_ReferralEntry> {
             controller: _code,
             hint: l10n.walletReferralEntryHint,
             enabled: !widget.isSending,
-            // Le serveur met le code en majuscules avant de chercher :
-            // le faire ici évite un refus qui ne tiendrait qu'à la
-            // casse de la frappe.
-            inputFormatters: [_UpperCase()],
+            // Majuscules et longueur maximale : les mêmes règles qu'à
+            // l'inscription, parce que c'est le même champ côté serveur.
+            inputFormatters: referralCodeFormatters(),
             onChanged: (_) => setState(() {}),
           ),
           if (_errorText(l10n) case final error?) ...[
@@ -249,21 +249,6 @@ class _ReferralEntryState extends State<_ReferralEntry> {
     ServerFailure() || UnexpectedFailure() => l10n.walletReferralEntryFailed,
     final failure => failure.message,
   };
-}
-
-/// Met la saisie en majuscules au fil de la frappe.
-///
-/// Le serveur compare des majuscules : laisser passer « klv5sa3h »
-/// ferait répondre « code inconnu » pour une simple casse.
-class _UpperCase extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue previous,
-    TextEditingValue next,
-  ) => TextEditingValue(
-    text: next.text.toUpperCase(),
-    selection: next.selection,
-  );
 }
 
 /// `.card.gold` : le total gagné, lu dans le relevé.

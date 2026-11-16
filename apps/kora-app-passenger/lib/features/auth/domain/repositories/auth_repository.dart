@@ -39,6 +39,10 @@ abstract class AuthRepository {
   /// alors pas d'adresse d'où tirer un nom et répond `422 name_required`
   /// sans lui. Les autres champs rattachent au compte ce que l'écran a
   /// recueilli en plus de l'identifiant.
+  ///
+  /// [referralCode] n'a cours qu'ici, à la création : le serveur le
+  /// refuse sur l'activation d'un compte préexistant, et le Wallet prend
+  /// le relais ensuite (`POST wallet/referral`).
   Future<Either<Failure, AuthSession>> completeRegistration({
     required OtpVerification verification,
     required String pin,
@@ -46,6 +50,7 @@ abstract class AuthRepository {
     String? email,
     String? phone,
     String? countryCode,
+    String? referralCode,
   });
 
   /// Connecte un compte existant.

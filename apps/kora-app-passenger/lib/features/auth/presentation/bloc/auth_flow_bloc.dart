@@ -34,6 +34,10 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
 
   final AuthRepository _repository;
 
+  /// Le champ que le serveur nomme quand il refuse un code de
+  /// parrainage (`errors.referral_code`).
+  static const String _referralField = 'referral_code';
+
   Future<void> _onIdentifierSubmitted(
     AuthFlowIdentifierSubmitted event,
     Emitter<AuthFlowState> emit,
@@ -46,6 +50,7 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
         identifier: event.identifier,
         purpose: event.purpose,
         registrationName: event.name,
+        registrationReferralCode: event.referralCode,
       ),
     );
 
@@ -260,7 +265,16 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
     final verification = state.verification;
     if (verification == null) return;
 
-    emit(state.copyWith(isSubmitting: true, errorMessage: ''));
+    emit(
+      state.copyWith(
+        isSubmitting: true,
+        errorMessage: '',
+        referralError: '',
+        // Repartir sans le code, c'est l'oublier pour de bon : sans ça,
+        // un second essai le renverrait au serveur.
+        registrationReferralCode: event.withReferralCode ? null : '',
+      ),
+    );
 
     // Un PIN choisi après un `pin_reset` ne crée pas de compte : il
     // remplace l'ancien, et l'utilisateur se reconnecte ensuite.
@@ -288,6 +302,11 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
       // Renseigné pour une inscription par téléphone, vide sinon : le
       // serveur dérive alors le nom de l'adresse.
       name: state.registrationName,
+      // Recueilli au formulaire, deux écrans plus tôt. Mis de côté quand
+      // le serveur l'a refusé et que le voyageur passe outre.
+      referralCode: event.withReferralCode
+          ? state.registrationReferralCode
+          : null,
     );
 
     emit(
@@ -323,9 +342,17 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
   /// Un échec arrête la soumission sans faire reculer l'étape : l'écran
   /// affiche l'erreur là où l'utilisateur se trouve.
   AuthFlowState _failed(Failure failure) {
+    // Un code de parrainage refusé n'est pas une inscription perdue :
+    // c'est un champ facultatif à corriger ou à retirer. Le message va
+    // sous ce champ, et nulle part ailleurs — annoncer en plus l'échec
+    // au milieu de l'écran laisserait croire qu'il faut tout refaire.
+    final refusedReferral =
+        failure is ValidationFailure && failure.field == _referralField;
+
     return state.copyWith(
       isSubmitting: false,
-      errorMessage: failure.message,
+      errorMessage: refusedReferral ? '' : failure.message,
+      referralError: refusedReferral ? failure.message : '',
       isAccountLocked: failure is AccountLockedFailure,
       accountExists: failure is AccountExistsFailure,
     );

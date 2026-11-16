@@ -35,8 +35,10 @@ class AuthFlowState extends Equatable {
     this.session,
     this.identifier = '',
     this.registrationName = '',
+    this.registrationReferralCode = '',
     this.pendingPin = '',
     this.errorMessage = '',
+    this.referralError = '',
     this.isAccountLocked = false,
     this.accountExists = false,
     this.deviceName = '',
@@ -76,12 +78,26 @@ class AuthFlowState extends Equatable {
   /// l'écran du code.
   final String registrationName;
 
+  /// Le code de parrainage saisi au formulaire d'inscription, gardé
+  /// jusqu'à la création du compte — c'est `register/complete` qui le
+  /// rattache, et elle n'a lieu qu'au bout du parcours.
+  final String registrationReferralCode;
+
   /// PIN saisi lors d'une connexion, gardé le temps d'un aller-retour par
   /// l'OTP : le serveur le redemande quand on rappelle `login` avec le
   /// `verification_token`, et le faire retaper serait absurde.
   final String pendingPin;
 
   final String errorMessage;
+
+  /// Pourquoi le serveur a refusé le code de parrainage de
+  /// l'inscription — son `errors.referral_code`.
+  ///
+  /// À part de [errorMessage] parce que la suite n'est pas la même : ce
+  /// n'est pas l'inscription qui a échoué sur le fond, c'est un champ
+  /// facultatif à corriger ou à retirer. L'écran le montre sous ce
+  /// champ, PIN et code OTP toujours en main.
+  final String referralError;
 
   /// Compte bloqué après trop d'erreurs de PIN : l'écran propose alors le
   /// déverrouillage plutôt qu'un simple message d'échec.
@@ -108,8 +124,10 @@ class AuthFlowState extends Equatable {
     AuthSession? session,
     String? identifier,
     String? registrationName,
+    String? registrationReferralCode,
     String? pendingPin,
     String? errorMessage,
+    String? referralError,
     bool? isAccountLocked,
     bool? accountExists,
     String? deviceName,
@@ -124,8 +142,11 @@ class AuthFlowState extends Equatable {
       session: session ?? this.session,
       identifier: identifier ?? this.identifier,
       registrationName: registrationName ?? this.registrationName,
+      registrationReferralCode:
+          registrationReferralCode ?? this.registrationReferralCode,
       pendingPin: pendingPin ?? this.pendingPin,
       errorMessage: errorMessage ?? this.errorMessage,
+      referralError: referralError ?? this.referralError,
       isAccountLocked: isAccountLocked ?? this.isAccountLocked,
       accountExists: accountExists ?? this.accountExists,
       deviceName: deviceName ?? this.deviceName,
@@ -143,8 +164,10 @@ class AuthFlowState extends Equatable {
     session,
     identifier,
     registrationName,
+    registrationReferralCode,
     pendingPin,
     errorMessage,
+    referralError,
     isAccountLocked,
     accountExists,
     deviceName,
