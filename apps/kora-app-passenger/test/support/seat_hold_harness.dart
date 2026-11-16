@@ -12,10 +12,11 @@ import 'package:kora_app_passenger/core/error/failures.dart';
 import 'package:kora_app_passenger/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_mock_data.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/company_account.dart';
-import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/group_payer.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/group_quote.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/group_ticket.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/itinerary.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/journey.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/passenger.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/price.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/reservation_pricing.dart';
@@ -79,6 +80,9 @@ class StubReservationRepository implements ReservationRepository {
   /// Échec rendu par [release] — une libération refusée par le serveur.
   Failure? releaseFailure;
 
+  /// Les sièges reçus par le dernier [holdGroup], un tableau par tronçon.
+  List<List<Seat>> groupSeatsByLeg = const [];
+
   /// Échecs à rendre, dans l'ordre, par les prochains [holdGroup] — un siège
   /// pris entre la libération et le nouveau blocage.
   final List<Failure> nextHoldFailures = [];
@@ -89,15 +93,22 @@ class StubReservationRepository implements ReservationRepository {
 
   @override
   Future<Either<Failure, GroupQuote>> groupQuote({
-    required Departure departure,
+    required Journey journey,
     required int passengers,
-    Departure? returnDeparture,
     String? promoCode,
   }) async {
+    // Le nombre de tronçons apparaît dans la trace : un aller-retour en
+    // a deux, une correspondance autant que de bus, et c'est ce que le
+    // devis doit porter.
     calls.add(
-      (returnDeparture == null
-              ? 'groupQuote:$passengers'
-              : 'groupQuote:$passengers:aller-retour') +
+      (journey.isRoundTrip
+              ? 'groupQuote:$passengers:aller-retour'
+              : 'groupQuote:$passengers') +
+          // Les tronçons ne sont nommés que lorsqu'un bus en cache un
+          // autre : un aller-retour de deux directs se lit déjà plus haut.
+          (journey.outbound.isDirect && (journey.inbound?.isDirect ?? true)
+              ? ''
+              : ':legs=${journey.legs.length}') +
           (promoCode == null ? '' : ':promo=$promoCode'),
     );
     final failure = this.failure;
@@ -225,18 +236,21 @@ class StubReservationRepository implements ReservationRepository {
   @override
   Future<Either<Failure, SeatHold>> holdGroup({
     required GroupQuote quote,
-    required List<Seat> seats,
+    required Journey journey,
     required GroupPayer payer,
     required String idempotencyKey,
-    List<Seat>? returnSeats,
   }) async {
+    final seats = journey.seatsByLeg.firstOrNull ?? const <Seat>[];
+
     calls.add(
-      returnSeats == null
-          ? 'holdGroup:${seats.length}'
-          : 'holdGroup:${seats.length}+${returnSeats.length}',
+      'holdGroup:'
+      '${journey.seatsByLeg.map((legs) => legs.length).join('+')}',
     );
     groupPayer = payer;
-    groupReturnSeats = returnSeats;
+    groupSeatsByLeg = journey.seatsByLeg;
+    groupReturnSeats = journey.seatsByLeg.length > 1
+        ? journey.seatsByLeg.last
+        : null;
 
     final failure = this.failure;
     if (failure != null) return Left(failure);
@@ -586,7 +600,12 @@ Future<void> holdOneSeat(SeatHoldBloc bloc) async {
 
   bloc.add(
     SeatHoldCheckoutRequested(
-      departure: departure,
+      journey: Journey(
+        outbound: Itinerary.direct(departure),
+        seatsByLeg: [
+          [seat],
+        ],
+      ),
       passengers: [
         Passenger(
           firstName: 'Dolg',

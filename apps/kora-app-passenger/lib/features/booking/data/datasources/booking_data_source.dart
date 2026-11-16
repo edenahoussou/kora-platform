@@ -1,6 +1,7 @@
 import '../../domain/entities/city.dart';
 import '../../domain/entities/departure.dart';
 import '../../domain/entities/departure_search.dart';
+import '../../domain/entities/itinerary.dart';
 import '../../domain/entities/line_stop.dart';
 import '../../domain/entities/search_criteria.dart';
 import '../../domain/entities/seat_plan.dart';
@@ -89,21 +90,30 @@ class BookingMockDataSource implements BookingDataSource {
     // temps de voir avec le délai standard.
     await Future<void>.delayed(latency * 2);
 
-    final outbound = mockDeparturesFor(criteria);
+    // Le jeu de démonstration ne connaît que des trajets directs : un
+    // départ y vaut un voyage d'un seul tronçon.
+    final outbound = [
+      for (final departure in mockDeparturesFor(criteria))
+        Itinerary.direct(departure),
+    ];
+
     final returnDate = criteria.returnDate;
     if (returnDate == null) return DepartureSearch.oneWay(outbound);
 
     // Le retour, c'est la même liaison prise à l'envers.
     return DepartureSearch(
       outbound: outbound,
-      inbound: mockDeparturesFor(
-        SearchCriteria(
-          origin: criteria.destination,
-          destination: criteria.origin,
-          date: returnDate,
-          passengers: criteria.passengers,
-        ),
-      ),
+      inbound: [
+        for (final departure in mockDeparturesFor(
+          SearchCriteria(
+            origin: criteria.destination,
+            destination: criteria.origin,
+            date: returnDate,
+            passengers: criteria.passengers,
+          ),
+        ))
+          Itinerary.direct(departure),
+      ],
     );
   }
 

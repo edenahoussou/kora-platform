@@ -807,10 +807,8 @@ class AppRouter {
                 final args = state.extra as SeatsArgs?;
 
                 return SeatsPage(
-                  departure: args?.departure,
+                  journey: args?.journey,
                   passengers: args?.passengers ?? 1,
-                  returnDeparture: args?.returnDeparture,
-                  outbound: args?.outbound,
                 );
               },
             ),
@@ -819,12 +817,7 @@ class AppRouter {
               builder: (context, state) {
                 final args = state.extra as PassengerFormArgs?;
 
-                return PassengerFormPage(
-                  departure: args?.departure,
-                  seats: args?.seats ?? const [],
-                  returnDeparture: args?.returnDeparture,
-                  returnSeats: args?.returnSeats,
-                );
+                return PassengerFormPage(journey: args?.journey);
               },
             ),
             GoRoute(
@@ -833,10 +826,8 @@ class AppRouter {
                 final args = state.extra as SummaryArgs?;
 
                 return SummaryPage(
-                  departure: args?.departure,
+                  journey: args?.journey,
                   passengers: args?.passengers ?? const [],
-                  returnDeparture: args?.returnDeparture,
-                  returnSeats: args?.returnSeats,
                 );
               },
             ),
@@ -912,9 +903,9 @@ class AppRouter {
             final args = state.extra as DepartureDetailArgs?;
 
             return DepartureDetailPage(
-              departure: args?.departure,
+              itinerary: args?.itinerary,
               passengers: args?.passengers ?? 1,
-              returnDeparture: args?.returnDeparture,
+              returnItinerary: args?.returnItinerary,
             );
           },
         ),

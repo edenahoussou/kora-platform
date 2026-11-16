@@ -9,6 +9,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_mock_data.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/itinerary.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/journey.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/passenger.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/search_criteria.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/seat.dart';
@@ -72,10 +74,12 @@ void main() {
 
     bloc.add(
       SeatHoldCheckoutRequested(
-        departure: outbound,
+        journey: Journey(
+          outbound: Itinerary.direct(outbound),
+          inbound: Itinerary.direct(inbound),
+          seatsByLeg: [outboundSeats, inboundSeats],
+        ),
         passengers: travellersFor(outboundSeats),
-        returnDeparture: inbound,
-        returnSeats: inboundSeats,
       ),
     );
     await bloc.stream.firstWhere(_done);
@@ -90,10 +94,12 @@ void main() {
 
     bloc.add(
       SeatHoldCheckoutRequested(
-        departure: outbound,
+        journey: Journey(
+          outbound: Itinerary.direct(outbound),
+          inbound: Itinerary.direct(inbound),
+          seatsByLeg: [outboundSeats, inboundSeats],
+        ),
         passengers: travellersFor(outboundSeats),
-        returnDeparture: inbound,
-        returnSeats: inboundSeats,
       ),
     );
     await bloc.stream.firstWhere(_done);
@@ -111,7 +117,10 @@ void main() {
 
     bloc.add(
       SeatHoldCheckoutRequested(
-        departure: outbound,
+        journey: Journey(
+          outbound: Itinerary.direct(outbound),
+          seatsByLeg: [outboundSeats],
+        ),
         passengers: travellersFor(outboundSeats),
       ),
     );
@@ -132,10 +141,12 @@ void main() {
 
     bloc.add(
       SeatHoldCheckoutRequested(
-        departure: outbound,
+        journey: Journey(
+          outbound: Itinerary.direct(outbound),
+          inbound: Itinerary.direct(inbound),
+          seatsByLeg: [outboundSeats, inboundSeats],
+        ),
         passengers: travellersFor(outboundSeats),
-        returnDeparture: inbound,
-        returnSeats: inboundSeats,
       ),
     );
     await bloc.stream.firstWhere(_done);

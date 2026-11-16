@@ -14,6 +14,7 @@ import '../../../auth/domain/entities/phone_country.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../profil/presentation/pages/birth_date_picker_page.dart';
 import '../../domain/entities/departure.dart';
+import '../../domain/entities/journey.dart';
 import '../../domain/entities/passenger.dart';
 import '../../domain/entities/seat.dart';
 import '../widgets/booking_progress.dart';
@@ -23,23 +24,12 @@ import 'summary_page.dart';
 
 /// Données passées à [PassengerFormPage] par `go_router` (`extra`).
 class PassengerFormArgs {
-  const PassengerFormArgs({
-    required this.departure,
-    required this.seats,
-    this.returnDeparture,
-    this.returnSeats,
-  });
+  const PassengerFormArgs({required this.journey});
 
-  final Departure departure;
-
-  /// Les sièges choisis à l'écran précédent, un par voyageur.
-  final List<Seat> seats;
-
-  /// Le retour d'un aller-retour, avec ses sièges. Transmis au
-  /// récapitulatif : sans lui, il redemanderait un devis d'aller simple et
-  /// annoncerait la moitié du prix.
-  final Departure? returnDeparture;
-  final List<Seat>? returnSeats;
+  /// Le voyage entier, tous ses tronçons pourvus. Transmis tel quel au
+  /// récapitulatif : sans lui, il redemanderait un devis d'un seul bus
+  /// et annoncerait une fraction du prix.
+  final Journey journey;
 }
 
 /// Identité des voyageurs — écrans `passenger-info` et
@@ -55,38 +45,35 @@ class PassengerFormArgs {
 /// connaître une règle douanière que l'app connaît déjà.
 ///
 /// Voir [Departure.isInternational] : la règle porte sur le **tronçon**
-/// retenu, pas sur la ligne.
+/// retenu, pas sur la ligne — et il suffit qu'un seul tronçon du voyage
+/// franchisse une frontière pour que le manifeste soit exigé.
 class PassengerFormPage extends StatefulWidget {
-  const PassengerFormPage({
-    super.key,
-    required this.departure,
-    this.seats = const [],
-    this.returnDeparture,
-    this.returnSeats,
-  });
+  const PassengerFormPage({super.key, required this.journey});
 
   /// `null` si l'écran est ouvert sans données (lien profond).
-  final Departure? departure;
-
-  final List<Seat> seats;
-
-  /// Voir [PassengerFormArgs.returnDeparture].
-  final Departure? returnDeparture;
-  final List<Seat>? returnSeats;
+  final Journey? journey;
 
   @override
   State<PassengerFormPage> createState() => _PassengerFormPageState();
 }
 
 class _PassengerFormPageState extends State<PassengerFormPage> {
-  bool get _isInternational => widget.departure?.isInternational ?? false;
+  bool get _isInternational => widget.journey?.isInternational ?? false;
+
+  /// Le premier tronçon : celui dont le siège nomme le voyageur sur le
+  /// manifeste, et celui qui donne la ligne affichée en surtitre.
+  Departure? get _firstLeg => widget.journey?.legs.firstOrNull;
+
+  /// Les sièges du premier tronçon, un par voyageur.
+  List<Seat> get _seats =>
+      widget.journey?.seatsByLeg.firstOrNull ?? const <Seat>[];
 
   /// Le premier bloc part des informations du compte : c'est le voyageur
   /// le plus probable, et les retaper alors qu'elles sont déjà connues
   /// n'apporte rien. Les suivants restent vides — ce sont d'autres
   /// personnes, que le titulaire renseigne lui-même.
   late final List<_PassengerFields> _fields = [
-    for (var i = 0; i < widget.seats.length; i++)
+    for (var i = 0; i < _seats.length; i++)
       _PassengerFields(
         index: i,
         international: _isInternational,
@@ -191,43 +178,34 @@ class _PassengerFormPageState extends State<PassengerFormPage> {
 
   /// Les champs saisis, devenus voyageurs.
   List<Passenger> _collect() => [
-    for (var i = 0; i < _fields.length; i++)
-      _fields[i].toPassenger(widget.seats[i]),
+    for (var i = 0; i < _fields.length; i++) _fields[i].toPassenger(_seats[i]),
   ];
 
   void _openSummary(List<Passenger> passengers) {
     context.push(
       AppRouter.summaryPath,
-      extra: SummaryArgs(
-        departure: widget.departure!,
-        passengers: passengers,
-        returnDeparture: widget.returnDeparture,
-        returnSeats: widget.returnSeats,
-      ),
+      extra: SummaryArgs(journey: widget.journey!, passengers: passengers),
     );
   }
 
-  /// Le siège du voyageur [index] : le sien à l'aller, et celui du retour
-  /// quand il y en a un.
+  /// Les sièges du voyageur [index], un par bus qu'il prendra.
   ///
-  /// Les deux voyages se paient ensemble ; n'en montrer qu'un laisserait
-  /// croire que le retour n'a pas de place attribuée.
+  /// Tous les tronçons se paient ensemble ; n'en montrer qu'un
+  /// laisserait croire que les autres n'ont pas de place attribuée.
   String _seatLabel(BuildContext context, int index) {
-    final outbound = widget.seats[index].label;
-    final returnSeats = widget.returnSeats;
+    final seats = widget.journey?.seatsOf(index) ?? const <Seat>[];
+    if (seats.length < 2) return _seats[index].label;
 
-    if (returnSeats == null || index >= returnSeats.length) return outbound;
-
-    return context.l10n.summarySeatsRound(outbound, returnSeats[index].label);
+    return seats.map((seat) => seat.label).join(' · ');
   }
 
   @override
   Widget build(BuildContext context) {
     final koraColors = context.koraColors;
     final l10n = context.l10n;
-    final departure = widget.departure;
+    final departure = _firstLeg;
 
-    if (departure == null || widget.seats.isEmpty) {
+    if (departure == null || _seats.isEmpty) {
       return const Scaffold(
         body: SafeArea(
           child: Padding(
@@ -238,7 +216,7 @@ class _PassengerFormPageState extends State<PassengerFormPage> {
       );
     }
 
-    final count = widget.seats.length;
+    final count = _seats.length;
 
     return Scaffold(
       body: SafeArea(
@@ -265,7 +243,7 @@ class _PassengerFormPageState extends State<PassengerFormPage> {
                     for (final fields in _fields) ...[
                       _PassengerCard(
                         fields: fields,
-                        seat: widget.seats[fields.index],
+                        seat: _seats[fields.index],
                         seatLabel: _seatLabel(context, fields.index),
                         showErrors: _showErrors,
                         international: _isInternational,

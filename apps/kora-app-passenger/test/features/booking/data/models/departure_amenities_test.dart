@@ -14,13 +14,13 @@ import 'package:kora_app_passenger/features/booking/domain/entities/amenity.dart
 import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
 import 'package:kora_app_passenger/features/booking/presentation/widgets/amenity_view.dart';
 
-/// Le départ construit depuis [json], dont on sait qu'il est valide :
-/// `toEntity` ne rend `null` que sur un itinéraire à correspondance ou
-/// sans date exploitable, et chaque cas ci-dessous en est exempt.
+/// Le tronçon construit depuis [json], dont on sait qu'il est valide :
+/// `toEntity` ne rend `null` que sur un itinéraire sans tronçon lisible,
+/// et chaque cas ci-dessous en est exempt.
 Departure entityFrom(Map<String, dynamic> json) {
-  final departure = ItineraryModel.fromJson(json).toEntity();
-  expect(departure, isNotNull, reason: 'itinéraire illisible : $json');
-  return departure!;
+  final itinerary = ItineraryModel.fromJson(json).toEntity();
+  expect(itinerary, isNotNull, reason: 'itinéraire illisible : $json');
+  return itinerary!.first;
 }
 
 /// Un itinéraire direct minimal, dont seul le bloc `bus` nous intéresse.

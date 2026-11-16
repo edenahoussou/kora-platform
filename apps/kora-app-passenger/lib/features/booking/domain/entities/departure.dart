@@ -20,14 +20,15 @@ enum BusComfort {
 /// Couche DOMAIN : un départ précis sur une [Line] — c'est ce que
 /// l'utilisateur réserve.
 ///
-/// L'heure d'arrivée n'est pas stockée : elle se déduit de [departsAt] et
-/// de la durée de la ligne (voir [arrivesAt]). Une seule source de vérité,
-/// donc aucun risque d'incohérence entre les deux champs.
+/// L'heure d'arrivée est celle du serveur quand il la donne, et se
+/// déduit de [departsAt] et de la durée de la ligne sinon (voir
+/// [arrivesAt]).
 class Departure extends Equatable {
   const Departure({
     required this.id,
     required this.line,
     required this.departsAt,
+    this.arrival,
     required this.comfort,
     required this.price,
     required this.seatsTotal,
@@ -45,6 +46,13 @@ class Departure extends Equatable {
 
   /// Date **et** heure de départ.
   final DateTime departsAt;
+
+  /// L'heure d'arrivée annoncée par le serveur pour ce tronçon.
+  ///
+  /// La durée de la ligne ne la donne pas toujours : elle vaut pour la
+  /// ligne entière, pas pour le tronçon retenu. Nul sur les données
+  /// mockées — voir [arrivesAt].
+  final DateTime? arrival;
 
   final BusComfort comfort;
 
@@ -108,7 +116,9 @@ class Departure extends Equatable {
   /// connu, la gamme sinon.
   String get vehicleLabel => busLabel ?? comfort.label;
 
-  DateTime get arrivesAt => departsAt.add(line.duration);
+  /// L'heure d'arrivée : celle du serveur, ou la durée de ligne ajoutée
+  /// au départ quand il ne la dit pas.
+  DateTime get arrivesAt => arrival ?? departsAt.add(line.duration);
 
   bool get isSoldOut => seatsAvailable == 0;
 
@@ -121,6 +131,7 @@ class Departure extends Equatable {
     destinationCountry,
     line,
     departsAt,
+    arrival,
     comfort,
     price,
     seatsTotal,

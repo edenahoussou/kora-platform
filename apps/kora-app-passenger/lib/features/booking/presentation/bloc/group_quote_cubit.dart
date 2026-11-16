@@ -1,8 +1,8 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../domain/entities/departure.dart';
 import '../../domain/entities/group_quote.dart';
+import '../../domain/entities/journey.dart';
 import '../../domain/repositories/reservation_repository.dart';
 
 /// Le devis du serveur pour un nombre de voyageurs donné.
@@ -21,21 +21,18 @@ class GroupQuoteCubit extends Cubit<GroupQuoteState> {
 
   final ReservationRepository _repository;
 
-  Future<void> load({
-    required Departure departure,
-    required int passengers,
-    Departure? returnDeparture,
-  }) async {
+  Future<void> load({required Journey journey, required int passengers}) async {
     // Le même devis ne se redemande pas : le récapitulatif se reconstruit
     // à chaque battement du décompte de blocage.
-    if (state.isLoading || state.matches(departure.id, passengers)) return;
+    if (state.isLoading || state.matches(journey.outbound.id, passengers)) {
+      return;
+    }
 
     emit(state.copyWith(isLoading: true));
 
     final result = await _repository.groupQuote(
-      departure: departure,
+      journey: journey,
       passengers: passengers,
-      returnDeparture: returnDeparture,
     );
 
     result.fold(
@@ -43,7 +40,7 @@ class GroupQuoteCubit extends Cubit<GroupQuoteState> {
       (quote) => emit(
         GroupQuoteState(
           quote: quote,
-          departureId: departure.id,
+          departureId: journey.outbound.id,
           passengers: passengers,
         ),
       ),

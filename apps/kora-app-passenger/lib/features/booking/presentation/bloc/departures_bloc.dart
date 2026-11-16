@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../domain/entities/city.dart';
-import '../../domain/entities/departure.dart';
+import '../../domain/entities/itinerary.dart';
 import '../../domain/entities/price.dart';
 import '../../domain/entities/search_criteria.dart';
 import '../../domain/usecases/get_cities_usecase.dart';
@@ -87,8 +87,8 @@ class DeparturesBloc extends Bloc<DeparturesEvent, DeparturesState> {
         state.copyWith(
           status: DeparturesStatus.success,
           criteria: criteria,
-          departures: search.outbound,
-          returnDepartures: search.inbound,
+          itineraries: search.outbound,
+          returnItineraries: search.inbound,
         ),
       ),
     );
@@ -169,8 +169,8 @@ class DeparturesBloc extends Bloc<DeparturesEvent, DeparturesState> {
       (search) => emit(
         state.copyWith(
           status: DeparturesStatus.success,
-          departures: search.outbound,
-          returnDepartures: search.inbound,
+          itineraries: search.outbound,
+          returnItineraries: search.inbound,
           isRefreshing: false,
         ),
       ),

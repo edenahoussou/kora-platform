@@ -13,6 +13,7 @@ import 'package:kora_app_passenger/features/booking/data/datasources/booking_dat
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_mock_data.dart';
 import 'package:kora_app_passenger/features/booking/data/repositories/booking_repository_impl.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/itinerary.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/line.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/search_criteria.dart';
 import 'package:kora_app_passenger/features/booking/domain/repositories/booking_repository.dart';
@@ -78,7 +79,9 @@ void main() {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        home: DepartureDetailPage(departure: value ?? departure),
+        home: DepartureDetailPage(
+          itinerary: Itinerary.direct(value ?? departure),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -227,7 +230,7 @@ void main() {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        home: const DepartureDetailPage(departure: null),
+        home: const DepartureDetailPage(itinerary: null),
       ),
     );
     await tester.pumpAndSettle();
@@ -242,14 +245,14 @@ void main() {
       // l'écran « périmé » en permanence, ce qui est pire que de ne pas
       // rafraîchir.
       final cubit = DepartureDetailCubit(
-        departure: departure,
+        itinerary: Itinerary.direct(departure),
         repository: BookingRepositoryImpl(BookingMockDataSource()),
       );
       addTearDown(cubit.close);
 
       await cubit.refresh();
 
-      expect(cubit.state.departure, departure);
+      expect(cubit.state.itinerary.first, departure);
       expect(cubit.state.isStale, isFalse);
       expect(cubit.state.isRefreshing, isFalse);
     });

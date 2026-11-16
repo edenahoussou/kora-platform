@@ -7,6 +7,7 @@ import '../../domain/entities/city.dart';
 import '../../domain/entities/departure.dart';
 import '../../domain/entities/departure_search.dart';
 import '../../domain/entities/group_ticket.dart';
+import '../../domain/entities/itinerary.dart';
 import '../../domain/entities/line.dart';
 import '../../domain/entities/line_stop.dart';
 import '../../domain/entities/price.dart';
@@ -78,51 +79,47 @@ class BookingRemoteDataSourceImpl implements BookingDataSource {
 
   /// Les villes cherchables, triées comme la liste qu'on parcourt des yeux.
   ///
-  /// Une ville à plusieurs gares donne **plusieurs entrées**, une par
-  /// arrêt — voir [CityModel.toEntities]. Les replier en une seule
-  /// reviendrait à choisir une gare au hasard pour le voyageur, et à lui
-  /// annoncer « Aucun voyage ce jour-là » quand c'est la mauvaise.
+  /// **Une entrée par ville**, telle que la nomme le serveur : c'est lui
+  /// qui explore les points d'arrêt. Dédoubler Cotonou parce qu'elle a
+  /// deux arrêts revenait à faire arbitrer au voyageur un choix dont il
+  /// n'a pas les éléments.
   static List<City> _citiesOf(List<Map<String, dynamic>> raw) {
     final cities = [
-      for (final json in raw) ...CityModel.fromJson(json).toEntities(),
-    ]..removeWhere((city) => city.name.isEmpty || !city.isSearchable);
+      for (final json in raw)
+        if (CityModel.fromJson(json).toEntity() case final City city) city,
+    ];
 
-    // Une ville sans arrêt physique est écartée : depuis MEZ-63 la
-    // recherche interroge des arrêts, et la proposer mènerait le voyageur
-    // à une impasse plutôt qu'à un résultat.
-    //
     // L'API ne garantit pas d'ordre ; le sélecteur, lui, est une liste
-    // qu'on parcourt des yeux. Les gares d'une même ville se suivent, et
-    // celle qui porte le nom de la ville ouvre le groupe.
-    cities.sort((a, b) {
-      final byCity = a.name.compareTo(b.name);
-      if (byCity != 0) return byCity;
-      return (a.station ?? '').compareTo(b.station ?? '');
-    });
+    // qu'on parcourt des yeux.
+    cities.sort((a, b) => a.name.compareTo(b.name));
+
     return cities;
   }
 
   /// Cherche les trajets d'une ville à une autre, à une date donnée.
   ///
   /// Passe par `bus/itineraries` depuis MEZ-63, qui a retiré
-  /// `bus/departures`. Deux conséquences pour l'appelant : la recherche
-  /// travaille sur des **arrêts physiques** et non sur des noms de villes,
-  /// et elle rend des itinéraires — dont les trajets à correspondance, que
-  /// [ItineraryModel] écarte tant que l'app ne sait pas les afficher.
+  /// `bus/departures`. La recherche se fait au **nom de la ville**
+  /// (`from_city` / `to_city`) : le serveur explore lui-même tous les
+  /// points d'arrêt de la ville, ce qui est aussi ce qui permet de
+  /// trouver une correspondance entre deux lignes qui ne s'arrêtent pas
+  /// au même endroit. Elle rend des itinéraires — dont les trajets à
+  /// correspondance, que [ItineraryModel] écarte tant que l'app ne sait
+  /// pas les afficher.
   ///
   /// Un aller-retour change la forme de la réponse : le serveur rend
   /// `{outbound, inbound}` là où un aller simple rend `{data}`. Deux
   /// enveloppes, un seul point d'entrée.
   @override
   Future<DepartureSearch> searchDepartures(SearchCriteria criteria) async {
-    final from = criteria.origin.physicalStopId;
-    final to = criteria.destination.physicalStopId;
+    final from = criteria.origin.name;
+    final to = criteria.destination.name;
 
-    // Une ville sans arrêt physique ne peut pas être cherchée : le serveur
-    // refuserait (422). Le cas vient d'une ville reconstruite ailleurs que
-    // depuis `bus/cities` — un billet relu, un jeu de démonstration.
-    if (from == null || to == null) {
-      throw const ServerException('Ville sans arrêt desservi.');
+    // Sans nom, il n'y a rien à chercher et le serveur refuserait (422).
+    // Le cas vient d'une ville reconstruite ailleurs que depuis
+    // `bus/cities` — un billet relu, un jeu de démonstration.
+    if (from.isEmpty || to.isEmpty) {
+      throw const ServerException('Ville inconnue.');
     }
 
     final returnDate = criteria.returnDate;
@@ -130,8 +127,11 @@ class BookingRemoteDataSourceImpl implements BookingDataSource {
     final response = await _dio.get<dynamic>(
       ApiConstants.busItineraries,
       queryParameters: {
-        'from_physical_stop_uuid': from,
-        'to_physical_stop_uuid': to,
+        // Le nom part tel que `bus/cities` l'a donné. Le serveur
+        // compare sans tenir compte de la casse ni des accents, mais
+        // c'est son orthographe qui fait foi.
+        'from_city': from,
+        'to_city': to,
         'date': _apiDate(criteria.date),
         'passenger_count': criteria.passengers,
         // `trip_type` porte l'intention, `return_date` la précise. Le
@@ -153,22 +153,23 @@ class BookingRemoteDataSourceImpl implements BookingDataSource {
     // sur un aller-retour sans retour daté — les cinq allers étaient bien
     // là, sous une clé qu'on n'ouvrait pas.
     if (!criteria.isRoundTrip) {
-      return DepartureSearch.oneWay(_departuresIn(body));
+      return DepartureSearch.oneWay(_itinerariesIn(body));
     }
 
     // Les deux sens ne sont pas sous `data` : le serveur les nomme.
     final map = ApiJson.map(body);
     return DepartureSearch(
-      outbound: _departuresIn(map['outbound']),
-      inbound: _departuresIn(map['inbound']),
+      outbound: _itinerariesIn(map['outbound']),
+      inbound: _itinerariesIn(map['inbound']),
     );
   }
 
-  /// Les départs lisibles d'une liste d'itinéraires.
+  /// Les voyages lisibles d'une liste d'itinéraires.
   ///
-  /// Écarte plutôt qu'invente : un itinéraire sans date exploitable, ou
-  /// qui impose une correspondance, ne donne pas de départ.
-  List<Departure> _departuresIn(Object? json) => [
+  /// Écarte plutôt qu'invente : un itinéraire dont un tronçon n'a pas de
+  /// date exploitable ne donne rien. Les correspondances, elles, passent
+  /// avec tous leurs tronçons.
+  List<Itinerary> _itinerariesIn(Object? json) => [
     for (final itinerary in ApiJson.list(json))
       ?ItineraryModel.fromJson(itinerary).toEntity(),
   ];

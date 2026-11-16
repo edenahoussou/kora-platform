@@ -12,6 +12,7 @@ import 'package:kora_app_passenger/features/booking/data/datasources/booking_moc
 import 'package:kora_app_passenger/features/booking/domain/entities/city.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/departure_search.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/itinerary.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/line.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/price.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/search_criteria.dart';
@@ -44,6 +45,12 @@ void main() {
   );
   final departures = mockDeparturesFor(criteria);
 
+  // La recherche rend des voyages : le jeu de démonstration n'en connaît
+  // que des directs, un tronçon chacun.
+  final itineraries = [
+    for (final departure in departures) Itinerary.direct(departure),
+  ];
+
   const requested = DeparturesRequested(
     originId: 'ctn',
     destinationId: 'mlv',
@@ -63,7 +70,7 @@ void main() {
     when(() => getCities(any())).thenAnswer((_) async => Right(kMockCities));
     when(
       () => searchDepartures(any()),
-    ).thenAnswer((_) async => Right(DepartureSearch.oneWay(departures)));
+    ).thenAnswer((_) async => Right(DepartureSearch.oneWay(itineraries)));
   });
 
   DeparturesBloc buildBloc() => DeparturesBloc(getCities, searchDepartures);
@@ -75,7 +82,7 @@ void main() {
       act: (bloc) => bloc.add(requested),
       verify: (bloc) {
         expect(bloc.state.status, DeparturesStatus.success);
-        expect(bloc.state.departures, departures);
+        expect(bloc.state.itineraries, itineraries);
 
         // Les critères sont reconstruits depuis l'URL, passagers compris.
         expect(bloc.state.criteria?.origin, cotonou);
@@ -100,7 +107,7 @@ void main() {
         DeparturesState(
           status: DeparturesStatus.success,
           criteria: criteria,
-          departures: departures,
+          itineraries: itineraries,
         ),
       ],
     );
@@ -161,10 +168,10 @@ void main() {
     test('trie par heure de départ, les complets en dernier', () {
       final state = DeparturesState(
         status: DeparturesStatus.success,
-        departures: departures,
+        itineraries: itineraries,
       );
 
-      final sorted = state.visibleDepartures;
+      final sorted = state.visibleItineraries;
       expect(sorted.first.departsAt.hour, 7);
       expect(sorted.map((d) => d.departsAt.hour).take(3), [7, 9, 20]);
       expect(sorted.last.isSoldOut, isTrue);
@@ -173,12 +180,12 @@ void main() {
     test('trie par prix croissant, les complets toujours en dernier', () {
       final state = DeparturesState(
         status: DeparturesStatus.success,
-        departures: departures,
+        itineraries: itineraries,
         sortField: DepartureSortField.price,
       );
 
-      final sorted = state.visibleDepartures;
-      final prices = sorted.map((d) => d.price.amount).toList();
+      final sorted = state.visibleItineraries;
+      final prices = sorted.map((d) => d.total.amount).toList();
       expect(prices.take(3), [12500, 12500, 14500]);
       expect(sorted.last.isSoldOut, isTrue);
     });
@@ -186,15 +193,15 @@ void main() {
     test('trie par prix décroissant sans faire remonter les complets', () {
       final state = DeparturesState(
         status: DeparturesStatus.success,
-        departures: departures,
+        itineraries: itineraries,
         sortField: DepartureSortField.price,
         sortDescending: true,
       );
 
-      final sorted = state.visibleDepartures;
+      final sorted = state.visibleItineraries;
       // Le départ complet est l'un des plus chers : le tri décroissant le
       // remonterait en tête s'il n'était pas relégué en fin de liste.
-      expect(sorted.map((d) => d.price.amount).take(3), [14500, 12500, 12500]);
+      expect(sorted.map((d) => d.total.amount).take(3), [14500, 12500, 12500]);
       expect(sorted.last.isSoldOut, isTrue);
     });
 
@@ -219,15 +226,18 @@ void main() {
       final state = DeparturesState(
         status: DeparturesStatus.success,
         // La plus longue en premier : sans tri, l'ordre resterait celui-ci.
-        departures: [departure(longue, 7), departure(courte, 9)],
+        itineraries: [
+          Itinerary.direct(departure(longue, 7)),
+          Itinerary.direct(departure(courte, 9)),
+        ],
         sortField: DepartureSortField.duration,
       );
 
-      expect(state.visibleDepartures.first.line, courte);
-      expect(state.visibleDepartures.last.line, longue);
+      expect(state.visibleItineraries.first.first.line, courte);
+      expect(state.visibleItineraries.last.first.line, longue);
 
       final inverse = state.copyWith(sortDescending: true);
-      expect(inverse.visibleDepartures.first.line, longue);
+      expect(inverse.visibleItineraries.first.first.line, longue);
     });
 
     blocTest<DeparturesBloc, DeparturesState>(
@@ -283,43 +293,43 @@ void main() {
     test('sans filtre, tous les départs sont visibles', () {
       final state = DeparturesState(
         status: DeparturesStatus.success,
-        departures: departures,
+        itineraries: itineraries,
       );
 
       expect(state.hasFilters, isFalse);
-      expect(state.visibleDepartures, hasLength(departures.length));
+      expect(state.visibleItineraries, hasLength(itineraries.length));
     });
 
     test('« Matin » ne garde que les départs d’avant midi', () {
       final state = DeparturesState(
         status: DeparturesStatus.success,
-        departures: departures,
+        itineraries: itineraries,
         timeSlots: const {DepartureTimeSlot.morning},
       );
 
       // 07:30 et 09:00 ; 20:00 et 22:30 sont écartés.
-      expect(state.visibleDepartures.map((d) => d.departsAt.hour), [7, 9]);
+      expect(state.visibleItineraries.map((d) => d.departsAt.hour), [7, 9]);
       expect(state.availableCount, 2);
     });
 
     test('deux créneaux s’additionnent', () {
       final state = DeparturesState(
         status: DeparturesStatus.success,
-        departures: departures,
+        itineraries: itineraries,
         timeSlots: const {DepartureTimeSlot.morning, DepartureTimeSlot.evening},
       );
 
-      expect(state.visibleDepartures, hasLength(4));
+      expect(state.visibleItineraries, hasLength(4));
     });
 
     test('un créneau sans départ donne « aucun départ ne correspond »', () {
       final state = DeparturesState(
         status: DeparturesStatus.success,
-        departures: departures,
+        itineraries: itineraries,
         timeSlots: const {DepartureTimeSlot.afternoon},
       );
 
-      expect(state.visibleDepartures, isEmpty);
+      expect(state.visibleItineraries, isEmpty);
       // Pas `isEmpty` : la liaison est desservie, ce sont les filtres qui
       // sont trop stricts — l'écran affiché n'est pas le même.
       expect(state.isEmpty, isFalse);
@@ -329,7 +339,7 @@ void main() {
     test('le compteur du titre ne compte que les départs visibles', () {
       final all = DeparturesState(
         status: DeparturesStatus.success,
-        departures: departures,
+        itineraries: itineraries,
       );
       // 4 départs mockés dont un complet.
       expect(all.availableCount, 3);
@@ -368,7 +378,7 @@ void main() {
       },
       verify: (bloc) {
         expect(bloc.state.hasFilters, isFalse);
-        expect(bloc.state.visibleDepartures, hasLength(4));
+        expect(bloc.state.visibleItineraries, hasLength(4));
       },
     );
   });
@@ -415,7 +425,7 @@ void main() {
         when(() => searchDepartures(any())).thenAnswer((_) async {
           attempt += 1;
           return attempt == 1
-              ? Right(DepartureSearch.oneWay(departures))
+              ? Right(DepartureSearch.oneWay(itineraries))
               : const Left(NetworkFailure());
         });
         return buildBloc();
@@ -429,7 +439,7 @@ void main() {
         // Des places légèrement périmées valent mieux qu'un écran d'erreur
         // à la place de résultats corrects.
         expect(bloc.state.status, DeparturesStatus.success);
-        expect(bloc.state.departures, departures);
+        expect(bloc.state.itineraries, itineraries);
         expect(bloc.state.isRefreshing, isFalse);
         expect(
           bloc.state.refreshError,
@@ -445,7 +455,7 @@ void main() {
         when(() => searchDepartures(any())).thenAnswer((_) async {
           attempt += 1;
           return attempt == 1
-              ? Right(DepartureSearch.oneWay(departures))
+              ? Right(DepartureSearch.oneWay(itineraries))
               : const Left(NetworkFailure());
         });
         return buildBloc();
@@ -480,7 +490,7 @@ void main() {
           attempt += 1;
           return attempt == 1
               ? const Left(NetworkFailure())
-              : Right(DepartureSearch.oneWay(departures));
+              : Right(DepartureSearch.oneWay(itineraries));
         });
         return buildBloc();
       },
@@ -491,7 +501,7 @@ void main() {
       },
       verify: (bloc) {
         expect(bloc.state.status, DeparturesStatus.success);
-        expect(bloc.state.departures, departures);
+        expect(bloc.state.itineraries, itineraries);
         // La recherche est bien relancée, avec les mêmes critères.
         verify(() => searchDepartures(any())).called(2);
       },
@@ -512,7 +522,7 @@ void main() {
         when(() => searchDepartures(any())).thenAnswer((_) async {
           attempt += 1;
           return attempt == 1
-              ? Right(DepartureSearch.oneWay(departures))
+              ? Right(DepartureSearch.oneWay(itineraries))
               : const Left(NetworkFailure());
         });
         return buildBloc();

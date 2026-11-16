@@ -673,7 +673,6 @@ class AppLocalization {
   String get cityPickerSuggestions => translate('city_picker_suggestions');
   String get cityPickerRecent => translate('city_picker_recent');
   String get cityPickerStop => translate('city_picker_stop');
-  String get cityPickerStation => translate('city_picker_station');
   String cityPickerNoResult(String query) =>
       _withArgs('city_picker_no_result', {'query': query});
   String get departuresEyebrow => translate('departures_eyebrow');
@@ -1275,6 +1274,29 @@ class AppLocalization {
     count > 1 ? 'departures_count_plural' : 'departures_count',
     {'count': count},
   );
+  String departuresConnections(int count, String cities) => _withArgs(
+    count > 1 ? 'departures_connections_plural' : 'departures_connections',
+    {'count': count, 'cities': cities},
+  );
+  String get departuresDirect => translate('departures_direct');
+  String departuresConnectionsTag(int count) => _withArgs(
+    count > 1
+        ? 'departures_connections_tag_plural'
+        : 'departures_connections_tag',
+    {'count': count},
+  );
+  String departuresConnectionNote(String cities, String wait) =>
+      _withArgs('departures_connection_note', {'cities': cities, 'wait': wait});
+  String departuresConnectionNotePlural(String cities) =>
+      _withArgs('departures_connection_note_plural', {'cities': cities});
+  String departuresSegments(int count) =>
+      _withArgs('departures_segments', {'count': count});
+  String departuresConnectionWait(String duration, String city) => _withArgs(
+    'departures_connection_wait',
+    {'duration': duration, 'city': city},
+  );
+  String departuresLegOrder(int order, int total) =>
+      _withArgs('departures_leg_order', {'order': order, 'total': total});
   String departuresRecap(int count, String slots, String prices) => _withArgs(
     count > 1 ? 'departures_recap_plural' : 'departures_recap',
     {'count': count, 'slots': slots, 'prices': prices},
