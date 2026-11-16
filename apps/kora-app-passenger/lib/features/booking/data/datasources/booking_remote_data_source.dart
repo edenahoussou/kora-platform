@@ -437,6 +437,10 @@ class BookingRemoteDataSourceImpl implements BookingDataSource {
         column: 0,
         status: SeatStatus.occupied,
       ),
+      // Les tronçons du premier billet : tous les voyageurs d'une
+      // réservation prennent les mêmes bus, seules leurs places changent.
+      legs: first.legs,
+      arrivesAt: first.arrivesAt,
       status: _statusOf(group, departsAt),
     );
   }

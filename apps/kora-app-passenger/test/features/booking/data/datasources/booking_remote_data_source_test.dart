@@ -459,6 +459,7 @@ void main() {
       String status = 'confirmed',
       String seat = '4A',
       String departsAt = '2099-08-04T07:30:00+00:00',
+      List<Map<String, dynamic>>? segments,
     }) => {
       'uuid': uuid,
       'short_code': 'K${uuid.toUpperCase()}',
@@ -490,7 +491,39 @@ void main() {
         'line_code': 'L1',
       },
       'seat': {'uuid': 'seat-$seat', 'code': seat},
+      'segments': ?segments,
     };
+
+    /// Les tronçons d'un billet de correspondance, tels que
+    /// `PassengerTicketResource` les rend : ordonnés, avec leur sens,
+    /// leurs villes, la place de ce bus-là et les heures de l'arrêt
+    /// acheté.
+    const connecting = [
+      {
+        'leg_order': 1,
+        'direction': 'outbound',
+        'departure_uuid': 'dep-1',
+        'origin_city': 'Cotonou',
+        'destination_city': 'Bohicon',
+        'seat_code': '4A',
+        'departure_at': '2099-08-04T07:30:00+00:00',
+        'arrival_at': '2099-08-04T09:01:00+00:00',
+        'departure_timezone': 'Africa/Porto-Novo',
+        'arrival_timezone': 'Africa/Porto-Novo',
+      },
+      {
+        'leg_order': 2,
+        'direction': 'outbound',
+        'departure_uuid': 'dep-2',
+        'origin_city': 'Bohicon',
+        'destination_city': 'Natitingou',
+        'seat_code': '3C',
+        'departure_at': '2099-08-04T10:06:00+00:00',
+        'arrival_at': '2099-08-04T14:44:00+00:00',
+        'departure_timezone': 'Africa/Porto-Novo',
+        'arrival_timezone': 'Africa/Porto-Novo',
+      },
+    ];
 
     Map<String, dynamic> page(
       List<Map<String, dynamic>> data, {
@@ -505,6 +538,35 @@ void main() {
         'total': data.length,
       },
     };
+
+    test('un billet de correspondance garde ses bus', () async {
+      // Le serveur rend les tronçons depuis le correctif des horaires
+      // d'arrêt : sans eux, le billet annonçait « Cotonou → Natitingou »
+      // sans dire qu'on descend à Bohicon, ni sur quelle place on
+      // remonte.
+      stubGet(page([ticketJson(uuid: 't1', segments: connecting)]));
+
+      final ticket = (await dataSource.getTickets()).single;
+
+      expect(ticket.isConnecting, isTrue);
+      expect(ticket.connectionCities, ['Bohicon']);
+      expect(ticket.legs, hasLength(2));
+      expect(ticket.legs.first.seatCode, '4A');
+      expect(ticket.legs.last.seatCode, '3C');
+      expect(
+        ticket.legs.last.departsAt,
+        DateTime.utc(2099, 8, 4, 10, 6).toLocal(),
+      );
+    });
+
+    test('un billet direct ne se dit pas à correspondance', () async {
+      stubGet(page([ticketJson(uuid: 't1')]));
+
+      final ticket = (await dataSource.getTickets()).single;
+
+      expect(ticket.isConnecting, isFalse);
+      expect(ticket.legs, isEmpty);
+    });
 
     test('lit l’endpoint du serveur, jamais le jeu de démonstration', () async {
       stubGet(page([ticketJson(uuid: 't1')]));

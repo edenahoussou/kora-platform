@@ -148,6 +148,52 @@ void main() {
     expect(find.text('Voir le billet →'), findsNothing);
   });
 
+  testWidgets('la liste dit le genre du voyage', (tester) async {
+    // Aller simple, aller-retour et correspondance se ressemblaient tous
+    // dans la liste : « Cotonou → Natitingou » et rien d'autre. Le
+    // voyageur ne savait pas lequel l'oblige à changer de bus.
+    final one = tickets.firstWhere(
+      (ticket) => ticket.status == TicketStatus.confirmed,
+    );
+    when(() => getTickets(any())).thenAnswer(
+      (_) async => Right([
+        Ticket(
+          reference: one.reference,
+          departure: one.departure,
+          seat: one.seat,
+          status: one.status,
+          reservationId: 'resa-1',
+          // Deux billets : la carte montre le lien vers la liste, et non
+          // le téléchargement du PDF, qui réclamerait son cubit.
+          ticketIds: const ['ticket-1', 'ticket-2'],
+          legs: const [
+            TicketLeg(order: 1, origin: 'Cotonou', destination: 'Bohicon'),
+            TicketLeg(order: 2, origin: 'Bohicon', destination: 'Natitingou'),
+            TicketLeg(
+              order: 3,
+              origin: 'Natitingou',
+              destination: 'Cotonou',
+              isReturn: true,
+            ),
+          ],
+        ),
+      ]),
+    );
+
+    await pumpTickets(tester);
+
+    expect(find.text('Aller-retour · 1 correspondance'), findsOneWidget);
+  });
+
+  testWidgets('un aller simple et direct n’annonce rien', (tester) async {
+    // Le cas courant : une ligne de plus pour dire « rien de spécial »
+    // encombrerait la liste.
+    await pumpTickets(tester);
+
+    expect(find.textContaining('Aller-retour'), findsNothing);
+    expect(find.textContaining('correspondance'), findsNothing);
+  });
+
   testWidgets('un seul billet : le lien reste au singulier', (tester) async {
     await pumpTickets(tester);
 

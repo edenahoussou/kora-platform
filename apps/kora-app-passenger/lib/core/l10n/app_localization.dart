@@ -1279,6 +1279,10 @@ class AppLocalization {
     {'count': count, 'cities': cities},
   );
   String get departuresDirect => translate('departures_direct');
+  String get ticketsRoundTrip => translate('tickets_round_trip');
+  String get ticketDetailLegs => translate('ticket_detail_legs');
+  String ticketDetailLegSeat(String seat) =>
+      _withArgs('ticket_detail_leg_seat', {'seat': seat});
   String departuresConnectionsTag(int count) => _withArgs(
     count > 1
         ? 'departures_connections_tag_plural'
