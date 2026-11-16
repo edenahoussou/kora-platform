@@ -12,6 +12,7 @@ import '../../../../core/widgets/screen_header.dart';
 import '../../../auth/domain/entities/auth_user.dart';
 import '../../../auth/domain/entities/phone_country.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../auth/presentation/widgets/phone_country_picker.dart';
 import '../../../profil/presentation/pages/birth_date_picker_page.dart';
 import '../../domain/entities/departure.dart';
 import '../../domain/entities/journey.dart';
@@ -554,35 +555,49 @@ class _DocumentTypeField extends StatelessWidget {
   }
 }
 
-/// La nationalité déclarée, parmi les pays que dessert le réseau.
+/// La nationalité déclarée, choisie dans la liste complète des pays.
+///
+/// Un menu déroulant proposait les quatre pays que traverse le réseau.
+/// C'était confondre le trajet acheté et l'identité de qui l'achète :
+/// un voyageur marocain, canadien ou malgache n'y trouvait rien. La
+/// feuille du choix d'indicatif rend ici le même service, avec sa
+/// recherche et les corridors épinglés en tête.
 class _NationalityField extends StatelessWidget {
   const _NationalityField({required this.fields, required this.onChanged});
 
   final _PassengerFields fields;
   final VoidCallback onChanged;
 
+  Future<void> _pick(BuildContext context) async {
+    final picked = await pickNationality(context);
+    if (picked == null) return;
+
+    fields.nationality = picked.code;
+    onChanged();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final koraColors = context.koraColors;
+    final code = fields.nationality;
+
     return _LabelledField(
       label: context.l10n.passengersNationality,
-      child: DropdownButtonFormField<String>(
-        initialValue: fields.nationality,
-        isExpanded: true,
-        onChanged: (value) {
-          if (value == null) return;
-          fields.nationality = value;
-          onChanged();
-        },
-        items: [
-          for (final entry in _nationalities.entries)
-            DropdownMenuItem(
-              value: entry.key,
-              child: Text(
-                entry.value,
-                style: AppTextStyles.body(context.koraColors.textPrimary),
-              ),
+      child: InkWell(
+        key: const Key('passenger-nationality'),
+        onTap: () => _pick(context),
+        borderRadius: BorderRadius.circular(AppRadius.input),
+        child: InputDecorator(
+          decoration: const InputDecoration(),
+          child: Text(
+            code.isEmpty
+                ? context.l10n.passengersBirthDateChoose
+                : nationalityName(context, code),
+            style: AppTextStyles.body(
+              code.isEmpty ? koraColors.textMuted : koraColors.textPrimary,
             ),
-        ],
+          ),
+        ),
       ),
     );
   }
@@ -645,6 +660,65 @@ class _BirthDateField extends StatelessWidget {
                 : KoraDateFormats.dayMonthYear.format(date),
             style: AppTextStyles.body(
               date == null ? koraColors.textMuted : koraColors.textPrimary,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// L'indicatif du numéro, ouvrant la liste complète des pays.
+///
+/// C'était un menu déroulant sur les onze corridors KORA. Le passager
+/// joignable au Maroc, au Canada ou ailleurs n'y trouvait pas le sien et
+/// ne pouvait pas renseigner son numéro — alors même que l'inscription,
+/// elle, les proposait tous. La même feuille sert ici.
+class _CountryButton extends StatelessWidget {
+  const _CountryButton({required this.country, required this.onCountry});
+
+  final PhoneCountry country;
+  final ValueChanged<PhoneCountry> onCountry;
+
+  Future<void> _pick(BuildContext context) async {
+    final picked = await pickPhoneCountry(context);
+    if (picked != null) onCountry(picked);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final koraColors = context.koraColors;
+
+    return SizedBox(
+      width: 124,
+      height: 56,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _pick(context),
+          borderRadius: BorderRadius.circular(AppRadius.base),
+          child: Ink(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppRadius.base),
+              border: Border.all(color: koraColors.line),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${country.flag}  ${country.code}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.body(koraColors.textPrimary),
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_drop_down,
+                  color: koraColors.textMuted,
+                  size: 20,
+                ),
+              ],
             ),
           ),
         ),
@@ -727,18 +801,6 @@ String _documentLabel(AppLocalization l10n, TravelDocumentType type) =>
       TravelDocumentType.consularCard => l10n.passengersDocConsular,
     };
 
-/// Les nationalités proposées, dans l'ordre de la maquette.
-///
-/// La liste suit les pays que traverse le réseau (`countries_crossed` de
-/// l'API) : proposer les cent quatre-vingt-quinze autres ferait défiler
-/// pour rien.
-const Map<String, String> _nationalities = {
-  'BJ': 'Béninoise',
-  'TG': 'Togolaise',
-  'GH': 'Ghanéenne',
-  'CI': 'Ivoirienne',
-};
-
 /// Le siège attribué, en pastille dorée dans l'en-tête du bloc.
 ///
 /// Valeurs reprises telles quelles de la maquette : `.passenger-form-head
@@ -785,8 +847,10 @@ class _PassengerFields {
        lastName = TextEditingController(text: _lastNameOf(holder)),
        email = TextEditingController(text: holder?.email ?? ''),
        documentNumber = TextEditingController(),
-       phone = TextEditingController(text: _nationalPart(holder?.phone)),
-       country = PhoneCountry.fromCode(holder?.countryCode);
+       phone = TextEditingController(
+         text: _nationalPart(holder?.phone, holder?.countryCode),
+       ),
+       country = phoneCountryOf(holder?.countryCode);
 
   final int index;
 
@@ -813,6 +877,11 @@ class _PassengerFields {
   bool yellowFeverVaccinated = false;
 
   /// Pré-remplie au Bénin, d'où partent les lignes.
+  ///
+  /// Le voyageur peut désormais en choisir une autre parmi les cent
+  /// quatre-vingt-quinze : seules quatre lui étaient proposées, celles
+  /// des pays que traverse le réseau, et un passager marocain repartait
+  /// forcément avec l'une d'elles.
   String nationality = 'BJ';
 
   /// L'indicatif du numéro, choisi à part.
@@ -854,7 +923,11 @@ class _PassengerFields {
         country.name,
         country.prefix,
       );
-    } else if (digits.length != country.digits) {
+    } else if (country.digits > 0 && digits.length != country.digits) {
+      // `digits` vaut 0 hors des corridors : on ne connaît pas la
+      // longueur attendue au Maroc ou au Canada, et l'annoncer à zéro
+      // refusait tout numéro étranger pourtant valide. Le serveur
+      // tranche.
       errors['phone'] = l10n.passengersPhoneLength(country.digits);
     }
 
@@ -967,27 +1040,14 @@ class _PhoneField extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 124,
-            child: DropdownButtonFormField<PhoneCountry>(
-              initialValue: country,
-              isExpanded: true,
-              onChanged: (value) => onCountry(value ?? PhoneCountry.benin),
-              items: [
-                for (final item in PhoneCountry.all)
-                  DropdownMenuItem(
-                    value: item,
-                    child: Text(
-                      '${item.flag}  ${item.code}',
-                      style: AppTextStyles.body(context.koraColors.textPrimary),
-                    ),
-                  ),
-              ],
-            ),
-          ),
+          _CountryButton(country: country, onCountry: onCountry),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: KoraInput(
+              // Les champs se désignent par leur clé, et non par leur
+              // rang : le formulaire en aligne quatre, et le compte
+              // change selon que la ligne franchit une frontière.
+              key: const Key('passenger-phone'),
               hint: country.example,
               controller: controller,
               keyboardType: TextInputType.phone,
@@ -1017,9 +1077,17 @@ String _lastNameOf(AuthUser? holder) {
 ///
 /// Le compte garde le numéro complet ; le formulaire, lui, montre les deux
 /// séparément pour qu'on puisse changer de pays.
-String _nationalPart(String? stored) {
+String _nationalPart(String? stored, String? dialCode) {
   final raw = (stored ?? '').trim();
   if (raw.isEmpty) return '';
+
+  // L'indicatif du compte d'abord : c'est le seul qui vaille pour un
+  // titulaire joignable hors des corridors, dont le `+212` ne figure
+  // dans aucun catalogue.
+  final code = dialCode?.trim() ?? '';
+  if (code.isNotEmpty && raw.startsWith(code)) {
+    return raw.substring(code.length).trim();
+  }
 
   for (final country in PhoneCountry.all) {
     if (raw.startsWith(country.code)) {

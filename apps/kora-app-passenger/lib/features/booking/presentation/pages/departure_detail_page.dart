@@ -157,7 +157,16 @@ class _DetailContent extends StatelessWidget {
     );
 
     // Arrêts non reconnus : mieux vaut la ligne entière que rien.
-    if (from < 0 || to <= from) return stops;
+    if (from < 0 || to < 0 || to == from) return stops;
+
+    // Une ligne se parcourt dans les deux sens. L1 est cataloguée de
+    // Cotonou (1) à Abidjan (8), mais un Accra → Cotonou la remonte :
+    // l'arrêt de montée porte alors le rang le plus élevé. Découpée dans
+    // l'ordre du catalogue, la tranche était vide et l'écran retombait
+    // sur la ligne entière — le voyageur parti d'Accra lisait des
+    // escales béninoises en tête de ses étapes, et Abidjan en terminus
+    // d'un trajet qui s'arrête à Cotonou.
+    if (to < from) return stops.sublist(to, from + 1).reversed.toList();
 
     return stops.sublist(from, to + 1);
   }

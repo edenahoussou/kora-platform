@@ -104,6 +104,52 @@ void main() {
     expect(find.text(departure.price.formatted), findsOneWidget);
   });
 
+  testWidgets('remonte une ligne prise à contresens sans la déborder', (
+    tester,
+  ) async {
+    // Une ligne se parcourt dans les deux sens, mais son catalogue
+    // d'arrêts n'en connaît qu'un : L1 va de Cotonou à Abidjan, et un
+    // Accra → Cotonou la remonte. Découpée dans l'ordre du catalogue, la
+    // tranche sortait vide et l'écran retombait sur la ligne entière :
+    // le voyageur parti d'Accra lisait des escales qu'il ne verrait
+    // jamais, et un terminus où il ne descend pas.
+    final parakou = kMockCities.firstWhere((city) => city.id == 'pku');
+
+    await pumpDetail(
+      tester,
+      value: Departure(
+        id: departure.id,
+        // La même ligne, donc les mêmes arrêts catalogués — mais prise
+        // de Parakou vers Cotonou.
+        line: Line(
+          id: departure.line.id,
+          code: departure.line.code,
+          origin: parakou,
+          destination: cotonou,
+          duration: departure.line.duration,
+          distanceKm: departure.line.distanceKm,
+        ),
+        departsAt: departure.departsAt,
+        comfort: departure.comfort,
+        price: departure.price,
+        seatsTotal: departure.seatsTotal,
+        seatsAvailable: departure.seatsAvailable,
+        amenities: departure.amenities,
+      ),
+    );
+
+    // Les étapes vont de la montée à la descente, dans l'ordre du
+    // voyage.
+    for (final stop in ['Parakou', 'Bohicon', 'Cotonou']) {
+      expect(find.text(stop), findsWidgets, reason: '$stop absent des étapes');
+    }
+
+    // Et s'arrêtent là : Kandi et Malanville sont au-delà de Parakou,
+    // dans le dos du voyageur.
+    expect(find.text('Kandi'), findsNothing);
+    expect(find.text('Malanville'), findsNothing);
+  });
+
   testWidgets('liste les services à bord', (tester) async {
     await pumpDetail(tester);
 

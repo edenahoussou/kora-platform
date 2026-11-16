@@ -11,6 +11,7 @@ import 'package:kora_app_passenger/core/l10n/app_localization.dart';
 import 'package:kora_app_passenger/core/router/app_router.dart';
 import 'package:kora_app_passenger/core/utils/date_formats.dart';
 import 'package:kora_app_passenger/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:kora_app_passenger/features/auth/presentation/widgets/phone_country_picker.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_mock_data.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/itinerary.dart';
@@ -150,6 +151,8 @@ void main() {
         supportedLocales: const [Locale('fr'), Locale('en')],
         localizationsDelegates: const [
           AppLocalization.delegate,
+          // La feuille des pays porte ses propres traductions.
+          SyncCountryLocalizationsDelegate(),
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
@@ -159,6 +162,13 @@ void main() {
     );
     await tester.pumpAndSettle();
   }
+
+  /// Le champ du numéro, désigné par sa clé : le formulaire aligne
+  /// plusieurs saisies et leur rang change avec la frontière.
+  final phoneField = find.descendant(
+    of: find.byKey(const Key('passenger-phone')),
+    matching: find.byType(TextField),
+  );
 
   /// Coche la confirmation d'exactitude, seule condition bloquante du
   /// formulaire depuis la revue Kora du 29 août 2026.
@@ -296,6 +306,66 @@ void main() {
       expect(find.text('E-mail (optionnel)'), findsNothing);
       expect(
         find.text('Ces informations servent au manifeste de frontière.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('l’indicatif s’ouvre sur la liste complète des pays', (
+      tester,
+    ) async {
+      // Dix corridors suffisent pour choisir un trajet, pas pour joindre
+      // qui l'achète. Le passager marocain ne trouvait pas son `+212`
+      // ici — alors que l'inscription, elle, les proposait déjà tous.
+      await pumpForm(tester, international: true);
+
+      await tester.tap(find.text('🇧🇯  +229'));
+      await tester.pumpAndSettle();
+
+      // Le champ de recherche est le dernier du tableau : la feuille est
+      // posée par-dessus l'écran.
+      await tester.enterText(find.byType(TextField).last, 'Maroc');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Maroc').last);
+      await tester.pumpAndSettle();
+
+      expect(find.text('🇲🇦  +212'), findsOneWidget);
+      expect(find.text('🇧🇯  +229'), findsNothing);
+
+      await tester.enterText(phoneField, '612 345 678');
+      await confirmAccuracy(tester);
+      await tester.tap(find.text('Enregistrer et continuer'));
+      await tester.pumpAndSettle();
+
+      // Et le numéro passe : KORA ne connaît pas la longueur attendue au
+      // Maroc, et l'annoncer à zéro refusait tout numéro étranger.
+      expect(find.textContaining('chiffres attendus'), findsNothing);
+      expect(find.text('Vérifiez votre voyage'), findsOneWidget);
+    });
+
+    testWidgets('la nationalité s’ouvre sur la liste complète des pays', (
+      tester,
+    ) async {
+      // Quatre nationalités étaient proposées, celles des pays que
+      // traverse le réseau : c'était confondre le trajet acheté et
+      // l'identité de qui l'achète.
+      await pumpForm(tester, international: true);
+
+      final field = find.byKey(const Key('passenger-nationality'));
+      expect(
+        find.descendant(of: field, matching: find.text('Bénin')),
+        findsOneWidget,
+      );
+
+      await tester.tap(field);
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField).last, 'Maroc');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Maroc').last);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.descendant(of: field, matching: find.text('Maroc')),
         findsOneWidget,
       );
     });
@@ -451,6 +521,8 @@ void main() {
         supportedLocales: const [Locale('fr'), Locale('en')],
         localizationsDelegates: const [
           AppLocalization.delegate,
+          // La feuille des pays porte ses propres traductions.
+          SyncCountryLocalizationsDelegate(),
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
