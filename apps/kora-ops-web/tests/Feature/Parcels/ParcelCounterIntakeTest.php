@@ -255,3 +255,35 @@ test('the database rejects a duplicate idempotency key for the same agency', fun
         'expires_at' => now()->addHour(),
     ]))->toThrow(UniqueConstraintViolationException::class);
 });
+
+test('the ops web intake route creates a counter parcel with reference and QR', function (): void {
+    $fixture = counterIntakeFixture();
+    $ops = User::factory()->create()->assignRole('operations_director');
+    $payload = counterIntakePayload() + [
+        'deposit_hub_uuid' => $fixture['origin']->uuid,
+        'destination_hub_uuid' => $fixture['destination']->uuid,
+    ];
+
+    $created = $this->actingAs($ops, 'web')
+        ->postJson('/parcels/data/intake', $payload)
+        ->assertCreated()
+        ->assertJsonPath('data.status', 'preregistered')
+        ->assertJsonMissingPath('data.id');
+
+    expect($created->json('data.reference'))->toMatch('/^KC-\d{8}-\d{5}$/');
+    expect($created->json('data.qr_payload'))->toBe($created->json('data.tracking_url'));
+    expect($created->json('data.tracking_url'))->toContain('/api/v1/parcels/tracking/');
+    expect(Parcel::query()->where('idempotency_key', $payload['idempotency_key'])->count())->toBe(1);
+});
+
+test('the ops web intake route requires the intake permission', function (): void {
+    $fixture = counterIntakeFixture();
+    $viewer = User::factory()->create()->assignRole('general_management');
+
+    $this->actingAs($viewer, 'web')
+        ->postJson('/parcels/data/intake', counterIntakePayload() + [
+            'deposit_hub_uuid' => $fixture['origin']->uuid,
+            'destination_hub_uuid' => $fixture['destination']->uuid,
+        ])
+        ->assertForbidden();
+});

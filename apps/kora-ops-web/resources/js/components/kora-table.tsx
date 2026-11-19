@@ -35,7 +35,7 @@ type KoraTableProps<T> = {
     footer?: ReactNode;
     pagination?: PaginationMeta;
     onRowClick?: (row: T) => void;
-    variant?: 'standard' | 'cash';
+    variant?: 'standard' | 'cash' | 'finance';
     showHeader?: boolean;
 };
 
@@ -63,6 +63,8 @@ export function KoraTable<T>({
     showHeader = true,
 }: KoraTableProps<T>) {
     const isCashTable = variant === 'cash';
+    const isFinanceTable = variant === 'finance';
+    const isLedgerTable = isCashTable || isFinanceTable;
 
     const alignClass = (align?: string): string => {
         if (align === 'right') {
@@ -164,7 +166,7 @@ export function KoraTable<T>({
     return (
         <div
             className={
-                isCashTable
+                isLedgerTable
                     ? 'cash-table-card'
                     : 'kora-panel overflow-hidden rounded-[var(--kora-radius)] border border-border bg-card shadow-[0_8px_30px_rgba(0,29,78,0.045)]'
             }
@@ -191,7 +193,7 @@ export function KoraTable<T>({
             )}
 
             {data.length === 0 ? (
-                isCashTable ? (
+                isLedgerTable ? (
                     <p className="px-6 py-16 text-center text-sm text-muted-foreground">
                         {emptyMessage}
                     </p>
@@ -215,24 +217,30 @@ export function KoraTable<T>({
             ) : (
                 <div
                     className={
-                        isCashTable
+                        isLedgerTable
                             ? 'cash-table-scroll overflow-x-auto'
                             : 'overflow-x-auto'
                     }
                 >
                     <table
                         className={
-                            isCashTable
+                            isLedgerTable
                                 ? 'w-full min-w-[950px] text-left'
                                 : 'w-full min-w-[48rem] text-left text-sm'
                         }
                     >
-                        <thead className="bg-muted/35 text-[0.6875rem] font-extrabold tracking-[0.12em] text-muted-foreground uppercase">
+                        <thead
+                            className={
+                                isFinanceTable
+                                    ? 'bg-muted/45 text-[0.625rem] font-black tracking-[0.14em] text-muted-foreground uppercase'
+                                    : 'bg-muted/35 text-[0.6875rem] font-extrabold tracking-[0.12em] text-muted-foreground uppercase'
+                            }
+                        >
                             <tr>
                                 {columns.map((column) => (
                                     <th
                                         key={column.key}
-                                        className={`${isCashTable ? 'px-4 py-3' : 'px-5 py-3.5'} ${alignClass(column.align)}`}
+                                        className={`${isLedgerTable ? 'px-4 py-3' : 'px-5 py-3.5'} ${alignClass(column.align)}`}
                                     >
                                         {column.header}
                                     </th>
@@ -241,7 +249,7 @@ export function KoraTable<T>({
                         </thead>
                         <tbody
                             className={
-                                isCashTable
+                                isLedgerTable
                                     ? undefined
                                     : 'divide-y divide-border/70'
                             }
@@ -255,15 +263,17 @@ export function KoraTable<T>({
                                             : undefined
                                     }
                                     className={`transition-colors ${
-                                        isCashTable
-                                            ? 'hover:bg-muted/30'
-                                            : 'hover:bg-muted/25'
+                                        isFinanceTable
+                                            ? 'border-b border-black/[0.045] hover:bg-muted/30'
+                                            : isCashTable
+                                              ? 'hover:bg-muted/30'
+                                              : 'hover:bg-muted/25'
                                     } ${onRowClick ? 'cursor-pointer' : ''}`}
                                 >
                                     {columns.map((column) => (
                                         <td
                                             key={column.key}
-                                            className={`${isCashTable ? 'px-4 py-3.5' : 'px-5 py-4'} ${alignClass(column.align)}`}
+                                            className={`${isLedgerTable ? 'px-4 py-3.5' : 'px-5 py-4'} ${alignClass(column.align)}`}
                                         >
                                             {column.render(row)}
                                         </td>
@@ -278,12 +288,12 @@ export function KoraTable<T>({
             {pagination && pagination.lastPage > 1 && data.length > 0 && (
                 <div
                     className={
-                        isCashTable
+                        isLedgerTable
                             ? 'flex flex-col gap-4 px-4 py-3 text-[0.6875rem] text-muted-foreground sm:flex-row sm:items-center sm:justify-between'
                             : 'flex items-center justify-between border-t border-border px-5 py-[13px] text-[0.6875rem] text-muted-foreground'
                     }
                 >
-                    {isCashTable ? (
+                    {isLedgerTable ? (
                         <>
                             <span>
                                 {pagination.from && pagination.to

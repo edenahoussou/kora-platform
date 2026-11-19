@@ -31,6 +31,7 @@ use App\Modules\Fiscalization\Http\Controllers\FiscalInvoiceController;
 use App\Modules\Fiscalization\Http\Controllers\FiscalTestInvoiceController;
 use App\Modules\IdentityAccess\Http\Controllers\AgencyController;
 use App\Modules\IdentityAccess\Http\Controllers\TerminalP501Controller;
+use App\Modules\Parcels\Http\Controllers\OpsParcelController;
 use App\Modules\Passengers\Http\Controllers\PassengerErasureController;
 use App\Modules\Passengers\Http\Controllers\PassengerIndexController;
 use App\Modules\Payments\Http\Controllers\AgencyPaymentAccountController;
@@ -289,6 +290,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // V1 secondary — Colis & Wallet Lite (stubs)
     // =========================================================
     Route::inertia('parcels', 'parcels')->middleware('can:parcels.view')->name('parcels');
+    Route::post('parcels/data/intake', [OpsParcelController::class, 'store'])
+        ->middleware('can:parcels.intake')
+        ->name('parcels.data.intake');
     Route::prefix('parcels/data')->name('parcels.data.')->group(base_path('routes/parcels-ops.php'));
 
     // =========================================================

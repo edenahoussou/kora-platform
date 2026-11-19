@@ -1,11 +1,15 @@
 <?php
 
 use App\Models\User;
+use App\Modules\BusNetwork\Data\LineStatus;
+use App\Modules\BusNetwork\Data\StopStatus;
+use App\Modules\IdentityAccess\Data\AgencyStatus;
 use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\KoraPoints\Models\KoraPoint;
 use App\Modules\Parcels\Models\ParcelHub;
 use Database\Seeders\KoraBusRolePermissionSeeder;
 use Illuminate\Support\Str;
+use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function (): void {
     $this->seed(KoraBusRolePermissionSeeder::class);
@@ -52,6 +56,45 @@ test('partner point can be configured as a deposit location without duplicating 
     $this->assertDatabaseHas('agencies', ['id' => $partnerAgency->id, 'kind' => 'partner']);
 });
 
+test('internal agency must be active before it can be configured as a deposit location', function (): void {
+    ['originStop' => $stop, 'ops' => $ops] = depositLocationFixtures();
+    $agency = Agency::factory()->create(['kind' => 'internal', 'country' => 'BJ', 'status' => AgencyStatus::Suspended]);
+
+    $this->actingAs($ops, 'web')->putJson('/parcels/data/hubs', [
+        'agency_uuid' => $agency->uuid,
+        'stop_uuid' => $stop->uuid,
+        'enabled' => true,
+    ])->assertUnprocessable();
+
+    $this->assertDatabaseMissing('parcel_hubs', ['agency_id' => $agency->id, 'stop_id' => $stop->id]);
+});
+
+test('deposit stop must be active before it can host a deposit location', function (): void {
+    ['originStop' => $stop, 'agency' => $agency, 'ops' => $ops] = depositLocationFixtures();
+    $stop->update(['status' => StopStatus::Draft]);
+
+    $this->actingAs($ops, 'web')->putJson('/parcels/data/hubs', [
+        'agency_uuid' => $agency->uuid,
+        'stop_uuid' => $stop->uuid,
+        'enabled' => true,
+    ])->assertUnprocessable();
+
+    $this->assertDatabaseMissing('parcel_hubs', ['agency_id' => $agency->id, 'stop_id' => $stop->id]);
+});
+
+test('deposit stop must remain attached to an active line', function (): void {
+    ['line' => $line, 'originStop' => $stop, 'agency' => $agency, 'ops' => $ops] = depositLocationFixtures();
+    $line->update(['status' => LineStatus::Draft]);
+
+    $this->actingAs($ops, 'web')->putJson('/parcels/data/hubs', [
+        'agency_uuid' => $agency->uuid,
+        'stop_uuid' => $stop->uuid,
+        'enabled' => true,
+    ])->assertUnprocessable();
+
+    $this->assertDatabaseMissing('parcel_hubs', ['agency_id' => $agency->id, 'stop_id' => $stop->id]);
+});
+
 test('partner point bound to an internal agency is rejected', function (): void {
     ['originStop' => $stop, 'ops' => $ops] = depositLocationFixtures();
     $internal = Agency::factory()->create(['kind' => 'internal', 'country' => 'BJ']);
@@ -62,6 +105,21 @@ test('partner point bound to an internal agency is rejected', function (): void 
         'stop_uuid' => $stop->uuid,
         'enabled' => true,
     ])->assertUnprocessable();
+});
+
+test('an internal agency cannot be attached to two deposit locations', function (): void {
+    ['originStop' => $origin, 'destinationStop' => $destination, 'agency' => $agency, 'ops' => $ops] = depositLocationFixtures();
+
+    $this->actingAs($ops, 'web')->putJson('/parcels/data/hubs', [
+        'agency_uuid' => $agency->uuid, 'stop_uuid' => $origin->uuid, 'enabled' => true,
+    ])->assertSuccessful();
+
+    $this->actingAs($ops, 'web')->putJson('/parcels/data/hubs', [
+        'agency_uuid' => $agency->uuid, 'stop_uuid' => $destination->uuid, 'enabled' => true,
+    ])->assertUnprocessable()
+        ->assertJsonPath('message', 'Internal agency is already attached to another deposit location.');
+
+    expect(ParcelHub::query()->where('agency_id', $agency->id)->count())->toBe(1);
 });
 
 test('a partner point cannot be attached to two deposit locations', function (): void {
@@ -86,6 +144,39 @@ test('deposit location configuration requires the configure permission', functio
     $this->actingAs($passenger, 'web')->putJson('/parcels/data/hubs', [
         'agency_uuid' => $agency->uuid, 'stop_uuid' => $stop->uuid, 'enabled' => true,
     ])->assertForbidden();
+});
+
+test('parcel configuration page renders for an operator with network permission', function (): void {
+    ['ops' => $ops] = depositLocationFixtures();
+
+    $this->actingAs($ops, 'web')
+        ->get('/parcels')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->component('parcels'));
+});
+
+test('configuration exposes eligible deposit options without exposing numeric identifiers', function (): void {
+    ['originStop' => $stop, 'agency' => $agency, 'ops' => $ops] = depositLocationFixtures();
+    $partnerAgency = Agency::factory()->create(['kind' => 'partner', 'country' => 'BJ']);
+    $point = KoraPoint::factory()->create(['agency_id' => $partnerAgency->id, 'status' => 'active']);
+
+    $payload = $this->actingAs($ops, 'web')
+        ->getJson('/parcels/data/configuration')
+        ->assertSuccessful()
+        ->assertJsonPath('data.permissions.canConfigure', true)
+        ->json('data');
+
+    $internalAgency = collect($payload['options']['internal_agencies'])->firstWhere('uuid', $agency->uuid);
+    $partnerPoint = collect($payload['options']['partner_points'])->firstWhere('uuid', $point->uuid);
+    $depositStop = collect($payload['options']['stops'])->firstWhere('uuid', $stop->uuid);
+
+    expect($internalAgency)->not->toBeNull()
+        ->and($internalAgency)->not->toHaveKey('id')
+        ->and($partnerPoint)->not->toBeNull()
+        ->and($partnerPoint['agency_uuid'])->toBe($partnerAgency->uuid)
+        ->and($depositStop)->not->toBeNull()
+        ->and($depositStop['line_code'])->toBe($stop->line->code)
+        ->and(Str::isUuid($depositStop['uuid']))->toBeTrue();
 });
 
 test('archiving a deposit location keeps history and removes it from active configuration', function (): void {

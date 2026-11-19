@@ -14,6 +14,8 @@ return [
 
     'test_mode' => env('EMECF_TEST_MODE', true),
 
+    'country' => strtoupper((string) env('EMECF_COUNTRY', 'BJ')),
+
     'token' => env('EMECF_TOKEN'),
 
     'default_ifu' => env('SGMEF_DEFAULT_IFU', '0000000000000'),

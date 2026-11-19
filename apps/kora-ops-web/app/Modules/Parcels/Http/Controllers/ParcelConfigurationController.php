@@ -3,6 +3,8 @@
 namespace App\Modules\Parcels\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\BusNetwork\Data\LineStatus;
+use App\Modules\BusNetwork\Data\StopStatus;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\IdentityAccess\Data\AgencyStatus;
@@ -15,6 +17,7 @@ use App\Modules\Parcels\Services\ParcelAccess;
 use App\Modules\Parcels\Services\ParcelPricing;
 use App\Modules\Parcels\Services\ParcelRouting;
 use App\Modules\Parcels\Services\ParcelTransport;
+use App\Modules\Settings\Settings\IntegrationsSettings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -50,7 +53,64 @@ class ParcelConfigurationController extends Controller
             ])),
         ]);
 
-        return response()->json(['data' => ['hubs' => $hubs, 'corridors' => $corridors]]);
+        $options = [
+            'internal_agencies' => Agency::query()
+                ->where('kind', 'internal')
+                ->where('status', AgencyStatus::Active->value)
+                ->orderBy('name')
+                ->get(['uuid', 'name', 'city', 'country'])
+                ->map(fn (Agency $agency): array => [
+                    'uuid' => $agency->uuid,
+                    'name' => $agency->name,
+                    'city' => $agency->city,
+                    'country' => $agency->country,
+                ]),
+            'partner_points' => KoraPoint::query()
+                ->where('status', 'active')
+                ->whereHas('agency', fn ($query) => $query
+                    ->where('kind', 'partner')
+                    ->where('status', AgencyStatus::Active->value))
+                ->with('agency')
+                ->orderBy('address')
+                ->get()
+                ->map(fn (KoraPoint $point): array => [
+                    'uuid' => $point->uuid,
+                    'agency_uuid' => $point->agency?->uuid,
+                    'agency_name' => $point->agency?->name,
+                    'agency_country' => $point->agency?->country,
+                    'address' => $point->address,
+                    'responsible_name' => $point->responsible_name,
+                ]),
+            'stops' => Stop::query()
+                ->where('status', 'active')
+                ->whereHas('line', fn ($query) => $query->where('status', 'active'))
+                ->with('line')
+                ->orderBy('country')
+                ->orderBy('city')
+                ->orderBy('stop_order')
+                ->get()
+                ->map(fn (Stop $stop): array => [
+                    'uuid' => $stop->uuid,
+                    'name' => $stop->name,
+                    'city' => $stop->city,
+                    'country' => $stop->country,
+                    'stop_order' => $stop->stop_order,
+                    'line_uuid' => $stop->line?->uuid,
+                    'line_code' => $stop->line?->code,
+                    'line_name' => $stop->line?->name,
+                ]),
+        ];
+
+        return response()->json(['data' => [
+            'hubs' => $hubs,
+            'corridors' => $corridors,
+            'options' => $options,
+            'permissions' => [
+                'canConfigure' => $request->user()?->can('parcels.configure') === true,
+                'canPublishTariffs' => $request->user()?->can('parcels.tariffs') === true,
+                'canIntake' => $request->user()?->can('parcels.intake') === true,
+            ],
+        ]]);
     }
 
     /**
@@ -64,7 +124,9 @@ class ParcelConfigurationController extends Controller
     public function hub(ParcelConfigurationRequest $request): JsonResponse
     {
         $this->access->require($request->user(), 'parcels.configure');
-        $stop = Stop::query()->where('uuid', $request->validated('stop_uuid'))->firstOrFail();
+        $stop = Stop::query()->with('line')->where('uuid', $request->validated('stop_uuid'))->firstOrFail();
+        abort_unless($stop->status === StopStatus::Active, 422, 'Deposit stop is not active.');
+        abort_unless($stop->line !== null && $stop->line->status === LineStatus::Active, 422, 'Deposit stop is not attached to an active line.');
 
         if ($request->filled('kora_point_uuid')) {
             $point = KoraPoint::query()->where('uuid', $request->validated('kora_point_uuid'))->with('agency')->firstOrFail();
@@ -75,11 +137,13 @@ class ParcelConfigurationController extends Controller
             $pointId = $point->id;
         } else {
             $agency = Agency::query()->where('uuid', $request->validated('agency_uuid'))->where('kind', 'internal')->firstOrFail();
+            abort_unless($agency->status === AgencyStatus::Active, 422, 'Internal agency is not active.');
             $kind = ParcelHub::KIND_AGENCY;
             $pointId = null;
         }
 
-        abort_unless(strtoupper((string) $agency->country) === strtoupper((string) $stop->country), 422, 'Le hub et son arrêt doivent être dans le même pays.');
+        abort_unless(strtoupper((string) $agency->country) === strtoupper((string) $stop->country), 422, 'The deposit hub and its stop must be in the same country.');
+        abort_if($kind === ParcelHub::KIND_AGENCY && ParcelHub::query()->where('agency_id', $agency->id)->where('stop_id', '!=', $stop->id)->exists(), 422, 'Internal agency is already attached to another deposit location.');
         abort_if($pointId !== null && ParcelHub::query()->where('kora_point_id', $pointId)->where('stop_id', '!=', $stop->id)->exists(), 422, 'Partner point is already attached to another deposit location.');
 
         return DB::transaction(function () use ($request, $agency, $stop, $kind, $pointId): JsonResponse {
@@ -160,6 +224,67 @@ class ParcelConfigurationController extends Controller
     }
 
     /**
+     * Lister la capacité des départs des corridors actifs.
+     *
+     * @authenticated
+     *
+     * @response 200 {"data":{}}
+     * @response 403 {"message":"Droits insuffisants pour ce périmètre Colis."}
+     */
+    public function capacityIndex(Request $request, ParcelRouting $routing): JsonResponse
+    {
+        $this->access->require($request->user(), 'parcels.configure');
+
+        $corridors = ParcelCorridor::query()
+            ->where('enabled', true)
+            ->with(['originHub.stop', 'destinationHub.stop'])
+            ->get();
+        $available = $routing->filterOperationallyAvailable($corridors);
+        $rows = [];
+
+        foreach ($available as $corridor) {
+            if ($corridor->originHub === null || $corridor->destinationHub === null) {
+                continue;
+            }
+
+            foreach ($routing->availability($corridor->originHub, $corridor->destinationHub) as $row) {
+                $departure = $row['departure'];
+                $uuid = $departure->uuid;
+
+                if (! isset($rows[$uuid])) {
+                    $rows[$uuid] = [
+                        'uuid' => $uuid,
+                        'line_code' => $departure->line?->code,
+                        'line_name' => $departure->line?->name,
+                        'departure_at' => $departure->scheduledDepartureAt()->toIso8601String(),
+                        'status' => $departure->status,
+                        'capacity_grams' => $row['capacity_grams'],
+                        'reserved_grams' => $row['reserved_grams'],
+                        'available_grams' => $row['capacity_grams'] === null ? null : max(0, $row['capacity_grams'] - $row['reserved_grams']),
+                        'corridor_uuids' => [],
+                    ];
+                }
+
+                $rows[$uuid]['corridor_uuids'][] = $corridor->uuid;
+            }
+        }
+
+        $departures = collect($rows)
+            ->map(function (array $row): array {
+                $row['corridor_uuids'] = array_values(array_unique($row['corridor_uuids']));
+
+                return $row;
+            })
+            ->sortBy(fn (array $row): string => $row['departure_at'])
+            ->values();
+
+        return response()->json(['data' => [
+            'horizon_days' => $routing->horizonDays(),
+            'departures' => $departures,
+        ]]);
+    }
+
+    /**
      * Configurer et activer un corridor Colis.
      *
      * @authenticated
@@ -168,23 +293,33 @@ class ParcelConfigurationController extends Controller
      * @response 403 {"message":"Droits insuffisants pour ce périmètre Colis."}
      * @response 409 {"message":"Opération incompatible avec l’état du colis ou du corridor."}
      */
-    public function corridor(ParcelConfigurationRequest $request, ParcelPricing $pricing, ParcelRouting $routing): JsonResponse
-    {
+    public function corridor(
+        ParcelConfigurationRequest $request,
+        ParcelPricing $pricing,
+        ParcelRouting $routing,
+        IntegrationsSettings $integrations,
+    ): JsonResponse {
         $this->access->require($request->user(), 'parcels.configure');
         $origin = ParcelHub::query()->where('uuid', $request->validated('origin_hub_uuid'))->with('stop')->firstOrFail();
         $destination = ParcelHub::query()->where('uuid', $request->validated('destination_hub_uuid'))->with('stop')->firstOrFail();
         abort_unless($origin->stop !== null && $destination->stop !== null
             && ($origin->stop->city !== $destination->stop->city || $origin->stop->country !== $destination->stop->country), 422);
 
-        return DB::transaction(function () use ($request, $origin, $destination, $pricing, $routing): JsonResponse {
+        return DB::transaction(function () use ($request, $origin, $destination, $pricing, $routing, $integrations): JsonResponse {
             $keys = ['origin_hub_id' => $origin->id, 'destination_hub_id' => $destination->id];
             $corridor = ParcelCorridor::query()->where($keys)->lockForUpdate()->first() ?? new ParcelCorridor($keys);
             $corridor->fill(Arr::except($request->validated(), ['origin_hub_uuid', 'destination_hub_uuid']));
             if ($corridor->enabled) {
                 $routing->assertStructurallyRoutable($origin, $destination);
-                abort_unless($corridor->exists, 409, 'Créez le corridor et publiez son tarif avant activation.');
+                abort_unless($corridor->exists, 409, 'Create the corridor and publish its tariff before activation.');
                 $pricing->ensureOpen($corridor);
-                abort_unless(strtoupper((string) $origin->agency?->country) === 'BJ', 409, 'Le fournisseur fiscal configuré couvre les encaissements au Bénin.');
+                $fiscalCountry = strtoupper(trim($integrations->emecfCountry));
+                abort_if($fiscalCountry === '', 409, 'No fiscal country is configured for parcel collections.');
+                abort_unless(
+                    strtoupper((string) $origin->agency?->country) === $fiscalCountry,
+                    409,
+                    'The configured fiscal provider does not cover parcel collections in this country.',
+                );
                 $pricing->calculate($corridor, 1);
             }
             $corridor->save();

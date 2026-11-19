@@ -133,7 +133,7 @@ enum SystemRole: string
                 'wallet.debit-counter',
             ],
             self::OperationsDirector => [
-                'parcels.view', 'parcels.network', 'parcels.assign', 'parcels.configure', 'parcels.override',
+                'parcels.view', 'parcels.network', 'parcels.assign', 'parcels.configure', 'parcels.override', 'parcels.intake',
                 'notifications.view',
                 'tickets.view-network',
                 'agencies.view',

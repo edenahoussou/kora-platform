@@ -30,6 +30,8 @@ final class IntegrationsSettings extends Settings
 
     public bool $emecfTestMode = true;
 
+    public string $emecfCountry = 'BJ';
+
     public ?string $emecfToken = null;
 
     public string $emecfDefaultIfu = '0000000000000';

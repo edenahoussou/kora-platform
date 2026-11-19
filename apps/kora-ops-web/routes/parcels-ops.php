@@ -9,6 +9,7 @@ Route::controller(ParcelConfigurationController::class)->group(function (): void
     Route::put('hubs', 'hub')->name('hubs.update');
     Route::post('hubs/{hub:uuid}/archive', 'archive')->name('hubs.archive');
     Route::get('routing/departures', 'routing')->name('routing.departures');
+    Route::get('capacity', 'capacityIndex')->name('capacity.index');
     Route::put('corridors', 'corridor')->name('corridors.update');
     Route::post('corridors/{corridor:uuid}/tariffs', 'tariff')->name('tariffs.store');
     Route::put('departures/{departure:uuid}/capacity', 'capacity')->name('capacity.update');

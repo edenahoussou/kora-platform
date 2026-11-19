@@ -37,6 +37,25 @@ describe('SystemRole enum', function (): void {
             ->and(SystemRole::SystemAdmin->permissions())->toBe(SystemRole::allPermissions());
     });
 
+    it('grants every parcel permission to the system administrator', function (): void {
+        $parcelPermissions = [
+            'parcels.assign',
+            'parcels.configure',
+            'parcels.customer',
+            'parcels.finance',
+            'parcels.handoff',
+            'parcels.intake',
+            'parcels.network',
+            'parcels.override',
+            'parcels.scan',
+            'parcels.tariffs',
+            'parcels.view',
+        ];
+
+        expect(SystemRole::SystemAdmin->permissions())
+            ->toContain(...$parcelPermissions);
+    });
+
     it('differentiates bus_driver from conductor', function (): void {
         $driverPerms = SystemRole::BusDriver->permissions();
         $conductorPerms = SystemRole::Conductor->permissions();

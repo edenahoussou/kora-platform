@@ -38,6 +38,7 @@ export type OperationsSettingsValues = {
     profitabilityGpsMinCoveragePercent: number;
     profitabilityGpsMaxGapMinutes: number;
     profitabilityGpsMaxSpeedKmh: number;
+    parcelRoutingHorizonDays: number;
 };
 
 export type WalletSettingsValues = {

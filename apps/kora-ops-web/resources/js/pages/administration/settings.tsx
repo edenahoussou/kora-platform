@@ -191,6 +191,14 @@ const integrationFields: Record<string, IntegrationFieldDefinition[]> = {
     ],
     emecf: [
         {
+            key: 'emecfCountry',
+            label: 'Pays fiscal',
+            hint: 'Code ISO à deux lettres du pays couvert par le fournisseur fiscal (ex. BJ).',
+            type: 'text',
+            icon: Globe2,
+            required: true,
+        },
+        {
             key: 'emecfToken',
             label: 'Jeton e-MECeF',
             hint: 'Jeton d’accès fourni par la DGI.',
@@ -2121,6 +2129,25 @@ export default function SettingsPage({
                                     'profitabilityGpsMaxSpeedKmh',
                                     nextValue,
                                 )
+                            }
+                        />
+                    </div>
+                </SettingsSection>
+                <SettingsSection
+                    title="Colis"
+                    description="Paramètres du réseau Colis. Cette section accueillera les futurs réglages d’exploitation Colis au fur et à mesure de leur ouverture."
+                >
+                    <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                        <SettingsField
+                            label="Horizon de routage"
+                            hint="Fenêtre de jours examinée pour trouver un départ programmé disponible."
+                            value={value('parcelRoutingHorizonDays') as number}
+                            type="number"
+                            suffix="jours"
+                            disabled={!permissions.canManage}
+                            error={error('parcelRoutingHorizonDays')}
+                            onChange={(nextValue) =>
+                                setNumber('parcelRoutingHorizonDays', nextValue)
                             }
                         />
                     </div>
