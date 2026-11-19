@@ -40,7 +40,7 @@ class ParcelConfigurationController extends Controller
     {
         $this->access->require($request->user(), 'parcels.network');
         $hubs = ParcelHub::query()->with(['agency', 'koraPoint', 'stop'])->get()->map(fn (ParcelHub $hub): array => [
-            'uuid' => $hub->uuid, 'enabled' => $hub->enabled, 'kind' => $hub->kind,
+            'uuid' => $hub->uuid, 'enabled' => $hub->enabled, 'supports_weighing' => $hub->supports_weighing, 'kind' => $hub->kind,
             'agency_uuid' => $hub->agency?->uuid, 'kora_point_uuid' => $hub->koraPoint?->uuid, 'stop_uuid' => $hub->stop?->uuid,
             'name' => $hub->agency?->name, 'city' => $hub->stop?->city,
             'archived_at' => $hub->archived_at?->toIso8601String(),
@@ -147,14 +147,24 @@ class ParcelConfigurationController extends Controller
         abort_if($pointId !== null && ParcelHub::query()->where('kora_point_id', $pointId)->where('stop_id', '!=', $stop->id)->exists(), 422, 'Partner point is already attached to another deposit location.');
 
         return DB::transaction(function () use ($request, $agency, $stop, $kind, $pointId): JsonResponse {
+            $values = [
+                'kora_point_id' => $pointId,
+                'kind' => $kind,
+                'enabled' => $request->boolean('enabled'),
+                'archived_at' => null,
+            ];
+            if ($request->has('supports_weighing')) {
+                $values['supports_weighing'] = $request->boolean('supports_weighing');
+            }
             $hub = ParcelHub::query()->updateOrCreate(
                 ['agency_id' => $agency->id, 'stop_id' => $stop->id],
-                ['kora_point_id' => $pointId, 'kind' => $kind, 'enabled' => $request->boolean('enabled'), 'archived_at' => null],
+                $values,
             );
             activity('parcels')->performedOn($hub)->causedBy($request->user())->withProperties($request->validated())->log('parcel_hub_configured');
 
             return response()->json(['data' => [
                 'uuid' => $hub->uuid, 'kind' => $hub->kind, 'enabled' => $hub->enabled,
+                'supports_weighing' => $hub->supports_weighing,
                 'kora_point_uuid' => $hub->koraPoint?->uuid, 'archived_at' => $hub->archived_at?->toIso8601String(),
             ]]);
         });

@@ -39,6 +39,9 @@ export type OperationsSettingsValues = {
     profitabilityGpsMaxGapMinutes: number;
     profitabilityGpsMaxSpeedKmh: number;
     parcelRoutingHorizonDays: number;
+    parcelMinimumWeightGrams: number;
+    parcelMaximumWeightGrams: number;
+    parcelCashDeclarationThresholdFcfa: number;
 };
 
 export type WalletSettingsValues = {

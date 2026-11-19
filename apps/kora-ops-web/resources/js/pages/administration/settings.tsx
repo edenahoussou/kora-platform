@@ -2150,6 +2150,49 @@ export default function SettingsPage({
                                 setNumber('parcelRoutingHorizonDays', nextValue)
                             }
                         />
+                        <SettingsField
+                            label="Poids minimum de pesée"
+                            hint="Poids minimal accepté lors de l’inspection d’un colis."
+                            value={value('parcelMinimumWeightGrams') as number}
+                            type="number"
+                            suffix="g"
+                            disabled={!permissions.canManage}
+                            error={error('parcelMinimumWeightGrams')}
+                            onChange={(nextValue) =>
+                                setNumber('parcelMinimumWeightGrams', nextValue)
+                            }
+                        />
+                        <SettingsField
+                            label="Poids maximum de pesée"
+                            hint="Plafond opérationnel de la balance, en grammes (CDC : 30 000 g)."
+                            value={value('parcelMaximumWeightGrams') as number}
+                            type="number"
+                            suffix="g"
+                            disabled={!permissions.canManage}
+                            error={error('parcelMaximumWeightGrams')}
+                            onChange={(nextValue) =>
+                                setNumber('parcelMaximumWeightGrams', nextValue)
+                            }
+                        />
+                        <SettingsField
+                            label="Seuil espèces déclarées"
+                            hint="Montant maximal d’espèces transportables sans refus (FCFA)."
+                            value={
+                                value(
+                                    'parcelCashDeclarationThresholdFcfa',
+                                ) as number
+                            }
+                            type="number"
+                            suffix="FCFA"
+                            disabled={!permissions.canManage}
+                            error={error('parcelCashDeclarationThresholdFcfa')}
+                            onChange={(nextValue) =>
+                                setNumber(
+                                    'parcelCashDeclarationThresholdFcfa',
+                                    nextValue,
+                                )
+                            }
+                        />
                     </div>
                 </SettingsSection>
                 <details

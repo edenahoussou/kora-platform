@@ -2,7 +2,9 @@
 
 namespace App\Modules\Parcels\Http\Requests;
 
+use App\Modules\Parcels\Data\ParcelInspectionCategory;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class ParcelIntakeRequest extends FormRequest
 {
@@ -32,10 +34,19 @@ class ParcelIntakeRequest extends FormRequest
                 'contents' => ['required', 'string', 'max:500'],
             ],
             'inspect' => [
-                'weight_grams' => ['required_unless:category,refused', 'integer', 'min:1', 'max:1000000'],
-                'category' => ['required', 'in:allowed,cash,flammable,chemical,undeclared_medicine,weapon,refused'],
-                'cash_value' => ['required_if:category,cash', 'integer', 'min:0'],
-                'reason' => ['nullable', 'string', 'max:500'],
+                'weight_grams' => [
+                    Rule::requiredIf(fn (): bool => ! in_array($this->input('category'), [
+                        ParcelInspectionCategory::Flammable->value,
+                        ParcelInspectionCategory::Chemical->value,
+                        ParcelInspectionCategory::UndeclaredMedicine->value,
+                        ParcelInspectionCategory::Weapon->value,
+                        ParcelInspectionCategory::Refused->value,
+                    ], true)),
+                    'nullable', 'integer', 'min:1', 'max:1000000',
+                ],
+                'category' => ['required', Rule::enum(ParcelInspectionCategory::class)],
+                'cash_value' => ['required_if:category,cash', 'nullable', 'integer', 'min:0', 'max:1000000000'],
+                'reason' => ['nullable', 'string', 'min:5', 'max:500'],
             ],
             default => [],
         };

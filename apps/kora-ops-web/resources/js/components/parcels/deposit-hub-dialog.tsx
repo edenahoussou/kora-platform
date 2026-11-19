@@ -1,4 +1,5 @@
 import {
+    Scale,
     Building2,
     CheckCircle2,
     Loader2,
@@ -69,6 +70,7 @@ export function DepositHubDialog({
     const [partnerPointUuid, setPartnerPointUuid] = useState('');
     const [stopUuid, setStopUuid] = useState('');
     const [enabled, setEnabled] = useState(true);
+    const [supportsWeighing, setSupportsWeighing] = useState(true);
 
     const linkedAgencies = useMemo(
         () => new Set(linkedAgencyUuids),
@@ -107,6 +109,7 @@ export function DepositHubDialog({
         setPartnerPointUuid('');
         setStopUuid('');
         setEnabled(true);
+        setSupportsWeighing(true);
     }, [open, availableAgencies.length]);
 
     const selectedAgency = useMemo(
@@ -164,6 +167,7 @@ export function DepositHubDialog({
                 : { kora_point_uuid: partnerPointUuid }),
             stop_uuid: stopUuid,
             enabled,
+            supports_weighing: supportsWeighing,
         });
     };
 
@@ -414,6 +418,26 @@ export function DepositHubDialog({
                             className="size-4 accent-[var(--kora)]"
                         />
                         Activer ce lieu dès l’enregistrement
+                    </label>
+
+                    <label className="flex items-start gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2.5 text-sm">
+                        <Scale className="mt-0.5 size-3.5 shrink-0 text-gold" />
+                        <span className="flex-1">
+                            Balance vérifiée sur ce lieu
+                            <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
+                                Obligatoire pour accepter une pesée. Si
+                                l’équipement n’est pas encore installé, décochez
+                                cette case.
+                            </span>
+                        </span>
+                        <input
+                            type="checkbox"
+                            checked={supportsWeighing}
+                            onChange={(event) =>
+                                setSupportsWeighing(event.target.checked)
+                            }
+                            className="mt-0.5 size-4 shrink-0 accent-[var(--kora)]"
+                        />
                     </label>
                 </div>
 

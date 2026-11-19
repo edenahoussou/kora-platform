@@ -4,6 +4,7 @@ namespace App\Modules\Parcels\Services;
 
 use App\Models\User;
 use App\Modules\IdentityAccess\Contracts\PassengerIdentityResolver;
+use App\Modules\Parcels\Data\ParcelInspectionCategory;
 use App\Modules\Parcels\Models\Parcel;
 use App\Modules\Parcels\Models\ParcelCorridor;
 use App\Modules\Parcels\Models\ParcelHub;
@@ -154,28 +155,101 @@ class ParcelIntake
     public function inspect(Parcel $parcel, User $actor, array $input): Parcel
     {
         return DB::transaction(function () use ($parcel, $actor, $input): Parcel {
-            $parcel = Parcel::query()->lockForUpdate()->findOrFail($parcel->id);
+            $parcel = Parcel::query()
+                ->with(['corridor.originHub', 'depositHub'])
+                ->lockForUpdate()
+                ->findOrFail($parcel->id);
             $corridor = $parcel->corridor;
-            $hub = $corridor->originHub;
+            $hub = $parcel->depositHub ?? $corridor?->originHub;
+            abort_if($corridor === null || $hub === null, 409, 'Parcel deposit location is unavailable.');
+
             $this->access->atHub($actor, $hub, 'parcels.intake');
-            abort_unless(in_array($parcel->status, ['preregistered', 'weighed'], true) && $parcel->expires_at->isFuture(), 409);
+            abort_unless(
+                in_array($parcel->status, ['preregistered', 'weighed'], true) && $parcel->expires_at->isFuture(),
+                409,
+                'Parcel is not open for inspection.',
+            );
+            abort_unless($hub->isActive(), 409, 'Deposit location is not open for inspection.');
+            abort_unless($hub->supports_weighing, 409, 'Deposit location has no approved weighing equipment.');
 
             $this->pricing->ensureOpen($corridor);
-            $category = $input['category'];
-            $refused = in_array($category, ['flammable', 'chemical', 'undeclared_medicine', 'weapon', 'refused'], true)
-                || ($category === 'cash' && (int) $input['cash_value'] > 500000);
+
+            $settings = app(OperationsSettings::class);
+            $category = ParcelInspectionCategory::from((string) $input['category']);
+            $weight = isset($input['weight_grams']) ? (int) $input['weight_grams'] : null;
+            $cashValue = (int) ($input['cash_value'] ?? 0);
+            $previousWeight = $parcel->weight_grams;
+            $previousCategory = $parcel->inspection_category?->value;
+            $previousCharge = $parcel->charges()->whereNull('superseded_at')->latest('id')->first();
+
+            $reasonCode = null;
+            $reason = trim((string) ($input['reason'] ?? ''));
+
+            if ($category->isForbidden()) {
+                $reasonCode = 'forbidden_category';
+                $reason = $reason !== '' ? $reason : "Forbidden category: {$category->value}.";
+            } elseif ($category->requiresCashDeclaration() && $cashValue > $settings->parcelCashDeclarationThresholdFcfa) {
+                $reasonCode = 'cash_threshold_exceeded';
+                $reason = $reason !== '' ? $reason : 'Cash value exceeds the allowed transport threshold.';
+            } elseif ($weight !== null && $weight > $settings->parcelMaximumWeightGrams) {
+                $reasonCode = 'weight_above_limit';
+                $reason = $reason !== '' ? $reason : "Weight exceeds the {$settings->parcelMaximumWeightGrams} g operational limit.";
+            } elseif ($weight !== null && $weight < $settings->parcelMinimumWeightGrams) {
+                $reasonCode = 'weight_below_limit';
+                $reason = $reason !== '' ? $reason : "Weight is below the {$settings->parcelMinimumWeightGrams} g operational minimum.";
+            }
+
+            if ($reasonCode === null && $weight === null) {
+                throw ValidationException::withMessages(['weight_grams' => 'The measured weight is required to accept a parcel.']);
+            }
+
             $parcel->charges()->whereNull('superseded_at')->update(['superseded_at' => now()]);
-            if ($refused) {
-                $parcel->update(['status' => 'refused']);
-                $parcel->record('refused', $actor, $hub, details: ['category' => $category, 'reason' => $input['reason'] ?? null]);
+
+            if ($reasonCode !== null) {
+                $parcel->update([
+                    'status' => 'refused',
+                    'weight_grams' => $weight ?? $previousWeight,
+                    'inspection_category' => $category,
+                    'inspection_refusal_reason' => $reason,
+                    'inspected_at' => now(),
+                    'inspection_hub_id' => $hub->id,
+                ]);
+                $parcel->record('refused', $actor, $hub, details: [
+                    'category' => $category->value,
+                    'reason_code' => $reasonCode,
+                    'reason' => $reason,
+                    'weight_grams' => $weight ?? $previousWeight,
+                    'cash_value' => $category->requiresCashDeclaration() ? $cashValue : null,
+                    'previous_weight_grams' => $previousWeight,
+                    'previous_category' => $previousCategory,
+                    'superseded_charge_uuid' => $previousCharge?->uuid,
+                    'superseded_charge_total' => $previousCharge?->total,
+                ]);
 
                 return $parcel;
             }
 
-            $grams = (int) $input['weight_grams'];
-            $parcel->charges()->create($this->pricing->calculate($corridor, $grams));
-            $parcel->update(['weight_grams' => $grams, 'status' => 'weighed']);
-            $parcel->record('weighed', $actor, $hub, details: ['weight_grams' => $grams, 'category' => $category]);
+            $charge = $parcel->charges()->create($this->pricing->calculate($corridor, $weight));
+            $parcel->update([
+                'status' => 'weighed',
+                'weight_grams' => $weight,
+                'inspection_category' => $category,
+                'inspection_refusal_reason' => null,
+                'inspected_at' => now(),
+                'inspection_hub_id' => $hub->id,
+            ]);
+            $parcel->record('weighed', $actor, $hub, details: [
+                'weight_grams' => $weight,
+                'category' => $category->value,
+                'cash_value' => $category->requiresCashDeclaration() ? $cashValue : null,
+                'previous_weight_grams' => $previousWeight,
+                'previous_category' => $previousCategory,
+                'corrected' => $previousWeight !== null,
+                'previous_charge_uuid' => $previousCharge?->uuid,
+                'previous_charge_total' => $previousCharge?->total,
+                'charge_uuid' => $charge->uuid,
+                'charge_total' => $charge->total,
+            ]);
 
             return $parcel;
         });
@@ -218,6 +292,6 @@ class ParcelIntake
     private function normalize(string $phone, string $field): string
     {
         return $this->identity->normalizePhone($phone)
-            ?? throw ValidationException::withMessages([$field => 'Numéro de téléphone invalide.']);
+            ?? throw ValidationException::withMessages([$field => 'Invalid phone number.']);
     }
 }

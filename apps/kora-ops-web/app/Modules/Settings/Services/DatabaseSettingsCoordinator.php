@@ -187,6 +187,9 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
         if ($group === SettingsGroup::Operations) {
             return [
                 'parcelIntakeExpiryHours' => ['required', 'integer', 'between:1,720'],
+                'parcelMinimumWeightGrams' => ['required', 'integer', 'between:1,30000'],
+                'parcelMaximumWeightGrams' => ['required', 'integer', 'between:1,30000', 'gt:parcelMinimumWeightGrams'],
+                'parcelCashDeclarationThresholdFcfa' => ['required', 'integer', 'between:0,1000000000'],
                 'parcelFirstReminderDays' => ['required', 'integer', 'min:1'],
                 'parcelSecondReminderDays' => ['required', 'integer', 'gt:parcelFirstReminderDays'],
                 'parcelReturnDays' => ['required', 'integer', 'gt:parcelSecondReminderDays', 'max:365'],

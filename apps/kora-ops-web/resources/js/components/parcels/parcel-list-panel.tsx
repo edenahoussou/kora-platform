@@ -5,14 +5,18 @@ import {
     Eye,
     Package,
     RefreshCw,
+    Scale,
     Search,
     SlidersHorizontal,
     TriangleAlert,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { ParcelButton } from '@/components/parcels/parcel-button';
 import { ParcelDetailDialog } from '@/components/parcels/parcel-detail-dialog';
+import { ParcelInspectionDialog } from '@/components/parcels/parcel-inspection-dialog';
+import type { ParcelInspectionPayload } from '@/components/parcels/parcel-inspection-dialog';
 import {
     parcelStatusLabels,
     parcelStatusLabel,
@@ -20,6 +24,7 @@ import {
 } from '@/components/parcels/status';
 import type {
     DepositHub,
+    LaravelValidationErrors,
     ParcelCorridor,
     ParcelListItem,
     ParcelListMeta,
@@ -35,6 +40,39 @@ type Props = {
 };
 
 const statusOptions = ['', ...Object.keys(parcelStatusLabels)];
+
+function xsrfToken(): string {
+    const value = document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? '';
+
+    return decodeURIComponent(value);
+}
+
+function responseMessage(payload: unknown, fallback: string): string {
+    if (
+        payload !== null &&
+        typeof payload === 'object' &&
+        'message' in payload &&
+        typeof payload.message === 'string'
+    ) {
+        return payload.message;
+    }
+
+    return fallback;
+}
+
+function validationErrors(payload: unknown): LaravelValidationErrors {
+    if (
+        payload !== null &&
+        typeof payload === 'object' &&
+        'errors' in payload &&
+        payload.errors !== null &&
+        typeof payload.errors === 'object'
+    ) {
+        return payload.errors as LaravelValidationErrors;
+    }
+
+    return {};
+}
 
 function formatGrams(value: number | null): string {
     if (value === null) {
@@ -95,6 +133,7 @@ export function ParcelListPanel({
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [selected, setSelected] = useState<ParcelListItem | null>(null);
+    const [inspecting, setInspecting] = useState<ParcelListItem | null>(null);
 
     const hubsByUuid = new Map(hubs.map((hub) => [hub.uuid, hub]));
 
@@ -191,6 +230,64 @@ export function ParcelListPanel({
         }
 
         void load(target, applied);
+    };
+
+    const submitInspection = async (
+        payload: ParcelInspectionPayload,
+    ): Promise<{
+        ok: boolean;
+        message?: string;
+        errors?: LaravelValidationErrors;
+    }> => {
+        if (inspecting === null) {
+            return { ok: false, message: 'Colis introuvable.' };
+        }
+
+        try {
+            const response = await fetch(
+                `/parcels/data/${inspecting.uuid}/inspect`,
+                {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-XSRF-TOKEN': xsrfToken(),
+                    },
+                    body: JSON.stringify(payload),
+                },
+            );
+            const body = (await response.json().catch(() => null)) as {
+                data?: ParcelListItem;
+            } | null;
+
+            if (!response.ok || body === null) {
+                return {
+                    ok: false,
+                    message: responseMessage(
+                        body,
+                        'La pesée n’a pas été enregistrée.',
+                    ),
+                    errors: validationErrors(body),
+                };
+            }
+
+            toast.success(
+                body.data?.status === 'refused'
+                    ? `Colis ${inspecting.reference} refusé et audité.`
+                    : `Colis ${inspecting.reference} pesé, devis mis à jour.`,
+            );
+            setInspecting(null);
+            await load(page, applied);
+
+            return { ok: true };
+        } catch {
+            return {
+                ok: false,
+                message:
+                    'Le réseau est instable. La pesée n’a pas été enregistrée.',
+            };
+        }
     };
 
     return (
@@ -427,6 +524,26 @@ export function ParcelListPanel({
                                         </td>
                                         <td className="px-2 py-3.5">
                                             <div className="flex flex-col items-end gap-1">
+                                                {canIntake &&
+                                                    [
+                                                        'preregistered',
+                                                        'weighed',
+                                                    ].includes(
+                                                        parcel.status,
+                                                    ) && (
+                                                        <ParcelButton
+                                                            variant="navy"
+                                                            size="sm"
+                                                            onClick={() =>
+                                                                setInspecting(
+                                                                    parcel,
+                                                                )
+                                                            }
+                                                        >
+                                                            <Scale className="size-3.5" />
+                                                            Peser
+                                                        </ParcelButton>
+                                                    )}
                                                 <ParcelButton
                                                     variant="ghost"
                                                     size="sm"
@@ -491,6 +608,16 @@ export function ParcelListPanel({
                     </div>
                 )}
             </section>
+
+            <ParcelInspectionDialog
+                parcel={inspecting}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setInspecting(null);
+                    }
+                }}
+                onSubmit={submitInspection}
+            />
 
             <ParcelDetailDialog
                 parcel={selected}

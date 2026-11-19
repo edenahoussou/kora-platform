@@ -19,12 +19,13 @@ class ParcelHub extends KoraModel
 
     public const KIND_PARTNER_POINT = 'partner_point';
 
-    protected $fillable = ['agency_id', 'kora_point_id', 'kind', 'stop_id', 'enabled', 'archived_at'];
+    protected $fillable = ['agency_id', 'kora_point_id', 'kind', 'stop_id', 'enabled', 'supports_weighing', 'archived_at'];
 
     protected function casts(): array
     {
         return [
             'enabled' => 'boolean',
+            'supports_weighing' => 'boolean',
             'archived_at' => 'immutable_datetime',
         ];
     }

@@ -1,5 +1,6 @@
 import {
     ArrowRight,
+    Ban,
     Building2,
     CalendarClock,
     ExternalLink,
@@ -143,6 +144,16 @@ export function ParcelDetailDialog({ parcel, onOpenChange }: Props) {
                                                   )
                                         }
                                     />
+                                    {parcel.inspection?.state === 'refused' && (
+                                        <InfoLine
+                                            icon={Ban}
+                                            label="Motif du refus"
+                                            value={
+                                                parcel.inspection
+                                                    .refusal_reason ?? '—'
+                                            }
+                                        />
+                                    )}
                                     <InfoLine
                                         icon={CalendarClock}
                                         label="Dernière mise à jour"

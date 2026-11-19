@@ -66,23 +66,24 @@ class ParcelPayments
                 abort_unless($parcel->sender_user_id === $actor->id, 404);
             }
 
-            $charge = $parcel->charges()->where('return_leg', $parcel->status === 'returned')->whereNull('superseded_at')->latest('id')->firstOrFail();
+            $charge = $parcel->charges()->where('return_leg', $parcel->status === 'returned')->whereNull('superseded_at')->latest('id')->first();
+            abort_if($charge === null, 409, 'This parcel has no collectible quote.');
             $fingerprint = hash('sha256', json_encode($input, JSON_THROW_ON_ERROR));
             $attempts = Payment::query()->where('parcel_charge_id', $charge->id);
             $existing = (clone $attempts)->where('idempotency_key', $input['idempotency_key'])->first();
             if ($existing !== null) {
-                abort_unless($existing->request_fingerprint === $fingerprint, 409, 'Cette clé de paiement a déjà été utilisée.');
+                abort_unless($existing->request_fingerprint === $fingerprint, 409, 'This payment key has already been used.');
 
                 return $existing;
             }
-            abort_unless($this->isPayable($parcel, $charge), 409, 'Le devis de ce colis ne peut plus être encaissé.');
-            abort_if($attempts->where('status', PaymentStatus::Pending)->exists(), 409, 'Un paiement est déjà en cours.');
-            abort_unless((int) $input['amount'] === (int) $charge->total, 409, 'Le montant doit correspondre au dernier devis pesé.');
+            abort_unless($this->isPayable($parcel, $charge), 409, 'This parcel quote can no longer be collected.');
+            abort_if($attempts->where('status', PaymentStatus::Pending)->exists(), 409, 'A payment is already in progress.');
+            abort_unless((int) $input['amount'] === (int) $charge->total, 409, 'The amount must match the latest weighed quote.');
 
             $method = PaymentMethod::from($input['method']);
             $walletAmount = (int) ($input['wallet_amount'] ?? 0);
             $points = (int) ($input['points_amount'] ?? 0);
-            abort_if($walletAmount > 0 && ! $parcel->corridor->wallet_cash_enabled, 422, 'Le solde Wallet Colis est désactivé.');
+            abort_if($walletAmount > 0 && ! $parcel->corridor->wallet_cash_enabled, 422, 'The parcel wallet balance is disabled.');
             $funding = WalletPurchaseFunding::purchase((int) $charge->total, $walletAmount, $points, $this->walletSettings->pointValueFcfa);
             $provider = $input['provider'] ?? '';
             $network = MobileMoneyNetwork::tryFrom($input['mobile_money_network'] ?? '');
@@ -92,16 +93,17 @@ class ParcelPayments
                 $cashAttributes = $this->counterAttributes($actor, (int) $charge->total, $method, $network, $input);
                 $provider = $method === PaymentMethod::Cash ? 'cash' : $network?->value;
             } elseif ($method === PaymentMethod::Wallet) {
-                abort_unless($funding->providerAmount === 0, 422, 'Le Wallet doit couvrir le montant du paiement.');
+                abort_unless($funding->providerAmount === 0, 422, 'The wallet must cover the payment amount.');
                 $provider = 'wallet';
             } else {
                 abort_unless($funding->providerAmount > 0 && in_array($method, [PaymentMethod::MobileMoney, PaymentMethod::Card], true), 422);
                 $country = strtoupper((string) $hub?->agency?->country);
                 $network ??= $provider === 'mtn_momo' ? MobileMoneyNetwork::MtnMomo : null;
                 $this->providers->assertAvailable($method->value, $provider, $network?->value);
-                abort_if(($network !== null && $network->country() !== $country)
-                    || ($provider === 'mtn_momo' && $country !== 'BJ')
-                    || ($provider === 'kkiapay' && ! in_array($country, app(IntegrationsSettings::class)->kkiapayCountries, true)), 422);
+                $networkCountry = $network !== null ? strtoupper($network->country()) : null;
+                $kkiapayUnsupported = $provider === 'kkiapay'
+                    && ! in_array($country, app(IntegrationsSettings::class)->kkiapayCountries, true);
+                abort_if(($networkCountry !== null && $networkCountry !== $country) || $kkiapayUnsupported, 422, 'The selected payment provider is not available in this country.');
                 $providerFunding = $this->providers->providerAmount($provider, $funding->providerAmount, 'XOF');
                 $cashAttributes = ['provider_amount' => $providerFunding['amount'], 'provider_currency' => $providerFunding['currency']];
             }
@@ -349,13 +351,13 @@ class ParcelPayments
         $session = CashSession::query()->where('agent_id', $actor->id)->where('agency_id', $actor->agency_id)
             ->whereDate('business_date', now()->toDateString())->where('status', CashSessionStatus::Open)->lockForUpdate()->first();
         if ($session === null) {
-            throw ValidationException::withMessages(['cash_session' => 'Ouvrez votre caisse avant l’encaissement.']);
+            throw ValidationException::withMessages(['cash_session' => 'Open your cash register before collecting a payment.']);
         }
         $ledger = CashLedger::query()->where('cash_session_id', $session->id);
         $extra = [];
         if ($method === PaymentMethod::Cash) {
             $received = (int) ($input['cash_received_amount'] ?? 0);
-            abort_if($received < $total, 422, 'Montant reçu insuffisant.');
+            abort_if($received < $total, 422, 'The amount received is insufficient.');
             $ledger->where('kind', CashLedgerKind::Cash);
             $extra = ['cash_received_amount' => $received, 'change_amount' => $received - $total];
         } else {

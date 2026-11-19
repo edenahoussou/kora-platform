@@ -20,6 +20,11 @@ class ParcelResource extends JsonResource
         $trackingUrl = is_string($parcel->reference) && $parcel->reference !== ''
             ? route('api.v1.parcels.tracking', ['reference' => $parcel->reference])
             : null;
+        $inspectionState = match (true) {
+            $parcel->status === 'refused' => 'refused',
+            $parcel->inspected_at !== null => 'accepted',
+            default => 'pending_inspection',
+        };
 
         return [
             'uuid' => $parcel->uuid,
@@ -34,6 +39,17 @@ class ParcelResource extends JsonResource
             'contents' => $parcel->contents,
             'weight_grams' => $parcel->weight_grams,
             'declared_grams' => $parcel->declared_grams,
+            'inspection_state' => $inspectionState,
+            'inspection' => [
+                'state' => $inspectionState,
+                'category' => $parcel->inspection_category?->value,
+                'refusal_reason' => $parcel->inspection_refusal_reason,
+                'inspected_at' => $parcel->inspected_at?->toIso8601String(),
+                'hub_uuid' => $parcel->inspectionHub?->uuid,
+                'hub_name' => $parcel->inspectionHub?->stop?->name,
+            ],
+            'can_pay' => $parcel->status === 'weighed' && $charge !== null && ! $parcel->incidents->contains(fn ($incident) => $incident->blocking && $incident->resolved_at === null) && $parcel->expires_at->isFuture(),
+            'can_assign' => $parcel->status === 'ready',
             'origin_hub_uuid' => $parcel->corridor?->originHub?->uuid,
             'destination_hub_uuid' => $parcel->corridor?->destinationHub?->uuid,
             'custody_hub_uuid' => $parcel->custodyHub?->uuid,
@@ -69,6 +85,6 @@ class ParcelResource extends JsonResource
     /** @return list<string> */
     public static function relations(): array
     {
-        return ['corridor.originHub.stop', 'corridor.destinationHub.stop', 'custodyHub', 'depositHub.stop', 'sellingAgency', 'charges', 'assignments.departure.latestTrackingSession', 'incidents'];
+        return ['corridor.originHub.stop', 'corridor.destinationHub.stop', 'custodyHub', 'depositHub.stop', 'inspectionHub.stop', 'sellingAgency', 'charges', 'assignments.departure.latestTrackingSession', 'incidents'];
     }
 }

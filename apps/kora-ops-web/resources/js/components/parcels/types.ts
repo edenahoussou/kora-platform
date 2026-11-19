@@ -4,6 +4,7 @@ export type DepositHub = {
     uuid: string;
     kind: DepositHubKind;
     enabled: boolean;
+    supports_weighing: boolean;
     agency_uuid: string | null;
     kora_point_uuid: string | null;
     stop_uuid: string | null;
@@ -82,6 +83,7 @@ export type DepositHubPayload = {
     kora_point_uuid?: string;
     stop_uuid: string;
     enabled: boolean;
+    supports_weighing: boolean;
 };
 
 export type CorridorPayload = {
@@ -164,6 +166,15 @@ export type ParcelListItem = {
     tracking_url: string | null;
     qr_payload: string | null;
     status: string;
+    inspection_state?: 'pending_inspection' | 'accepted' | 'refused';
+    inspection?: {
+        state: 'pending_inspection' | 'accepted' | 'refused';
+        category: string | null;
+        refusal_reason: string | null;
+        inspected_at: string | null;
+        hub_uuid: string | null;
+        hub_name: string | null;
+    };
     origin: string | null;
     destination: string | null;
     sender_name: string;

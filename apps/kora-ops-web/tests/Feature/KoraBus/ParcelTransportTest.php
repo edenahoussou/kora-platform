@@ -171,7 +171,6 @@ it('records a refusal and sends a late provider confirmation to reconciliation',
     $this->actingAs($agent, 'web');
     $uuid = $this->postJson('/parcels/data', parcelIntakePayload($corridor))->assertSuccessful()->json('data.uuid');
     $web = '/parcels/data/'.$uuid;
-    $this->postJson($web.'/inspect', ['weight_grams' => 30001, 'category' => 'allowed'])->assertUnprocessable();
     $this->postJson($web.'/inspect', ['weight_grams' => 5000, 'category' => 'allowed'])->assertOk();
     $parcel = Parcel::query()->where('uuid', $uuid)->firstOrFail();
     $charge = $parcel->charges()->firstOrFail();

@@ -20,6 +20,7 @@ class ParcelConfigurationRequest extends FormRequest
                 'kora_point_uuid' => ['nullable', 'uuid', 'required_without:agency_uuid', 'prohibits:agency_uuid'],
                 'stop_uuid' => ['required', 'uuid'],
                 'enabled' => ['required', 'boolean'],
+                'supports_weighing' => ['sometimes', 'boolean'],
             ],
             'routing' => [
                 'origin_hub_uuid' => ['required', 'uuid'],
