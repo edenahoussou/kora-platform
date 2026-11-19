@@ -17,10 +17,15 @@ class ParcelResource extends JsonResource
         $charge = $parcel->charges->first(fn ($charge) => $charge->superseded_at === null && $charge->return_leg === ($parcel->status === 'returned'));
         $assignment = $parcel->assignments->sortByDesc('id')->first(fn ($assignment) => $assignment->released_at === null || $assignment->transported_at !== null);
         $departure = $assignment?->departure;
+        $trackingUrl = is_string($parcel->reference) && $parcel->reference !== ''
+            ? route('api.v1.parcels.tracking', ['reference' => $parcel->reference])
+            : null;
 
         return [
             'uuid' => $parcel->uuid,
             'reference' => $parcel->reference,
+            'tracking_url' => $trackingUrl,
+            'qr_payload' => $trackingUrl,
             'status' => $parcel->status,
             'origin' => $parcel->corridor?->originHub?->stop?->city,
             'destination' => $parcel->corridor?->destinationHub?->stop?->city,
@@ -33,7 +38,16 @@ class ParcelResource extends JsonResource
             'destination_hub_uuid' => $parcel->corridor?->destinationHub?->uuid,
             'custody_hub_uuid' => $parcel->custodyHub?->uuid,
             'deposit_hub_uuid' => $parcel->depositHub?->uuid,
+            'deposit_hub' => $parcel->depositHub === null ? null : [
+                'uuid' => $parcel->depositHub->uuid,
+                'kind' => $parcel->depositHub->kind,
+                'city' => $parcel->depositHub->stop?->city,
+            ],
             'selling_agency_uuid' => $parcel->sellingAgency?->uuid,
+            'selling_agency' => $parcel->sellingAgency === null ? null : [
+                'uuid' => $parcel->sellingAgency->uuid,
+                'name' => $parcel->sellingAgency->name,
+            ],
             'withdraw_by' => $parcel->return_due_at?->toIso8601String(),
             'return_handed_over_at' => $parcel->return_handed_over_at?->toIso8601String(),
             'expires_at' => $parcel->expires_at->toIso8601String(),
@@ -55,6 +69,6 @@ class ParcelResource extends JsonResource
     /** @return list<string> */
     public static function relations(): array
     {
-        return ['corridor.originHub.stop', 'corridor.destinationHub.stop', 'custodyHub', 'depositHub', 'sellingAgency', 'charges', 'assignments.departure.latestTrackingSession', 'incidents'];
+        return ['corridor.originHub.stop', 'corridor.destinationHub.stop', 'custodyHub', 'depositHub.stop', 'sellingAgency', 'charges', 'assignments.departure.latestTrackingSession', 'incidents'];
     }
 }

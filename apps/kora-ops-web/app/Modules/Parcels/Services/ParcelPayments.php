@@ -33,7 +33,6 @@ use App\Modules\Wallet\Data\WalletPurchaseFunding;
 use App\Modules\Wallet\Data\WalletTransactionReason;
 use App\Modules\Wallet\Models\WalletHold;
 use App\Modules\Wallet\Services\WalletLedgerService;
-use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -334,21 +333,11 @@ class ParcelPayments
 
     private function register(Parcel $parcel, int $hubId): void
     {
-        $date = now()->format('Ymd');
-        for ($attempt = 0; $attempt < 8; $attempt++) {
-            try {
-                DB::transaction(fn () => $parcel->update([
-                    'reference' => sprintf('KC-%s-%05d', $date, random_int(0, 99999)),
-                    'status' => 'registered',
-                    'custody_hub_id' => $hubId,
-                ]));
-
-                return;
-            } catch (UniqueConstraintViolationException) {
-                $parcel->refresh();
-            }
+        if ($parcel->reference === null) {
+            app(ParcelReference::class)->assign($parcel);
         }
-        throw new \RuntimeException('Aucune référence Colis unique n’a pu être réservée.');
+
+        $parcel->update(['status' => 'registered', 'custody_hub_id' => $hubId]);
     }
 
     /**

@@ -21,7 +21,7 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
  */
 class Parcel extends KoraModel
 {
-    protected $fillable = ['reference', 'corridor_id', 'deposit_hub_id', 'selling_agency_id', 'sender_user_id', 'custody_hub_id', 'status', 'sender_name', 'sender_phone', 'recipient_name', 'recipient_phone', 'recipient_phone_hash', 'contents', 'declared_grams', 'weight_grams', 'expires_at', 'available_at', 'return_due_at', 'return_handed_over_at', 'handoff_hash', 'handoff_attempts', 'share_hash'];
+    protected $fillable = ['reference', 'corridor_id', 'deposit_hub_id', 'selling_agency_id', 'idempotency_key', 'intake_fingerprint', 'sender_user_id', 'custody_hub_id', 'status', 'sender_name', 'sender_phone', 'recipient_name', 'recipient_phone', 'recipient_phone_hash', 'contents', 'declared_grams', 'weight_grams', 'expires_at', 'available_at', 'return_due_at', 'return_handed_over_at', 'handoff_hash', 'handoff_attempts', 'share_hash'];
 
     protected $hidden = ['id', 'sender_name', 'sender_phone', 'recipient_name', 'recipient_phone', 'recipient_phone_hash', 'contents', 'handoff_hash', 'share_hash'];
 

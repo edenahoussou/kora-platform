@@ -20,7 +20,10 @@ class ParcelIntakeRequest extends FormRequest
                 'weight_grams' => ['required', 'integer', 'min:1', 'max:1000000'],
             ],
             'store' => [
-                'corridor_uuid' => ['required', 'uuid'],
+                'corridor_uuid' => ['nullable', 'uuid'],
+                'deposit_hub_uuid' => ['required_without:corridor_uuid', 'uuid'],
+                'destination_hub_uuid' => ['required_without:corridor_uuid', 'uuid'],
+                'idempotency_key' => ['required', 'uuid'],
                 'weight_grams' => ['required', 'integer', 'min:1', 'max:1000000'],
                 'sender_name' => ['required', 'string', 'max:120'],
                 'sender_phone' => ['nullable', 'string', 'max:32'],

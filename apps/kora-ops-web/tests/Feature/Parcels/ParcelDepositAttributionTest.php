@@ -1,6 +1,9 @@
 <?php
 
 use App\Models\User;
+use App\Modules\BusNetwork\Models\Bus;
+use App\Modules\Departures\Data\DepartureStatus;
+use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Models\TaxRule;
 use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\Parcels\Models\Parcel;
@@ -9,6 +12,7 @@ use App\Modules\Parcels\Models\ParcelHub;
 use App\Modules\Parcels\Services\ParcelIntake;
 use App\Modules\Parcels\Services\ParcelRouting;
 use Database\Seeders\KoraBusRolePermissionSeeder;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 beforeEach(function (): void {
@@ -30,12 +34,32 @@ function depositAttributionFixture(): array
     ]);
     $agent = User::factory()->create(['agency_id' => $originAgency->id])->assignRole('agency_agent');
 
+    depositAttributionDeparture($line->id, $originStop->uuid, $destinationStop->uuid);
+
     return compact('line', 'originStop', 'destinationStop', 'originAgency', 'destinationAgency', 'origin', 'destination', 'corridor', 'agent');
+}
+
+function depositAttributionDeparture(int $lineId, string $originStopUuid, string $destinationStopUuid): Departure
+{
+    $bus = Bus::query()->create([
+        'registration_number' => 'AT-'.Str::random(8), 'brand' => 'KORA', 'model' => 'Coach', 'seat_count' => 50, 'status' => 'active',
+    ]);
+
+    return Departure::query()->create([
+        'line_id' => $lineId,
+        'bus_id' => $bus->id,
+        'conductor_id' => User::factory()->create()->assignRole('conductor')->id,
+        'departure_date' => now()->addDay()->toDateString(),
+        'departure_time' => '08:00',
+        'status' => DepartureStatus::Scheduled,
+        'stop_times' => [['stop_uuid' => $originStopUuid], ['stop_uuid' => $destinationStopUuid]],
+    ]);
 }
 
 function depositIntakePayload(): array
 {
     return [
+        'idempotency_key' => (string) Str::uuid(),
         'sender_name' => 'Sender', 'sender_phone' => '+2290191000000',
         'recipient_name' => 'Recipient', 'recipient_phone' => '+2290191000001',
         'contents' => 'Books', 'weight_grams' => 5000,

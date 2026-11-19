@@ -82,11 +82,12 @@ class ParcelController extends Controller
      * @response 201 {"data":{}}
      * @response 403 {"message":"Droits insuffisants pour ce périmètre Colis."}
      */
-    public function store(ParcelIntakeRequest $request): ParcelResource
+    public function store(ParcelIntakeRequest $request): JsonResponse
     {
-        $corridor = ParcelCorridor::query()->where('uuid', $request->validated('corridor_uuid'))->firstOrFail();
+        $locations = $this->intake->resolve($request->validated());
+        $parcel = $this->intake->createForDeposit($locations['deposit'], $locations['destination'], $request->user(), $request->validated(), false);
 
-        return new ParcelResource($this->intake->create($corridor, $request->user(), $request->validated(), false));
+        return (new ParcelResource($parcel))->response()->setStatusCode($parcel->wasRecentlyCreated ? 201 : 200);
     }
 
     /**

@@ -64,6 +64,11 @@ function parcelScenario(): array
         'line_id' => $line->id, 'bus_id' => Bus::query()->create(['registration_number' => 'COLIS-'.Str::random(8), 'brand' => 'KORA', 'model' => 'Coach', 'seat_count' => 50, 'status' => 'active'])->id, 'conductor_id' => $conductor->id,
         'departure_date' => now()->toDateString(), 'departure_time' => '12:00', 'status' => DepartureStatus::Boarding,
     ]);
+    Departure::query()->create([
+        'line_id' => $line->id, 'bus_id' => Bus::query()->create(['registration_number' => 'INTAKE-'.Str::random(8), 'brand' => 'KORA', 'model' => 'Coach', 'seat_count' => 50, 'status' => 'active'])->id, 'conductor_id' => $conductor->id,
+        'departure_date' => now()->addDay()->toDateString(), 'departure_time' => '08:00', 'status' => DepartureStatus::Scheduled,
+        'stop_times' => [['stop_uuid' => $originStop->uuid], ['stop_uuid' => $destinationStop->uuid]],
+    ]);
     $session = CashSession::factory()->create(['agent_id' => $agent->id, 'agency_id' => $originAgency->id]);
     $ledger = CashLedger::factory()->create(['cash_session_id' => $session->id]);
 
@@ -73,7 +78,8 @@ function parcelScenario(): array
 function parcelIntakePayload(ParcelCorridor $corridor): array
 {
     return [
-        'corridor_uuid' => $corridor->uuid, 'sender_name' => 'Expéditeur privé', 'sender_phone' => '+2290191000000',
+        'corridor_uuid' => $corridor->uuid, 'idempotency_key' => (string) Str::uuid(),
+        'sender_name' => 'Expéditeur privé', 'sender_phone' => '+2290191000000',
         'recipient_name' => 'Destinataire privé', 'recipient_phone' => '+2290191000001',
         'contents' => 'Livres', 'weight_grams' => 5000,
     ];
@@ -99,14 +105,19 @@ it('keeps the payment, custody, offline replay and withdrawal consistent across 
     $payment = ['method' => 'cash', 'amount' => 3000, 'cash_received_amount' => 3000, 'idempotency_key' => (string) Str::uuid()];
     $this->postJson($web.'/pay', [...$payment, 'amount' => 1500])->assertConflict();
     $this->postJson($web.'/pay', $payment)->assertSuccessful()->assertJsonPath('data.status', 'confirmed');
+    $referenceAtIntake = $parcel->reference;
     $this->postJson($web.'/pay', $payment)->assertSuccessful();
     expect(CashMovement::query()->count())->toBe(1)
         ->and(FiscalInvoice::query()->count())->toBe(1)
-        ->and($parcel->refresh()->status)->toBe('registered');
+        ->and($parcel->refresh()->status)->toBe('registered')
+        ->and($parcel->reference)->toBe($referenceAtIntake);
     $this->getJson('/api/v1/parcels/tracking/'.$parcel->reference)->assertExactJson([
         'data' => ['status' => 'registered', 'origin' => 'Cotonou', 'destination' => 'Parakou'],
     ]);
-    $this->getJson($web.'/documents?kind=label')->assertOk()->assertJsonPath('data.qr_payload', $parcel->reference);
+    $this->getJson($web.'/documents?kind=label')->assertOk()->assertJsonPath(
+        'data.qr_payload',
+        route('api.v1.parcels.tracking', ['reference' => $parcel->reference]),
+    );
     $this->getJson($web.'/documents?kind=receipt')->assertOk()->assertJsonPath('data.fiscal_status', 'pending');
     $this->postJson($web.'/ready')->assertOk()->assertJsonPath('data.status', 'ready');
 
@@ -172,7 +183,7 @@ it('records a refusal and sends a late provider confirmation to reconciliation',
     $payment = app(ParcelPayments::class)->confirm($payment, PaymentStatus::Confirmed, 'late', []);
     expect($payment->failure_code)->toBe('parcel_reconciliation_required')
         ->and($charge->refresh()->settled_payment_id)->toBeNull()
-        ->and($parcel->refresh()->reference)->toBeNull()
+        ->and($parcel->refresh()->reference)->toMatch('/^KC-\d{8}-\d{5}$/')
         ->and($parcel->events()->where('kind', 'payment_reconciliation_required')->count())->toBe(1);
 });
 

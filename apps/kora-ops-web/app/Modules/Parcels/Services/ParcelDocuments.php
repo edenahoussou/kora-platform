@@ -20,8 +20,9 @@ class ParcelDocuments
         $route = $parcel->corridor?->originHub?->stop?->city.' > '.$parcel->corridor?->destinationHub?->stop?->city;
         $result = ['kind' => $kind, 'width_mm' => 58, 'reference' => $parcel->reference];
         if ($kind === 'label') {
-            $result['qr_payload'] = $parcel->reference;
-            $result['esc_pos_base64'] = $this->printable(['KORA COLIS', $parcel->reference, $route], $parcel->reference);
+            $trackingUrl = route('api.v1.parcels.tracking', ['reference' => $parcel->reference]);
+            $result['qr_payload'] = $trackingUrl;
+            $result['esc_pos_base64'] = $this->printable(['KORA COLIS', $parcel->reference, $route], $trackingUrl);
         } else {
             $charge = $parcel->charges()->where('return_leg', $kind === 'return_receipt')->whereNotNull('settled_payment_id')->firstOrFail();
             $invoice = FiscalInvoice::query()->where('parcel_charge_id', $charge->id)->where('document_kind', FiscalInvoiceDocumentKind::Sale)->with('emecfInvoice')->firstOrFail();

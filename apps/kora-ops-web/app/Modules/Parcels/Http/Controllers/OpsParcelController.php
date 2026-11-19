@@ -13,6 +13,7 @@ use App\Modules\Parcels\Http\Resources\ParcelResource;
 use App\Modules\Parcels\Models\Parcel;
 use App\Modules\Parcels\Models\ParcelAssignment;
 use App\Modules\Parcels\Models\ParcelCorridor;
+use App\Modules\Parcels\Models\ParcelHub;
 use App\Modules\Parcels\Models\ParcelIncident;
 use App\Modules\Parcels\Services\ParcelAccess;
 use App\Modules\Parcels\Services\ParcelDocuments;
@@ -21,6 +22,7 @@ use App\Modules\Parcels\Services\ParcelHandoff;
 use App\Modules\Parcels\Services\ParcelIntake;
 use App\Modules\Parcels\Services\ParcelNotifications;
 use App\Modules\Parcels\Services\ParcelPayments;
+use App\Modules\Parcels\Services\ParcelRouting;
 use App\Modules\Parcels\Services\ParcelTransport;
 use App\Modules\Payments\Http\Resources\PaymentResource;
 use App\Modules\Payments\Models\Payment;
@@ -91,11 +93,56 @@ class OpsParcelController extends Controller
      * @response 201 {"data":{}}
      * @response 403 {"message":"Droits insuffisants pour ce périmètre Colis."}
      */
-    public function store(ParcelIntakeRequest $request, ParcelIntake $intake): ParcelResource
+    public function store(ParcelIntakeRequest $request, ParcelIntake $intake): JsonResponse
     {
-        $corridor = ParcelCorridor::query()->where('uuid', $request->validated('corridor_uuid'))->firstOrFail();
+        $locations = $intake->resolve($request->validated());
+        $parcel = $intake->createForDeposit($locations['deposit'], $locations['destination'], $request->user(), $request->validated(), true);
 
-        return new ParcelResource($intake->create($corridor, $request->user(), $request->validated(), true));
+        return (new ParcelResource($parcel))->response()->setStatusCode($parcel->wasRecentlyCreated ? 201 : 200);
+    }
+
+    /**
+     * Lister les lieux de dépôt desservis pour une destination.
+     *
+     * @authenticated
+     *
+     * @response 200 {"data":{}}
+     * @response 403 {"message":"Droits insuffisants pour ce périmètre Colis."}
+     */
+    public function depositLocations(Request $request, ParcelRouting $routing): JsonResponse
+    {
+        $this->access->require($request->user(), 'parcels.intake');
+        $data = $request->validate([
+            'destination_hub_uuid' => ['required', 'uuid'],
+        ]);
+
+        $destination = ParcelHub::query()
+            ->where('uuid', $data['destination_hub_uuid'])
+            ->with('stop')
+            ->firstOrFail();
+
+        $corridors = ParcelCorridor::query()
+            ->where('destination_hub_id', $destination->id)
+            ->where('enabled', true)
+            ->with(['originHub.stop', 'destinationHub.stop'])
+            ->get();
+        $available = $routing->filterOperationallyAvailable($corridors);
+
+        $hubs = $available
+            ->map(fn (ParcelCorridor $corridor): ?ParcelHub => $corridor->originHub)
+            ->filter(fn (?ParcelHub $hub): bool => $hub !== null && $this->access->canViewHub($request->user(), $hub))
+            ->unique('id')
+            ->values()
+            ->map(fn (ParcelHub $hub): array => [
+                'uuid' => $hub->uuid,
+                'kind' => $hub->kind,
+                'name' => $hub->stop?->name,
+                'city' => $hub->stop?->city,
+                'agency_uuid' => $hub->agency?->uuid,
+                'kora_point_uuid' => $hub->koraPoint?->uuid,
+            ]);
+
+        return response()->json(['data' => $hubs]);
     }
 
     /**
