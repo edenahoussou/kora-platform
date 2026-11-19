@@ -18,16 +18,16 @@ class ParcelPricing
 
         abort_unless($corridor->enabled
             && $corridor->originHub?->enabled && $corridor->originHub->archived_at === null && $corridor->originHub->agency?->status === AgencyStatus::Active
-            && $corridor->destinationHub?->enabled && $corridor->destinationHub->archived_at === null && $corridor->destinationHub->agency?->status === AgencyStatus::Active, 409, 'Corridor Colis indisponible.');
+            && $corridor->destinationHub?->enabled && $corridor->destinationHub->archived_at === null && $corridor->destinationHub->agency?->status === AgencyStatus::Active, 409, 'Parcel corridor is unavailable.');
     }
 
     /** @return array{tariff_id: int, tax_rule_id: int, total: int, net: int, tax: int, tax_code: string, tax_rate: string, fiscal_group: string} */
     public function calculate(ParcelCorridor $corridor, int $grams, bool $return = false): array
     {
         $tariff = $corridor->tariffs()->latest('id')->first();
-        abort_unless($tariff instanceof ParcelTariff, 409, 'Tarif Colis indisponible.');
+        abort_unless($tariff instanceof ParcelTariff, 409, 'Parcel tariff is unavailable.');
         if ($grams < 1 || (! $return && $grams > $tariff->maximum_grams)) {
-            throw ValidationException::withMessages(['weight_grams' => 'Le poids dépasse les limites du tarif Colis.']);
+            throw ValidationException::withMessages(['weight_grams' => 'The weight exceeds the parcel tariff limits.']);
         }
 
         $country = strtoupper((string) $corridor->originHub?->agency?->country);
@@ -39,13 +39,13 @@ class ParcelPricing
             ->whereDate('starts_on', '<=', $today)
             ->where(fn ($query) => $query->whereNull('ends_on')->orWhereDate('ends_on', '>=', $today))
             ->limit(2)->get();
-        abort_unless($rules->count() === 1, 409, 'Configurez une règle fiscale Colis active et unique pour le pays d’encaissement.');
+        abort_unless($rules->count() === 1, 409, 'Configure exactly one active parcel tax rule for the collection country.');
         $rule = $rules->firstOrFail();
 
         $group = match ((float) $rule->tax_rate) {
             0.0 => 'A',
             18.0 => 'B',
-            default => abort(409, 'Le taux Colis ne correspond pas à un groupe fiscal pris en charge.'),
+            default => abort(409, 'The parcel tax rate does not match a supported tax group.'),
         };
 
         $steps = intdiv(max(0, $grams - 1), (int) $tariff->step_grams);

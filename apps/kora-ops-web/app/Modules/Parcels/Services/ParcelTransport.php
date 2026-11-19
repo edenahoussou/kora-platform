@@ -40,7 +40,7 @@ class ParcelTransport
         return DB::transaction(function () use ($departure, $grams): ParcelSouteBudget {
             $departure = Departure::query()->lockForUpdate()->findOrFail($departure->id);
             abort_unless(in_array($departure->status, [DepartureStatus::Scheduled, DepartureStatus::Boarding], true), 409);
-            abort_if($this->reservedGrams($departure) > $grams, 409, 'La capacité est inférieure au poids réservé.');
+            abort_if($this->reservedGrams($departure) > $grams, 409, 'Capacity is lower than the reserved weight.');
 
             return ParcelSouteBudget::query()->updateOrCreate(['departure_id' => $departure->id], [
                 'bus_id' => $departure->bus_id, 'capacity_grams' => $grams,
@@ -62,15 +62,15 @@ class ParcelTransport
             $stops = $departure->tripStops()->pluck('id');
             $from = $stops->search($origin->stop_id, true);
             $to = $stops->search($destination->stop_id, true);
-            abort_unless($from !== false && $to !== false && $from < $to, 409, 'Les hubs doivent être desservis dans le bon ordre.');
+            abort_unless($from !== false && $to !== false && $from < $to, 409, 'The hubs must be served in the correct order.');
 
             $old = $parcel->assignments()->whereNull('released_at')->latest('id')->first();
-            abort_if($old?->loaded_at !== null, 409, 'Déchargez le colis avant de le réaffecter.');
+            abort_if($old?->loaded_at !== null, 409, 'Unload the parcel before reassigning it.');
             if ($old !== null && $old->departure_id === $departure->id && $old->bus_id === $departure->bus_id) {
                 return $parcel;
             }
             $budget = ParcelSouteBudget::query()->where('departure_id', $departure->id)->where('bus_id', $departure->bus_id)->first();
-            abort_unless($budget !== null && $this->reservedGrams($departure, $parcel->id) + $parcel->weight_grams <= $budget->capacity_grams, 409, 'Capacité de soute Colis insuffisante ou non validée.');
+            abort_unless($budget !== null && $this->reservedGrams($departure, $parcel->id) + $parcel->weight_grams <= $budget->capacity_grams, 409, 'Insufficient parcel hold capacity or capacity has not been approved.');
             if ($old !== null) {
                 $old->update(['released_at' => now()]);
                 $parcel->record('assignment_released', $actor, $origin, $old);
@@ -114,10 +114,10 @@ class ParcelTransport
             abort_unless($assignment !== null && $assignment->bus_id === $departure->bus_id, 409, 'Affectation de soute invalide.');
             [$origin, $destination] = $this->hubs($parcel, $assignment->return_leg);
             $hub = $loading ? $origin : $destination;
-            abort_unless($hub->stop?->uuid === $stopUuid, 409, 'Arrêt de scan incorrect.');
+            abort_unless($hub->stop?->uuid === $stopUuid, 409, 'Incorrect scan stop.');
 
             $this->ensureUnblocked($parcel);
-            abort_if($observedAt->isFuture() || $observedAt->lt($assignment->created_at->copy()->startOfSecond()), 409, 'Horodatage de scan hors de l’affectation.');
+            abort_if($observedAt->isFuture() || $observedAt->lt($assignment->created_at->copy()->startOfSecond()), 409, 'Scan timestamp is outside the assignment window.');
             if ($loading) {
                 abort_unless(in_array($parcel->status, ['ready', 'return_pending'], true)
                     && $assignment->loaded_at === null
@@ -203,7 +203,7 @@ class ParcelTransport
 
     private function ensureUnblocked(Parcel $parcel): void
     {
-        abort_if($parcel->incidents()->where('blocking', true)->whereNull('resolved_at')->exists(), 409, 'Le colis est bloqué par un incident.');
+        abort_if($parcel->incidents()->where('blocking', true)->whereNull('resolved_at')->exists(), 409, 'The parcel is blocked by an unresolved incident.');
     }
 
     /** @return array{ParcelHub, ParcelHub} */

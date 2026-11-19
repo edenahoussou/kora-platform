@@ -75,7 +75,7 @@ class ParcelFinance
             $funding = WalletPurchaseFunding::fromPayment($payment);
             $maximum = $late ? $funding->providerAmount : $payment->amount;
             $beforeTransport = ! $charge->return_leg && ! $late && $parcel->status === 'registered';
-            abort_if($beforeTransport && $amount !== $maximum, 422, 'Avant validation du hub, la restitution doit être intégrale.');
+            abort_if($beforeTransport && $amount !== $maximum, 422, 'Before hub validation, the refund must be in full.');
             abort_if($payment->refunds()->where('status', PaymentRefundStatus::Pending)->exists(), 409);
             $already = (int) $payment->refunds()->where('status', PaymentRefundStatus::Completed)->sum('amount');
             abort_if($amount < 1 || $amount > $maximum - $already, 422);
@@ -137,7 +137,7 @@ class ParcelFinance
             }
             $externalAmount = $refund->amount - $cash - $points * $funding->pointRate;
             if ($payment->method === PaymentMethod::Cash && $externalAmount > 0) {
-                abort_if($cashLedgerUuid === null, 422, 'Sélectionnez le sous-journal espèces qui a exécuté la restitution.');
+                abort_if($cashLedgerUuid === null, 422, 'Select the cash sub-ledger that executed the refund.');
                 $this->postCashRefund($parcel, $refund, $actor, $cashLedgerUuid, $externalAmount);
             }
             $refund->update([
@@ -166,7 +166,7 @@ class ParcelFinance
             ->where('agency_id', $parcel->corridor?->originHub?->agency_id)
             ->where('status', CashSessionStatus::Open)->lockForUpdate()->firstOrFail();
         $ledger = CashLedger::query()->whereKey($ledger->id)->where('status', CashLedgerStatus::Open)->lockForUpdate()->firstOrFail();
-        abort_if($ledger->expected_balance < $amount, 409, 'Le solde théorique de la caisse est insuffisant.');
+        abort_if($ledger->expected_balance < $amount, 409, 'The theoretical cash balance is insufficient.');
         CashMovement::query()->create([
             'cash_session_id' => $session->id, 'cash_register_id' => $session->cash_register_id, 'cash_ledger_id' => $ledger->id,
             'source_type' => PaymentRefund::class, 'source_id' => $refund->id, 'type' => 'parcel_refund',

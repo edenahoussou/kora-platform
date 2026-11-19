@@ -16,8 +16,8 @@ class ParcelEvent extends KoraModel
 
     protected static function booted(): void
     {
-        static::updating(fn () => throw new \LogicException('Les événements Colis sont immuables.'));
-        static::deleting(fn () => throw new \LogicException('Les événements Colis sont immuables.'));
+        static::updating(fn () => throw new \LogicException('Parcel events are immutable.'));
+        static::deleting(fn () => throw new \LogicException('Parcel events are immutable.'));
     }
 
     protected function casts(): array

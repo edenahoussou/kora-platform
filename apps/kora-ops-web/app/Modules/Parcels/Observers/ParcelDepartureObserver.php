@@ -15,7 +15,7 @@ class ParcelDepartureObserver
         if ($departure->isDirty(['bus_id', 'line_id', 'stop_times'])
             && ParcelAssignment::query()->where('departure_id', $departure->id)->whereNull('released_at')
                 ->whereNotNull('loaded_at')->whereNull('unloaded_at')->exists()) {
-            throw ValidationException::withMessages(['departure' => 'Déchargez les colis avant de modifier le trajet ou le véhicule.']);
+            throw ValidationException::withMessages(['departure' => 'Unload the parcels before changing the route or vehicle.']);
         }
     }
 

@@ -68,7 +68,7 @@ class ParcelHandoff
             $this->access->atHub($actor, $hub, 'parcels.handoff');
             $return = $parcel->status === 'returned';
             if ($return) {
-                abort_unless($parcel->charges()->where('return_leg', true)->whereNotNull('settled_payment_id')->exists(), 409, 'Les frais de retour restent à régler.');
+                abort_unless($parcel->charges()->where('return_leg', true)->whereNotNull('settled_payment_id')->exists(), 409, 'Return fees remain unpaid.');
             }
 
             $details = [];

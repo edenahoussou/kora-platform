@@ -22,7 +22,7 @@ class ParcelNotifications
             'arrived' => [$parcel->recipient_phone, "Votre colis {$parcel->reference} est arrivé. Attendez le code de retrait."],
             'withdrawn' => [$parcel->sender_phone, "Votre colis {$parcel->reference} a été retiré."],
             'return_pending' => [$parcel->sender_phone, "Le retour de votre colis {$parcel->reference} est en préparation."],
-            default => throw new \InvalidArgumentException("Jalon Colis inconnu : {$kind}."),
+            default => throw new \InvalidArgumentException("Unknown parcel milestone: {$kind}."),
         };
 
         $this->enqueue($parcel, $kind, $kind, $phone, $message);

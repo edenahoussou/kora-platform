@@ -15,7 +15,7 @@ class ParcelDocuments
     /** @return array<string, mixed> */
     public function render(Parcel $parcel, string $kind, ?User $actor = null, ?TerminalP501 $terminal = null): array
     {
-        abort_if($parcel->reference === null, 409, 'Le colis n’a pas de référence logistique.');
+        abort_if($parcel->reference === null, 409, 'The parcel has no logistics reference.');
         $parcel->loadMissing(['corridor.originHub.stop', 'corridor.destinationHub.stop']);
         $route = $parcel->corridor?->originHub?->stop?->city.' > '.$parcel->corridor?->destinationHub?->stop?->city;
         $result = ['kind' => $kind, 'width_mm' => 58, 'reference' => $parcel->reference];
@@ -32,7 +32,7 @@ class ParcelDocuments
 
             $qr = $invoice->emecfInvoice?->qr_code;
             $code = $invoice->emecfInvoice?->code_mec_ef_dgi;
-            abort_if(blank($qr) || blank($code), 409, 'Données fiscales de certification indisponibles.');
+            abort_if(blank($qr) || blank($code), 409, 'Fiscal certification data is unavailable.');
             $result += [
                 'fiscal_status' => $invoice->status->value,
                 'fiscal_code' => $code,
