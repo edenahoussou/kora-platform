@@ -1,5 +1,12 @@
 <?php
 
+use App\Modules\Fiscalization\Actions\InitiateCreditNoteAction;
+use App\Modules\Notifications\Services\Sms\ConexteoSmsClient;
+use App\Modules\Notifications\Services\WhatsApp\WhatsAppMessageDispatcher;
+use App\Modules\Parcels\Services\ParcelFinance;
+use App\Modules\Parcels\Services\ParcelHandoff;
+use App\Modules\Parcels\Services\ParcelNotifications;
+use App\Modules\Parcels\Services\ParcelPayments;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -29,3 +36,24 @@ Schedule::command('wallet:expiry-reminders')->dailyAt('08:00')->withoutOverlappi
 Schedule::command('wallet:anniversary-bonuses')->dailyAt('08:10')->withoutOverlapping()->onOneServer();
 Schedule::command('wallet:loyalty-rules:activate-scheduled')->everyMinute()->withoutOverlapping()->onOneServer();
 Schedule::command('wallet:reconcile-topups')->everyFiveMinutes()->withoutOverlapping()->onOneServer();
+
+Schedule::call(function (): void {
+    app(ParcelHandoff::class)->advanceDueParcels();
+})->name('parcels:advance-due')->everyMinute()->withoutOverlapping()->onOneServer();
+
+Schedule::call(function (): void {
+    app(ParcelNotifications::class)->sendPending(
+        app(WhatsAppMessageDispatcher::class),
+        app(ConexteoSmsClient::class),
+    );
+})->name('parcels:notify')->everyMinute()->withoutOverlapping()->onOneServer();
+
+Schedule::call(function (): void {
+    app(ParcelFinance::class)->retryFiscalDocuments(
+        app(InitiateCreditNoteAction::class),
+    );
+})->name('parcels:fiscalization')->everyFiveMinutes()->withoutOverlapping()->onOneServer();
+
+Schedule::call(function (): void {
+    app(ParcelPayments::class)->expirePending();
+})->name('parcels:expire-payments')->everyFiveMinutes()->withoutOverlapping()->onOneServer();

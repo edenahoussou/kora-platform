@@ -898,10 +898,10 @@ paths:
                           example: XOF
                         departure_at:
                           type: string
-                          example: '2026-09-07T13:00:00+00:00'
+                          example: '2026-01-01T00:00:00+00:00'
                         arrival_at:
                           type: string
-                          example: '2026-09-07T23:00:00+00:00'
+                          example: '2026-01-01T00:00:00+00:00'
                         connection_margin_minutes:
                           type: integer
                           example: 45
@@ -1085,10 +1085,10 @@ paths:
                                 example: Standard
                               departure_at:
                                 type: string
-                                example: '2026-09-07T13:00:00+00:00'
+                                example: '2026-01-01T00:00:00+00:00'
                               arrival_at:
                                 type: string
-                                example: '2026-09-07T23:00:00+00:00'
+                                example: '2026-01-01T00:00:00+00:00'
                               departure_timezone:
                                 type: string
                                 example: Africa/Accra
@@ -1191,7 +1191,7 @@ paths:
                         example: XOF
                       expires_at:
                         type: string
-                        example: '2026-09-10T08:00:00Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       legs:
                         type: array
                         example:
@@ -1463,7 +1463,7 @@ paths:
                         example: held
                       expires_at:
                         type: string
-                        example: '2026-08-20T08:15:00Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       total_amount:
                         type: integer
                         example: 25000
@@ -1740,7 +1740,7 @@ paths:
                         example: held
                       expires_at:
                         type: string
-                        example: '2026-08-20T08:15:00Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       total_amount:
                         type: integer
                         example: 12500
@@ -2137,7 +2137,7 @@ paths:
                             example: XOF
                       valid_until:
                         type: string
-                        example: '2026-09-20T11:30:00+00:00'
+                        example: '2026-01-01T00:00:00+00:00'
                       actions:
                         type: object
                         properties:
@@ -2344,7 +2344,7 @@ paths:
                             example: XOF
                       valid_until:
                         type: string
-                        example: '2026-09-20T11:30:00+00:00'
+                        example: '2026-01-01T00:00:00+00:00'
                       actions:
                         type: object
                         properties:
@@ -2440,7 +2440,7 @@ paths:
                         example: XOF
                       expires_at:
                         type: string
-                        example: '2026-09-20T11:45:00+00:00'
+                        example: '2026-01-01T00:00:00+00:00'
                       seats:
                         type: array
                         example:
@@ -2579,7 +2579,7 @@ paths:
                         example: aicha.hounkpe@gmail.com
                       expires_at:
                         type: string
-                        example: '2026-08-20T13:10:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
         '404':
           description: 'User not found'
           content:
@@ -2702,7 +2702,7 @@ paths:
                         example: vrf_aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789
                       verified_at:
                         type: string
-                        example: '2026-08-20T13:07:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
         '422':
           description: 'Invalid code'
           content:
@@ -3039,7 +3039,7 @@ paths:
                         example: Bearer
                       expires_at:
                         type: string
-                        example: '2026-08-27T13:05:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       user:
                         type: object
                         properties:
@@ -3090,10 +3090,10 @@ paths:
                             example: ios
                           trusted_at:
                             type: string
-                            example: '2026-08-20T13:05:00.000Z'
+                            example: '2026-01-01T00:00:00+00:00'
                           last_seen_at:
                             type: string
-                            example: '2026-08-20T13:05:00.000Z'
+                            example: '2026-01-01T00:00:00+00:00'
                           status:
                             type: string
                             example: trusted
@@ -3276,7 +3276,7 @@ paths:
                         example: Bearer
                       expires_at:
                         type: string
-                        example: '2026-08-27T13:05:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       user:
                         type: object
                         properties:
@@ -3327,10 +3327,10 @@ paths:
                             example: ios
                           trusted_at:
                             type: string
-                            example: '2026-08-20T13:05:00.000Z'
+                            example: '2026-01-01T00:00:00+00:00'
                           last_seen_at:
                             type: string
-                            example: '2026-08-20T13:05:00.000Z'
+                            example: '2026-01-01T00:00:00+00:00'
                           status:
                             type: string
                             example: trusted
@@ -3361,7 +3361,7 @@ paths:
                         example: login_new_device
                       expires_at:
                         type: string
-                        example: '2026-08-20T13:10:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
         '403':
           description: 'Account suspended'
           content:
@@ -3425,7 +3425,7 @@ paths:
                         example: 'Le compte est temporairement bloqué après plusieurs tentatives incorrectes.'
                       locked_until:
                         type: string
-                        example: '2026-08-20T13:15:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
       tags:
         - Auth
       requestBody:
@@ -3538,7 +3538,7 @@ paths:
                         example: Bearer
                       expires_at:
                         type: string
-                        example: '2026-08-27T13:05:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       user:
                         type: object
                         properties:
@@ -3591,10 +3591,10 @@ paths:
                             example: ios
                           trusted_at:
                             type: string
-                            example: '2026-08-20T13:05:00.000Z'
+                            example: '2026-01-01T00:00:00+00:00'
                           last_seen_at:
                             type: string
-                            example: '2026-08-20T13:05:00.000Z'
+                            example: '2026-01-01T00:00:00+00:00'
                           status:
                             type: string
                             example: trusted
@@ -3641,7 +3641,7 @@ paths:
                         example: Bearer
                       expires_at:
                         type: string
-                        example: '2026-08-27T13:05:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       user:
                         type: object
                         properties:
@@ -3694,10 +3694,10 @@ paths:
                             example: ios
                           trusted_at:
                             type: string
-                            example: '2026-08-20T13:05:00.000Z'
+                            example: '2026-01-01T00:00:00+00:00'
                           last_seen_at:
                             type: string
-                            example: '2026-08-20T13:05:00.000Z'
+                            example: '2026-01-01T00:00:00+00:00'
                           status:
                             type: string
                             example: trusted
@@ -4437,10 +4437,10 @@ paths:
                           example: ios
                         trusted_at:
                           type: string
-                          example: '2026-08-20T13:05:00.000Z'
+                          example: '2026-01-01T00:00:00+00:00'
                         last_seen_at:
                           type: string
-                          example: '2026-08-20T13:05:00.000Z'
+                          example: '2026-01-01T00:00:00+00:00'
                         status:
                           type: string
                           example: trusted
@@ -4764,7 +4764,7 @@ paths:
                           nullable: true
                         created_at:
                           type: string
-                          example: '2026-09-27T10:00:00.000Z'
+                          example: '2026-01-01T00:00:00+00:00'
                         data:
                           type: array
                           example: []
@@ -4915,10 +4915,10 @@ paths:
                         example: false
                       read_at:
                         type: string
-                        example: '2026-09-27T10:05:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       created_at:
                         type: string
-                        example: '2026-09-27T10:00:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       data:
                         type: array
                         example: []
@@ -5389,7 +5389,7 @@ paths:
                         example: verify
                       expires_at:
                         type: string
-                        example: '2026-08-20T08:15:00Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       polling_interval_seconds:
                         type: integer
                         example: 10
@@ -5498,7 +5498,7 @@ paths:
                         example: MM-98270341
                       confirmed_at:
                         type: string
-                        example: '2026-08-20T08:05:00Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       reservation:
                         type: object
                         properties:
@@ -5599,16 +5599,16 @@ paths:
                         example: '+22901000000'
                       confirmed_at:
                         type: string
-                        example: '2026-08-20T08:05:00+00:00'
+                        example: '2026-01-01T00:00:00+00:00'
                       last_verified_at:
                         type: string
-                        example: '2026-08-20T08:06:00+00:00'
+                        example: '2026-01-01T00:00:00+00:00'
                       next_action:
                         type: string
                         example: wait_for_tickets
                       expires_at:
                         type: string
-                        example: '2026-08-20T08:15:00+00:00'
+                        example: '2026-01-01T00:00:00+00:00'
                       polling_interval_seconds:
                         type: integer
                         example: 10
@@ -5759,7 +5759,7 @@ paths:
                         example: retry
                       expires_at:
                         type: string
-                        example: '2026-08-20T08:15:00+00:00'
+                        example: '2026-01-01T00:00:00+00:00'
                       polling_interval_seconds:
                         type: integer
                         example: 10
@@ -5882,7 +5882,7 @@ paths:
                           example: issued
                         issued_at:
                           type: string
-                          example: '2026-08-20T08:10:00+00:00'
+                          example: '2026-01-01T00:00:00+00:00'
                         reservation_uuid:
                           type: string
                           example: 00000000-0000-4000-8000-000000000000
@@ -5936,10 +5936,10 @@ paths:
                                 example: 12A
                               departure_at:
                                 type: string
-                                example: '2026-08-20T08:30:00+01:00'
+                                example: '2026-01-01T00:00:00+00:00'
                               arrival_at:
                                 type: string
-                                example: '2026-08-20T15:30:00+01:00'
+                                example: '2026-01-01T00:00:00+00:00'
                               departure_timezone:
                                 type: string
                                 example: Africa/Porto-Novo
@@ -6126,7 +6126,7 @@ paths:
                           example: confirmed
                         issued_at:
                           type: string
-                          example: '2026-08-20T08:10:00+00:00'
+                          example: '2026-01-01T00:00:00+00:00'
                         reservation_uuid:
                           type: string
                           example: 00000000-0000-4000-8000-000000000000
@@ -6180,13 +6180,13 @@ paths:
                               example: dep12345-6789-abcd-ef01-23456789abcd
                             departs_at:
                               type: string
-                              example: '2026-08-04T08:30:00+01:00'
+                              example: '2026-01-01T00:00:00+00:00'
                             timezone:
                               type: string
                               example: Africa/Porto-Novo
                             arrives_at:
                               type: string
-                              example: '2026-08-04T15:30:00+01:00'
+                              example: '2026-01-01T00:00:00+00:00'
                             arrival_timezone:
                               type: string
                               example: Africa/Porto-Novo
@@ -6241,10 +6241,10 @@ paths:
                                 example: 4A
                               departure_at:
                                 type: string
-                                example: '2026-08-04T08:30:00+01:00'
+                                example: '2026-01-01T00:00:00+00:00'
                               arrival_at:
                                 type: string
-                                example: '2026-08-04T15:30:00+01:00'
+                                example: '2026-01-01T00:00:00+00:00'
                               departure_timezone:
                                 type: string
                                 example: Africa/Porto-Novo
@@ -6342,7 +6342,7 @@ paths:
                         example: issued
                       issued_at:
                         type: string
-                        example: '2026-08-20T08:10:00+00:00'
+                        example: '2026-01-01T00:00:00+00:00'
                       reservation_uuid:
                         type: string
                         example: 00000000-0000-4000-8000-000000000000
@@ -6396,10 +6396,10 @@ paths:
                               example: 12A
                             departure_at:
                               type: string
-                              example: '2026-08-20T08:30:00+01:00'
+                              example: '2026-01-01T00:00:00+00:00'
                             arrival_at:
                               type: string
-                              example: '2026-08-20T15:30:00+01:00'
+                              example: '2026-01-01T00:00:00+00:00'
                             departure_timezone:
                               type: string
                               example: Africa/Porto-Novo
@@ -6636,7 +6636,7 @@ paths:
                             example: 100
                       created_at:
                         type: string
-                        example: '2026-11-07T10:00:00+00:00'
+                        example: '2026-01-01T00:00:00+00:00'
       tags:
         - Wallet
   /api/v1/wallet/transactions:
@@ -6748,7 +6748,7 @@ paths:
                           nullable: true
                         created_at:
                           type: string
-                          example: '2026-11-07T10:00:00+00:00'
+                          example: '2026-01-01T00:00:00+00:00'
                   links:
                     type: object
                     properties:
@@ -6846,7 +6846,7 @@ paths:
                             nullable: true
                       created_at:
                         type: string
-                        example: '2026-11-07T10:00:00+00:00'
+                        example: '2026-01-01T00:00:00+00:00'
         '201':
           description: ''
           content:
@@ -6949,7 +6949,7 @@ paths:
                             nullable: true
                       created_at:
                         type: string
-                        example: '2026-11-07T10:00:00+00:00'
+                        example: '2026-01-01T00:00:00+00:00'
       tags:
         - Wallet
       requestBody:
@@ -7085,7 +7085,7 @@ paths:
                             nullable: true
                       created_at:
                         type: string
-                        example: '2026-11-07T10:00:00+00:00'
+                        example: '2026-01-01T00:00:00+00:00'
       tags:
         - Wallet
     parameters:

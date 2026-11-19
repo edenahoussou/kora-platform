@@ -53,7 +53,7 @@ class FiscalInvoicePresenter
             'mecefStatus' => $emecf?->status->value,
             'lastError' => $invoice->last_error,
             'amount' => $emecf !== null ? (int) $emecf->total : $invoice->total_with_tax,
-            'currency' => $invoice->reservation->currency,
+            'currency' => $invoice->reservation->currency ?? $invoice->payment->currency ?? 'XOF',
             'attemptCount' => $invoice->syncAttempts_count
                 ?? ($invoice->relationLoaded('syncAttempts') ? $invoice->syncAttempts->count() : 0),
             'creditNotesCount' => $invoice->credit_notes_count ?? 0,

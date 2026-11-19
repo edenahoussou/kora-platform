@@ -4,6 +4,7 @@ namespace App\Modules\Payments\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Booking\Models\Reservation;
+use App\Modules\Parcels\Services\ParcelPayments;
 use App\Modules\Payments\Actions\CancelPaymentAction;
 use App\Modules\Payments\Actions\ConfirmPaymentAction;
 use App\Modules\Payments\Actions\InitiatePaymentAction;
@@ -308,7 +309,7 @@ class PaymentController extends Controller
                 return response()->json(['error' => 'Invalid webhook signature.'], 403);
             }
 
-            $updatedPayment = $payment->reservation_id === null
+            $updatedPayment = $payment->reservation_id === null && $payment->parcel_charge_id === null
                 ? app(ReconcileWalletTopUpAction::class)->verify($payment)
                 : $this->confirmProviderResponse($payment, $adapter->verify($payment), $confirmPayment);
 
@@ -487,7 +488,9 @@ class PaymentController extends Controller
         };
         $transactionId = is_scalar($transactionId) && strlen((string) $transactionId) <= 128 ? (string) $transactionId : null;
 
-        if ($payment->reservation_id === null) {
+        if ($payment->parcel_charge_id !== null) {
+            $updatedPayment = app(ParcelPayments::class)->verify($payment, $transactionId, $verifiedPayload);
+        } elseif ($payment->reservation_id === null) {
             $updatedPayment = app(ReconcileWalletTopUpAction::class)->verify($payment, $transactionId, $verifiedPayload);
         } else {
             if ($payment->provider_transaction_id === null && $providerKey === 'kkiapay' && $transactionId !== null) {
@@ -567,7 +570,7 @@ class PaymentController extends Controller
 
         // Always verify the real status via the FedaPay API.
         $adapter = $manager->resolve($payment->provider);
-        $updatedPayment = $payment->reservation_id === null
+        $updatedPayment = $payment->reservation_id === null && $payment->parcel_charge_id === null
             ? app(ReconcileWalletTopUpAction::class)->verify($payment)
             : $this->confirmProviderResponse($payment, $adapter->verify($payment), $confirmPayment);
 
@@ -581,6 +584,10 @@ class PaymentController extends Controller
 
     private function confirmProviderResponse(Payment $payment, ProviderResponse $response, ConfirmPaymentAction $confirm): Payment
     {
+        if ($payment->parcel_charge_id !== null) {
+            return app(ParcelPayments::class)->confirmResponse($payment, $response);
+        }
+
         return $confirm->handle(
             payment: $payment,
             status: $response->isConfirmed() ? 'confirmed' : ($response->isFailed() ? 'failed' : 'pending'),

@@ -9,8 +9,10 @@ use App\Modules\Payments\Data\PaymentRefundDestination;
 use App\Modules\Payments\Data\PaymentRefundStatus;
 use App\Modules\Support\Models\KoraModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
+ * @property Carbon|null $completed_at
  * @property PaymentRefundStatus $status
  * @property PaymentRefundDestination $destination
  * @property array<string, mixed>|null $metadata

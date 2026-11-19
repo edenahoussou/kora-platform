@@ -11,7 +11,9 @@ use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Data\DepartureStatus;
 use App\Modules\FleetLite\Models\Incident;
 use App\Modules\Notifications\Observers\DepartureOpsNotificationObserver;
+use App\Modules\Parcels\Observers\ParcelDepartureObserver;
 use App\Modules\Support\Models\KoraModel;
+use App\Modules\Tracking\Models\TrackingSession;
 use App\Modules\Tracking\Observers\TrackingSessionObserver;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
@@ -35,7 +37,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $departed_at
  * @property Carbon|null $arrived_at
  */
-#[ObservedBy([DepartureOpsNotificationObserver::class, TrackingSessionObserver::class])]
+#[ObservedBy([DepartureOpsNotificationObserver::class, TrackingSessionObserver::class, ParcelDepartureObserver::class])]
 class Departure extends KoraModel
 {
     use SoftDeletes;
@@ -196,6 +198,12 @@ class Departure extends KoraModel
     public function reservationSegments(): HasMany
     {
         return $this->hasMany(ReservationSegment::class);
+    }
+
+    /** @return HasOne<TrackingSession, $this> */
+    public function latestTrackingSession(): HasOne
+    {
+        return $this->hasOne(TrackingSession::class)->latestOfMany();
     }
 
     protected function casts(): array

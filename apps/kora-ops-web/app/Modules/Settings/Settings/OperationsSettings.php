@@ -89,6 +89,20 @@ final class OperationsSettings extends Settings
 
     public float $groupDiscountPercentage = 10.0;
 
+    public int $parcelIntakeExpiryHours = 48;
+
+    public int $parcelFirstReminderDays = 3;
+
+    public int $parcelSecondReminderDays = 7;
+
+    public int $parcelReturnDays = 30;
+
+    public int $parcelHandoffMaxAttempts = 5;
+
+    public int $parcelFiscalAlertHours = 20;
+
+    public int $parcelRoutingHorizonDays = 30;
+
     public static function group(): string
     {
         return 'operations';

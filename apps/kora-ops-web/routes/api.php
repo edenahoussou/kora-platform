@@ -31,6 +31,8 @@ use App\Modules\Notifications\Http\Controllers\OpsWebPushPreferenceController;
 use App\Modules\Notifications\Http\Controllers\PassengerFirebaseConfigurationController;
 use App\Modules\Notifications\Http\Controllers\PassengerNotificationController;
 use App\Modules\Notifications\Http\Controllers\PassengerSupportChatConfigurationController;
+use App\Modules\Parcels\Http\Controllers\OpsParcelController;
+use App\Modules\Parcels\Http\Controllers\ParcelController;
 use App\Modules\Passengers\Http\Controllers\AccountErasureApiController;
 use App\Modules\Payments\Http\Controllers\PaymentController;
 use App\Modules\Support\Http\Controllers\HealthController;
@@ -49,6 +51,33 @@ use App\Modules\Wallet\Http\Controllers\WalletTransactionController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->name('api.v1.')->group(function (): void {
+    Route::prefix('parcels')->name('parcels.')->controller(ParcelController::class)->group(function (): void {
+        Route::get('corridors', 'corridors')->middleware('throttle:30,1')->name('corridors');
+        Route::post('quote', 'quote')->middleware('throttle:30,1')->name('quote');
+        Route::get('tracking/{reference}', 'tracking')->where('reference', 'KC-[0-9]{8}-[0-9]{5}')->middleware('throttle:15,1')->name('tracking');
+        Route::get('shared/{token}', 'shared')->where('token', '[A-Za-z0-9]{48}')->middleware('throttle:15,1')->name('shared');
+        Route::middleware('auth:sanctum')->group(function (): void {
+            Route::get('/', 'index')->name('index');
+            Route::post('/', 'store')->middleware('throttle:20,1')->name('store');
+            Route::get('{parcel:uuid}', 'show')->name('show');
+            Route::post('{parcel:uuid}/cancel', 'cancel')->name('cancel');
+            Route::post('{parcel:uuid}/share', 'share')->name('share');
+            Route::delete('{parcel:uuid}/share', 'revokeShare')->name('share.revoke');
+            Route::post('{parcel:uuid}/incidents', 'incident')->middleware('throttle:5,1')->name('incidents.store');
+            Route::get('{parcel:uuid}/documents', 'documents')->name('documents');
+            Route::get('{parcel:uuid}/payment-methods', 'methods')->name('payment-methods');
+            Route::post('{parcel:uuid}/payments', 'pay')->middleware('throttle:10,1')->name('payments.store');
+            Route::get('{parcel:uuid}/payments/{payment:uuid}', 'payment')->name('payments.show');
+            Route::post('{parcel:uuid}/payments/{payment:uuid}/verify', 'verify')->middleware('throttle:10,1')->name('payments.verify');
+        });
+    });
+    Route::prefix('ops/parcels')->name('ops.parcels.')->middleware(['auth:sanctum', 'ops.session:terminal'])->group(function (): void {
+        Route::get('departures/{departure:uuid}/manifest', [OpsParcelController::class, 'manifest'])->name('manifest');
+        Route::post('departures/{departure:uuid}/scan', [OpsParcelController::class, 'scan'])->name('scan');
+        Route::post('{parcel:uuid}/print-results', [OpsParcelController::class, 'printResult'])->name('print-results');
+        require __DIR__.'/parcels-ops.php';
+    });
+
     Route::get('health', [HealthController::class, 'index'])->name('health');
     Route::get('health/ping', [HealthController::class, 'ping'])->name('health.ping');
 

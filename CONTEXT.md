@@ -472,3 +472,17 @@ _Avoid_: Courbe de trésorerie ; recette par date d'encaissement ; comparaison p
 **Jour de bascule**:
 Premier jour de la trajectoire où la recette nette cumulée couvre les coûts engagés cumulés. La période passe alors en positif dans le temps, indépendamment de son résultat final.
 _Avoid_: Seuil de rentabilité (mesuré en sièges, pas en temps) ; premier jour bénéficiaire d'un départ
+
+## KORA Colis interurbain
+
+**Hub Colis**:
+Lieu KORA habilité pour le dépôt et le retrait de colis. Il relie une agence interne, où les opérations de guichet sont effectuées, à un arrêt desservi par le réseau Bus.
+
+**Acheminement Colis**:
+Transport d’un colis entre deux hubs sur un départ Bus direct. L’aller et le retour constituent deux acheminements distincts.
+
+**Garde du colis**:
+Responsabilité physique du colis exercée par le hub qui le détient ou par l’équipage du départ qui le transporte.
+
+**Remise du colis**:
+Transfert physique du colis au destinataire après vérification de sa preuve de retrait, ou à l’expéditeur après un retour.

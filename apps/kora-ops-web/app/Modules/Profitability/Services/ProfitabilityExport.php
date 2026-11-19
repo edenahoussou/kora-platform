@@ -74,7 +74,7 @@ class ProfitabilityExport
                     ['Sièges seuil réseau', $this->number($hero['breakEven']['breakEvenSeats'])],
                     ['Statut seuil réseau', $hero['breakEven']['status']],
                     ['Source de vérité', 'Paiements confirmés rattachés aux départs, dépenses approuvées avec centre de coût.'],
-                    ['Limite', 'Modèle de gestion : hors acquisition, amortissement, financement, paie, colis et commissions KORA POINT.'],
+                    ['Limite', 'Modèle de gestion : hors acquisition, amortissement, financement, paie et commissions KORA POINT.'],
                 ],
             ],
             [

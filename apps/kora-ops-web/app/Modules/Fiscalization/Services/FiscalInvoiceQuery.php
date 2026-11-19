@@ -17,7 +17,7 @@ class FiscalInvoiceQuery
         return $this->applyFilters(FiscalInvoice::query(), $filters)
             ->with([
                 'reservation:id,uuid,reference,total_amount,currency',
-                'payment:id,uuid,provider_reference,payer_name,payer_phone',
+                'payment:id,uuid,provider_reference,payer_name,payer_phone,currency',
                 'emecfInvoice:id,uid,type,reference,client_name,client_contact,total,status,code_mec_ef_dgi,finalized_at',
             ])
             ->withCount(['syncAttempts', 'creditNotes'])

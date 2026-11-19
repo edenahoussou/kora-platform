@@ -153,6 +153,8 @@ class AuthSessionService
             $user->assignRole('passenger');
         }
 
+        $challenge->update(['user_id' => $user->id]);
+
         if ($referralCode !== '') {
             $wallet = $this->findOrCreateWallet->handle($user);
             $this->attachReferralCode->handle($wallet, $referralCode);
