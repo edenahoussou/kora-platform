@@ -7,10 +7,13 @@ use App\Modules\IdentityAccess\Data\UserDeviceStatus;
 use App\Modules\IdentityAccess\Data\UserStatus;
 use App\Modules\IdentityAccess\Models\AuthOtpChallenge;
 use App\Modules\IdentityAccess\Models\UserDevice;
+use App\Modules\Notifications\Jobs\SendPassengerPushJob;
+use App\Modules\Wallet\Models\Wallet;
 use App\Notifications\IdentityAccess\OtpCodeNotification;
 use Database\Seeders\KoraBusRolePermissionSeeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 
 it('requests an email otp without storing the clear code', function (): void {
@@ -100,6 +103,66 @@ it('completes registration with a pin, passenger role, trusted device and seven-
         ->and($user->tokens()->firstOrFail()->expires_at->greaterThan(now()->addDays(6)))->toBeTrue()
         ->and($response->json('data.user.permissions'))->toContain('bookings.create');
 });
+
+it('attaches a referral on new account registration and notifies only the referrer', function (string $identifier, bool $pushEnabled): void {
+    $this->seed(KoraBusRolePermissionSeeder::class);
+    Queue::fake([SendPassengerPushJob::class]);
+    $referrer = User::factory()->create();
+    $referrer->preference()->create(['push_notifications' => $pushEnabled]);
+    $referrerWallet = walletForUser($referrer);
+    [$challenge, $verificationToken] = verifiedOtpChallenge($identifier, OtpPurpose::Registration);
+
+    $payload = [
+        'otp_challenge_uuid' => $challenge->uuid,
+        'verification_token' => $verificationToken,
+        'name' => 'Aïcha',
+        'pin' => '1234',
+        'pin_confirmation' => '1234',
+        'device_name' => 'Tecno Spark 20',
+        'platform' => 'android',
+        'device_fingerprint' => 'device-fingerprint-referral',
+    ];
+
+    $this->postJson('/api/v1/auth/register/complete', [...$payload, 'referral_code' => 'KUNKNOWN'])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('referral_code');
+
+    expect($challenge->refresh()->status)->toBe(OtpChallengeStatus::Verified)
+        ->and(User::query()->count())->toBe(1)
+        ->and(Wallet::query()->count())->toBe(1)
+        ->and(UserDevice::query()->count())->toBe(0)
+        ->and($referrer->notifications()->count())->toBe(0);
+
+    $payload['referral_code'] = ' '.strtolower($referrerWallet->referral_code).' ';
+    $response = $this->postJson('/api/v1/auth/register/complete', $payload)->assertCreated();
+    $referee = User::query()->where('uuid', $response->json('data.user.uuid'))->firstOrFail();
+    $refereeWallet = Wallet::query()->where('user_id', $referee->getKey())->firstOrFail();
+    $notice = $referrer->notifications()->sole();
+
+    expect($refereeWallet->referred_by_user_id)->toBe($referrer->getKey())
+        ->and($refereeWallet->points_balance)->toBe(0)
+        ->and($referrerWallet->refresh()->points_balance)->toBe(0)
+        ->and($referee->notifications()->count())->toBe(0)
+        ->and($notice->data['type'])->toBe('wallet_referral_attached')
+        ->and($notice->data['data'])->toBe(['resource' => 'wallet', 'wallet_uuid' => $referrerWallet->uuid]);
+
+    if ($pushEnabled) {
+        Queue::assertPushed(SendPassengerPushJob::class, fn (SendPassengerPushJob $job): bool => $job->userId === $referrer->getKey()
+            && $job->notificationUuid === $notice->getKey()
+            && $job->afterCommit === true);
+    } else {
+        Queue::assertNotPushed(SendPassengerPushJob::class);
+    }
+
+    $this->postJson('/api/v1/auth/register/complete', $payload)
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('verification_token');
+
+    expect($referrer->notifications()->count())->toBe(1);
+})->with([
+    'email with push' => ['referral@example.com', true],
+    'phone without push' => ['+2290153234060', false],
+]);
 
 it('logs in with a known trusted device using pin', function (): void {
     $this->seed(KoraBusRolePermissionSeeder::class);
@@ -659,7 +722,9 @@ it('claims an existing pin-less phone account at registration', function (): voi
 
     [$challenge, $verificationToken] = verifiedOtpChallenge('+2290153234060', OtpPurpose::Registration);
 
-    $this->postJson('/api/v1/auth/register/complete', [
+    $referrerWallet = walletForUser(User::factory()->create());
+    $existingWallet = walletForUser($existing);
+    $payload = [
         'otp_challenge_uuid' => $challenge->uuid,
         'verification_token' => $verificationToken,
         'name' => 'AHOUSSOU TONY',
@@ -669,7 +734,17 @@ it('claims an existing pin-less phone account at registration', function (): voi
         'device_name' => 'Tecno Spark 20',
         'platform' => 'android',
         'device_fingerprint' => 'device-fingerprint-claim',
-    ])
+    ];
+
+    $this->postJson('/api/v1/auth/register/complete', [...$payload, 'referral_code' => $referrerWallet->referral_code])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('referral_code');
+
+    expect($existing->refresh()->pin_hash)->toBeNull()
+        ->and($existingWallet->refresh()->referred_by_user_id)->toBeNull()
+        ->and($challenge->refresh()->status)->toBe(OtpChallengeStatus::Verified);
+
+    $this->postJson('/api/v1/auth/register/complete', [...$payload, 'referral_code' => '   '])
         ->assertCreated()
         ->assertJsonPath('data.user.uuid', $existing->uuid)
         ->assertJsonPath('data.user.registration_origin', 'assisted');

@@ -13,6 +13,8 @@ import 'package:kora_app_passenger/core/router/app_router.dart';
 import 'package:kora_app_passenger/core/utils/date_formats.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_mock_data.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/itinerary.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/journey.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/passenger.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/price.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/search_criteria.dart';
@@ -95,10 +97,14 @@ void main() {
           path: '/',
           builder: (context, state) => withSeatHold(
             SummaryPage(
-              departure: departure,
+              journey: Journey(
+                outbound: Itinerary.direct(departure),
+                inbound: returnDeparture == null
+                    ? null
+                    : Itinerary.direct(returnDeparture),
+                seatsByLeg: [freeSeats.take(passengers).toList(), ?returnSeats],
+              ),
               passengers: passengersOf(passengers),
-              returnDeparture: returnDeparture,
-              returnSeats: returnSeats,
             ),
             bloc: holdBloc,
             groupQuote: quote,
@@ -317,7 +323,10 @@ void main() {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        home: withSeatHold(SummaryPage(departure: departure), bloc: holdBloc),
+        home: withSeatHold(
+          SummaryPage(journey: Journey(outbound: Itinerary.direct(departure))),
+          bloc: holdBloc,
+        ),
       ),
     );
     await tester.pumpAndSettle();

@@ -9,6 +9,12 @@ Finalise la création d'un compte après vérification OTP. L'utilisateur choisi
 
 L'identifiant du challenge fait foi : pour un challenge email, le compte est créé ou rattaché par email ; pour un challenge téléphone, par numéro normalisé. Un compte existant **sans PIN** (ex. créé via réservation assistée) est revendiqué — le code OTP prouve la possession de l'identifiant. Un compte **avec PIN** ne peut pas se « réinscrire » (`409 account_exists`). Pour une inscription par téléphone d'un nouveau compte, `name` est obligatoire.
 
+## Code de parrainage dans l’application
+
+Sur le formulaire qui finalise l’inscription après vérification OTP, proposer le champ facultatif **Code de parrainage**. Envoyer sa valeur dans `referral_code` lors de la création d’un nouveau compte. L’API ignore les espaces périphériques et la casse. Une valeur vide, `null` ou omise permet de continuer sans code.
+
+Si l’API renvoie `422` avec `errors.referral_code`, afficher le message sous le champ et permettre de corriger ou retirer le code. Réutiliser le même jeton de vérification tant qu’il est valide. Pour l’activation d’un compte existant sans PIN, retirer le code et terminer l’activation. Le voyageur peut ensuite appeler `POST /api/v1/wallet/referral` depuis le Wallet s’il n’a encore ni parrain ni billet utilisé comptabilisé.
+
 ## Paramètres
 
 <ParamField body="otp_challenge_uuid" type="UUID" required>
@@ -57,6 +63,10 @@ L'identifiant du challenge fait foi : pour un challenge email, le compte est cr�
 
 <ParamField body="birth_date" type="string">
   Date de naissance (ISO 8601, antérieure à aujourd'hui).
+</ParamField>
+
+<ParamField body="referral_code" type="string">
+  Code de parrainage facultatif du nouveau compte (max 24 caractères).
 </ParamField>
 
 <ParamField body="push_token" type="string">
@@ -115,6 +125,7 @@ final res = await dio.post('/api/v1/auth/register/complete', data: {
   'device_name': 'iPhone 15 Pro',
   'platform': 'ios',
   'device_fingerprint': 'a1b2c3d4e5f6a1b2c3d4e5f6a1b2',
+  if (referralCode.trim().isNotEmpty) 'referral_code': referralCode.trim(),
 });
 final token = res.data['data']['token'];
 ```
@@ -189,5 +200,5 @@ final token = res.data['data']['token'];
 |------|-------------|
 | `201` | Compte créé ou revendiqué, token émis. |
 | `409` | `account_exists` — un compte avec PIN existe déjà pour cet identifiant ; passer par la connexion. |
-| `422` | `verification_token` invalide/expiré, PIN invalide, `name_required`, `phone_taken` ou `email_taken`. |
+| `422` | `verification_token` invalide/expiré, PIN invalide, `name_required`, `phone_taken`, `email_taken` ou code de parrainage refusé (`errors.referral_code`). |
 | `429` | Rate limit `auth-login` dépassé (5/min). |

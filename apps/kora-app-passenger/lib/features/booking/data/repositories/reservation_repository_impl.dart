@@ -5,13 +5,12 @@ import '../../../../core/error/api_failure_mapper.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/network/api_json.dart';
 import '../../domain/entities/company_account.dart';
-import '../../domain/entities/departure.dart';
 import '../../domain/entities/group_payer.dart';
 import '../../domain/entities/group_quote.dart';
 import '../../domain/entities/group_ticket.dart';
+import '../../domain/entities/journey.dart';
 import '../../domain/entities/passenger.dart';
 import '../../domain/entities/reservation_pricing.dart';
-import '../../domain/entities/seat.dart';
 import '../../domain/entities/seat_hold.dart';
 import '../../domain/repositories/reservation_repository.dart';
 import '../datasources/booking_cache_local_data_source.dart';
@@ -90,10 +89,9 @@ class ReservationRepositoryImpl
   @override
   Future<Either<Failure, SeatHold>> holdGroup({
     required GroupQuote quote,
-    required List<Seat> seats,
+    required Journey journey,
     required GroupPayer payer,
     required String idempotencyKey,
-    List<Seat>? returnSeats,
   }) async {
     SeatUnavailableFailure? conflict;
 
@@ -101,10 +99,9 @@ class ReservationRepositoryImpl
       try {
         return await _dataSource.holdGroup(
           quote: quote,
-          seats: seats,
+          journey: journey,
           payer: payer,
           idempotencyKey: idempotencyKey,
-          returnSeats: returnSeats,
         );
       } on DioException catch (error) {
         // Le 409 est relevé ici, avant que le mapper commun ne le réduise
@@ -122,16 +119,14 @@ class ReservationRepositoryImpl
 
   @override
   Future<Either<Failure, GroupQuote>> groupQuote({
-    required Departure departure,
+    required Journey journey,
     required int passengers,
-    Departure? returnDeparture,
     String? promoCode,
   }) {
     return attempt(
       () => _dataSource.groupQuote(
-        departure: departure,
+        journey: journey,
         passengers: passengers,
-        returnDeparture: returnDeparture,
         promoCode: promoCode,
       ),
     );

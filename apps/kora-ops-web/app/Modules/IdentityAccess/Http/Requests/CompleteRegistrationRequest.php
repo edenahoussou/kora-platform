@@ -27,6 +27,7 @@ class CompleteRegistrationRequest extends FormRequest
             'phone' => ['nullable', 'string', 'max:20', 'regex:/^\+?[\d\s\-.()]{6,20}$/'],
             'country_code' => ['nullable', 'string', 'max:4', 'regex:/^\+?[\d\s\-.()]{1,7}$/'],
             'birth_date' => ['nullable', 'date', 'before:today'],
+            'referral_code' => ['nullable', 'string', 'max:24'],
             'device_name' => ['required', 'string', 'max:120'],
             'platform' => ['required', Rule::in(DevicePlatform::values())],
             'device_fingerprint' => ['required', 'string', 'min:16', 'max:255'],
@@ -55,6 +56,8 @@ class CompleteRegistrationRequest extends FormRequest
             'country_code.max' => "L'indicatif pays ne peut pas dépasser 4 caractères.",
             'country_code.regex' => "L'indicatif pays doit contenir uniquement des chiffres (ex: +229).",
             'birth_date.date' => "La date de naissance n'est pas valide.",
+            'referral_code.string' => 'Le code de parrainage doit être une chaîne de caractères.',
+            'referral_code.max' => 'Le code de parrainage ne peut pas dépasser 24 caractères.',
             'birth_date.before' => "La date de naissance doit être antérieure à aujourd'hui.",
             'device_name.required' => "Le nom de l'appareil est obligatoire.",
             'device_name.max' => "Le nom de l'appareil ne peut pas dépasser 120 caractères.",
@@ -68,7 +71,7 @@ class CompleteRegistrationRequest extends FormRequest
     }
 
     /**
-     * @return array{otp_challenge_uuid: string, verification_token: string, pin: string, device_name: string, platform: string, device_fingerprint: string, push_token?: string|null, name?: string|null, email?: string|null, phone?: string|null, country_code?: string|null, birth_date?: string|null}
+     * @return array{otp_challenge_uuid: string, verification_token: string, pin: string, device_name: string, platform: string, device_fingerprint: string, push_token?: string|null, name?: string|null, email?: string|null, phone?: string|null, country_code?: string|null, birth_date?: string|null, referral_code?: string|null}
      */
     public function payload(): array
     {
@@ -78,6 +81,7 @@ class CompleteRegistrationRequest extends FormRequest
             'otp_challenge_uuid' => (string) $validated['otp_challenge_uuid'],
             'verification_token' => (string) $validated['verification_token'],
             'pin' => (string) $validated['pin'],
+            'referral_code' => $validated['referral_code'] ?? null,
             'device_name' => (string) $validated['device_name'],
             'platform' => (string) $validated['platform'],
             'device_fingerprint' => (string) $validated['device_fingerprint'],
@@ -105,6 +109,7 @@ class CompleteRegistrationRequest extends FormRequest
             'phone' => ['description' => 'Numéro de téléphone.'],
             'country_code' => ['description' => 'Indicatif téléphonique du pays.'],
             'birth_date' => ['description' => 'Date de naissance.', 'example' => '1990-05-15'],
+            'referral_code' => ['description' => 'Code facultatif réservé à la création d’un nouveau compte voyageur.', 'example' => 'KA1B2C3D'],
             'device_name' => ['description' => 'Nom de l’appareil à enregistrer.'],
             'platform' => ['description' => 'Plateforme de l’appareil ou du client.'],
             'device_fingerprint' => ['description' => 'Valeur de « device fingerprint ».'],

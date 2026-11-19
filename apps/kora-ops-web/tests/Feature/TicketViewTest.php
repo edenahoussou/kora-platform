@@ -214,3 +214,39 @@ it('displays all segments for a round-trip ticket', function (): void {
     expect($content)->toContain('Retour');
     expect($content)->toContain('2 jambes');
 });
+
+it('displays stop-local dates and times for the purchased segment', function (int $days): void {
+    $scenario = ticketViewScenario();
+    $scenario['departure']->update(['stop_times' => [
+        ['stop_uuid' => $scenario['origin']->uuid, 'departure_minutes' => $days * 1440 + 90, 'timezone' => 'Africa/Accra'],
+        ['stop_uuid' => $scenario['destination']->uuid, 'arrival_minutes' => $days * 1440 + 1140, 'timezone' => 'Africa/Porto-Novo'],
+    ]]);
+    $boarding = CarbonImmutable::parse('2026-09-07 08:30', 'Africa/Accra')->addDays($days);
+    $arrival = CarbonImmutable::parse('2026-09-08 03:00', 'Africa/Porto-Novo')->addDays($days);
+
+    $this->actingAs($scenario['user'])->get("/tickets/{$scenario['ticket']->uuid}")
+        ->assertOk()
+        ->assertViewHas('legs', fn (array $legs): bool => $legs[0]['dateLabel'] === $boarding->format('d/m/Y')
+            && $legs[0]['departureTime'] === '08:30'
+            && $legs[0]['arrivalDateLabel'] === $arrival->format('d/m/Y')
+            && $legs[0]['arrivalTime'] === '03:00');
+
+    $this->getJson(route('api.v1.tickets.index'))->assertOk()
+        ->assertJsonPath('data.0.departure.departs_at', $boarding->toIso8601String())
+        ->assertJsonPath('data.0.segments.0.arrival_at', $arrival->toIso8601String());
+})->with([0, 1, 2]);
+
+it('does not display the line departure when an intermediate stop schedule is missing', function (): void {
+    $scenario = ticketViewScenario();
+    $scenario['origin']->update(['stop_order' => 3]);
+    $scenario['departure']->update(['stop_times' => []]);
+
+    $this->actingAs($scenario['user'])->get("/tickets/{$scenario['ticket']->uuid}")
+        ->assertOk()
+        ->assertViewHas('legs', fn (array $legs): bool => $legs[0]['departureTime'] === 'Horaire non disponible'
+            && $legs[0]['dateLabel'] === 'Horaire non disponible');
+
+    $this->getJson(route('api.v1.tickets.index'))->assertOk()
+        ->assertJsonPath('data.0.departure.departs_at', null)
+        ->assertJsonPath('data.0.segments.0.departure_at', null);
+});

@@ -3,7 +3,6 @@
 namespace App\Modules\BusNetwork\Actions;
 
 use App\Modules\BusNetwork\Models\PhysicalStop;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class ResolveStopsPayloadAction
@@ -41,28 +40,34 @@ class ResolveStopsPayloadAction
                     ]);
                 }
 
-                $resolved['physical_stop_id'] = $physical->id;
-                $resolved['city'] = $physical->city;
-                $resolved['country'] = $physical->country;
-                $resolved['latitude'] = $physical->latitude !== null ? (float) $physical->latitude : null;
-                $resolved['longitude'] = $physical->longitude !== null ? (float) $physical->longitude : null;
             } else {
                 $physical = $this->findOrCreatePhysicalStop->execute([
                     'name' => $resolved['name'],
-                    'city' => $resolved['city'],
+                    'city' => $this->canonicalCity($resolved['city']),
                     'country' => $resolved['country'],
                     'latitude' => $resolved['latitude'],
                     'longitude' => $resolved['longitude'],
-                ]);
-                $resolved['physical_stop_id'] = $physical->id;
+                ], "stops.{$index}.name");
             }
 
-            return $resolved;
+            return [...$resolved, ...PhysicalStop::canonicalStopAttributes($physical), 'physical_stop_id' => $physical->id];
         })->values()->all();
+    }
+
+    /** Reuses the existing spelling of a city so « Bohicon » and « bohicon » never coexist. */
+    private function canonicalCity(string $city): string
+    {
+        $normalized = $this->normalizeCity($city);
+
+        return PhysicalStop::query()
+            ->whereNotNull('city')
+            ->distinct()
+            ->pluck('city')
+            ->first(fn (string $existing): bool => $this->normalizeCity($existing) === $normalized) ?? $city;
     }
 
     private function normalizeCity(string $city): string
     {
-        return Str::lower((string) preg_replace('/[\s\-]+/u', ' ', trim($city)));
+        return FindOrCreatePhysicalStopAction::normalize($city);
     }
 }

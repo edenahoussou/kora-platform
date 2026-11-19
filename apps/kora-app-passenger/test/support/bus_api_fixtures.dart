@@ -144,3 +144,100 @@ const Map<String, dynamic> kItineraryLeg = {
   'departure_at': '2026-09-09T06:00:00+00:00',
   'arrival_at': '2026-09-10T00:30:00+00:00',
 };
+
+/// Un itinéraire **à correspondance** de `GET /api/v1/bus/itineraries` :
+/// Porto-Novo → Parakou, en changeant de bus à Cotonou.
+///
+/// C'est l'exemple du ticket : aucune ligne ne relie les deux villes, le
+/// serveur compose donc le voyage avec le Porto-Novo–Lomé jusqu'à
+/// Cotonou, puis le Cotonou–Parakou. Une heure d'attente sépare les deux
+/// bus, et c'est le second qui limite les places.
+const Map<String, dynamic> kConnectedItinerary = {
+  'connections_count': 1,
+  'total_amount': 12000,
+  'currency': 'XOF',
+  'departure_at': '2026-09-09T06:00:00+00:00',
+  'arrival_at': '2026-09-09T16:00:00+00:00',
+  'connection_margin_minutes': 45,
+  'legs': [kPortoNovoCotonouLeg, kCotonouParakouLeg],
+};
+
+const Map<String, dynamic> kPortoNovoCotonouLeg = {
+  'leg_order': 1,
+  'departure_uuid': 'a1111111-1111-4111-8111-111111111111',
+  'line': {
+    'uuid': 'l1111111-1111-4111-8111-111111111111',
+    'code': 'L1',
+    'name': 'Porto-Novo - Lomé',
+    'estimated_duration_minutes': 60,
+    'is_international': true,
+  },
+  'bus': {
+    'uuid': 'b1111111-1111-4111-8111-111111111111',
+    'brand': 'KORA',
+    'model': 'Coach 55',
+    'seat_count': 55,
+    'amenities': [
+      {'code': 'wifi', 'label': 'Wi-Fi à bord', 'icon': 'wifi'},
+    ],
+  },
+  'origin_stop': {
+    'uuid': 's1111111-1111-4111-8111-111111111111',
+    'name': 'Porto-Novo',
+    'city': 'Porto-Novo',
+    'country': 'BJ',
+    'stop_order': 1,
+  },
+  'destination_stop': {
+    'uuid': 's2222222-2222-4222-8222-222222222222',
+    'name': 'Cotonou',
+    'city': 'Cotonou',
+    'country': 'BJ',
+    'stop_order': 2,
+  },
+  'amount': 2000,
+  'available_seats_count': 12,
+  'service_class_code': 'classique',
+  'departure_at': '2026-09-09T06:00:00+00:00',
+  'arrival_at': '2026-09-09T07:00:00+00:00',
+};
+
+const Map<String, dynamic> kCotonouParakouLeg = {
+  'leg_order': 2,
+  'departure_uuid': 'a2222222-2222-4222-8222-222222222222',
+  'line': {
+    'uuid': 'l2222222-2222-4222-8222-222222222222',
+    'code': 'L2',
+    'name': 'Cotonou - Parakou',
+    'estimated_duration_minutes': 480,
+    'is_international': false,
+  },
+  'bus': {
+    'uuid': 'b2222222-2222-4222-8222-222222222222',
+    'brand': 'KORA',
+    'model': 'Coach 45',
+    'seat_count': 45,
+    'amenities': [
+      {'code': 'air_conditioning', 'label': 'Climatisation', 'icon': 'snow'},
+    ],
+  },
+  'origin_stop': {
+    'uuid': 's2222222-2222-4222-8222-222222222222',
+    'name': 'Cotonou',
+    'city': 'Cotonou',
+    'country': 'BJ',
+    'stop_order': 1,
+  },
+  'destination_stop': {
+    'uuid': 's3333333-3333-4333-8333-333333333333',
+    'name': 'Parakou',
+    'city': 'Parakou',
+    'country': 'BJ',
+    'stop_order': 6,
+  },
+  'amount': 10000,
+  'available_seats_count': 4,
+  'service_class_code': 'confort',
+  'departure_at': '2026-09-09T08:00:00+00:00',
+  'arrival_at': '2026-09-09T16:00:00+00:00',
+};

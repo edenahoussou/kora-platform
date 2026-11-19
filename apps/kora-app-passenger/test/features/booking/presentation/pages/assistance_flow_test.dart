@@ -20,6 +20,8 @@ import 'package:kora_app_passenger/features/auth/presentation/bloc/auth_bloc.dar
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_mock_data.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/assisted_booking.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/itinerary.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/journey.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/passenger.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/search_criteria.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/seat.dart';
@@ -126,8 +128,17 @@ void main() {
         ),
         GoRoute(
           path: AppRouter.summaryPath,
-          builder: (context, state) =>
-              wrap(SummaryPage(departure: departure, passengers: passengers())),
+          builder: (context, state) => wrap(
+            SummaryPage(
+              journey: Journey(
+                outbound: Itinerary.direct(departure),
+                seatsByLeg: [
+                  [for (final p in passengers()) p.seat],
+                ],
+              ),
+              passengers: passengers(),
+            ),
+          ),
         ),
         GoRoute(
           path: AppRouter.assistanceRequestPath,

@@ -13,6 +13,8 @@ import '../../../../core/widgets/section_title.dart';
 import '../../domain/entities/amenity.dart';
 import '../../domain/entities/departure.dart';
 import '../../domain/entities/group_booking_limits.dart';
+import '../../domain/entities/itinerary.dart';
+import '../../domain/entities/journey.dart';
 import '../../domain/entities/line_stop.dart';
 import '../../domain/entities/trip_segment.dart';
 import '../bloc/departure_detail_cubit.dart';
@@ -32,19 +34,20 @@ import 'seats_page.dart';
 /// du tunnel de réservation.
 class DepartureDetailArgs {
   const DepartureDetailArgs({
-    required this.departure,
+    required this.itinerary,
     this.passengers = 1,
-    this.returnDeparture,
+    this.returnItinerary,
   });
 
-  final Departure departure;
+  /// Le voyage choisi, direct ou à correspondance.
+  final Itinerary itinerary;
   final int passengers;
 
   /// Le retour choisi, sur un aller-retour. `null` sur un aller simple.
   ///
-  /// Porté jusqu'au devis : les deux trajets tiennent dans un seul devis,
+  /// Porté jusqu'au devis : les deux sens tiennent dans un seul devis,
   /// donc un seul blocage et un seul paiement.
-  final Departure? returnDeparture;
+  final Itinerary? returnItinerary;
 }
 
 /// Détail d'un départ — écran `departure` de la maquette : bandeau navy du
@@ -58,43 +61,43 @@ class DepartureDetailArgs {
 class DepartureDetailPage extends StatelessWidget {
   const DepartureDetailPage({
     super.key,
-    required this.departure,
+    required this.itinerary,
     this.passengers = 1,
-    this.returnDeparture,
+    this.returnItinerary,
   });
 
   /// `null` si l'écran a été ouvert sans données (lien profond,
   /// redémarrage à chaud) : il le dit au lieu de planter.
-  final Departure? departure;
+  final Itinerary? itinerary;
 
   final int passengers;
 
   /// Le retour déjà choisi, sur un aller-retour. Transmis au plan des
   /// sièges, qui en pourvoira un second.
-  final Departure? returnDeparture;
+  final Itinerary? returnItinerary;
 
   @override
   Widget build(BuildContext context) {
-    final departure = this.departure;
+    final itinerary = this.itinerary;
 
     return Scaffold(
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 18),
-          child: departure == null
+          child: itinerary == null
               ? const _MissingDeparture()
               : BlocProvider<DepartureDetailCubit>(
                   create: (_) => DepartureDetailCubit(
-                    departure: departure,
+                    itinerary: itinerary,
                     repository: getIt(),
                   )..loadStops(),
                   child:
                       BlocBuilder<DepartureDetailCubit, DepartureDetailState>(
                         builder: (context, state) => _DetailContent(
-                          departure: state.departure,
-                          stops: state.stops,
+                          itinerary: state.itinerary,
+                          stopsByLine: state.stopsByLine,
                           passengers: passengers,
-                          returnDeparture: returnDeparture,
+                          returnItinerary: returnItinerary,
                           isStale: state.isStale,
                         ),
                       ),
@@ -107,44 +110,115 @@ class DepartureDetailPage extends StatelessWidget {
 
 class _DetailContent extends StatelessWidget {
   const _DetailContent({
-    required this.departure,
+    required this.itinerary,
     required this.passengers,
-    this.stops = const [],
-    this.returnDeparture,
+    this.stopsByLine = const {},
+    this.returnItinerary,
     this.isStale = false,
   });
 
-  final Departure departure;
+  final Itinerary itinerary;
 
-  /// Les arrêts de la ligne, tels que `GET bus/lines/{uuid}` les rend.
-  final List<LineStop> stops;
+  /// Les arrêts de chaque ligne empruntée, tels que
+  /// `GET bus/lines/{uuid}` les rend.
+  final Map<String, List<LineStop>> stopsByLine;
 
   final int passengers;
 
-  /// Voir [DepartureDetailPage.returnDeparture].
-  final Departure? returnDeparture;
+  /// Voir [DepartureDetailPage.returnItinerary].
+  final Itinerary? returnItinerary;
 
   /// Le rafraîchissement a échoué : ce qui est affiché vient de la
   /// recherche.
   final bool isStale;
 
+  /// Ce qu'on montre d'un tronçon : les services de son bus, les étapes
+  /// de sa ligne et ses tarifs.
+  ///
+  /// Titre et contenu vont toujours ensemble : un bus pas encore affecté
+  /// n'annonce aucun service, et un intertitre « Votre confort à bord »
+  /// suivi de rien laisserait croire à un bus dépouillé plutôt qu'à une
+  /// donnée pas encore connue. Même règle pour les étapes — deux arrêts,
+  /// ce sont les deux terminus, et la frise répéterait le bandeau du
+  /// haut sans rien apprendre.
+  /// Les étapes du **tronçon retenu**, et non celles de la ligne
+  /// entière.
+  ///
+  /// Une ligne va souvent plus loin que le trajet qu'on prend : sur la
+  /// correspondance Cotonou → Bohicon → Natitingou, la frise du premier
+  /// bus annonçait « Malanville · arrivée prévue 07:31 » — le terminus
+  /// de la ligne, à l'heure où l'on descend à Bohicon.
+  List<LineStop> _stopsOfLeg(Departure leg) {
+    final stops = stopsByLine[leg.line.id] ?? const <LineStop>[];
+
+    final from = stops.indexWhere((stop) => stop.label == leg.line.origin.name);
+    final to = stops.lastIndexWhere(
+      (stop) => stop.label == leg.line.destination.name,
+    );
+
+    // Arrêts non reconnus : mieux vaut la ligne entière que rien.
+    if (from < 0 || to < 0 || to == from) return stops;
+
+    // Une ligne se parcourt dans les deux sens. L1 est cataloguée de
+    // Cotonou (1) à Abidjan (8), mais un Accra → Cotonou la remonte :
+    // l'arrêt de montée porte alors le rang le plus élevé. Découpée dans
+    // l'ordre du catalogue, la tranche était vide et l'écran retombait
+    // sur la ligne entière — le voyageur parti d'Accra lisait des
+    // escales béninoises en tête de ses étapes, et Abidjan en terminus
+    // d'un trajet qui s'arrête à Cotonou.
+    if (to < from) return stops.sublist(to, from + 1).reversed.toList();
+
+    return stops.sublist(from, to + 1);
+  }
+
+  List<Widget> _legSections(BuildContext context, Departure leg) {
+    final l10n = context.l10n;
+    final stops = _stopsOfLeg(leg);
+    final segments = leg.line.segments;
+
+    return [
+      if (leg.amenities.isNotEmpty) ...[
+        SectionTitle(title: l10n.departureDetailComfort),
+        _ServiceGrid(amenities: leg.amenities),
+      ],
+      if (stops.length > 2) ...[
+        SectionTitle(title: l10n.departureDetailStops),
+        KoraCard(
+          child: _StopsTimeline(stops: stops, departure: leg),
+        ),
+        if (segments.length > 1) ...[
+          SectionTitle(title: l10n.departureDetailSegmentPrice),
+          _SegmentPrices(segments: segments),
+        ],
+        const SizedBox(height: 11),
+        KoraCard(
+          variant: KoraCardVariant.mist,
+          child: Text(
+            l10n.departureDetailEstimates,
+            style: AppTextStyles.body(context.koraColors.textMuted),
+          ),
+        ),
+      ],
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     final koraColors = context.koraColors;
-    final segments = departure.line.segments;
+    final l10n = context.l10n;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         ScreenHeader(
-          eyebrow: departure.vehicleLabel,
-          title: context.l10n.departureDetailEyebrow,
+          eyebrow: itinerary.first.vehicleLabel,
+          title: l10n.departureDetailEyebrow,
         ),
         Expanded(
           child: ListView(
             padding: EdgeInsets.zero,
             children: [
-              _TripCard(departure: departure),
+              _TripCard(itinerary: itinerary),
               // Discret, et seulement en cas d'échec : ce qui est affiché
               // reste utilisable, il manque juste sa fraîcheur.
               if (isStale) ...[
@@ -169,40 +243,27 @@ class _DetailContent extends StatelessWidget {
                   ),
                 ),
               ],
-              // Titre et grille vont ensemble : un départ sans bus affecté
-              // n'annonce aucun service, et un intertitre « Votre confort à
-              // bord » suivi de rien laisserait croire à un bus dépouillé
-              // plutôt qu'à une donnée pas encore connue.
-              if (departure.amenities.isNotEmpty) ...[
-                SectionTitle(title: context.l10n.departureDetailComfort),
-                _ServiceGrid(amenities: departure.amenities),
-              ],
-              // Même règle que pour les services : sans arrêt connu, le
-              // serveur n'a pas encore d'étapes à donner. L'intertitre
-              // « Les étapes » coiffait alors une carte vide, et la note
-              // sur les heures de passage parlait d'heures que rien
-              // n'affichait — un bas de page qui annonçait une ligne sans
-              // arrêts plutôt qu'une donnée manquante.
-              // Deux arrêts, ce sont les deux terminus : la frise
-              // répéterait alors le bandeau du haut. Il faut au moins une
-              // escale pour qu'elle apprenne quelque chose.
-              if (stops.length > 2) ...[
-                SectionTitle(title: context.l10n.departureDetailStops),
-                KoraCard(
-                  child: _StopsTimeline(stops: stops, departure: departure),
-                ),
-                if (segments.length > 1) ...[
-                  SectionTitle(title: context.l10n.departureDetailSegmentPrice),
-                  _SegmentPrices(segments: segments),
-                ],
-                const SizedBox(height: 11),
-                KoraCard(
-                  variant: KoraCardVariant.mist,
-                  child: Text(
-                    context.l10n.departureDetailEstimates,
-                    style: AppTextStyles.body(koraColors.textMuted),
+              // Un tronçon après l'autre. Sur un trajet direct, il n'y
+              // en a qu'un et l'écran est celui d'avant ; sur une
+              // correspondance, chaque bus a sa section, et le temps
+              // d'attente les sépare — c'est ce qu'il faut savoir avant
+              // de réserver, pas en descendant du premier bus.
+              for (var index = 0; index < itinerary.legs.length; index++) ...[
+                if (!itinerary.isDirect) ...[
+                  if (index > 0)
+                    _ConnectionWait(
+                      city: itinerary.legs[index].line.origin.name,
+                      wait: itinerary.connectionWaits[index - 1],
+                    ),
+                  SectionTitle(
+                    title: l10n.departuresLegOrder(
+                      index + 1,
+                      itinerary.legs.length,
+                    ),
                   ),
-                ),
+                  _LegCard(leg: itinerary.legs[index]),
+                ],
+                ..._legSections(context, itinerary.legs[index]),
               ],
               const SizedBox(height: AppSpacing.lg),
             ],
@@ -211,8 +272,8 @@ class _DetailContent extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(bottom: AppSpacing.lg),
           child: KoraButton(
-            label: context.l10n.departureDetailChooseSeat,
-            onPressed: departure.isSoldOut
+            label: l10n.departureDetailChooseSeat,
+            onPressed: itinerary.isSoldOut
                 ? null
                 // Un groupe passe d'abord par la réservation de groupe
                 // (BUS-15) puis par la remise (BUS-16) : les montants
@@ -225,13 +286,15 @@ class _DetailContent extends StatelessWidget {
                         : AppRouter.seatsPath,
                     extra: passengers >= kGroupMinimumPassengers
                         ? GroupBookingArgs(
-                            departure: departure,
+                            itinerary: itinerary,
                             passengers: passengers,
                           )
                         : SeatsArgs(
-                            departure: departure,
+                            journey: Journey(
+                              outbound: itinerary,
+                              inbound: returnItinerary,
+                            ),
                             passengers: passengers,
-                            returnDeparture: returnDeparture,
                           ),
                   ),
           ),
@@ -241,40 +304,157 @@ class _DetailContent extends StatelessWidget {
   }
 }
 
-/// `.card.navy` de l'écran : places restantes, trajet en grand, date et
-/// prix.
-class _TripCard extends StatelessWidget {
-  const _TripCard({required this.departure});
+/// Le bus d'un tronçon : ses heures, ses villes, sa ligne et ses places.
+///
+/// Sur une correspondance, la carte navy du haut parle du voyage entier ;
+/// celle-ci dit ce qu'on prend réellement, bus après bus.
+class _LegCard extends StatelessWidget {
+  const _LegCard({required this.leg});
 
-  final Departure departure;
+  final Departure leg;
 
   @override
   Widget build(BuildContext context) {
-    final line = departure.line;
+    final koraColors = context.koraColors;
+    final l10n = context.l10n;
 
+    return KoraCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '${KoraDateFormats.time.format(leg.departsAt)} '
+                  '${leg.line.origin.name} → '
+                  '${KoraDateFormats.time.format(leg.arrivesAt)} '
+                  '${leg.line.destination.name}',
+                  style: TextStyle(
+                    color: context.koraTitleColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              KoraTag(
+                label: leg.isSoldOut
+                    ? l10n.departureDetailFull
+                    : l10n.departureDetailSeatsLeft(leg.seatsAvailable),
+                variant: leg.isSoldOut
+                    ? KoraTagVariant.danger
+                    : KoraTagVariant.gold,
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            [leg.vehicleLabel, ?leg.line.code, leg.price.formatted].join(' · '),
+            style: AppTextStyles.caption(koraColors.textMuted),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Le temps passé à l'arrêt entre deux bus.
+///
+/// Affiché entre les deux tronçons, là où il se vit. C'est la donnée qui
+/// décide d'une correspondance : vingt minutes et trois heures ne se
+/// réservent pas avec la même tranquillité.
+class _ConnectionWait extends StatelessWidget {
+  const _ConnectionWait({required this.city, required this.wait});
+
+  final String city;
+  final Duration wait;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.md),
+      child: KoraCard(
+        variant: KoraCardVariant.mist,
+        child: Row(
+          children: [
+            const Icon(
+              Icons.alt_route_rounded,
+              size: 16,
+              color: AppColors.gold,
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                context.l10n.departuresConnectionWait(
+                  KoraDateFormats.approximateDuration(wait),
+                  city,
+                ),
+                style: AppTextStyles.body(context.koraColors.textMuted),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// `.card.navy` de l'écran : places restantes, trajet en grand, date et
+/// prix.
+///
+/// Elle décrit le **voyage entier** : l'heure du premier bus, celle
+/// d'arrivée du dernier, la durée attentes comprises et le prix total.
+/// Sur une correspondance, une ligne dorée dit où l'on change — le
+/// détail de chaque bus suit en dessous.
+class _TripCard extends StatelessWidget {
+  const _TripCard({required this.itinerary});
+
+  final Itinerary itinerary;
+
+  @override
+  Widget build(BuildContext context) {
     return KoraCard(
       variant: KoraCardVariant.navy,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          KoraTag(
-            label: departure.isSoldOut
-                ? context.l10n.departureDetailFull
-                : context.l10n.departureDetailSeatsLeft(
-                    departure.seatsAvailable,
+          Row(
+            children: [
+              KoraTag(
+                label: itinerary.isSoldOut
+                    ? context.l10n.departureDetailFull
+                    : context.l10n.departureDetailSeatsLeft(
+                        itinerary.seatsAvailable,
+                      ),
+                variant: itinerary.isSoldOut
+                    ? KoraTagVariant.danger
+                    : KoraTagVariant.gold,
+              ),
+              if (!itinerary.isDirect) ...[
+                const SizedBox(width: AppSpacing.sm),
+                Flexible(
+                  child: KoraTag(
+                    // Le nombre seul : avec les villes, le badge
+                    // débordait (« 1 CORRESPONDANCE · BOHI… »), et elles
+                    // se lisent juste en dessous, tronçon par tronçon.
+                    label: context.l10n.departuresConnectionsTag(
+                      itinerary.connectionsCount,
+                    ),
                   ),
-            variant: departure.isSoldOut
-                ? KoraTagVariant.danger
-                : KoraTagVariant.gold,
+                ),
+              ],
+            ],
           ),
           const SizedBox(height: 23),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _TimePoint(
-                time: KoraDateFormats.time.format(departure.departsAt),
-                city: line.origin.name,
+                time: KoraDateFormats.time.format(itinerary.departsAt),
+                city: itinerary.origin.name,
                 alignEnd: false,
               ),
               const SizedBox(width: AppSpacing.md),
@@ -282,7 +462,7 @@ class _TripCard extends StatelessWidget {
                 child: Column(
                   children: [
                     Text(
-                      KoraDateFormats.approximateDuration(line.duration),
+                      KoraDateFormats.approximateDuration(itinerary.duration),
                       style: TextStyle(
                         color: AppColors.white.withValues(alpha: 0.55),
                         fontSize: 10,
@@ -298,8 +478,8 @@ class _TripCard extends StatelessWidget {
               ),
               const SizedBox(width: AppSpacing.md),
               _TimePoint(
-                time: KoraDateFormats.time.format(departure.arrivesAt),
-                city: line.destination.name,
+                time: KoraDateFormats.time.format(itinerary.arrivesAt),
+                city: itinerary.destination.name,
                 alignEnd: true,
               ),
             ],
@@ -311,7 +491,7 @@ class _TripCard extends StatelessWidget {
               Flexible(
                 child: Text(
                   KoraDateFormats.capitalize(
-                    KoraDateFormats.fullDate.format(departure.departsAt),
+                    KoraDateFormats.fullDate.format(itinerary.departsAt),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -323,7 +503,7 @@ class _TripCard extends StatelessWidget {
               ),
               const SizedBox(width: AppSpacing.sm),
               Text(
-                departure.price.formatted,
+                itinerary.total.formatted,
                 style: const TextStyle(
                   color: AppColors.white,
                   fontSize: 15,

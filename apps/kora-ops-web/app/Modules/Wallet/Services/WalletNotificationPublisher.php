@@ -17,6 +17,17 @@ use Illuminate\Support\Facades\Notification;
  */
 final class WalletNotificationPublisher
 {
+    public function referralAttached(Wallet $referrer, Wallet $referee): void
+    {
+        Notification::sendNow($referrer->user, new PassengerInboxNotification(
+            dedupeKey: 'wallet:referral_attached:'.$referee->uuid,
+            type: 'wallet_referral_attached',
+            title: 'Code de parrainage utilisé',
+            message: 'Votre code de parrainage a été utilisé. Votre bonus sera crédité après le premier billet utilisé par votre filleul.',
+            data: ['resource' => 'wallet', 'wallet_uuid' => $referrer->uuid],
+        ));
+    }
+
     /**
      * Notifie un débit Wallet effectué au guichet.
      *
@@ -59,6 +70,25 @@ final class WalletNotificationPublisher
             sprintf('Votre Wallet a été rechargé de %s FCFA. Nouveau solde : %s FCFA.', $this->money($amount), $this->money((int) $wallet->cash_balance)),
             null,
             ['amount' => $amount],
+        );
+    }
+
+    /**
+     * Notifie la régularisation d'une réservation non confirmée sur le Wallet.
+     *
+     * @param  Wallet  $wallet  Wallet crédité
+     * @param  int  $amount  Montant crédité
+     * @param  string  $reservationReference  Référence de la réservation expirée
+     */
+    public function bookingSettlementCredited(Wallet $wallet, int $amount, string $reservationReference): void
+    {
+        $this->publish(
+            $wallet,
+            'wallet_booking_settlement_credited',
+            'Remboursement sur votre Wallet',
+            sprintf('Votre réservation %s a expiré. Votre paiement de %s FCFA a été crédité sur votre Wallet KORA. Nouveau solde : %s FCFA.', $reservationReference, $this->money($amount), $this->money((int) $wallet->cash_balance)),
+            null,
+            ['amount' => $amount, 'reservation_reference' => $reservationReference],
         );
     }
 

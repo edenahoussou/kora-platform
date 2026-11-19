@@ -16,13 +16,7 @@ import type {
     SaleQuote,
     SaleReservation,
 } from './sale-types';
-import {
-    formatDate,
-    formatIsoDate,
-    formatIsoTime,
-    formatMoney,
-    formatShortDate,
-} from './sale-utils';
+import { formatStopSchedule, formatMoney } from './sale-utils';
 import { useHoldCountdown } from './use-hold-countdown';
 
 type Props = {
@@ -148,9 +142,20 @@ export function SaleSummaryCard({
                             {leg.originStop.city} → {leg.destinationStop.city}
                         </div>
                         <div className="summary-leg-schedule">
-                            {formatShortDate(formatIsoDate(leg.departureAt))} ·{' '}
-                            {formatIsoTime(leg.departureAt)} →{' '}
-                            {formatIsoTime(leg.arrivalAt)}
+                            <div>
+                                Montée :{' '}
+                                {formatStopSchedule(
+                                    leg.departureAt,
+                                    leg.departureTimezone,
+                                )}
+                            </div>
+                            <div>
+                                Descente :{' '}
+                                {formatStopSchedule(
+                                    leg.arrivalAt,
+                                    leg.arrivalTimezone,
+                                )}
+                            </div>
                         </div>
                         <div className="summary-leg-price">
                             {formatMoney(leg.amount, currency)} / passager
@@ -168,9 +173,20 @@ export function SaleSummaryCard({
                         {firstLeg.originStop.city} →{' '}
                         {lastLeg.destinationStop.city}
                     </h3>
+                    {selectedInbound && <small>Aller</small>}
                     <p>
-                        {formatDate(formatIsoDate(firstLeg.departureAt))} ·{' '}
-                        {formatIsoTime(firstLeg.departureAt)}
+                        Montée à {firstLeg.originStop.city} :{' '}
+                        {formatStopSchedule(
+                            firstLeg.departureAt,
+                            firstLeg.departureTimezone,
+                        )}
+                    </p>
+                    <p>
+                        Arrivée à {lastLeg.destinationStop.city} :{' '}
+                        {formatStopSchedule(
+                            lastLeg.arrivalAt,
+                            lastLeg.arrivalTimezone,
+                        )}
                     </p>
                 </div>
 

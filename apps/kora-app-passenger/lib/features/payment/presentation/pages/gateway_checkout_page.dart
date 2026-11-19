@@ -66,6 +66,17 @@ class _GatewayCheckoutPageState extends State<GatewayCheckoutPage> {
   /// deux fois la même réservation.
   var _requested = false;
 
+  /// Vrai tant que la feuille de l'encaisseur est à l'écran.
+  ///
+  /// Elle est poussée comme une page ordinaire : tout ce que l'app
+  /// pousse ensuite se pose **par-dessus**. Pendant qu'elle attend le
+  /// numéro, la relecture du paiement continue et le serveur finit par
+  /// répondre « en attente, vérifie » — ce que l'écoute traduisait par
+  /// un saut vers le suivi, posé sur la feuille. Le voyageur voyait
+  /// « Paiement en cours de vérification » sans avoir rien saisi, et ne
+  /// retrouvait la feuille qu'en revenant en arrière.
+  var _sheetOpen = false;
+
   bool get _isCard => widget.method == PaymentCatalog.cardCode;
 
   @override
@@ -86,7 +97,12 @@ class _GatewayCheckoutPageState extends State<GatewayCheckoutPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 ScreenHeader(
-                  eyebrow: _isCard
+                  // Une recharge n'achète pas de billet : le surtitre le
+                  // dit, sans quoi l'écran annonce « Billet KORA BUS »
+                  // au-dessus d'un montant qui alimente le Wallet.
+                  eyebrow: args.isTopUp
+                      ? l10n.paymentTopUpEyebrow
+                      : _isCard
                       ? l10n.paymentCardEyebrow
                       : l10n.paymentMomoEyebrow(args.total.formatted),
                   title: _isCard
@@ -104,16 +120,16 @@ class _GatewayCheckoutPageState extends State<GatewayCheckoutPage> {
                       // formulaire qui n'existe plus — et, côté Mobile
                       // Money, de chercher la liste des opérateurs qu'il
                       // a vue sur l'autre passerelle.
-                      KoraCard(
-                        variant: KoraCardVariant.mist,
-                        child: Text(
-                          _isCard
-                              ? l10n.paymentCardLead
-                              : l10n.paymentGatewayMomoLead(_gatewayLabel()),
-                          style: AppTextStyles.body(
-                            context.koraColors.textMuted,
-                          ),
-                        ),
+                      KoraAlert(
+                        icon: _isCard
+                            ? Icons.lock_rounded
+                            : Icons.open_in_new_rounded,
+                        title: _isCard
+                            ? l10n.paymentCardSecureTitle
+                            : l10n.paymentSecureWindowTitle,
+                        message: _isCard
+                            ? l10n.paymentCardLead
+                            : _leadForGateway(l10n),
                       ),
                       const SizedBox(height: AppSpacing.md),
                       const HoldCountdown(),
@@ -132,6 +148,24 @@ class _GatewayCheckoutPageState extends State<GatewayCheckoutPage> {
                   isLoading: flow.isStarting,
                   onPressed: flow.isStarting ? null : () => _pay(context),
                 ),
+                // Une demande en attente verrouille son montant : sans
+                // cette porte, le voyageur ne peut ni la payer ni en
+                // ouvrir une autre.
+                if (flow.isPending &&
+                    paymentFlowMatchesHold(context, flow, args)) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  KoraButton(
+                    label: l10n.paymentAbandon,
+                    variant: KoraButtonVariant.ghost,
+                    onPressed: () {
+                      _requested = false;
+                      context.read<PaymentFlowBloc>().add(
+                        const PaymentFlowAbandoned(),
+                      );
+                      KoraToaster.show(context, l10n.paymentAbandonDone);
+                    },
+                  ),
+                ],
                 const SizedBox(height: AppSpacing.lg),
               ],
             ),
@@ -167,8 +201,58 @@ class _GatewayCheckoutPageState extends State<GatewayCheckoutPage> {
   /// Le nom de la passerelle, pour la phrase qui annonce sa fenêtre.
   String _gatewayLabel() => _provider(context)?.label ?? '';
 
+  /// La phrase qui annonce la fenêtre de la passerelle.
+  ///
+  /// Le catalogue n'est pas toujours lu quand l'écran se peint la
+  /// première fois : sans nom, la phrase se lisait « dans la fenêtre ,
+  /// qui s'ouvre ». On dit alors « la fenêtre sécurisée », ce qui reste
+  /// vrai et se lit.
+  String _leadForGateway(AppLocalization l10n) {
+    final label = _gatewayLabel();
+
+    return label.isEmpty
+        ? l10n.paymentGatewayMomoLeadPlain
+        : l10n.paymentGatewayMomoLead(label);
+  }
+
   void _pay(BuildContext context) {
     _requested = true;
+
+    // La feuille a déjà été ouverte et refermée sans payer : il n'y a
+    // rien de neuf à demander au serveur, il faut la rouvrir.
+    //
+    // Le verrou anti-double-débit refuse de relancer un paiement encore
+    // vivant — à juste titre. Mais il refusait aussi d'en rouvrir la
+    // fenêtre : le bouton n'émettait plus rien, et le voyageur restait
+    // devant une recharge qu'il ne pouvait ni payer ni abandonner.
+    final flow = context.read<PaymentFlowBloc>().state;
+    final pending = flow.attempt;
+    final args = widget.args;
+    if (pending != null &&
+        pending.isPending &&
+        args != null &&
+        paymentFlowMatchesHold(context, flow, widget.args)) {
+      if (pending.needsWidget) {
+        unawaited(_collect(context, pending, args));
+        return;
+      }
+
+      // Plus de fenêtre à rouvrir : le serveur a pris la main. Il
+      // vérifie une transaction que la feuille lui a déjà rendue, ou
+      // l'initiation n'a pas abouti — dans les deux cas il répond
+      // « attends », sans configuration de widget.
+      //
+      // Le bouton devenait alors muet : le Bloc refuse de relancer un
+      // paiement encore vivant, et il n'y avait rien d'autre à faire.
+      // L'écran était un cul-de-sac — ni payer, ni comprendre. On mène
+      // au suivi, qui interroge le serveur jusqu'à l'issue, et
+      // « Abandonner et recommencer » reste la porte de sortie.
+      context.push(
+        AppRouter.paymentPendingPath,
+        extra: _flowArgs(pending, args, context),
+      );
+      return;
+    }
 
     // L'encaisseur vient du catalogue : c'est le serveur qui dit lequel
     // sert ce moyen, et l'app n'en code aucun en dur.
@@ -179,8 +263,12 @@ class _GatewayCheckoutPageState extends State<GatewayCheckoutPage> {
       return;
     }
 
-    final hold = context.read<SeatHoldBloc>().state.hold;
-    if (hold == null) {
+    // Une recharge n'a pas de réservation : le blocage de sièges ne la
+    // concerne pas, et le renvoyer vers « réservation expirée » dirait
+    // au voyageur une chose qui n'a rien à voir avec ce qu'il fait.
+    final topUp = widget.args?.topUpAmount;
+    final hold = topUp == null ? context.read<SeatHoldBloc>().state.hold : null;
+    if (topUp == null && hold == null) {
       context.go(AppRouter.holdExpiredPath);
       return;
     }
@@ -190,7 +278,10 @@ class _GatewayCheckoutPageState extends State<GatewayCheckoutPage> {
     // de la transaction, pas par nous.
     context.read<PaymentFlowBloc>().add(
       PaymentFlowStarted(
-        reservationId: hold.id,
+        reservationId: hold?.id,
+        topUpAmount: topUp,
+        walletAmount: widget.args?.walletAmount,
+        pointsAmount: widget.args?.pointsAmount,
         method: widget.method,
         provider: provider.code,
       ),
@@ -204,7 +295,17 @@ class _GatewayCheckoutPageState extends State<GatewayCheckoutPage> {
   ) {
     // Le paiement repris au lancement peut être celui d'une autre
     // réservation : il ne pilote pas cet écran-ci.
-    if (!paymentFlowMatchesHold(context, flow)) return;
+    if (!paymentFlowMatchesHold(context, flow, args)) return;
+
+    // Comme sur l'écran Mobile Money : on ne réagit qu'au paiement que
+    // cet écran a lancé. Un paiement déjà en cours fait sinon sauter au
+    // suivi avant que le voyageur ait touché quoi que ce soit.
+    if (!_requested) return;
+
+    // La feuille de l'encaisseur est ouverte : elle mène le jeu jusqu'à
+    // son issue. Pousser quoi que ce soit maintenant le poserait
+    // par-dessus elle.
+    if (_sheetOpen) return;
 
     if (flow.hasFailed) {
       context.push(
@@ -216,9 +317,7 @@ class _GatewayCheckoutPageState extends State<GatewayCheckoutPage> {
 
     if (flow.isPending) {
       final attempt = flow.attempt;
-      // La feuille ne s'ouvre que sur appui : un paiement repris attend
-      // déjà son verdict, et la rouvrir ferait payer deux fois.
-      if (_requested && attempt != null && attempt.needsWidget) {
+      if (attempt != null && attempt.needsWidget) {
         unawaited(_collect(context, attempt, args));
         return;
       }
@@ -249,32 +348,42 @@ class _GatewayCheckoutPageState extends State<GatewayCheckoutPage> {
     PaymentAttempt attempt,
     PaymentArgs args,
   ) async {
+    if (_sheetOpen) return;
+
     final flow = context.read<PaymentFlowBloc>();
     final user = context.read<AuthBloc>().state.session?.user;
     final sheet = attempt.widget!;
 
-    final result = await openKkiapayCheckout(
-      context,
-      widget: _isCard ? sheet.restrictedToCard() : sheet.restrictedToMomo(),
-      name: user?.name,
-      email: user?.email,
-    );
+    _sheetOpen = true;
 
-    if (!context.mounted) return;
+    try {
+      final result = await openKkiapayCheckout(
+        context,
+        widget: _isCard ? sheet.restrictedToCard() : sheet.restrictedToMomo(),
+        name: user?.name,
+        email: user?.email,
+      );
 
-    switch (result.outcome) {
-      case KkiapayOutcome.succeeded:
-        flow.add(
-          PaymentFlowVerifyRequested(transactionId: result.transactionId),
-        );
-        await context.push(
-          AppRouter.paymentPendingPath,
-          extra: _flowArgs(attempt, args, context),
-        );
-      case KkiapayOutcome.cancelled:
-        break;
-      case KkiapayOutcome.failed:
-        KoraToaster.show(context, context.l10n.paymentWidgetFailed);
+      if (!context.mounted) return;
+
+      switch (result.outcome) {
+        case KkiapayOutcome.succeeded:
+          flow.add(
+            PaymentFlowVerifyRequested(transactionId: result.transactionId),
+          );
+          await context.push(
+            AppRouter.paymentPendingPath,
+            extra: _flowArgs(attempt, args, context),
+          );
+        case KkiapayOutcome.cancelled:
+          break;
+        case KkiapayOutcome.failed:
+          KoraToaster.show(context, context.l10n.paymentWidgetFailed);
+      }
+    } finally {
+      // Même si l'écran a disparu entre-temps : sans cette remise à
+      // zéro, un retour sur la page garderait l'écoute muette.
+      _sheetOpen = false;
     }
   }
 
@@ -293,6 +402,7 @@ class _GatewayCheckoutPageState extends State<GatewayCheckoutPage> {
       pollingInterval: attempt?.pollingInterval,
       departure: args.departure,
       seatLabel: args.seatLabel,
+      isTopUp: args.isTopUp,
     );
   }
 }

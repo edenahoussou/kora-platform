@@ -19,6 +19,7 @@ import 'package:kora_app_passenger/features/payment/presentation/pages/mobile_mo
 import 'package:kora_app_passenger/features/payment/presentation/pages/payment_args.dart';
 import 'package:kora_app_passenger/features/payment/presentation/pages/payment_method_page.dart';
 import 'package:kora_app_passenger/features/payment/presentation/pages/wallet_payment_page.dart';
+import 'package:kora_app_passenger/features/wallet/domain/entities/wallet_account.dart';
 
 import '../../../../support/seat_hold_harness.dart';
 
@@ -481,6 +482,62 @@ void main() {
       await tester.runAsync(held.close);
     });
 
+    testWidgets('l’écran Wallet ne suit pas un paiement lancé ailleurs', (
+      tester,
+    ) async {
+      // Paiement mixte : 1 000 F de solde, le reste en Mobile Money.
+      // L'écran Wallet passe alors la main au choix du moyen et ne
+      // demande rien au serveur — mais il reste vivant sous la pile.
+      //
+      // Son écoute réagissait quand même au paiement lancé par l'écran
+      // du dessus : la feuille KKiaPay s'ouvrait, et le suivi se posait
+      // **par-dessus** elle. Sur le téléphone, le voyageur voyait
+      // « Paiement en cours de vérification » sans avoir rien saisi, et
+      // ne retrouvait la feuille qu'en revenant en arrière.
+      //
+      // Ici, pousser une route ferait lever : aucun routeur n'est monté.
+      // Le test tient donc la règle par l'absence d'exception.
+      final flow = PaymentFlowBloc(
+        StubPaymentRepository(attempt: kStubPaymentAttempt),
+      );
+
+      // L'écran est monté **avant** que le paiement parte : c'est l'ordre
+      // réel, et le seul où son écoute peut réagir.
+      await pump(
+        tester,
+        const WalletPaymentPage(
+          args: args,
+          account: WalletAccount(
+            id: 'w-1',
+            cash: Price(18750),
+            points: 0,
+            rules: WalletRules(cashEnabled: true, pointValue: 1),
+          ),
+        ),
+        flow: flow,
+        hold: held,
+        settle: false,
+      );
+
+      // Le complément part depuis l'écran du dessus, pour la même
+      // réservation.
+      flow.add(
+        const PaymentFlowStarted(
+          reservationId: kHeldReservationId,
+          provider: 'kkiapay',
+          walletAmount: 1000,
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(find.text('Total du billet'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      await tester.runAsync(flow.close);
+      await tester.runAsync(held.close);
+    });
+
     testWidgets('celui de la réservation en cours, lui, se suit', (
       tester,
     ) async {
@@ -642,23 +699,101 @@ void main() {
   });
 
   group('Wallet', () {
-    testWidgets('affiche le solde et le reste à payer', (tester) async {
-      await pump(tester, const WalletPaymentPage(args: args));
+    /// Le Wallet tel que le serveur le rend, passé à l'écran pour ne pas
+    /// dépendre du réseau. L'écran l'a longtemps eu écrit en dur — c'est
+    /// précisément ce qu'on ne veut plus.
+    const account = WalletAccount(
+      id: 'w-1',
+      cash: Price(18750),
+      points: 2480,
+      rules: WalletRules(
+        cashEnabled: true,
+        pointsEnabled: true,
+        pointValue: 1,
+        pointsMinSpend: 100,
+      ),
+    );
+
+    testWidgets('affiche le solde du serveur et le reste à payer', (
+      tester,
+    ) async {
+      await pump(tester, const WalletPaymentPage(args: args, account: account));
 
       expect(find.text(money(18750)), findsOneWidget);
       expect(find.text('Total du billet'), findsOneWidget);
-      // 100 points d'office, donc 12 400 restants.
-      expect(find.text(money(12400)), findsOneWidget);
+      // Rien n'est engagé d'office : le reste vaut le billet entier.
+      expect(find.text(money(12500)), findsWidgets);
     });
 
     testWidgets('le crédit ajouté diminue le complément', (tester) async {
-      await pump(tester, const WalletPaymentPage(args: args));
+      await pump(tester, const WalletPaymentPage(args: args, account: account));
 
       await tester.tap(find.byIcon(Icons.add_rounded));
       await tester.pumpAndSettle();
 
-      // 1 000 de crédit + 100 points sur 12 500.
-      expect(find.text(money(11400)), findsOneWidget);
+      // 1 000 F de solde sur 12 500 : il reste 11 500.
+      expect(find.text(money(11500)), findsOneWidget);
+    });
+
+    testWidgets('le montant se saisit au clavier', (tester) async {
+      // Au pas de 1 000 F, vider un solde ou viser 2 350 demandait des
+      // dizaines d'appuis. Ce qui est tapé doit piloter le détail du bas
+      // exactement comme les deux boutons.
+      await pump(tester, const WalletPaymentPage(args: args, account: account));
+
+      await tester.enterText(find.byType(TextField), '2350');
+      await tester.pumpAndSettle();
+
+      // 12 500 - 2 350 : le complément suit la frappe.
+      expect(find.text(money(10150)), findsOneWidget);
+    });
+
+    testWidgets('la saisie s’arrête au plafond', (tester) async {
+      // Au-delà, la répartition ne tomberait pas juste et le serveur
+      // refuserait la demande : mieux vaut border que laisser taper une
+      // somme qui sera rejetée.
+      await pump(tester, const WalletPaymentPage(args: args, account: account));
+
+      await tester.enterText(find.byType(TextField), '999999');
+      await tester.pumpAndSettle();
+
+      // Le billet coûte 12 500 et le solde en couvre plus : le plafond,
+      // c'est le billet. Il ne reste rien à régler ailleurs.
+      expect(find.text(money(0)), findsOneWidget);
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller?.text,
+        Price.group(12500),
+      );
+    });
+
+    testWidgets('les boutons et le champ disent la même chose', (tester) async {
+      // Le champ ne doit pas rester sur sa valeur quand le montant
+      // change ailleurs : les deux pilotent le même montant.
+      await pump(tester, const WalletPaymentPage(args: args, account: account));
+
+      await tester.enterText(find.byType(TextField), '2000');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.add_rounded));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller?.text,
+        Price.group(3000),
+      );
+      expect(find.text(money(9500)), findsOneWidget);
+    });
+
+    testWidgets('sans Wallet lu, rien ne se répartit', (tester) async {
+      // L'écran ne connaît ni solde ni points : proposer un curseur
+      // laisserait engager une somme que le serveur refusera.
+      await pump(tester, const WalletPaymentPage(args: args), settle: false);
+      await tester.pump();
+
+      expect(find.byType(Slider), findsNothing);
+      final confirm = tester.widget<KoraButton>(
+        find.widgetWithText(KoraButton, 'Confirmer et continuer'),
+      );
+      expect(confirm.onPressed, isNull);
     });
   });
 

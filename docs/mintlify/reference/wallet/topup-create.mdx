@@ -1,0 +1,249 @@
+---
+title: Initier une recharge Wallet
+description: "Démarre une recharge du solde cash."
+api: POST /api/v1/wallet/topups
+---
+
+Démarre une recharge du solde cash. Consultez le [Wallet](/reference/wallet/overview) pour connaître la disponibilité et les limites de recharge. Réutilisez la même clé d’idempotence lorsque vous renvoyez la même demande.
+
+## Paramètres
+
+<ParamField body="amount" type="integer" required>
+  Montant en FCFA. Au moins 1 et dans les limites Wallet actives.
+</ParamField>
+
+<ParamField body="method" type="string" required>
+  `mobile_money` ou `card`, selon le prestataire.
+</ParamField>
+
+<ParamField body="provider" type="string" required>
+  `fedapay`, `mtn_momo` ou `kkiapay`.
+</ParamField>
+
+<ParamField body="idempotency_key" type="string" required>
+  Identifiant stable de la demande, 255 caractères maximum.
+</ParamField>
+
+<ParamField body="phone" type="string">
+  Téléphone du payeur. Obligatoire pour un paiement Mobile Money avec FedaPay ou MTN MoMo.
+</ParamField>
+
+<ParamField body="mobile_money_network" type="string">
+  Réseau Mobile Money, par exemple `mtn_momo`. Obligatoire dans les mêmes cas que `phone`.
+</ParamField>
+
+<RequestExample>
+
+```bash cURL
+curl -X POST 'https://staging.koraexpress.app/api/v1/wallet/topups' \
+  -H 'Authorization: Bearer <token-de-session>' \
+  -H 'Accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "amount": 5000,
+  "method": "mobile_money",
+  "provider": "kkiapay",
+  "idempotency_key": "b2e28461-4644-4ccc-997e-73973f437919"
+}'
+```
+
+```javascript JavaScript
+const payload = {
+  "amount": 5000,
+  "method": "mobile_money",
+  "provider": "kkiapay",
+  "idempotency_key": "b2e28461-4644-4ccc-997e-73973f437919"
+};
+const res = await fetch('https://staging.koraexpress.app/api/v1/wallet/topups', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json', 'Content-Type': 'application/json' },
+  body: JSON.stringify(payload),
+});
+const body = await res.json();
+```
+
+```typescript TypeScript
+const payload = {
+  "amount": 5000,
+  "method": "mobile_money",
+  "provider": "kkiapay",
+  "idempotency_key": "b2e28461-4644-4ccc-997e-73973f437919"
+};
+const res = await fetch('https://staging.koraexpress.app/api/v1/wallet/topups', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json', 'Content-Type': 'application/json' },
+  body: JSON.stringify(payload),
+});
+const body: { data: { uuid: string; payment: { next_action: string } | null } } = await res.json();
+const topupUuid = body.data.uuid;
+```
+
+```dart Dart
+final res = await authDio.post('/api/v1/wallet/topups', data: {
+  'amount': 5000,
+  'method': 'mobile_money',
+  'provider': 'kkiapay',
+  'idempotency_key': 'b2e28461-4644-4ccc-997e-73973f437919'
+});
+final data = res.data['data'];
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 201
+{
+  "data": {
+    "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e",
+    "amount": 5000,
+    "status": "pending",
+    "payment": {
+      "uuid": "a4a5d8fd-8168-4f40-b6b5-437f97cf41f0",
+      "status": "pending",
+      "provider": "kkiapay",
+      "provider_reference": null,
+      "next_action": "open_widget",
+      "widget": {
+        "key": "public-sandbox-key",
+        "sandbox": true,
+        "amount": 5000,
+        "partnerId": "a4a5d8fd-8168-4f40-b6b5-437f97cf41f0",
+        "paymentmethod": [
+          "momo"
+        ],
+        "countries": [
+          "BJ"
+        ]
+      },
+      "checkout_url": null,
+      "polling_interval_seconds": 10,
+      "failure": null
+    },
+    "created_at": "2026-11-07T10:00:00+00:00"
+  }
+}
+```
+
+```json 200
+{
+  "data": {
+    "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e",
+    "amount": 5000,
+    "status": "pending",
+    "payment": {
+      "uuid": "a4a5d8fd-8168-4f40-b6b5-437f97cf41f0",
+      "status": "pending",
+      "provider": "kkiapay",
+      "provider_reference": null,
+      "next_action": "open_widget",
+      "widget": {
+        "key": "public-sandbox-key",
+        "sandbox": true,
+        "amount": 5000,
+        "partnerId": "a4a5d8fd-8168-4f40-b6b5-437f97cf41f0",
+        "paymentmethod": [
+          "momo"
+        ],
+        "countries": [
+          "BJ"
+        ]
+      },
+      "checkout_url": null,
+      "polling_interval_seconds": 10,
+      "failure": null
+    },
+    "created_at": "2026-11-07T10:00:00+00:00"
+  }
+}
+```
+
+```json 401
+{
+  "message": "Unauthenticated."
+}
+```
+
+```json 422
+{
+  "message": "La recharge du Wallet n’est pas encore ouverte.",
+  "errors": {
+    "wallet": [
+      "La recharge du Wallet n’est pas encore ouverte."
+    ]
+  }
+}
+```
+
+</ResponseExample>
+
+## Réponse
+
+<ResponseField name="data.uuid" type="UUID" required>
+  Identifiant de la recharge à utiliser pour consulter son statut.
+</ResponseField>
+
+<ResponseField name="data.amount" type="integer" required>
+  Montant de la recharge en FCFA.
+</ResponseField>
+
+<ResponseField name="data.status" type="string" required>
+  État de la recharge parmi `pending`, `confirmed` et `failed`. Les deux derniers sont terminaux.
+</ResponseField>
+
+<ResponseField name="data.payment" type="object">
+  Détails du paiement associé, ou `null`.
+</ResponseField>
+
+<ResponseField name="data.payment.uuid" type="UUID">
+  Identifiant du paiement associé.
+</ResponseField>
+
+<ResponseField name="data.payment.status" type="string">
+  État du paiement.
+</ResponseField>
+
+<ResponseField name="data.payment.provider" type="string">
+  Prestataire de paiement.
+</ResponseField>
+
+<ResponseField name="data.payment.provider_reference" type="string">
+  Référence du prestataire ou `null`.
+</ResponseField>
+
+<ResponseField name="data.payment.next_action" type="string">
+  Action indiquée par le serveur parmi `open_widget`, `open_url`, `verify`, `wait`, `done` et `retry`.
+</ResponseField>
+
+<ResponseField name="data.payment.widget" type="object">
+  Configuration du paiement pour `open_widget`.
+</ResponseField>
+
+<ResponseField name="data.payment.checkout_url" type="string">
+  URL de paiement à ouvrir pour `open_url`.
+</ResponseField>
+
+<ResponseField name="data.payment.polling_interval_seconds" type="integer">
+  Intervalle entre les consultations de statut.
+</ResponseField>
+
+<ResponseField name="data.payment.failure" type="object">
+  Détails de l’échec si disponibles, avec `code`, `message`, `retryable` et `diagnostic_reference`.
+</ResponseField>
+
+<ResponseField name="data.created_at" type="string" required>
+  Date de création au format ISO 8601.
+</ResponseField>
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `201` | Recharge et paiement créés. |
+| `200` | Recharge existante renvoyée pour la même demande. |
+| `401` | Jeton de session absent ou invalide. |
+| `409` | Clé déjà utilisée avec des paramètres différents, ou recharge encore en cours de vérification. |
+| `422` | Données invalides, recharge désactivée ou limites Wallet dépassées. |
+| `429` | Trop de demandes. Réessayez après le délai indiqué. |
+
+Suivez `data.payment.next_action` pour ouvrir le widget ou la page de paiement quand le serveur le demande, puis consultez le [statut de la recharge](/reference/wallet/topup-status) à l’intervalle indiqué.

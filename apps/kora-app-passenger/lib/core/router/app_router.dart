@@ -67,6 +67,12 @@ import '../../features/support/presentation/pages/contact_page.dart';
 import '../../features/support/presentation/pages/help_page.dart';
 import '../../features/support/presentation/pages/support_chat_page.dart';
 import '../../features/support/presentation/widgets/support_chat_fab.dart';
+import '../../features/wallet/presentation/pages/wallet_bonuses_page.dart';
+import '../../features/wallet/presentation/pages/wallet_history_page.dart';
+import '../../features/wallet/presentation/pages/wallet_page.dart';
+import '../../features/wallet/presentation/pages/wallet_services_page.dart';
+import '../../features/wallet/presentation/pages/wallet_top_up_method_page.dart';
+import '../../features/wallet/presentation/pages/wallet_top_up_page.dart';
 import '../../features/welcome/data/onboarding_store.dart';
 import '../../features/welcome/presentation/pages/onboarding_page.dart';
 import '../../features/welcome/presentation/pages/splash_page.dart';
@@ -74,6 +80,7 @@ import '../../features/welcome/presentation/pages/welcome_page.dart';
 import '../di/injector.dart';
 import '../l10n/app_localization.dart';
 import '../widgets/coming_soon_page.dart';
+import 'auth_flow_navigator.dart';
 
 /// Couche CORE : configuration centrale de la navigation avec `go_router`.
 ///
@@ -100,15 +107,13 @@ import '../widgets/coming_soon_page.dart';
 class AppRouter {
   const AppRouter._();
 
-  /// Chemin de l'écran de connexion — seule route accessible sans session
-  /// active (voir `redirect` ci-dessous).
+  /// Chemin de l'écran de connexion, accessible sans session (voir
+  /// `_publicPaths` et `_redirect` ci-dessous).
   static const String loginPath = '/login';
 
-  /// Écran de bienvenue, premier affiché au lancement.
-  ///
-  /// Il se montre à **chaque** démarrage : mémoriser qu'il a déjà été vu
-  /// demande de stocker un indicateur (`SharedPreferences`), ce que fera la
-  /// feature `auth` en même temps qu'elle saura si quelqu'un est connecté.
+  /// Écran de lancement : affiché le temps que `AuthBloc` connaisse la
+  /// session, puis `_redirect` enchaîne sur l'onboarding à la première
+  /// ouverture, sinon sur la bienvenue.
   static const String splashPath = '/splash';
 
   /// Les trois temps montrés à la première ouverture seulement.
@@ -134,6 +139,27 @@ class AppRouter {
   static const String accountDeletionPath = '/profile/securite/suppression';
   static const String preferencesPath = '/profile/preferences';
   static const String notificationsPath = '/notifications';
+
+  /// L'historique complet du Wallet (MEZ-160, point 3).
+  static const String walletHistoryPath = '/wallet/historique';
+
+  /// L'onglet Wallet.
+  static const String walletPath = '/wallet';
+
+  /// La recharge du Wallet (MEZ-160, point 2).
+  static const String walletTopUpPath = '/wallet/recharge';
+
+  /// Le choix du moyen de recharge.
+  static const String walletTopUpMethodPath = '/wallet/recharge/moyen';
+
+  /// Où dépenser son Wallet (MEZ-160).
+  static const String walletServicesPath = '/wallet/utiliser';
+
+  /// Les règles du Wallet.
+  static const String walletRulesPath = '/wallet/regles';
+
+  /// Les bonus fidélité.
+  static const String walletBonusesPath = '/wallet/bonus';
   static const String helpPath = '/aide';
   static const String contactPath = '/aide/contact';
 
@@ -419,7 +445,7 @@ class AppRouter {
         ShellRoute(
           builder: (context, state, child) => BlocProvider<AuthFlowBloc>(
             create: (_) => getIt<AuthFlowBloc>(),
-            child: _AuthFlowNavigator(child: child),
+            child: AuthFlowNavigator(child: child),
           ),
           routes: [
             GoRoute(
@@ -503,6 +529,31 @@ class AppRouter {
         GoRoute(
           path: preferencesPath,
           builder: (context, state) => const PreferencesPage(),
+        ),
+        GoRoute(
+          path: walletHistoryPath,
+          builder: (context, state) => const WalletHistoryPage(),
+        ),
+        GoRoute(
+          path: walletTopUpPath,
+          builder: (context, state) => const WalletTopUpPage(),
+        ),
+        GoRoute(
+          path: walletTopUpMethodPath,
+          builder: (context, state) =>
+              WalletTopUpMethodPage(amount: state.extra as int?),
+        ),
+        GoRoute(
+          path: walletServicesPath,
+          builder: (context, state) => const WalletServicesPage(),
+        ),
+        GoRoute(
+          path: walletRulesPath,
+          builder: (context, state) => const WalletRulesPage(),
+        ),
+        GoRoute(
+          path: walletBonusesPath,
+          builder: (context, state) => const WalletBonusesPage(),
         ),
         GoRoute(
           path: notificationsPath,
@@ -618,11 +669,8 @@ class AppRouter {
         GoRoute(
           path: welcomePath,
           builder: (context, state) => WelcomePage(
-            // Les deux actions mènent à l'inscription et à la connexion, qui
-            // n'existent pas encore (voir GUIDE.md §13). En attendant,
-            // « Créer mon compte » entre dans l'app pour que le parcours Bus
-            // reste accessible, et « J'ai déjà un compte » ouvre l'écran de
-            // connexion, même s'il n'est qu'un placeholder.
+            // Les deux actions mènent aux écrans réels d'inscription et de
+            // connexion (`signupPath`, `loginPath`).
             onCreateAccount: () => context.push(signupPath),
             onLogin: () => context.push(loginPath),
           ),
@@ -760,10 +808,8 @@ class AppRouter {
                 final args = state.extra as SeatsArgs?;
 
                 return SeatsPage(
-                  departure: args?.departure,
+                  journey: args?.journey,
                   passengers: args?.passengers ?? 1,
-                  returnDeparture: args?.returnDeparture,
-                  outbound: args?.outbound,
                 );
               },
             ),
@@ -772,12 +818,7 @@ class AppRouter {
               builder: (context, state) {
                 final args = state.extra as PassengerFormArgs?;
 
-                return PassengerFormPage(
-                  departure: args?.departure,
-                  seats: args?.seats ?? const [],
-                  returnDeparture: args?.returnDeparture,
-                  returnSeats: args?.returnSeats,
-                );
+                return PassengerFormPage(journey: args?.journey);
               },
             ),
             GoRoute(
@@ -786,10 +827,8 @@ class AppRouter {
                 final args = state.extra as SummaryArgs?;
 
                 return SummaryPage(
-                  departure: args?.departure,
+                  journey: args?.journey,
                   passengers: args?.passengers ?? const [],
-                  returnDeparture: args?.returnDeparture,
-                  returnSeats: args?.returnSeats,
                 );
               },
             ),
@@ -865,9 +904,9 @@ class AppRouter {
             final args = state.extra as DepartureDetailArgs?;
 
             return DepartureDetailPage(
-              departure: args?.departure,
+              itinerary: args?.itinerary,
               passengers: args?.passengers ?? 1,
-              returnDeparture: args?.returnDeparture,
+              returnItinerary: args?.returnItinerary,
             );
           },
         ),
@@ -903,12 +942,10 @@ class AppRouter {
                 ),
               ],
             ),
-            // Colis et Wallet : les écrans existent (`ColisPage`,
-            // `WalletPage`), dessinés d'après la maquette, mais leurs
-            // fonctionnalités ne sont pas écrites — ni domaine, ni
-            // source de données. L'onglet s'ouvre donc sur du vide, le
-            // temps que la feature arrive : il remontrera l'écran
-            // complet d'une ligne, sans rien avoir à redessiner.
+            // Colis : l'écran existe, dessiné d'après la maquette, mais
+            // sa fonctionnalité n'est pas écrite — ni domaine, ni source
+            // de données. L'onglet s'ouvre donc sur du vide, le temps
+            // que la feature arrive.
             StatefulShellBranch(
               routes: [
                 GoRoute(
@@ -923,11 +960,8 @@ class AppRouter {
             StatefulShellBranch(
               routes: [
                 GoRoute(
-                  path: '/wallet',
-                  builder: (context, state) => ComingSoonPage(
-                    eyebrow: context.l10n.walletEyebrow,
-                    title: context.l10n.walletTitle,
-                  ),
+                  path: walletPath,
+                  builder: (context, state) => const WalletPage(),
                 ),
               ],
             ),
@@ -949,10 +983,9 @@ class AppRouter {
 /// L'onglet Voyages dans la barre du bas, dans l'ordre des branches.
 const int _voyagesBranch = 1;
 
-/// Les deux onglets qui attendent leur feature : leurs écrans dorment
-/// dans le dépôt, et l'app ne les ouvre pas.
+/// L'onglet qui attend sa feature : son écran dort dans le dépôt, et
+/// l'app ne l'ouvre pas.
 const int _colisBranch = 2;
-const int _walletBranch = 3;
 
 /// Le `Scaffold` commun à tous les onglets : il porte la [KoraBottomNav]
 /// et affiche la branche active via [navigationShell].
@@ -988,11 +1021,11 @@ class _ScaffoldWithNavBar extends StatelessWidget {
           ],
           currentIndex: navigationShell.currentIndex,
           onTap: (index) {
-            // Colis et Wallet n'ont pas encore de fonctionnalité : leurs
-            // écrans dorment dans le dépôt et l'onglet ne montrerait
-            // qu'un en-tête. L'appui ne mène donc nulle part, comme la
-            // tuile de l'accueil et celle de KORA Ride.
-            if (index == _colisBranch || index == _walletBranch) return;
+            // Colis n'a pas encore de fonctionnalité : son écran dort
+            // dans le dépôt et l'onglet ne montrerait qu'un en-tête.
+            // L'appui ne mène donc nulle part, comme la tuile de
+            // l'accueil et celle de KORA Ride.
+            if (index == _colisBranch) return;
 
             // Ouvrir Voyages relit les billets : l'émission suit le
             // paiement de quelques secondes, et la branche garde son
@@ -1012,60 +1045,6 @@ class _ScaffoldWithNavBar extends StatelessWidget {
           },
         ),
       ),
-    );
-  }
-}
-
-/// Traduit l'étape du parcours d'authentification en navigation.
-///
-/// Les écrans se contentent d'envoyer des événements ; c'est ici, en un
-/// seul endroit, qu'on décide où ils mènent. Sans ça, chaque écran
-/// devrait connaître le suivant — or l'écran de code peut mener au choix
-/// d'un PIN, à l'accueil ou nulle part, selon le motif de l'OTP.
-class _AuthFlowNavigator extends StatelessWidget {
-  const _AuthFlowNavigator({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocListener<AuthFlowBloc, AuthFlowState>(
-      listenWhen: (previous, current) => previous.step != current.step,
-      listener: (context, flow) {
-        switch (flow.step) {
-          case AuthFlowStep.identifier:
-            // Retour au début : après un PIN réinitialisé, on se
-            // reconnecte avec le nouveau code.
-            context.go(AppRouter.loginPath, extra: flow.identifier);
-          case AuthFlowStep.newDevice:
-            context.push(AppRouter.newDevicePath);
-          case AuthFlowStep.code:
-            context.push(AppRouter.otpPath);
-          case AuthFlowStep.pin:
-            context.push(AppRouter.createPinPath);
-          case AuthFlowStep.done:
-            final session = flow.session;
-            if (session == null) return;
-
-            // La session ouverte passe au bloc qui la porte pour toute
-            // l'app ; le garde de navigation s'appuie sur lui.
-            context.read<AuthBloc>().add(AuthSessionOpened(session));
-
-            // Une inscription se termine par les autorisations, où le
-            // nouveau venu donne son nom et son téléphone. Une connexion
-            // — même sur un appareil inconnu — va droit à l'accueil : le
-            // profil est déjà rempli.
-            //
-            // On lit `justRegistered`, pas `purpose` : ce dernier vaut
-            // `registration` par défaut et une connexion ordinaire ne le
-            // change jamais, ce qui renvoyait tout le monde aux
-            // autorisations à chaque fois.
-            context.go(
-              flow.justRegistered ? AppRouter.permissionsPath : '/home',
-            );
-        }
-      },
-      child: child,
     );
   }
 }

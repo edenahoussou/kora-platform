@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Modules\Wallet\Actions\CreditLegPointsAction;
 use App\Modules\Wallet\Data\WalletBalanceType;
 use App\Modules\Wallet\Models\Wallet;
 use Laravel\Sanctum\Sanctum;
@@ -58,10 +59,27 @@ it('attaches a referral code once and refuses self-referral', function (): void 
         ->assertUnprocessable()
         ->assertJsonValidationErrors(['referral_code']);
 
+    expect($referrer['user']->notifications()->sole()->data['type'])->toBe('wallet_referral_attached')
+        ->and($referee['user']->notifications()->count())->toBe(0);
+
     Sanctum::actingAs($referrer['user']);
     $this->postJson('/api/v1/wallet/referral', ['referral_code' => $referrer['wallet']->referral_code])
         ->assertUnprocessable()
         ->assertJsonValidationErrors(['referral_code']);
+});
+
+it('rejects referral when a boarded ticket has already counted as a wallet usage', function (): void {
+    $referrer = walletForUser(User::factory()->create());
+    $referee = walletScenario(['segment_status' => 'boarded']);
+    app(CreditLegPointsAction::class)->handle($referee['reservation']);
+
+    Sanctum::actingAs($referee['user']);
+    $this->postJson('/api/v1/wallet/referral', ['referral_code' => $referrer->referral_code])
+        ->assertUnprocessable()
+        ->assertJsonPath('errors.referral_code.0', 'Le code de parrainage doit être saisi avant la première utilisation.');
+
+    expect($referee['wallet']->refresh()->referred_by_user_id)->toBeNull()
+        ->and($referrer->user->notifications()->count())->toBe(0);
 });
 
 it('rejects an unknown referral code', function (): void {
@@ -86,4 +104,14 @@ it('keeps validated directions and balance filters across cursor pages', functio
     expect($next)->toContain('direction=credit', 'balance_type=cash');
     $this->getJson($next)->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.direction', 'credit');
     $this->getJson('/api/v1/wallet/transactions?direction=invalid')->assertUnprocessable();
+});
+
+it('does not expose the internal points compensation debt to the traveler', function (): void {
+    $scenario = walletScenario(['points' => 100]);
+    $scenario['wallet']->update(['points_compensation_due' => 400]);
+    Sanctum::actingAs($scenario['user']);
+
+    $this->getJson('/api/v1/wallet')
+        ->assertOk()
+        ->assertJsonMissingPath('data.points_compensation_due');
 });

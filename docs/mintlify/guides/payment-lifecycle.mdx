@@ -151,7 +151,3 @@ La `idempotency_key` garantit qu'un replay de la même demande ne crée pas un d
 <Warning>
   Le paiement est accepté **uniquement** tant que le hold est valide. Si le webhook de succès arrive après l'expiration, le backend marque le paiement `failed` et ne réactive **jamais** la réservation. Le passager doit recommencer une nouvelle recherche.
 </Warning>
-
-<Card title="Webhooks" href="/guides/webhooks" icon="arrow-right" iconType="solid">
-  Comprenez les **événements de paiement** et l'intégration webhook.
-</Card>

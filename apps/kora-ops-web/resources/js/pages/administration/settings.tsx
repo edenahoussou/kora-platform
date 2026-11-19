@@ -1467,6 +1467,21 @@ export default function SettingsPage({
                             }
                         />
                         <SettingsField
+                            label="Délai de démarrage d’une recharge"
+                            hint="Durée au-delà de laquelle une recharge sans moyen de paiement est abandonnée."
+                            value={value('topupInitiationTtlMinutes') as number}
+                            type="number"
+                            suffix="min"
+                            disabled={!permissions.canManage}
+                            error={error('topupInitiationTtlMinutes')}
+                            onChange={(nextValue) =>
+                                setNumber(
+                                    'topupInitiationTtlMinutes',
+                                    nextValue,
+                                )
+                            }
+                        />
+                        <SettingsField
                             label="Paliers de recharge"
                             hint="Montants rapides proposés, séparés par des virgules."
                             value={(

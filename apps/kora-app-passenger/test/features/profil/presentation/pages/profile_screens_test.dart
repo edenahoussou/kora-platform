@@ -173,8 +173,10 @@ void main() {
       // reste le nom.
       expect(find.widgetWithText(TextField, 'Aïcha'), findsOneWidget);
       expect(find.widgetWithText(TextField, 'HOUNKPÈ'), findsOneWidget);
-      // Le téléphone est affiché avec son indicatif, et verrouillé.
-      expect(find.widgetWithText(TextField, '+229 0197123456'), findsOneWidget);
+      // Indicatif et numéro sont deux champs, comme à l'inscription :
+      // l'indicatif se choisit, le numéro se corrige.
+      expect(find.textContaining('+229'), findsWidgets);
+      expect(find.widgetWithText(TextField, '0197123456'), findsOneWidget);
     });
 
     testWidgets('un numéro déjà international ne prend pas un second '
@@ -192,7 +194,146 @@ void main() {
         ),
       );
 
-      expect(find.widgetWithText(TextField, '+229 0197123456'), findsOneWidget);
+      expect(find.widgetWithText(TextField, '0197123456'), findsOneWidget);
+    });
+
+    testWidgets('un numéro d’un pays hors catalogue reste entier', (
+      tester,
+    ) async {
+      // Le Maroc n'est pas un corridor KORA : personne ne reconnaissait
+      // « +212… », l'écran retombait sur le Bénin et affichait
+      // « +229 +212662026060 ». Faute de savoir le découper, on garde le
+      // numéro tel quel plutôt que d'inventer un indicatif.
+      await pump(
+        tester,
+        const ProfileEditPage(),
+        user: const AuthUser(
+          uuid: 'user-1',
+          name: 'Sophia Desai',
+          email: 'sophia@example.com',
+          phone: '+212662026060',
+        ),
+      );
+
+      expect(find.widgetWithText(TextField, '+212662026060'), findsOneWidget);
+      expect(
+        find.widgetWithText(TextField, '+229 +212662026060'),
+        findsNothing,
+      );
+    });
+
+    testWidgets('n’affiche pas l’adresse de substitution du serveur', (
+      tester,
+    ) async {
+      // Un compte créé par téléphone reçoit
+      // « traveler+<uuid>@accounts.kora.invalid » : un identifiant
+      // technique, sur un domaine réservé où rien n'arrive jamais. Le
+      // montrer dans « Email » faisait lire du charabia au voyageur.
+      await pump(
+        tester,
+        const ProfileEditPage(),
+        user: const AuthUser(
+          uuid: 'user-1',
+          name: 'Sophia Desai',
+          email:
+              'traveler+6cac8eb6-1100-4108-a623-adfb242@'
+              'accounts.kora.invalid',
+          phone: '0197123456',
+        ),
+      );
+
+      expect(find.textContaining('traveler+'), findsNothing);
+      expect(find.text('Ajoutez votre adresse email'), findsOneWidget);
+    });
+
+    testWidgets('un email vide renvoie la substitution plutôt que de bloquer', (
+      tester,
+    ) async {
+      // L'API exige une adresse à chaque enregistrement. Sans celle du
+      // serveur, corriger son prénom deviendrait impossible tant qu'on
+      // n'a pas d'email.
+      await pump(
+        tester,
+        const ProfileEditPage(),
+        user: const AuthUser(
+          uuid: 'user-1',
+          name: 'Sophia Desai',
+          email: 'traveler+abc@accounts.kora.invalid',
+          phone: '0197123456',
+          countryCode: '+229',
+        ),
+      );
+
+      await tester.tap(find.text('Enregistrer'));
+      await tester.pumpAndSettle();
+      await settleToast(tester);
+
+      expect(find.text('Adresse e-mail invalide'), findsNothing);
+      expect(
+        repository.calls.any((call) => call.startsWith('updateProfile:')),
+        isTrue,
+      );
+    });
+
+    testWidgets('inscrit par téléphone : le numéro est figé, l’email se '
+        'complète', (tester) async {
+      // Le numéro a servi à s'inscrire et sert à se connecter : le
+      // changer sans vérification ouvrirait une porte. L'adresse, elle,
+      // est encore la substitution du serveur — c'est elle qu'on vient
+      // renseigner.
+      await pump(
+        tester,
+        const ProfileEditPage(),
+        user: const AuthUser(
+          uuid: 'user-1',
+          name: 'Dolg Boss',
+          email: 'traveler+abc@accounts.kora.invalid',
+          phone: '0197123456',
+          countryCode: '+229',
+        ),
+      );
+
+      final phone = tester.widget<TextField>(
+        find.widgetWithText(TextField, '0197123456'),
+      );
+      expect(phone.enabled, isFalse);
+
+      final email = tester.widget<TextField>(find.byType(TextField).at(3));
+      expect(email.enabled, isTrue);
+      expect(find.text('Ajoutez votre adresse email'), findsOneWidget);
+    });
+
+    testWidgets('inscrit par email : l’adresse est figée, le numéro se '
+        'saisit', (tester) async {
+      // Aucun numéro au compte : c'est une inscription par email, et
+      // c'est le numéro qui reste à donner. L'adresse identifie le
+      // compte, elle ne se change pas ici.
+      await pump(
+        tester,
+        const ProfileEditPage(),
+        user: const AuthUser(
+          uuid: 'user-1',
+          name: 'Sophia Desai',
+          email: 'sophia@example.com',
+        ),
+      );
+
+      final email = tester.widget<TextField>(
+        find.widgetWithText(TextField, 'sophia@example.com'),
+      );
+      expect(email.enabled, isFalse);
+      expect(
+        find.text(
+          'Cette adresse identifie votre compte. Contactez l’assistance '
+          'pour la changer.',
+        ),
+        findsOneWidget,
+      );
+
+      // Le champ numéro, lui, est ouvert : il est vide et modifiable.
+      final phone = tester.widget<TextField>(find.byType(TextField).at(2));
+      expect(phone.enabled, isTrue);
+      expect(phone.controller?.text, isEmpty);
     });
 
     testWidgets('recolle les deux champs avant l’envoi', (tester) async {
@@ -203,9 +344,13 @@ void main() {
       await tester.pumpAndSettle();
       await settleToast(tester);
 
+      // Le bouchon trace `countryCode` suivi de `phone` : l'app envoie
+      // désormais un numéro international complet — c'est ce que le
+      // serveur normalise — et l'indicatif à part, pour qu'il sache le
+      // pays d'un numéro gardé au format local.
       expect(
         repository.calls,
-        contains('updateProfile:Aïcha Marie HOUNKPÈ/+2290197123456'),
+        contains('updateProfile:Aïcha Marie HOUNKPÈ/+229+2290197123456'),
       );
     });
 

@@ -9,6 +9,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kora_app_passenger/core/error/failures.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_mock_data.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/group_quote.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/itinerary.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/journey.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/passenger.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/price.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/search_criteria.dart';
@@ -64,7 +66,12 @@ void main() {
 
   SeatHoldCheckoutRequested checkout({GroupQuote? quote}) =>
       SeatHoldCheckoutRequested(
-        departure: departure,
+        journey: Journey(
+          outbound: Itinerary.direct(departure),
+          seatsByLeg: [
+            [for (final traveller in travellers) traveller.seat],
+          ],
+        ),
         passengers: travellers,
         quote: quote,
       );
@@ -189,7 +196,12 @@ void main() {
 
     bloc.add(
       SeatHoldRepriceRequested(
-        departure: departure,
+        journey: Journey(
+          outbound: Itinerary.direct(departure),
+          seatsByLeg: [
+            [for (final traveller in travellers) traveller.seat],
+          ],
+        ),
         passengers: travellers,
         promoCode: 'TEST2000',
       ),

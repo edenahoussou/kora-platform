@@ -11,6 +11,7 @@ import '../../../../core/widgets/screen_header.dart';
 import '../../domain/entities/phone_country.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../bloc/auth_bloc.dart';
+import '../widgets/phone_country_picker.dart';
 
 /// Dernière étape de l'inscription — écran `permissions` (AUTH-07).
 ///
@@ -83,7 +84,7 @@ class _PermissionsPageState extends State<PermissionsPage> {
     }
 
     _phone.text = phone;
-    _country = PhoneCountry.fromCode(user.countryCode);
+    _country = phoneCountryOf(user.countryCode);
   }
 
   /// Le serveur nomme un compte créé par e-mail d'après la partie qui
@@ -363,25 +364,10 @@ class _IdentityCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(
-                width: 124,
-                child: DropdownButtonFormField<PhoneCountry>(
-                  initialValue: country,
-                  isExpanded: true,
-                  onChanged: enabled
-                      ? (value) => onCountry(value ?? PhoneCountry.benin)
-                      : null,
-                  items: [
-                    for (final item in PhoneCountry.all)
-                      DropdownMenuItem(
-                        value: item,
-                        child: Text(
-                          '${item.flag}  ${item.code}',
-                          style: AppTextStyles.body(koraColors.textPrimary),
-                        ),
-                      ),
-                  ],
-                ),
+              _CountryButton(
+                country: country,
+                enabled: enabled,
+                onCountry: onCountry,
               ),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
@@ -479,6 +465,75 @@ class _PermissionCard extends StatelessWidget {
             semanticLabel: title,
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// L'indicatif du numéro, ouvrant la liste complète des pays.
+///
+/// C'était un menu déroulant sur les dix corridors KORA, alors que
+/// l'inscription — l'écran juste avant — les proposait déjà tous. Le
+/// voyageur joignable au Maroc confirmait ici un numéro sous un
+/// indicatif qui n'était pas le sien.
+class _CountryButton extends StatelessWidget {
+  const _CountryButton({
+    required this.country,
+    required this.enabled,
+    required this.onCountry,
+  });
+
+  final PhoneCountry country;
+
+  /// Grisé tant que l'écran n'attend pas de saisie — le bouton ne doit
+  /// pas ouvrir la feuille derrière un champ verrouillé.
+  final bool enabled;
+
+  final ValueChanged<PhoneCountry> onCountry;
+
+  Future<void> _pick(BuildContext context) async {
+    final picked = await pickPhoneCountry(context);
+    if (picked != null) onCountry(picked);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final koraColors = context.koraColors;
+    final color = enabled ? koraColors.textPrimary : koraColors.textMuted;
+
+    return SizedBox(
+      width: 124,
+      height: 56,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: enabled ? () => _pick(context) : null,
+          borderRadius: BorderRadius.circular(AppRadius.base),
+          child: Ink(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppRadius.base),
+              border: Border.all(color: koraColors.line),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${country.flag}  ${country.code}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.body(color),
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_drop_down,
+                  color: koraColors.textMuted,
+                  size: 20,
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

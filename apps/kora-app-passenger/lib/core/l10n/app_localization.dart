@@ -119,8 +119,19 @@ class AppLocalization {
         : _cache[AppLanguage.fallback.code] ?? const {};
   }
 
+  /// Lit et décode un fichier de langue.
+  ///
+  /// On passe par [AssetBundle.load] et un `utf8.decode` fait ici,
+  /// plutôt que par `loadString` : au-delà de 50 Kio, celui-ci décode
+  /// sur un isolat de fond, et le `Future` ne se résout plus dans le
+  /// tour de boucle courant. Les écrans montés dans un test —
+  /// `Localizations` attend ce `Future` avant de construire — restaient
+  /// alors vides après `pumpAndSettle`, sans la moindre erreur. Les
+  /// traductions françaises ont franchi ce seuil, et une centaine de
+  /// tests d'écran sont tombés d'un coup.
   static Future<Map<String, String>> _readLanguageFile(String code) async {
-    final raw = await rootBundle.loadString('assets/languages/$code.json');
+    final bytes = await rootBundle.load('assets/languages/$code.json');
+    final raw = utf8.decode(bytes.buffer.asUint8List());
     final decoded = json.decode(raw) as Map<String, dynamic>;
 
     return decoded.map((key, value) => MapEntry(key, '$value'));
@@ -384,7 +395,183 @@ class AppLocalization {
   String get walletTxPoints => translate('wallet_tx_points');
   String get walletTxPointsDetail => translate('wallet_tx_points_detail');
   String get walletTxPayment => translate('wallet_tx_payment');
+  String walletPointsExpiry(String date) =>
+      _withArgs('wallet_points_expiry', {'date': date});
+  String get walletPointsExpiryNone => translate('wallet_points_expiry_none');
+  String walletPointsExpirySoon(int days) =>
+      _withArgs('wallet_points_expiry_soon', {'days': '$days'});
+  String get walletPointsExpiryToday => translate('wallet_points_expiry_today');
+  String get walletReferralLabel => translate('wallet_referral_label');
+  String get walletReferralCopy => translate('wallet_referral_copy');
+  String get walletReferralNone => translate('wallet_referral_none');
+  String get walletDormantTitle => translate('wallet_dormant_title');
+  String get walletDormantText => translate('wallet_dormant_text');
+  String get walletErrorTitle => translate('wallet_error_title');
+  String get walletErrorText => translate('wallet_error_text');
+  String get walletMovementsEmpty => translate('wallet_movements_empty');
+  String get walletMovementsFailed => translate('wallet_movements_failed');
+  String walletPointsUnit(String points) =>
+      _withArgs('wallet_points_unit', {'points': points});
+  String get walletReasonTopup => translate('wallet_reason_topup');
+  String get walletReasonPurchase => translate('wallet_reason_purchase');
+  String get walletReasonRefundCash => translate('wallet_reason_refund_cash');
+  String get walletReasonRefundPoints =>
+      translate('wallet_reason_refund_points');
+  String get walletReasonPointsEarn => translate('wallet_reason_points_earn');
+  String get walletReasonBonusWelcome =>
+      translate('wallet_reason_bonus_welcome');
+  String get walletReasonBonusReferral =>
+      translate('wallet_reason_bonus_referral');
+  String get walletReasonBonusAnniversary =>
+      translate('wallet_reason_bonus_anniversary');
+  String get walletReasonBonusUsage => translate('wallet_reason_bonus_usage');
+  String get walletReasonPointsExpire =>
+      translate('wallet_reason_points_expire');
+  String get walletReasonPointsCorrection =>
+      translate('wallet_reason_points_correction');
+  String get walletReasonCompensationOffset =>
+      translate('wallet_reason_compensation_offset');
+  String get walletReasonRestitution => translate('wallet_reason_restitution');
+  String get walletReasonAdjustment => translate('wallet_reason_adjustment');
+  String get walletReasonUnknown => translate('wallet_reason_unknown');
   String get walletSoon => translate('wallet_soon');
+
+  // --------------------------------------------- écran Historique Wallet
+  String get walletHistoryTitle => translate('wallet_history_title');
+  String get walletHistoryEyebrow => translate('wallet_history_eyebrow');
+  String get walletHistoryFilterAll => translate('wallet_history_filter_all');
+  String get walletHistoryFilterCredits =>
+      translate('wallet_history_filter_credits');
+  String get walletHistoryFilterUses => translate('wallet_history_filter_uses');
+  String get walletHistoryErrorTitle => translate('wallet_history_error_title');
+  String get walletHistoryErrorText => translate('wallet_history_error_text');
+  String get walletHistoryEmptyTitle => translate('wallet_history_empty_title');
+  String get walletHistoryEmptyText => translate('wallet_history_empty_text');
+  String get walletHistoryEmptyFiltered =>
+      translate('wallet_history_empty_filtered');
+  String get walletHistoryMoreFailed => translate('wallet_history_more_failed');
+  String get walletHistoryEnd => translate('wallet_history_end');
+
+  // ----------------------------------------------- écran Recharge Wallet
+  String get walletTopUpTitle => translate('wallet_top_up_title');
+  String get walletTopUpCurrent => translate('wallet_top_up_current');
+  String get walletTopUpAmountLabel => translate('wallet_top_up_amount_label');
+  String get walletTopUpAmountHint => translate('wallet_top_up_amount_hint');
+  String get walletTopUpMethodLabel => translate('wallet_top_up_method_label');
+  String get walletTopUpMethodsEmpty =>
+      translate('wallet_top_up_methods_empty');
+  String get walletTopUpMethodsFailed =>
+      translate('wallet_top_up_methods_failed');
+  String get walletTopUpAction => translate('wallet_top_up_action');
+  String walletTopUpTooSmall(String min) =>
+      _withArgs('wallet_top_up_too_small', {'min': min});
+  String walletTopUpTooLarge(String max) =>
+      _withArgs('wallet_top_up_too_large', {'max': max});
+  String walletTopUpOverCap(String cap) =>
+      _withArgs('wallet_top_up_over_cap', {'cap': cap});
+  String get walletTopUpClosedTitle => translate('wallet_top_up_closed_title');
+  String get walletTopUpClosedText => translate('wallet_top_up_closed_text');
+  String get walletTopUpErrorTitle => translate('wallet_top_up_error_title');
+  String get walletTopUpErrorText => translate('wallet_top_up_error_text');
+  String get walletTopUpOpenedTitle => translate('wallet_top_up_opened_title');
+  String walletTopUpOpenedText(String amount) =>
+      _withArgs('wallet_top_up_opened_text', {'amount': amount});
+  String get walletTopUpEyebrow => translate('wallet_top_up_eyebrow');
+  String get walletTopUpNote => translate('wallet_top_up_note');
+  String get walletTopUpMethodTitle => translate('wallet_top_up_method_title');
+  String get walletTopUpMethodMomo => translate('wallet_top_up_method_momo');
+  String get walletTopUpMethodMomoLead =>
+      translate('wallet_top_up_method_momo_lead');
+  String get walletTopUpMethodCard => translate('wallet_top_up_method_card');
+  String get walletTopUpMethodCardLead =>
+      translate('wallet_top_up_method_card_lead');
+  String get walletTopUpNoAmount => translate('wallet_top_up_no_amount');
+  String get walletTopUpPaymentPending =>
+      translate('wallet_top_up_payment_pending');
+
+  // ------------------------- paiement d'une recharge (mêmes écrans)
+  String get paymentTopUpEyebrow => translate('payment_topup_eyebrow');
+  String get paymentTopUpPendingTitle =>
+      translate('payment_topup_pending_title');
+  String get paymentTopUpPendingText => translate('payment_topup_pending_text');
+  String get paymentTopUpPendingTextWidget =>
+      translate('payment_topup_pending_text_widget');
+  String get paymentTopUpFailedText => translate('payment_topup_failed_text');
+  String get paymentFailedProviderText =>
+      translate('payment_failed_provider_text');
+  String get paymentTopUpSuccessTitle =>
+      translate('payment_topup_success_title');
+  String paymentTopUpSuccessText(String amount) =>
+      _withArgs('payment_topup_success_text', {'amount': amount});
+  String get paymentTopUpSuccessAction =>
+      translate('payment_topup_success_action');
+
+  // ------------------------------------- écrans Services, Règles, Bonus
+  String get walletServicesTitle => translate('wallet_services_title');
+  String get walletServicesEyebrow => translate('wallet_services_eyebrow');
+  String get walletServiceBus => translate('wallet_service_bus');
+  String get walletServiceBusLead => translate('wallet_service_bus_lead');
+  String get walletServiceRide => translate('wallet_service_ride');
+  String get walletServiceRideLead => translate('wallet_service_ride_lead');
+  String get walletServiceParcels => translate('wallet_service_parcels');
+  String get walletServiceParcelsLead =>
+      translate('wallet_service_parcels_lead');
+  String get walletServicePremium => translate('wallet_service_premium');
+  String get walletServicePremiumLead =>
+      translate('wallet_service_premium_lead');
+  String get walletServiceSoon => translate('wallet_service_soon');
+  String walletServicesRule(String min) =>
+      _withArgs('wallet_services_rule', {'min': min});
+  String get walletServicesRuleUnknown =>
+      translate('wallet_services_rule_unknown');
+  String get walletServicesRules => translate('wallet_services_rules');
+  String get walletRulesTitle => translate('wallet_rules_title');
+  String get walletRulesEyebrow => translate('wallet_rules_eyebrow');
+  String walletRuleValue(String point, String value) =>
+      _withArgs('wallet_rule_value', {'point': point, 'value': value});
+  String get walletRuleValueUnknown => translate('wallet_rule_value_unknown');
+  String walletRuleSpend(String min) =>
+      _withArgs('wallet_rule_spend', {'min': min});
+  String get walletRuleSpendUnknown => translate('wallet_rule_spend_unknown');
+  String get walletRuleNoCashOut => translate('wallet_rule_no_cash_out');
+  String get walletRuleNoCashOutLead =>
+      translate('wallet_rule_no_cash_out_lead');
+  String get walletRuleNoTransfer => translate('wallet_rule_no_transfer');
+  String get walletRuleNoTransferLead =>
+      translate('wallet_rule_no_transfer_lead');
+  String get walletRuleNoBonus => translate('wallet_rule_no_bonus');
+  String get walletRuleNoBonusLead => translate('wallet_rule_no_bonus_lead');
+  String walletRuleExpiry(String months) =>
+      _withArgs('wallet_rule_expiry', {'months': months});
+  String walletRuleExpiryWithAlerts(String months, String alerts) => _withArgs(
+    'wallet_rule_expiry_with_alerts',
+    {'months': months, 'alerts': alerts},
+  );
+  String get walletRuleExpiryUnknown => translate('wallet_rule_expiry_unknown');
+  String get walletBonusTitle => translate('wallet_bonus_title');
+  String get walletBonusEyebrow => translate('wallet_bonus_eyebrow');
+  String get walletBonusEarned => translate('wallet_bonus_earned');
+  String get walletBonusEarnedUnknown =>
+      translate('wallet_bonus_earned_unknown');
+  String get walletBonusObtained => translate('wallet_bonus_obtained');
+  String get walletBonusPending => translate('wallet_bonus_pending');
+  String get walletBonusInvite => translate('wallet_bonus_invite');
+  String get walletReferralEntryTitle =>
+      translate('wallet_referral_entry_title');
+  String get walletReferralEntryText => translate('wallet_referral_entry_text');
+  String get walletReferralEntryHint => translate('wallet_referral_entry_hint');
+  String get walletReferralEntryAction =>
+      translate('wallet_referral_entry_action');
+  String get walletReferralEntryDone => translate('wallet_referral_entry_done');
+  String get walletReferralEntryFailed =>
+      translate('wallet_referral_entry_failed');
+  String get walletReferralAttached => translate('wallet_referral_attached');
+  String get walletTopupNoteTitle => translate('wallet_topup_note_title');
+  String get paymentSecureWindowTitle =>
+      translate('payment_secure_window_title');
+  String get paymentCardSecureTitle => translate('payment_card_secure_title');
+  String get walletBonusErrorTitle => translate('wallet_bonus_error_title');
+  String get walletBonusErrorText => translate('wallet_bonus_error_text');
 
   // ------------------------------------------------------- écran Profil
   String get profileWelcome => translate('profile_welcome');
@@ -441,6 +628,10 @@ class AppLocalization {
   String get signupSwitchToEmail => translate('signup_switch_to_email');
   String get signupEmailProtected => translate('signup_email_protected');
   String get signupSubmit => translate('signup_submit');
+  String get signupReferralSkip => translate('signup_referral_skip');
+  String get signupReferralLabel => translate('signup_referral_label');
+  String get signupReferralHint => translate('signup_referral_hint');
+  String get signupReferralText => translate('signup_referral_text');
   // --- Centre d'aide et contact (PROFILE-05, PROFILE-06) ---
   String get helpEyebrow => translate('help_eyebrow');
   String get helpTitle => translate('help_title');
@@ -486,7 +677,6 @@ class AppLocalization {
   String get cityPickerSuggestions => translate('city_picker_suggestions');
   String get cityPickerRecent => translate('city_picker_recent');
   String get cityPickerStop => translate('city_picker_stop');
-  String get cityPickerStation => translate('city_picker_station');
   String cityPickerNoResult(String query) =>
       _withArgs('city_picker_no_result', {'query': query});
   String get departuresEyebrow => translate('departures_eyebrow');
@@ -509,6 +699,8 @@ class AppLocalization {
   String get paymentMethodWallet => translate('payment_method_wallet');
   String paymentMethodWalletLead(String balance) =>
       _withArgs('payment_method_wallet_lead', {'balance': balance});
+  String get paymentMethodWalletLeadPlain =>
+      translate('payment_method_wallet_lead_plain');
   String get paymentMethodCard => translate('payment_method_card');
   String get paymentMethodCardLead => translate('payment_method_card_lead');
   String paymentMethodHold(String time) =>
@@ -516,6 +708,8 @@ class AppLocalization {
   String get paymentMethodTotal => translate('payment_method_total');
   String paymentGatewayMomoLead(String gateway) =>
       _withArgs('payment_gateway_momo_lead', {'gateway': gateway});
+  String get paymentGatewayMomoLeadPlain =>
+      translate('payment_gateway_momo_lead_plain');
   String get paymentMomoTitle => translate('payment_momo_title');
   String paymentMomoEyebrow(String amount) =>
       _withArgs('payment_momo_eyebrow', {'amount': amount});
@@ -545,6 +739,8 @@ class AppLocalization {
   String get paymentMomoNoticeTitle => translate('payment_momo_notice_title');
   String get paymentMomoNotice => translate('payment_momo_notice');
   String get paymentMomoResume => translate('payment_momo_resume');
+  String get paymentAbandon => translate('payment_abandon');
+  String get paymentAbandonDone => translate('payment_abandon_done');
 
   String paymentMomoPay(String amount) =>
       _withArgs('payment_momo_pay', {'amount': amount});
@@ -564,6 +760,12 @@ class AppLocalization {
   String get paymentWalletRemainder => translate('payment_wallet_remainder');
   String get paymentWalletConfirm => translate('payment_wallet_confirm');
   String get paymentWalletNotice => translate('payment_wallet_notice');
+  String get paymentWalletCashClosed => translate('payment_wallet_cash_closed');
+  String get paymentWalletPointsNone => translate('payment_wallet_points_none');
+  String paymentWalletPointsMinimum(String min) =>
+      _withArgs('payment_wallet_points_minimum', {'min': min});
+  String get paymentWalletUnavailable =>
+      translate('payment_wallet_unavailable');
   String get paymentCardTitle => translate('payment_card_title');
   String get paymentCardLead => translate('payment_card_lead');
   String get paymentCardEyebrow => translate('payment_card_eyebrow');
@@ -1076,6 +1278,33 @@ class AppLocalization {
     count > 1 ? 'departures_count_plural' : 'departures_count',
     {'count': count},
   );
+  String departuresConnections(int count, String cities) => _withArgs(
+    count > 1 ? 'departures_connections_plural' : 'departures_connections',
+    {'count': count, 'cities': cities},
+  );
+  String get departuresDirect => translate('departures_direct');
+  String get ticketsRoundTrip => translate('tickets_round_trip');
+  String get ticketDetailLegs => translate('ticket_detail_legs');
+  String ticketDetailLegSeat(String seat) =>
+      _withArgs('ticket_detail_leg_seat', {'seat': seat});
+  String departuresConnectionsTag(int count) => _withArgs(
+    count > 1
+        ? 'departures_connections_tag_plural'
+        : 'departures_connections_tag',
+    {'count': count},
+  );
+  String departuresConnectionNote(String cities, String wait) =>
+      _withArgs('departures_connection_note', {'cities': cities, 'wait': wait});
+  String departuresConnectionNotePlural(String cities) =>
+      _withArgs('departures_connection_note_plural', {'cities': cities});
+  String departuresSegments(int count) =>
+      _withArgs('departures_segments', {'count': count});
+  String departuresConnectionWait(String duration, String city) => _withArgs(
+    'departures_connection_wait',
+    {'duration': duration, 'city': city},
+  );
+  String departuresLegOrder(int order, int total) =>
+      _withArgs('departures_leg_order', {'order': order, 'total': total});
   String departuresRecap(int count, String slots, String prices) => _withArgs(
     count > 1 ? 'departures_recap_plural' : 'departures_recap',
     {'count': count, 'slots': slots, 'prices': prices},
@@ -1230,10 +1459,25 @@ class AppLocalization {
   String get profileEditLastName => translate('profile_edit_last_name');
   String get profileEditPhone => translate('profile_edit_phone');
   String get profileEditPhoneLocked => translate('profile_edit_phone_locked');
+  String get profileEditPhoneHintFree =>
+      translate('profile_edit_phone_hint_free');
+  String get profileEditPhoneHelp => translate('profile_edit_phone_help');
+  String profileEditPhoneInvalid(String country, int digits) => _withArgs(
+    'profile_edit_phone_invalid',
+    {'country': country, 'digits': digits},
+  );
+  String get profileEditEmailHint => translate('profile_edit_email_hint');
+  String get profileEditEmailNone => translate('profile_edit_email_none');
+  String get profileEditEmailLocked => translate('profile_edit_email_locked');
+  String get profileEditPhoneAdd => translate('profile_edit_phone_add');
   String get profileEditEmail => translate('profile_edit_email');
   String get profileEditBirthDate => translate('profile_edit_birth_date');
   String get profileEditBirthDateHint =>
       translate('profile_edit_birth_date_hint');
+  String get birthDatePromptTitle => translate('birth_date_prompt_title');
+  String get birthDatePromptText => translate('birth_date_prompt_text');
+  String get birthDatePromptAction => translate('birth_date_prompt_action');
+  String get birthDatePromptLater => translate('birth_date_prompt_later');
   String get profileEditSave => translate('profile_edit_save');
   String get profileEditSaved => translate('profile_edit_saved');
   String get profileEditFirstNameRequired =>

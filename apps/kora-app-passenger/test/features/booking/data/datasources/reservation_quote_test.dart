@@ -12,14 +12,19 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kora_app_passenger/core/constants/api_constants.dart';
 import 'package:kora_app_passenger/core/error/exceptions.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/reservation_remote_data_source.dart';
+import 'package:kora_app_passenger/features/booking/data/models/itinerary_model.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/city.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/group_payer.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/group_quote.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/itinerary.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/journey.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/line.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/price.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/seat.dart';
 import 'package:mocktail/mocktail.dart';
+
+import '../../../../support/bus_api_fixtures.dart';
 
 class MockDio extends Mock implements Dio {}
 
@@ -84,7 +89,7 @@ void main() {
     // Sans ça le devis remonte vide : l'identifiant manque, et c'est le
     // blocage qui échoue, loin de la cause.
     final quote = await dataSource.groupQuote(
-      departure: departure,
+      journey: Journey(outbound: Itinerary.direct(departure)),
       passengers: 1,
     );
 
@@ -95,7 +100,10 @@ void main() {
   });
 
   test('envoie le tronçon tel que le valide le serveur', () async {
-    await dataSource.groupQuote(departure: departure, passengers: 5);
+    await dataSource.groupQuote(
+      journey: Journey(outbound: Itinerary.direct(departure)),
+      passengers: 5,
+    );
 
     final sent = verify(
       () => dio.post<dynamic>(
@@ -142,9 +150,11 @@ void main() {
       // `leg_order` suivant cette liste, `direction` les distinguant.
       // C'est elle qui permet un blocage et un paiement uniques.
       await dataSource.groupQuote(
-        departure: departure,
+        journey: Journey(
+          outbound: Itinerary.direct(departure),
+          inbound: Itinerary.direct(returnDeparture),
+        ),
         passengers: 2,
-        returnDeparture: returnDeparture,
       );
 
       final sent = verify(
@@ -179,9 +189,11 @@ void main() {
       // Le serveur refuse un retour qui ne revient pas au point de départ.
       // Inverser les deux arrêts ici casserait le devis entier.
       await dataSource.groupQuote(
-        departure: departure,
+        journey: Journey(
+          outbound: Itinerary.direct(departure),
+          inbound: Itinerary.direct(returnDeparture),
+        ),
         passengers: 1,
-        returnDeparture: returnDeparture,
       );
 
       final sent =
@@ -204,7 +216,10 @@ void main() {
     test('un aller simple ne déclare aucune direction', () async {
       // Le serveur la tient pour facultative et retombe sur `outbound` :
       // la taire garde à l'aller simple la requête vérifiée en ligne.
-      await dataSource.groupQuote(departure: departure, passengers: 1);
+      await dataSource.groupQuote(
+        journey: Journey(outbound: Itinerary.direct(departure)),
+        passengers: 1,
+      );
 
       final sent =
           verify(
@@ -252,13 +267,22 @@ void main() {
 
     const seats = [Seat(id: 'st-1', label: '4A', row: 4, column: 1)];
 
+    /// Le voyage d'un seul bus, avec ses sièges : ce que le blocage
+    /// reçoit du récapitulatif.
+    Journey journeyWith(List<List<Seat>> seatsByLeg, {Departure? inbound}) =>
+        Journey(
+          outbound: Itinerary.direct(departure),
+          inbound: inbound == null ? null : Itinerary.direct(inbound),
+          seatsByLeg: seatsByLeg,
+        );
+
     test('déballe l’enveloppe `data` du blocage', () async {
       // Même piège que le devis : `ReservationResource` enveloppe, et lire
       // à plat rendrait un blocage sans identifiant — donc impossible à
       // libérer, et un formulaire voyageur adressé à personne.
       final hold = await dataSource.holdGroup(
         quote: quote,
-        seats: seats,
+        journey: journeyWith(const [seats]),
         payer: const GroupPayer.personal(),
         idempotencyKey: 'kora-1',
       );
@@ -275,7 +299,7 @@ void main() {
       // le même voyageur.
       await dataSource.holdGroup(
         quote: quote,
-        seats: seats,
+        journey: journeyWith(const [seats]),
         payer: const GroupPayer.personal(),
         idempotencyKey: 'kora-1',
       );
@@ -317,8 +341,10 @@ void main() {
 
       await dataSource.holdGroup(
         quote: quote,
-        seats: outboundSeats,
-        returnSeats: inboundSeats,
+        journey: journeyWith(const [
+          outboundSeats,
+          inboundSeats,
+        ], inbound: departure),
         payer: const GroupPayer.personal(),
         idempotencyKey: 'kora-1',
       );
@@ -347,17 +373,19 @@ void main() {
       ]);
     });
 
-    test('un retour incomplet est refusé avant l’envoi', () async {
+    test('un tronçon incomplet est refusé avant l’envoi', () async {
       // Le serveur rejetterait le blocage entier ; échouer ici nomme la
       // cause au lieu de laisser remonter une erreur de validation.
       await expectLater(
         dataSource.holdGroup(
           quote: quote,
-          seats: const [
-            Seat(id: 'st-1', label: '4A', row: 4, column: 1),
-            Seat(id: 'st-2', label: '4B', row: 4, column: 2),
-          ],
-          returnSeats: const [Seat(id: 'st-9', label: '2C', row: 2, column: 3)],
+          journey: journeyWith(const [
+            [
+              Seat(id: 'st-1', label: '4A', row: 4, column: 1),
+              Seat(id: 'st-2', label: '4B', row: 4, column: 2),
+            ],
+            [Seat(id: 'st-9', label: '2C', row: 2, column: 3)],
+          ], inbound: departure),
           payer: const GroupPayer.personal(),
           idempotencyKey: 'kora-1',
         ),
@@ -367,10 +395,43 @@ void main() {
       verifyNever(() => dio.post<dynamic>(any(), data: any(named: 'data')));
     });
 
+    test('une correspondance réclame un siège par bus', () async {
+      // Deux tronçons à l'aller : le serveur attend deux
+      // `seat_assignments` par voyageur, sous leur `leg_order`.
+      await dataSource.holdGroup(
+        quote: quote,
+        journey: Journey(
+          outbound: ItineraryModel.fromJson(kConnectedItinerary).toEntity()!,
+          seatsByLeg: const [
+            [Seat(id: 'st-1', label: '4A', row: 4, column: 1)],
+            [Seat(id: 'st-7', label: '1B', row: 1, column: 2)],
+          ],
+        ),
+        payer: const GroupPayer.personal(),
+        idempotencyKey: 'kora-1',
+      );
+
+      final sent =
+          verify(
+                () => dio.post<dynamic>(any(), data: captureAny(named: 'data')),
+              ).captured.single
+              as Map<String, dynamic>;
+
+      expect(sent['passengers'], [
+        {
+          'passenger_index': 0,
+          'seat_assignments': [
+            {'leg_order': 1, 'seat_uuid': 'st-1'},
+            {'leg_order': 2, 'seat_uuid': 'st-7'},
+          ],
+        },
+      ]);
+    });
+
     test('un compte entreprise part comme payeur', () async {
       await dataSource.holdGroup(
         quote: quote,
-        seats: seats,
+        journey: journeyWith(const [seats]),
         payer: const GroupPayer.company(accountId: 'ca-1', name: 'STB SARL'),
         idempotencyKey: 'kora-1',
       );

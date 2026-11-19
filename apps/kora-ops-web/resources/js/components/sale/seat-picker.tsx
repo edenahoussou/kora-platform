@@ -10,7 +10,7 @@ import type {
     SalePayerType,
     SaleSeat,
 } from './sale-types';
-import { formatShortDate } from './sale-utils';
+import { formatIsoDate, formatShortDate } from './sale-utils';
 import { SeatGrid } from './seat-grid';
 import { SeatPickerDialog } from './seat-picker-dialog';
 import { SeatPickerHeader } from './seat-picker-header';
@@ -362,7 +362,7 @@ export function SeatPicker({
             closeLabel={
                 isMultiLeg
                     ? 'Fermer la sélection des places'
-                    : `Fermer la sélection du ${formatShortDate(activeLeg.departureDate)}`
+                    : `Fermer la sélection du ${formatShortDate(formatIsoDate(activeLeg.departureAt, activeLeg.departureTimezone))}`
             }
             header={
                 <SeatPickerHeader

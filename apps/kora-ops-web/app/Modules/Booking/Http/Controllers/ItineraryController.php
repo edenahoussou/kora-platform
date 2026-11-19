@@ -13,6 +13,7 @@ use App\Modules\Booking\Http\Requests\ItineraryQuoteRequest;
 use App\Modules\Booking\Http\Requests\ItinerarySearchRequest;
 use App\Modules\Booking\Http\Resources\ReservationResource;
 use App\Modules\Booking\Models\ItineraryQuote;
+use App\Modules\Booking\Services\DepartureStopTimeResolver;
 use App\Modules\Booking\Services\ItineraryData;
 use App\Modules\Booking\Services\ItineraryLegData;
 use App\Modules\Booking\Services\ItinerarySearchService;
@@ -31,6 +32,7 @@ class ItineraryController extends Controller
 {
     public function __construct(
         private ItinerarySearchService $itinerarySearch,
+        private DepartureStopTimeResolver $stopTimeResolver,
     ) {}
 
     /**
@@ -40,8 +42,10 @@ class ItineraryController extends Controller
      * with city and country, available seats count, service class) so the
      * mobile client can render search results without extra calls.
      *
-     * @queryParam from_physical_stop_uuid string required UUID of the origin physical stop.
-     * @queryParam to_physical_stop_uuid string required UUID of the destination physical stop.
+     * @queryParam from_city string Origin city name, as returned by `GET /bus/cities` (searches every active stop of the city). Required without from_physical_stop_uuid. Example: Cotonou
+     * @queryParam to_city string Destination city name (searches every active stop of the city). Required without to_physical_stop_uuid. Example: Parakou
+     * @queryParam from_physical_stop_uuid string UUID of a single origin physical stop. Takes precedence over from_city. Required without from_city.
+     * @queryParam to_physical_stop_uuid string UUID of a single destination physical stop. Takes precedence over to_city. Required without to_city.
      * @queryParam date string required Travel date (Y-m-d). Example: 2026-09-07
      * @queryParam passenger_count integer Number of passengers. Defaults to 1.
      * @queryParam sort string Sort key: departure_time, arrival_time, price, duration, connections. Defaults to connections.
@@ -117,7 +121,9 @@ class ItineraryController extends Controller
      *           "service_class_code": "standard",
      *           "service_class_name": "Standard",
      *           "departure_at": "2026-09-07T13:00:00+00:00",
-     *           "arrival_at": "2026-09-07T23:00:00+00:00"
+     *           "arrival_at": "2026-09-07T23:00:00+00:00",
+     *           "departure_timezone": "Africa/Accra",
+     *           "arrival_timezone": "Africa/Accra"
      *         }
      *       ]
      *     }
@@ -150,8 +156,7 @@ class ItineraryController extends Controller
      */
     public function index(ItinerarySearchRequest $request): JsonResponse
     {
-        $fromUuid = $request->string('from_physical_stop_uuid')->toString();
-        $toUuid = $request->string('to_physical_stop_uuid')->toString();
+        [$fromUuids, $toUuids] = $this->resolveSearchStops($request);
         $date = CarbonImmutable::parse($request->string('date'));
         $passengerCount = (int) $request->integer('passenger_count', 1);
         $sortBy = $request->sortBy();
@@ -159,41 +164,21 @@ class ItineraryController extends Controller
         $serviceClassCode = $request->serviceClassCode();
 
         if ($request->tripType() === 'round_trip') {
-            $outbound = $this->itinerarySearch->search(
-                originPhysicalStopUuid: $fromUuid,
-                destinationPhysicalStopUuid: $toUuid,
-                date: $date,
-                passengerCount: $passengerCount,
-                sortBy: $sortBy,
-                sortDirection: $sortDirection,
-                serviceClassCode: $serviceClassCode,
-            );
+            $outbound = $this->itinerarySearch->searchBetweenStops($fromUuids, $toUuids, $date, $passengerCount, $sortBy, $sortDirection, $serviceClassCode);
 
-            if ($request->returnDate() !== null) {
-                $inbound = $this->itinerarySearch->search(
-                    originPhysicalStopUuid: $toUuid,
-                    destinationPhysicalStopUuid: $fromUuid,
-                    date: $request->returnDate(),
-                    passengerCount: $passengerCount,
-                    sortBy: $sortBy,
-                    sortDirection: $sortDirection,
-                    serviceClassCode: $serviceClassCode,
+            // No return date: upcoming return departures from the day after the outbound date, as at the counter.
+            $inbound = $request->returnDate() !== null
+                ? $this->itinerarySearch->searchBetweenStops($toUuids, $fromUuids, $request->returnDate(), $passengerCount, $sortBy, $sortDirection, $serviceClassCode)
+                : $this->itinerarySearch->searchBetweenStops(
+                    $toUuids,
+                    $fromUuids,
+                    $date->addDay(),
+                    $passengerCount,
+                    $sortBy,
+                    $sortDirection,
+                    $serviceClassCode,
+                    upcomingDays: app(OperationsSettings::class)->defaultSearchDays,
                 );
-            } else {
-                // No return date — search upcoming return departures starting
-                // from the day after the outbound date, matching the counter-sale
-                // behavior so the mobile user sees available return trips.
-                $inbound = $this->itinerarySearch->searchUpcoming(
-                    originPhysicalStopUuid: $toUuid,
-                    destinationPhysicalStopUuid: $fromUuid,
-                    fromDate: $date->addDay(),
-                    days: app(OperationsSettings::class)->defaultSearchDays,
-                    passengerCount: $passengerCount,
-                    sortBy: $sortBy,
-                    sortDirection: $sortDirection,
-                    serviceClassCode: $serviceClassCode,
-                );
-            }
 
             return response()->json([
                 'outbound' => array_map(fn ($itinerary): array => $this->serializeItinerary($itinerary), $outbound),
@@ -201,15 +186,7 @@ class ItineraryController extends Controller
             ]);
         }
 
-        $itineraries = $this->itinerarySearch->search(
-            originPhysicalStopUuid: $fromUuid,
-            destinationPhysicalStopUuid: $toUuid,
-            date: $date,
-            passengerCount: $passengerCount,
-            sortBy: $sortBy,
-            sortDirection: $sortDirection,
-            serviceClassCode: $serviceClassCode,
-        );
+        $itineraries = $this->itinerarySearch->searchBetweenStops($fromUuids, $toUuids, $date, $passengerCount, $sortBy, $sortDirection, $serviceClassCode);
 
         return response()->json([
             'data' => array_map(fn ($itinerary): array => $this->serializeItinerary($itinerary), $itineraries),
@@ -395,6 +372,23 @@ class ItineraryController extends Controller
             ->setStatusCode(201);
     }
 
+    /**
+     * A physical stop UUID wins over a city; a city expands to all its active stops.
+     *
+     * @return array{0: list<string>, 1: list<string>}
+     */
+    private function resolveSearchStops(ItinerarySearchRequest $request): array
+    {
+        $resolve = fn (string $uuidKey, string $cityKey): array => $request->filled($uuidKey)
+            ? [$request->string($uuidKey)->toString()]
+            : $this->itinerarySearch->physicalStopUuidsForCity($request->string($cityKey)->toString());
+
+        return [
+            $resolve('from_physical_stop_uuid', 'from_city'),
+            $resolve('to_physical_stop_uuid', 'to_city'),
+        ];
+    }
+
     /** @return array<string, mixed> */
     private function serializeItinerary(ItineraryData $itinerary): array
     {
@@ -450,8 +444,10 @@ class ItineraryController extends Controller
             'available_seats_count' => $leg->availableSeatsCount,
             'service_class_code' => $leg->serviceClassCode,
             'service_class_name' => $leg->serviceClassName,
-            'departure_at' => $leg->departureAt->toIso8601String(),
-            'arrival_at' => $leg->arrivalAt->toIso8601String(),
+            'departure_at' => $leg->departureAt->setTimezone($this->stopTimeResolver->timezoneFor($leg->departure, $leg->originStop))->toIso8601String(),
+            'arrival_at' => $leg->arrivalAt->setTimezone($this->stopTimeResolver->timezoneFor($leg->departure, $leg->destinationStop))->toIso8601String(),
+            'departure_timezone' => $this->stopTimeResolver->timezoneFor($leg->departure, $leg->originStop),
+            'arrival_timezone' => $this->stopTimeResolver->timezoneFor($leg->departure, $leg->destinationStop),
         ];
     }
 

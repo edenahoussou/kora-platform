@@ -8,6 +8,7 @@ use App\Modules\Booking\Data\ReservationSegmentStatus;
 use App\Modules\Booking\Data\ReservationStatus;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\CompanyAccounts\Services\CompanyCreditService;
+use App\Modules\Payments\Data\PaymentStatus;
 use Illuminate\Support\Facades\DB;
 
 class ExpireSeatHoldsAction
@@ -76,6 +77,14 @@ class ExpireSeatHoldsAction
                     'status' => ReservationStatus::Expired,
                     'draft_data' => null,
                 ]);
+
+                $lockedReservation->payments()
+                    ->where('status', PaymentStatus::Pending->value)
+                    ->update([
+                        'status' => PaymentStatus::Failed,
+                        'failure_code' => 'reservation_expired',
+                        'failure_message' => 'La réservation a expiré avant la confirmation du paiement.',
+                    ]);
 
                 $lockedReservation->segments()
                     ->where('status', ReservationSegmentStatus::Held->value)

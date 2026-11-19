@@ -1,0 +1,77 @@
+---
+title: Libérer une réservation temporaire
+description: "Libère le blocage temporaire d’une réservation au statut `held` et remet ses sièges en vente."
+api: DELETE /api/v1/bookings/{reservation_uuid}
+---
+
+Libère le blocage temporaire d’une réservation au statut `held` et remet ses sièges en vente. Le mobile peut appeler cette route lorsque le voyageur abandonne sa réservation avant le paiement. Une demande répétée sur la même réservation reste sans effet.
+
+## Paramètres
+
+<ParamField path="reservation_uuid" type="UUID" required>
+  UUID public de la réservation obtenu lors du blocage des sièges.
+</ParamField>
+
+<RequestExample>
+
+```bash cURL
+curl -X DELETE 'https://staging.koraexpress.app/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70' \
+  -H 'Authorization: Bearer <token-de-session>' \
+  -H 'Accept: application/json'
+```
+
+```javascript JavaScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70', {
+  method: 'DELETE',
+  headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
+});
+if (res.status === 204) console.log("Réservation libérée");
+```
+
+```typescript TypeScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70', {
+  method: 'DELETE',
+  headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
+});
+const released: boolean = res.status === 204;
+```
+
+```dart Dart
+final res = await authDio.delete('/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70');
+final released = res.statusCode == 204;
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```http 204
+HTTP/1.1 204 No Content
+```
+
+```json 401
+{
+  "message": "Unauthenticated."
+}
+```
+
+```json 403
+{
+  "message": "This action is unauthorized."
+}
+```
+
+</ResponseExample>
+
+## Réponse
+
+La réponse `204 No Content` ne contient pas de JSON. Le mobile peut confirmer la libération dès réception du statut.
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `204` | Demande traitée. La réponse est sans corps. |
+| `401` | Jeton de session absent ou invalide. |
+| `403` | Le voyageur ne peut pas agir sur cette réservation. |
+| `404` | Réservation introuvable. |

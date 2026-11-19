@@ -11,6 +11,8 @@ import 'package:kora_app_passenger/core/error/failures.dart';
 import 'package:kora_app_passenger/core/l10n/app_localization.dart';
 import 'package:kora_app_passenger/features/auth/domain/entities/auth_session.dart';
 import 'package:kora_app_passenger/features/auth/domain/entities/otp_challenge.dart';
+import 'package:kora_app_passenger/features/auth/domain/entities/otp_purpose.dart';
+import 'package:kora_app_passenger/features/auth/domain/repositories/auth_repository.dart';
 import 'package:kora_app_passenger/features/auth/presentation/bloc/auth_flow_bloc.dart';
 import 'package:kora_app_passenger/features/auth/presentation/pages/create_pin_page.dart';
 
@@ -27,9 +29,40 @@ class _ExistingAccountRepository extends StubAuthRepository {
     String? email,
     String? phone,
     String? countryCode,
+    String? referralCode,
   }) async => const Left(
     AccountExistsFailure('Un compte existe déjà pour cet identifiant.'),
   );
+}
+
+/// Dépôt qui refuse le code de parrainage, comme le fait l'API : un 422
+/// dont la raison est écrite pour le champ `referral_code`.
+class _RefusedReferralRepository extends StubAuthRepository {
+  @override
+  Future<Either<Failure, AuthSession>> completeRegistration({
+    required OtpVerification verification,
+    required String pin,
+    String? name,
+    String? email,
+    String? phone,
+    String? countryCode,
+    String? referralCode,
+  }) async {
+    final sent = referralCode == null || referralCode.isEmpty
+        ? ''
+        : ':parrain=$referralCode';
+    calls.add('completeRegistration:$pin$sent');
+
+    // Sans code, plus rien à refuser : le compte se crée.
+    if (sent.isEmpty) return Right(StubAuthRepository.session);
+
+    return const Left(
+      ValidationFailure(
+        'Ce code de parrainage est inconnu.',
+        field: 'referral_code',
+      ),
+    );
+  }
 }
 
 void main() {
@@ -43,10 +76,7 @@ void main() {
     submitted = [];
 
     await tester.pumpWidget(
-      MaterialApp(
-        theme: AppTheme.light,
-        home: _withFlow(CreatePinPage(onSubmit: submitted.add)),
-      ),
+      _app(_withFlow(CreatePinPage(onSubmit: submitted.add))),
     );
     await tester.pumpAndSettle();
   }
@@ -187,9 +217,8 @@ void main() {
     addTearDown(tester.view.reset);
 
     await tester.pumpWidget(
-      MaterialApp(
-        theme: AppTheme.light,
-        home: _withFlow(
+      _app(
+        _withFlow(
           const CreatePinPage(
             title: 'Confirmez votre PIN',
             subtitle: 'Saisissez à nouveau votre code personnel.',
@@ -227,17 +256,8 @@ void main() {
     expect(flow.state.step, AuthFlowStep.pin);
 
     await tester.pumpWidget(
-      MaterialApp(
-        theme: AppTheme.light,
-        locale: const Locale('fr'),
-        supportedLocales: const [Locale('fr'), Locale('en')],
-        localizationsDelegates: const [
-          AppLocalization.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        home: BlocProvider<AuthFlowBloc>.value(
+      _app(
+        BlocProvider<AuthFlowBloc>.value(
           value: flow,
           child: CreatePinPage(onSignIn: () => signedIn = true),
         ),
@@ -265,7 +285,128 @@ void main() {
 
     expect(signedIn, isTrue);
   });
+
+  /// Monte l'écran avec son parcours arrivé au choix du PIN, comme après
+  /// un code vérifié.
+  Future<AuthFlowBloc> pumpAtPinStep(
+    WidgetTester tester,
+    AuthRepository repository, {
+    OtpPurpose purpose = OtpPurpose.registration,
+    String? referralCode,
+  }) async {
+    tester.view.physicalSize = const Size(390 * 3, 1200 * 3);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+
+    final flow = AuthFlowBloc(repository)
+      ..add(
+        AuthFlowIdentifierSubmitted(
+          identifier: 'aicha@example.com',
+          purpose: purpose,
+          referralCode: referralCode,
+        ),
+      );
+    addTearDown(flow.close);
+    await tester.pumpAndSettle();
+
+    flow.add(const AuthFlowCodeSubmitted('123456'));
+    await tester.pumpAndSettle();
+
+    await tester.pumpWidget(
+      _app(
+        BlocProvider<AuthFlowBloc>.value(
+          value: flow,
+          child: const CreatePinPage(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    return flow;
+  }
+
+  /// Les deux temps du PIN, comme le ferait un utilisateur.
+  Future<void> enterPinTwice(WidgetTester tester, String pin) async {
+    for (var pass = 0; pass < 2; pass++) {
+      for (final digit in pin.split('')) {
+        await tester.tap(find.text(digit));
+      }
+      await tester.tap(find.text('✓'));
+      await tester.pumpAndSettle();
+    }
+  }
+
+  group('code de parrainage refusé', () {
+    testWidgets('le refus se lit ici, PIN toujours en main', (tester) async {
+      // Le code a été saisi au formulaire, deux écrans plus tôt, mais
+      // c'est ici qu'il se rattache — et ici que le serveur le refuse.
+      final repository = _RefusedReferralRepository();
+      final flow = await pumpAtPinStep(
+        tester,
+        repository,
+        referralCode: 'INCONNU',
+      );
+
+      await enterPinTwice(tester, '1234');
+
+      expect(find.text('Ce code de parrainage est inconnu.'), findsOneWidget);
+      // Le message du serveur, et lui seul : annoncer en plus un échec
+      // au milieu de l'écran laisserait croire qu'il faut tout refaire.
+      expect(flow.state.errorMessage, isEmpty);
+      // Le parcours n'a pas reculé : le code OTP vaut toujours, le PIN
+      // est gardé.
+      expect(flow.state.step, AuthFlowStep.pin);
+      expect(flow.state.verification, isNotNull);
+    });
+
+    testWidgets('on peut terminer sans le code', (tester) async {
+      // Revenir au formulaire redemanderait un code OTP : on laisse
+      // plutôt finir l'inscription sans parrain. Le Wallet le
+      // rattrapera tant que le voyageur n'a pas voyagé.
+      final repository = _RefusedReferralRepository();
+      final flow = await pumpAtPinStep(
+        tester,
+        repository,
+        referralCode: 'INCONNU',
+      );
+
+      await enterPinTwice(tester, '1234');
+      expect(find.text('Continuer sans ce code'), findsOneWidget);
+
+      await tester.tap(find.text('Continuer sans ce code'));
+      await tester.pumpAndSettle();
+
+      // Le second envoi part sans le code, et le compte se crée.
+      expect(repository.calls.last, 'completeRegistration:1234');
+      expect(flow.state.step, AuthFlowStep.done);
+    });
+
+    testWidgets('rien à proposer quand le serveur ne refuse rien', (
+      tester,
+    ) async {
+      await pumpAtPinStep(tester, StubAuthRepository());
+
+      await enterPinTwice(tester, '1234');
+
+      expect(find.text('Continuer sans ce code'), findsNothing);
+    });
+  });
 }
+
+/// Le `MaterialApp` des tests : thème KORA et textes français, que les
+/// écrans lisent par `context.l10n`.
+Widget _app(Widget home) => MaterialApp(
+  theme: AppTheme.light,
+  locale: const Locale('fr'),
+  supportedLocales: const [Locale('fr'), Locale('en')],
+  localizationsDelegates: const [
+    AppLocalization.delegate,
+    GlobalMaterialLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+  ],
+  home: home,
+);
 
 /// Les écrans du parcours lisent un [AuthFlowBloc] dans leur arbre. Ces
 /// tests portent sur la saisie, pas sur le réseau : le dépôt bouchonné

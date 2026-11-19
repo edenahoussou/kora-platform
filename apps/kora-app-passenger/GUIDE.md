@@ -46,10 +46,12 @@ Ce projet est la fondation technique complète de l'application KORA :
   cohérents dans toute l'app
 - La gestion du mode clair / sombre
 
-L'onglet "Accueil" contient volontairement le compteur Flutter par
-défaut (demande du client, le temps de concevoir le vrai écran
-d'accueil). Les onglets Voyages / Colis / Wallet / Profil sont des pages
-minimales ("texte centré"), prêtes à être développées.
+L'app est livrée et en exploitation : le parcours Bus complet
+(recherche, départs, sièges, passagers, paiement, billets, assistance,
+groupes), le compte voyageur, le Wallet Bus (cash, points, recharge,
+historique, règles, bonus, parrainage), les notifications, le support et
+la gestion du profil sont branchés sur l'API. Seul l'onglet Colis reste
+un écran d'attente, le temps de la phase Colis (voir `../../README.md`).
 
 ### Pourquoi la Clean Architecture ?
 
@@ -81,7 +83,7 @@ flutter run
 L'étape 2 est indispensable. Sans elle, `UserModel` (et tout futur
 modèle `freezed`) ne compile pas, car ses fichiers `.freezed.dart` /
 `.g.dart` n'existent pas encore. Le reste de l'app (thème, navigation,
-compteur) fonctionne même sans cette étape.
+accueil) fonctionne même sans cette étape.
 
 ---
 
@@ -97,35 +99,36 @@ lib/
 ├── app.dart                        # Widget racine : BlocProvider + MaterialApp.router
 │
 ├── core/                           # Tout ce qui est PARTAGÉ entre les features de CETTE app
-│   ├── constants/
-│   │   ├── api_constants.dart      # Endpoints, timeouts (pas d'URL de base ici, voir env/)
-│   │   ├── app_constants.dart      # Constantes générales (pagination, cache...)
-│   │   └── storage_keys.dart       # Clés SharedPreferences / SecureStorage
-│   ├── env/
-│   │   └── app_env.dart            # AppEnv : config par environnement (dev/staging/prod)
-│   ├── error/
-│   │   ├── failures.dart           # Failure (domain) — ServerFailure, NetworkFailure...
-│   │   └── exceptions.dart         # Exception (data) — ServerException...
-│   ├── network/
-│   │   └── models/
-│   │       └── user_model.dart     # Exemple freezed + json_serializable
-│   ├── usecases/
-│   │   └── usecase.dart            # Classe de base UseCase<Type, Params>
-│   ├── router/
-│   │   └── app_router.dart         # Configuration go_router (StatefulShellRoute + auth guard)
-│   └── di/
-│       └── injector.dart           # Configuration get_it
+│   ├── constants/                  # Endpoints, pagination, clés de stockage
+│   ├── di/injector.dart            # Configuration get_it (service locator)
+│   ├── env/app_env.dart            # AppEnv : config par environnement (dev/staging/prod)
+│   ├── error/                      # Failure, Exception, mapping des erreurs API
+│   ├── l10n/                       # Textes de l'interface (assets/languages/*.json)
+│   ├── network/                    # Helpers JSON, expiration de session
+│   ├── push/                       # Firebase, notifications locales, listeners
+│   ├── router/                     # go_router, bottom nav, garde d'authentification
+│   ├── services/                   # Permissions système
+│   ├── update/                     # Force-update et gate de version
+│   ├── usecases/                   # Classe de base UseCase<Type, Params>
+│   ├── utils/                      # Dates fr_FR, téléphone, couleurs de titre
+│   └── widgets/                    # Composants transverses (en-têtes, calendrier...)
 │
-└── features/
-    ├── theme/                      # Feature complète (référence à suivre)
-    │   ├── data/{datasources,repositories}/
-    │   ├── domain/{entities,repositories}/
-    │   └── presentation/{bloc,widgets}/
-    ├── home/presentation/pages/    # Compteur Flutter par défaut (temporaire, cf. home_page.dart)
-    ├── voyages/presentation/pages/ # Placeholder
-    ├── colis/presentation/pages/   # Placeholder
-    ├── wallet/presentation/pages/  # Placeholder
-    └── profil/presentation/pages/  # Placeholder
+└── features/                       # Un dossier par feature, en couches data/domain/presentation
+    ├── welcome/                    # Splash et onboarding
+    ├── auth/                       # Connexion, inscription, OTP, PIN, nouvel appareil
+    ├── home/                       # Accueil et recherche de départ
+    ├── booking/                    # Départs, sièges, passagers, billets, assistance, groupes
+    ├── payment/                    # Paiement Mobile Money et retours de paiement
+    ├── wallet/                     # Solde cash, points, recharge, historique, règles, bonus
+    ├── colis/                      # Écran d'attente de la phase Colis
+    ├── notifications/              # Centre de notifications
+    ├── support/                    # Aide, contact, chat support
+    ├── profil/                     # Compte, préférences, sécurité, suppression
+    ├── language/                   # Choix de langue
+    └── theme/                      # Mode clair / sombre — feature de référence à suivre
+        ├── data/{datasources,repositories}/
+        ├── domain/{entities,repositories}/
+        └── presentation/{bloc,widgets}/
 
 assets/
 └── images/kora_logo.png
@@ -187,11 +190,11 @@ ApiConstants.walletBalance  // '/wallet/balance'
 
 L'URL de base n'est PAS dans `ApiConstants` : elle dépend de
 l'environnement (dev/staging/prod) et vit dans `AppEnv.current.apiBaseUrl`
-(voir `core/env/app_env.dart`). Il n'y a pas encore de vraie API : chaque
-URL est un placeholder clairement marqué `// TODO(backend)`. Une seule
-ligne à changer par environnement le jour où la vraie URL est connue —
-tout le reste du code (`DioClient`, injecté dans `injector.dart`) s'appuie
-dessus automatiquement, rien d'autre à toucher.
+(voir `core/env/app_env.dart`). Les chemins suivent la spécification
+OpenAPI du dépôt (`docs/mintlify/api/openapi.yaml`) et la documentation
+d'authentification (`docs/mintlify/authentication.mdx`) ; tout le code
+réseau (`DioClient`, injecté dans `injector.dart`) s'appuie dessus
+automatiquement.
 
 ### StorageKeys (core/constants/storage_keys.dart)
 
@@ -295,50 +298,38 @@ de navigation, même en changeant d'onglet.
 context.go('/voyages');
 ```
 
-### Ajouter un écran de détail au-dessus d'un onglet
+### Ajouter un écran de détail
 
-Exemple : le détail d'un trajet, accessible depuis l'onglet Voyages.
+Les onglets sont des routes simples ; les écrans de détail (détail d'un
+départ, billet, historique Wallet...) sont déclarés comme routes de
+premier niveau, puis ouverts avec `context.push`.
 
 ```dart
-// Dans app_router.dart, dans la branche '/voyages' :
-StatefulShellBranch(
-  routes: [
-    GoRoute(
-      path: '/voyages',
-      builder: (context, state) => const VoyagesPage(),
-      routes: [
-        GoRoute(
-          path: 'trip/:tripId', // accessible via /voyages/trip/123
-          builder: (context, state) {
-            final tripId = state.pathParameters['tripId']!;
-            return TripDetailPage(tripId: tripId);
-          },
-        ),
-      ],
-    ),
-  ],
+GoRoute(
+  path: '/departure',
+  builder: (context, state) => const DepartureDetailPage(),
 ),
 ```
 
-Puis, pour y naviguer : `context.go('/voyages/trip/123');`
+Puis, pour y naviguer : `context.push(AppRouter.departureDetailPath);`
 
 ### Le guard d'authentification
 
-`AppRouter.router` a un `redirect` global (`AuthGuard`, voir
-`core/router/auth_guard.dart`) réévalué à chaque navigation :
-`/login` (`features/auth/presentation/pages/login_page.dart`) existe
-comme route, mais **la redirection "non connecté → `/login`" est
-désactivée pour l'instant** — `LoginPage` n'a pas encore de vrai
-formulaire (voir §13), donc la forcer enfermerait tout le monde sur un
-écran sans issue, impossible de revenir sur la bottom nav. Seul le sens
-inverse est actif : un utilisateur déjà connecté qui atterrit sur
-`/login` est renvoyé vers `/home`.
+`AppRouter.router` a un `redirect` global (`_redirect` dans
+`core/router/app_router.dart`), piloté par `AuthBloc` et réévalué à
+chaque navigation et à chaque changement de session :
 
-TODO(auth) dans `app_router.dart` pour réactiver la redirection complète
-dès que `LoginPage` permet réellement de se connecter. Pas de
-`refreshListenable` non plus pour l'instant : sans `AuthBloc`, il n'y a
-pas encore de flux à écouter pour déclencher une réévaluation hors
-navigation. À câbler le jour où la feature `auth` existe.
+- session encore inconnue au démarrage → `/splash`, le temps que le
+  stockage sécurisé réponde (évite le clignotement au lancement) ;
+- session ouverte sur un écran d'entrée (`/welcome`, `/login`,
+  `/signup`, `/otp`, `/create-pin`...) → `/home` ;
+- pas de session et écran protégé → `/onboarding` à la première
+  ouverture, puis `/welcome`.
+
+Les écrans accessibles sans session sont listés dans `_publicPaths`. Les
+chemins d'authentification (`loginPath`, `signupPath`, `otpPath`,
+`createPinPath`, `newDevicePath`) sont des constantes de `AppRouter` :
+toujours les utiliser plutôt qu'une chaîne écrite en dur.
 
 ---
 
@@ -375,8 +366,10 @@ KoraDialogs.hideLoading(context);
 
 ## 9. Créer une nouvelle feature — tutoriel complet
 
-Exemple : ajouter la feature "Wallet" (récupérer le solde depuis l'API).
-On suit exactement la structure de `features/theme/`.
+Exemple fil rouge : la feature `wallet` (récupérer le solde depuis
+l'API), déjà implémentée. Les étapes montrent le cheminement complet, à
+reproduire pour toute nouvelle feature ; le code réel se trouve dans
+`lib/features/wallet/`, et `features/theme/` reste la référence minimale.
 
 ### Étape 1 — Domain : entité + contrat
 
@@ -494,8 +487,9 @@ modèle que `_registerThemeFeature()`) et appelle-la dans `setupInjector()`.
 
 ### Étape 6 — Brancher l'écran
 
-Remplace le contenu de `WalletPage` (actuellement un `PlaceholderPage`)
-par le vrai écran, avec un `BlocProvider` créé via `getIt<WalletBloc>()`.
+Déclare la route (`walletPath`) dans `app_router.dart`, puis monte le
+`BlocProvider` créé via `getIt<WalletBloc>()` autour du vrai écran
+`WalletPage` — c'est le câblage utilisé par l'onglet Wallet aujourd'hui.
 
 ---
 
@@ -676,31 +670,13 @@ sauvegarde.
 
 ## 13. Ce qui n'est PAS encore fait
 
-- Les vrais écrans métier (Voyages/Colis/Wallet/Profil sont des
-  placeholders "texte centré"). L'accueil, lui, est écrit : c'est
-  l'écran de recherche de départs Bus (`features/home`), alimenté par le
-  jeu de données de test de `features/booking/data/datasources/`
-- La suite du parcours Bus : liste des départs et ses filtres, détail
-  d'un départ, sélection de siège, récapitulatif
-- Les vrais appels réseau (aucune API backend n'existe encore —
-  `ApiConstants.baseUrl` est un placeholder). Côté Bus, le branchement
-  se fera en remplaçant `BookingMockDataSource` par une implémentation
-  réseau dans `_registerBookingFeature()` (`core/di/injector.dart`) —
-  rien d'autre à changer
-- L'authentification (login/register/refresh token) — le guard de
-  navigation existe (`AuthGuard`, voir §7) mais sa redirection
-  "non connecté → `/login`" est désactivée tant que `LoginPage` n'a pas
-  de vrai formulaire (sinon plus aucun accès à la bottom nav). La
-  mécanique bas niveau est prête côté `DioClient` (lecture du token) et
-  `StorageKeys`, mais la feature `auth` elle-même (formulaire, appel API,
-  écriture du token) n'est pas encore écrite — `LoginPage` est un
-  placeholder
-- Les tests des features non écrites. Ceux de l'accueil existent et
-  servent de modèle : `test/features/home/presentation/bloc/`
-  (`bloc_test` + `mocktail`) et `.../pages/` (test d'écran couvrant les
-  états chargement / succès / vide / erreur)
-- Les icônes de nav pourraient être affinées visuellement si besoin
-  (actuellement des interprétations fidèles, mais redessinées à la main,
-  des pictogrammes CSS du prototype)
+- L'onglet Colis : l'écran existe (`ComingSoonPage` ouvert par la branche
+  `/colis` de `app_router.dart`), mais la feature n'a ni domaine, ni
+  source de données. Elle arrivera avec la phase Colis (voir
+  `../../README.md`).
+- KORA Ride et KORA Driver : hors périmètre tant que ces phases ne sont
+  pas ouvertes.
 
-Chaque point suit exactement les principes détaillés dans ce guide.
+Le reste du parcours (Bus, paiement, billets, Wallet, compte, support,
+notifications) est branché sur l'API ; toute nouvelle feature suit les
+principes détaillés dans ce guide.

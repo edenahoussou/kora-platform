@@ -1,0 +1,151 @@
+---
+title: Rattacher un code de parrainage
+description: "Rattache un code au Wallet du voyageur connecté si celui-ci n’a encore ni parrain ni utilisation de billet comptabilisée."
+api: POST /api/v1/wallet/referral
+---
+
+Rattache un code au Wallet du voyageur connecté si celui-ci n’a encore ni parrain ni utilisation de billet comptabilisée. Le parrain est notifié après le rattachement. Il reçoit le bonus de parrainage au premier billet utilisé par le filleul.
+
+## Paramètres
+
+<ParamField body="referral_code" type="string" required>
+  Code reçu du parrain, 24 caractères maximum. Les espaces périphériques et la casse sont ignorés.
+</ParamField>
+
+<RequestExample>
+
+```bash cURL
+curl -X POST 'https://staging.koraexpress.app/api/v1/wallet/referral' \
+  -H 'Authorization: Bearer <token-de-session>' \
+  -H 'Accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "referral_code": "KABCDEFG"
+}'
+```
+
+```javascript JavaScript
+const payload = {
+  "referral_code": "KABCDEFG"
+};
+const res = await fetch('https://staging.koraexpress.app/api/v1/wallet/referral', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json', 'Content-Type': 'application/json' },
+  body: JSON.stringify(payload),
+});
+const body = await res.json();
+```
+
+```typescript TypeScript
+const payload = {
+  "referral_code": "KABCDEFG"
+};
+const res = await fetch('https://staging.koraexpress.app/api/v1/wallet/referral', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json', 'Content-Type': 'application/json' },
+  body: JSON.stringify(payload),
+});
+const body: { data?: { referred_by: boolean }; errors?: { referral_code?: string[] } } = await res.json();
+const codeError = res.status === 422 ? body.errors?.referral_code?.[0] : undefined;
+```
+
+```dart Dart
+final res = await authDio.post('/api/v1/wallet/referral', data: {
+  'referral_code': 'KABCDEFG'
+});
+final data = res.data['data'];
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "data": {
+    "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e",
+    "cash_balance": 0,
+    "points_balance": 0,
+    "points_expires_at": null,
+    "referral_code": "KA1B2C3D",
+    "referred_by": true,
+    "holder": {
+      "name": "Aïcha Hounkpè",
+      "phone": "+22997000000"
+    },
+    "settings": {
+      "wallet_cash_enabled": false,
+      "wallet_points_enabled": true,
+      "point_value_fcfa": 1,
+      "points_min_spend": 100,
+      "points_expiry_months": 6,
+      "points_expiry_reminder_days": [
+        30,
+        7,
+        1
+      ],
+      "loyalty_bonuses": {
+        "welcome_points": 500,
+        "referral_points": 200,
+        "anniversary_points": 100,
+        "usage_points": 50,
+        "usage_threshold": 5
+      },
+      "topup_min_amount": null,
+      "topup_max_amount": null,
+      "cash_balance_cap": null,
+      "topup_amount_presets": [
+        2000,
+        5000,
+        10000,
+        20000
+      ],
+      "wallet_hold_ttl_minutes": 15
+    },
+    "created_at": "2026-11-07T10:00:00+00:00"
+  }
+}
+```
+
+```json 422
+{
+  "message": "Le code de parrainage doit être saisi avant la première utilisation.",
+  "errors": {
+    "referral_code": [
+      "Le code de parrainage doit être saisi avant la première utilisation."
+    ]
+  }
+}
+```
+
+```json 401
+{
+  "message": "Unauthenticated."
+}
+```
+
+</ResponseExample>
+
+## Réponse
+
+<ResponseField name="data" type="object" required>
+  Wallet mis à jour. Consultez les [champs du Wallet](/reference/wallet/overview).
+</ResponseField>
+
+<ResponseField name="data.referred_by" type="boolean" required>
+  Vaut `true` après le rattachement.
+</ResponseField>
+
+<ResponseField name="data.referral_code" type="string" required>
+  Code personnel du voyageur connecté, à partager avec ses futurs filleuls.
+</ResponseField>
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `200` | Parrain rattaché au Wallet. |
+| `401` | Jeton de session absent ou invalide. |
+| `422` | Code obligatoire, invalide, inconnu, code personnel, parrain déjà rattaché ou premier usage déjà enregistré. Le détail figure dans `errors.referral_code`. |
+
+Le mobile peut aussi [envoyer le code à l’inscription](/reference/auth/register-complete) lors de la création d’un nouveau compte.

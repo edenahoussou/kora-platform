@@ -66,6 +66,10 @@ class AuthSessionController extends Controller
      *     }
      *   }
      * }
+     * @response 422 scenario="Referral code rejected" {
+     *   "message": "Ce code de parrainage est inconnu.",
+     *   "errors": {"referral_code": ["Ce code de parrainage est inconnu."]}
+     * }
      * @response 422 scenario="Validation error" {
      *   "message": "The given data was invalid.",
      *   "errors": {"verification_token": ["The verification token is invalid or expired."]}

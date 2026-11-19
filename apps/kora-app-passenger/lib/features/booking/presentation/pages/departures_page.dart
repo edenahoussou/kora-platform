@@ -8,7 +8,7 @@ import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/date_formats.dart';
 import '../../../../core/widgets/screen_header.dart';
-import '../../domain/entities/departure.dart';
+import '../../domain/entities/itinerary.dart';
 import '../../domain/entities/price.dart';
 import '../../domain/entities/search_criteria.dart';
 import '../bloc/departures_bloc.dart';
@@ -193,7 +193,7 @@ class _ResultsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final departures = state.visibleDepartures;
+    final itineraries = state.visibleItineraries;
 
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -214,15 +214,15 @@ class _ResultsView extends StatelessWidget {
           _FiltersRecap(state: state),
         ],
         const SizedBox(height: AppSpacing.md),
-        for (final departure in departures) ...[
+        for (final itinerary in itineraries) ...[
           DepartureTile(
-            departure: departure,
+            itinerary: itinerary,
             // Seulement sur un aller-retour : un badge « Aller » solitaire
             // ferait chercher un retour qui n'existe pas.
             direction: state.criteria?.isRoundTrip ?? false
                 ? TripDirection.outbound
                 : null,
-            onTap: () => _openDeparture(context, state, departure),
+            onTap: () => _openItinerary(context, state, itinerary),
           ),
           const SizedBox(height: 10),
         ],
@@ -456,23 +456,23 @@ class _FiltersSheet extends StatelessWidget {
   }
 }
 
-/// Ouvre la suite du parcours pour le départ choisi.
+/// Ouvre la suite du parcours pour le voyage choisi.
 ///
-/// Sur un aller simple, c'est le détail du départ. Sur un aller-retour,
+/// Sur un aller simple, c'est le détail du voyage. Sur un aller-retour,
 /// c'est le choix du retour : réserver l'aller sans son retour laisserait
 /// le voyageur à mi-chemin, alors qu'il a demandé les deux.
-void _openDeparture(
+void _openItinerary(
   BuildContext context,
   DeparturesState state,
-  Departure departure,
+  Itinerary itinerary,
 ) {
   final passengers = state.criteria?.passengers ?? 1;
-  final returnDepartures = state.returnDepartures;
+  final returnItineraries = state.returnItineraries;
 
-  if (returnDepartures == null) {
+  if (returnItineraries == null) {
     context.push(
       AppRouter.departureDetailPath,
-      extra: DepartureDetailArgs(departure: departure, passengers: passengers),
+      extra: DepartureDetailArgs(itinerary: itinerary, passengers: passengers),
     );
     return;
   }
@@ -480,8 +480,8 @@ void _openDeparture(
   context.push(
     AppRouter.returnDeparturesPath,
     extra: ReturnDeparturesArgs(
-      outbound: departure,
-      departures: returnDepartures,
+      outbound: itinerary,
+      itineraries: returnItineraries,
       passengers: passengers,
       returnDate: state.criteria?.returnDate,
     ),

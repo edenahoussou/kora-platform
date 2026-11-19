@@ -1,21 +1,36 @@
 # KORA Platform
 
-Monorepo du MVP KORA BUS valide par le client. Le perimetre MVP est centre sur l'exploitation Bus de bout en bout : recherche, reservation, vente guichet, inventaire par segment, tarification dynamique, paiement, billet, fiscalisation MECeF, caisse, embarquement P501 hors ligne, GPS bus, liberation et revente de sieges.
+Monorepo de la plateforme KORA. Le MVP KORA BUS est livre et en exploitation. Le Wallet, la fidelite et le reseau KORA POINT sont egalement sortis en production ; le prochain chantier est KORA Colis interurbain.
 
-Le repo garde aussi le nommage cible de l'ecosysteme : KORA App pour les clients, KORA OPS Mobile pour les operations Bus/terrain, KORA OPS Web pour l'ERP interne, et KORA Driver plus tard pour Ride.
+## Etat du projet
+
+| Phase | Contenu | Statut |
+| --- | --- | --- |
+| 1 - KORA BUS (MVP) | Recherche, reservation, vente guichet, inventaire par segment, tarification dynamique, paiement, billet signe Ed25519, fiscalisation MECeF, caisse, embarquement P501 hors ligne, GPS bus, liberation et revente de sieges | Livre et en exploitation |
+| 2 - Wallet & fidelite | Compte voyageur, Wallet cash, points, holds, recharges Mobile Money, remboursements exclusivement en Wallet, parrainage, versions de regles de fidelite | Livre et en exploitation ; durcissement des cas limites en cours (ADR 0024 a 0026) |
+| 2 - KORA POINT | Reseau de distribution partenaire, espace partenaire web, visites terrain, PLV, commissions et reversements | Livre et en exploitation (ADR 0021 a 0023) |
+| 3 - KORA Colis | Envois interurbains hub a hub sur depart Bus direct, pesee, tarification, paiements partages, etiquette QR et code de retrait | Prochain chantier ; socle en revue sur la branche `feat/colis-socle` |
+
+Hors perimetre actuel : KORA Ride, KORA Driver, collecte et livraison a domicile (phase VTC), comptabilite SYSCOHADA complete, RH, paie et flotte avancee. Toute extension de perimetre passe par un ADR ou un ticket de changement formel, puis met ce tableau a jour.
+
+Les livraisons sont tracees par les tags `v1.0.x`. Chaque fusion sur `main` part automatiquement en staging ; la production se deploie sur tag.
 
 ## Structure
 
 - `apps/kora-ops-web`: Laravel 13, React, TypeScript et Inertia pour KORA OPS Web et l'API REST.
-- `apps/kora-app-passenger`: application Flutter client Bus dans KORA App.
+- `apps/kora-app-passenger`: application Flutter client Bus et Wallet dans KORA App.
 - `apps/kora-ops-mobile`: application Flutter Android/P501 pour chauffeur et convoyeur.
 - `packages`: contrats et packages partages.
 - `docs`: contexte, ADR, API, delivery et runbooks.
 - `infra/docker`: services locaux PostgreSQL et Redis.
 
-## MVP Exclu
+## Modules metier
 
-KORA Colis, KORA Wallet, KORA POINT, KORA Ride, KORA Driver, comptabilite SYSCOHADA complete, RH, paie et flotte avancee sont hors MVP Bus.
+Le backend est un monolithe modulaire DDD. Les modules de la plateforme vivent dans `apps/kora-ops-web/app/Modules` :
+
+- Socle Bus : `BusNetwork`, `Departures`, `SeatInventory`, `DynamicPricing`, `Booking`, `Payments`, `Ticketing`, `Fiscalization`, `Boarding`, `Cash`, `FleetLite`, `Sync`, `Tracking`.
+- Compte et distribution : `IdentityAccess`, `Passengers`, `Wallet`, `KoraPoints`, `CompanyAccounts`, `AppDistribution`.
+- Exploitation et pilotage : `AssistedBooking`, `Support`, `Notifications`, `Audit`, `Settings`, `Monitoring`, `Expenses`, `Finance`, `Profitability`, `Dashboard`.
 
 ## Demarrage local
 
@@ -27,8 +42,16 @@ cp .env.example .env
 php artisan key:generate
 php artisan migrate
 npm run build
-php artisan test
+composer test
 ```
+
+## Documentation
+
+- `CONTEXT.md`: glossaire metier et perimetre de reference.
+- `docs/adr`: decisions d'architecture et de perimetre.
+- `docs/api`: contrats API et specification OpenAPI.
+- `docs/runbooks`: deploiement, CI/CD, developpement local, releases mobiles.
+- `docs/delivery`: guides de recette et decisions de sprint.
 
 ## Signature des billets (Ed25519)
 

@@ -13,42 +13,36 @@ import '../../domain/entities/city.dart';
 ///
 /// L'API ne renvoie **ni identifiant, ni code de ville** : le nom sert de
 /// clé d'affichage, et [toEntity] en fait l'identifiant de la [City] du
-/// domaine.
+/// domaine. C'est aussi lui qui part en `from_city` / `to_city`.
 ///
-/// Depuis MEZ-63, elle rend en revanche les **arrêts physiques**, et c'est
-/// leur `uuid` que réclame `bus/itineraries`.
-///
-/// **Une ville peut en porter plusieurs, et on ne choisit pas pour le
-/// voyageur.** Retenir le premier de la liste a été tenté : il suffit
-/// qu'une ville gagne un second arrêt — doublon hérité ou vraie seconde
-/// gare — pour que l'app interroge le mauvais, et annonce « Aucun voyage
-/// ce jour-là » alors que les départs existent sur l'autre. Rien dans le
-/// contrat ne permet de préférer l'un des arrêts ; le seul à pouvoir
-/// trancher est celui qui prend le bus. Chaque arrêt devient donc sa
-/// propre entrée dans le sélecteur, nommée par sa gare.
+/// **Une entrée par ville, jamais une par arrêt.** Les arrêts physiques
+/// ont été, un temps, la clé de la recherche : une ville à deux arrêts
+/// donnait alors deux entrées dans le sélecteur, et choisir la mauvaise
+/// valait « Aucun voyage ce jour-là » alors que les départs étaient sur
+/// l'autre. Le serveur explore maintenant lui-même tous les points
+/// d'arrêt de la ville ; `physical_stops` ne sert donc plus ici qu'à
+/// savoir si la ville est desservie.
 class CityModel {
   const CityModel({
     required this.city,
     required this.country,
-    required this.stopsCount,
-    this.stops = const [],
+    this.servedStops,
   });
 
   factory CityModel.fromJson(Map<String, dynamic> json) {
-    final raw = ApiJson.list(json['physical_stops']);
-
-    final stops = [
-      for (final stop in raw)
-        if (ApiJson.stringOrNull(stop['uuid']) case final String uuid
-            when uuid.isNotEmpty)
-          CityStop(uuid: uuid, name: ApiJson.string(stop['name'])),
-    ];
+    // Absent de la réponse : on ne sait rien, et ne rien savoir ne doit
+    // pas vider le sélecteur. Présent et vide : le catalogue dit que la
+    // ville n'est desservie par aucun arrêt.
+    final stops =
+        json.containsKey('physical_stops') || json.containsKey('stops_count')
+        ? ApiJson.intOrNull(json['stops_count']) ??
+              ApiJson.list(json['physical_stops']).length
+        : null;
 
     return CityModel(
       city: ApiJson.string(json['city']),
       country: ApiJson.string(json['country']),
-      stopsCount: ApiJson.intOrNull(json['stops_count']) ?? raw.length,
-      stops: stops,
+      servedStops: stops,
     );
   }
 
@@ -58,37 +52,17 @@ class CityModel {
   /// Code pays ISO à deux lettres (`BJ`, `CI`).
   final String country;
 
-  /// Nombre d'arrêts KORA actifs dans cette ville.
-  final int stopsCount;
+  /// Nombre d'arrêts KORA desservant la ville, ou `null` quand la réponse
+  /// n'en dit rien.
+  final int? servedStops;
 
-  /// Les arrêts physiques que cette ville dessert, dans l'ordre du
-  /// serveur. Vide si le catalogue n'en rattache aucun.
-  final List<CityStop> stops;
+  /// L'entrée à proposer au voyageur, ou `null` quand il n'y en a pas :
+  /// une ville sans nom, ou que le catalogue annonce sans arrêt.
+  City? toEntity() {
+    if (city.isEmpty || servedStops == 0) return null;
 
-  /// Les entrées à proposer au voyageur : **une par arrêt physique**.
-  ///
-  /// Une ville à un seul arrêt donne une seule entrée, nommée par la ville
-  /// — c'est le cas courant, et le voyageur n'a rien à arbitrer. Une ville
-  /// à plusieurs arrêts en donne autant, chacune portant le nom de sa
-  /// gare, parce qu'elles ne mènent pas aux mêmes départs.
-  ///
-  /// Une ville sans arrêt ne donne rien : la recherche travaille sur des
-  /// arrêts, et la proposer mènerait à une impasse.
-  List<City> toEntities() => [
-    for (final stop in stops)
-      City(
-        // Deux gares d'une même ville sont deux points de départ
-        // distincts : l'identifiant doit les distinguer, sans quoi le
-        // sélecteur les confondrait.
-        id: stops.length == 1 ? city : stop.uuid,
-        name: city,
-        code: codeFor(city),
-        // Nommer la gare n'a de sens que s'il y a un choix à faire — et
-        // « Cotonou · Cotonou » n'apprend rien à personne.
-        station: stops.length == 1 || stop.name == city ? null : stop.name,
-        physicalStopId: stop.uuid,
-      ),
-  ];
+    return City(id: city, name: city, code: codeFor(city));
+  }
 
   /// Code à trois lettres affiché sur un billet (`Cotonou` → `COT`).
   ///
@@ -102,13 +76,4 @@ class CityModel {
     if (letters.isEmpty) return name.toUpperCase();
     return letters.length <= 3 ? letters : letters.substring(0, 3);
   }
-}
-
-/// Un arrêt physique du catalogue : l'identifiant qu'attend
-/// `bus/itineraries`, et le nom sous lequel le voyageur le reconnaît.
-class CityStop {
-  const CityStop({required this.uuid, required this.name});
-
-  final String uuid;
-  final String name;
 }

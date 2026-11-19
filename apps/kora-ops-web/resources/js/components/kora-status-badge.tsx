@@ -17,7 +17,7 @@ type Props = {
 };
 
 const subtleToneStyles: Record<StatusTone, string> = {
-    navy: 'text-white bg-kora dark:bg-digital/20 dark:text-digital',
+    navy: 'text-white bg-kora dark:bg-digital/20 dark:text-white',
     gold: 'text-kora bg-gold/20 dark:text-gold dark:bg-gold/15',
     blue: 'text-kora bg-digital/10 dark:text-digital dark:bg-digital/15',
     muted: 'text-muted-foreground bg-muted dark:bg-muted/40',
@@ -121,7 +121,7 @@ export function KoraStatusBadge({
     return (
         <span
             className={cn(
-                'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.5625rem] font-extrabold tracking-[0.02em]',
+                'kora-status-badge inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.5625rem] font-extrabold tracking-[0.02em]',
                 isSolid
                     ? solidToneStyles[resolvedTone]
                     : subtleToneStyles[resolvedTone],
@@ -129,7 +129,7 @@ export function KoraStatusBadge({
             )}
         >
             {icon ? (
-                <span className="shrink-0">{icon}</span>
+                <span className="shrink-0 text-inherit">{icon}</span>
             ) : (
                 <span
                     className={cn(
@@ -140,7 +140,7 @@ export function KoraStatusBadge({
                     )}
                 />
             )}
-            {content && <span>{content}</span>}
+            {content && <span className="text-inherit">{content}</span>}
         </span>
     );
 }

@@ -84,6 +84,7 @@ class PaymentFlowState extends Equatable {
     PaymentAttempt? attempt,
     Failure? failure,
     bool clearFailure = false,
+    bool clearAttempt = false,
     bool? isVerifying,
     int? round,
     String? transactionId,
@@ -91,7 +92,10 @@ class PaymentFlowState extends Equatable {
   }) {
     return PaymentFlowState(
       status: status ?? this.status,
-      attempt: attempt ?? this.attempt,
+      // Une recharge qui recommence repart sans le paiement précédent :
+      // le garder ferait prendre le verdict de l'ancienne demande pour
+      // celui de la nouvelle.
+      attempt: clearAttempt ? null : attempt ?? this.attempt,
       // `copyWith` ne sait pas remettre un champ à `null` : un nouvel
       // essai doit pouvoir effacer l'échec précédent, sinon l'écran garde
       // un message qui ne vaut plus rien.

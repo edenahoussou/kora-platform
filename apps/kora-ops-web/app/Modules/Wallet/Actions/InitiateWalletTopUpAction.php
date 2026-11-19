@@ -73,8 +73,7 @@ final class InitiateWalletTopUpAction
                 return [$active, true];
             }
 
-            if ($pending->contains(fn (WalletTopUp $candidate): bool => isset($candidate->payment->provider_payload['initiation_phase'])
-                && $candidate->payment->provider_payload['initiation_phase'] !== 'ready')) {
+            if ($pending->contains(fn (WalletTopUp $candidate): bool => $this->reconcile->blocksNewTopUp($candidate->payment))) {
                 throw new ConflictHttpException('Une recharge est en cours de vérification. Attendez son résultat avant de changer de moyen de paiement.');
             }
 
@@ -114,6 +113,8 @@ final class InitiateWalletTopUpAction
 
         if (! $replay) {
             $this->reconcile->start($topup);
+        } else {
+            $this->reconcile->resume($topup);
         }
 
         $topup->refresh()->load('payment');

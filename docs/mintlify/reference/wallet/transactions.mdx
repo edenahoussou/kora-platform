@@ -1,0 +1,144 @@
+---
+title: Consulter les transactions Wallet
+description: "Liste les écritures Wallet de la plus récente à la plus ancienne."
+api: GET /api/v1/wallet/transactions
+---
+
+Liste les écritures Wallet de la plus récente à la plus ancienne. Pour paginer, appelez `links.next` avec le jeton Bearer quand le lien est présent.
+
+## Paramètres
+
+<ParamField query="balance_type" type="string">
+  Solde à filtrer parmi `cash` et `points`.
+</ParamField>
+
+<ParamField query="direction" type="string">
+  Sens du mouvement parmi `credit` et `debit`.
+</ParamField>
+
+<ParamField query="cursor" type="string">
+  Curseur opaque fourni dans les liens de pagination.
+</ParamField>
+
+<RequestExample>
+
+```bash cURL
+curl -X GET 'https://staging.koraexpress.app/api/v1/wallet/transactions?balance_type=cash&direction=credit' \
+  -H 'Authorization: Bearer <token-de-session>' \
+  -H 'Accept: application/json'
+```
+
+```javascript JavaScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/wallet/transactions?balance_type=cash&direction=credit', {
+  method: 'GET',
+  headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
+});
+const body = await res.json();
+```
+
+```typescript TypeScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/wallet/transactions?balance_type=cash&direction=credit', {
+  method: 'GET',
+  headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
+});
+const body: { data: unknown[]; links: { next: string | null } } = await res.json();
+const nextPage = body.links.next;
+```
+
+```dart Dart
+final res = await authDio.get('/api/v1/wallet/transactions', queryParameters: {'balance_type':'cash','direction':'credit'});
+final data = res.data['data'];
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "data": [
+    {
+      "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e",
+      "balance_type": "cash",
+      "direction": "credit",
+      "amount": 5000,
+      "reason": "topup",
+      "reference": {
+        "type": "wallet_topup",
+        "uuid": "a4a5d8fd-8168-4f40-b6b5-437f97cf41f0"
+      },
+      "meta": null,
+      "created_at": "2026-11-07T10:00:00+00:00"
+    }
+  ],
+  "links": {
+    "next": null,
+    "prev": null
+  },
+  "meta": {
+    "per_page": 20
+  }
+}
+```
+
+```json 401
+{
+  "message": "Unauthenticated."
+}
+```
+
+</ResponseExample>
+
+## Réponse
+
+<ResponseField name="data" type="object[]" required>
+  Écritures Wallet.
+</ResponseField>
+
+<ResponseField name="data[].uuid" type="UUID">
+  Identifiant de l’écriture.
+</ResponseField>
+
+<ResponseField name="data[].balance_type" type="string">
+  Solde cash ou points.
+</ResponseField>
+
+<ResponseField name="data[].direction" type="string">
+  Crédit ou débit.
+</ResponseField>
+
+<ResponseField name="data[].amount" type="integer">
+  Montant de l’écriture en FCFA pour le cash ou en points pour la fidélité.
+</ResponseField>
+
+<ResponseField name="data[].reason" type="string">
+  Motif du mouvement, par exemple `topup` ou `bonus_referral`.
+</ResponseField>
+
+<ResponseField name="data[].reference" type="object">
+  Type et UUID public de la ressource source, si disponibles.
+</ResponseField>
+
+<ResponseField name="data[].meta" type="object">
+  Informations complémentaires ou `null`.
+</ResponseField>
+
+<ResponseField name="data[].created_at" type="string">
+  Horodatage de l’écriture au format ISO 8601.
+</ResponseField>
+
+<ResponseField name="links" type="object">
+  Liens `next` et `prev` de pagination.
+</ResponseField>
+
+<ResponseField name="meta.per_page" type="integer">
+  Taille de page, fixée à 20.
+</ResponseField>
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `200` | Page de transactions retournée. |
+| `401` | Jeton de session absent ou invalide. |
+| `422` | Valeur non reconnue pour un filtre. |

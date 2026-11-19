@@ -40,14 +40,22 @@ class PaymentRemoteDataSource {
     required String idempotencyKey,
     String? network,
     String? phone,
+    int? walletAmount,
+    int? pointsAmount,
   }) async {
     final response = await _dio.post<dynamic>(
       ApiConstants.paymentInitiate,
       data: {
         'reservation_uuid': reservationId,
         'method': method,
-        'provider': provider,
+        // `wallet` n'a pas d'encaisseur : le serveur refuse un provider
+        // sur un paiement que le solde règle en entier.
+        'provider': ?(provider.isEmpty ? null : provider),
         'idempotency_key': idempotencyKey,
+        // Omis quand ils sont nuls : le serveur distingue « pas de
+        // Wallet dans ce paiement » de « zéro franc de Wallet ».
+        'wallet_amount': ?walletAmount,
+        'points_amount': ?pointsAmount,
         // Le réseau et le numéro ne valent que pour un encaisseur qui
         // pousse la demande lui-même. KKiaPay les recueille dans son
         // widget, et la carte n'en a pas : le serveur les refuse alors
@@ -82,6 +90,21 @@ class PaymentRemoteDataSource {
   /// l'interrogeant chez KKiaPay : la réponse du widget ne vaut rien par
   /// elle-même. La liaison est définitive côté serveur — un identifiant
   /// divergent sur un paiement déjà lié est rejeté (422).
+  /// Abandonne un paiement encore en vol.
+  ///
+  /// Sans ça, une demande laissée en attente verrouille son montant :
+  /// la clé d'idempotence rend la même demande à chaque essai, et le
+  /// voyageur ne peut ni la payer ni en ouvrir une autre.
+  Future<PaymentAttempt> cancel(String paymentId) async {
+    final response = await _dio.post<dynamic>(
+      ApiConstants.paymentCancel(paymentId),
+    );
+
+    return PaymentAttemptModel.fromJson(
+      ApiJson.map(_payload(response.data)),
+    ).toEntity();
+  }
+
   Future<PaymentAttempt> verify(
     String paymentId, {
     String? transactionId,

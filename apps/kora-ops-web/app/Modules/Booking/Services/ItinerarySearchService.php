@@ -3,6 +3,7 @@
 namespace App\Modules\Booking\Services;
 
 use App\Modules\Booking\Models\ReservationSegment;
+use App\Modules\BusNetwork\Actions\FindOrCreatePhysicalStopAction;
 use App\Modules\BusNetwork\Data\StopStatus;
 use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\Line;
@@ -291,6 +292,65 @@ class ItinerarySearchService
         }
 
         return $this->sortItinerariesBy($itineraries, $sortBy ?? 'connections', $sortDirection);
+    }
+
+    /**
+     * Active physical stops of a city, compared case- and accent-insensitively.
+     *
+     * @return list<string>
+     */
+    public function physicalStopUuidsForCity(string $city): array
+    {
+        $normalized = FindOrCreatePhysicalStopAction::normalize($city);
+
+        $uuids = [];
+
+        /** @var PhysicalStop $stop */
+        foreach (PhysicalStop::query()->where('status', 'active')->whereNotNull('city')->get(['uuid', 'city']) as $stop) {
+            if (FindOrCreatePhysicalStopAction::normalize((string) $stop->city) === $normalized) {
+                $uuids[] = (string) $stop->uuid;
+            }
+        }
+
+        return $uuids;
+    }
+
+    /**
+     * Runs the search for every origin/destination stop pair and merges deduplicated results.
+     *
+     * @param  list<string>  $originUuids
+     * @param  list<string>  $destinationUuids
+     * @return list<ItineraryData>
+     */
+    public function searchBetweenStops(
+        array $originUuids,
+        array $destinationUuids,
+        CarbonImmutable $date,
+        int $passengerCount = 1,
+        ?string $sortBy = null,
+        string $sortDirection = 'asc',
+        ?string $serviceClassCode = null,
+        ?int $upcomingDays = null,
+    ): array {
+        $merged = [];
+
+        foreach ($originUuids as $originUuid) {
+            foreach ($destinationUuids as $destinationUuid) {
+                if ($originUuid === $destinationUuid) {
+                    continue;
+                }
+
+                $results = $upcomingDays !== null
+                    ? $this->searchUpcoming($originUuid, $destinationUuid, $date, $upcomingDays, $passengerCount, $sortBy, $sortDirection, $serviceClassCode)
+                    : $this->search($originUuid, $destinationUuid, $date, $passengerCount, $sortBy, $sortDirection, $serviceClassCode);
+
+                foreach ($results as $itinerary) {
+                    $merged[$this->itineraryKey($itinerary)] ??= $itinerary;
+                }
+            }
+        }
+
+        return $this->sortItinerariesBy(array_values($merged), $sortBy ?? 'connections', $sortDirection);
     }
 
     /**
@@ -671,31 +731,22 @@ class ItinerarySearchService
         // The DB query result is the same for the same (lineIds, date) pair.
         // The earliestDeparture filter is applied in PHP below, so we can
         // cache the raw query result and re-filter per recursive call.
-        // We query two days (date and date+1) to allow overnight connections
-        // where the first leg arrives after midnight and the connecting leg
-        // departs the next morning.
+        // Load window = configured search days around the date: covers
+        // multi-day trips still on the road and connecting legs on date+2+.
         $cacheKey = md5(implode(',', $lineIds).'|'.$date->toDateString());
 
         if (! isset($this->departuresCache[$cacheKey])) {
+            $windowDays = max(1, min(30, app(OperationsSettings::class)->defaultSearchDays));
+
             // Query only the departures table — lines, buses, and their
             // relations are loaded once via preloadNetworkData and attached
             // manually, avoiding repeated eager-load queries across days.
             $departures = Departure::query()
-                ->whereDate('departure_date', $date)
+                ->whereDate('departure_date', '>=', $date->subDays($windowDays))
+                ->whereDate('departure_date', '<=', $date->addDays($windowDays))
                 ->where('status', DepartureStatus::Scheduled->value)
                 ->whereIn('line_id', $lineIds)
                 ->get();
-
-            // Also load departures for the next day to support overnight
-            // connections within the max-wait window.
-            $nextDay = $date->addDay();
-            $nextDayDepartures = Departure::query()
-                ->whereDate('departure_date', $nextDay)
-                ->where('status', DepartureStatus::Scheduled->value)
-                ->whereIn('line_id', $lineIds)
-                ->get();
-
-            $departures = $departures->merge($nextDayDepartures);
 
             $this->preloadNetworkData($departures);
 

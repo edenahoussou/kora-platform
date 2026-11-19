@@ -7,6 +7,8 @@ import 'package:kora_app_passenger/core/constants/api_constants.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_mock_data.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/reservation_remote_data_source.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/itinerary.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/journey.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/price.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/search_criteria.dart';
 import 'package:mocktail/mocktail.dart';
@@ -76,7 +78,7 @@ void main() {
     stubQuote(code: 'TEST2000');
 
     final quote = await dataSource.groupQuote(
-      departure: departure,
+      journey: Journey(outbound: Itinerary.direct(departure)),
       passengers: 1,
       promoCode: 'TEST2000',
     );
@@ -92,7 +94,7 @@ void main() {
     stubQuote();
 
     final quote = await dataSource.groupQuote(
-      departure: departure,
+      journey: Journey(outbound: Itinerary.direct(departure)),
       passengers: 1,
     );
 

@@ -116,6 +116,8 @@ class _CreatePinPageState extends State<CreatePinPage> {
 
     setState(() => _error = null);
 
+    // Le code de parrainage voyage dans le parcours depuis le
+    // formulaire : cet écran n'a que le PIN à donner.
     context.read<AuthFlowBloc>().add(AuthFlowPinSubmitted(_pin));
     widget.onSubmit?.call(_pin);
   }
@@ -163,6 +165,27 @@ class _CreatePinPageState extends State<CreatePinPage> {
                       builder: (context, flow) => Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
+                          // Le code de parrainage a été saisi au
+                          // formulaire, mais c'est ici qu'il se rattache
+                          // — et ici que le serveur peut le refuser. Le
+                          // renvoyer au formulaire redemanderait un code
+                          // OTP ; on propose donc de terminer sans lui,
+                          // ce que le Wallet rattrapera tant que le
+                          // voyageur n'a pas voyagé.
+                          if (flow.referralError.isNotEmpty) ...[
+                            _RefusedReferral(
+                              message: flow.referralError,
+                              onContinue: flow.isSubmitting
+                                  ? null
+                                  : () => context.read<AuthFlowBloc>().add(
+                                      AuthFlowPinSubmitted(
+                                        _pin,
+                                        withReferralCode: false,
+                                      ),
+                                    ),
+                            ),
+                            const SizedBox(height: 12),
+                          ],
                           KoraButton(
                             label: 'Continuer',
                             isLoading: flow.isSubmitting,
@@ -211,6 +234,59 @@ class _CreatePinPageState extends State<CreatePinPage> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Le code de parrainage refusé par le serveur, au moment de créer le
+/// compte.
+///
+/// Le voyageur l'a saisi au formulaire, deux écrans plus tôt, et il ne
+/// peut pas y retourner sans redemander un code OTP. On lui dit ce que
+/// le serveur reproche au code — ses messages sont écrits pour lui —
+/// et on lui laisse terminer sans. Le Wallet rattrape le parrainage
+/// tant qu'aucun billet n'a été utilisé.
+class _RefusedReferral extends StatelessWidget {
+  const _RefusedReferral({required this.message, required this.onContinue});
+
+  final String message;
+  final VoidCallback? onContinue;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
+    return KoraCard(
+      variant: KoraCardVariant.mist,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.info_outline_rounded,
+                size: 18,
+                color: AppColors.gold,
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  message,
+                  style: AppTextStyles.body(context.koraColors.textMuted),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          KoraButton(
+            label: l10n.signupReferralSkip,
+            variant: KoraButtonVariant.secondary,
+            onPressed: onContinue,
+          ),
+        ],
       ),
     );
   }

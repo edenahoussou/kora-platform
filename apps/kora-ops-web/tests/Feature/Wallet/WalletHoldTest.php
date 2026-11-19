@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Booking\Actions\ExpireSeatHoldsAction;
 use App\Modules\Payments\Actions\ConfirmPaymentAction;
 use App\Modules\Payments\Actions\InitiatePaymentAction;
 use App\Modules\Payments\Data\PaymentStatus;
@@ -194,10 +195,12 @@ it('freezes the point rate in the purchase and does not issue an underfunded tic
     $settings->pointValueFcfa = 4;
     $settings->save();
     $this->travel(30)->minutes();
+    app(ExpireSeatHoldsAction::class)->handle();
     app(ReleaseExpiredWalletHoldsAction::class)->handle();
     $updated = app(ConfirmPaymentAction::class)->handle($payment, 'success', 'late-receipt');
-    expect($updated->status)->toBe(PaymentStatus::Pending)
-        ->and($updated->failure_code)->toBe('wallet_hold_unavailable')
+    expect($updated->status)->toBe(PaymentStatus::Confirmed)
+        ->and($updated->failure_code)->toBe('booking_expired_settled_to_wallet')
         ->and($scenario['wallet']->fresh()->points_balance)->toBe(1000)
-        ->and($scenario['reservation']->fresh()->status->value)->toBe('held');
+        ->and($scenario['wallet']->fresh()->cash_balance)->toBe(12000)
+        ->and($scenario['reservation']->fresh()->status->value)->toBe('expired');
 });

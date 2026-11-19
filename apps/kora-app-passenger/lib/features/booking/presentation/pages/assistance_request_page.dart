@@ -12,10 +12,9 @@ import '../../../../core/widgets/screen_header.dart';
 import '../../../../core/widgets/section_title.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../domain/entities/assisted_booking.dart';
-import '../../domain/entities/departure.dart';
 import '../../domain/entities/group_quote.dart';
+import '../../domain/entities/journey.dart';
 import '../../domain/entities/passenger.dart';
-import '../../domain/entities/seat.dart';
 import '../bloc/assistance_cubits.dart';
 import '../bloc/group_payer_cubit.dart';
 import '../bloc/seat_hold_bloc.dart';
@@ -28,20 +27,19 @@ import 'assistance_status_page.dart';
 /// réservation.
 class AssistanceArgs {
   const AssistanceArgs({
-    required this.departure,
+    required this.journey,
     required this.passengers,
     this.quote,
-    this.returnDeparture,
-    this.returnSeats,
   });
 
-  final Departure departure;
+  /// Le voyage entier, sièges compris : l'agence reprend la réservation
+  /// telle qu'elle a été composée, correspondances et retour inclus.
+  final Journey journey;
+
   final List<Passenger> passengers;
 
   /// Le devis affiché au récapitulatif, code promo compris.
   final GroupQuote? quote;
-  final Departure? returnDeparture;
-  final List<Seat>? returnSeats;
 }
 
 /// Confier la réservation à un agent KORA (MEZ-81) : le voyageur choisit
@@ -137,11 +135,9 @@ class _RequestViewState extends State<_RequestView> {
     // gardée : seuls les voyageurs repartent.
     holdBloc.add(
       SeatHoldCheckoutRequested(
-        departure: args.departure,
+        journey: args.journey,
         passengers: args.passengers,
         quote: args.quote,
-        returnDeparture: args.returnDeparture,
-        returnSeats: args.returnSeats,
         payer: context.read<GroupPayerCubit>().state.payer,
       ),
     );
@@ -171,28 +167,23 @@ class _RequestViewState extends State<_RequestView> {
             : booking.reservationId,
         reference: booking.reference,
         sentAt: DateTime.now(),
-        origin: args.departure.line.origin.name,
-        destination: args.departure.line.destination.name,
-        departsAt: args.departure.departsAt,
+        origin: args.journey.outbound.origin.name,
+        destination: args.journey.outbound.destination.name,
+        departsAt: args.journey.outbound.departsAt,
         // Nulle à l'envoi : personne n'a encore pris le dossier. L'écran
         // de suivi la nommera dès que le réseau l'aura affectée.
         agencyName: booking.agency?.name,
+        // Un siège par voyageur et par tronçon, sous le `leg_order` du
+        // blocage : l'agence reprend le dossier avec toutes ses places.
         seats: [
-          for (final (index, passenger) in args.passengers.indexed)
-            AssistanceSeat(
-              passengerIndex: index,
-              legOrder: 1,
-              seatId: passenger.seat.id,
-              label: passenger.seat.label,
-            ),
-          // Le retour sous le `leg_order` 2, comme au blocage.
-          for (final (index, seat) in (args.returnSeats ?? const []).indexed)
-            AssistanceSeat(
-              passengerIndex: index,
-              legOrder: 2,
-              seatId: seat.id,
-              label: seat.label,
-            ),
+          for (final (leg, seats) in args.journey.seatsByLeg.indexed)
+            for (final (index, seat) in seats.indexed)
+              AssistanceSeat(
+                passengerIndex: index,
+                legOrder: leg + 1,
+                seatId: seat.id,
+                label: seat.label,
+              ),
         ],
       ),
     );

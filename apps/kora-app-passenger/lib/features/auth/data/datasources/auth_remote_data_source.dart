@@ -70,6 +70,7 @@ abstract class AuthRemoteDataSource {
     String? email,
     String? phone,
     String? countryCode,
+    String? referralCode,
   });
 
   Future<LoginOutcome> login({
@@ -157,6 +158,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     String? email,
     String? phone,
     String? countryCode,
+    String? referralCode,
   }) async {
     final response = await _post(ApiConstants.registerComplete, {
       'otp_challenge_uuid': verification.challengeUuid,
@@ -171,6 +173,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       if (phone != null && phone.isNotEmpty) 'phone': phone,
       if (countryCode != null && countryCode.isNotEmpty)
         'country_code': countryCode,
+      // Le code de parrainage ne part qu'à la création d'un compte : sur
+      // l'activation d'un compte préexistant, le serveur le refuse et
+      // c'est toute l'inscription qui échoue. Les espaces et la casse,
+      // lui, il les ignore.
+      if (referralCode != null && referralCode.isNotEmpty)
+        'referral_code': referralCode,
       // Le serveur valide le PIN avec la règle `confirmed` de Laravel :
       // sans `pin_confirmation` identique, il répond 422 « La confirmation
       // du PIN ne correspond pas. ». L'écran fait déjà saisir le code deux

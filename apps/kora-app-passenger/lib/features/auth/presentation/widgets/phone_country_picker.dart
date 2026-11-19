@@ -18,7 +18,6 @@ import '../../domain/entities/phone_country.dart';
 ///
 /// Rend `null` si la feuille est refermée sans choix.
 Future<PhoneCountry?> pickPhoneCountry(BuildContext context) {
-  final koraColors = context.koraColors;
   final completer = Completer<PhoneCountry?>();
 
   showCountryPicker(
@@ -30,30 +29,8 @@ Future<PhoneCountry?> pickPhoneCountry(BuildContext context) {
     useSafeArea: true,
     // Les corridors desservis remontent en tête : c'est là que se
     // trouvent la quasi-totalité des passagers.
-    favorite: const ['BJ', 'TG', 'NG', 'NE', 'BF', 'CI', 'GH', 'SN', 'ML'],
-    countryListTheme: CountryListThemeData(
-      backgroundColor: koraColors.surface,
-      textStyle: AppTextStyles.body(koraColors.textPrimary),
-      searchTextStyle: AppTextStyles.body(koraColors.textPrimary),
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      inputDecoration: InputDecoration(
-        hintText: MaterialLocalizations.of(context).searchFieldLabel,
-        hintStyle: AppTextStyles.body(koraColors.textMuted),
-        prefixIcon: Icon(Icons.search_rounded, color: koraColors.textMuted),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: koraColors.line),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: koraColors.line),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.gold),
-        ),
-      ),
-    ),
+    favorite: _corridors,
+    countryListTheme: _listTheme(context),
     onSelect: (country) => completer.complete(
       PhoneCountry.beyond(
         code: '+${country.phoneCode}',
@@ -70,6 +47,125 @@ Future<PhoneCountry?> pickPhoneCountry(BuildContext context) {
   );
 
   return completer.future;
+}
+
+/// Les pays desservis par KORA, épinglés en tête des deux feuilles.
+const _corridors = ['BJ', 'TG', 'NG', 'NE', 'BF', 'CI', 'GH', 'SN', 'ML'];
+
+/// L'habillage KORA de la feuille du paquet, le même pour l'indicatif et
+/// pour la nationalité : deux listes de pays qui ne se ressembleraient
+/// pas se remarqueraient dans le même formulaire.
+CountryListThemeData _listTheme(BuildContext context) {
+  final koraColors = context.koraColors;
+
+  return CountryListThemeData(
+    backgroundColor: koraColors.surface,
+    textStyle: AppTextStyles.body(koraColors.textPrimary),
+    searchTextStyle: AppTextStyles.body(koraColors.textPrimary),
+    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+    inputDecoration: InputDecoration(
+      hintText: MaterialLocalizations.of(context).searchFieldLabel,
+      hintStyle: AppTextStyles.body(koraColors.textMuted),
+      prefixIcon: Icon(Icons.search_rounded, color: koraColors.textMuted),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: koraColors.line),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: koraColors.line),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.gold),
+      ),
+    ),
+  );
+}
+
+/// Le pays d'une nationalité déclarée.
+class NationalityChoice {
+  const NationalityChoice({required this.code, required this.name});
+
+  /// Code ISO 3166-1 alpha-2 (`BJ`, `MA`). C'est exactement ce
+  /// qu'attend `passengers[].nationality` : deux caractères, ni plus
+  /// ni moins.
+  final String code;
+
+  /// Le nom du pays, pour l'affichage seul.
+  final String name;
+}
+
+/// Ouvre la liste complète des pays pour déclarer une nationalité.
+///
+/// Le menu déroulant d'origine n'en proposait que quatre — celles des
+/// pays que traverse le réseau. Mais la nationalité d'un voyageur n'a
+/// rien à voir avec le trajet qu'il achète : un passager marocain
+/// montant à Cotonou ne pouvait tout simplement pas déclarer la
+/// sienne, et la liste lui en imposait une autre.
+///
+/// Rend `null` si la feuille est refermée sans choix.
+Future<NationalityChoice?> pickNationality(BuildContext context) {
+  final completer = Completer<NationalityChoice?>();
+
+  showCountryPicker(
+    context: context,
+    useSafeArea: true,
+    favorite: _corridors,
+    countryListTheme: _listTheme(context),
+    onSelect: (country) => completer.complete(
+      NationalityChoice(
+        code: country.countryCode,
+        name: country.displayNameNoCountryCode,
+      ),
+    ),
+    onClosed: () {
+      if (!completer.isCompleted) completer.complete(null);
+    },
+  );
+
+  return completer.future;
+}
+
+/// Le nom du pays d'un code ISO déjà enregistré (`BJ` → `Bénin`).
+///
+/// Dans la langue de l'app quand le paquet la connaît, sinon le nom
+/// d'origine — et en dernier recours le code lui-même, qui vaut mieux
+/// qu'un champ vide là où le voyageur a bel et bien choisi.
+String nationalityName(BuildContext context, String code) {
+  if (code.isEmpty) return '';
+
+  return CountryLocalizations.of(context)?.countryName(countryCode: code) ??
+      CountryService().findByCode(code)?.displayNameNoCountryCode ??
+      code;
+}
+
+/// Retrouve l'indicatif d'un `country_code` enregistré, hors corridors
+/// compris.
+///
+/// `PhoneCountry.fromCode` ne connaît que les onze du catalogue et rend
+/// le Bénin pour tout le reste : le titulaire joignable au `+212`
+/// voyait son propre numéro reparaitre sous un drapeau béninois, et la
+/// règle des dix chiffres s'y appliquer. Ici le paquet fournit le
+/// drapeau et le nom, et [PhoneCountry.beyond] renonce à juger la
+/// longueur du numéro.
+PhoneCountry phoneCountryOf(String? dialCode) {
+  final code = dialCode?.trim() ?? '';
+  if (code.isEmpty) return PhoneCountry.benin;
+
+  for (final country in PhoneCountry.all) {
+    if (country.code == code) return country;
+  }
+
+  final found = CountryService().findByPhoneCode(code.replaceAll('+', ''));
+  if (found == null) return PhoneCountry.benin;
+
+  return PhoneCountry.beyond(
+    code: '+${found.phoneCode}',
+    flag: found.flagEmoji,
+    name: found.displayNameNoCountryCode,
+    example: found.example,
+  );
 }
 
 /// La liste des pays traduite, chargée sans faire attendre l'écran.

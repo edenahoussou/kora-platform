@@ -117,3 +117,15 @@ it('carries the partial point refund remainder at the frozen rate and never turn
     expect($second['points'])->toBe(2)->and($second['cash'])->toBe(0)
         ->and($scenario['wallet']->fresh()->points_balance)->toBe(3);
 });
+
+it('refunds the exact amount of a partial refund at the 1:1 point rate', function (): void {
+    $scenario = walletScenario(['total' => 10000]);
+    $payment = walletConfirmedPayment($scenario['reservation']);
+    $payment->update(['wallet_funding' => WalletPurchaseFunding::purchase(10000, 0, 3000, 1)->toArray()]);
+
+    $refund = app(RouteRefundToWalletAction::class)->handle($scenario['reservation'], $payment, 3333, 'partial-1:1');
+
+    expect($refund['points'])->toBe(999)
+        ->and($refund['cash'])->toBe(2334)
+        ->and($refund['points'] + $refund['cash'])->toBe(3333);
+});

@@ -271,10 +271,10 @@ class _CityTile extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 2),
+                  // Toujours « Arrêt KORA » : la liste ne montre que des
+                  // villes, et c'est le serveur qui choisit l'arrêt.
                   Text(
-                    city.station == null
-                        ? context.l10n.cityPickerStop
-                        : context.l10n.cityPickerStation,
+                    context.l10n.cityPickerStop,
                     style: TextStyle(color: koraColors.textMuted, fontSize: 9),
                   ),
                 ],

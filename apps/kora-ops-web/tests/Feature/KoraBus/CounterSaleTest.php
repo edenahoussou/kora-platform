@@ -482,6 +482,32 @@ it('denies delay recording without departure management permission', function ()
 /**
  * @return array<string, mixed>
  */
+it('returns purchased stop schedules to the basket without changing the search date', function (int $days): void {
+    $scenario = counterSaleScenario();
+    $scenario['departure']->update([
+        'departure_timezone' => 'Africa/Porto-Novo',
+        'scheduled_at' => Carbon::parse('2026-08-20 08:00', 'Africa/Porto-Novo'),
+        'stop_times' => [
+            ['stop_uuid' => $scenario['origin']->uuid, 'departure_minutes' => $days * 1440 + 90, 'timezone' => 'Africa/Accra'],
+            ['stop_uuid' => $scenario['destination']->uuid, 'arrival_minutes' => $days * 1440 + 1140, 'timezone' => 'Africa/Porto-Novo'],
+        ],
+    ]);
+    $reservation = createCounterSaleHold($this, $scenario);
+    $boarding = Carbon::parse('2026-08-20 08:30', 'Africa/Accra')->addDays($days)->toIso8601String();
+    $arrival = Carbon::parse('2026-08-21 03:00', 'Africa/Porto-Novo')->addDays($days)->toIso8601String();
+
+    $this->actingAs($scenario['agent'])
+        ->get(route('sale', counterSaleContext($scenario) + ['reservation_uuid' => $reservation->uuid]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page): Assert => $page
+            ->where('search.date', '2026-08-20')
+            ->where('reservation.segments.0.departureAt', $boarding)
+            ->where('reservation.segments.0.arrivalAt', $arrival)
+            ->where('reservation.segments.0.departureTimezone', 'Africa/Accra')
+            ->where('itineraryQuote.legs.0.departureAt', $boarding)
+        );
+})->with([0, 1, 2]);
+
 function counterSaleScenario(): array
 {
     $agent = User::factory()->create();

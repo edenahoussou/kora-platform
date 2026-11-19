@@ -11,6 +11,7 @@ import 'package:kora_app_passenger/features/booking/data/datasources/booking_moc
 import 'package:kora_app_passenger/features/booking/domain/entities/company_account.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/group_quote.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/itinerary.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/price.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/search_criteria.dart';
 import 'package:kora_app_passenger/features/booking/presentation/bloc/group_payer_cubit.dart';
@@ -97,7 +98,10 @@ void main() {
       await pumpInFunnel(
         tester,
         GroupBookingPage(
-          args: GroupBookingArgs(departure: departure, passengers: 5),
+          args: GroupBookingArgs(
+            itinerary: Itinerary.direct(departure),
+            passengers: 5,
+          ),
         ),
       );
 
@@ -116,7 +120,10 @@ void main() {
       await pumpInFunnel(
         tester,
         GroupBookingPage(
-          args: GroupBookingArgs(departure: departure, passengers: 5),
+          args: GroupBookingArgs(
+            itinerary: Itinerary.direct(departure),
+            passengers: 5,
+          ),
         ),
         repository: repository,
       );
@@ -132,7 +139,10 @@ void main() {
       await pumpInFunnel(
         tester,
         GroupBookingPage(
-          args: GroupBookingArgs(departure: departure, passengers: 5),
+          args: GroupBookingArgs(
+            itinerary: Itinerary.direct(departure),
+            passengers: 5,
+          ),
         ),
       );
 
@@ -157,7 +167,10 @@ void main() {
       await pumpInFunnel(
         tester,
         GroupBookingPage(
-          args: GroupBookingArgs(departure: departure, passengers: 5),
+          args: GroupBookingArgs(
+            itinerary: Itinerary.direct(departure),
+            passengers: 5,
+          ),
         ),
         repository: StubReservationRepository(
           failure: const ServerFailure('Devis indisponible.'),
@@ -177,7 +190,10 @@ void main() {
       await pumpInFunnel(
         tester,
         GroupBookingPage(
-          args: GroupBookingArgs(departure: departure, passengers: 5),
+          args: GroupBookingArgs(
+            itinerary: Itinerary.direct(departure),
+            passengers: 5,
+          ),
         ),
       );
 
@@ -203,7 +219,10 @@ void main() {
       await pumpInFunnel(
         tester,
         GroupBookingPage(
-          args: GroupBookingArgs(departure: departure, passengers: 5),
+          args: GroupBookingArgs(
+            itinerary: Itinerary.direct(departure),
+            passengers: 5,
+          ),
         ),
         payer: GroupPayerCubit(repository),
       );
@@ -258,7 +277,7 @@ void main() {
           withSeatHold(
             GroupDiscountPage(
               args: GroupDiscountArgs(
-                departure: departure,
+                itinerary: Itinerary.direct(departure),
                 passengers: passengers,
               ),
             ),

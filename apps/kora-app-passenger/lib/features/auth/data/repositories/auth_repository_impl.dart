@@ -67,6 +67,7 @@ class AuthRepositoryImpl implements AuthRepository {
     String? email,
     String? phone,
     String? countryCode,
+    String? referralCode,
   }) => _attempt(() async {
     final session = await _remote.completeRegistration(
       verification: verification,
@@ -76,6 +77,7 @@ class AuthRepositoryImpl implements AuthRepository {
       email: email,
       phone: phone,
       countryCode: countryCode,
+      referralCode: referralCode,
     );
 
     // Enregistrée tout de suite : l'écran suivant part du principe que la
@@ -242,9 +244,7 @@ class AuthRepositoryImpl implements AuthRepository {
     return switch (status) {
       401 => AuthFailure(message ?? 'Identifiants incorrects.'),
       403 => AuthFailure(message ?? 'Accès refusé.'),
-      422 => ValidationFailure(
-        message ?? 'Les données saisies sont invalides.',
-      ),
+      422 => _invalidInput(error, message),
       // 409 : l'identifiant porte déjà un compte avec PIN. Un type à
       // part lui aussi : l'écran d'inscription mène alors à la
       // connexion, au lieu de laisser retaper la même adresse.
@@ -262,6 +262,42 @@ class AuthRepositoryImpl implements AuthRepository {
       ),
       _ => ServerFailure(message ?? 'Une erreur est survenue.'),
     };
+  }
+
+  /// Un 422 qui ne porte que sur un champ : on retient son nom pour
+  /// que l'écran pose le message sous le champ fautif.
+  ///
+  /// C'est le cas d'un code de parrainage refusé à l'inscription — le
+  /// serveur écrit la raison dans `errors.referral_code`. Dès que
+  /// plusieurs champs sont en cause, aucun ne peut la porter seul : on
+  /// retombe sur le message général.
+  static ValidationFailure _invalidInput(DioException error, String? message) {
+    final refused = _singleFieldOf(error);
+
+    return ValidationFailure(
+      refused?.message ?? message ?? 'Les données saisies sont invalides.',
+      field: refused?.name,
+    );
+  }
+
+  static ({String name, String message})? _singleFieldOf(DioException error) {
+    final data = error.response?.data;
+    if (data is! Map) return null;
+
+    final errors = data['errors'];
+    if (errors is! Map || errors.length != 1) return null;
+
+    final name = errors.keys.first;
+    final messages = errors.values.first;
+    if (name is! String) return null;
+
+    // Laravel liste les messages d'un champ ; une chaîne seule reste
+    // acceptée, des API maison en renvoient.
+    final first = messages is List
+        ? (messages.isEmpty ? null : messages.first)
+        : messages;
+
+    return first is String ? (name: name, message: first) : null;
   }
 
   /// Traduit un code métier de l'API en `Failure`.

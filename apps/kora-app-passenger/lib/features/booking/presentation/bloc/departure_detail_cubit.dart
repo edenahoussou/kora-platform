@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../domain/entities/departure.dart';
+import '../../domain/entities/itinerary.dart';
 import '../../domain/entities/line_stop.dart';
 import '../../domain/repositories/booking_repository.dart';
 
@@ -22,29 +22,38 @@ import '../../domain/repositories/booking_repository.dart';
 /// priverait le voyageur d'informations qu'il avait déjà sous les yeux.
 class DepartureDetailCubit extends Cubit<DepartureDetailState> {
   DepartureDetailCubit({
-    required Departure departure,
+    required Itinerary itinerary,
     required BookingRepository repository,
   }) : _repository = repository, // ignore: prefer_initializing_formals
-       super(DepartureDetailState(departure: departure));
+       super(DepartureDetailState(itinerary: itinerary));
 
   final BookingRepository _repository;
 
-  /// Charge les arrêts de la ligne — `GET bus/lines/{uuid}`.
+  /// Charge les arrêts de chaque ligne du voyage —
+  /// `GET bus/lines/{uuid}`.
   ///
-  /// Ils ne viennent pas avec le départ : `bus/itineraries` décrit le
-  /// trajet demandé, pas la ligne entière. Un échec est silencieux, comme
-  /// le reste de cet écran : la section « Les étapes » se tait, et tout ce
-  /// qui est déjà affiché reste utilisable.
+  /// Ils ne viennent pas avec l'itinéraire : `bus/itineraries` décrit le
+  /// trajet demandé, pas la ligne entière. Une correspondance emprunte
+  /// deux lignes, donc deux appels — chacun pour son tronçon, parce que
+  /// les étapes de l'un n'apprennent rien sur l'autre.
+  ///
+  /// Un échec est silencieux, comme le reste de cet écran : la section
+  /// « Les étapes » se tait pour cette ligne-là, et tout ce qui est déjà
+  /// affiché reste utilisable.
   Future<void> loadStops() async {
-    final lineId = state.departure.line.id;
-    if (lineId.isEmpty) return;
+    for (final leg in state.itinerary.legs) {
+      final lineId = leg.line.id;
+      if (lineId.isEmpty || state.stopsByLine.containsKey(lineId)) continue;
 
-    final result = await _repository.getLineStops(lineId);
-
-    result.fold((_) {}, (stops) {
+      final result = await _repository.getLineStops(lineId);
       if (isClosed) return;
-      emit(state.copyWith(stops: stops));
-    });
+
+      result.fold((_) {}, (stops) {
+        emit(
+          state.copyWith(stopsByLine: {...state.stopsByLine, lineId: stops}),
+        );
+      });
+    }
   }
 
   /// Rafraîchit le départ affiché.
@@ -65,19 +74,22 @@ class DepartureDetailCubit extends Cubit<DepartureDetailState> {
 
 class DepartureDetailState extends Equatable {
   const DepartureDetailState({
-    required this.departure,
-    this.stops = const [],
+    required this.itinerary,
+    this.stopsByLine = const {},
     this.isRefreshing = false,
     this.isStale = false,
   });
 
-  /// Ce que l'écran affiche : le départ de la liste au départ, celui du
-  /// serveur une fois rechargé.
-  final Departure departure;
+  /// Ce que l'écran affiche : le voyage choisi dans la liste.
+  final Itinerary itinerary;
 
-  /// Les arrêts de la ligne, dans l'ordre. Vide tant qu'ils n'ont pas
-  /// été chargés, et vide pour de bon si la ligne n'en publie aucun.
-  final List<LineStop> stops;
+  /// Les arrêts de chaque ligne empruntée, par identifiant de ligne.
+  /// Absente tant qu'elle n'a pas été chargée, vide quand la ligne n'en
+  /// publie aucun.
+  final Map<String, List<LineStop>> stopsByLine;
+
+  /// Les arrêts de la ligne d'un tronçon, dans l'ordre.
+  List<LineStop> stopsOf(String lineId) => stopsByLine[lineId] ?? const [];
 
   final bool isRefreshing;
 
@@ -86,20 +98,20 @@ class DepartureDetailState extends Equatable {
   final bool isStale;
 
   DepartureDetailState copyWith({
-    Departure? departure,
-    List<LineStop>? stops,
+    Itinerary? itinerary,
+    Map<String, List<LineStop>>? stopsByLine,
     bool? isRefreshing,
     bool? isStale,
     bool clearStale = false,
   }) {
     return DepartureDetailState(
-      departure: departure ?? this.departure,
-      stops: stops ?? this.stops,
+      itinerary: itinerary ?? this.itinerary,
+      stopsByLine: stopsByLine ?? this.stopsByLine,
       isRefreshing: isRefreshing ?? this.isRefreshing,
       isStale: clearStale ? false : (isStale ?? this.isStale),
     );
   }
 
   @override
-  List<Object?> get props => [departure, stops, isRefreshing, isStale];
+  List<Object?> get props => [itinerary, stopsByLine, isRefreshing, isStale];
 }

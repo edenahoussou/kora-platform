@@ -12,8 +12,10 @@ import '../../../../core/widgets/screen_header.dart';
 import '../../../auth/domain/entities/auth_user.dart';
 import '../../../auth/domain/entities/phone_country.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../auth/presentation/widgets/phone_country_picker.dart';
 import '../../../profil/presentation/pages/birth_date_picker_page.dart';
 import '../../domain/entities/departure.dart';
+import '../../domain/entities/journey.dart';
 import '../../domain/entities/passenger.dart';
 import '../../domain/entities/seat.dart';
 import '../widgets/booking_progress.dart';
@@ -23,23 +25,12 @@ import 'summary_page.dart';
 
 /// Données passées à [PassengerFormPage] par `go_router` (`extra`).
 class PassengerFormArgs {
-  const PassengerFormArgs({
-    required this.departure,
-    required this.seats,
-    this.returnDeparture,
-    this.returnSeats,
-  });
+  const PassengerFormArgs({required this.journey});
 
-  final Departure departure;
-
-  /// Les sièges choisis à l'écran précédent, un par voyageur.
-  final List<Seat> seats;
-
-  /// Le retour d'un aller-retour, avec ses sièges. Transmis au
-  /// récapitulatif : sans lui, il redemanderait un devis d'aller simple et
-  /// annoncerait la moitié du prix.
-  final Departure? returnDeparture;
-  final List<Seat>? returnSeats;
+  /// Le voyage entier, tous ses tronçons pourvus. Transmis tel quel au
+  /// récapitulatif : sans lui, il redemanderait un devis d'un seul bus
+  /// et annoncerait une fraction du prix.
+  final Journey journey;
 }
 
 /// Identité des voyageurs — écrans `passenger-info` et
@@ -55,38 +46,35 @@ class PassengerFormArgs {
 /// connaître une règle douanière que l'app connaît déjà.
 ///
 /// Voir [Departure.isInternational] : la règle porte sur le **tronçon**
-/// retenu, pas sur la ligne.
+/// retenu, pas sur la ligne — et il suffit qu'un seul tronçon du voyage
+/// franchisse une frontière pour que le manifeste soit exigé.
 class PassengerFormPage extends StatefulWidget {
-  const PassengerFormPage({
-    super.key,
-    required this.departure,
-    this.seats = const [],
-    this.returnDeparture,
-    this.returnSeats,
-  });
+  const PassengerFormPage({super.key, required this.journey});
 
   /// `null` si l'écran est ouvert sans données (lien profond).
-  final Departure? departure;
-
-  final List<Seat> seats;
-
-  /// Voir [PassengerFormArgs.returnDeparture].
-  final Departure? returnDeparture;
-  final List<Seat>? returnSeats;
+  final Journey? journey;
 
   @override
   State<PassengerFormPage> createState() => _PassengerFormPageState();
 }
 
 class _PassengerFormPageState extends State<PassengerFormPage> {
-  bool get _isInternational => widget.departure?.isInternational ?? false;
+  bool get _isInternational => widget.journey?.isInternational ?? false;
+
+  /// Le premier tronçon : celui dont le siège nomme le voyageur sur le
+  /// manifeste, et celui qui donne la ligne affichée en surtitre.
+  Departure? get _firstLeg => widget.journey?.legs.firstOrNull;
+
+  /// Les sièges du premier tronçon, un par voyageur.
+  List<Seat> get _seats =>
+      widget.journey?.seatsByLeg.firstOrNull ?? const <Seat>[];
 
   /// Le premier bloc part des informations du compte : c'est le voyageur
   /// le plus probable, et les retaper alors qu'elles sont déjà connues
   /// n'apporte rien. Les suivants restent vides — ce sont d'autres
   /// personnes, que le titulaire renseigne lui-même.
   late final List<_PassengerFields> _fields = [
-    for (var i = 0; i < widget.seats.length; i++)
+    for (var i = 0; i < _seats.length; i++)
       _PassengerFields(
         index: i,
         international: _isInternational,
@@ -191,43 +179,34 @@ class _PassengerFormPageState extends State<PassengerFormPage> {
 
   /// Les champs saisis, devenus voyageurs.
   List<Passenger> _collect() => [
-    for (var i = 0; i < _fields.length; i++)
-      _fields[i].toPassenger(widget.seats[i]),
+    for (var i = 0; i < _fields.length; i++) _fields[i].toPassenger(_seats[i]),
   ];
 
   void _openSummary(List<Passenger> passengers) {
     context.push(
       AppRouter.summaryPath,
-      extra: SummaryArgs(
-        departure: widget.departure!,
-        passengers: passengers,
-        returnDeparture: widget.returnDeparture,
-        returnSeats: widget.returnSeats,
-      ),
+      extra: SummaryArgs(journey: widget.journey!, passengers: passengers),
     );
   }
 
-  /// Le siège du voyageur [index] : le sien à l'aller, et celui du retour
-  /// quand il y en a un.
+  /// Les sièges du voyageur [index], un par bus qu'il prendra.
   ///
-  /// Les deux voyages se paient ensemble ; n'en montrer qu'un laisserait
-  /// croire que le retour n'a pas de place attribuée.
+  /// Tous les tronçons se paient ensemble ; n'en montrer qu'un
+  /// laisserait croire que les autres n'ont pas de place attribuée.
   String _seatLabel(BuildContext context, int index) {
-    final outbound = widget.seats[index].label;
-    final returnSeats = widget.returnSeats;
+    final seats = widget.journey?.seatsOf(index) ?? const <Seat>[];
+    if (seats.length < 2) return _seats[index].label;
 
-    if (returnSeats == null || index >= returnSeats.length) return outbound;
-
-    return context.l10n.summarySeatsRound(outbound, returnSeats[index].label);
+    return seats.map((seat) => seat.label).join(' · ');
   }
 
   @override
   Widget build(BuildContext context) {
     final koraColors = context.koraColors;
     final l10n = context.l10n;
-    final departure = widget.departure;
+    final departure = _firstLeg;
 
-    if (departure == null || widget.seats.isEmpty) {
+    if (departure == null || _seats.isEmpty) {
       return const Scaffold(
         body: SafeArea(
           child: Padding(
@@ -238,7 +217,7 @@ class _PassengerFormPageState extends State<PassengerFormPage> {
       );
     }
 
-    final count = widget.seats.length;
+    final count = _seats.length;
 
     return Scaffold(
       body: SafeArea(
@@ -265,7 +244,7 @@ class _PassengerFormPageState extends State<PassengerFormPage> {
                     for (final fields in _fields) ...[
                       _PassengerCard(
                         fields: fields,
-                        seat: widget.seats[fields.index],
+                        seat: _seats[fields.index],
                         seatLabel: _seatLabel(context, fields.index),
                         showErrors: _showErrors,
                         international: _isInternational,
@@ -576,35 +555,49 @@ class _DocumentTypeField extends StatelessWidget {
   }
 }
 
-/// La nationalité déclarée, parmi les pays que dessert le réseau.
+/// La nationalité déclarée, choisie dans la liste complète des pays.
+///
+/// Un menu déroulant proposait les quatre pays que traverse le réseau.
+/// C'était confondre le trajet acheté et l'identité de qui l'achète :
+/// un voyageur marocain, canadien ou malgache n'y trouvait rien. La
+/// feuille du choix d'indicatif rend ici le même service, avec sa
+/// recherche et les corridors épinglés en tête.
 class _NationalityField extends StatelessWidget {
   const _NationalityField({required this.fields, required this.onChanged});
 
   final _PassengerFields fields;
   final VoidCallback onChanged;
 
+  Future<void> _pick(BuildContext context) async {
+    final picked = await pickNationality(context);
+    if (picked == null) return;
+
+    fields.nationality = picked.code;
+    onChanged();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final koraColors = context.koraColors;
+    final code = fields.nationality;
+
     return _LabelledField(
       label: context.l10n.passengersNationality,
-      child: DropdownButtonFormField<String>(
-        initialValue: fields.nationality,
-        isExpanded: true,
-        onChanged: (value) {
-          if (value == null) return;
-          fields.nationality = value;
-          onChanged();
-        },
-        items: [
-          for (final entry in _nationalities.entries)
-            DropdownMenuItem(
-              value: entry.key,
-              child: Text(
-                entry.value,
-                style: AppTextStyles.body(context.koraColors.textPrimary),
-              ),
+      child: InkWell(
+        key: const Key('passenger-nationality'),
+        onTap: () => _pick(context),
+        borderRadius: BorderRadius.circular(AppRadius.input),
+        child: InputDecorator(
+          decoration: const InputDecoration(),
+          child: Text(
+            code.isEmpty
+                ? context.l10n.passengersBirthDateChoose
+                : nationalityName(context, code),
+            style: AppTextStyles.body(
+              code.isEmpty ? koraColors.textMuted : koraColors.textPrimary,
             ),
-        ],
+          ),
+        ),
       ),
     );
   }
@@ -667,6 +660,65 @@ class _BirthDateField extends StatelessWidget {
                 : KoraDateFormats.dayMonthYear.format(date),
             style: AppTextStyles.body(
               date == null ? koraColors.textMuted : koraColors.textPrimary,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// L'indicatif du numéro, ouvrant la liste complète des pays.
+///
+/// C'était un menu déroulant sur les onze corridors KORA. Le passager
+/// joignable au Maroc, au Canada ou ailleurs n'y trouvait pas le sien et
+/// ne pouvait pas renseigner son numéro — alors même que l'inscription,
+/// elle, les proposait tous. La même feuille sert ici.
+class _CountryButton extends StatelessWidget {
+  const _CountryButton({required this.country, required this.onCountry});
+
+  final PhoneCountry country;
+  final ValueChanged<PhoneCountry> onCountry;
+
+  Future<void> _pick(BuildContext context) async {
+    final picked = await pickPhoneCountry(context);
+    if (picked != null) onCountry(picked);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final koraColors = context.koraColors;
+
+    return SizedBox(
+      width: 124,
+      height: 56,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _pick(context),
+          borderRadius: BorderRadius.circular(AppRadius.base),
+          child: Ink(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppRadius.base),
+              border: Border.all(color: koraColors.line),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${country.flag}  ${country.code}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.body(koraColors.textPrimary),
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_drop_down,
+                  color: koraColors.textMuted,
+                  size: 20,
+                ),
+              ],
             ),
           ),
         ),
@@ -749,18 +801,6 @@ String _documentLabel(AppLocalization l10n, TravelDocumentType type) =>
       TravelDocumentType.consularCard => l10n.passengersDocConsular,
     };
 
-/// Les nationalités proposées, dans l'ordre de la maquette.
-///
-/// La liste suit les pays que traverse le réseau (`countries_crossed` de
-/// l'API) : proposer les cent quatre-vingt-quinze autres ferait défiler
-/// pour rien.
-const Map<String, String> _nationalities = {
-  'BJ': 'Béninoise',
-  'TG': 'Togolaise',
-  'GH': 'Ghanéenne',
-  'CI': 'Ivoirienne',
-};
-
 /// Le siège attribué, en pastille dorée dans l'en-tête du bloc.
 ///
 /// Valeurs reprises telles quelles de la maquette : `.passenger-form-head
@@ -807,8 +847,10 @@ class _PassengerFields {
        lastName = TextEditingController(text: _lastNameOf(holder)),
        email = TextEditingController(text: holder?.email ?? ''),
        documentNumber = TextEditingController(),
-       phone = TextEditingController(text: _nationalPart(holder?.phone)),
-       country = PhoneCountry.fromCode(holder?.countryCode);
+       phone = TextEditingController(
+         text: _nationalPart(holder?.phone, holder?.countryCode),
+       ),
+       country = phoneCountryOf(holder?.countryCode);
 
   final int index;
 
@@ -835,6 +877,11 @@ class _PassengerFields {
   bool yellowFeverVaccinated = false;
 
   /// Pré-remplie au Bénin, d'où partent les lignes.
+  ///
+  /// Le voyageur peut désormais en choisir une autre parmi les cent
+  /// quatre-vingt-quinze : seules quatre lui étaient proposées, celles
+  /// des pays que traverse le réseau, et un passager marocain repartait
+  /// forcément avec l'une d'elles.
   String nationality = 'BJ';
 
   /// L'indicatif du numéro, choisi à part.
@@ -876,7 +923,11 @@ class _PassengerFields {
         country.name,
         country.prefix,
       );
-    } else if (digits.length != country.digits) {
+    } else if (country.digits > 0 && digits.length != country.digits) {
+      // `digits` vaut 0 hors des corridors : on ne connaît pas la
+      // longueur attendue au Maroc ou au Canada, et l'annoncer à zéro
+      // refusait tout numéro étranger pourtant valide. Le serveur
+      // tranche.
       errors['phone'] = l10n.passengersPhoneLength(country.digits);
     }
 
@@ -989,27 +1040,14 @@ class _PhoneField extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 124,
-            child: DropdownButtonFormField<PhoneCountry>(
-              initialValue: country,
-              isExpanded: true,
-              onChanged: (value) => onCountry(value ?? PhoneCountry.benin),
-              items: [
-                for (final item in PhoneCountry.all)
-                  DropdownMenuItem(
-                    value: item,
-                    child: Text(
-                      '${item.flag}  ${item.code}',
-                      style: AppTextStyles.body(context.koraColors.textPrimary),
-                    ),
-                  ),
-              ],
-            ),
-          ),
+          _CountryButton(country: country, onCountry: onCountry),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: KoraInput(
+              // Les champs se désignent par leur clé, et non par leur
+              // rang : le formulaire en aligne quatre, et le compte
+              // change selon que la ligne franchit une frontière.
+              key: const Key('passenger-phone'),
               hint: country.example,
               controller: controller,
               keyboardType: TextInputType.phone,
@@ -1039,9 +1077,17 @@ String _lastNameOf(AuthUser? holder) {
 ///
 /// Le compte garde le numéro complet ; le formulaire, lui, montre les deux
 /// séparément pour qu'on puisse changer de pays.
-String _nationalPart(String? stored) {
+String _nationalPart(String? stored, String? dialCode) {
   final raw = (stored ?? '').trim();
   if (raw.isEmpty) return '';
+
+  // L'indicatif du compte d'abord : c'est le seul qui vaille pour un
+  // titulaire joignable hors des corridors, dont le `+212` ne figure
+  // dans aucun catalogue.
+  final code = dialCode?.trim() ?? '';
+  if (code.isNotEmpty && raw.startsWith(code)) {
+    return raw.substring(code.length).trim();
+  }
 
   for (final country in PhoneCountry.all) {
     if (raw.startsWith(country.code)) {

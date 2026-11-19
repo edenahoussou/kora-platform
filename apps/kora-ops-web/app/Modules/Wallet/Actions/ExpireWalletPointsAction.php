@@ -10,6 +10,8 @@ use App\Modules\Wallet\Models\WalletTransaction;
 use App\Modules\Wallet\Services\WalletLedgerService;
 use App\Modules\Wallet\Services\WalletNotificationPublisher;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Expire globalement les points d'un Wallet resté sans activité qualifiante.
@@ -97,14 +99,26 @@ final class ExpireWalletPointsAction
             return false;
         }
 
-        $this->ledger->debit(
-            $wallet,
-            WalletBalanceType::Points,
-            $points,
-            WalletTransactionReason::PointsExpire,
-            'points:expire:'.$wallet->uuid.':'.$expiresAt->toDateString(),
-            ['expired_at' => $expiresAt->toIso8601String()],
-        );
+        if ($this->ledger->availableBalance($wallet, WalletBalanceType::Points) < $points) {
+            Log::info('Wallet points expiry deferred while points are held', ['wallet_uuid' => $wallet->uuid]);
+
+            return false;
+        }
+
+        try {
+            $this->ledger->debit(
+                $wallet,
+                WalletBalanceType::Points,
+                $points,
+                WalletTransactionReason::PointsExpire,
+                'points:expire:'.$wallet->uuid.':'.$expiresAt->toDateString(),
+                ['expired_at' => $expiresAt->toIso8601String()],
+            );
+        } catch (ValidationException) {
+            Log::info('Wallet points expiry deferred while points are held', ['wallet_uuid' => $wallet->uuid]);
+
+            return false;
+        }
 
         $wallet->refresh();
         $wallet->update(['points_expires_at' => null]);

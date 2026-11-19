@@ -5399,6 +5399,10 @@
         gap: 10px;
     }
 
+    .kora-status-badge > span {
+        color: inherit;
+    }
+
     .departure-badges {
         display: flex;
         flex-wrap: wrap;
@@ -5411,7 +5415,7 @@
         font-size: 12px;
     }
 
-    .trip-title span:not([class*='bg-']) {
+    .trip-title > span:not([class*='bg-']) {
         color: var(--muted-foreground);
         font-size: 9px;
         font-weight: 800;
@@ -6811,7 +6815,8 @@
 
     .summary-direction-times {
         display: flex;
-        align-items: center;
+        flex-direction: column;
+        align-items: flex-start;
         gap: 4px;
         margin-top: 2px;
         font-size: 9px;

@@ -27,6 +27,13 @@ void main() {
     repository = StubAuthRepository();
   });
 
+  /// Le champ de saisie d'un bloc, désigné par sa clé : le formulaire
+  /// en compte plusieurs, et leur rang change dès qu'on en ajoute un.
+  Finder field(String key) => find.descendant(
+    of: find.byKey(Key(key)),
+    matching: find.byType(TextField),
+  );
+
   Future<void> pumpPage(
     WidgetTester tester, {
     Locale locale = const Locale('fr'),
@@ -96,8 +103,9 @@ void main() {
 
     expect(find.text('Votre adresse email'), findsOneWidget);
     expect(find.text('vous@exemple.com'), findsOneWidget);
-    // Un seul champ : le nom n'est demandé que par le téléphone.
-    expect(find.byType(TextField), findsOneWidget);
+    // Le nom n'est demandé que par le téléphone.
+    expect(find.text('Nom complet'), findsNothing);
+    expect(field('signup-email'), findsOneWidget);
   });
 
   testWidgets('l’inscription par téléphone demande le nom', (tester) async {
@@ -110,7 +118,7 @@ void main() {
     expect(find.text('Nom complet'), findsOneWidget);
     expect(find.text('🇧🇯  +229'), findsOneWidget);
 
-    await tester.enterText(find.byType(TextField).last, '01 97 42 18 60');
+    await tester.enterText(field('signup-phone'), '01 97 42 18 60');
     await tester.tap(find.text('Recevoir mon code'));
     await tester.pumpAndSettle();
 
@@ -123,8 +131,8 @@ void main() {
   ) async {
     await pumpPage(tester);
 
-    await tester.enterText(find.byType(TextField).first, 'Aïcha HOUNKPE');
-    await tester.enterText(find.byType(TextField).last, '01 97 42 18 60');
+    await tester.enterText(field('signup-name'), 'Aïcha HOUNKPE');
+    await tester.enterText(field('signup-phone'), '01 97 42 18 60');
     await tester.tap(find.text('Recevoir mon code'));
     await tester.pumpAndSettle();
 
@@ -145,7 +153,7 @@ void main() {
     await pumpPage(tester);
     await switchToEmail(tester);
 
-    await tester.enterText(find.byType(TextField), 'aicha@example.com');
+    await tester.enterText(field('signup-email'), 'aicha@example.com');
     await tester.tap(find.text('Recevoir mon code'));
     await tester.pumpAndSettle();
 
@@ -180,7 +188,7 @@ void main() {
     await pumpPage(tester);
     await switchToEmail(tester);
 
-    await tester.enterText(find.byType(TextField), 'aicha@example.com');
+    await tester.enterText(field('signup-email'), 'aicha@example.com');
     await tester.tap(find.text('Recevoir mon code'));
     await tester.pumpAndSettle();
 
@@ -215,7 +223,7 @@ void main() {
     await pumpPage(tester);
     await switchToEmail(tester);
 
-    await tester.enterText(find.byType(TextField), 'aicha.example.com');
+    await tester.enterText(field('signup-email'), 'aicha.example.com');
     await tester.tap(find.text('Recevoir mon code'));
     await tester.pumpAndSettle();
 
@@ -229,7 +237,7 @@ void main() {
     await pumpPage(tester);
     await switchToEmail(tester);
 
-    await tester.enterText(find.byType(TextField), '  aicha@example.com  ');
+    await tester.enterText(field('signup-email'), '  aicha@example.com  ');
     await tester.tap(find.text('Recevoir mon code'));
     await tester.pumpAndSettle();
 
@@ -245,7 +253,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Adresse e-mail requise'), findsOneWidget);
 
-    await tester.enterText(find.byType(TextField), 'a');
+    await tester.enterText(field('signup-email'), 'a');
     await tester.pumpAndSettle();
     expect(find.text('Adresse e-mail requise'), findsNothing);
   });
@@ -256,7 +264,7 @@ void main() {
     await pumpPage(tester);
     await switchToEmail(tester);
 
-    await tester.enterText(find.byType(TextField), 'passager@korabus.app');
+    await tester.enterText(field('signup-email'), 'passager@korabus.app');
     await tester.tap(find.text('Recevoir mon code'));
     await tester.pump();
 
@@ -265,6 +273,52 @@ void main() {
     // appel, le bouton reste sans effet sur l'appareil.
     expect(repository.calls, contains('requestOtp:registration'));
     expect(submitted, 'passager@korabus.app');
+  });
+
+  /// Le parcours que l'écran alimente, lu dans son arbre.
+  AuthFlowBloc flowOf(WidgetTester tester) => BlocProvider.of<AuthFlowBloc>(
+    tester.element(find.byType(SignupEmailPage)),
+  );
+
+  group('code de parrainage', () {
+    testWidgets('se saisit ici, après l’identifiant', (tester) async {
+      // Le voyageur qui a reçu un code l'a sous les yeux au moment où
+      // il se présente. Le demander trois écrans plus loin, au choix du
+      // PIN, l'obligeait à le retrouver.
+      await pumpPage(tester);
+
+      expect(find.text('Code de parrainage (facultatif)'), findsOneWidget);
+      expect(field('signup-referral'), findsOneWidget);
+    });
+
+    testWidgets('part avec la demande de code, en majuscules', (tester) async {
+      // Le serveur compare des majuscules : une frappe en minuscules ne
+      // doit pas valoir « code inconnu ».
+      await pumpPage(tester);
+
+      await tester.enterText(field('signup-name'), 'Aïcha HOUNKPE');
+      await tester.enterText(field('signup-phone'), '01 97 42 18 60');
+      await tester.enterText(field('signup-referral'), 'ka1b2c3d');
+      await tester.tap(find.text('Recevoir mon code'));
+      await tester.pumpAndSettle();
+
+      // Gardé par le parcours jusqu'à la création du compte, deux
+      // écrans plus loin : c'est elle qui rattache le parrain.
+      expect(flowOf(tester).state.registrationReferralCode, 'KA1B2C3D');
+    });
+
+    testWidgets('laissé vide, rien ne part', (tester) async {
+      // Une chaîne vide ferait refuser l'activation d'un compte
+      // préexistant sans PIN.
+      await pumpPage(tester);
+
+      await tester.enterText(field('signup-name'), 'Aïcha HOUNKPE');
+      await tester.enterText(field('signup-phone'), '01 97 42 18 60');
+      await tester.tap(find.text('Recevoir mon code'));
+      await tester.pumpAndSettle();
+
+      expect(flowOf(tester).state.registrationReferralCode, isEmpty);
+    });
   });
 
   testWidgets('s’affiche en anglais quand la langue est l’anglais', (

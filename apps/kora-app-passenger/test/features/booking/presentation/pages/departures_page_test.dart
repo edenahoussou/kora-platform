@@ -16,6 +16,7 @@ import 'package:kora_app_passenger/core/usecases/usecase.dart';
 import 'package:kora_app_passenger/core/utils/date_formats.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_mock_data.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/departure_search.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/itinerary.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/search_criteria.dart';
 import 'package:kora_app_passenger/features/booking/domain/usecases/get_cities_usecase.dart';
 import 'package:kora_app_passenger/features/booking/domain/usecases/search_departures_usecase.dart';
@@ -45,6 +46,12 @@ void main() {
     ),
   );
 
+  // La recherche rend des voyages : le jeu de démonstration n'en connaît
+  // que des directs.
+  final itineraries = [
+    for (final departure in departures) Itinerary.direct(departure),
+  ];
+
   setUpAll(() async {
     await AppLocalization.preloadAll();
     registerFallbackValue(const NoParams());
@@ -59,7 +66,7 @@ void main() {
     when(() => getCities(any())).thenAnswer((_) async => Right(kMockCities));
     when(
       () => searchDepartures(any()),
-    ).thenAnswer((_) async => Right(DepartureSearch.oneWay(departures)));
+    ).thenAnswer((_) async => Right(DepartureSearch.oneWay(itineraries)));
 
     getIt.registerFactory<DeparturesBloc>(
       () => DeparturesBloc(getCities, searchDepartures),
@@ -138,7 +145,7 @@ void main() {
     when(() => searchDepartures(any())).thenAnswer(
       (_) => Future.delayed(
         const Duration(milliseconds: 400),
-        () => Right(DepartureSearch.oneWay(departures)),
+        () => Right(DepartureSearch.oneWay(itineraries)),
       ),
     );
 
@@ -388,7 +395,7 @@ void main() {
         attempt += 1;
         return Right(
           DepartureSearch.oneWay(
-            attempt == 1 ? departures : departures.take(2).toList(),
+            attempt == 1 ? itineraries : itineraries.take(2).toList(),
           ),
         );
       });
@@ -413,7 +420,7 @@ void main() {
       when(() => searchDepartures(any())).thenAnswer((_) async {
         attempt += 1;
         return attempt == 1
-            ? Right(DepartureSearch.oneWay(departures))
+            ? Right(DepartureSearch.oneWay(itineraries))
             : const Left(NetworkFailure());
       });
 
@@ -474,7 +481,7 @@ void main() {
       attempt += 1;
       return attempt == 1
           ? const Left(NetworkFailure())
-          : Right(DepartureSearch.oneWay(departures));
+          : Right(DepartureSearch.oneWay(itineraries));
     });
 
     await pumpPage(tester);

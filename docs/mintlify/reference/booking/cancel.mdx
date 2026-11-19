@@ -1,0 +1,93 @@
+---
+title: Annuler une réservation
+description: "Annule l’ensemble de la réservation et libère ses segments."
+api: POST /api/v1/bookings/{reservation_uuid}/cancel
+---
+
+Annule l’ensemble de la réservation et libère ses segments. Si le paiement a déjà été confirmé, le backend traite le remboursement selon le mode de financement. Un remboursement personnel est versé au Wallet cash du payeur.
+
+## Paramètres
+
+<ParamField path="reservation_uuid" type="UUID" required>
+  UUID public de la réservation obtenu lors du blocage des sièges.
+</ParamField>
+
+<RequestExample>
+
+```bash cURL
+curl -X POST 'https://staging.koraexpress.app/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70/cancel' \
+  -H 'Authorization: Bearer <token-de-session>' \
+  -H 'Accept: application/json'
+```
+
+```javascript JavaScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70/cancel', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
+});
+const body = await res.json();
+```
+
+```typescript TypeScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70/cancel', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
+});
+const body: { data: { uuid: string; status: string } } = await res.json();
+const status = body.data.status;
+```
+
+```dart Dart
+final res = await authDio.post('/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70/cancel');
+final data = res.data['data'];
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "data": {
+    "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+    "status": "cancelled",
+    "total_amount": 25000,
+    "currency": "XOF",
+    "segments": [],
+    "passengers": []
+  }
+}
+```
+
+```json 401
+{
+  "message": "Unauthenticated."
+}
+```
+
+```json 403
+{
+  "message": "This action is unauthorized."
+}
+```
+
+</ResponseExample>
+
+## Réponse
+
+<ResponseField name="data" type="object" required>
+  Réservation mise à jour. Consultez les [champs de réservation](/reference/booking/reservation).
+</ResponseField>
+
+<ResponseField name="data.status" type="string">
+  Statut de la réservation après traitement. Une réservation déjà expirée conserve son statut.
+</ResponseField>
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `200` | Réservation retournée après traitement. Une demande répétée ne déclenche pas un second remboursement. |
+| `401` | Jeton de session absent ou invalide. |
+| `403` | Le voyageur ne peut pas agir sur cette réservation. |
+| `404` | Réservation introuvable. |

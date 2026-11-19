@@ -36,6 +36,7 @@ void main() {
     required List<String> ticketIds,
     StubTicketDocumentRepository? repository,
     TicketStatus status = TicketStatus.confirmed,
+    List<TicketLeg> legs = const [],
   }) async {
     tester.view.physicalSize = const Size(390 * 3, 1400 * 3);
     tester.view.devicePixelRatio = 3;
@@ -69,6 +70,7 @@ void main() {
             status: status,
             reservationId: 'resa-1',
             ticketIds: ticketIds,
+            legs: legs,
           ),
           today: today,
           documents: cubit,
@@ -161,5 +163,102 @@ void main() {
     );
 
     expect(find.text('Annuler le billet'), findsNothing);
+  });
+
+  testWidgets('une correspondance détaille ses bus', (tester) async {
+    // Le titre annonce le voyage d'un bout à l'autre ; c'est ici qu'on
+    // apprend où l'on descend, à quelle heure et sur quelle place.
+    await pumpDetail(
+      tester,
+      ticketIds: ['ticket-1'],
+      legs: [
+        TicketLeg(
+          order: 1,
+          origin: 'Cotonou',
+          destination: 'Bohicon',
+          seatCode: '4A',
+          departsAt: DateTime(2026, 8, 20, 6),
+          arrivesAt: DateTime(2026, 8, 20, 7, 31),
+        ),
+        TicketLeg(
+          order: 2,
+          origin: 'Bohicon',
+          destination: 'Natitingou',
+          seatCode: '3C',
+          departsAt: DateTime(2026, 8, 20, 8, 36),
+          arrivesAt: DateTime(2026, 8, 20, 13, 14),
+        ),
+      ],
+    );
+
+    expect(find.text('Votre voyage, bus par bus'), findsOneWidget);
+    expect(find.text('Cotonou → Bohicon'), findsOneWidget);
+    expect(find.text('Bohicon → Natitingou'), findsOneWidget);
+    // La place change d'un bus à l'autre.
+    expect(find.text('SIÈGE 4A'), findsOneWidget);
+    expect(find.text('SIÈGE 3C'), findsOneWidget);
+    expect(find.text('08:36 → 13:14'), findsOneWidget);
+  });
+
+  testWidgets('l’aller et le retour ne se mélangent pas', (tester) async {
+    // Les deux sens tiennent dans la même liste : sans un mot pour les
+    // séparer, le billet annonçait un troisième bus qui repartait d’où
+    // l’on venait, comme s’il fallait le prendre dans la foulée.
+    await pumpDetail(
+      tester,
+      ticketIds: ['ticket-1'],
+      legs: [
+        TicketLeg(
+          order: 1,
+          origin: 'Cotonou',
+          destination: 'Bohicon',
+          seatCode: '4B',
+          departsAt: DateTime(2026, 11, 16, 6),
+          arrivesAt: DateTime(2026, 11, 16, 7, 31),
+        ),
+        TicketLeg(
+          order: 2,
+          origin: 'Bohicon',
+          destination: 'Natitingou',
+          seatCode: '4B',
+          departsAt: DateTime(2026, 11, 16, 8, 36),
+          arrivesAt: DateTime(2026, 11, 16, 13, 14),
+        ),
+        TicketLeg(
+          order: 3,
+          origin: 'Natitingou',
+          destination: 'Cotonou',
+          seatCode: '4B',
+          departsAt: DateTime(2026, 11, 16, 17, 36),
+          isReturn: true,
+        ),
+      ],
+    );
+
+    expect(find.text('ALLER'), findsOneWidget);
+    expect(find.text('RETOUR'), findsOneWidget);
+    expect(find.text('Natitingou → Cotonou'), findsOneWidget);
+  });
+
+  testWidgets('un aller simple ne porte aucun sens', (tester) async {
+    // Rien à distinguer : un badge « Aller » solitaire ferait chercher
+    // un retour qui n’existe pas.
+    await pumpDetail(
+      tester,
+      ticketIds: ['ticket-1'],
+      legs: [
+        TicketLeg(order: 1, origin: 'Cotonou', destination: 'Bohicon'),
+        TicketLeg(order: 2, origin: 'Bohicon', destination: 'Natitingou'),
+      ],
+    );
+
+    expect(find.text('ALLER'), findsNothing);
+    expect(find.text('RETOUR'), findsNothing);
+  });
+
+  testWidgets('un trajet direct ne détaille rien', (tester) async {
+    await pumpDetail(tester, ticketIds: ['ticket-1']);
+
+    expect(find.text('Votre voyage, bus par bus'), findsNothing);
   });
 }

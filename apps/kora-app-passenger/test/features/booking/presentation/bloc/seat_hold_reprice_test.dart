@@ -9,6 +9,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kora_app_passenger/core/error/failures.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_mock_data.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/itinerary.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/journey.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/passenger.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/price.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/search_criteria.dart';
@@ -51,7 +53,12 @@ void main() {
   Future<SeatHoldState> reprice({required String code}) async {
     bloc.add(
       SeatHoldRepriceRequested(
-        departure: departure,
+        journey: Journey(
+          outbound: Itinerary.direct(departure),
+          seatsByLeg: [
+            [passenger.seat],
+          ],
+        ),
         passengers: [passenger],
         promoCode: code,
       ),
@@ -65,7 +72,12 @@ void main() {
   Future<SeatHoldState> checkout() async {
     bloc.add(
       SeatHoldCheckoutRequested(
-        departure: departure,
+        journey: Journey(
+          outbound: Itinerary.direct(departure),
+          seatsByLeg: [
+            [passenger.seat],
+          ],
+        ),
         passengers: [passenger],
         quote: bloc.state.quote,
       ),
@@ -127,7 +139,12 @@ void main() {
     test('un champ vide, sans code appliqué, ne touche à rien', () async {
       bloc.add(
         SeatHoldRepriceRequested(
-          departure: departure,
+          journey: Journey(
+            outbound: Itinerary.direct(departure),
+            seatsByLeg: [
+              [passenger.seat],
+            ],
+          ),
           passengers: [passenger],
           promoCode: '   ',
         ),

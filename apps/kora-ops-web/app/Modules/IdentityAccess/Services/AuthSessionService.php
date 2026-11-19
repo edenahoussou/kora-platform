@@ -17,8 +17,11 @@ use App\Modules\IdentityAccess\Exceptions\AuthSuspendedException;
 use App\Modules\IdentityAccess\Models\AuthOtpChallenge;
 use App\Modules\IdentityAccess\Models\UserDevice;
 use App\Modules\Notifications\Channels\OtpCodeChannel;
+use App\Modules\Wallet\Actions\AttachReferralCodeAction;
+use App\Modules\Wallet\Actions\FindOrCreateWalletAction;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -35,18 +38,30 @@ class AuthSessionService
         private UpsertTrustedDeviceAction $upsertTrustedDevice,
         private PassengerIdentityResolver $identityResolver,
         private AuthIdentifierResolver $identifierResolver,
+        private FindOrCreateWalletAction $findOrCreateWallet,
+        private AttachReferralCodeAction $attachReferralCode,
     ) {}
 
     /**
-     * @param  array{otp_challenge_uuid: string, verification_token: string, pin: string, device_name: string, platform: string, device_fingerprint: string, push_token?: string|null, name?: string|null, email?: string|null, phone?: string|null, country_code?: string|null, birth_date?: string|null}  $input
+     * @param  array{otp_challenge_uuid: string, verification_token: string, pin: string, device_name: string, platform: string, device_fingerprint: string, push_token?: string|null, name?: string|null, email?: string|null, phone?: string|null, country_code?: string|null, birth_date?: string|null, referral_code?: string|null}  $input
      * @return array{user: User, device: UserDevice, token: string, token_expires_at: CarbonInterface|null}
      */
     public function completeRegistration(array $input): array
+    {
+        return DB::transaction(fn (): array => $this->registerPassenger($input));
+    }
+
+    /**
+     * @param  array{otp_challenge_uuid: string, verification_token: string, pin: string, device_name: string, platform: string, device_fingerprint: string, push_token?: string|null, name?: string|null, email?: string|null, phone?: string|null, country_code?: string|null, birth_date?: string|null, referral_code?: string|null}  $input
+     * @return array{user: User, device: UserDevice, token: string, token_expires_at: CarbonInterface|null}
+     */
+    private function registerPassenger(array $input): array
     {
         $challenge = $this->consumeVerifiedOtpChallenge->handle(
             $input['otp_challenge_uuid'],
             OtpPurpose::Registration,
             $input['verification_token'],
+            lockForUpdate: true,
         );
 
         // L'identifiant du challenge fait foi : c'est lui qui a reçu le
@@ -85,6 +100,14 @@ class AuthSessionService
                 'Un compte existe déjà avec cet identifiant. Connectez-vous.',
                 409,
             );
+        }
+
+        $referralCode = trim($input['referral_code'] ?? '');
+
+        if ($user !== null && $referralCode !== '') {
+            throw ValidationException::withMessages([
+                'referral_code' => 'Le code de parrainage est réservé à la création d’un nouveau compte.',
+            ]);
         }
 
         if ($user !== null) {
@@ -131,6 +154,11 @@ class AuthSessionService
         }
 
         $challenge->update(['user_id' => $user->id]);
+
+        if ($referralCode !== '') {
+            $wallet = $this->findOrCreateWallet->handle($user);
+            $this->attachReferralCode->handle($wallet, $referralCode);
+        }
 
         return $this->issueSessionForDevice($user, $input);
     }

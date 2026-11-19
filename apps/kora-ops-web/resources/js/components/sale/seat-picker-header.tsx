@@ -65,11 +65,20 @@ export function SeatPickerHeader({
                     </span>
                     <span>
                         <CalendarDays className="size-3.5" />
-                        {formatShortDate(formatIsoDate(leg.departureAt))}
+                        {formatShortDate(
+                            formatIsoDate(
+                                leg.departureAt,
+                                leg.departureTimezone,
+                            ),
+                        )}
                     </span>
                     <span>
                         <Clock3 className="size-3.5" />
-                        {formatIsoTime(leg.departureAt)} ·{' '}
+                        {formatIsoTime(
+                            leg.departureAt,
+                            leg.departureTimezone,
+                        )}{' '}
+                        ·{' '}
                         {formatDuration(
                             leg.line.estimatedDurationMinutes ?? null,
                         )}

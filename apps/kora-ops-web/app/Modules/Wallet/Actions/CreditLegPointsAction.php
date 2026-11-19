@@ -83,7 +83,7 @@ final class CreditLegPointsAction
                 continue;
             }
 
-            $this->ledger->creditPointsWithCompensation(
+            $transaction = $this->ledger->creditPointsWithCompensation(
                 $wallet,
                 $points,
                 WalletTransactionReason::PointsEarn,
@@ -96,6 +96,10 @@ final class CreditLegPointsAction
                 ],
                 $reservation,
             );
+
+            if ($transaction === null || ! $transaction->wasRecentlyCreated) {
+                continue;
+            }
 
             $credited += $points;
             $this->notifications->pointsCredited($wallet, $points);
@@ -217,31 +221,33 @@ final class CreditLegPointsAction
      */
     private function recordUsage(Wallet $wallet, Reservation $reservation): void
     {
-        $usage = DB::transaction(function () use ($wallet, $reservation): ?WalletUsage {
+        $usageNumber = DB::transaction(function () use ($wallet, $reservation): ?int {
+            $wallet->refreshForUpdate();
+
             $existing = WalletUsage::query()
                 ->where('wallet_id', $wallet->getKey())
                 ->where('reservation_id', $reservation->getKey())
-                ->lockForUpdate()
                 ->first();
 
             if ($existing !== null) {
                 return null;
             }
 
-            return WalletUsage::query()->create([
+            WalletUsage::query()->create([
                 'wallet_id' => $wallet->getKey(),
                 'reservation_id' => $reservation->getKey(),
                 'used_at' => now(),
             ]);
+
+            return $wallet->usages()->count();
         });
 
-        if ($usage === null) {
+        if ($usageNumber === null) {
             return;
         }
 
         $this->grantBonus->handle($wallet, LoyaltyBonusKind::Welcome, 'once');
 
-        $totalUsages = WalletUsage::query()->where('wallet_id', $wallet->getKey())->count();
         $monthKey = Carbon::now('Africa/Porto-Novo')->format('Y-m');
         $monthlyUsages = WalletUsage::query()
             ->where('wallet_id', $wallet->getKey())
@@ -255,7 +261,7 @@ final class CreditLegPointsAction
             $this->grantBonus->handle($wallet, LoyaltyBonusKind::Usage, $monthKey);
         }
 
-        if ($totalUsages === 1 && $wallet->referred_by_user_id !== null) {
+        if ($usageNumber === 1 && $wallet->referred_by_user_id !== null) {
             $referrer = Wallet::query()->where('user_id', $wallet->referred_by_user_id)->first();
 
             if ($referrer !== null) {

@@ -247,7 +247,10 @@ export function ItineraryCard({
         firstLeg.serviceClassName ??
         firstLeg.serviceClassCode ??
         'Service non renseigné';
-    const arrivalTime = formatIsoTime(itinerary.arrivalAt);
+    const arrivalTime = formatIsoTime(
+        itinerary.arrivalAt,
+        itinerary.legs.at(-1)?.arrivalTimezone,
+    );
     const totalTripMinutes = (() => {
         const start = new Date(itinerary.departureAt).getTime();
         const end = new Date(itinerary.arrivalAt).getTime();
@@ -281,16 +284,35 @@ export function ItineraryCard({
             <div className="departure-time">
                 <small>Départ</small>
                 <time dateTime={firstLeg.departureAt}>
-                    {formatIsoTime(firstLeg.departureAt)}
+                    {formatIsoTime(
+                        firstLeg.departureAt,
+                        firstLeg.departureTimezone,
+                    )}
                 </time>
-                <em>{formatShortDate(formatIsoDate(firstLeg.departureAt))}</em>
+                <em>
+                    {formatShortDate(
+                        formatIsoDate(
+                            firstLeg.departureAt,
+                            firstLeg.departureTimezone,
+                        ),
+                    )}
+                </em>
                 <span>{formatDuration(totalTripMinutes ?? null)}</span>
                 {departureCountdown && (
                     <small className="departure-countdown" aria-live="polite">
                         {departureCountdown}
                     </small>
                 )}
-                <small>Arrivée {arrivalTime}</small>
+                <small>
+                    Arrivée{' '}
+                    {formatShortDate(
+                        formatIsoDate(
+                            itinerary.arrivalAt,
+                            itinerary.legs.at(-1)?.arrivalTimezone,
+                        ),
+                    )}{' '}
+                    à {arrivalTime}
+                </small>
             </div>
 
             <div className="trip-visual">
@@ -404,12 +426,14 @@ export function ItineraryCard({
                                                 <strong>
                                                     {formatIsoTime(
                                                         leg.departureAt,
+                                                        leg.departureTimezone,
                                                     )}
                                                 </strong>
                                                 <small>
                                                     {formatDayMonth(
                                                         formatIsoDate(
                                                             leg.departureAt,
+                                                            leg.departureTimezone,
                                                         ),
                                                     )}
                                                 </small>
@@ -504,12 +528,14 @@ export function ItineraryCard({
                                                 <strong>
                                                     {formatIsoTime(
                                                         leg.arrivalAt,
+                                                        leg.arrivalTimezone,
                                                     )}
                                                 </strong>
                                                 <small>
                                                     {formatDayMonth(
                                                         formatIsoDate(
                                                             leg.arrivalAt,
+                                                            leg.arrivalTimezone,
                                                         ),
                                                     )}
                                                 </small>
@@ -552,10 +578,12 @@ export function ItineraryCard({
                                                 {formatDayMonth(
                                                     formatIsoDate(
                                                         nextLeg.departureAt,
+                                                        nextLeg.departureTimezone,
                                                     ),
                                                 )}{' '}
                                                 {formatIsoTime(
                                                     nextLeg.departureAt,
+                                                    nextLeg.departureTimezone,
                                                 )}
                                             </span>
                                         </div>

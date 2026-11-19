@@ -5,12 +5,11 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/error/failures.dart';
-
 import '../../domain/entities/departure.dart';
 import '../../domain/entities/group_payer.dart';
 import '../../domain/entities/group_quote.dart';
+import '../../domain/entities/journey.dart';
 import '../../domain/entities/passenger.dart';
-import '../../domain/entities/seat.dart';
 import '../../domain/entities/seat_hold.dart';
 import '../../domain/repositories/reservation_repository.dart';
 
@@ -91,7 +90,7 @@ class SeatHoldBloc extends Bloc<SeatHoldEvent, SeatHoldState> {
     emit(
       SeatHoldState(
         status: SeatHoldStatus.holding,
-        departure: event.departure,
+        departure: event.journey.outbound.first,
         passengers: event.passengers.length,
         quote: state.quote,
         checkingOut: true,
@@ -108,11 +107,9 @@ class SeatHoldBloc extends Bloc<SeatHoldEvent, SeatHoldState> {
 
     final held = await _repository.holdGroup(
       quote: quote,
-      seats: [for (final passenger in event.passengers) passenger.seat],
-      // Le devis d'un aller-retour porte deux tronçons, et le serveur
-      // exige un siège pour chacun : taire les sièges du retour ferait
-      // refuser le blocage entier.
-      returnSeats: event.returnSeats,
+      // Le devis porte un tronçon par bus, et le serveur exige un siège
+      // pour chacun : en taire un ferait refuser le blocage entier.
+      journey: event.journey,
       payer: event.payer,
       // Déterministe : un réseau qui coupe après l'envoi laisse le
       // voyageur réappuyer, et le serveur rend alors le blocage déjà
@@ -154,9 +151,8 @@ class SeatHoldBloc extends Bloc<SeatHoldEvent, SeatHoldState> {
     }
 
     return _repository.groupQuote(
-      departure: event.departure,
+      journey: event.journey,
       passengers: event.passengers.length,
-      returnDeparture: event.returnDeparture,
       promoCode: shown?.promotion?.code,
     );
   }
@@ -307,9 +303,8 @@ class SeatHoldBloc extends Bloc<SeatHoldEvent, SeatHoldState> {
     }
 
     final quoted = await _repository.groupQuote(
-      departure: event.departure,
+      journey: event.journey,
       passengers: event.passengers.length,
-      returnDeparture: event.returnDeparture,
       promoCode: removing ? null : code,
     );
 

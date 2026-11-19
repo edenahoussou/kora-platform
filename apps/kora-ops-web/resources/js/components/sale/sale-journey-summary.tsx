@@ -25,7 +25,7 @@ import type {
     SaleReservation,
     SaleSearch,
 } from './sale-types';
-import { formatDayMonth, formatIsoTime, formatMoney } from './sale-utils';
+import { formatMoney, formatStopSchedule } from './sale-utils';
 import { useHoldCountdown } from './use-hold-countdown';
 
 type CashBreakdown = {
@@ -78,6 +78,8 @@ type LegInfo = {
     lineCode: string | null;
     busRegistration: string | null;
     departureAt: string | null;
+    departureTimezone: string | null;
+    arrivalTimezone: string | null;
     arrivalAt: string | null;
     amount: number | null;
     currency: string | null;
@@ -140,6 +142,12 @@ function buildDirectionGroups(
                 departureAt:
                     first?.departureAt ?? quoteLeg?.departureAt ?? null,
                 arrivalAt: first?.arrivalAt ?? quoteLeg?.arrivalAt ?? null,
+                departureTimezone:
+                    first?.departureTimezone ??
+                    quoteLeg?.departureTimezone ??
+                    null,
+                arrivalTimezone:
+                    first?.arrivalTimezone ?? quoteLeg?.arrivalTimezone ?? null,
                 amount: quoteLeg?.amount ?? null,
                 currency:
                     quoteLeg?.currency ?? itineraryQuote?.currency ?? null,
@@ -186,9 +194,11 @@ export function SaleJourneySummary({
 
     const isRoundTrip = directionGroups.length > 1;
     const isMultiLeg = directionGroups.some((group) => group.legs.length > 1);
-    const allLegs = directionGroups.flatMap((group) => group.legs);
-    const firstLeg = allLegs[0];
-    const lastLeg = allLegs[allLegs.length - 1];
+    const outboundLegs =
+        directionGroups.find((group) => group.direction === 'outbound')?.legs ??
+        [];
+    const firstLeg = outboundLegs[0];
+    const lastLeg = outboundLegs.at(-1);
 
     // Passenger count: passengers are only persisted at the next step,
     // so derive the count from segment passenger indexes (or fall back
@@ -234,20 +244,12 @@ export function SaleJourneySummary({
             : returnDestination;
         const firstLegInGroup = group.legs[0];
         const lastLegInGroup = group.legs[group.legs.length - 1];
-        const directionDate = isOutbound
-            ? (search?.date ?? firstLegInGroup?.departureDate ?? null)
-            : (search?.returnDate ?? firstLegInGroup?.departureDate ?? null);
-        const directionDepartTime = firstLegInGroup?.departureAt ?? null;
-        const directionArriveTime = lastLegInGroup?.arrivalAt ?? null;
 
         return (
             <div key={group.direction} className="summary-direction-block">
                 <div className="summary-direction-header">
                     <span className="summary-direction-label">
                         {DIRECTION_LABEL[group.direction] ?? group.direction}
-                    </span>
-                    <span className="summary-direction-date">
-                        {directionDate ? formatDayMonth(directionDate) : '—'}
                     </span>
                 </div>
                 <div className="summary-direction-route">
@@ -258,15 +260,18 @@ export function SaleJourneySummary({
                 <div className="summary-direction-times">
                     <span>
                         <Clock3 className="size-3" />
-                        {directionDepartTime
-                            ? formatIsoTime(directionDepartTime)
-                            : '—'}
+                        Montée :{' '}
+                        {formatStopSchedule(
+                            firstLegInGroup?.departureAt,
+                            firstLegInGroup?.departureTimezone,
+                        )}
                     </span>
-                    <ArrowRight className="size-3" />
                     <span>
-                        {directionArriveTime
-                            ? formatIsoTime(directionArriveTime)
-                            : '—'}
+                        Descente :{' '}
+                        {formatStopSchedule(
+                            lastLegInGroup?.arrivalAt,
+                            lastLegInGroup?.arrivalTimezone,
+                        )}
                     </span>
                 </div>
 
@@ -288,16 +293,23 @@ export function SaleJourneySummary({
                                         '—'}
                                 </div>
                                 <div className="summary-leg-schedule">
-                                    {leg.departureAt
-                                        ? formatIsoTime(leg.departureAt)
-                                        : '—'}
-                                    {' → '}
-                                    {leg.arrivalAt
-                                        ? formatIsoTime(leg.arrivalAt)
-                                        : '—'}
-                                    {leg.busRegistration
-                                        ? ` · ${leg.busRegistration}`
-                                        : ''}
+                                    <div>
+                                        Montée :{' '}
+                                        {formatStopSchedule(
+                                            leg.departureAt,
+                                            leg.departureTimezone,
+                                        )}
+                                    </div>
+                                    <div>
+                                        Descente :{' '}
+                                        {formatStopSchedule(
+                                            leg.arrivalAt,
+                                            leg.arrivalTimezone,
+                                        )}
+                                    </div>
+                                    {leg.busRegistration && (
+                                        <div>{leg.busRegistration}</div>
+                                    )}
                                 </div>
                                 {leg.amount !== null && leg.currency && (
                                     <div className="summary-leg-price">
@@ -363,6 +375,21 @@ export function SaleJourneySummary({
                         ? `${outboundOrigin} → ${outboundDestination}`
                         : 'Vente guichet'}
                 </h3>
+                {isRoundTrip && <small>Aller</small>}
+                <p>
+                    Montée à {outboundOrigin ?? '—'} :{' '}
+                    {formatStopSchedule(
+                        firstLeg?.departureAt,
+                        firstLeg?.departureTimezone,
+                    )}
+                </p>
+                <p>
+                    Arrivée à {outboundDestination ?? '—'} :{' '}
+                    {formatStopSchedule(
+                        lastLeg?.arrivalAt,
+                        lastLeg?.arrivalTimezone,
+                    )}
+                </p>
                 {isRoundTrip && (
                     <p className="summary-hero-return">
                         <ArrowRight className="size-3" />

@@ -21,10 +21,10 @@ class PaymentAttemptModel {
       pollingInterval: _pollingInterval(),
       expiresAt: _dateOrNull(_json['expires_at']),
       failureMessage: _failureMessage(),
-      // Prévu, jamais renvoyé aujourd'hui : le serveur pousse la demande
-      // sur le téléphone plutôt que d'ouvrir une page. Les deux noms sont
-      // acceptés pour n'avoir rien à changer ici le jour venu.
+      // `checkout_url` est celui des recharges ; les deux autres noms
+      // restent acceptés pour l'achat d'un billet.
       checkoutUrl:
+          ApiJson.stringOrNull(_json['checkout_url']) ??
           ApiJson.stringOrNull(_json['payment_url']) ??
           ApiJson.stringOrNull(_json['redirect_url']),
       widget: _widget(),

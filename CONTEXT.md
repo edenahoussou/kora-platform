@@ -1,6 +1,6 @@
 # KORA BUS
 
-KORA BUS est le contexte du MVP valide par le client. Ce glossaire fixe le vocabulaire commun entre le client, le pilotage projet et l'equipe technique.
+KORA BUS est le socle du MVP valide par le client, aujourd'hui livre et etendu par le Wallet, la fidelite et KORA POINT. Ce glossaire fixe le vocabulaire commun entre le client, le pilotage projet et l'equipe technique.
 
 ## Paramétrage runtime
 
@@ -22,19 +22,23 @@ Tout paramètre lié à l'exploitation ou au suivi (seuils, délais, tolérances
 ## Language
 
 **Ecosysteme KORA cible**:
-A terme, KORA comprend une application client multi-service, une application conducteurs Ride, une application operationnelle mobile Bus/terrain et un ERP web interne.
+A terme, KORA comprend une application client multi-service, une application conducteurs Ride, une application operationnelle mobile Bus/terrain et un ERP web interne. Le colis interurbain est la prochaine extension livree de la plateforme.
 _Avoid_: MVP super-app
 
 **MVP KORA BUS**:
-Plateforme Bus exploitable de bout en bout en 12 semaines, couvrant vente, paiement, billet, fiscalisation, exploitation, embarquement hors ligne et revente de segments liberes. Le perimetre produit inclut desormais le Wallet et la fidelite Bus selon [MEZ-49](docs/mez-49-compte-voyageur-wallet-fidelite.md), sans signifier que ces fonctions sont deja implementees.
-_Avoid_: MVP super-app, MVP Colis, portefeuille multi-service generaliste
+Plateforme Bus livree et exploitable de bout en bout, couvrant vente, paiement, billet, fiscalisation, exploitation, embarquement hors ligne et revente de segments liberes. Le MVP est termine et en exploitation : il reste la reference du socle Bus, et les extensions posterieures ne redefinissent pas son perimetre.
+_Avoid_: MVP super-app, MVP Colis, MVP en cours, perimetre MVP etendu sans ADR
+
+**Phase post-MVP**:
+Extension de perimetre livree apres le MVP Bus, portee par son propre ADR, son propre plan de recette et sa propre entree dans le tableau des phases du `README.md`. Extensions actuelles : Wallet et fidelite Bus ([MEZ-49](docs/mez-49-compte-voyageur-wallet-fidelite.md)), KORA POINT, puis Colis interurbain.
+_Avoid_: Retour dans le MVP, extension sans ADR ni ticket de changement
 
 **KORA App**:
-Application mobile client cible. A terme elle portera Bus, Ride, Colis et Wallet. Dans le MVP, elle porte le parcours passager Bus et l'acces au Wallet Bus defini par MEZ-49.
-_Avoid_: Creer Ride ou Colis dans le MVP
+Application mobile client cible. A terme elle portera Bus, Ride, Colis et Wallet. Elle porte deja le parcours passager Bus et l'acces au Wallet Bus defini par MEZ-49.
+_Avoid_: Creer Ride ou Colis dans l'application avant leur phase
 
 **KORA App Passager Bus**:
-Perimetre MVP de KORA App : rechercher un depart, reserver, payer, consulter un billet, suivre le bus et acceder a son compte et a son Wallet Bus.
+Perimetre client livre : rechercher un depart, reserver, payer, consulter un billet, suivre le bus et acceder a son compte et a son Wallet Bus. L'acces Colis y sera ajoute avec la phase Colis.
 _Avoid_: App client generique
 
 **KORA OPS Web**:
@@ -44,6 +48,18 @@ _Avoid_: Back-office generique
 **KORA OPS Mobile/P501**:
 Application mobile interne Android/P501 pour chauffeurs Bus, convoyeurs, agences et operations terrain, incluant planning, manifeste, scan, impression, descente anticipee et mode hors ligne.
 _Avoid_: KORA Driver
+
+**Ville**:
+Localite que le voyageur recherche (« Cotonou », « Parakou »). Une ville regroupe un ou plusieurs points d'arret ; une meme ville s'ecrit toujours de la meme facon.
+_Avoid_: Confondre ville et arret, saisir deux orthographes d'une meme ville
+
+**Point d'arret**:
+Lieu physique ou un bus prend ou depose des voyageurs (gare, carrefour), situe dans une ville et partage par toutes les lignes qui y passent. Il porte seul le nom affiche partout, la ville et la position GPS.
+_Avoid_: Gare (sauf si c'en est une), arret de ligne
+
+**Arret de ligne**:
+Passage d'une ligne par un point d'arret, avec son rang et sa distance depuis l'origine. Il n'a pas de nom propre : il affiche celui de son point d'arret.
+_Avoid_: Libelle propre a une ligne, ville
 
 **Terminal P501**:
 Materiel P501 physique enregistre dans KORA OPS et identifie par un numero de serie unique. Il peut ouvrir une session OPS Mobile uniquement lorsqu'il est autorise, affecte selon les regles du domaine et controle par le serveur.
@@ -74,8 +90,12 @@ Propriete d'une release applicative. Toute version installee anterieure a la der
 _Avoid_: Prompt fermable pour une MAJ obligatoire
 
 **KORA Driver**:
-Application mobile future pour les conducteurs Ride/VTC/moto/keke. Elle est hors MVP Bus.
+Application mobile future pour les conducteurs Ride/VTC/moto/keke. Elle est hors perimetre actuel.
 _Avoid_: Utiliser ce nom pour les chauffeurs de bus
+
+**KORA Colis**:
+Extension post-MVP des envois de hub KORA a hub KORA sur un depart Bus direct, couvrant la demande d'envoi, la pesee, la tarification, les charges payables et la garde du colis jusqu'a sa remise. La collecte et la livraison a domicile relevent de la phase VTC ; le depot et le retrait en KORA POINT sont une livraison ulterieure.
+_Avoid_: Livraison a domicile dans la phase Colis, module Colis autonome hors Bus
 
 **Depart**:
 Rotation planifiee d'un bus sur une ligne, a une date et une heure donnees.
@@ -247,6 +267,18 @@ _Avoid_: Achat de billet, transfert entre Wallets
 **Financement du billet**:
 Repartition du prix paye entre le cash Wallet, la valeur d'usage des points depenses et l'eventuel complement monetaire. Le taux applique a l'achat fait foi pour les remboursements.
 _Avoid_: Nombre de points exprime en FCFA
+
+**Remboursement Wallet exclusif**:
+Regle fondamentale du domaine KORA : tout remboursement, restitution ou regularisation de paiement est integralement et obligatoirement credite sur le solde cash du Wallet du voyageur. Aucun remboursement n'est execute en especes ni retrograde via l'API d'un fournisseur Mobile Money.
+_Avoid_: Remboursement externe via passerelle Mobile Money, sortie d'especes au guichet pour achat en ligne
+
+**Hold de financement mixte**:
+Blocage temporaire de securite pose sur le solde cash ou les points du Wallet lors de l'initiation d'un paiement mixte (Wallet + complement Mobile Money externe). Il garantit la disponibilite de la part Wallet pendant l'execution de l'appel externe et ne doit etre libere que sur echec avere ou expiration formelle du paiement externe.
+_Avoid_: Liberation prematuree du hold pendant qu'une intention de paiement externe est encore en cours
+
+**Regularisation d'incident de billetterie**:
+Operation financiere automatique ou supervisee intervenant lorsqu'un paiement externe a ete encaisse avec succes mais que le billet ne peut etre emis (siege plus disponible ou solde Wallet disparu). La part externe encaissee est alors immediatement portee au credit du solde cash du Wallet avec le motif comptable `unconfirmed_booking_settlement`.
+_Avoid_: Dossier sans suite avec fonds externes captures, annulation silencieuse sans credit Wallet
 
 **Points de fidelite**:
 Unites de recompense propres au voyageur eligible, acquises par les voyages effectues et les bonus, utilisables pour payer des billets Bus. Leur valeur d'usage est de 1 point pour 1 FCFA ; ils ne constituent pas du cash retirable ou transferable.

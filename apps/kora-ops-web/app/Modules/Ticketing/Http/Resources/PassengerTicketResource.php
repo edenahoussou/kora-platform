@@ -2,6 +2,8 @@
 
 namespace App\Modules\Ticketing\Http\Resources;
 
+use App\Modules\Booking\Models\ReservationSegment;
+use App\Modules\Booking\Services\DepartureStopTimeResolver;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Ticketing\Data\TicketStatus;
 use App\Modules\Ticketing\Models\Ticket;
@@ -29,14 +31,17 @@ class PassengerTicketResource extends JsonResource
         $passenger = $this->reservationPassenger;
         $segments = $passenger === null ? collect() : $passenger->segments->sortBy('leg_order');
         $firstSegment = $segments->first();
-        $lastSegment = $segments->last();
 
         $reservation = $this->reservation;
         $departure = $firstSegment?->departure;
         $line = $departure?->line;
+        $resolver = app(DepartureStopTimeResolver::class);
+        $schedule = $resolver->displaySchedule($departure, $firstSegment?->originStop, $firstSegment?->destinationStop);
+        $lastOutbound = $segments->last(fn ($segment): bool => $segment->direction === $firstSegment?->direction);
+        $arrivalSchedule = $resolver->displaySchedule($lastOutbound?->departure, $lastOutbound?->originStop, $lastOutbound?->destinationStop);
         $seat = $firstSegment?->seat;
         $originStop = $firstSegment?->originStop;
-        $destinationStop = $lastSegment?->destinationStop;
+        $destinationStop = $lastOutbound?->destinationStop;
 
         return [
             'uuid' => $this->uuid,
@@ -64,10 +69,31 @@ class PassengerTicketResource extends JsonResource
             ],
             'departure' => $departure === null ? null : [
                 'uuid' => $departure->uuid,
-                'departs_at' => $departure->scheduledDepartureAt()->toIso8601String(),
+                'departs_at' => $schedule['departureAt'],
+                'timezone' => $schedule['departureTimezone'],
+                'arrives_at' => $arrivalSchedule['arrivalAt'],
+                'arrival_timezone' => $arrivalSchedule['arrivalTimezone'],
                 'line_name' => $line?->name,
                 'line_code' => $line?->code,
             ],
+            'segments' => $segments->map(function (ReservationSegment $segment) use ($resolver): array {
+                $schedule = $resolver->displaySchedule($segment->departure, $segment->originStop, $segment->destinationStop);
+
+                return [
+                    'leg_order' => $segment->leg_order,
+                    'direction' => $segment->direction,
+                    'departure_uuid' => $segment->departure?->uuid,
+                    'origin_stop_uuid' => $segment->originStop?->uuid,
+                    'destination_stop_uuid' => $segment->destinationStop?->uuid,
+                    'origin_city' => $segment->originStop?->city,
+                    'destination_city' => $segment->destinationStop?->city,
+                    'seat_code' => $segment->seat?->code,
+                    'departure_at' => $schedule['departureAt'],
+                    'arrival_at' => $schedule['arrivalAt'],
+                    'departure_timezone' => $schedule['departureTimezone'],
+                    'arrival_timezone' => $schedule['arrivalTimezone'],
+                ];
+            })->values(),
             'seat' => $seat === null ? null : [
                 'uuid' => $seat->uuid,
                 'code' => $seat->code,

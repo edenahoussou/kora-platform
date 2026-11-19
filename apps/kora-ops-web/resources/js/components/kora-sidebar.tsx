@@ -20,6 +20,7 @@ import {
     Wallet,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { AppVersion } from '@/components/app-version';
 import { KoraUserMenuContent } from '@/components/kora-user-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -1065,6 +1066,7 @@ export function KoraSidebar({
                         </strong>
                     </div>
                 )}
+                {!isCollapsed && <AppVersion />}
             </div>
         </>
     );

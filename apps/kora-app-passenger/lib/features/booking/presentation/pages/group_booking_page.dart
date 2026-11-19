@@ -7,9 +7,10 @@ import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/screen_header.dart';
-import '../../domain/entities/departure.dart';
 import '../../domain/entities/group_booking_limits.dart';
 import '../../domain/entities/group_payer.dart';
+import '../../domain/entities/itinerary.dart';
+import '../../domain/entities/journey.dart';
 import '../bloc/group_payer_cubit.dart';
 import '../bloc/group_quote_cubit.dart';
 import 'group_discount_page.dart';
@@ -18,9 +19,9 @@ import 'seats_page.dart';
 /// Ce qu'attend [GroupBookingPage] : le départ retenu et le nombre de
 /// voyageurs pressenti.
 class GroupBookingArgs {
-  const GroupBookingArgs({required this.departure, required this.passengers});
+  const GroupBookingArgs({required this.itinerary, required this.passengers});
 
-  final Departure departure;
+  final Itinerary itinerary;
   final int passengers;
 }
 
@@ -73,7 +74,7 @@ class _GroupBookingPageState extends State<GroupBookingPage> {
     if (args == null) return;
 
     context.read<GroupQuoteCubit>().load(
-      departure: args.departure,
+      journey: Journey(outbound: args.itinerary),
       passengers: _count,
     );
   }
@@ -86,14 +87,17 @@ class _GroupBookingPageState extends State<GroupBookingPage> {
   /// et lui coûte un geste pour rien. On va alors droit aux sièges.
   void _continue(GroupBookingArgs args) {
     final state = context.read<GroupQuoteCubit>().state;
-    final quote = state.matches(args.departure.id, _count) ? state.quote : null;
+    final quote = state.matches(args.itinerary.id, _count) ? state.quote : null;
     final worthShowing = quote?.discount.hasSomethingToSay ?? false;
 
     context.push(
       worthShowing ? AppRouter.groupDiscountPath : AppRouter.seatsPath,
       extra: worthShowing
-          ? GroupDiscountArgs(departure: args.departure, passengers: _count)
-          : SeatsArgs(departure: args.departure, passengers: _count),
+          ? GroupDiscountArgs(itinerary: args.itinerary, passengers: _count)
+          : SeatsArgs(
+              journey: Journey(outbound: args.itinerary),
+              passengers: _count,
+            ),
     );
   }
 
@@ -168,7 +172,7 @@ class _GroupBookingPageState extends State<GroupBookingPage> {
                     const _PayerCard(),
                     const SizedBox(height: AppSpacing.md),
                     _GroupPriceCard(
-                      departure: args.departure,
+                      itinerary: args.itinerary,
                       passengers: _count,
                     ),
                     const SizedBox(height: AppSpacing.md),
@@ -334,9 +338,9 @@ class _StepperButton extends StatelessWidget {
 /// refusé —, la carte retombe sur le tarif de la recherche multiplié par le
 /// nombre : juste à la remise près, et bien plus utile qu'un écran vide.
 class _GroupPriceCard extends StatelessWidget {
-  const _GroupPriceCard({required this.departure, required this.passengers});
+  const _GroupPriceCard({required this.itinerary, required this.passengers});
 
-  final Departure departure;
+  final Itinerary itinerary;
   final int passengers;
 
   @override
@@ -345,10 +349,10 @@ class _GroupPriceCard extends StatelessWidget {
 
     return BlocBuilder<GroupQuoteCubit, GroupQuoteState>(
       builder: (context, state) {
-        final quote = state.matches(departure.id, passengers)
+        final quote = state.matches(itinerary.id, passengers)
             ? state.quote
             : null;
-        final subtotal = quote?.subtotal ?? departure.price * passengers;
+        final subtotal = quote?.subtotal ?? itinerary.total * passengers;
         final total = quote?.total ?? subtotal;
         final discount = quote?.discount;
 

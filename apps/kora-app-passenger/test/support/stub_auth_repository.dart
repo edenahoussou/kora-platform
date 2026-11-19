@@ -100,10 +100,14 @@ class StubAuthRepository implements AuthRepository {
     String? email,
     String? phone,
     String? countryCode,
+    String? referralCode,
   }) async => _answer(
     // Le nom apparaît dans la trace : c'est lui que le serveur exige
-    // pour une inscription par téléphone.
-    'completeRegistration:$pin${name == null || name.isEmpty ? '' : ':$name'}',
+    // pour une inscription par téléphone. Le code de parrainage aussi :
+    // il ne doit partir que renseigné, et tel qu'il a été tapé.
+    'completeRegistration:$pin'
+    '${name == null || name.isEmpty ? '' : ':$name'}'
+    '${referralCode == null ? '' : ':parrain=$referralCode'}',
     session,
   );
 

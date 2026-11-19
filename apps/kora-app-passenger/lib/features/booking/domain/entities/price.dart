@@ -25,7 +25,15 @@ class Price extends Equatable {
   static final NumberFormat _format = NumberFormat.decimalPattern('fr_FR');
 
   /// Montant prêt à être affiché : `12 500 FCFA`.
-  String get formatted => '${_format.format(amount)} $currency';
+  String get formatted => '${group(amount)} $currency';
+
+  /// Les milliers séparés, sans la devise : `12 500`.
+  ///
+  /// Pour les champs où le voyageur **saisit** un montant : la devise y
+  /// est affichée à côté plutôt que dans le texte modifiable. Passe par
+  /// le même format que [formatted], pour qu'un montant saisi et un
+  /// montant affiché ne se lisent jamais différemment.
+  static String group(int amount) => _format.format(amount);
 
   /// Prix total pour [passengers] voyageurs.
   Price operator *(int passengers) =>
