@@ -15,6 +15,7 @@ use App\Modules\Parcels\Services\ParcelIntake;
 use App\Modules\Parcels\Services\ParcelNotifications;
 use App\Modules\Parcels\Services\ParcelPayments;
 use App\Modules\Parcels\Services\ParcelPricing;
+use App\Modules\Parcels\Services\ParcelRouting;
 use App\Modules\Payments\Http\Resources\PaymentResource;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\PaymentManager;
@@ -36,10 +37,14 @@ class ParcelController extends Controller
      *
      * @response 200 {"data":{}}
      */
-    public function corridors(): JsonResponse
+    public function corridors(ParcelRouting $routing): JsonResponse
     {
-        $corridors = ParcelCorridor::query()->where('enabled', true)->whereRelation('originHub', 'enabled', true)
-            ->whereRelation('destinationHub', 'enabled', true)->with(['originHub.stop', 'destinationHub.stop'])->get();
+        $corridors = ParcelCorridor::query()->where('enabled', true)
+            ->whereHas('originHub', fn ($query) => $query->where('enabled', true)->whereNull('archived_at'))
+            ->whereHas('destinationHub', fn ($query) => $query->where('enabled', true)->whereNull('archived_at'))
+            ->with(['originHub.stop', 'destinationHub.stop'])->get();
+
+        $corridors = $routing->filterOperationallyAvailable($corridors);
 
         return response()->json(['data' => $corridors->map(fn (ParcelCorridor $corridor): array => [
             'uuid' => $corridor->uuid,

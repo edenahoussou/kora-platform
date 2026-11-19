@@ -24,6 +24,11 @@ class ParcelAccess
         abort_unless($actor->agency_id === $hub->agency_id || $this->allows($actor, 'parcels.network'), 403);
     }
 
+    public function canViewHub(User $actor, ParcelHub $hub): bool
+    {
+        return $this->allows($actor, 'parcels.network') || $actor->agency_id === $hub->agency_id;
+    }
+
     /** @return Builder<Parcel> */
     public function operations(User $actor): Builder
     {

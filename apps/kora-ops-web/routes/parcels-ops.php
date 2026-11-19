@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Route;
 Route::controller(ParcelConfigurationController::class)->group(function (): void {
     Route::get('configuration', 'index')->name('configuration');
     Route::put('hubs', 'hub')->name('hubs.update');
+    Route::post('hubs/{hub:uuid}/archive', 'archive')->name('hubs.archive');
+    Route::get('routing/departures', 'routing')->name('routing.departures');
     Route::put('corridors', 'corridor')->name('corridors.update');
     Route::post('corridors/{corridor:uuid}/tariffs', 'tariff')->name('tariffs.store');
     Route::put('departures/{departure:uuid}/capacity', 'capacity')->name('capacity.update');

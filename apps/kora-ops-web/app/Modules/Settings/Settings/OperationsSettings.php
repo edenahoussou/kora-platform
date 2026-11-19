@@ -101,6 +101,8 @@ final class OperationsSettings extends Settings
 
     public int $parcelFiscalAlertHours = 20;
 
+    public int $parcelRoutingHorizonDays = 30;
+
     public static function group(): string
     {
         return 'operations';
