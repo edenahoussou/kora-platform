@@ -3,6 +3,7 @@
 namespace App\Modules\Parcels\Models;
 
 use App\Models\User;
+use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\IdentityAccess\Models\TerminalP501;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Support\Models\KoraModel;
@@ -20,7 +21,7 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
  */
 class Parcel extends KoraModel
 {
-    protected $fillable = ['reference', 'corridor_id', 'sender_user_id', 'custody_hub_id', 'status', 'sender_name', 'sender_phone', 'recipient_name', 'recipient_phone', 'recipient_phone_hash', 'contents', 'declared_grams', 'weight_grams', 'expires_at', 'available_at', 'return_due_at', 'return_handed_over_at', 'handoff_hash', 'handoff_attempts', 'share_hash'];
+    protected $fillable = ['reference', 'corridor_id', 'deposit_hub_id', 'selling_agency_id', 'sender_user_id', 'custody_hub_id', 'status', 'sender_name', 'sender_phone', 'recipient_name', 'recipient_phone', 'recipient_phone_hash', 'contents', 'declared_grams', 'weight_grams', 'expires_at', 'available_at', 'return_due_at', 'return_handed_over_at', 'handoff_hash', 'handoff_attempts', 'share_hash'];
 
     protected $hidden = ['id', 'sender_name', 'sender_phone', 'recipient_name', 'recipient_phone', 'recipient_phone_hash', 'contents', 'handoff_hash', 'share_hash'];
 
@@ -49,6 +50,18 @@ class Parcel extends KoraModel
     public function custodyHub(): BelongsTo
     {
         return $this->belongsTo(ParcelHub::class);
+    }
+
+    /** @return BelongsTo<ParcelHub, $this> */
+    public function depositHub(): BelongsTo
+    {
+        return $this->belongsTo(ParcelHub::class, 'deposit_hub_id');
+    }
+
+    /** @return BelongsTo<Agency, $this> */
+    public function sellingAgency(): BelongsTo
+    {
+        return $this->belongsTo(Agency::class, 'selling_agency_id');
     }
 
     /** @return HasMany<ParcelAssignment, $this> */

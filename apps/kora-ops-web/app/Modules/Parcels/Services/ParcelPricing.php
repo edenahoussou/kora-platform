@@ -17,8 +17,8 @@ class ParcelPricing
         $corridor->loadMissing(['originHub.agency', 'destinationHub.agency']);
 
         abort_unless($corridor->enabled
-            && $corridor->originHub?->enabled && $corridor->originHub->agency?->status === AgencyStatus::Active
-            && $corridor->destinationHub?->enabled && $corridor->destinationHub->agency?->status === AgencyStatus::Active, 409, 'Corridor Colis indisponible.');
+            && $corridor->originHub?->enabled && $corridor->originHub->archived_at === null && $corridor->originHub->agency?->status === AgencyStatus::Active
+            && $corridor->destinationHub?->enabled && $corridor->destinationHub->archived_at === null && $corridor->destinationHub->agency?->status === AgencyStatus::Active, 409, 'Corridor Colis indisponible.');
     }
 
     /** @return array{tariff_id: int, tax_rule_id: int, total: int, net: int, tax: int, tax_code: string, tax_rate: string, fiscal_group: string} */

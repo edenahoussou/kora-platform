@@ -16,9 +16,14 @@ class ParcelConfigurationRequest extends FormRequest
     {
         return match ($this->route()?->getActionMethod()) {
             'hub' => [
-                'agency_uuid' => ['required', 'uuid'],
+                'agency_uuid' => ['nullable', 'uuid', 'required_without:kora_point_uuid', 'prohibits:kora_point_uuid'],
+                'kora_point_uuid' => ['nullable', 'uuid', 'required_without:agency_uuid', 'prohibits:agency_uuid'],
                 'stop_uuid' => ['required', 'uuid'],
                 'enabled' => ['required', 'boolean'],
+            ],
+            'routing' => [
+                'origin_hub_uuid' => ['required', 'uuid'],
+                'destination_hub_uuid' => ['required', 'uuid', 'different:origin_hub_uuid'],
             ],
             'corridor' => [
                 'origin_hub_uuid' => ['required', 'uuid'],

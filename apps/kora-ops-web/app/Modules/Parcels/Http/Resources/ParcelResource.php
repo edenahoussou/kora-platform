@@ -32,6 +32,8 @@ class ParcelResource extends JsonResource
             'origin_hub_uuid' => $parcel->corridor?->originHub?->uuid,
             'destination_hub_uuid' => $parcel->corridor?->destinationHub?->uuid,
             'custody_hub_uuid' => $parcel->custodyHub?->uuid,
+            'deposit_hub_uuid' => $parcel->depositHub?->uuid,
+            'selling_agency_uuid' => $parcel->sellingAgency?->uuid,
             'withdraw_by' => $parcel->return_due_at?->toIso8601String(),
             'return_handed_over_at' => $parcel->return_handed_over_at?->toIso8601String(),
             'expires_at' => $parcel->expires_at->toIso8601String(),
@@ -53,6 +55,6 @@ class ParcelResource extends JsonResource
     /** @return list<string> */
     public static function relations(): array
     {
-        return ['corridor.originHub.stop', 'corridor.destinationHub.stop', 'custodyHub', 'charges', 'assignments.departure.latestTrackingSession', 'incidents'];
+        return ['corridor.originHub.stop', 'corridor.destinationHub.stop', 'custodyHub', 'depositHub', 'sellingAgency', 'charges', 'assignments.departure.latestTrackingSession', 'incidents'];
     }
 }

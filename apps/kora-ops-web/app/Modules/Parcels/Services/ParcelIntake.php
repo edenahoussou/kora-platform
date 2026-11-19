@@ -15,6 +15,7 @@ class ParcelIntake
     public function __construct(
         private ParcelAccess $access,
         private ParcelPricing $pricing,
+        private ParcelRouting $routing,
         private PassengerIdentityResolver $identity,
     ) {}
 
@@ -24,6 +25,9 @@ class ParcelIntake
         return DB::transaction(function () use ($corridor, $actor, $input, $counter): Parcel {
             $corridor = ParcelCorridor::query()->lockForUpdate()->findOrFail($corridor->id);
             $this->pricing->ensureOpen($corridor);
+            $depositHub = $corridor->originHub;
+            abort_if($depositHub === null || ! $depositHub->isActive(), 409, 'Deposit location is not open for parcel intake.');
+            $this->routing->assertDepositMatchesCorridor($depositHub, $corridor);
             if ($counter) {
                 $this->access->atHub($actor, $corridor->originHub, 'parcels.intake');
             } else {
@@ -39,6 +43,8 @@ class ParcelIntake
             }
             $parcel = Parcel::query()->create([
                 'corridor_id' => $corridor->id,
+                'deposit_hub_id' => $depositHub->id,
+                'selling_agency_id' => $depositHub->agency_id,
                 'sender_user_id' => $sender?->id,
                 'status' => 'preregistered',
                 'sender_name' => $input['sender_name'],
