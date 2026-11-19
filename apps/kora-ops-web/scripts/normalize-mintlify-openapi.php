@@ -27,6 +27,14 @@ $openApi = preg_replace_callback(
     static fn (array $matches): string => $matches[1].'00000000-0000-4000-8000-000000000000',
     $openApi,
 );
+// Scribe evaluates datetime examples at generation time, which makes the spec
+// differ on every run. Pin them to a stable value so the CI staleness check
+// compares structure, not the clock.
+$openApi = preg_replace_callback(
+    '/^(\s+example: )\'?[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.?[0-9]+)?(?:Z|[+-][0-9]{2}:[0-9]{2})?\'?$/m',
+    static fn (array $matches): string => $matches[1]."'2026-01-01T00:00:00+00:00'",
+    $openApi,
+);
 $openApi = preg_replace_callback(
     '/^(\s*)example: [^\n]+\n(\s*)enum:\n((?:\s+- .*\n)+)/m',
     static function (array $matches): string {

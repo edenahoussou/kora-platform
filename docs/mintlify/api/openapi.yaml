@@ -935,10 +935,10 @@ paths:
                           example: XOF
                         departure_at:
                           type: string
-                          example: '2026-09-07T13:00:00+00:00'
+                          example: '2026-01-01T00:00:00+00:00'
                         arrival_at:
                           type: string
-                          example: '2026-09-07T23:00:00+00:00'
+                          example: '2026-01-01T00:00:00+00:00'
                         connection_margin_minutes:
                           type: integer
                           example: 45
@@ -1120,10 +1120,10 @@ paths:
                                 example: Standard
                               departure_at:
                                 type: string
-                                example: '2026-09-07T13:00:00+00:00'
+                                example: '2026-01-01T00:00:00+00:00'
                               arrival_at:
                                 type: string
-                                example: '2026-09-07T23:00:00+00:00'
+                                example: '2026-01-01T00:00:00+00:00'
       tags:
         - Bus
       requestBody:
@@ -1220,7 +1220,7 @@ paths:
                         example: XOF
                       expires_at:
                         type: string
-                        example: '2026-09-10T08:00:00Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       legs:
                         type: array
                         example:
@@ -1492,7 +1492,7 @@ paths:
                         example: held
                       expires_at:
                         type: string
-                        example: '2026-08-20T08:15:00Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       total_amount:
                         type: integer
                         example: 25000
@@ -1769,7 +1769,7 @@ paths:
                         example: held
                       expires_at:
                         type: string
-                        example: '2026-08-20T08:15:00Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       total_amount:
                         type: integer
                         example: 12500
@@ -2166,7 +2166,7 @@ paths:
                             example: XOF
                       valid_until:
                         type: string
-                        example: '2026-09-20T11:30:00+00:00'
+                        example: '2026-01-01T00:00:00+00:00'
                       actions:
                         type: object
                         properties:
@@ -2373,7 +2373,7 @@ paths:
                             example: XOF
                       valid_until:
                         type: string
-                        example: '2026-09-20T11:30:00+00:00'
+                        example: '2026-01-01T00:00:00+00:00'
                       actions:
                         type: object
                         properties:
@@ -2469,7 +2469,7 @@ paths:
                         example: XOF
                       expires_at:
                         type: string
-                        example: '2026-09-20T11:45:00+00:00'
+                        example: '2026-01-01T00:00:00+00:00'
                       seats:
                         type: array
                         example:
@@ -2608,7 +2608,7 @@ paths:
                         example: aicha.hounkpe@gmail.com
                       expires_at:
                         type: string
-                        example: '2026-08-20T13:10:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
         404:
           description: 'User not found'
           content:
@@ -2731,7 +2731,7 @@ paths:
                         example: vrf_aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789
                       verified_at:
                         type: string
-                        example: '2026-08-20T13:07:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
         422:
           description: 'Invalid code'
           content:
@@ -3068,7 +3068,7 @@ paths:
                         example: Bearer
                       expires_at:
                         type: string
-                        example: '2026-08-27T13:05:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       user:
                         type: object
                         properties:
@@ -3119,10 +3119,10 @@ paths:
                             example: ios
                           trusted_at:
                             type: string
-                            example: '2026-08-20T13:05:00.000Z'
+                            example: '2026-01-01T00:00:00+00:00'
                           last_seen_at:
                             type: string
-                            example: '2026-08-20T13:05:00.000Z'
+                            example: '2026-01-01T00:00:00+00:00'
                           status:
                             type: string
                             example: trusted
@@ -3276,7 +3276,7 @@ paths:
                         example: Bearer
                       expires_at:
                         type: string
-                        example: '2026-08-27T13:05:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       user:
                         type: object
                         properties:
@@ -3327,10 +3327,10 @@ paths:
                             example: ios
                           trusted_at:
                             type: string
-                            example: '2026-08-20T13:05:00.000Z'
+                            example: '2026-01-01T00:00:00+00:00'
                           last_seen_at:
                             type: string
-                            example: '2026-08-20T13:05:00.000Z'
+                            example: '2026-01-01T00:00:00+00:00'
                           status:
                             type: string
                             example: trusted
@@ -3361,7 +3361,7 @@ paths:
                         example: login_new_device
                       expires_at:
                         type: string
-                        example: '2026-08-20T13:10:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
         403:
           description: 'Account suspended'
           content:
@@ -3425,7 +3425,7 @@ paths:
                         example: 'Le compte est temporairement bloqué après plusieurs tentatives incorrectes.'
                       locked_until:
                         type: string
-                        example: '2026-08-20T13:15:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
       tags:
         - Auth
       requestBody:
@@ -3538,7 +3538,7 @@ paths:
                         example: Bearer
                       expires_at:
                         type: string
-                        example: '2026-08-27T13:05:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       user:
                         type: object
                         properties:
@@ -3591,10 +3591,10 @@ paths:
                             example: ios
                           trusted_at:
                             type: string
-                            example: '2026-08-20T13:05:00.000Z'
+                            example: '2026-01-01T00:00:00+00:00'
                           last_seen_at:
                             type: string
-                            example: '2026-08-20T13:05:00.000Z'
+                            example: '2026-01-01T00:00:00+00:00'
                           status:
                             type: string
                             example: trusted
@@ -3641,7 +3641,7 @@ paths:
                         example: Bearer
                       expires_at:
                         type: string
-                        example: '2026-08-27T13:05:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       user:
                         type: object
                         properties:
@@ -3694,10 +3694,10 @@ paths:
                             example: ios
                           trusted_at:
                             type: string
-                            example: '2026-08-20T13:05:00.000Z'
+                            example: '2026-01-01T00:00:00+00:00'
                           last_seen_at:
                             type: string
-                            example: '2026-08-20T13:05:00.000Z'
+                            example: '2026-01-01T00:00:00+00:00'
                           status:
                             type: string
                             example: trusted
@@ -4437,10 +4437,10 @@ paths:
                           example: ios
                         trusted_at:
                           type: string
-                          example: '2026-08-20T13:05:00.000Z'
+                          example: '2026-01-01T00:00:00+00:00'
                         last_seen_at:
                           type: string
-                          example: '2026-08-20T13:05:00.000Z'
+                          example: '2026-01-01T00:00:00+00:00'
                         status:
                           type: string
                           example: trusted
@@ -5405,7 +5405,7 @@ paths:
                             example: 31457280
                           published_at:
                             type: string
-                            example: '2026-10-25T09:00:00.000Z'
+                            example: '2026-01-01T00:00:00+00:00'
                   -
                     description: 'Aucune version publiée'
                     type: object
@@ -5512,7 +5512,7 @@ paths:
                           example: 10.0
                         starts_at:
                           type: string
-                          example: '2026-09-01T00:00:00+00:00'
+                          example: '2026-01-01T00:00:00+00:00'
                         ends_at:
                           type: string
                           example: null
@@ -5582,7 +5582,7 @@ paths:
                         example: 10.0
                       starts_at:
                         type: string
-                        example: '2026-09-01T00:00:00+00:00'
+                        example: '2026-01-01T00:00:00+00:00'
                       ends_at:
                         type: string
                         example: null
@@ -5684,12 +5684,12 @@ paths:
                 starts_at:
                   type: string
                   description: 'Start of the validity period.'
-                  example: '2026-09-01T00:00:00+00:00'
+                  example: '2026-01-01T00:00:00+00:00'
                   nullable: true
                 ends_at:
                   type: string
                   description: 'End of the validity period.'
-                  example: '2026-12-31T00:00:00+00:00'
+                  example: '2026-01-01T00:00:00+00:00'
                   nullable: true
               required:
                 - status
@@ -5734,10 +5734,10 @@ paths:
                         example: 15.0
                       starts_at:
                         type: string
-                        example: '2026-09-01T00:00:00+00:00'
+                        example: '2026-01-01T00:00:00+00:00'
                       ends_at:
                         type: string
-                        example: '2026-12-31T00:00:00+00:00'
+                        example: '2026-01-01T00:00:00+00:00'
         401:
           description: Unauthenticated
           content:
@@ -5811,12 +5811,12 @@ paths:
                 starts_at:
                   type: string
                   description: 'Start of the validity period.'
-                  example: '2026-09-01T00:00:00+00:00'
+                  example: '2026-01-01T00:00:00+00:00'
                   nullable: true
                 ends_at:
                   type: string
                   description: 'End of the validity period.'
-                  example: '2026-12-31T00:00:00+00:00'
+                  example: '2026-01-01T00:00:00+00:00'
                   nullable: true
               required:
                 - status
@@ -6007,7 +6007,7 @@ paths:
                     example: v1
                   timestamp:
                     type: string
-                    example: '2026-09-02T10:00:00.000Z'
+                    example: '2026-01-01T00:00:00+00:00'
                   checks:
                     type: object
                     properties:
@@ -6063,7 +6063,7 @@ paths:
                     example: v1
                   timestamp:
                     type: string
-                    example: '2026-09-02T10:00:00.000Z'
+                    example: '2026-01-01T00:00:00+00:00'
                   checks:
                     type: object
                     properties:
@@ -7141,7 +7141,7 @@ paths:
                 observed_at:
                   type: string
                   description: 'Le champ value doit être une date valide.'
-                  example: '2026-11-13T09:01:29'
+                  example: '2026-01-01T00:00:00+00:00'
               required:
                 - reference
                 - stop_uuid
@@ -8632,8 +8632,14 @@ paths:
               properties:
                 agency_uuid:
                   type: string
-                  description: 'Le champ value doit être un UUID valide.'
+                  description: 'This field is required when <code>kora_point_uuid</code> is not present. Le champ value doit être un UUID valide.'
                   example: 00000000-0000-4000-8000-000000000000
+                  nullable: true
+                kora_point_uuid:
+                  type: string
+                  description: 'This field is required when <code>agency_uuid</code> is not present. Le champ value doit être un UUID valide.'
+                  example: 00000000-0000-4000-8000-000000000000
+                  nullable: true
                 stop_uuid:
                   type: string
                   description: 'Le champ value doit être un UUID valide.'
@@ -8643,9 +8649,125 @@ paths:
                   description: ''
                   example: false
               required:
-                - agency_uuid
                 - stop_uuid
                 - enabled
+  '/api/v1/ops/parcels/hubs/{hub_uuid}/archive':
+    post:
+      summary: 'Archive a deposit location without deleting its history.'
+      operationId: archiveADepositLocationWithoutDeletingItsHistory
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+        409:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Deposit location is already archived.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Deposit location is already archived.'
+      tags:
+        - 'KORA OPS Paramètres Colis'
+    parameters:
+      -
+        in: path
+        name: hub_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  /api/v1/ops/parcels/routing/departures:
+    get:
+      summary: 'List the departures that can actually carry a parcel from one hub to another.'
+      operationId: listTheDeparturesThatCanActuallyCarryAParcelFromOneHubToAnother
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: {}
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+        409:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Corridor is not configured or enabled.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Corridor is not configured or enabled.'
+      tags:
+        - 'KORA OPS Paramètres Colis'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                origin_hub_uuid:
+                  type: string
+                  description: 'Le champ value doit être un UUID valide.'
+                  example: 00000000-0000-4000-8000-000000000000
+                destination_hub_uuid:
+                  type: string
+                  description: 'The value and <code>origin_hub_uuid</code> must be different. Le champ value doit être un UUID valide.'
+                  example: 00000000-0000-4000-8000-000000000000
+              required:
+                - origin_hub_uuid
+                - destination_hub_uuid
   /api/v1/ops/parcels/corridors:
     put:
       summary: 'Configurer et activer un corridor Colis.'
@@ -8913,10 +9035,10 @@ paths:
                         example: 00000000-0000-4000-8000-000000000000
                       localRecordedAt:
                         type: string
-                        example: '2026-10-01T07:58:03.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       serverRecordedAt:
                         type: string
-                        example: '2026-10-01T07:58:03.400Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       code:
                         type: string
                         example: null
@@ -9031,7 +9153,7 @@ paths:
                 local_recorded_at:
                   type: string
                   description: "Horodatage local de l'appareil au moment du scan (ISO 8601)."
-                  example: '2026-10-01T07:58:03Z'
+                  example: '2026-01-01T00:00:00+00:00'
               required:
                 - departure_uuid
                 - operation_uuid
@@ -9265,7 +9387,7 @@ paths:
                                 example: 182450
                               recorded_at:
                                 type: string
-                                example: '2026-10-27T07:55:00.000Z'
+                                example: '2026-01-01T00:00:00+00:00'
                               recorded_by:
                                 type: string
                                 example: 'Koffi A.'
@@ -9366,7 +9488,7 @@ paths:
                 recorded_at:
                   type: string
                   description: 'Heure locale du relevé (ISO 8601). Le champ value doit être une date valide. Le champ value doit être une date antérieure ou égale à <code>+5 minutes</code>. Le champ value doit être une date postérieure à <code>-7 days</code>.'
-                  example: '2052-11-29'
+                  example: '2052-12-05'
                   nullable: true
               required:
                 - kind
@@ -9465,7 +9587,7 @@ paths:
                         example: cash
                       occurred_at:
                         type: string
-                        example: '2026-10-27T08:30:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       status:
                         type: string
                         example: pending
@@ -9569,7 +9691,7 @@ paths:
                 occurred_at:
                   type: string
                   description: 'Heure locale de la dépense (ISO 8601). Le champ value doit être une date valide. Le champ value doit être une date antérieure ou égale à <code>+5 minutes</code>. Le champ value doit être une date postérieure à <code>-7 days</code>.'
-                  example: '2052-11-29'
+                  example: '2052-12-05'
                   nullable: true
                 note:
                   type: string
@@ -9729,7 +9851,7 @@ paths:
                           example: '08:00'
                         estimatedArrivalAt:
                           type: string
-                          example: '2026-10-01T11:00:00.000Z'
+                          example: '2026-01-01T00:00:00+00:00'
                         line:
                           type: object
                           properties:
@@ -9902,7 +10024,7 @@ paths:
                         example: '08:00'
                       estimatedArrivalAt:
                         type: string
-                        example: '2026-10-01T11:00:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       line:
                         type: object
                         properties:
@@ -10469,10 +10591,10 @@ paths:
                           example: 2.4183
                         occurred_at:
                           type: string
-                          example: '2026-09-22T09:14:00.000Z'
+                          example: '2026-01-01T00:00:00+00:00'
                         created_at:
                           type: string
-                          example: '2026-09-22T09:14:05.000Z'
+                          example: '2026-01-01T00:00:00+00:00'
                         departure:
                           type: object
                           properties:
@@ -10604,10 +10726,10 @@ paths:
                         example: 2.4183
                       occurred_at:
                         type: string
-                        example: '2026-09-22T09:14:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       created_at:
                         type: string
-                        example: '2026-09-22T09:14:05.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       departure:
                         type: object
                         properties:
@@ -10701,7 +10823,7 @@ paths:
                 occurred_at:
                   type: string
                   description: 'Heure locale du terminal (ISO 8601).'
-                  example: '2026-09-22T09:14:00Z'
+                  example: '2026-01-01T00:00:00+00:00'
                   nullable: true
               required:
                 - incident_uuid
@@ -10760,10 +10882,10 @@ paths:
                         example: 2.4183
                       occurred_at:
                         type: string
-                        example: '2026-09-22T09:14:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       created_at:
                         type: string
-                        example: '2026-09-22T09:14:05.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       departure:
                         type: object
                         properties:
@@ -11012,10 +11134,10 @@ paths:
                         example: departed
                       boarding_started_at:
                         type: string
-                        example: '2026-09-22T07:40:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       departed_at:
                         type: string
-                        example: '2026-09-22T08:07:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       arrived_at:
                         type: string
                         example: null
@@ -11087,7 +11209,7 @@ paths:
                 occurred_at:
                   type: string
                   description: 'Heure locale du terminal (ISO 8601).'
-                  example: '2026-09-22T08:07:00Z'
+                  example: '2026-01-01T00:00:00+00:00'
                   nullable: true
               required:
                 - status
@@ -11253,10 +11375,10 @@ paths:
                         example: 00000000-0000-4000-8000-000000000000
                       localRecordedAt:
                         type: string
-                        example: '2026-10-01T09:12:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       serverRecordedAt:
                         type: string
-                        example: '2026-10-01T09:12:00.400Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       code:
                         type: string
                         example: null
@@ -11417,7 +11539,7 @@ paths:
                 local_recorded_at:
                   type: string
                   description: "Horodatage local de l'appareil (ISO 8601)."
-                  example: '2026-10-01T09:12:00Z'
+                  example: '2026-01-01T00:00:00+00:00'
               required:
                 - departure_uuid
                 - ticket_uuid
@@ -11515,7 +11637,7 @@ paths:
                 local_recorded_at:
                   type: string
                   description: "Horodatage local de l'appareil (ISO 8601)."
-                  example: '2026-10-01T11:05:00Z'
+                  example: '2026-01-01T00:00:00+00:00'
               required:
                 - departure_uuid
                 - operation_uuid
@@ -11619,10 +11741,10 @@ paths:
                             example: active
                           expires_at:
                             type: string
-                            example: '2026-09-14T21:00:00.000Z'
+                            example: '2026-01-01T00:00:00+00:00'
                           renewable_until:
                             type: string
-                            example: '2026-09-15T09:00:00.000Z'
+                            example: '2026-01-01T00:00:00+00:00'
                       capabilities:
                         type: object
                         properties:
@@ -11640,7 +11762,7 @@ paths:
                     properties:
                       server_time:
                         type: string
-                        example: '2026-09-14T10:00:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
         401:
           description: ''
           content:
@@ -11768,10 +11890,10 @@ paths:
                             example: active
                           expires_at:
                             type: string
-                            example: '2026-09-14T22:00:00.000Z'
+                            example: '2026-01-01T00:00:00+00:00'
                           renewable_until:
                             type: string
-                            example: '2026-09-15T09:00:00.000Z'
+                            example: '2026-01-01T00:00:00+00:00'
                           renewal_count:
                             type: integer
                             example: 1
@@ -11780,7 +11902,7 @@ paths:
                     properties:
                       server_time:
                         type: string
-                        example: '2026-09-14T10:00:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
         401:
           description: 'Session expirée (aucune prolongation silencieuse)'
           content:
@@ -12084,10 +12206,10 @@ paths:
                         example: completed
                       submittedAt:
                         type: string
-                        example: '2026-10-01T08:00:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       processedAt:
                         type: string
-                        example: '2026-10-01T08:00:00.400Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       summary:
                         type: object
                         properties:
@@ -12277,7 +12399,7 @@ paths:
                         nullable: true
                       last_handshake_at:
                         type: string
-                        example: '2026-09-14T09:00:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       session:
                         type: object
                         properties:
@@ -12289,13 +12411,13 @@ paths:
                             example: active
                           opened_at:
                             type: string
-                            example: '2026-09-14T09:00:00.000Z'
+                            example: '2026-01-01T00:00:00+00:00'
                           expires_at:
                             type: string
-                            example: '2026-09-14T21:00:00.000Z'
+                            example: '2026-01-01T00:00:00+00:00'
                           renewable_until:
                             type: string
-                            example: '2026-09-15T09:00:00.000Z'
+                            example: '2026-01-01T00:00:00+00:00'
                           renewed_at:
                             type: string
                             example: null
@@ -12390,13 +12512,13 @@ paths:
                             example: 31457280
                           published_at:
                             type: string
-                            example: '2026-10-25T09:00:00.000Z'
+                            example: '2026-01-01T00:00:00+00:00'
                   meta:
                     type: object
                     properties:
                       server_time:
                         type: string
-                        example: '2026-09-14T09:00:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
         403:
           description: ''
           content:
@@ -12563,10 +12685,10 @@ paths:
                         example: active
                       last_sync_at:
                         type: string
-                        example: '2026-09-14T09:05:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       last_handshake_at:
                         type: string
-                        example: '2026-09-14T09:00:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       update:
                         type: string
                         example: null
@@ -12881,12 +13003,12 @@ paths:
           in: query
           name: since
           description: 'Date ISO 8601 (inclusive) : reprise après coupure.'
-          example: '2026-09-21T08:00:00Z'
+          example: '2026-01-01T00:00:00+00:00'
           required: false
           schema:
             type: string
             description: 'Date ISO 8601 (inclusive) : reprise après coupure.'
-            example: '2026-09-21T08:00:00Z'
+            example: '2026-01-01T00:00:00+00:00'
         -
           in: query
           name: per_page
@@ -13009,10 +13131,10 @@ paths:
                           nullable: true
                         created_at:
                           type: string
-                          example: '2026-09-21T07:41:12.000Z'
+                          example: '2026-01-01T00:00:00+00:00'
                         occurred_at:
                           type: string
-                          example: '2026-09-21T07:41:12.000Z'
+                          example: '2026-01-01T00:00:00+00:00'
                         departure:
                           type: object
                           properties:
@@ -13072,7 +13194,7 @@ paths:
                         example: 1
                       server_time:
                         type: string
-                        example: '2026-09-21T07:45:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
         401:
           description: 'Session expirée'
           content:
@@ -13246,10 +13368,10 @@ paths:
                           nullable: true
                         created_at:
                           type: string
-                          example: '2026-09-21T07:41:12.000Z'
+                          example: '2026-01-01T00:00:00+00:00'
                         occurred_at:
                           type: string
-                          example: '2026-09-21T07:41:12.000Z'
+                          example: '2026-01-01T00:00:00+00:00'
                         departure:
                           type: object
                           properties:
@@ -13329,7 +13451,7 @@ paths:
                     properties:
                       server_time:
                         type: string
-                        example: '2026-09-21T07:45:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
       tags:
         - 'OPS — Notifications'
   /api/v1/notifications/preferences:
@@ -13562,7 +13684,7 @@ paths:
                         example: 0
                       server_time:
                         type: string
-                        example: '2026-09-21T07:46:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
       tags:
         - 'OPS — Notifications'
       requestBody:
@@ -13575,7 +13697,7 @@ paths:
                 before:
                   type: string
                   description: 'Date ISO 8601 : seules les notifications créées jusque-là sont marquées.'
-                  example: '2026-09-21T07:45:00Z'
+                  example: '2026-01-01T00:00:00+00:00'
   '/api/v1/notifications/{notification}/read':
     post:
       summary: "Marque une notification lue (idempotent). Introuvable (404) si elle\nn'appartient pas à l'utilisateur."
@@ -13610,7 +13732,7 @@ paths:
                         example: false
                       read_at:
                         type: string
-                        example: '2026-09-21T07:46:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
         404:
           description: "Notification d'un autre utilisateur ou inconnue"
           content:
@@ -13916,7 +14038,7 @@ paths:
                           nullable: true
                         created_at:
                           type: string
-                          example: '2026-09-27T10:00:00.000Z'
+                          example: '2026-01-01T00:00:00+00:00'
                         data:
                           type: array
                           example: []
@@ -14067,10 +14189,10 @@ paths:
                         example: false
                       read_at:
                         type: string
-                        example: '2026-09-27T10:05:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       created_at:
                         type: string
-                        example: '2026-09-27T10:00:00.000Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       data:
                         type: array
                         example: []
@@ -14541,7 +14663,7 @@ paths:
                         example: verify
                       expires_at:
                         type: string
-                        example: '2026-08-20T08:15:00Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       polling_interval_seconds:
                         type: integer
                         example: 10
@@ -14650,7 +14772,7 @@ paths:
                         example: MM-98270341
                       confirmed_at:
                         type: string
-                        example: '2026-08-20T08:05:00Z'
+                        example: '2026-01-01T00:00:00+00:00'
                       reservation:
                         type: object
                         properties:
@@ -14751,16 +14873,16 @@ paths:
                         example: '+22901000000'
                       confirmed_at:
                         type: string
-                        example: '2026-08-20T08:05:00+00:00'
+                        example: '2026-01-01T00:00:00+00:00'
                       last_verified_at:
                         type: string
-                        example: '2026-08-20T08:06:00+00:00'
+                        example: '2026-01-01T00:00:00+00:00'
                       next_action:
                         type: string
                         example: wait_for_tickets
                       expires_at:
                         type: string
-                        example: '2026-08-20T08:15:00+00:00'
+                        example: '2026-01-01T00:00:00+00:00'
                       polling_interval_seconds:
                         type: integer
                         example: 10
@@ -14911,7 +15033,7 @@ paths:
                         example: retry
                       expires_at:
                         type: string
-                        example: '2026-08-20T08:15:00+00:00'
+                        example: '2026-01-01T00:00:00+00:00'
                       polling_interval_seconds:
                         type: integer
                         example: 10
@@ -15389,7 +15511,7 @@ paths:
                           example: issued
                         issued_at:
                           type: string
-                          example: '2026-08-20T08:10:00+00:00'
+                          example: '2026-01-01T00:00:00+00:00'
                         reservation_uuid:
                           type: string
                           example: 00000000-0000-4000-8000-000000000000
@@ -15583,7 +15705,7 @@ paths:
                           example: confirmed
                         issued_at:
                           type: string
-                          example: '2026-08-20T08:10:00+00:00'
+                          example: '2026-01-01T00:00:00+00:00'
                         reservation_uuid:
                           type: string
                           example: 00000000-0000-4000-8000-000000000000
@@ -15637,7 +15759,7 @@ paths:
                               example: dep12345-6789-abcd-ef01-23456789abcd
                             departs_at:
                               type: string
-                              example: '2026-08-04T07:30:00+00:00'
+                              example: '2026-01-01T00:00:00+00:00'
                             line_name:
                               type: string
                               example: Cotonou-Malanville
@@ -15731,7 +15853,7 @@ paths:
                         example: issued
                       issued_at:
                         type: string
-                        example: '2026-08-20T08:10:00+00:00'
+                        example: '2026-01-01T00:00:00+00:00'
                       reservation_uuid:
                         type: string
                         example: 00000000-0000-4000-8000-000000000000
@@ -16009,7 +16131,7 @@ paths:
                             example: 100
                       created_at:
                         type: string
-                        example: '2026-11-07T10:00:00+00:00'
+                        example: '2026-01-01T00:00:00+00:00'
       tags:
         - Wallet
       security: []
@@ -16122,7 +16244,7 @@ paths:
                           nullable: true
                         created_at:
                           type: string
-                          example: '2026-11-07T10:00:00+00:00'
+                          example: '2026-01-01T00:00:00+00:00'
                   links:
                     type: object
                     properties:
@@ -16220,7 +16342,7 @@ paths:
                             nullable: true
                       created_at:
                         type: string
-                        example: '2026-11-07T10:00:00+00:00'
+                        example: '2026-01-01T00:00:00+00:00'
         201:
           description: ''
           content:
@@ -16323,7 +16445,7 @@ paths:
                             nullable: true
                       created_at:
                         type: string
-                        example: '2026-11-07T10:00:00+00:00'
+                        example: '2026-01-01T00:00:00+00:00'
       tags:
         - Wallet
       requestBody:
@@ -16459,7 +16581,7 @@ paths:
                             nullable: true
                       created_at:
                         type: string
-                        example: '2026-11-07T10:00:00+00:00'
+                        example: '2026-01-01T00:00:00+00:00'
       tags:
         - Wallet
     parameters:
@@ -16758,7 +16880,7 @@ paths:
                             example: 'Geste commercial validé'
                       created_at:
                         type: string
-                        example: '2026-11-07T10:00:00+00:00'
+                        example: '2026-01-01T00:00:00+00:00'
       tags:
         - 'Wallet OPS'
       requestBody:
@@ -16996,7 +17118,7 @@ paths:
                         example: 'Responsable Finance'
                       approved_at:
                         type: string
-                        example: '2026-11-07T10:00:00+00:00'
+                        example: '2026-01-01T00:00:00+00:00'
       tags:
         - 'Wallet OPS'
       security: []
@@ -17111,7 +17233,7 @@ paths:
                         example: mobile_money
                       paid_at:
                         type: string
-                        example: '2026-11-07T10:00:00+00:00'
+                        example: '2026-01-01T00:00:00+00:00'
       tags:
         - 'Wallet OPS'
       requestBody:
