@@ -1,0 +1,11 @@
+---
+title: Annuler un colis pré-enregistré
+description: "Annule uniquement un colis encore au statut pré-enregistré, avant inspection ou paiement."
+api: POST /api/v1/parcels/{parcel_uuid}/cancel
+---
+
+Annule uniquement un colis encore au statut pré-enregistré, avant inspection ou paiement. Un colis refusé, payé, affecté ou remis ne peut jamais être annulé par cette opération.
+
+## Sécurité
+
+Les réponses n’exposent que des identifiants publics (UUID ou références) et les champs métier nécessaires au parcours. Aucun code de retrait, hash, secret ou payload fournisseur n’est documenté comme retournable.

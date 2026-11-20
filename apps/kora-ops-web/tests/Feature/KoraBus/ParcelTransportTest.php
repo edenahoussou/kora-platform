@@ -113,9 +113,22 @@ it('keeps the payment, custody, offline replay and withdrawal consistent across 
         ->and(FiscalInvoice::query()->count())->toBe(1)
         ->and($parcel->refresh()->status)->toBe('registered')
         ->and($parcel->reference)->toBe($referenceAtIntake);
-    $this->getJson('/api/v1/parcels/tracking/'.$parcel->reference)->assertExactJson([
-        'data' => ['status' => 'registered', 'origin' => 'Cotonou', 'destination' => 'Parakou'],
-    ]);
+    $tracking = $this->getJson('/api/v1/parcels/tracking/'.$parcel->reference)->assertOk()
+        ->assertJsonPath('data.status', 'registered')
+        ->assertJsonPath('data.origin', 'Cotonou')
+        ->assertJsonPath('data.destination', 'Parakou')
+        ->assertJsonPath('data.weight_grams', 5001);
+    $publicData = $tracking->json('data');
+    expect(array_keys($publicData))->toBe([
+        'reference', 'status', 'origin', 'destination', 'weight_grams',
+        'withdraw_by', 'eta', 'last_event_at', 'timeline',
+    ])->and($publicData)->not->toHaveKey('sender_name')
+        ->not->toHaveKey('recipient_name')
+        ->not->toHaveKey('sender_phone')
+        ->not->toHaveKey('recipient_phone')
+        ->not->toHaveKey('contents')
+        ->not->toHaveKey('handoff_code')
+        ->not->toHaveKey('share_hash');
     $this->getJson($web.'/documents?kind=label')->assertOk()->assertJsonPath(
         'data.qr_payload',
         route('api.v1.parcels.tracking', ['reference' => $parcel->reference]),

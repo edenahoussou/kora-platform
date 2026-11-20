@@ -1,0 +1,11 @@
+---
+title: Vérifier un paiement Colis
+description: "Vérifie la transaction auprès du prestataire et met à jour l’état du paiement."
+api: POST /api/v1/parcels/{parcel_uuid}/payments/{payment_uuid}/verify
+---
+
+Vérifie la transaction auprès du prestataire et met à jour l’état du paiement. Réservé à l’expéditeur propriétaire. Si le prestataire n’est pas supporté, l’état courant est retourné sans erreur. Limité à 10 requêtes par minute.
+
+## Sécurité
+
+Les réponses n’exposent que des identifiants publics (UUID ou références) et les champs métier nécessaires au parcours. Aucun code de retrait, hash, secret ou payload fournisseur n’est documenté comme retournable.

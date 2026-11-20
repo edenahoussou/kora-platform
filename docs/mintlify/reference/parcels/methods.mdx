@@ -1,0 +1,11 @@
+---
+title: Lister les moyens de paiement du colis
+description: "Retourne les moyens de paiement autorisés pour le corridor du colis, filtrés par pays et par capacités Wallet."
+api: GET /api/v1/parcels/{parcel_uuid}/payment-methods
+---
+
+Retourne les moyens de paiement autorisés pour le corridor du colis, filtrés par pays et par capacités Wallet. Réservé à l’expéditeur propriétaire. Aucun secret ni payload prestataire n’est exposé.
+
+## Sécurité
+
+Les réponses n’exposent que des identifiants publics (UUID ou références) et les champs métier nécessaires au parcours. Aucun code de retrait, hash, secret ou payload fournisseur n’est documenté comme retournable.

@@ -1,0 +1,11 @@
+---
+title: Consulter un colis
+description: "Détail d’un colis du titulaire ou d’un destinataire vérifié : jalons, devis, flags d’action et état de remise."
+api: GET /api/v1/parcels/{uuid}
+---
+
+Détail d’un colis du titulaire ou d’un destinataire vérifié : jalons, devis, flags d’action et état de remise. Le code de retrait, les hashes et les secrets ne sont jamais retournés. Un tiers reçoit une réponse 404.
+
+## Sécurité
+
+Les réponses n’exposent que des identifiants publics (UUID ou références) et les champs métier nécessaires au parcours. Aucun code de retrait, hash, secret ou payload fournisseur n’est documenté comme retournable.

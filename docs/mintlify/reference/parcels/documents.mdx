@@ -1,0 +1,11 @@
+---
+title: Obtenir l’étiquette ou le reçu
+description: "`label` est accessible au titulaire et au destinataire autorisé, sans nom ni téléphone."
+api: GET /api/v1/parcels/{parcel_uuid}/documents
+---
+
+`label` est accessible au titulaire et au destinataire autorisé, sans nom ni téléphone. `receipt` et `return_receipt` sont réservés à l’expéditeur propriétaire. `handoff_proof` reste une opération OPS et n’est jamais servi par cette API client (404).
+
+## Sécurité
+
+Les réponses n’exposent que des identifiants publics (UUID ou références) et les champs métier nécessaires au parcours. Aucun code de retrait, hash, secret ou payload fournisseur n’est documenté comme retournable.

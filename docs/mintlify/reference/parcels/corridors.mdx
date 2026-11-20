@@ -1,0 +1,12 @@
+---
+title: Lister les corridors Colis ouverts
+description: "Liste les corridors Colis activés et opérationnellement disponibles."
+api: GET /api/v1/parcels/corridors
+authMethod: none
+---
+
+Liste les corridors Colis activés et opérationnellement disponibles. Chaque hub expose uniquement son UUID public, sa ville et son nom. Aucun identifiant interne ni donnée personnelle n’est retourné. Endpoint public, limité à 30 requêtes par minute et par client.
+
+## Sécurité
+
+Les réponses n’exposent que des identifiants publics (UUID ou références) et les champs métier nécessaires au parcours. Aucun code de retrait, hash, secret ou payload fournisseur n’est documenté comme retournable.
