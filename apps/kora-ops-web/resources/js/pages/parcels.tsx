@@ -1262,7 +1262,7 @@ export default function ParcelsPage() {
                         </p>
                     </div>
 
-                    {activeTab !== 'parcels' && (canIntake || canConfigure) && (
+                    {(canIntake || canConfigure) && (
                         <div className="flex flex-wrap items-center gap-2">
                             {canIntake && (
                                 <ParcelButton
@@ -1321,52 +1321,50 @@ export default function ParcelsPage() {
                     </div>
                 ) : (
                     <>
-                        {activeTab !== 'parcels' && (
-                            <section className="relative mb-5 overflow-hidden rounded-[26px] bg-kora px-6 py-6 text-white shadow-[0_24px_55px_rgba(0,29,78,0.18)]">
-                                <div className="absolute -top-24 -right-20 size-72 rounded-full border border-white/10" />
-                                <div className="absolute right-12 -bottom-28 size-80 rounded-full border border-white/10" />
-                                <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-                                    <div className="max-w-2xl">
-                                        <span className="text-[0.6875rem] font-black tracking-[0.18em] text-gold uppercase">
-                                            Réseau de dépôt Colis
-                                        </span>
-                                        <h2 className="mt-3 text-[clamp(1.7rem,3vw,2.6rem)] leading-[1.02] font-extrabold tracking-[-0.055em]">
-                                            Chaque colis part
-                                            <br />
-                                            <em className="text-gold not-italic">
-                                                d’un lieu réel.
-                                            </em>
-                                        </h2>
-                                        <p className="mt-3 max-w-xl text-sm leading-6 text-white/65">
-                                            Le lieu de dépôt porte l’attribution
-                                            commerciale. L’arrêt porte la
-                                            desserte logistique. Les deux ne se
-                                            confondent jamais.
-                                        </p>
-                                    </div>
-
-                                    <div className="grid grid-cols-3 gap-2 sm:min-w-[26rem]">
-                                        {[
-                                            ['Actifs', activeHubs],
-                                            ['Partenaires', partnerHubs],
-                                            ['Archivés', archivedHubs],
-                                        ].map(([label, value]) => (
-                                            <div
-                                                key={label}
-                                                className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3"
-                                            >
-                                                <strong className="block text-2xl font-black tracking-[-0.04em] text-white">
-                                                    {value}
-                                                </strong>
-                                                <span className="mt-1 block text-[0.625rem] font-bold tracking-[0.12em] text-white/55 uppercase">
-                                                    {label}
-                                                </span>
-                                            </div>
-                                        ))}
-                                    </div>
+                        <section className="relative mb-5 overflow-hidden rounded-[26px] bg-kora px-6 py-6 text-white shadow-[0_24px_55px_rgba(0,29,78,0.18)]">
+                            <div className="absolute -top-24 -right-20 size-72 rounded-full border border-white/10" />
+                            <div className="absolute right-12 -bottom-28 size-80 rounded-full border border-white/10" />
+                            <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                                <div className="max-w-2xl">
+                                    <span className="text-[0.6875rem] font-black tracking-[0.18em] text-gold uppercase">
+                                        Réseau de dépôt Colis
+                                    </span>
+                                    <h2 className="mt-3 text-[clamp(1.7rem,3vw,2.6rem)] leading-[1.02] font-extrabold tracking-[-0.055em]">
+                                        Chaque colis part
+                                        <br />
+                                        <em className="text-gold not-italic">
+                                            d’un lieu réel.
+                                        </em>
+                                    </h2>
+                                    <p className="mt-3 max-w-xl text-sm leading-6 text-white/65">
+                                        Le lieu de dépôt porte l’attribution
+                                        commerciale. L’arrêt porte la desserte
+                                        logistique. Les deux ne se confondent
+                                        jamais.
+                                    </p>
                                 </div>
-                            </section>
-                        )}
+
+                                <div className="grid grid-cols-3 gap-2 sm:min-w-[26rem]">
+                                    {[
+                                        ['Actifs', activeHubs],
+                                        ['Partenaires', partnerHubs],
+                                        ['Archivés', archivedHubs],
+                                    ].map(([label, value]) => (
+                                        <div
+                                            key={label}
+                                            className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3"
+                                        >
+                                            <strong className="block text-2xl font-black tracking-[-0.04em] text-white">
+                                                {value}
+                                            </strong>
+                                            <span className="mt-1 block text-[0.625rem] font-bold tracking-[0.12em] text-white/55 uppercase">
+                                                {label}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </section>
 
                         <nav
                             className={`mb-5 grid gap-2 rounded-[18px] border border-border bg-card p-2 sm:grid-cols-2 ${
