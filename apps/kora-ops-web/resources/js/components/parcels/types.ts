@@ -42,6 +42,8 @@ export type StopOption = {
 
 export type ParcelTariff = {
     uuid: string;
+    deposit_kind: DepositHubKind;
+    version: number;
     base_amount: number;
     step_amount: number;
     step_grams: number;
@@ -53,6 +55,7 @@ export type ParcelTariff = {
 export type ParcelCorridor = {
     uuid: string;
     origin_hub_uuid: string | null;
+    origin_hub_kind: DepositHubKind | null;
     destination_hub_uuid: string | null;
     enabled: boolean;
     wallet_cash_enabled: boolean;
@@ -60,6 +63,7 @@ export type ParcelCorridor = {
 };
 
 export type ParcelConfiguration = {
+    currency: string;
     hubs: DepositHub[];
     corridors: ParcelCorridor[];
     options: {
@@ -94,6 +98,7 @@ export type CorridorPayload = {
 };
 
 export type TariffPayload = {
+    deposit_kind: DepositHubKind;
     base_amount: number;
     step_amount: number;
     step_grams: number;
@@ -132,6 +137,38 @@ export type ParcelIntakePayload = {
     weight_grams: number;
 };
 
+export type QuoteTier = {
+    kind: 'base' | 'step' | 'return';
+    from_grams: number;
+    to_grams: number;
+    amount: number;
+};
+
+export type ParcelQuote = {
+    estimated: boolean;
+    weight_grams: number;
+    currency: string;
+    deposit_kind: DepositHubKind;
+    tariff_uuid: string;
+    tariff_version: number;
+    maximum_grams: number;
+    base_amount: number;
+    step_amount: number;
+    step_grams: number;
+    extra_steps: number;
+    tiers: QuoteTier[];
+    total: number;
+    net: number;
+    tax: number;
+    tax_code: string;
+    tax_rate: string;
+    fiscal_group: string;
+};
+
+export type ParcelQuoteResponse = {
+    data: ParcelQuote;
+};
+
 export type ParcelIntakeResult = {
     uuid: string;
     reference: string;
@@ -150,6 +187,13 @@ export type ParcelIntakeResult = {
         tax: number;
         total: number;
         currency: string;
+        tariff_uuid?: string | null;
+        tariff_version?: number | null;
+        deposit_kind?: DepositHubKind | null;
+        base_amount?: number | null;
+        step_amount?: number | null;
+        step_grams?: number | null;
+        maximum_grams?: number | null;
     } | null;
     expires_at: string;
 };

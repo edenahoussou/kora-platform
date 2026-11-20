@@ -17,11 +17,13 @@ use App\Modules\Parcels\Services\ParcelAccess;
 use App\Modules\Parcels\Services\ParcelPricing;
 use App\Modules\Parcels\Services\ParcelRouting;
 use App\Modules\Parcels\Services\ParcelTransport;
+use App\Modules\Settings\Settings\GeneralSettings;
 use App\Modules\Settings\Settings\IntegrationsSettings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 /** @group KORA OPS Paramètres Colis */
 class ParcelConfigurationController extends Controller
@@ -36,7 +38,7 @@ class ParcelConfigurationController extends Controller
      * @response 200 {"data":{}}
      * @response 403 {"message":"Droits insuffisants pour ce périmètre Colis."}
      */
-    public function index(Request $request): JsonResponse
+    public function index(Request $request, GeneralSettings $settings): JsonResponse
     {
         $this->access->require($request->user(), 'parcels.network');
         $hubs = ParcelHub::query()->with(['agency', 'koraPoint', 'stop'])->get()->map(fn (ParcelHub $hub): array => [
@@ -46,10 +48,10 @@ class ParcelConfigurationController extends Controller
             'archived_at' => $hub->archived_at?->toIso8601String(),
         ]);
         $corridors = ParcelCorridor::query()->with(['originHub', 'destinationHub', 'tariffs'])->get()->map(fn (ParcelCorridor $corridor): array => [
-            'uuid' => $corridor->uuid, 'origin_hub_uuid' => $corridor->originHub?->uuid, 'destination_hub_uuid' => $corridor->destinationHub?->uuid,
+            'uuid' => $corridor->uuid, 'origin_hub_uuid' => $corridor->originHub?->uuid, 'origin_hub_kind' => $corridor->originHub?->kind, 'destination_hub_uuid' => $corridor->destinationHub?->uuid,
             ...$corridor->only(['enabled', 'wallet_cash_enabled']),
             'tariffs' => $corridor->tariffs->sortByDesc('id')->values()->map(fn ($tariff) => $tariff->only([
-                'uuid', 'base_amount', 'step_amount', 'step_grams', 'maximum_grams', 'return_amount', 'created_at',
+                'uuid', 'deposit_kind', 'version', 'base_amount', 'step_amount', 'step_grams', 'maximum_grams', 'return_amount', 'created_at',
             ])),
         ]);
 
@@ -102,6 +104,7 @@ class ParcelConfigurationController extends Controller
         ];
 
         return response()->json(['data' => [
+            'currency' => $settings->currency,
             'hubs' => $hubs,
             'corridors' => $corridors,
             'options' => $options,
@@ -352,11 +355,33 @@ class ParcelConfigurationController extends Controller
         $this->access->require($request->user(), 'parcels.tariffs');
 
         return DB::transaction(function () use ($request, $corridor): JsonResponse {
-            $corridor = ParcelCorridor::query()->lockForUpdate()->findOrFail($corridor->id);
-            $tariff = $corridor->tariffs()->create($request->validated() + ['created_by' => $request->user()->id]);
-            activity('parcels')->performedOn($tariff)->causedBy($request->user())->withProperties($request->validated())->log('parcel_tariff_published');
+            $corridor = ParcelCorridor::query()->with('originHub')->lockForUpdate()->findOrFail($corridor->id);
+            $depositKind = (string) $corridor->originHub?->kind;
+            abort_if($depositKind === '', 409, 'The parcel deposit location kind is incomplete.');
+            $requestedKind = $request->validated('deposit_kind');
 
-            return response()->json(['data' => ['uuid' => $tariff->uuid]], 201);
+            if (is_string($requestedKind) && $requestedKind !== $depositKind) {
+                throw ValidationException::withMessages([
+                    'deposit_kind' => 'The tariff grid must match the corridor deposit location kind.',
+                ]);
+            }
+
+            $version = (int) $corridor->tariffs()
+                ->where('deposit_kind', $depositKind)
+                ->max('version') + 1;
+            $attributes = $request->safe()->except('deposit_kind') + [
+                'deposit_kind' => $depositKind,
+                'version' => $version,
+                'created_by' => $request->user()->id,
+            ];
+            $tariff = $corridor->tariffs()->create($attributes);
+            activity('parcels')->performedOn($tariff)->causedBy($request->user())->withProperties($attributes)->log('parcel_tariff_published');
+
+            return response()->json(['data' => [
+                'uuid' => $tariff->uuid,
+                'deposit_kind' => $tariff->deposit_kind,
+                'version' => $tariff->version,
+            ]], 201);
         });
     }
 

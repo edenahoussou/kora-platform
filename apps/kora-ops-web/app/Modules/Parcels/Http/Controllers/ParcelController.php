@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Parcels\Http\Requests\ParcelIntakeRequest;
 use App\Modules\Parcels\Http\Requests\ParcelOperationRequest;
 use App\Modules\Parcels\Http\Requests\ParcelPaymentRequest;
+use App\Modules\Parcels\Http\Resources\ParcelQuoteResource;
 use App\Modules\Parcels\Http\Resources\ParcelResource;
 use App\Modules\Parcels\Models\Parcel;
 use App\Modules\Parcels\Models\ParcelCorridor;
@@ -66,12 +67,9 @@ class ParcelController extends Controller
     {
         $corridor = ParcelCorridor::query()->where('uuid', $request->validated('corridor_uuid'))->firstOrFail();
         $this->pricing->ensureOpen($corridor);
-        $amount = $this->pricing->calculate($corridor, $request->integer('weight_grams'));
+        $quote = $this->pricing->calculate($corridor, $request->integer('weight_grams'));
 
-        return response()->json(['data' => [
-            'estimated' => true, 'weight_grams' => $request->integer('weight_grams'),
-            'total' => $amount['total'], 'net' => $amount['net'], 'tax' => $amount['tax'], 'currency' => 'XOF',
-        ]]);
+        return (new ParcelQuoteResource($quote))->response();
     }
 
     /**

@@ -4,6 +4,7 @@ namespace App\Modules\Parcels\Http\Resources;
 
 use App\Modules\Parcels\Models\Parcel;
 use App\Modules\Parcels\Models\ParcelEvent;
+use App\Modules\Settings\Settings\GeneralSettings;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -74,7 +75,18 @@ class ParcelResource extends JsonResource
             'tracking_updated_at' => $departure?->latestTrackingSession?->last_position_at?->toIso8601String(),
             'incident_open' => $parcel->incidents->contains(fn ($incident) => $incident->resolved_at === null),
             'quote' => $charge === null ? null : [
-                'uuid' => $charge->uuid, 'net' => $charge->net, 'tax' => $charge->tax, 'total' => $charge->total, 'currency' => 'XOF',
+                'uuid' => $charge->uuid,
+                'net' => $charge->net,
+                'tax' => $charge->tax,
+                'total' => $charge->total,
+                'currency' => app(GeneralSettings::class)->currency,
+                'tariff_uuid' => $charge->tariff?->uuid,
+                'tariff_version' => $charge->tariff?->version,
+                'deposit_kind' => $charge->tariff?->deposit_kind,
+                'base_amount' => $charge->tariff?->base_amount,
+                'step_amount' => $charge->tariff?->step_amount,
+                'step_grams' => $charge->tariff?->step_grams,
+                'maximum_grams' => $charge->tariff?->maximum_grams,
             ],
             'timeline' => $this->whenLoaded('events', fn () => $parcel->events->map(fn (ParcelEvent $event): array => [
                 'kind' => $event->kind, 'observed_at' => $event->observed_at->toIso8601String(),
@@ -85,6 +97,6 @@ class ParcelResource extends JsonResource
     /** @return list<string> */
     public static function relations(): array
     {
-        return ['corridor.originHub.stop', 'corridor.destinationHub.stop', 'custodyHub', 'depositHub.stop', 'inspectionHub.stop', 'sellingAgency', 'charges', 'assignments.departure.latestTrackingSession', 'incidents'];
+        return ['corridor.originHub.stop', 'corridor.destinationHub.stop', 'custodyHub', 'depositHub.stop', 'inspectionHub.stop', 'sellingAgency', 'charges.tariff', 'assignments.departure.latestTrackingSession', 'incidents'];
     }
 }

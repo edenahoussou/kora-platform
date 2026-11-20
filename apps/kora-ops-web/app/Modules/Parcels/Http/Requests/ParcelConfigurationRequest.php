@@ -33,11 +33,17 @@ class ParcelConfigurationRequest extends FormRequest
                 'wallet_cash_enabled' => ['required', 'boolean'],
             ],
             'tariff' => [
+                'deposit_kind' => ['sometimes', 'string', 'in:agency,partner_point'],
                 'base_amount' => ['required', 'integer', 'min:1', 'max:10000000'],
                 'step_amount' => ['required', 'integer', 'min:0', 'max:1000000'],
                 'step_grams' => ['required', 'integer', 'min:100', 'max:30000'],
                 'maximum_grams' => ['required', 'integer', 'gte:step_grams', 'max:30000'],
                 'return_amount' => ['required', 'integer', 'min:1', 'max:10000000'],
+            ],
+            'quote' => [
+                'deposit_hub_uuid' => ['required', 'uuid'],
+                'destination_hub_uuid' => ['required', 'uuid', 'different:deposit_hub_uuid'],
+                'weight_grams' => ['required', 'integer', 'min:1', 'max:1000000'],
             ],
             'capacity' => [
                 'capacity_grams' => ['required', 'integer', 'min:0', 'max:10000000'],

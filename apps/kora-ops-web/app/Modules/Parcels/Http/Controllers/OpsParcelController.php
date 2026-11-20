@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\Departures\Services\CrewDepartureScope;
 use App\Modules\IdentityAccess\Models\TerminalP501;
+use App\Modules\Parcels\Http\Requests\ParcelConfigurationRequest;
 use App\Modules\Parcels\Http\Requests\ParcelIntakeRequest;
 use App\Modules\Parcels\Http\Requests\ParcelOperationRequest;
 use App\Modules\Parcels\Http\Requests\ParcelPaymentRequest;
+use App\Modules\Parcels\Http\Resources\ParcelQuoteResource;
 use App\Modules\Parcels\Http\Resources\ParcelResource;
 use App\Modules\Parcels\Models\Parcel;
 use App\Modules\Parcels\Models\ParcelAssignment;
@@ -22,6 +24,7 @@ use App\Modules\Parcels\Services\ParcelHandoff;
 use App\Modules\Parcels\Services\ParcelIntake;
 use App\Modules\Parcels\Services\ParcelNotifications;
 use App\Modules\Parcels\Services\ParcelPayments;
+use App\Modules\Parcels\Services\ParcelPricing;
 use App\Modules\Parcels\Services\ParcelRouting;
 use App\Modules\Parcels\Services\ParcelTransport;
 use App\Modules\Payments\Http\Resources\PaymentResource;
@@ -99,6 +102,34 @@ class OpsParcelController extends Controller
         $parcel = $intake->createForDeposit($locations['deposit'], $locations['destination'], $request->user(), $request->validated(), true);
 
         return (new ParcelResource($parcel))->response()->setStatusCode($parcel->wasRecentlyCreated ? 201 : 200);
+    }
+
+    /**
+     * Preview the exact tariff breakdown before counter intake.
+     *
+     * @authenticated
+     *
+     * @response 200 {"data":{}}
+     * @response 403 {"message":"Droits insuffisants pour ce périmètre Colis."}
+     * @response 409 {"message":"Parcel corridor is unavailable."}
+     */
+    public function quote(ParcelConfigurationRequest $request, ParcelPricing $pricing): ParcelQuoteResource
+    {
+        $this->access->require($request->user(), 'parcels.intake');
+        $deposit = ParcelHub::query()->where('uuid', $request->validated('deposit_hub_uuid'))->firstOrFail();
+        $destination = ParcelHub::query()->where('uuid', $request->validated('destination_hub_uuid'))->firstOrFail();
+        $this->access->atHub($request->user(), $deposit, 'parcels.intake');
+
+        $corridor = ParcelCorridor::query()
+            ->where('origin_hub_id', $deposit->id)
+            ->where('destination_hub_id', $destination->id)
+            ->first();
+        abort_if($corridor === null, 409, 'No parcel corridor connects this deposit location to the requested destination.');
+
+        $pricing->ensureOpen($corridor);
+        $quote = $pricing->calculate($corridor, $request->integer('weight_grams'));
+
+        return new ParcelQuoteResource($quote);
     }
 
     /**

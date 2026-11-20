@@ -47,6 +47,7 @@ import type {
     ParcelIntakePayload,
     ParcelIntakeResponse,
     ParcelIntakeResult,
+    ParcelQuote,
     TariffPayload,
 } from '@/components/parcels/types';
 import {
@@ -164,8 +165,8 @@ function formatGrams(value: number | null): string {
     return `${new Intl.NumberFormat('fr-FR').format(value)} g`;
 }
 
-function formatXof(value: number): string {
-    return `${new Intl.NumberFormat('fr-FR').format(value)} XOF`;
+function formatAmount(value: number, currency: string): string {
+    return `${new Intl.NumberFormat('fr-FR').format(value)} ${currency}`;
 }
 
 const DEPARTURE_STATUS_LABELS: Record<string, string> = {
@@ -789,6 +790,39 @@ export default function ParcelsPage() {
         }
     };
 
+    const quoteParcel = useCallback(
+        async (payload: {
+            deposit_hub_uuid: string;
+            destination_hub_uuid: string;
+            weight_grams: number;
+        }): Promise<ParcelQuote | null> => {
+            try {
+                const response = await fetch('/parcels/data/quote', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-XSRF-TOKEN': xsrfToken(),
+                    },
+                    body: JSON.stringify(payload),
+                });
+                const body = (await response.json().catch(() => null)) as {
+                    data?: ParcelQuote;
+                } | null;
+
+                if (!response.ok || body?.data === undefined) {
+                    return null;
+                }
+
+                return body.data;
+            } catch {
+                return null;
+            }
+        },
+        [],
+    );
+
     const hubColumns: TableColumn<DepositHub>[] = [
         {
             key: 'hub',
@@ -1030,13 +1064,27 @@ export default function ParcelsPage() {
                 return (
                     <span className="block">
                         <strong className="block text-xs font-bold text-foreground">
-                            {formatXof(latest.base_amount)} +{' '}
-                            {formatXof(latest.step_amount)} /{' '}
-                            {formatGrams(latest.step_grams)}
+                            {formatAmount(
+                                latest.base_amount,
+                                configuration?.currency ?? '',
+                            )}{' '}
+                            +{' '}
+                            {formatAmount(
+                                latest.step_amount,
+                                configuration?.currency ?? '',
+                            )}{' '}
+                            / {formatGrams(latest.step_grams)}
                         </strong>
                         <small className="mt-0.5 block text-[0.6875rem] text-muted-foreground">
-                            Max {formatGrams(latest.maximum_grams)} · retour{' '}
-                            {formatXof(latest.return_amount)}
+                            V{latest.version} ·{' '}
+                            {latest.deposit_kind === 'partner_point'
+                                ? 'point partenaire'
+                                : 'agence'}{' '}
+                            · Max {formatGrams(latest.maximum_grams)} · retour{' '}
+                            {formatAmount(
+                                latest.return_amount,
+                                configuration?.currency ?? '',
+                            )}
                         </small>
                     </span>
                 );
@@ -1829,6 +1877,8 @@ export default function ParcelsPage() {
                     }
                 }}
                 corridor={tariffTarget}
+                currency={configuration?.currency ?? ''}
+                depositKind={tariffTarget?.origin_hub_kind ?? 'agency'}
                 busy={publishingTariff}
                 generalError={tariffError}
                 validationErrors={tariffErrors}
@@ -1870,6 +1920,7 @@ export default function ParcelsPage() {
                 generalError={intakeError}
                 validationErrors={intakeErrors}
                 onCreate={createParcel}
+                onQuote={quoteParcel}
             />
 
             <Dialog

@@ -19,6 +19,7 @@ Route::controller(OpsParcelController::class)->group(function (): void {
     Route::get('/', 'list')->name('index');
     Route::get('indicators', 'indicators')->name('indicators');
     Route::post('/', 'store')->name('store');
+    Route::post('quote', 'quote')->name('quote');
     Route::get('deposit-locations', 'depositLocations')->name('deposit-locations');
     Route::get('{parcel:uuid}', 'show')->name('show');
     Route::post('{parcel:uuid}/inspect', 'inspect')->name('inspect');

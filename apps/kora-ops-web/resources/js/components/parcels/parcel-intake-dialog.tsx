@@ -1,6 +1,7 @@
 import {
     ArrowRight,
     CheckCircle2,
+    Coins,
     FileText,
     Loader2,
     MapPin,
@@ -26,6 +27,7 @@ import type {
     ParcelCorridor,
     ParcelIntakePayload,
     ParcelIntakeResult,
+    ParcelQuote,
     StopOption,
 } from '@/components/parcels/types';
 import {
@@ -49,6 +51,11 @@ type Props = {
     onCreate: (
         payload: ParcelIntakePayload,
     ) => Promise<ParcelIntakeResult | null>;
+    onQuote: (payload: {
+        deposit_hub_uuid: string;
+        destination_hub_uuid: string;
+        weight_grams: number;
+    }) => Promise<ParcelQuote | null>;
 };
 
 function firstError(
@@ -92,6 +99,7 @@ export function ParcelIntakeDialog({
     generalError,
     validationErrors,
     onCreate,
+    onQuote,
 }: Props) {
     const [depositHubUuid, setDepositHubUuid] = useState('');
     const [destinationHubUuid, setDestinationHubUuid] = useState('');
@@ -103,6 +111,8 @@ export function ParcelIntakeDialog({
     const [weight, setWeight] = useState('');
     const [idempotencyKey, setIdempotencyKey] = useState(newIdempotencyKey);
     const [created, setCreated] = useState<ParcelIntakeResult | null>(null);
+    const [quote, setQuote] = useState<ParcelQuote | null>(null);
+    const [quoteUnavailable, setQuoteUnavailable] = useState(false);
 
     const stopsByUuid = useMemo(
         () => new Map(stops.map((stop) => [stop.uuid, stop])),
@@ -202,6 +212,8 @@ export function ParcelIntakeDialog({
         setWeight('');
         setIdempotencyKey(newIdempotencyKey());
         setCreated(null);
+        setQuote(null);
+        setQuoteUnavailable(false);
     };
 
     useEffect(() => {
@@ -212,6 +224,53 @@ export function ParcelIntakeDialog({
         // eslint-disable-next-line react-hooks/set-state-in-effect
         reset();
     }, [open]);
+
+    useEffect(() => {
+        if (
+            !open ||
+            created !== null ||
+            depositHubUuid === '' ||
+            destinationHubUuid === '' ||
+            weightValue === null ||
+            weightValue < 1 ||
+            weightValue > maximumWeight
+        ) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setQuote(null);
+            setQuoteUnavailable(false);
+
+            return;
+        }
+
+        let cancelled = false;
+        const timer = window.setTimeout(() => {
+            void onQuote({
+                deposit_hub_uuid: depositHubUuid,
+                destination_hub_uuid: destinationHubUuid,
+                weight_grams: weightValue,
+            }).then((result) => {
+                if (cancelled) {
+                    return;
+                }
+
+                setQuote(result);
+                setQuoteUnavailable(result === null);
+            });
+        }, 450);
+
+        return () => {
+            cancelled = true;
+            window.clearTimeout(timer);
+        };
+    }, [
+        open,
+        created,
+        depositHubUuid,
+        destinationHubUuid,
+        weightValue,
+        maximumWeight,
+        onQuote,
+    ]);
 
     const submit = async () => {
         if (!canSubmit || weightValue === null) {
@@ -632,7 +691,116 @@ export function ParcelIntakeDialog({
                                 </div>
                             </div>
 
-                            {selectedCorridor &&
+                            {quote !== null ? (
+                                <div className="rounded-2xl border border-gold/30 bg-gold/10 px-4 py-3">
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div className="flex items-start gap-3">
+                                            <Coins className="mt-0.5 size-4 shrink-0 text-gold" />
+                                            <div>
+                                                <p className="text-xs font-semibold text-foreground">
+                                                    Devis estimatif · grille{' '}
+                                                    {quote.deposit_kind ===
+                                                    'partner_point'
+                                                        ? 'point partenaire'
+                                                        : 'agence'}{' '}
+                                                    V{quote.tariff_version}
+                                                </p>
+                                                <p className="mt-0.5 text-[0.6875rem] text-muted-foreground">
+                                                    Base{' '}
+                                                    {formatAmount(
+                                                        quote.base_amount,
+                                                        quote.currency,
+                                                    )}{' '}
+                                                    +{' '}
+                                                    {formatAmount(
+                                                        quote.step_amount,
+                                                        quote.currency,
+                                                    )}{' '}
+                                                    par tranche de{' '}
+                                                    {new Intl.NumberFormat(
+                                                        'fr-FR',
+                                                    ).format(
+                                                        quote.step_grams,
+                                                    )}{' '}
+                                                    g · {quote.extra_steps}{' '}
+                                                    {`tranche${
+                                                        quote.extra_steps > 1
+                                                            ? 's'
+                                                            : ''
+                                                    }`}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <p className="text-base font-semibold text-foreground">
+                                            {formatAmount(
+                                                quote.total,
+                                                quote.currency,
+                                            )}
+                                        </p>
+                                    </div>
+                                    <dl className="mt-2 grid gap-1 border-t border-gold/20 pt-2 text-[0.6875rem] text-foreground/70 sm:grid-cols-3">
+                                        <div>
+                                            <dt>Net</dt>
+                                            <dd>
+                                                {formatAmount(
+                                                    quote.net,
+                                                    quote.currency,
+                                                )}
+                                            </dd>
+                                        </div>
+                                        <div>
+                                            <dt>
+                                                TVA {quote.tax_code} (
+                                                {quote.tax_rate})
+                                            </dt>
+                                            <dd>
+                                                {formatAmount(
+                                                    quote.tax,
+                                                    quote.currency,
+                                                )}
+                                            </dd>
+                                        </div>
+                                        <div>
+                                            <dt>Poids tarifé</dt>
+                                            <dd>
+                                                {new Intl.NumberFormat(
+                                                    'fr-FR',
+                                                ).format(
+                                                    quote.weight_grams,
+                                                )}{' '}
+                                                g
+                                            </dd>
+                                        </div>
+                                    </dl>
+                                    {quote.tiers.length > 1 && (
+                                        <p className="mt-2 text-[0.6875rem] text-muted-foreground">
+                                            {quote.tiers
+                                                .slice(1)
+                                                .map(
+                                                    (tier) =>
+                                                        `${new Intl.NumberFormat(
+                                                            'fr-FR',
+                                                        ).format(
+                                                            tier.from_grams,
+                                                        )}–${new Intl.NumberFormat(
+                                                            'fr-FR',
+                                                        ).format(
+                                                            tier.to_grams,
+                                                        )} g : ${formatAmount(
+                                                            tier.amount,
+                                                            quote.currency,
+                                                        )}`,
+                                                )
+                                                .join(' · ')}
+                                        </p>
+                                    )}
+                                    <p className="mt-2 text-[0.625rem] text-muted-foreground">
+                                        Montant prévisionnel : la pesée
+                                        d’inspection fixe le devis définitif.
+                                    </p>
+                                </div>
+                            ) : (
+                                selectedCorridor &&
                                 selectedDeposit &&
                                 selectedDestination && (
                                     <div className="flex items-start gap-3 rounded-2xl border border-gold/30 bg-gold/10 px-4 py-3 text-xs leading-5 text-foreground/75">
@@ -646,11 +814,14 @@ export function ParcelIntakeDialog({
                                             {new Intl.NumberFormat(
                                                 'fr-FR',
                                             ).format(maximumWeight)}{' '}
-                                            g. La limite stricte de 30 kg reste
-                                            hors scope de cette itération.
+                                            g.{' '}
+                                            {quoteUnavailable
+                                                ? 'Aucune grille active pour ce type de lieu de dépôt : devis indisponible.'
+                                                : 'Saisissez un poids valide pour afficher le détail du devis.'}
                                         </p>
                                     </div>
-                                )}
+                                )
+                            )}
                         </div>
 
                         {generalError && (

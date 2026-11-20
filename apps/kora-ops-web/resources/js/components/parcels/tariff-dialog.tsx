@@ -13,6 +13,7 @@ import {
 } from '@/components/parcels/field-label';
 import { ParcelButton } from '@/components/parcels/parcel-button';
 import type {
+    DepositHubKind,
     LaravelValidationErrors,
     ParcelCorridor,
     TariffPayload,
@@ -30,6 +31,8 @@ type Props = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     corridor: ParcelCorridor | null;
+    currency: string;
+    depositKind: DepositHubKind;
     busy: boolean;
     generalError: string | null;
     validationErrors: LaravelValidationErrors;
@@ -63,17 +66,19 @@ export function TariffDialog({
     open,
     onOpenChange,
     corridor,
+    currency,
+    depositKind,
     busy,
     generalError,
     validationErrors,
     onSubmit,
 }: Props) {
     const [form, setForm] = useState<FormState>({
-        base_amount: '1500',
-        step_amount: '0',
-        step_grams: '1000',
+        base_amount: '',
+        step_amount: '',
+        step_grams: '5000',
         maximum_grams: '30000',
-        return_amount: '600',
+        return_amount: '',
     });
 
     useEffect(() => {
@@ -85,11 +90,11 @@ export function TariffDialog({
 
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setForm({
-            base_amount: String(latest?.base_amount ?? 1500),
-            step_amount: String(latest?.step_amount ?? 0),
-            step_grams: String(latest?.step_grams ?? 1000),
+            base_amount: latest ? String(latest.base_amount) : '',
+            step_amount: latest ? String(latest.step_amount) : '',
+            step_grams: String(latest?.step_grams ?? 5000),
             maximum_grams: String(latest?.maximum_grams ?? 30000),
-            return_amount: String(latest?.return_amount ?? 600),
+            return_amount: latest ? String(latest.return_amount) : '',
         });
     }, [corridor, open]);
 
@@ -136,6 +141,7 @@ export function TariffDialog({
         }
 
         await onSubmit({
+            deposit_kind: depositKind,
             base_amount: values.base_amount,
             step_amount: values.step_amount,
             step_grams: values.step_grams,
@@ -150,9 +156,13 @@ export function TariffDialog({
                 <DialogHeader>
                     <DialogTitle>Publier un tarif</DialogTitle>
                     <DialogDescription>
-                        Le tarif est versionné : la publication crée une
-                        nouvelle version sans réécrire l’historique. Montants
-                        exprimés en XOF.
+                        Grille{' '}
+                        {depositKind === 'partner_point'
+                            ? 'point partenaire'
+                            : 'agence'}{' '}
+                        · tarif versionné : la publication crée une nouvelle
+                        version sans réécrire l’historique. Montants exprimés en{' '}
+                        {currency}.
                     </DialogDescription>
                     <ParcelRequiredNote />
                 </DialogHeader>
@@ -165,7 +175,7 @@ export function TariffDialog({
                             required
                             hint="Montant minimum facturé pour un colis, quel que soit son poids."
                         >
-                            Montant de base (XOF)
+                            Montant de base
                         </ParcelFieldLabel>
                         <input
                             id="tariff-base"
@@ -194,7 +204,7 @@ export function TariffDialog({
                             required
                             hint="Frais appliqués si le colis revient à l’expéditeur."
                         >
-                            Montant retour (XOF)
+                            Montant retour
                         </ParcelFieldLabel>
                         <input
                             id="tariff-return"
@@ -252,7 +262,7 @@ export function TariffDialog({
                             required
                             hint="Supplément ajouté à chaque tranche de poids dépassée."
                         >
-                            Montant par pas (XOF)
+                            Montant par pas
                         </ParcelFieldLabel>
                         <input
                             id="tariff-step-amount"
