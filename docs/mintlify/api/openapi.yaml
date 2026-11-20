@@ -5790,6 +5790,26 @@ paths:
       description: "Accessible au titulaire ou au destinataire vérifié. Retourne uniquement l’UUID de l’incident, jamais le code\nde retrait ni le contenu du colis. L’incident est audité et notifié aux OPS."
       parameters: []
       responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 00000000-0000-4000-8000-000000000030
+                    blocking: false
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      blocking:
+                        type: boolean
+                        example: false
         '201':
           description: ''
           content:
@@ -5799,6 +5819,7 @@ paths:
                 example:
                   data:
                     uuid: 00000000-0000-4000-8000-000000000030
+                    blocking: false
                 properties:
                   data:
                     type: object
@@ -5806,6 +5827,9 @@ paths:
                       uuid:
                         type: string
                         example: 00000000-0000-4000-8000-000000000000
+                      blocking:
+                        type: boolean
+                        example: false
         '403':
           description: ''
           content:
@@ -5877,16 +5901,17 @@ paths:
               properties:
                 kind:
                   type: string
-                  description: ''
-                  example: loss
-                  enum:
-                    - loss
-                    - damage
-                    - custody_discrepancy
+                  description: 'Nature du signalement.'
+                  example: damage
                 description:
                   type: string
-                  description: 'Le champ value ne doit pas dépasser 2000 caractères.'
-                  example: 'Eius et animi quos velit et.'
+                  description: 'Description factuelle, sans code de retrait.'
+                  example: 'Emballage endommagé'
+                idempotency_key:
+                  type: string
+                  description: 'UUID optionnel pour rejouer la déclaration sans créer un second incident.'
+                  example: 00000000-0000-4000-8000-000000000000
+                  nullable: true
               required:
                 - kind
                 - description

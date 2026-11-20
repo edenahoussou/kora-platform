@@ -391,7 +391,12 @@ class ParcelController extends Controller
      *
      * @urlParam parcel_uuid string required UUID public du colis. Example: 00000000-0000-4000-8000-000000000010
      *
-     * @response 201 {"data":{"uuid":"00000000-0000-4000-8000-000000000030"}}
+     * @bodyParam kind string required Nature du signalement. Example: damage
+     * @bodyParam description string required Description factuelle, sans code de retrait. Example: Emballage endommagé
+     * @bodyParam idempotency_key string UUID optionnel pour rejouer la déclaration sans créer un second incident. Example: 00000000-0000-4000-8000-000000000099
+     *
+     * @response 200 {"data":{"uuid":"00000000-0000-4000-8000-000000000030","blocking":false}}
+     * @response 201 {"data":{"uuid":"00000000-0000-4000-8000-000000000030","blocking":false}}
      * @response 403 {"message":"Droits insuffisants pour ce périmètre Colis."}
      * @response 404 {"message":"Not Found"}
      * @response 409 {"message":"Opération incompatible avec l’état du colis ou du corridor."}
@@ -401,15 +406,43 @@ class ParcelController extends Controller
     public function incident(ParcelOperationRequest $request, Parcel $parcel, ParcelNotifications $notifications): JsonResponse
     {
         $parcel = $this->access->customer($request->user())->findOrFail($parcel->id);
+        $data = $request->validated();
+        unset($data['blocking']);
+        $idempotencyKey = $data['idempotency_key'] ?? null;
+        unset($data['idempotency_key']);
 
-        return DB::transaction(function () use ($request, $parcel, $notifications): JsonResponse {
+        return DB::transaction(function () use ($request, $parcel, $notifications, $data, $idempotencyKey): JsonResponse {
             $parcel = Parcel::query()->lockForUpdate()->findOrFail($parcel->id);
             abort_if($parcel->reference === null, 409);
-            $incident = $parcel->incidents()->create($request->validated() + ['blocking' => false]);
-            $parcel->record('incident_reported', $request->user(), details: ['incident_uuid' => $incident->uuid], channel: 'customer');
+
+            if ($idempotencyKey !== null) {
+                $existing = $parcel->incidents()->where('idempotency_key', $idempotencyKey)->first();
+                if ($existing !== null) {
+                    abort_unless(
+                        $existing->blocking === false
+                        && $existing->kind === $data['kind']
+                        && $existing->description === $data['description'],
+                        409,
+                        'This idempotency key was already used for another incident.',
+                    );
+
+                    return response()->json(['data' => ['uuid' => $existing->uuid, 'blocking' => false]], 200);
+                }
+            }
+
+            $incident = $parcel->incidents()->create($data + [
+                'blocking' => false,
+                'opened_by_id' => $request->user()->id,
+                'idempotency_key' => $idempotencyKey,
+            ]);
+            $parcel->record('incident_reported', $request->user(), details: [
+                'incident_uuid' => $incident->uuid,
+                'kind' => $incident->kind,
+                'blocking' => false,
+            ], channel: 'customer');
             $notifications->incident($parcel, $incident->uuid);
 
-            return response()->json(['data' => ['uuid' => $incident->uuid]], 201);
+            return response()->json(['data' => ['uuid' => $incident->uuid, 'blocking' => false]], 201);
         });
     }
 

@@ -36,6 +36,8 @@ class ParcelOperationRequest extends FormRequest
             'incident' => [
                 'kind' => ['required', 'in:loss,damage,custody_discrepancy'],
                 'description' => ['required', 'string', 'max:2000'],
+                'idempotency_key' => ['nullable', 'uuid'],
+                ...($this->isOpsIncidentRoute() ? ['blocking' => ['nullable', 'boolean']] : []),
             ],
             'authorizeRefund' => [
                 'payment_uuid' => ['required', 'uuid'],
@@ -62,5 +64,12 @@ class ParcelOperationRequest extends FormRequest
             ],
             default => [],
         };
+    }
+
+    private function isOpsIncidentRoute(): bool
+    {
+        $name = (string) $this->route()?->getName();
+
+        return str_contains($name, '.ops.') || str_starts_with($name, 'parcels.data.');
     }
 }

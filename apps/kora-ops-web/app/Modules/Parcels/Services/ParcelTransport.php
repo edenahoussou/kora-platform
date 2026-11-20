@@ -8,6 +8,7 @@ use App\Modules\Departures\Models\Departure;
 use App\Modules\Departures\Services\CrewDepartureScope;
 use App\Modules\IdentityAccess\Data\TerminalP501Status;
 use App\Modules\IdentityAccess\Models\TerminalP501;
+use App\Modules\Parcels\Data\ParcelEventKind;
 use App\Modules\Parcels\Models\Parcel;
 use App\Modules\Parcels\Models\ParcelAssignment;
 use App\Modules\Parcels\Models\ParcelEvent;
@@ -339,7 +340,12 @@ class ParcelTransport
         }
         $parcel->update(['status' => $status]);
         $assignment->update(['transported_at' => $departedAt]);
-        $parcel->record('in_transit', assignment: $assignment, observedAt: $departedAt, channel: 'system');
+        $parcel->record(
+            $assignment->return_leg ? ParcelEventKind::ReturnTransit->value : ParcelEventKind::InTransit->value,
+            assignment: $assignment,
+            observedAt: $departedAt,
+            channel: 'system',
+        );
         if (! $assignment->return_leg) {
             $this->notifications->milestone($parcel, 'in_transit');
         }

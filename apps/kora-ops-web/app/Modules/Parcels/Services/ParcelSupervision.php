@@ -14,6 +14,7 @@ use App\Modules\Payments\Data\PaymentRefundStatus;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\Models\PaymentRefund;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Agrégats de supervision Colis. Toutes les requêtes passent par le périmètre
@@ -75,22 +76,35 @@ class ParcelSupervision
             ->whereNull('resolved_at')
             ->whereIn('parcel_id', (clone $parcels)->select('id'));
         $openIncidentCount = (clone $openIncidents)->count();
-        $recentIncidents = (clone $openIncidents)
-            ->with('parcel')
+        $blockingIncidentCount = (clone $openIncidents)->where('blocking', true)->count();
+        $resolvedIncidentToday = ParcelIncident::query()
+            ->whereIn('parcel_id', (clone $parcels)->select('id'))
+            ->whereNotNull('resolved_at')
+            ->whereDate('resolved_at', now()->toDateString())
+            ->count();
+        $recentIncidentsQuery = (clone $openIncidents)
+            ->with(['parcel', 'openedBy', 'resolvedBy'])
             ->latest('id')
-            ->limit(8)
-            ->get()
-            ->map(fn (ParcelIncident $incident): array => [
+            ->limit(8);
+        /** @var Collection<int, ParcelIncident> $recent */
+        $recent = $recentIncidentsQuery->get();
+        $recentIncidents = [];
+        foreach ($recent as $incident) {
+            $recentIncidents[] = [
                 'uuid' => $incident->uuid,
                 'parcel_uuid' => $incident->parcel?->uuid,
                 'parcel_reference' => $incident->parcel?->reference,
                 'kind' => $incident->kind,
                 'blocking' => $incident->blocking,
+                'status' => $incident->resolved_at === null ? 'open' : 'resolved',
                 'description' => $incident->description,
                 'opened_at' => $incident->created_at?->toIso8601String(),
-            ])
-            ->values()
-            ->all();
+                'opened_by' => $incident->openedBy?->name,
+                'resolved_at' => $incident->resolved_at?->toIso8601String(),
+                'resolved_by' => $incident->resolvedBy?->name,
+                'resolution_reason' => $incident->resolution_reason,
+            ];
+        }
 
         $capacity = $this->capacity($actor);
         $health = $this->configurationHealth($actor, $capacity);
@@ -107,13 +121,16 @@ class ParcelSupervision
                 'available' => $count('available'),
                 'returns_to_handle' => $returns,
                 'open_incidents' => $openIncidentCount,
+                'blocking_incidents' => $blockingIncidentCount,
+                'resolved_incidents_today' => $resolvedIncidentToday,
                 'withdrawn_today' => $this->withdrawnToday($parcels),
             ],
             'by_status' => $byStatus,
             'by_corridor' => $corridors,
             'incidents' => [
                 'open' => $openIncidentCount,
-                'blocking' => (clone $openIncidents)->where('blocking', true)->count(),
+                'blocking' => $blockingIncidentCount,
+                'resolved_today' => $resolvedIncidentToday,
                 'recent' => $recentIncidents,
             ],
             'capacity' => $capacity,
@@ -145,6 +162,9 @@ class ParcelSupervision
         foreach ($overview['config_health']['alerts'] as $alert) {
             $rows[] = ['Configuration', $alert['severity'], $alert['message'], 1, null];
         }
+        $rows[] = ['Incidents', 'Ouverts', 'Tous', (int) $overview['meta']['open_incidents'], null];
+        $rows[] = ['Incidents', 'Ouverts', 'Bloquants', (int) $overview['meta']['blocking_incidents'], null];
+        $rows[] = ['Incidents', 'Résolus aujourd’hui', 'Tous', (int) $overview['meta']['resolved_incidents_today'], null];
         if (is_array($overview['finance'])) {
             foreach (['reconciliations', 'pending_refunds', 'pending_invoices'] as $queue) {
                 $rows[] = ['Finance', 'File', $queue, (int) $overview['finance'][$queue]['count'], (int) $overview['finance'][$queue]['total_amount']];

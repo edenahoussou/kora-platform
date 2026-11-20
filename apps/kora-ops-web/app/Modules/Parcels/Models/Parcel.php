@@ -5,6 +5,7 @@ namespace App\Modules\Parcels\Models;
 use App\Models\User;
 use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\IdentityAccess\Models\TerminalP501;
+use App\Modules\Parcels\Data\ParcelEventKind;
 use App\Modules\Parcels\Data\ParcelInspectionCategory;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Support\Models\KoraModel;
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use InvalidArgumentException;
 
 /**
  * @property CarbonImmutable $expires_at
@@ -110,7 +112,12 @@ class Parcel extends KoraModel
     public function latestCustodyEvent(): HasOne
     {
         return $this->hasOne(ParcelEvent::class)
-            ->whereIn('kind', ['available', 'returned', 'withdrawn', 'return_handed_over'])
+            ->whereIn('kind', [
+                ParcelEventKind::Available->value,
+                ParcelEventKind::Returned->value,
+                ParcelEventKind::Withdrawn->value,
+                ParcelEventKind::ReturnHandedOver->value,
+            ])
             ->latestOfMany();
     }
 
@@ -125,6 +132,10 @@ class Parcel extends KoraModel
         array $details = [],
         string $channel = 'ops',
     ): ParcelEvent {
+        if (! ParcelEventKind::isKnown($kind)) {
+            throw new InvalidArgumentException("Unknown parcel event kind [{$kind}].");
+        }
+
         return $this->events()->create([
             'kind' => $kind,
             'operation_uuid' => $details['operation_uuid'] ?? null,

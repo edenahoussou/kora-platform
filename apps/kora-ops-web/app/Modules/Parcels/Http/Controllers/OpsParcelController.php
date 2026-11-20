@@ -19,6 +19,7 @@ use App\Modules\Parcels\Http\Requests\ParcelConfigurationRequest;
 use App\Modules\Parcels\Http\Requests\ParcelIntakeRequest;
 use App\Modules\Parcels\Http\Requests\ParcelOperationRequest;
 use App\Modules\Parcels\Http\Requests\ParcelPaymentRequest;
+use App\Modules\Parcels\Http\Resources\ParcelIncidentResource;
 use App\Modules\Parcels\Http\Resources\ParcelQuoteResource;
 use App\Modules\Parcels\Http\Resources\ParcelResource;
 use App\Modules\Parcels\Jobs\FiscalizeParcelInvoiceJob;
@@ -115,7 +116,7 @@ class OpsParcelController extends Controller
      */
     public function show(Request $request, Parcel $parcel): ParcelResource
     {
-        return new ParcelResource($this->access->operations($request->user())->with('events')->findOrFail($parcel->id));
+        return new ParcelResource($this->access->operations($request->user())->with(ParcelResource::relations())->findOrFail($parcel->id));
     }
 
     /**
@@ -546,53 +547,138 @@ class OpsParcelController extends Controller
     }
 
     /**
-     * Ouvrir un dossier d’incident bloquant.
+     * Ouvrir un dossier d’incident, bloquant par défaut.
      *
      * @authenticated
      *
-     * @response 201 {"data":{}}
+     * @bodyParam kind string required Nature de l’incident. Example: custody_discrepancy
+     * @bodyParam description string required Constat factuel. Example: Colis introuvable au débarquement
+     * @bodyParam blocking boolean Qualification OPS. Example: true
+     * @bodyParam idempotency_key string UUID optionnel pour rejouer l’ouverture sans doublon. Example: 00000000-0000-4000-8000-000000000098
+     *
+     * @response 200 {"data":{"uuid":"00000000-0000-4000-8000-000000000030","blocking":true}}
+     * @response 201 {"data":{"uuid":"00000000-0000-4000-8000-000000000030","blocking":true}}
      * @response 403 {"message":"Droits insuffisants pour ce périmètre Colis."}
      * @response 409 {"message":"Opération incompatible avec l’état du colis ou du corridor."}
+     * @response 422 {"message":"Les données de cette opération sont invalides."}
      */
     public function incident(ParcelOperationRequest $request, Parcel $parcel, ParcelNotifications $notifications): JsonResponse
     {
         $this->access->operations($request->user())->findOrFail($parcel->id);
         abort_unless($request->user()->can('parcels.intake') || $request->user()->can('parcels.assign'), 403);
+        $data = $request->validated();
+        $blocking = (bool) ($data['blocking'] ?? true);
+        $idempotencyKey = $data['idempotency_key'] ?? null;
+        unset($data['blocking'], $data['idempotency_key']);
 
-        return DB::transaction(function () use ($request, $parcel, $notifications): JsonResponse {
+        return DB::transaction(function () use ($request, $parcel, $notifications, $data, $blocking, $idempotencyKey): JsonResponse {
             $parcel = Parcel::query()->lockForUpdate()->findOrFail($parcel->id);
             abort_if($parcel->reference === null || $parcel->status === 'withdrawn' || $parcel->return_handed_over_at !== null, 409);
-            $incident = $parcel->incidents()->create($request->validated() + ['blocking' => true]);
-            $parcel->record('incident_opened', $request->user(), $parcel->custodyHub, details: ['incident_uuid' => $incident->uuid]);
-            $notifications->incident($parcel, $incident->uuid);
 
-            return response()->json(['data' => ['uuid' => $incident->uuid]], 201);
+            if ($idempotencyKey !== null) {
+                $existing = $parcel->incidents()->where('idempotency_key', $idempotencyKey)->first();
+                if ($existing !== null) {
+                    abort_unless(
+                        $existing->blocking === $blocking
+                        && $existing->kind === $data['kind']
+                        && $existing->description === $data['description'],
+                        409,
+                        'This idempotency key was already used for another incident.',
+                    );
+
+                    return response()->json(['data' => ['uuid' => $existing->uuid, 'blocking' => $blocking]], 200);
+                }
+            }
+
+            $incident = $parcel->incidents()->create($data + [
+                'blocking' => $blocking,
+                'opened_by_id' => $request->user()->id,
+                'idempotency_key' => $idempotencyKey,
+            ]);
+            $parcel->record('incident_opened', $request->user(), $parcel->custodyHub, details: [
+                'incident_uuid' => $incident->uuid,
+                'kind' => $incident->kind,
+                'blocking' => $blocking,
+            ]);
+            $notifications->incident($parcel, $incident->uuid, $blocking);
+
+            return response()->json(['data' => ['uuid' => $incident->uuid, 'blocking' => $blocking]], 201);
         });
     }
 
     /**
-     * Résoudre le dossier d’incident.
+     * Résoudre le dossier d’incident avec motif et responsable.
      *
      * @authenticated
      *
+     * @bodyParam reason string required Motif de résolution. Example: Colis retrouvé et remis en custody
+     *
      * @response 204
      * @response 403 {"message":"Droits insuffisants pour ce périmètre Colis."}
+     * @response 404 {"message":"Not Found"}
      */
     public function resolveIncident(ParcelOperationRequest $request, Parcel $parcel, ParcelIncident $incident): JsonResponse
     {
         $this->access->operations($request->user())->findOrFail($parcel->id);
         $this->access->require($request->user(), 'parcels.override');
+        $reason = $request->validated('reason');
 
-        DB::transaction(function () use ($request, $parcel, $incident): void {
+        DB::transaction(function () use ($request, $parcel, $incident, $reason): void {
             $parcel = Parcel::query()->lockForUpdate()->findOrFail($parcel->id);
             $incident = $parcel->incidents()->whereNull('resolved_at')->findOrFail($incident->id);
-            $incident->update(['resolved_at' => now()]);
+            $incident->update([
+                'resolved_at' => now(),
+                'resolved_by_id' => $request->user()->id,
+                'resolution_reason' => $reason,
+            ]);
             $parcel->record('incident_resolved', $request->user(), $parcel->custodyHub, details: [
-                'incident_uuid' => $incident->uuid, 'reason' => $request->validated('reason'),
+                'incident_uuid' => $incident->uuid,
+                'blocking' => $incident->blocking,
+                'reason' => $reason,
             ]);
         });
 
         return response()->json(null, 204);
+    }
+
+    /**
+     * Lister les dossiers d’incident d’un colis avec leur chronologie.
+     *
+     * @authenticated
+     *
+     * @response 200 {"data":[]}
+     * @response 403 {"message":"Droits insuffisants pour ce périmètre Colis."}
+     * @response 404 {"message":"Not Found"}
+     */
+    public function incidents(Request $request, Parcel $parcel): AnonymousResourceCollection
+    {
+        $this->access->operations($request->user())->findOrFail($parcel->id);
+        $incidents = $parcel->incidents()
+            ->with(['openedBy', 'resolvedBy', 'parcel.events.actor'])
+            ->latest('id')
+            ->paginate(25);
+
+        return ParcelIncidentResource::collection($incidents);
+    }
+
+    /**
+     * Consulter un dossier d’incident avec qui a ouvert, résolu et pourquoi.
+     *
+     * @authenticated
+     *
+     * @response 200 {"data":{}}
+     * @response 403 {"message":"Droits insuffisants pour ce périmètre Colis."}
+     * @response 404 {"message":"Not Found"}
+     */
+    public function showIncident(Request $request, Parcel $parcel, ParcelIncident $incident): ParcelIncidentResource
+    {
+        $this->access->operations($request->user())->findOrFail($parcel->id);
+        $incident = $parcel->incidents()
+            ->with(['openedBy', 'resolvedBy', 'parcel.events.actor'])
+            ->whereKey($incident->id)
+            ->firstOrFail();
+
+        return new ParcelIncidentResource($incident);
     }
 
     /**

@@ -46,6 +46,8 @@ Route::controller(OpsParcelController::class)->group(function (): void {
     Route::post('{parcel:uuid}/release', 'release')->middleware('throttle:20,1')->name('release');
     Route::post('{parcel:uuid}/return-charge', 'returnCharge')->name('return-charge');
     Route::get('{parcel:uuid}/documents', 'documents')->name('documents');
+    Route::get('{parcel:uuid}/incidents', 'incidents')->name('incidents.index');
+    Route::get('{parcel:uuid}/incidents/{incident:uuid}', 'showIncident')->name('incidents.show');
     Route::post('{parcel:uuid}/incidents', 'incident')->name('incidents.store');
     Route::post('{parcel:uuid}/incidents/{incident:uuid}/resolve', 'resolveIncident')->name('incidents.resolve');
     Route::get('{parcel:uuid}/payments', 'payments')->name('payments.index');

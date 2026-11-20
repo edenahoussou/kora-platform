@@ -2,6 +2,7 @@
 
 namespace App\Modules\Parcels\Http\Resources;
 
+use App\Modules\Parcels\Data\ParcelEventKind;
 use App\Modules\Parcels\Models\Parcel;
 use App\Modules\Parcels\Models\ParcelEvent;
 use Illuminate\Http\Request;
@@ -10,34 +11,12 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin Parcel */
 class ParcelPublicTrackingResource extends JsonResource
 {
-    /** @var list<string> */
-    private const PUBLIC_EVENT_KINDS = [
-        'preregistered',
-        'weighed',
-        'refused',
-        'registered',
-        'ready',
-        'assigned',
-        'loaded',
-        'in_transit',
-        'unloaded',
-        'arrived',
-        'available',
-        'withdrawn',
-        'expired',
-        'return_pending',
-        'return_arrived',
-        'returned',
-        'return_handed_over',
-        'cancelled',
-    ];
-
     /** @return array<string, mixed> */
     public function toArray(Request $request): array
     {
         $parcel = $this->resource;
         $events = $parcel->events
-            ->filter(fn (ParcelEvent $event): bool => in_array($event->kind, self::PUBLIC_EVENT_KINDS, true))
+            ->filter(fn (ParcelEvent $event): bool => ParcelEventKind::isPublic($event->kind))
             ->sortBy('observed_at')
             ->values();
         $assignment = $parcel->assignments
