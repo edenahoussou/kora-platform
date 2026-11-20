@@ -64,6 +64,30 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
     }
 
     /** @param array<string, mixed> $values */
+    public function updateParcelSettings(array $values, User $actor): SettingsSnapshot
+    {
+        $this->authorize('parcels.configure', $actor);
+        $allowed = [
+            'parcelIntakeExpiryHours',
+            'parcelMinimumWeightGrams',
+            'parcelMaximumWeightGrams',
+            'parcelCashDeclarationThresholdFcfa',
+            'parcelFirstReminderDays',
+            'parcelSecondReminderDays',
+            'parcelReturnDays',
+            'parcelHandoffMaxAttempts',
+            'parcelFiscalAlertHours',
+            'parcelRoutingHorizonDays',
+            'parcelIdentityOverrideEnabled',
+        ];
+        if (array_diff(array_keys($values), $allowed) !== []) {
+            throw ValidationException::withMessages(['settings' => 'Paramètres runtime Colis uniquement.']);
+        }
+
+        return $this->persist(SettingsGroup::Operations, new OperationsSettingsUpdate($values), $actor);
+    }
+
+    /** @param array<string, mixed> $values */
     public function updateKoraPointDefaults(array $values, User $actor): SettingsSnapshot
     {
         $this->authorize('kora-points.terms', $actor);
@@ -196,6 +220,7 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
                 'parcelHandoffMaxAttempts' => ['required', 'integer', 'between:1,20'],
                 'parcelFiscalAlertHours' => ['required', 'integer', 'between:1,23'],
                 'parcelRoutingHorizonDays' => ['required', 'integer', 'between:1,365'],
+                'parcelIdentityOverrideEnabled' => ['required', 'boolean'],
                 'koraPointCommissionBasisPoints' => ['nullable', 'integer', 'between:0,10000'],
                 'koraPointCeilingAmount' => ['nullable', 'integer', 'min:0', 'max:1000000000000'],
                 'koraPointGraceDays' => ['required', 'integer', 'between:0,365'],

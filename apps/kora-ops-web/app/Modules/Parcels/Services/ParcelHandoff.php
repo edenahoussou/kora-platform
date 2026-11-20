@@ -73,6 +73,8 @@ class ParcelHandoff
 
             $details = [];
             if (! empty($input['identity_type'])) {
+                abort_unless(app(OperationsSettings::class)->parcelIdentityOverrideEnabled, 409,
+                    'La vérification par pièce d’identité est désactivée par la politique d’exploitation.');
                 $this->access->atHub($actor, $hub, 'parcels.override');
                 abort_if(blank($input['reason'] ?? null), 422);
                 $details = ['identity_type' => $input['identity_type'], 'reason' => $input['reason']];

@@ -109,6 +109,8 @@ final class OperationsSettings extends Settings
 
     public int $parcelRoutingHorizonDays = 30;
 
+    public bool $parcelIdentityOverrideEnabled = true;
+
     public static function group(): string
     {
         return 'operations';

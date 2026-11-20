@@ -2135,9 +2135,21 @@ export default function SettingsPage({
                 </SettingsSection>
                 <SettingsSection
                     title="Colis"
-                    description="Paramètres du réseau Colis. Cette section accueillera les futurs réglages d’exploitation Colis au fur et à mesure de leur ouverture."
+                    description="Délais, poids, retraits et politique identité du réseau Colis. Ces valeurs sont lues à chaque exécution et auditées à chaque changement."
                 >
                     <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                        <SettingsField
+                            label="Expiration intake"
+                            hint="Délai avant expiration d’un colis pré-enregistré ou pesé, non payé."
+                            value={value('parcelIntakeExpiryHours') as number}
+                            type="number"
+                            suffix="heures"
+                            disabled={!permissions.canManage}
+                            error={error('parcelIntakeExpiryHours')}
+                            onChange={(nextValue) =>
+                                setNumber('parcelIntakeExpiryHours', nextValue)
+                            }
+                        />
                         <SettingsField
                             label="Horizon de routage"
                             hint="Fenêtre de jours examinée pour trouver un départ programmé disponible."
@@ -2164,7 +2176,7 @@ export default function SettingsPage({
                         />
                         <SettingsField
                             label="Poids maximum de pesée"
-                            hint="Plafond opérationnel de la balance, en grammes (CDC : 30 000 g)."
+                            hint="Plafond opérationnel de la balance. Au-delà, le colis est refusé."
                             value={value('parcelMaximumWeightGrams') as number}
                             type="number"
                             suffix="g"
@@ -2190,6 +2202,81 @@ export default function SettingsPage({
                                 setNumber(
                                     'parcelCashDeclarationThresholdFcfa',
                                     nextValue,
+                                )
+                            }
+                        />
+                        <SettingsField
+                            label="Premier rappel"
+                            hint="Délai après disponibilité avant le premier rappel destinataire."
+                            value={value('parcelFirstReminderDays') as number}
+                            type="number"
+                            suffix="jours"
+                            disabled={!permissions.canManage}
+                            error={error('parcelFirstReminderDays')}
+                            onChange={(nextValue) =>
+                                setNumber('parcelFirstReminderDays', nextValue)
+                            }
+                        />
+                        <SettingsField
+                            label="Second rappel"
+                            hint="Délai après disponibilité avant le second rappel. Doit suivre le premier."
+                            value={value('parcelSecondReminderDays') as number}
+                            type="number"
+                            suffix="jours"
+                            disabled={!permissions.canManage}
+                            error={error('parcelSecondReminderDays')}
+                            onChange={(nextValue) =>
+                                setNumber('parcelSecondReminderDays', nextValue)
+                            }
+                        />
+                        <SettingsField
+                            label="Délai de retour"
+                            hint="Délai avant retour automatique à l’expéditeur. Doit suivre le second rappel."
+                            value={value('parcelReturnDays') as number}
+                            type="number"
+                            suffix="jours"
+                            disabled={!permissions.canManage}
+                            error={error('parcelReturnDays')}
+                            onChange={(nextValue) =>
+                                setNumber('parcelReturnDays', nextValue)
+                            }
+                        />
+                        <SettingsField
+                            label="Tentatives de retrait"
+                            hint="Nombre de codes erronés acceptés avant blocage de la remise."
+                            value={value('parcelHandoffMaxAttempts') as number}
+                            type="number"
+                            suffix="tentatives"
+                            disabled={!permissions.canManage}
+                            error={error('parcelHandoffMaxAttempts')}
+                            onChange={(nextValue) =>
+                                setNumber('parcelHandoffMaxAttempts', nextValue)
+                            }
+                        />
+                        <SettingsField
+                            label="Alerte fiscale"
+                            hint="Ancienneté d’une facture non certifiée avant alerte."
+                            value={value('parcelFiscalAlertHours') as number}
+                            type="number"
+                            suffix="heures"
+                            disabled={!permissions.canManage}
+                            error={error('parcelFiscalAlertHours')}
+                            onChange={(nextValue) =>
+                                setNumber('parcelFiscalAlertHours', nextValue)
+                            }
+                        />
+                        <SettingsToggle
+                            label="Pièce d’identité à la place du code"
+                            hint="Override exceptionnel sous parcels.override : type de pièce et motif seulement, aucun numéro stocké. Politique à valider métier."
+                            icon={IdCard}
+                            checked={Boolean(
+                                value('parcelIdentityOverrideEnabled'),
+                            )}
+                            disabled={!permissions.canManage}
+                            onChange={(checked) =>
+                                setValue(
+                                    'parcelIdentityOverrideEnabled',
+                                    checked,
                                 )
                             }
                         />

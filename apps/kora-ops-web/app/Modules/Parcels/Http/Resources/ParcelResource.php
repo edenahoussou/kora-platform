@@ -82,7 +82,10 @@ class ParcelResource extends JsonResource
                 && $handoffHubAccess($handoffHub, 'parcels.handoff'),
             'can_release' => $awaitsHandoff && $returnFeeSettled && $handoffHubAccess($handoffHub, 'parcels.handoff'),
             'can_reissue' => $awaitsHandoff && $returnFeeSettled && $handoffHubAccess($handoffHub, 'parcels.override'),
-            'can_override_handoff' => $awaitsHandoff && $returnFeeSettled && $handoffHubAccess($handoffHub, 'parcels.override'),
+            'can_override_handoff' => $settings->parcelIdentityOverrideEnabled
+                && $awaitsHandoff
+                && $returnFeeSettled
+                && $handoffHubAccess($handoffHub, 'parcels.override'),
             'can_return_charge' => $parcel->status === 'returned'
                 && ! $hasReturnCharge
                 && $handoffHubAccess($parcel->corridor?->originHub, 'parcels.intake'),

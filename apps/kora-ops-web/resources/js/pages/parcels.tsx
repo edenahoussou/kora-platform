@@ -30,9 +30,11 @@ import { CapacityDialog } from '@/components/parcels/capacity-dialog';
 import { CorridorDialog } from '@/components/parcels/corridor-dialog';
 import { DepositHubDialog } from '@/components/parcels/deposit-hub-dialog';
 import { ParcelButton } from '@/components/parcels/parcel-button';
+import { ParcelFinancePanel } from '@/components/parcels/parcel-finance-panel';
 import { ParcelIntakeDialog } from '@/components/parcels/parcel-intake-dialog';
 import { ParcelKpi } from '@/components/parcels/parcel-kpi';
 import { ParcelListPanel } from '@/components/parcels/parcel-list-panel';
+import { ParcelSupervisionPanel } from '@/components/parcels/parcel-supervision-panel';
 import { TariffDialog } from '@/components/parcels/tariff-dialog';
 import type {
     CapacityConfigurationResponse,
@@ -62,7 +64,8 @@ import { configuration as configurationRoute } from '@/routes/parcels/data';
 import parcelHubs from '@/routes/parcels/data/hubs';
 import type { BreadcrumbItem } from '@/types';
 
-type TabKey = 'parcels' | 'overview' | 'hubs' | 'corridors' | 'capacity';
+type TabKey =
+    'overview' | 'parcels' | 'hubs' | 'corridors' | 'capacity' | 'finance';
 
 const TABS: Array<{
     key: TabKey;
@@ -72,15 +75,15 @@ const TABS: Array<{
     requires?: 'corridors' | 'configure';
 }> = [
     {
+        key: 'overview',
+        label: 'Vue d’ensemble',
+        description: 'Supervision et alertes',
+        icon: Gauge,
+    },
+    {
         key: 'parcels',
         label: 'Colis',
         description: 'Liste, suivi et dossiers',
-        icon: Package,
-    },
-    {
-        key: 'overview',
-        label: 'Vue d’ensemble',
-        description: 'Santé du réseau Colis',
         icon: Package,
     },
     {
@@ -102,6 +105,12 @@ const TABS: Array<{
         description: 'Soute disponible',
         icon: Truck,
         requires: 'configure',
+    },
+    {
+        key: 'finance',
+        label: 'Files financières',
+        description: 'Encaissements, remboursements, factures',
+        icon: Coins,
     },
 ];
 
@@ -183,7 +192,7 @@ function departureStatusLabel(status: string): string {
 
 export default function ParcelsPage() {
     const { url } = usePage();
-    const [activeTab, setActiveTab] = useState<TabKey>('parcels');
+    const [activeTab, setActiveTab] = useState<TabKey>('overview');
     const [configuration, setConfiguration] =
         useState<ParcelConfiguration | null>(null);
     const [loading, setLoading] = useState(true);
@@ -1361,13 +1370,15 @@ export default function ParcelsPage() {
 
                         <nav
                             className={`mb-5 grid gap-2 rounded-[18px] border border-border bg-card p-2 sm:grid-cols-2 ${
-                                visibleTabs.length >= 5
-                                    ? 'lg:grid-cols-5'
-                                    : visibleTabs.length === 4
-                                      ? 'lg:grid-cols-4'
-                                      : visibleTabs.length === 3
-                                        ? 'lg:grid-cols-3'
-                                        : 'lg:grid-cols-2'
+                                visibleTabs.length >= 6
+                                    ? 'lg:grid-cols-6'
+                                    : visibleTabs.length === 5
+                                      ? 'lg:grid-cols-5'
+                                      : visibleTabs.length === 4
+                                        ? 'lg:grid-cols-4'
+                                        : visibleTabs.length === 3
+                                          ? 'lg:grid-cols-3'
+                                          : 'lg:grid-cols-2'
                             }`}
                             aria-label="Sections Colis"
                         >
@@ -1427,151 +1438,7 @@ export default function ParcelsPage() {
                                 }}
                             />
                         ) : activeTab === 'overview' ? (
-                            <section className="grid gap-5">
-                                <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
-                                    <ParcelKpi
-                                        icon={MapPin}
-                                        label="Lieux actifs"
-                                        hint="Agences et partenaires prêts"
-                                        value={activeHubs}
-                                        tone="navy"
-                                        tooltip="Lieux de dépôt avec enabled = true et archived_at vide. Les lieux inactifs ou archivés sont exclus."
-                                    />
-                                    <ParcelKpi
-                                        icon={Route}
-                                        label="Corridors actifs"
-                                        hint="Desserte commerciale ouverte"
-                                        value={activeCorridors.length}
-                                        tone="gold"
-                                        tooltip="Corridors dont enabled = true. Un corridor inactif ne peut pas vendre ni recevoir de colis."
-                                    />
-                                    <ParcelKpi
-                                        icon={Coins}
-                                        label="Sans tarif"
-                                        hint="À compléter avant vente"
-                                        value={corridorsWithoutTariff.length}
-                                        tone="blue"
-                                        tooltip="Corridors actifs dont la liste tariffs est vide. Ils bloquent la création de colis au guichet."
-                                    />
-                                    <ParcelKpi
-                                        icon={Store}
-                                        label="Points partenaires"
-                                        hint="Hubs portés par un partenaire"
-                                        value={partnerHubs}
-                                        tone="green"
-                                        tooltip="Hubs de type partner_point non archivés. Les agences internes sont comptées séparément."
-                                    />
-                                </div>
-
-                                <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
-                                    <article className="rounded-[18px] border border-border bg-card px-5 py-5">
-                                        <div className="flex items-center gap-2 text-[0.6875rem] font-extrabold tracking-[0.14em] text-muted-foreground uppercase">
-                                            <CircleAlert className="size-3.5 text-gold" />
-                                            Points d’attention
-                                        </div>
-                                        <div className="mt-4 grid gap-3">
-                                            {corridorsWithoutTariff.length >
-                                            0 ? (
-                                                <div className="rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                                                    <strong className="block">
-                                                        {
-                                                            corridorsWithoutTariff.length
-                                                        }{' '}
-                                                        corridor
-                                                        {corridorsWithoutTariff.length >
-                                                        1
-                                                            ? 's'
-                                                            : ''}{' '}
-                                                        actif
-                                                        {corridorsWithoutTariff.length >
-                                                        1
-                                                            ? 's'
-                                                            : ''}{' '}
-                                                        sans tarif.
-                                                    </strong>
-                                                    <p className="mt-1 text-xs leading-5">
-                                                        Publiez un tarif avant
-                                                        de vendre au guichet.
-                                                    </p>
-                                                </div>
-                                            ) : (
-                                                <div className="rounded-xl border border-emerald-300/50 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-                                                    Tous les corridors actifs
-                                                    disposent d’un tarif
-                                                    courant.
-                                                </div>
-                                            )}
-
-                                            {activeHubs === 0 && (
-                                                <div className="rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                                                    Aucun lieu actif. Ajoutez un
-                                                    lieu de dépôt relié à un
-                                                    arrêt de ligne.
-                                                </div>
-                                            )}
-
-                                            <div className="flex flex-wrap gap-2">
-                                                {canIntake && (
-                                                    <ParcelButton
-                                                        type="button"
-                                                        variant="primary"
-                                                        onClick={() => {
-                                                            setIntakeError(
-                                                                null,
-                                                            );
-                                                            setIntakeErrors({});
-                                                            setIntakeOpen(true);
-                                                        }}
-                                                    >
-                                                        <PackagePlus className="size-4" />
-                                                        Créer un colis
-                                                    </ParcelButton>
-                                                )}
-                                                {canConfigure && (
-                                                    <ParcelButton
-                                                        type="button"
-                                                        variant="ghost"
-                                                        onClick={() => {
-                                                            setFormError(null);
-                                                            setFormErrors({});
-                                                            setDialogOpen(true);
-                                                        }}
-                                                    >
-                                                        <Plus className="size-4" />
-                                                        Ajouter un lieu
-                                                    </ParcelButton>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </article>
-
-                                    <article className="rounded-[18px] border border-border bg-card px-5 py-5">
-                                        <div className="flex items-center gap-2 text-[0.6875rem] font-extrabold tracking-[0.14em] text-muted-foreground uppercase">
-                                            <Package className="size-3.5 text-gold" />
-                                            Chaîne Colis
-                                        </div>
-                                        <ol className="mt-4 grid gap-3 text-sm text-foreground/75">
-                                            {[
-                                                'Le lieu de dépôt fige l’attribution commerciale.',
-                                                'Le corridor relie l’origine à une destination desservie dans le bon ordre.',
-                                                'Le tarif publié et la capacité de soute rendent le départ vendable.',
-                                            ].map((step, index) => (
-                                                <li
-                                                    key={step}
-                                                    className="flex gap-3"
-                                                >
-                                                    <span className="grid size-6 shrink-0 place-items-center rounded-lg bg-kora text-[0.625rem] font-black text-gold">
-                                                        {index + 1}
-                                                    </span>
-                                                    <span className="leading-5">
-                                                        {step}
-                                                    </span>
-                                                </li>
-                                            ))}
-                                        </ol>
-                                    </article>
-                                </div>
-                            </section>
+                            <ParcelSupervisionPanel />
                         ) : activeTab === 'corridors' ? (
                             <section className="grid gap-5">
                                 <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
@@ -1744,6 +1611,8 @@ export default function ParcelsPage() {
                                     </p>
                                 </div>
                             </section>
+                        ) : activeTab === 'finance' ? (
+                            <ParcelFinancePanel />
                         ) : (
                             <section className="grid gap-5">
                                 <KoraFilterBar

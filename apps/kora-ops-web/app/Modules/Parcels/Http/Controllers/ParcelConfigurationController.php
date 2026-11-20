@@ -11,14 +11,17 @@ use App\Modules\IdentityAccess\Data\AgencyStatus;
 use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\KoraPoints\Models\KoraPoint;
 use App\Modules\Parcels\Http\Requests\ParcelConfigurationRequest;
+use App\Modules\Parcels\Http\Requests\ParcelSettingsRequest;
 use App\Modules\Parcels\Models\ParcelCorridor;
 use App\Modules\Parcels\Models\ParcelHub;
 use App\Modules\Parcels\Services\ParcelAccess;
 use App\Modules\Parcels\Services\ParcelPricing;
 use App\Modules\Parcels\Services\ParcelRouting;
 use App\Modules\Parcels\Services\ParcelTransport;
+use App\Modules\Settings\Contracts\SettingsCoordinator;
 use App\Modules\Settings\Settings\GeneralSettings;
 use App\Modules\Settings\Settings\IntegrationsSettings;
+use App\Modules\Settings\Settings\OperationsSettings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -114,6 +117,64 @@ class ParcelConfigurationController extends Controller
                 'canIntake' => $request->user()?->can('parcels.intake') === true,
             ],
         ]]);
+    }
+
+    /**
+     * Consulter les paramètres runtime Colis.
+     *
+     * @authenticated
+     *
+     * @response 200 {"data":{"values":{}}}
+     * @response 403 {"message":"Droits insuffisants pour ce périmètre Colis."}
+     */
+    public function settings(Request $request, OperationsSettings $settings): JsonResponse
+    {
+        $this->access->require($request->user(), 'parcels.network');
+
+        return response()->json(['data' => [
+            'values' => $this->parcelSettingsValues($settings),
+            'permissions' => ['canManage' => $request->user()?->can('parcels.configure') === true],
+        ]]);
+    }
+
+    /**
+     * Mettre à jour les paramètres runtime Colis.
+     *
+     * @authenticated
+     *
+     * @response 200 {"data":{"values":{}}}
+     * @response 403 {"message":"Droits insuffisants pour ce périmètre Colis."}
+     * @response 422 {"message":"Les paramètres Colis sont incohérents."}
+     */
+    public function saveSettings(
+        ParcelSettingsRequest $request,
+        SettingsCoordinator $coordinator,
+    ): JsonResponse {
+        $this->access->require($request->user(), 'parcels.configure');
+        $coordinator->updateParcelSettings($request->validated(), $request->user());
+
+        return response()->json(['data' => [
+            'values' => $this->parcelSettingsValues(app(OperationsSettings::class)),
+            'permissions' => ['canManage' => true],
+        ]]);
+    }
+
+    /** @return array<string, int|bool> */
+    private function parcelSettingsValues(OperationsSettings $settings): array
+    {
+        return [
+            'parcelIntakeExpiryHours' => $settings->parcelIntakeExpiryHours,
+            'parcelMinimumWeightGrams' => $settings->parcelMinimumWeightGrams,
+            'parcelMaximumWeightGrams' => $settings->parcelMaximumWeightGrams,
+            'parcelCashDeclarationThresholdFcfa' => $settings->parcelCashDeclarationThresholdFcfa,
+            'parcelFirstReminderDays' => $settings->parcelFirstReminderDays,
+            'parcelSecondReminderDays' => $settings->parcelSecondReminderDays,
+            'parcelReturnDays' => $settings->parcelReturnDays,
+            'parcelHandoffMaxAttempts' => $settings->parcelHandoffMaxAttempts,
+            'parcelFiscalAlertHours' => $settings->parcelFiscalAlertHours,
+            'parcelRoutingHorizonDays' => $settings->parcelRoutingHorizonDays,
+            'parcelIdentityOverrideEnabled' => $settings->parcelIdentityOverrideEnabled,
+        ];
     }
 
     /**

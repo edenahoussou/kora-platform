@@ -433,3 +433,133 @@ export type ParcelAssignmentOptions = {
 export type ParcelAssignmentOptionsResponse = {
     data: ParcelAssignmentOptions;
 };
+
+export type ParcelRuntimeSettings = {
+    parcelIntakeExpiryHours: number;
+    parcelMinimumWeightGrams: number;
+    parcelMaximumWeightGrams: number;
+    parcelCashDeclarationThresholdFcfa: number;
+    parcelFirstReminderDays: number;
+    parcelSecondReminderDays: number;
+    parcelReturnDays: number;
+    parcelHandoffMaxAttempts: number;
+    parcelFiscalAlertHours: number;
+    parcelRoutingHorizonDays: number;
+    parcelIdentityOverrideEnabled: boolean;
+};
+
+export type ParcelSettingsResponse = {
+    data: {
+        values: ParcelRuntimeSettings;
+        permissions: {
+            canManage: boolean;
+        };
+    };
+};
+
+export type ParcelSupervisionStatusRow = {
+    status: string;
+    count: number;
+};
+
+export type ParcelSupervisionCorridorRow = {
+    uuid: string;
+    label: string;
+    enabled: boolean;
+    count: number;
+};
+
+export type ParcelSupervisionIncident = {
+    uuid: string;
+    parcel_uuid: string | null;
+    parcel_reference: string | null;
+    kind: string;
+    blocking: boolean;
+    description: string;
+    opened_at: string | null;
+};
+
+export type ParcelSupervisionCapacityDeparture = {
+    uuid: string;
+    line_code: string | null;
+    label: string;
+    departure_at: string;
+    capacity_grams: number | null;
+    reserved_grams: number;
+    available_grams: number | null;
+};
+
+export type ParcelSupervisionAlert = {
+    code: string;
+    severity: string;
+    message: string;
+};
+
+export type ParcelSupervisionFinanceItem = {
+    uuid: string;
+    parcel_uuid: string | null;
+    parcel_reference: string | null;
+    amount?: number;
+    currency?: string;
+    kora_reference?: string | null;
+    status?: string;
+    status_label?: string;
+    total?: number;
+    detected_at?: string | null;
+    requested_at?: string | null;
+};
+
+export type ParcelSupervisionFinanceQueue = {
+    count: number;
+    total_amount: number;
+    items: ParcelSupervisionFinanceItem[];
+};
+
+export type ParcelSupervision = {
+    generated_at: string;
+    meta: {
+        total: number;
+        awaiting_reception: number;
+        available: number;
+        returns_to_handle: number;
+        open_incidents: number;
+        withdrawn_today: number;
+    };
+    by_status: ParcelSupervisionStatusRow[];
+    by_corridor: ParcelSupervisionCorridorRow[];
+    incidents: {
+        open: number;
+        blocking: number;
+        recent: ParcelSupervisionIncident[];
+    };
+    capacity: {
+        horizon_days: number;
+        departures_count: number;
+        without_capacity_count: number;
+        saturated_count: number;
+        available_grams: number;
+        without_capacity: ParcelSupervisionCapacityDeparture[];
+        saturated: ParcelSupervisionCapacityDeparture[];
+    };
+    config_health: {
+        hubs_without_corridor: Array<{ uuid: string; label: string }>;
+        hubs_without_departure: Array<{ uuid: string; label: string }>;
+        hubs_without_weighing: Array<{ uuid: string; label: string }>;
+        corridors_without_tariff: Array<{ uuid: string; label: string }>;
+        departures_without_capacity: ParcelSupervisionCapacityDeparture[];
+        alerts: ParcelSupervisionAlert[];
+    };
+    finance: {
+        reconciliations: ParcelSupervisionFinanceQueue;
+        pending_refunds: ParcelSupervisionFinanceQueue;
+        pending_invoices: ParcelSupervisionFinanceQueue;
+    } | null;
+    permissions: {
+        can_finance: boolean;
+        can_configure: boolean;
+    };
+};
+
+export type ParcelSupervisionResponse = {
+    data: ParcelSupervision;
+};

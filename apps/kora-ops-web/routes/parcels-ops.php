@@ -2,10 +2,13 @@
 
 use App\Modules\Parcels\Http\Controllers\OpsParcelController;
 use App\Modules\Parcels\Http\Controllers\ParcelConfigurationController;
+use App\Modules\Parcels\Http\Controllers\ParcelSupervisionController;
 use Illuminate\Support\Facades\Route;
 
 Route::controller(ParcelConfigurationController::class)->group(function (): void {
     Route::get('configuration', 'index')->name('configuration');
+    Route::get('settings', 'settings')->name('settings.show');
+    Route::put('settings', 'saveSettings')->name('settings.update');
     Route::put('hubs', 'hub')->name('hubs.update');
     Route::post('hubs/{hub:uuid}/archive', 'archive')->name('hubs.archive');
     Route::get('routing/departures', 'routing')->name('routing.departures');
@@ -13,6 +16,11 @@ Route::controller(ParcelConfigurationController::class)->group(function (): void
     Route::put('corridors', 'corridor')->name('corridors.update');
     Route::post('corridors/{corridor:uuid}/tariffs', 'tariff')->name('tariffs.store');
     Route::put('departures/{departure:uuid}/capacity', 'capacity')->name('capacity.update');
+});
+
+Route::controller(ParcelSupervisionController::class)->group(function (): void {
+    Route::get('supervision', 'index')->name('supervision.index');
+    Route::get('supervision/export', 'export')->name('supervision.export');
 });
 
 Route::controller(OpsParcelController::class)->group(function (): void {
