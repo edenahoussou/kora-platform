@@ -8,7 +8,7 @@ class ParcelSettingsRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('parcels.configure') === true;
     }
 
     /** @return array<string, list<string>> */
