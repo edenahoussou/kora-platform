@@ -52,7 +52,7 @@ class ParcelOperationRequest extends FormRequest
                 'outcome' => ['required', 'in:printed,failed'],
             ],
             'documents' => [
-                'kind' => ['nullable', 'in:label,receipt,return_receipt'],
+                'kind' => ['nullable', 'in:label,receipt,return_receipt,handoff_proof'],
             ],
             'list' => [
                 'status' => ['nullable', 'string', 'max:32'],

@@ -215,6 +215,13 @@ export type ParcelListItem = {
     can_ready?: boolean;
     can_assign?: boolean;
     can_manifest?: boolean;
+    can_receive?: boolean;
+    can_release?: boolean;
+    can_reissue?: boolean;
+    can_override_handoff?: boolean;
+    can_return_charge?: boolean;
+    can_pay_return?: boolean;
+    can_print_handoff_proof?: boolean;
     inspection_state?: 'pending_inspection' | 'accepted' | 'refused';
     inspection?: {
         state: 'pending_inspection' | 'accepted' | 'refused';
@@ -243,6 +250,20 @@ export type ParcelListItem = {
     } | null;
     withdraw_by: string | null;
     return_handed_over_at: string | null;
+    handoff?: {
+        received_at: string | null;
+        received_by: string | null;
+        delivered_at: string | null;
+        delivered_by: string | null;
+        hub_uuid: string | null;
+        hub_name: string | null;
+        outcome: 'withdrawn' | 'returned' | null;
+        method: 'code' | 'identity' | null;
+        identity_type: string | null;
+        attempts: number;
+        max_attempts: number;
+        attempts_remaining: number;
+    };
     expires_at: string;
     updated_at: string | null;
     departure_uuid: string | null;
@@ -271,6 +292,19 @@ export type ParcelListMeta = {
 export type ParcelListResponse = {
     data: ParcelListItem[];
     meta: ParcelListMeta;
+};
+
+export type ParcelListKpis = {
+    total: number;
+    awaiting_reception: number;
+    available: number;
+    returns_to_handle: number;
+    withdrawn_today: number;
+};
+
+export type ParcelIndicatorsResponse = {
+    data: Record<string, number>;
+    meta: ParcelListKpis;
 };
 
 export type ParcelPaymentAccount = {

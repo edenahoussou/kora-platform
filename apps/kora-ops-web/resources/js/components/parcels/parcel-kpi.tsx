@@ -1,3 +1,4 @@
+import { Info } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { KoraTooltip } from '@/components/kora-tooltip';
@@ -60,6 +61,10 @@ export function ParcelKpi({
                             <small>{hint}</small>
                         </div>
                     </div>
+                    <Info
+                        className="size-3.5 shrink-0 text-current opacity-65"
+                        aria-hidden="true"
+                    />
                 </div>
                 <div className="cash-ledger-balance mb-0">
                     <strong>{value}</strong>

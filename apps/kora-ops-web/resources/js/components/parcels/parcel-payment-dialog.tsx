@@ -186,6 +186,7 @@ export function ParcelPaymentDialog({
 
     const total = parcel.quote?.total ?? 0;
     const currency = options?.currency ?? parcel.quote?.currency ?? '';
+    const isReturn = parcel.status === 'returned';
     const received = Number.parseInt(cashReceived, 10) || 0;
     const change = Math.max(received - total, 0);
     const accounts =
@@ -292,7 +293,9 @@ export function ParcelPaymentDialog({
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <WalletCards className="size-5 text-gold" />
-                        Encaisser le colis
+                        {isReturn
+                            ? 'Encaisser les frais de retour'
+                            : 'Encaisser le colis'}
                     </DialogTitle>
                     <DialogDescription>
                         {parcel.reference} · {parcel.origin ?? '—'} →{' '}
@@ -303,13 +306,17 @@ export function ParcelPaymentDialog({
 
                 <div className="bg-navy rounded-2xl p-4 text-white">
                     <div className="text-[0.625rem] font-black tracking-[0.16em] text-white/55 uppercase">
-                        Montant à encaisser
+                        {isReturn
+                            ? 'Frais de retour à encaisser'
+                            : 'Montant à encaisser'}
                     </div>
                     <div className="mt-1 text-2xl font-black">
                         {formatAmount(total, currency)}
                     </div>
                     <div className="mt-1 text-xs text-white/65">
-                        Devis pesé définitif · TVA{' '}
+                        {isReturn
+                            ? 'Frais de retour calculés · TVA'
+                            : 'Devis pesé définitif · TVA'}{' '}
                         {parcel.quote
                             ? formatAmount(parcel.quote.tax, currency)
                             : '—'}

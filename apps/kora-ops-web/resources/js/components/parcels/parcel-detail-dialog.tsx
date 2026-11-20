@@ -4,7 +4,10 @@ import {
     Building2,
     CalendarClock,
     ExternalLink,
+    FileCheck2,
+    KeyRound,
     Package,
+    PackageCheck,
     Phone,
     Route as RouteIcon,
     Scale,
@@ -15,7 +18,10 @@ import type { LucideIcon } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { ParcelButton } from '@/components/parcels/parcel-button';
-import { parcelStatusLabel } from '@/components/parcels/status';
+import {
+    parcelStatusLabel,
+    parcelStatusTone,
+} from '@/components/parcels/status';
 import type { ParcelListItem } from '@/components/parcels/types';
 import {
     Dialog,
@@ -64,12 +70,7 @@ export function ParcelDetailDialog({ parcel, onOpenChange }: Props) {
                             <DialogTitle className="flex flex-wrap items-center gap-2">
                                 Colis {parcel.reference}
                                 <KoraStatusBadge
-                                    tone={
-                                        parcel.status === 'cancelled' ||
-                                        parcel.status === 'refused'
-                                            ? 'destructive'
-                                            : 'blue'
-                                    }
+                                    tone={parcelStatusTone(parcel.status)}
                                     label={parcelStatusLabel(parcel.status)}
                                 />
                             </DialogTitle>
@@ -162,6 +163,25 @@ export function ParcelDetailDialog({ parcel, onOpenChange }: Props) {
                                                 parcel.updated_at,
                                         )}
                                     />
+                                    {parcel.handoff?.received_at && (
+                                        <InfoLine
+                                            icon={PackageCheck}
+                                            label="Réception physique"
+                                            value={`${formatDateTime(parcel.handoff.received_at)} · ${parcel.handoff.received_by ?? '—'}`}
+                                        />
+                                    )}
+                                    {parcel.handoff?.delivered_at && (
+                                        <InfoLine
+                                            icon={KeyRound}
+                                            label="Remise"
+                                            value={`${formatDateTime(parcel.handoff.delivered_at)} · ${
+                                                parcel.handoff.method ===
+                                                'identity'
+                                                    ? 'pièce d’identité'
+                                                    : 'code de retrait'
+                                            }`}
+                                        />
+                                    )}
                                 </div>
 
                                 <div className="rounded-2xl border border-border bg-card p-4">
@@ -213,6 +233,17 @@ export function ParcelDetailDialog({ parcel, onOpenChange }: Props) {
                             >
                                 Fermer
                             </ParcelButton>
+                            {parcel.can_print_handoff_proof && (
+                                <a
+                                    href={`/parcels/handoff/${parcel.uuid}/print`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="btn btn-primary"
+                                >
+                                    <FileCheck2 className="size-3.5" />
+                                    Preuve de remise
+                                </a>
+                            )}
                             {parcel.tracking_url && (
                                 <a
                                     href={parcel.tracking_url}

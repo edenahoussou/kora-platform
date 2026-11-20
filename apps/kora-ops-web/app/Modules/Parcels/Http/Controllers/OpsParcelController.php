@@ -87,9 +87,22 @@ class OpsParcelController extends Controller
      */
     public function indicators(Request $request): JsonResponse
     {
-        $counts = $this->access->operations($request->user())->selectRaw('status, count(*) as aggregate')->groupBy('status')->pluck('aggregate', 'status');
+        $query = $this->access->operations($request->user());
+        $counts = (clone $query)->selectRaw('status, count(*) as aggregate')->groupBy('status')->pluck('aggregate', 'status');
 
-        return response()->json(['data' => $counts]);
+        return response()->json([
+            'data' => $counts,
+            'meta' => [
+                'total' => (int) $counts->sum(),
+                'awaiting_reception' => (int) ($counts['arrived'] ?? 0) + (int) ($counts['return_arrived'] ?? 0),
+                'available' => (int) ($counts['available'] ?? 0),
+                'returns_to_handle' => (int) ($counts['return_pending'] ?? 0)
+                    + (int) ($counts['return_arrived'] ?? 0)
+                    + (clone $query)->where('status', 'returned')->whereNull('return_handed_over_at')->count(),
+                'withdrawn_today' => (clone $query)->whereHas('events', fn ($events) => $events
+                    ->where('kind', 'withdrawn')->whereDate('observed_at', now()->toDateString()))->count(),
+            ],
+        ]);
     }
 
     /**
@@ -454,6 +467,9 @@ class OpsParcelController extends Controller
     {
         $this->access->operations($request->user())->findOrFail($parcel->id);
         $kind = $request->validated('kind') ?? 'label';
+        if ($kind === 'handoff_proof') {
+            return response()->json(['data' => $documents->handoffProof($parcel, $request->user())]);
+        }
         $hub = $kind === 'label' ? ($parcel->custodyHub ?? $parcel->corridor->originHub) : $parcel->corridor->originHub;
         $this->access->atHub($request->user(), $hub, 'parcels.intake');
         $terminal = $request->attributes->get('terminal');

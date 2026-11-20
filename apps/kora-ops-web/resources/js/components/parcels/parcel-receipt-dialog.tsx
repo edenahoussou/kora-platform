@@ -79,7 +79,11 @@ export function ParcelReceiptDialog({ open, parcel, onOpenChange }: Props) {
 
             try {
                 const response = await fetch(
-                    `/parcels/data/${parcel.uuid}/receipt`,
+                    `/parcels/data/${parcel.uuid}/receipt${
+                        parcel.status === 'returned'
+                            ? '?kind=return_receipt'
+                            : ''
+                    }`,
                     {
                         headers: { Accept: 'application/json' },
                         credentials: 'same-origin',
@@ -134,11 +138,15 @@ export function ParcelReceiptDialog({ open, parcel, onOpenChange }: Props) {
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <ReceiptText className="size-5 text-gold" />
-                        Reçu Colis
+                        {parcel.status === 'returned'
+                            ? 'Reçu des frais de retour'
+                            : 'Reçu Colis'}
                     </DialogTitle>
                     <DialogDescription>
-                        {parcel.reference} · document remis à l’expéditeur au
-                        moment du dépôt.
+                        {parcel.reference} ·{' '}
+                        {parcel.status === 'returned'
+                            ? 'frais de retour réglés avant remise à l’expéditeur.'
+                            : 'document remis à l’expéditeur au moment du dépôt.'}
                     </DialogDescription>
                 </DialogHeader>
 

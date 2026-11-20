@@ -13,6 +13,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * @property CarbonImmutable $expires_at
@@ -103,6 +104,14 @@ class Parcel extends KoraModel
     public function incidents(): HasMany
     {
         return $this->hasMany(ParcelIncident::class);
+    }
+
+    /** @return HasOne<ParcelEvent, $this> */
+    public function latestCustodyEvent(): HasOne
+    {
+        return $this->hasOne(ParcelEvent::class)
+            ->whereIn('kind', ['available', 'returned', 'withdrawn', 'return_handed_over'])
+            ->latestOfMany();
     }
 
     /** @param array<string, mixed> $details */

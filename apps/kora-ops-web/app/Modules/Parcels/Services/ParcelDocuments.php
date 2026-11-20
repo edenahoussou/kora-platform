@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 
 class ParcelDocuments
 {
-    public function __construct(private ParcelReceipts $receipts) {}
+    public function __construct(private ParcelReceipts $receipts, private ParcelAccess $access) {}
 
     /** @return array<string, mixed> */
     public function render(Parcel $parcel, string $kind, ?User $actor = null, ?TerminalP501 $terminal = null): array
@@ -54,6 +54,75 @@ class ParcelDocuments
         }
 
         return $result;
+    }
+
+    /** @return array<string, mixed> */
+    public function handoffProof(Parcel $parcel, User $actor): array
+    {
+        $this->access->require($actor, 'parcels.view');
+        abort_if($parcel->reference === null, 409, 'The parcel has no logistics reference.');
+        abort_unless(in_array($parcel->status, ['withdrawn', 'returned'], true), 409, 'The parcel has not been handed over.');
+        $parcel->loadMissing(['corridor.originHub.stop', 'corridor.destinationHub.stop']);
+        $delivered = $parcel->events()->whereIn('kind', ['withdrawn', 'return_handed_over'])
+            ->with(['actor', 'hub.stop'])->latest('id')->first();
+        abort_if($delivered === null || $delivered->hub === null, 409, 'The parcel has no recorded handoff.');
+        $this->access->atHub($actor, $delivered->hub, 'parcels.handoff');
+        $received = $parcel->events()->whereIn('kind', ['available', 'returned'])
+            ->with('actor')->latest('id')->first();
+        $returned = $delivered->kind === 'return_handed_over';
+        $route = [
+            'origin' => $parcel->corridor?->originHub?->stop?->city,
+            'destination' => $parcel->corridor?->destinationHub?->stop?->city,
+        ];
+        $identityType = $delivered->details['identity_type'] ?? null;
+        $lines = [
+            'KORA COLIS',
+            'PREUVE DE REMISE',
+            $parcel->reference,
+            ($route['origin'] ?? '—').' > '.($route['destination'] ?? '—'),
+            'Exp. '.$parcel->sender_name,
+            'Dest. '.$parcel->recipient_name,
+            $parcel->weight_grams.' g',
+            'Remis le '.$delivered->observed_at->format('d/m/Y H:i'),
+            'Par '.$delivered->actor->name,
+            $identityType !== null ? 'Verification: piece identite' : 'Verification: code retrait',
+            'Retrait effectue a '.$delivered->hub->stop?->name,
+            $returned ? 'RETOUR EXPEDITEUR' : 'COLIS RETIRE',
+        ];
+        $proof = [
+            'kind' => 'handoff_proof',
+            'outcome' => $returned ? 'returned' : 'withdrawn',
+            'reference' => $parcel->reference,
+            'delivered_at' => $delivered->observed_at->toIso8601String(),
+            'delivered_by' => $delivered->actor->name,
+            'received_at' => $received?->observed_at?->toIso8601String(),
+            'received_by' => $received?->actor?->name,
+            'hub' => [
+                'uuid' => $delivered->hub->uuid,
+                'name' => $delivered->hub->stop?->name,
+                'city' => $delivered->hub->stop?->city,
+            ],
+            'route' => $route,
+            'parties' => [
+                'sender_name' => $parcel->sender_name,
+                'recipient_name' => $parcel->recipient_name,
+            ],
+            'parcel' => [
+                'weight_grams' => $parcel->weight_grams,
+                'contents' => $parcel->contents,
+            ],
+            'verification' => [
+                'method' => $identityType !== null ? 'identity' : 'code',
+                'identity_type' => $identityType,
+            ],
+            'qr_payload' => route('api.v1.parcels.tracking', ['reference' => $parcel->reference]),
+            'esc_pos_base64' => $this->printable($lines, route('api.v1.parcels.tracking', ['reference' => $parcel->reference])),
+            'generated_at' => now()->toIso8601String(),
+        ];
+        $proof['print_job_uuid'] = $parcel->record('handoff_proof_requested', $actor, $delivered->hub,
+            details: ['outcome' => $proof['outcome']])->uuid;
+
+        return $proof;
     }
 
     public function recordResult(Parcel $parcel, TerminalP501 $terminal, User $actor, string $job, string $outcome): void
