@@ -132,7 +132,7 @@ it('keeps the payment, custody, offline replay and withdrawal consistent across 
     $observedAt = now();
     $this->travel(10)->seconds();
     $departure->update(['status' => DepartureStatus::Departed, 'departed_at' => $departedAt]);
-    expect($parcel->refresh()->status)->toBe('ready');
+    expect($parcel->refresh()->status)->toBe('assigned');
 
     $batch = app(ProcessSyncBatchAction::class);
     $scan = [

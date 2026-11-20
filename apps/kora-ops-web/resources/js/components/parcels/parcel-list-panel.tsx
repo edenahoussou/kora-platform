@@ -1,9 +1,12 @@
 import {
+    CheckCircle2,
     ChevronLeft,
     ChevronRight,
     CreditCard,
     ExternalLink,
     Eye,
+    FileText,
+    Loader2,
     Package,
     ReceiptText,
     RefreshCw,
@@ -11,10 +14,12 @@ import {
     Search,
     SlidersHorizontal,
     TriangleAlert,
+    Truck,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
+import { ParcelAssignmentDialog } from '@/components/parcels/parcel-assignment-dialog';
 import { ParcelButton } from '@/components/parcels/parcel-button';
 import { ParcelDetailDialog } from '@/components/parcels/parcel-detail-dialog';
 import { ParcelInspectionDialog } from '@/components/parcels/parcel-inspection-dialog';
@@ -140,6 +145,8 @@ export function ParcelListPanel({
     const [inspecting, setInspecting] = useState<ParcelListItem | null>(null);
     const [paying, setPaying] = useState<ParcelListItem | null>(null);
     const [receipting, setReceipting] = useState<ParcelListItem | null>(null);
+    const [assigning, setAssigning] = useState<ParcelListItem | null>(null);
+    const [readyingUuid, setReadyingUuid] = useState<string | null>(null);
 
     const hubsByUuid = new Map(hubs.map((hub) => [hub.uuid, hub]));
 
@@ -236,6 +243,43 @@ export function ParcelListPanel({
         }
 
         void load(target, applied);
+    };
+
+    const markReady = async (parcel: ParcelListItem) => {
+        setReadyingUuid(parcel.uuid);
+
+        try {
+            const response = await fetch(`/parcels/data/${parcel.uuid}/ready`, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-XSRF-TOKEN': xsrfToken(),
+                },
+            });
+            const payload = await response.json().catch(() => null);
+
+            if (!response.ok) {
+                throw new Error(
+                    responseMessage(
+                        payload,
+                        'Impossible de marquer le colis prêt au départ.',
+                    ),
+                );
+            }
+
+            toast.success(`${parcel.reference} est prêt au départ.`);
+            void load(page, applied);
+        } catch (reason) {
+            toast.error(
+                reason instanceof Error
+                    ? reason.message
+                    : 'Erreur lors de la préparation du colis.',
+            );
+        } finally {
+            setReadyingUuid(null);
+        }
     };
 
     const submitInspection = async (
@@ -530,6 +574,57 @@ export function ParcelListPanel({
                                         </td>
                                         <td className="px-2 py-3.5">
                                             <div className="flex flex-col items-end gap-1">
+                                                {parcel.can_ready && (
+                                                    <ParcelButton
+                                                        variant="success"
+                                                        size="sm"
+                                                        disabled={
+                                                            readyingUuid ===
+                                                            parcel.uuid
+                                                        }
+                                                        onClick={() =>
+                                                            void markReady(
+                                                                parcel,
+                                                            )
+                                                        }
+                                                    >
+                                                        {readyingUuid ===
+                                                        parcel.uuid ? (
+                                                            <Loader2 className="size-3.5 animate-spin" />
+                                                        ) : (
+                                                            <CheckCircle2 className="size-3.5" />
+                                                        )}
+                                                        Prêt
+                                                    </ParcelButton>
+                                                )}
+                                                {parcel.can_assign && (
+                                                    <ParcelButton
+                                                        variant="navy"
+                                                        size="sm"
+                                                        onClick={() =>
+                                                            setAssigning(parcel)
+                                                        }
+                                                    >
+                                                        <Truck className="size-3.5" />
+                                                        {parcel.status ===
+                                                        'assigned'
+                                                            ? 'Réaffecter'
+                                                            : 'Affecter'}
+                                                    </ParcelButton>
+                                                )}
+                                                {parcel.can_manifest &&
+                                                    parcel.departure_uuid !==
+                                                        null && (
+                                                        <a
+                                                            href={`/parcels/manifest/${parcel.departure_uuid}/print`}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="btn btn-ghost btn-sm"
+                                                        >
+                                                            <FileText className="size-3.5" />
+                                                            Manifeste
+                                                        </a>
+                                                    )}
                                                 {canIntake &&
                                                     [
                                                         'preregistered',
@@ -691,6 +786,20 @@ export function ParcelListPanel({
                     if (!open) {
                         setSelected(null);
                     }
+                }}
+            />
+
+            <ParcelAssignmentDialog
+                open={assigning !== null}
+                parcel={assigning}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setAssigning(null);
+                    }
+                }}
+                onAssigned={() => {
+                    setAssigning(null);
+                    void load(page, applied);
                 }}
             />
         </>

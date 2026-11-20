@@ -23,7 +23,6 @@ use App\Modules\Parcels\Http\Resources\ParcelQuoteResource;
 use App\Modules\Parcels\Http\Resources\ParcelResource;
 use App\Modules\Parcels\Jobs\FiscalizeParcelInvoiceJob;
 use App\Modules\Parcels\Models\Parcel;
-use App\Modules\Parcels\Models\ParcelAssignment;
 use App\Modules\Parcels\Models\ParcelCorridor;
 use App\Modules\Parcels\Models\ParcelHub;
 use App\Modules\Parcels\Models\ParcelIncident;
@@ -32,6 +31,7 @@ use App\Modules\Parcels\Services\ParcelDocuments;
 use App\Modules\Parcels\Services\ParcelFinance;
 use App\Modules\Parcels\Services\ParcelHandoff;
 use App\Modules\Parcels\Services\ParcelIntake;
+use App\Modules\Parcels\Services\ParcelManifest;
 use App\Modules\Parcels\Services\ParcelNotifications;
 use App\Modules\Parcels\Services\ParcelPayments;
 use App\Modules\Parcels\Services\ParcelPricing;
@@ -51,7 +51,12 @@ use Illuminate\Support\Facades\DB;
 /** @group KORA OPS Colis */
 class OpsParcelController extends Controller
 {
-    public function __construct(private ParcelAccess $access, private ParcelTransport $transport, private ParcelHandoff $handoff) {}
+    public function __construct(
+        private ParcelAccess $access,
+        private ParcelTransport $transport,
+        private ParcelHandoff $handoff,
+        private ParcelManifest $manifest,
+    ) {}
 
     /**
      * Lister et filtrer les colis du périmètre OPS.
@@ -298,6 +303,20 @@ class OpsParcelController extends Controller
     }
 
     /**
+     * Lister les départs Bus compatibles pour l’affectation d’un colis.
+     *
+     * @authenticated
+     *
+     * @response 200 {"data":{}}
+     * @response 403 {"message":"Droits insuffisants pour ce périmètre Colis."}
+     * @response 409 {"message":"Le colis n’est pas prêt ou sa charge n’est pas réglée."}
+     */
+    public function assignmentOptions(Request $request, Parcel $parcel): JsonResponse
+    {
+        return response()->json(['data' => $this->transport->assignmentOptions($parcel, $request->user())]);
+    }
+
+    /**
      * Affecter le colis à un départ Bus direct.
      *
      * @authenticated
@@ -337,31 +356,9 @@ class OpsParcelController extends Controller
      */
     public function manifest(Request $request, Departure $departure, CrewDepartureScope $crew): JsonResponse
     {
-        $user = $request->user();
-        abort_unless(($user->can('parcels.network') && $user->can('parcels.view'))
-            || $crew->query($user, 'parcels.scan')->whereKey($departure->id)->exists(), 403);
-        $rows = ParcelAssignment::query()->where('departure_id', $departure->id)->where('bus_id', $departure->bus_id)
-            ->whereNull('released_at')->with(['parcel.corridor.originHub.stop', 'parcel.corridor.destinationHub.stop'])
-            ->orderBy('id')->get()->map(static function (ParcelAssignment $assignment): array {
-                $corridor = $assignment->parcel?->corridor;
-                $origin = $assignment->return_leg ? $corridor?->destinationHub : $corridor?->originHub;
-                $destination = $assignment->return_leg ? $corridor?->originHub : $corridor?->destinationHub;
+        $this->manifest->authorize($request->user(), $departure, $crew);
 
-                return [
-                    'assignment_uuid' => $assignment->uuid,
-                    'reference' => $assignment->parcel?->reference,
-                    'weight_grams' => $assignment->parcel?->weight_grams,
-                    'origin_stop_uuid' => $origin?->stop?->uuid,
-                    'destination_stop_uuid' => $destination?->stop?->uuid,
-                    'loaded_at' => $assignment->loaded_at?->toIso8601String(),
-                    'unloaded_at' => $assignment->unloaded_at?->toIso8601String(),
-                ];
-            })->all();
-
-        return response()->json(['data' => [
-            'departure_uuid' => $departure->uuid, 'version' => hash('sha256', json_encode($rows, JSON_THROW_ON_ERROR)),
-            'parcels' => $rows,
-        ]]);
+        return response()->json(['data' => $this->manifest->build($departure)]);
     }
 
     /**

@@ -212,6 +212,9 @@ export type ParcelListItem = {
     status: string;
     can_pay?: boolean;
     can_receipt?: boolean;
+    can_ready?: boolean;
+    can_assign?: boolean;
+    can_manifest?: boolean;
     inspection_state?: 'pending_inspection' | 'accepted' | 'refused';
     inspection?: {
         state: 'pending_inspection' | 'accepted' | 'refused';
@@ -363,4 +366,36 @@ export type ParcelReceipt = {
 
 export type ParcelReceiptResponse = {
     data: ParcelReceipt;
+};
+
+export type ParcelAssignmentDeparture = {
+    departure_uuid: string;
+    line_code: string | null;
+    line_name: string | null;
+    bus_registration: string | null;
+    departure_date: string;
+    departure_time: string;
+    status: string;
+    origin_stop: string | null;
+    destination_stop: string | null;
+    capacity_grams: number | null;
+    reserved_grams: number;
+    remaining_grams: number | null;
+    required_grams: number;
+    eligible: boolean;
+    reason: string | null;
+    is_current: boolean;
+};
+
+export type ParcelAssignmentOptions = {
+    parcel_uuid: string;
+    status: string;
+    return_leg: boolean;
+    required_grams: number;
+    current_departure_uuid: string | null;
+    departures: ParcelAssignmentDeparture[];
+};
+
+export type ParcelAssignmentOptionsResponse = {
+    data: ParcelAssignmentOptions;
 };

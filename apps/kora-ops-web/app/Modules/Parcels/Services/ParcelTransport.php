@@ -13,12 +13,18 @@ use App\Modules\Parcels\Models\ParcelAssignment;
 use App\Modules\Parcels\Models\ParcelEvent;
 use App\Modules\Parcels\Models\ParcelHub;
 use App\Modules\Parcels\Models\ParcelSouteBudget;
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 
 class ParcelTransport
 {
-    public function __construct(private ParcelAccess $access, private CrewDepartureScope $crew, private ParcelNotifications $notifications) {}
+    public function __construct(
+        private ParcelAccess $access,
+        private CrewDepartureScope $crew,
+        private ParcelNotifications $notifications,
+        private ParcelRouting $routing,
+    ) {}
 
     public function ready(Parcel $parcel, User $actor): Parcel
     {
@@ -27,6 +33,7 @@ class ParcelTransport
             $hub = $parcel->corridor->originHub;
             $this->access->atHub($actor, $hub, 'parcels.intake');
             abort_unless($parcel->status === 'registered', 409);
+            abort_unless($this->settledCharge($parcel, false), 409, 'The deposit charge must be settled before the parcel is ready.');
             $parcel->update(['status' => 'ready']);
             $parcel->record('ready', $actor, $hub);
             $this->notifications->milestone($parcel, 'ready');
@@ -48,6 +55,90 @@ class ParcelTransport
         });
     }
 
+    /**
+     * Build the server-derived assignment options for a paid parcel.
+     *
+     * @return array<string, mixed>
+     */
+    public function assignmentOptions(Parcel $parcel, User $actor): array
+    {
+        $this->access->require($actor, 'parcels.assign');
+
+        $parcel = Parcel::query()->with(['corridor.originHub.stop', 'corridor.destinationHub.stop', 'charges.settledPayment', 'assignments'])->findOrFail($parcel->id);
+        $this->ensureUnblocked($parcel);
+        abort_unless(in_array($parcel->status, ['ready', 'assigned', 'return_pending'], true), 409, 'The parcel must be ready before a departure can be selected.');
+        $return = $parcel->status === 'return_pending';
+        abort_if(! $return && ! $this->settledCharge($parcel, false), 409, 'The parcel charge must be settled before assignment.');
+        [$origin, $destination] = $this->hubs($parcel, $return);
+        abort_if($origin->stop === null || $destination->stop === null, 409, 'The parcel route is incomplete.');
+
+        $current = $parcel->assignments->first(fn (ParcelAssignment $assignment): bool => $assignment->released_at === null && $assignment->unloaded_at === null);
+        $today = CarbonImmutable::now()->startOfDay();
+        $departures = Departure::query()
+            ->where('line_id', $origin->stop->line_id)
+            ->whereIn('status', [DepartureStatus::Scheduled, DepartureStatus::Boarding])
+            ->whereDate('departure_date', '>=', $today->toDateString())
+            ->whereDate('departure_date', '<=', $today->addDays($this->routing->horizonDays())->toDateString())
+            ->with(['line.stops', 'bus'])
+            ->get();
+
+        $budgets = ParcelSouteBudget::query()->whereIn('departure_id', $departures->pluck('id'))->get()->keyBy('departure_id');
+        $reserved = ParcelAssignment::query()
+            ->whereIn('departure_id', $departures->pluck('id'))
+            ->whereNull('released_at')
+            ->whereNull('unloaded_at')
+            ->where('parcel_id', '!=', $parcel->id)
+            ->join('parcels', 'parcels.id', '=', 'parcel_assignments.parcel_id')
+            ->selectRaw('parcel_assignments.departure_id as departure_id, COALESCE(SUM(parcels.weight_grams), 0) as grams')
+            ->groupBy('parcel_assignments.departure_id')
+            ->pluck('grams', 'departure_id');
+
+        $rows = $departures->map(function (Departure $departure) use ($origin, $destination, $budgets, $reserved, $parcel, $current): ?array {
+            $stops = $departure->tripStops()->pluck('id');
+            $from = $stops->search($origin->stop_id, true);
+            $to = $stops->search($destination->stop_id, true);
+            if ($from === false || $to === false || $from >= $to) {
+                return null;
+            }
+            $budget = $budgets->get($departure->id);
+            $reservedGrams = (int) ($reserved[$departure->id] ?? 0);
+            $capacity = $budget?->capacity_grams;
+            $remaining = $capacity === null ? null : max(0, $capacity - $reservedGrams);
+            $eligible = $remaining !== null && $remaining >= $parcel->weight_grams;
+            $reason = $capacity === null ? 'capacity_not_configured' : ($eligible ? null : 'insufficient_capacity');
+
+            return [
+                'departure_uuid' => $departure->uuid,
+                'line_code' => $departure->line?->code,
+                'line_name' => $departure->line?->name,
+                'bus_registration' => $departure->bus?->registration_number,
+                'departure_date' => $departure->departure_date instanceof CarbonInterface
+                    ? $departure->departure_date->toDateString()
+                    : (string) $departure->departure_date,
+                'departure_time' => substr((string) $departure->departure_time, 0, 5),
+                'status' => $departure->status->value,
+                'origin_stop' => $origin->stop->name,
+                'destination_stop' => $destination->stop->name,
+                'capacity_grams' => $capacity,
+                'reserved_grams' => $reservedGrams,
+                'remaining_grams' => $remaining,
+                'required_grams' => $parcel->weight_grams,
+                'eligible' => $eligible,
+                'reason' => $reason,
+                'is_current' => $current?->departure_id === $departure->id,
+            ];
+        })->filter()->sortBy(fn (array $row): string => $row['departure_date'].' '.$row['departure_time'])->values();
+
+        return [
+            'parcel_uuid' => $parcel->uuid,
+            'status' => $parcel->status,
+            'return_leg' => $return,
+            'required_grams' => $parcel->weight_grams,
+            'current_departure_uuid' => $current?->departure?->uuid,
+            'departures' => $rows->all(),
+        ];
+    }
+
     public function assign(Parcel $parcel, Departure $departure, User $actor): Parcel
     {
         $this->access->require($actor, 'parcels.assign');
@@ -55,10 +146,11 @@ class ParcelTransport
         return DB::transaction(function () use ($parcel, $departure, $actor): Parcel {
             $departure = Departure::query()->lockForUpdate()->findOrFail($departure->id);
             $parcel = $this->lock($parcel);
-            abort_unless(in_array($parcel->status, ['ready', 'return_pending'], true), 409);
+            abort_unless(in_array($parcel->status, ['ready', 'assigned', 'return_pending'], true), 409);
             abort_unless(in_array($departure->status, [DepartureStatus::Scheduled, DepartureStatus::Boarding], true), 409);
             $return = $parcel->status === 'return_pending';
             [$origin, $destination] = $this->hubs($parcel, $return);
+            abort_if(! $return && ! $this->settledCharge($parcel, false), 409, 'The parcel charge must be settled before assignment.');
             $stops = $departure->tripStops()->pluck('id');
             $from = $stops->search($origin->stop_id, true);
             $to = $stops->search($destination->stop_id, true);
@@ -78,7 +170,10 @@ class ParcelTransport
             $assignment = $parcel->assignments()->create([
                 'departure_id' => $departure->id, 'bus_id' => $departure->bus_id, 'return_leg' => $return,
             ]);
-            $parcel->record('assigned', $actor, $origin, $assignment);
+            $parcel->update(['status' => 'assigned']);
+            $parcel->record('assigned', $actor, $origin, $assignment, details: $old === null ? [] : [
+                'previous_departure_uuid' => $old->departure?->uuid,
+            ]);
 
             return $parcel;
         }, attempts: 3);
@@ -119,11 +214,11 @@ class ParcelTransport
             $this->ensureUnblocked($parcel);
             abort_if($observedAt->isFuture() || $observedAt->lt($assignment->created_at->copy()->startOfSecond()), 409, 'Scan timestamp is outside the assignment window.');
             if ($loading) {
-                abort_unless(in_array($parcel->status, ['ready', 'return_pending'], true)
+                abort_unless(in_array($parcel->status, ['ready', 'assigned', 'return_pending'], true)
                     && $assignment->loaded_at === null
                     && ($departure->departed_at === null || $observedAt->lte($departure->departed_at)), 409, 'Chargement incompatible avec le départ.');
                 $assignment->update(['loaded_at' => $observedAt]);
-                $parcel->update(['custody_hub_id' => null]);
+                $parcel->update(['custody_hub_id' => null, 'status' => 'loaded']);
             } else {
                 abort_unless($assignment->loaded_at !== null && $assignment->unloaded_at === null
                     && $departure->departed_at !== null
@@ -155,6 +250,7 @@ class ParcelTransport
                 if ($departure->status === DepartureStatus::Cancelled) {
                     if ($assignment->loaded_at === null) {
                         $assignment->update(['released_at' => now()]);
+                        $parcel->update(['status' => $assignment->return_leg ? 'return_pending' : 'ready']);
                         $parcel->record('departure_cancelled', assignment: $assignment, channel: 'system');
                     } else {
                         $parcel->record('loaded_departure_cancelled', assignment: $assignment, channel: 'system');
@@ -171,6 +267,7 @@ class ParcelTransport
             ->eachById(function (ParcelAssignment $assignment): void {
                 $parcel = Parcel::query()->lockForUpdate()->findOrFail($assignment->parcel_id);
                 $assignment->update(['released_at' => now()]);
+                $parcel->update(['status' => $assignment->return_leg ? 'return_pending' : 'ready']);
                 $parcel->record('departure_changed', assignment: $assignment, channel: 'system');
             });
     }
@@ -186,7 +283,10 @@ class ParcelTransport
             $this->access->atHub($actor, $origin, 'parcels.override');
             abort_unless($assignment->departure?->departed_at === null, 409);
             $assignment->update(['unloaded_at' => now(), 'released_at' => now()]);
-            $parcel->update(['custody_hub_id' => $origin->id]);
+            $parcel->update([
+                'custody_hub_id' => $origin->id,
+                'status' => $assignment->return_leg ? 'return_pending' : 'ready',
+            ]);
             $parcel->record('unloaded_at_origin', $actor, $origin, $assignment, details: ['reason' => $reason]);
 
             return $parcel;
@@ -219,6 +319,16 @@ class ParcelTransport
         return (int) ParcelAssignment::query()->where('departure_id', $departure->id)->whereNull('released_at')
             ->whereNull('unloaded_at')->when($except !== null, fn ($query) => $query->where('parcel_id', '!=', $except))
             ->join('parcels', 'parcels.id', '=', 'parcel_assignments.parcel_id')->sum('parcels.weight_grams');
+    }
+
+    private function settledCharge(Parcel $parcel, bool $return): bool
+    {
+        return $parcel->charges()
+            ->where('return_leg', $return)
+            ->whereNull('superseded_at')
+            ->whereNotNull('settled_payment_id')
+            ->whereHas('settledPayment', fn ($query) => $query->where('status', 'confirmed'))
+            ->exists();
     }
 
     private function markTransit(Parcel $parcel, ParcelAssignment $assignment, CarbonInterface $departedAt): void

@@ -21,7 +21,9 @@ Route::controller(OpsParcelController::class)->group(function (): void {
     Route::post('/', 'store')->name('store');
     Route::post('quote', 'quote')->name('quote');
     Route::get('deposit-locations', 'depositLocations')->name('deposit-locations');
+    Route::get('departures/{departure:uuid}/manifest', 'manifest')->name('departures.manifest');
     Route::get('{parcel:uuid}', 'show')->name('show');
+    Route::get('{parcel:uuid}/assignment-options', 'assignmentOptions')->name('assignment-options');
     Route::post('{parcel:uuid}/inspect', 'inspect')->name('inspect');
     Route::post('{parcel:uuid}/cancel', 'cancel')->name('cancel');
     Route::post('{parcel:uuid}/pay', 'pay')->name('pay');

@@ -15,7 +15,10 @@ class ParcelResource extends JsonResource
     public function toArray(Request $request): array
     {
         $parcel = $this->resource;
-        $charge = $parcel->charges->first(fn ($charge) => $charge->superseded_at === null && $charge->return_leg === ($parcel->status === 'returned'));
+        $returnCharge = in_array($parcel->status, ['return_pending', 'returned'], true);
+        $charge = $parcel->charges->first(fn ($charge) => $charge->superseded_at === null && $charge->return_leg === $returnCharge);
+        $chargeSettled = $charge?->settled_payment_id !== null;
+        $user = $request->user();
         $assignment = $parcel->assignments->sortByDesc('id')->first(fn ($assignment) => $assignment->released_at === null || $assignment->transported_at !== null);
         $departure = $assignment?->departure;
         $trackingUrl = is_string($parcel->reference) && $parcel->reference !== ''
@@ -50,8 +53,14 @@ class ParcelResource extends JsonResource
                 'hub_name' => $parcel->inspectionHub?->stop?->name,
             ],
             'can_pay' => $parcel->status === 'weighed' && $charge !== null && ! $parcel->incidents->contains(fn ($incident) => $incident->blocking && $incident->resolved_at === null) && $parcel->expires_at->isFuture(),
-            'can_receipt' => $charge !== null && $charge->settled_payment_id !== null,
-            'can_assign' => $parcel->status === 'ready',
+            'can_receipt' => $chargeSettled,
+            'can_ready' => $parcel->status === 'registered' && $chargeSettled && ($user->can('parcels.intake')),
+            'can_assign' => in_array($parcel->status, ['ready', 'assigned', 'return_pending'], true)
+                && $chargeSettled
+                && ($user->can('parcels.assign')),
+            'can_manifest' => $departure !== null
+                && ($user->can('parcels.network'))
+                && ($user->can('parcels.view')),
             'origin_hub_uuid' => $parcel->corridor?->originHub?->uuid,
             'destination_hub_uuid' => $parcel->corridor?->destinationHub?->uuid,
             'custody_hub_uuid' => $parcel->custodyHub?->uuid,
