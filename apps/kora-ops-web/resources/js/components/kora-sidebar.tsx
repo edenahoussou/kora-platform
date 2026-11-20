@@ -458,7 +458,7 @@ const navItems: NavEntry[] = [
         title: 'Colis',
         href: '/parcels',
         icon: Package,
-        permission: 'parcels.network',
+        permission: 'parcels.view',
     },
     {
         title: 'Réseau commercial',

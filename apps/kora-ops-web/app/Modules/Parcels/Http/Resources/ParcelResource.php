@@ -2,6 +2,7 @@
 
 namespace App\Modules\Parcels\Http\Resources;
 
+use App\Models\User;
 use App\Modules\Parcels\Models\Parcel;
 use App\Modules\Parcels\Models\ParcelEvent;
 use App\Modules\Parcels\Models\ParcelHub;
@@ -20,7 +21,13 @@ class ParcelResource extends JsonResource
         $returnCharge = in_array($parcel->status, ['return_pending', 'returned'], true);
         $charge = $parcel->charges->first(fn ($charge) => $charge->superseded_at === null && $charge->return_leg === $returnCharge);
         $chargeSettled = $charge?->settled_payment_id !== null;
+        /** @var User|null $user */
         $user = $request->user();
+        $canIntake = $user?->can('parcels.intake') === true;
+        $canAssign = $user?->can('parcels.assign') === true;
+        $canNetwork = $user?->can('parcels.network') === true;
+        $canManifest = $user?->can('parcels.manifest') === true;
+        $userAgencyId = $user?->agency_id;
         $settings = app(OperationsSettings::class);
         $assignment = $parcel->assignments->sortByDesc('id')->first(fn ($assignment) => $assignment->released_at === null || $assignment->transported_at !== null);
         $departure = $assignment?->departure;
@@ -69,15 +76,19 @@ class ParcelResource extends JsonResource
                 'hub_uuid' => $parcel->inspectionHub?->uuid,
                 'hub_name' => $parcel->inspectionHub?->stop?->name,
             ],
-            'can_pay' => $parcel->status === 'weighed' && $charge !== null && ! $parcel->incidents->contains(fn ($incident) => $incident->blocking && $incident->resolved_at === null) && $parcel->expires_at->isFuture(),
-            'can_receipt' => $chargeSettled,
-            'can_ready' => $parcel->status === 'registered' && $chargeSettled && ($user->can('parcels.intake')),
+            'can_pay' => $canIntake && $parcel->status === 'weighed' && $charge !== null && ! $parcel->incidents->contains(fn ($incident) => $incident->blocking && $incident->resolved_at === null) && $parcel->expires_at->isFuture(),
+            'can_receipt' => $canIntake && $chargeSettled,
+            'can_ready' => $parcel->status === 'registered' && $chargeSettled && $canIntake,
             'can_assign' => in_array($parcel->status, ['ready', 'assigned', 'return_pending'], true)
                 && $chargeSettled
-                && ($user->can('parcels.assign')),
+                && $canAssign,
             'can_manifest' => $departure !== null
-                && ($user->can('parcels.network'))
-                && ($user->can('parcels.view')),
+                && $canManifest
+                && ($canNetwork || (
+                    $userAgencyId !== null
+                    && ($parcel->corridor?->originHub?->agency_id === $userAgencyId
+                        || $parcel->corridor?->destinationHub?->agency_id === $userAgencyId)
+                )),
             'can_receive' => in_array($parcel->status, ['arrived', 'return_arrived'], true)
                 && $handoffHubAccess($handoffHub, 'parcels.handoff'),
             'can_release' => $awaitsHandoff && $returnFeeSettled && $handoffHubAccess($handoffHub, 'parcels.handoff'),

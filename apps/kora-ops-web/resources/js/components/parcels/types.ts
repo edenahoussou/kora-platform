@@ -11,6 +11,7 @@ export type DepositHub = {
     name: string | null;
     city: string | null;
     archived_at: string | null;
+    deposit_allowed: boolean;
 };
 
 export type InternalAgencyOption = {

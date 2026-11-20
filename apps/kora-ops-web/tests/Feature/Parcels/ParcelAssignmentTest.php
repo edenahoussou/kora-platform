@@ -273,3 +273,32 @@ it('prints a manifest sorted by stop with public references and QR only', functi
             ->where('manifest.summary.parcels', 1)
             ->where('manifest.parcels.0.reference', $first->reference));
 });
+
+it('scopes the parcel manifest to the agency and refuses read-only directions', function (): void {
+    $fixture = assignmentFixture();
+    $parcel = assignmentParcel($fixture);
+    payAndReady($this, $fixture, $parcel);
+    approveCapacity($this, $fixture, $fixture['departure'], 5000);
+    $this->actingAs($fixture['ops'], 'web')
+        ->postJson('/parcels/data/'.$parcel->uuid.'/assign', ['departure_uuid' => $fixture['departure']->uuid])
+        ->assertOk();
+
+    $outsider = User::factory()->create([
+        'agency_id' => Agency::factory()->create(['country' => 'BJ'])->id,
+    ])->assignRole('agency_agent');
+    $readOnly = User::factory()->create()->assignRole('general_management');
+
+    $this->actingAs($fixture['agent'], 'web')
+        ->getJson('/parcels/data/departures/'.$fixture['departure']->uuid.'/manifest')
+        ->assertOk()
+        ->assertJsonPath('data.summary.parcels', 1);
+    $this->get('/parcels/manifest/'.$fixture['departure']->uuid.'/print')
+        ->assertOk();
+
+    $this->actingAs($outsider, 'web')
+        ->getJson('/parcels/data/departures/'.$fixture['departure']->uuid.'/manifest')
+        ->assertForbidden();
+    $this->actingAs($readOnly, 'web')
+        ->getJson('/parcels/data/departures/'.$fixture['departure']->uuid.'/manifest')
+        ->assertForbidden();
+});

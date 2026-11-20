@@ -82,7 +82,7 @@ class RestrictPartnerAccess
 
             $allowed = $commonAllowed || $request->routeIs('kora-points', 'kora-points.*', 'kora-point.*', 'commissions', 'settlements');
             if ($user->hasRole('kora_point_agent')) {
-                $allowed = $allowed || $request->routeIs('sale', 'sale.*', 'cash', 'cash.*', 'tickets', 'tickets.*', 'dashboard');
+                $allowed = $allowed || $request->routeIs('sale', 'sale.*', 'cash', 'cash.*', 'tickets', 'tickets.*', 'dashboard', 'parcels', 'parcels.*');
             }
             abort_unless($allowed, 403);
         }

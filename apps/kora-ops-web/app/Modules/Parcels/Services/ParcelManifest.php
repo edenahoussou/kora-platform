@@ -20,11 +20,27 @@ class ParcelManifest
 {
     public function authorize(User $user, Departure $departure, CrewDepartureScope $crew): void
     {
-        abort_unless(
-            ($user->can('parcels.network') && $user->can('parcels.view'))
-            || $crew->query($user, 'parcels.scan')->whereKey($departure->id)->exists(),
-            403,
-        );
+        $crewAllowed = $crew->query($user, 'parcels.scan')->whereKey($departure->id)->exists();
+        $agencyAllowed = $user->can('parcels.manifest')
+            && ($user->can('parcels.network') || $this->servesUserAgency($user, $departure));
+
+        abort_unless($crewAllowed || $agencyAllowed, 403);
+    }
+
+    private function servesUserAgency(User $user, Departure $departure): bool
+    {
+        if ($user->agency_id === null) {
+            return false;
+        }
+
+        return ParcelAssignment::query()
+            ->where('departure_id', $departure->id)
+            ->whereNull('released_at')
+            ->where(function ($query) use ($user): void {
+                $query->whereHas('parcel.corridor.originHub', fn ($hub) => $hub->where('agency_id', $user->agency_id))
+                    ->orWhereHas('parcel.corridor.destinationHub', fn ($hub) => $hub->where('agency_id', $user->agency_id));
+            })
+            ->exists();
     }
 
     /** @return array<string, mixed> */

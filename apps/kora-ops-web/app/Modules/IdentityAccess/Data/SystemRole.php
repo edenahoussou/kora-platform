@@ -40,7 +40,10 @@ enum SystemRole: string
     public function permissions(): array
     {
         return match ($this) {
-            self::KoraPointAgent => ['departures.view', 'kora-points.view', 'kora-points.remit', 'kora-points.refund-request', 'kora-points.visits.actions.update', 'counter-sales.create', 'cash.open', 'cash.close', 'cash.view', 'cash.media.view', 'tickets.view', 'tickets.issue', 'notifications.view', 'wallet.debit-counter'],
+            self::KoraPointAgent => [
+                'parcels.view', 'parcels.intake',
+                'departures.view', 'kora-points.view', 'kora-points.remit', 'kora-points.refund-request', 'kora-points.visits.actions.update', 'counter-sales.create', 'cash.open', 'cash.close', 'cash.view', 'cash.media.view', 'tickets.view', 'tickets.issue', 'notifications.view', 'wallet.debit-counter',
+            ],
             self::KoraPointSupervisor => ['kora-points.view', 'kora-points.manage', 'kora-points.remit', 'kora-points.documents.upload', 'notifications.view', 'wallet.debit-counter'],
             self::KoraPointTreasurer => ['kora-points.view', 'kora-points.remit', 'kora-points.documents.upload', 'notifications.view'],
             self::Passenger => [
@@ -78,7 +81,7 @@ enum SystemRole: string
                 'trip-logs.create',
             ],
             self::AgencyAgent => [
-                'parcels.view', 'parcels.intake', 'parcels.handoff',
+                'parcels.view', 'parcels.intake', 'parcels.handoff', 'parcels.manifest',
                 'incidents.report',
                 'notifications.view',
                 'bookings.view',
@@ -99,7 +102,7 @@ enum SystemRole: string
                 'wallet.debit-counter',
             ],
             self::AgencyManager => [
-                'parcels.view', 'parcels.intake', 'parcels.handoff', 'parcels.override',
+                'parcels.view', 'parcels.intake', 'parcels.handoff', 'parcels.override', 'parcels.manifest',
                 'incidents.report',
                 'notifications.view',
                 'agencies.view',
@@ -133,7 +136,7 @@ enum SystemRole: string
                 'wallet.debit-counter',
             ],
             self::OperationsDirector => [
-                'parcels.view', 'parcels.network', 'parcels.assign', 'parcels.configure', 'parcels.override', 'parcels.intake',
+                'parcels.view', 'parcels.network', 'parcels.assign', 'parcels.configure', 'parcels.override', 'parcels.intake', 'parcels.manifest',
                 'notifications.view',
                 'tickets.view-network',
                 'agencies.view',
@@ -284,7 +287,7 @@ enum SystemRole: string
     public static function allPermissions(): array
     {
         return [
-            'parcels.assign', 'parcels.configure', 'parcels.customer', 'parcels.finance', 'parcels.handoff', 'parcels.intake', 'parcels.network', 'parcels.override', 'parcels.scan', 'parcels.tariffs', 'parcels.view',
+            'parcels.assign', 'parcels.configure', 'parcels.customer', 'parcels.finance', 'parcels.handoff', 'parcels.intake', 'parcels.manifest', 'parcels.network', 'parcels.override', 'parcels.scan', 'parcels.tariffs', 'parcels.view',
             'kora-points.view', 'kora-points.manage', 'kora-points.terms', 'kora-points.documents.upload', 'kora-points.remit', 'kora-points.refund-request', 'kora-points.finance', 'kora-points.visits.actions.update',
             'departures.progress',
             'incidents.report',

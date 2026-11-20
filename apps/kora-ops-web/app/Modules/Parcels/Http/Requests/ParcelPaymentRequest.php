@@ -8,7 +8,16 @@ class ParcelPaymentRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        $user = $this->user();
+
+        if ($user === null) {
+            return false;
+        }
+
+        $routeName = (string) $this->route()?->getName();
+
+        return ! str_starts_with($routeName, 'api.v1.parcels.')
+            || $user->can('parcels.customer');
     }
 
     /** @return array<string, list<string>> */

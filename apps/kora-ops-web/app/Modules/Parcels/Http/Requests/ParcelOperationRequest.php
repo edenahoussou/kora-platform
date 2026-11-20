@@ -8,7 +8,32 @@ class ParcelOperationRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        $user = $this->user();
+
+        if ($user === null) {
+            return false;
+        }
+
+        $routeName = (string) $this->route()?->getName();
+
+        if (str_starts_with($routeName, 'api.v1.parcels.')) {
+            return $user->can('parcels.customer');
+        }
+
+        return match ($this->route()?->getActionMethod()) {
+            'list', 'documents' => $user->can('parcels.view'),
+            'assign' => $user->can('parcels.assign'),
+            'scan' => $user->can('parcels.scan'),
+            'release' => $user->can('parcels.handoff'),
+            'correction', 'resolveIncident' => $user->can('parcels.override'),
+            'incident' => $user->can('parcels.intake')
+                || $user->can('parcels.assign')
+                || $user->can('parcels.handoff'),
+            'authorizeRefund', 'completeRefund' => $user->can('parcels.finance'),
+            'printResult' => $user->can('parcels.intake')
+                || $user->can('parcels.handoff'),
+            default => false,
+        };
     }
 
     /** @return array<string, list<string>> */

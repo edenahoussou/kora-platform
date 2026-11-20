@@ -120,7 +120,13 @@ export function ParcelIntakeDialog({
     );
 
     const activeHubs = useMemo(
-        () => hubs.filter((hub) => hub.enabled && hub.archived_at === null),
+        () =>
+            hubs.filter(
+                (hub) =>
+                    hub.enabled &&
+                    hub.archived_at === null &&
+                    hub.deposit_allowed,
+            ),
         [hubs],
     );
 

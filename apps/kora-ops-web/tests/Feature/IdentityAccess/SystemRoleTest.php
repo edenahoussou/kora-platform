@@ -86,8 +86,9 @@ describe('SystemRole enum', function (): void {
             ->and($all)->toContain('wallet.debit-counter', 'wallet.manage-restitutions', 'wallet.adjust')
             ->and($all)->toContain('wallet.ops.view', 'wallet.loyalty-rules.view', 'wallet.loyalty-rules.manage')
             ->and($all)->toContain('trip-logs.create')
-            ->and($all)->toHaveCount(119)
-            ->and(count(array_unique($all)))->toBe(119);
+            ->and($all)->toContain('parcels.manifest')
+            ->and($all)->toHaveCount(120)
+            ->and(count(array_unique($all)))->toBe(120);
     });
 
     it('registers every permission declared by a system role', function (): void {

@@ -3,6 +3,7 @@
 namespace App\Modules\Parcels\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Modules\BusNetwork\Data\LineStatus;
 use App\Modules\BusNetwork\Data\StopStatus;
 use App\Modules\BusNetwork\Models\Stop;
@@ -43,12 +44,17 @@ class ParcelConfigurationController extends Controller
      */
     public function index(Request $request, GeneralSettings $settings): JsonResponse
     {
-        $this->access->require($request->user(), 'parcels.network');
+        $this->access->require($request->user(), 'parcels.view');
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 403);
+        $canConfigure = $actor->can('parcels.configure');
+        $canConfigureNetwork = $canConfigure && $actor->can('parcels.network');
         $hubs = ParcelHub::query()->with(['agency', 'koraPoint', 'stop'])->get()->map(fn (ParcelHub $hub): array => [
             'uuid' => $hub->uuid, 'enabled' => $hub->enabled, 'supports_weighing' => $hub->supports_weighing, 'kind' => $hub->kind,
             'agency_uuid' => $hub->agency?->uuid, 'kora_point_uuid' => $hub->koraPoint?->uuid, 'stop_uuid' => $hub->stop?->uuid,
             'name' => $hub->agency?->name, 'city' => $hub->stop?->city,
             'archived_at' => $hub->archived_at?->toIso8601String(),
+            'deposit_allowed' => $actor->can('parcels.intake') && $this->access->canViewHub($actor, $hub),
         ]);
         $corridors = ParcelCorridor::query()->with(['originHub', 'destinationHub', 'tariffs'])->get()->map(fn (ParcelCorridor $corridor): array => [
             'uuid' => $corridor->uuid, 'origin_hub_uuid' => $corridor->originHub?->uuid, 'origin_hub_kind' => $corridor->originHub?->kind, 'destination_hub_uuid' => $corridor->destinationHub?->uuid,
@@ -59,33 +65,37 @@ class ParcelConfigurationController extends Controller
         ]);
 
         $options = [
-            'internal_agencies' => Agency::query()
-                ->where('kind', 'internal')
-                ->where('status', AgencyStatus::Active->value)
-                ->orderBy('name')
-                ->get(['uuid', 'name', 'city', 'country'])
-                ->map(fn (Agency $agency): array => [
-                    'uuid' => $agency->uuid,
-                    'name' => $agency->name,
-                    'city' => $agency->city,
-                    'country' => $agency->country,
-                ]),
-            'partner_points' => KoraPoint::query()
-                ->where('status', 'active')
-                ->whereHas('agency', fn ($query) => $query
-                    ->where('kind', 'partner')
-                    ->where('status', AgencyStatus::Active->value))
-                ->with('agency')
-                ->orderBy('address')
-                ->get()
-                ->map(fn (KoraPoint $point): array => [
-                    'uuid' => $point->uuid,
-                    'agency_uuid' => $point->agency?->uuid,
-                    'agency_name' => $point->agency?->name,
-                    'agency_country' => $point->agency?->country,
-                    'address' => $point->address,
-                    'responsible_name' => $point->responsible_name,
-                ]),
+            'internal_agencies' => $canConfigureNetwork
+                ? Agency::query()
+                    ->where('kind', 'internal')
+                    ->where('status', AgencyStatus::Active->value)
+                    ->orderBy('name')
+                    ->get(['uuid', 'name', 'city', 'country'])
+                    ->map(fn (Agency $agency): array => [
+                        'uuid' => $agency->uuid,
+                        'name' => $agency->name,
+                        'city' => $agency->city,
+                        'country' => $agency->country,
+                    ])
+                : [],
+            'partner_points' => $canConfigureNetwork
+                ? KoraPoint::query()
+                    ->where('status', 'active')
+                    ->whereHas('agency', fn ($query) => $query
+                        ->where('kind', 'partner')
+                        ->where('status', AgencyStatus::Active->value))
+                    ->with('agency')
+                    ->orderBy('address')
+                    ->get()
+                    ->map(fn (KoraPoint $point): array => [
+                        'uuid' => $point->uuid,
+                        'agency_uuid' => $point->agency?->uuid,
+                        'agency_name' => $point->agency?->name,
+                        'agency_country' => $point->agency?->country,
+                        'address' => $point->address,
+                        'responsible_name' => $point->responsible_name,
+                    ])
+                : [],
             'stops' => Stop::query()
                 ->where('status', 'active')
                 ->whereHas('line', fn ($query) => $query->where('status', 'active'))
@@ -112,9 +122,9 @@ class ParcelConfigurationController extends Controller
             'corridors' => $corridors,
             'options' => $options,
             'permissions' => [
-                'canConfigure' => $request->user()?->can('parcels.configure') === true,
-                'canPublishTariffs' => $request->user()?->can('parcels.tariffs') === true,
-                'canIntake' => $request->user()?->can('parcels.intake') === true,
+                'canConfigure' => $canConfigure,
+                'canPublishTariffs' => $actor->can('parcels.tariffs'),
+                'canIntake' => $actor->can('parcels.intake'),
             ],
         ]]);
     }

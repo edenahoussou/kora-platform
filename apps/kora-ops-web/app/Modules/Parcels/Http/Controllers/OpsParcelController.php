@@ -539,6 +539,10 @@ class OpsParcelController extends Controller
     public function printResult(ParcelOperationRequest $request, Parcel $parcel, ParcelDocuments $documents): JsonResponse
     {
         $this->access->operations($request->user())->findOrFail($parcel->id);
+        abort_unless(
+            $request->user()->can('parcels.intake') || $request->user()->can('parcels.handoff'),
+            403,
+        );
         $terminal = $request->attributes->get('terminal');
         abort_unless($terminal instanceof TerminalP501, 403);
         $documents->recordResult($parcel, $terminal, $request->user(), $request->validated('print_job_uuid'), $request->validated('outcome'));
@@ -565,7 +569,12 @@ class OpsParcelController extends Controller
     public function incident(ParcelOperationRequest $request, Parcel $parcel, ParcelNotifications $notifications): JsonResponse
     {
         $this->access->operations($request->user())->findOrFail($parcel->id);
-        abort_unless($request->user()->can('parcels.intake') || $request->user()->can('parcels.assign'), 403);
+        abort_unless(
+            $request->user()->can('parcels.intake')
+            || $request->user()->can('parcels.assign')
+            || $request->user()->can('parcels.handoff'),
+            403,
+        );
         $data = $request->validated();
         $blocking = (bool) ($data['blocking'] ?? true);
         $idempotencyKey = $data['idempotency_key'] ?? null;
