@@ -210,6 +210,8 @@ export type ParcelListItem = {
     tracking_url: string | null;
     qr_payload: string | null;
     status: string;
+    can_pay?: boolean;
+    can_receipt?: boolean;
     inspection_state?: 'pending_inspection' | 'accepted' | 'refused';
     inspection?: {
         state: 'pending_inspection' | 'accepted' | 'refused';
@@ -266,4 +268,99 @@ export type ParcelListMeta = {
 export type ParcelListResponse = {
     data: ParcelListItem[];
     meta: ParcelListMeta;
+};
+
+export type ParcelPaymentAccount = {
+    uuid: string;
+    network: string;
+    label: string;
+};
+
+export type ParcelPaymentOptions = {
+    agency: { uuid: string; name: string } | null;
+    hub: { uuid: string; kind: DepositHubKind; name: string | null };
+    currency: string;
+    cash_session: {
+        uuid: string;
+        opened_at: string | null;
+        cash_register: string | null;
+    } | null;
+    methods: {
+        code: 'cash' | 'mobile_money';
+        label: string;
+        available: boolean;
+        accounts?: ParcelPaymentAccount[];
+    }[];
+};
+
+export type ParcelPaymentOptionsResponse = {
+    data: ParcelPaymentOptions;
+};
+
+export type ParcelPaymentResult = {
+    uuid: string;
+    status: string;
+    method: string;
+    amount: number;
+    currency: string;
+    provider: string | null;
+    provider_reference: string | null;
+    confirmed_at: string | null;
+    next_action?: string;
+};
+
+export type ParcelReceipt = {
+    kind: 'receipt' | 'return_receipt';
+    receipt_status: 'provisional' | 'certified';
+    receipt_label: string;
+    reference: string;
+    issued_at: string | null;
+    currency: string;
+    qr_payload: string;
+    parties: {
+        sender_name: string;
+        sender_phone: string;
+        recipient_name: string;
+        recipient_phone: string;
+    };
+    route: {
+        origin: string | null;
+        destination: string | null;
+        corridor_uuid: string | null;
+    };
+    parcel: {
+        weight_grams: number | null;
+        declared_grams: number;
+        contents: string;
+    };
+    charge: {
+        net: number;
+        tax: number;
+        total: number;
+        tax_code: string;
+        tax_rate: string;
+        fiscal_group: string;
+        tariff_uuid: string | null;
+        tariff_version: number | null;
+        deposit_kind: DepositHubKind | null;
+    };
+    payment: {
+        uuid: string;
+        method: string | null;
+        provider: string | null;
+        confirmed_at: string | null;
+        cash_received_amount: number | null;
+        change_amount: number | null;
+    };
+    fiscal: {
+        status: string;
+        certified: boolean;
+        code: string | null;
+        qr_payload: string | null;
+        invoice_uuid: string | null;
+    };
+};
+
+export type ParcelReceiptResponse = {
+    data: ParcelReceipt;
 };

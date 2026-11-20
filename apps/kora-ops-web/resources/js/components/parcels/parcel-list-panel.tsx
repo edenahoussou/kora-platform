@@ -1,9 +1,11 @@
 import {
     ChevronLeft,
     ChevronRight,
+    CreditCard,
     ExternalLink,
     Eye,
     Package,
+    ReceiptText,
     RefreshCw,
     Scale,
     Search,
@@ -17,6 +19,8 @@ import { ParcelButton } from '@/components/parcels/parcel-button';
 import { ParcelDetailDialog } from '@/components/parcels/parcel-detail-dialog';
 import { ParcelInspectionDialog } from '@/components/parcels/parcel-inspection-dialog';
 import type { ParcelInspectionPayload } from '@/components/parcels/parcel-inspection-dialog';
+import { ParcelPaymentDialog } from '@/components/parcels/parcel-payment-dialog';
+import { ParcelReceiptDialog } from '@/components/parcels/parcel-receipt-dialog';
 import {
     parcelStatusLabels,
     parcelStatusLabel,
@@ -134,6 +138,8 @@ export function ParcelListPanel({
     const [error, setError] = useState<string | null>(null);
     const [selected, setSelected] = useState<ParcelListItem | null>(null);
     const [inspecting, setInspecting] = useState<ParcelListItem | null>(null);
+    const [paying, setPaying] = useState<ParcelListItem | null>(null);
+    const [receipting, setReceipting] = useState<ParcelListItem | null>(null);
 
     const hubsByUuid = new Map(hubs.map((hub) => [hub.uuid, hub]));
 
@@ -544,6 +550,35 @@ export function ParcelListPanel({
                                                             Peser
                                                         </ParcelButton>
                                                     )}
+                                                {canIntake &&
+                                                    parcel.can_pay && (
+                                                        <ParcelButton
+                                                            variant="success"
+                                                            size="sm"
+                                                            onClick={() =>
+                                                                setPaying(
+                                                                    parcel,
+                                                                )
+                                                            }
+                                                        >
+                                                            <CreditCard className="size-3.5" />
+                                                            Encaisser
+                                                        </ParcelButton>
+                                                    )}
+                                                {parcel.can_receipt && (
+                                                    <ParcelButton
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() =>
+                                                            setReceipting(
+                                                                parcel,
+                                                            )
+                                                        }
+                                                    >
+                                                        <ReceiptText className="size-3.5" />
+                                                        Reçu
+                                                    </ParcelButton>
+                                                )}
                                                 <ParcelButton
                                                     variant="ghost"
                                                     size="sm"
@@ -617,6 +652,37 @@ export function ParcelListPanel({
                     }
                 }}
                 onSubmit={submitInspection}
+            />
+
+            <ParcelPaymentDialog
+                open={paying !== null}
+                parcel={paying}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setPaying(null);
+                    }
+                }}
+                onPaid={() => {
+                    const paid = paying;
+
+                    setPaying(null);
+
+                    if (paid !== null) {
+                        setReceipting(paid);
+                    }
+
+                    void load(page, applied);
+                }}
+            />
+
+            <ParcelReceiptDialog
+                open={receipting !== null}
+                parcel={receipting}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setReceipting(null);
+                    }
+                }}
             />
 
             <ParcelDetailDialog

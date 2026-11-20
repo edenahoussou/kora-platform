@@ -3,8 +3,17 @@
 namespace App\Modules\Parcels\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Cash\Data\CashLedgerKind;
+use App\Modules\Cash\Data\CashLedgerStatus;
+use App\Modules\Cash\Data\CashSessionStatus;
+use App\Modules\Cash\Models\CashLedger;
+use App\Modules\Cash\Models\CashSession;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\Departures\Services\CrewDepartureScope;
+use App\Modules\Fiscalization\Data\FiscalInvoiceDocumentKind;
+use App\Modules\Fiscalization\Data\FiscalInvoiceStatus;
+use App\Modules\Fiscalization\Models\FiscalInvoice;
+use App\Modules\Fiscalization\Models\FiscalSyncAttempt;
 use App\Modules\IdentityAccess\Models\TerminalP501;
 use App\Modules\Parcels\Http\Requests\ParcelConfigurationRequest;
 use App\Modules\Parcels\Http\Requests\ParcelIntakeRequest;
@@ -12,6 +21,7 @@ use App\Modules\Parcels\Http\Requests\ParcelOperationRequest;
 use App\Modules\Parcels\Http\Requests\ParcelPaymentRequest;
 use App\Modules\Parcels\Http\Resources\ParcelQuoteResource;
 use App\Modules\Parcels\Http\Resources\ParcelResource;
+use App\Modules\Parcels\Jobs\FiscalizeParcelInvoiceJob;
 use App\Modules\Parcels\Models\Parcel;
 use App\Modules\Parcels\Models\ParcelAssignment;
 use App\Modules\Parcels\Models\ParcelCorridor;
@@ -25,11 +35,13 @@ use App\Modules\Parcels\Services\ParcelIntake;
 use App\Modules\Parcels\Services\ParcelNotifications;
 use App\Modules\Parcels\Services\ParcelPayments;
 use App\Modules\Parcels\Services\ParcelPricing;
+use App\Modules\Parcels\Services\ParcelReceipts;
 use App\Modules\Parcels\Services\ParcelRouting;
 use App\Modules\Parcels\Services\ParcelTransport;
 use App\Modules\Payments\Http\Resources\PaymentResource;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\Models\PaymentRefund;
+use App\Modules\Settings\Settings\GeneralSettings;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -203,6 +215,57 @@ class OpsParcelController extends Controller
     public function cancel(Request $request, Parcel $parcel, ParcelIntake $intake): ParcelResource
     {
         return new ParcelResource($intake->cancel($parcel, $request->user(), true));
+    }
+
+    /**
+     * Lister les moyens d’encaissement disponibles au guichet du hub de dépôt.
+     *
+     * @authenticated
+     *
+     * @response 200 {"data":{}}
+     * @response 403 {"message":"Droits insuffisants pour ce périmètre Colis."}
+     * @response 409 {"message":"Le colis n’a pas de hub de dépôt exploitable."}
+     */
+    public function paymentOptions(Request $request, Parcel $parcel): JsonResponse
+    {
+        $parcel->loadMissing('corridor.originHub.agency');
+        $hub = $parcel->corridor?->originHub;
+        abort_if($hub === null, 409, 'The parcel has no deposit hub.');
+        $this->access->atHub($request->user(), $hub, 'parcels.intake');
+        $session = CashSession::query()
+            ->where('agent_id', $request->user()->id)
+            ->where('agency_id', $hub->agency_id)
+            ->whereDate('business_date', now()->toDateString())
+            ->where('status', CashSessionStatus::Open)
+            ->with(['cashRegister', 'ledgers' => fn ($query) => $query
+                ->where('status', CashLedgerStatus::Open)
+                ->with('agencyPaymentAccount')])
+            ->first();
+        $ledgers = $session === null ? collect() : $session->ledgers;
+        $cash = $ledgers->first(fn (CashLedger $ledger): bool => $ledger->kind === CashLedgerKind::Cash);
+        $accounts = $ledgers
+            ->filter(fn (CashLedger $ledger): bool => $ledger->kind === CashLedgerKind::MobileMoney
+                && $ledger->agencyPaymentAccount?->isActive())
+            ->map(fn (CashLedger $ledger): array => [
+                'uuid' => $ledger->agencyPaymentAccount?->uuid,
+                'network' => $ledger->agencyPaymentAccount?->network?->value,
+                'label' => $ledger->agencyPaymentAccount?->label,
+            ])->values();
+
+        return response()->json(['data' => [
+            'agency' => $hub->agency === null ? null : ['uuid' => $hub->agency->uuid, 'name' => $hub->agency->name],
+            'hub' => ['uuid' => $hub->uuid, 'kind' => $hub->kind, 'name' => $hub->stop?->name],
+            'currency' => app(GeneralSettings::class)->currency,
+            'cash_session' => $session === null ? null : [
+                'uuid' => $session->uuid,
+                'opened_at' => $session->opened_at?->toIso8601String(),
+                'cash_register' => $session->cashRegister?->label,
+            ],
+            'methods' => [
+                ['code' => 'cash', 'label' => 'Espèces', 'available' => $cash !== null],
+                ['code' => 'mobile_money', 'label' => 'Mobile Money', 'available' => $accounts->isNotEmpty(), 'accounts' => $accounts],
+            ],
+        ]]);
     }
 
     /**
@@ -402,6 +465,56 @@ class OpsParcelController extends Controller
     }
 
     /**
+     * Consulter le reçu Colis et son état fiscal.
+     *
+     * @authenticated
+     *
+     * @response 200 {"data":{}}
+     * @response 403 {"message":"Droits insuffisants pour ce périmètre Colis."}
+     * @response 409 {"message":"Le reçu n’est pas encore disponible."}
+     */
+    public function receipt(Request $request, Parcel $parcel, ParcelReceipts $receipts): JsonResponse
+    {
+        $this->access->operations($request->user())->findOrFail($parcel->id);
+        $parcel->loadMissing('corridor.originHub');
+        $hub = $parcel->corridor?->originHub;
+        abort_if($hub === null, 409, 'The parcel has no deposit hub.');
+        $this->access->atHub($request->user(), $hub, 'parcels.intake');
+        $kind = $request->query('kind', 'receipt');
+        abort_unless(in_array($kind, ['receipt', 'return_receipt'], true), 422);
+
+        return response()->json(['data' => $receipts->build($parcel, (string) $kind)]);
+    }
+
+    /**
+     * Relancer la fiscalisation d’une facture Colis en erreur.
+     *
+     * @authenticated
+     *
+     * @response 200 {"data":{}}
+     * @response 403 {"message":"Droits insuffisants pour le rapprochement."}
+     */
+    public function retryFiscalization(Request $request, Parcel $parcel): JsonResponse
+    {
+        $this->access->operations($request->user())->findOrFail($parcel->id);
+        $this->access->require($request->user(), 'parcels.finance');
+        $invoices = FiscalInvoice::query()
+            ->whereIn('parcel_charge_id', $parcel->charges()->pluck('id'))
+            ->where('document_kind', FiscalInvoiceDocumentKind::Sale)
+            ->whereIn('status', [FiscalInvoiceStatus::Pending, FiscalInvoiceStatus::Failed])
+            ->get();
+        $invoices->each(fn (FiscalInvoice $invoice) => FiscalizeParcelInvoiceJob::dispatch($invoice->id)->afterCommit());
+
+        return response()->json(['data' => [
+            'dispatched' => $invoices->count(),
+            'invoices' => $invoices->map(fn (FiscalInvoice $invoice): array => [
+                'uuid' => $invoice->uuid,
+                'status' => $invoice->status->value,
+            ])->values(),
+        ]]);
+    }
+
+    /**
      * Journaliser le résultat d’une impression sur le P501.
      *
      * @authenticated
@@ -481,19 +594,54 @@ class OpsParcelController extends Controller
     {
         $this->access->require($request->user(), 'parcels.finance');
         $payments = $parcel->payments()->with('refunds')->latest('payments.id')->get();
+        $invoices = FiscalInvoice::query()
+            ->whereIn('parcel_charge_id', $parcel->charges()->pluck('id'))
+            ->with(['payment', 'syncAttempts'])
+            ->latest('id')->get();
 
-        return response()->json(['data' => $payments->map(fn (Payment $payment): array => [
-            'uuid' => $payment->uuid,
-            'status' => $payment->status->value,
-            'amount' => $payment->amount,
-            'provider_amount' => $payment->provider_amount,
-            'provider' => $payment->provider,
-            'provider_reference' => $payment->provider_reference,
-            'reconciliation_required' => $payment->failure_code === 'parcel_reconciliation_required',
-            'refunds' => $payment->refunds->map(fn (PaymentRefund $refund): array => [
-                'uuid' => $refund->uuid, 'status' => $refund->status->value, 'amount' => $refund->amount,
-            ]),
-        ])]);
+        return response()->json(['data' => [
+            'payments' => $payments->map(fn (Payment $payment): array => [
+                'uuid' => $payment->uuid,
+                'status' => $payment->status->value,
+                'method' => $payment->method?->value,
+                'amount' => $payment->amount,
+                'currency' => $payment->currency,
+                'provider' => $payment->provider,
+                'provider_reference' => $payment->provider_reference,
+                'confirmed_at' => $payment->confirmed_at?->toIso8601String(),
+                'reconciliation_required' => $payment->failure_code === 'parcel_reconciliation_required',
+                'refunds' => $payment->refunds->map(fn (PaymentRefund $refund): array => [
+                    'uuid' => $refund->uuid, 'status' => $refund->status->value, 'amount' => $refund->amount,
+                ]),
+            ])->values(),
+            'invoices' => $invoices->map(fn (FiscalInvoice $invoice): array => [
+                'uuid' => $invoice->uuid,
+                'payment_uuid' => $invoice->payment?->uuid,
+                'reference' => $invoice->kora_reference,
+                'status' => $invoice->status->value,
+                'net' => $invoice->total_without_tax,
+                'tax' => $invoice->total_tax,
+                'total' => $invoice->total_with_tax,
+                'fiscalized_at' => $invoice->fiscalized_at?->toIso8601String(),
+            ])->values(),
+            'attempts' => $invoices->flatMap(fn (FiscalInvoice $invoice) => $invoice->syncAttempts->map(fn (FiscalSyncAttempt $attempt): array => [
+                'invoice_uuid' => $invoice->uuid,
+                'operation' => $attempt->operation,
+                'attempt_number' => $attempt->attempt_number,
+                'status' => $attempt->status,
+                'response_code' => $attempt->response_code,
+                'error_code' => $attempt->error_code,
+                'attempted_at' => $attempt->attempted_at->toIso8601String(),
+                'completed_at' => $attempt->completed_at?->toIso8601String(),
+            ]))->values(),
+            'reconciliations' => $payments
+                ->filter(fn (Payment $payment): bool => $payment->failure_code === 'parcel_reconciliation_required')
+                ->map(fn (Payment $payment): array => [
+                    'payment_uuid' => $payment->uuid,
+                    'reason_code' => 'duplicate_or_late_confirmation',
+                    'detected_at' => $payment->updated_at->toIso8601String(),
+                ])->values(),
+        ]]);
     }
 
     /**

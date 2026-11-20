@@ -25,6 +25,9 @@ Route::controller(OpsParcelController::class)->group(function (): void {
     Route::post('{parcel:uuid}/inspect', 'inspect')->name('inspect');
     Route::post('{parcel:uuid}/cancel', 'cancel')->name('cancel');
     Route::post('{parcel:uuid}/pay', 'pay')->name('pay');
+    Route::get('{parcel:uuid}/payment-options', 'paymentOptions')->name('payment-options');
+    Route::get('{parcel:uuid}/receipt', 'receipt')->name('receipt');
+    Route::post('{parcel:uuid}/fiscalization/retry', 'retryFiscalization')->name('fiscalization.retry');
     Route::post('{parcel:uuid}/ready', 'ready')->name('ready');
     Route::post('{parcel:uuid}/assign', 'assign')->name('assign');
     Route::post('{parcel:uuid}/unload-at-origin', 'correction')->name('unload-at-origin');

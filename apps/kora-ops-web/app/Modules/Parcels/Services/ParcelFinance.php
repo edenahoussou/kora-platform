@@ -25,6 +25,7 @@ use App\Modules\Payments\Data\PaymentRefundStatus;
 use App\Modules\Payments\Data\PaymentStatus;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\Models\PaymentRefund;
+use App\Modules\Settings\Settings\GeneralSettings;
 use App\Modules\Settings\Settings\OperationsSettings;
 use App\Modules\Wallet\Data\WalletBalanceType;
 use App\Modules\Wallet\Data\WalletPurchaseFunding;
@@ -83,7 +84,7 @@ class ParcelFinance
             abort_if($fiscalQuantity !== null && (int) round($fiscalQuantity * $payment->amount) !== $amount, 422,
                 'Ce montant partiel ne peut pas être représenté exactement dans l’avoir fiscal. Ajustez le montant.');
             $refund = $payment->refunds()->create([
-                'amount' => $amount, 'currency' => 'XOF', 'destination' => PaymentRefundDestination::KoraManual,
+                'amount' => $amount, 'currency' => app(GeneralSettings::class)->currency, 'destination' => PaymentRefundDestination::KoraManual,
                 'status' => PaymentRefundStatus::Pending, 'reference' => 'COLIS-REST-'.$key, 'idempotency_key' => 'parcel:'.$key,
                 'metadata' => ['reason' => $reason, 'authorized_by' => $actor->id, 'authorized_at' => now()->toIso8601String(), 'fiscal_quantity' => $fiscalQuantity],
             ]);
@@ -171,7 +172,7 @@ class ParcelFinance
             'cash_session_id' => $session->id, 'cash_register_id' => $session->cash_register_id, 'cash_ledger_id' => $ledger->id,
             'source_type' => PaymentRefund::class, 'source_id' => $refund->id, 'type' => 'parcel_refund',
             'direction' => CashMovementDirection::Out, 'status' => CashMovementStatus::Posted,
-            'amount' => $amount, 'currency' => 'XOF', 'description' => 'Restitution KORA Colis',
+            'amount' => $amount, 'currency' => app(GeneralSettings::class)->currency, 'description' => 'Restitution KORA Colis',
             'reference' => $refund->reference, 'created_by' => $actor->id, 'occurred_at' => now(),
         ]);
         $ledger->decrement('expected_balance', $amount);

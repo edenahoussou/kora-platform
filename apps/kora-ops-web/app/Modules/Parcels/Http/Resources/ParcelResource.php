@@ -50,6 +50,7 @@ class ParcelResource extends JsonResource
                 'hub_name' => $parcel->inspectionHub?->stop?->name,
             ],
             'can_pay' => $parcel->status === 'weighed' && $charge !== null && ! $parcel->incidents->contains(fn ($incident) => $incident->blocking && $incident->resolved_at === null) && $parcel->expires_at->isFuture(),
+            'can_receipt' => $charge !== null && $charge->settled_payment_id !== null,
             'can_assign' => $parcel->status === 'ready',
             'origin_hub_uuid' => $parcel->corridor?->originHub?->uuid,
             'destination_hub_uuid' => $parcel->corridor?->destinationHub?->uuid,

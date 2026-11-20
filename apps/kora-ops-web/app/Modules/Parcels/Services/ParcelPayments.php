@@ -21,6 +21,7 @@ use App\Modules\Payments\Data\PaymentStatus;
 use App\Modules\Payments\Models\AgencyPaymentAccount;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\PaymentManager;
+use App\Modules\Settings\Settings\GeneralSettings;
 use App\Modules\Settings\Settings\IntegrationsSettings;
 use App\Modules\Settings\Settings\OperationsSettings;
 use App\Modules\Settings\Settings\WalletSettings;
@@ -90,7 +91,7 @@ class ParcelPayments
             $cashAttributes = [];
             if ($counter) {
                 abort_unless(in_array($method, [PaymentMethod::Cash, PaymentMethod::MobileMoney], true) && $walletAmount === 0 && $points === 0, 422);
-                $cashAttributes = $this->counterAttributes($actor, (int) $charge->total, $method, $network, $input);
+                $cashAttributes = $this->counterAttributes($actor, (int) $charge->total, $method, $network, $input, (int) $hub?->agency_id);
                 $provider = $method === PaymentMethod::Cash ? 'cash' : $network?->value;
             } elseif ($method === PaymentMethod::Wallet) {
                 abort_unless($funding->providerAmount === 0, 422, 'The wallet must cover the payment amount.');
@@ -104,7 +105,7 @@ class ParcelPayments
                 $kkiapayUnsupported = $provider === 'kkiapay'
                     && ! in_array($country, app(IntegrationsSettings::class)->kkiapayCountries, true);
                 abort_if(($networkCountry !== null && $networkCountry !== $country) || $kkiapayUnsupported, 422, 'The selected payment provider is not available in this country.');
-                $providerFunding = $this->providers->providerAmount($provider, $funding->providerAmount, 'XOF');
+                $providerFunding = $this->providers->providerAmount($provider, $funding->providerAmount, app(GeneralSettings::class)->currency);
                 $cashAttributes = ['provider_amount' => $providerFunding['amount'], 'provider_currency' => $providerFunding['currency']];
             }
 
@@ -116,7 +117,7 @@ class ParcelPayments
                 'provider' => $provider,
                 'mobile_money_network' => $network,
                 'amount' => $charge->total,
-                'currency' => 'XOF',
+                'currency' => app(GeneralSettings::class)->currency,
                 'status' => PaymentStatus::Pending,
                 'wallet_funding' => $funding->toArray(),
                 'payer_name' => $parcel->sender_name,
@@ -196,7 +197,7 @@ class ParcelPayments
             'mtn_momo' => $data['externalId'] ?? null,
             default => null,
         };
-        $currency = data_get($data, 'currency.iso') ?? ($data['currency'] ?? ($payment->provider === 'kkiapay' ? 'XOF' : null));
+        $currency = data_get($data, 'currency.iso') ?? ($data['currency'] ?? ($payment->provider === 'kkiapay' ? app(GeneralSettings::class)->currency : null));
         $amount = filter_var($data['amount'] ?? $authenticatedEvent['amount'] ?? null, FILTER_VALIDATE_INT);
         $receipt = $response->providerTransactionId ?? $response->providerReference;
         if ($correlation !== $payment->uuid || $currency !== $payment->provider_currency
@@ -346,13 +347,14 @@ class ParcelPayments
      * @param  array<string, mixed>  $input
      * @return array<string, mixed>
      */
-    private function counterAttributes(User $actor, int $total, PaymentMethod $method, ?MobileMoneyNetwork $network, array $input): array
+    private function counterAttributes(User $actor, int $total, PaymentMethod $method, ?MobileMoneyNetwork $network, array $input, int $hubAgencyId): array
     {
         $session = CashSession::query()->where('agent_id', $actor->id)->where('agency_id', $actor->agency_id)
             ->whereDate('business_date', now()->toDateString())->where('status', CashSessionStatus::Open)->lockForUpdate()->first();
         if ($session === null) {
             throw ValidationException::withMessages(['cash_session' => 'Open your cash register before collecting a payment.']);
         }
+        abort_unless($session->agency_id === $hubAgencyId, 409, 'The open cash register does not belong to the parcel deposit agency.');
         $ledger = CashLedger::query()->where('cash_session_id', $session->id);
         $extra = [];
         if ($method === PaymentMethod::Cash) {
@@ -385,7 +387,7 @@ class ParcelPayments
             'source_type' => Payment::class, 'source_id' => $payment->id,
             'type' => $payment->method === PaymentMethod::Cash ? 'counter_sale_cash' : 'counter_sale_mobile_money',
             'direction' => CashMovementDirection::In, 'status' => CashMovementStatus::Posted, 'amount' => $payment->amount,
-            'currency' => 'XOF', 'description' => 'Vente KORA Colis', 'created_by' => $actor->id, 'occurred_at' => now(),
+            'currency' => app(GeneralSettings::class)->currency, 'description' => 'Vente KORA Colis', 'created_by' => $actor->id, 'occurred_at' => now(),
         ]);
         $ledger->increment('expected_balance', $payment->amount);
         if ($payment->method === PaymentMethod::Cash) {

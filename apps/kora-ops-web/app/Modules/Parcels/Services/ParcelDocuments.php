@@ -3,15 +3,14 @@
 namespace App\Modules\Parcels\Services;
 
 use App\Models\User;
-use App\Modules\Fiscalization\Data\FiscalInvoiceDocumentKind;
-use App\Modules\Fiscalization\Data\FiscalInvoiceStatus;
-use App\Modules\Fiscalization\Models\FiscalInvoice;
 use App\Modules\IdentityAccess\Models\TerminalP501;
 use App\Modules\Parcels\Models\Parcel;
 use Illuminate\Support\Facades\DB;
 
 class ParcelDocuments
 {
+    public function __construct(private ParcelReceipts $receipts) {}
+
     /** @return array<string, mixed> */
     public function render(Parcel $parcel, string $kind, ?User $actor = null, ?TerminalP501 $terminal = null): array
     {
@@ -24,27 +23,29 @@ class ParcelDocuments
             $result['qr_payload'] = $trackingUrl;
             $result['esc_pos_base64'] = $this->printable(['KORA COLIS', $parcel->reference, $route], $trackingUrl);
         } else {
-            $charge = $parcel->charges()->where('return_leg', $kind === 'return_receipt')->whereNotNull('settled_payment_id')->firstOrFail();
-            $invoice = FiscalInvoice::query()->where('parcel_charge_id', $charge->id)->where('document_kind', FiscalInvoiceDocumentKind::Sale)->with('emecfInvoice')->firstOrFail();
-            if ($invoice->status !== FiscalInvoiceStatus::Certified) {
-                return $result + ['fiscal_status' => $invoice->status->value];
-            }
-
-            $qr = $invoice->emecfInvoice?->qr_code;
-            $code = $invoice->emecfInvoice?->code_mec_ef_dgi;
-            abort_if(blank($qr) || blank($code), 409, 'Fiscal certification data is unavailable.');
-            $result += [
-                'fiscal_status' => $invoice->status->value,
-                'fiscal_code' => $code,
-                'fiscal_qr_payload' => $qr,
-                'esc_pos_base64' => $this->printable([
-                    'KORA COLIS', $invoice->kora_reference, $route,
-                    'Exp. '.$parcel->sender_name, 'Dest. '.$parcel->recipient_name,
-                    $parcel->weight_grams.' g | '.$invoice->created_at?->toDateString(),
-                    'HT '.$charge->net.' XOF', 'TVA '.$charge->tax.' XOF',
-                    'TTC '.$charge->total.' XOF', 'MECeF '.$code,
-                ], (string) $qr),
+            $receipt = $this->receipts->build($parcel, $kind);
+            $result = $receipt + $result;
+            $result['fiscal_status'] = $receipt['fiscal']['status'];
+            $currency = $receipt['currency'];
+            $lines = [
+                'KORA COLIS',
+                $receipt['receipt_status'] === 'certified' ? 'RECU FISCAL CERTIFIE' : 'RECU PROVISOIRE - NON CERTIFIE FISCALEMENT',
+                $receipt['reference'], $route,
+                'Exp. '.$parcel->sender_name, 'Dest. '.$parcel->recipient_name,
+                $parcel->weight_grams.' g',
+                'HT '.$receipt['charge']['net'].' '.$currency,
+                'TVA '.$receipt['charge']['tax'].' '.$currency,
+                'TTC '.$receipt['charge']['total'].' '.$currency,
             ];
+            if ($receipt['fiscal']['certified']) {
+                $lines[] = 'MECeF '.$receipt['fiscal']['code'];
+                $result['fiscal_code'] = $receipt['fiscal']['code'];
+                $result['fiscal_qr_payload'] = $receipt['fiscal']['qr_payload'];
+            }
+            $result['esc_pos_base64'] = $this->printable(
+                $lines,
+                (string) ($receipt['fiscal']['qr_payload'] ?? $receipt['qr_payload']),
+            );
         }
 
         if ($actor !== null) {

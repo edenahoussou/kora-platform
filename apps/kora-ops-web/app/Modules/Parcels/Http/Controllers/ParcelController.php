@@ -20,6 +20,7 @@ use App\Modules\Parcels\Services\ParcelRouting;
 use App\Modules\Payments\Http\Resources\PaymentResource;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\PaymentManager;
+use App\Modules\Settings\Settings\GeneralSettings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -230,7 +231,7 @@ class ParcelController extends Controller
             return $method;
         }, $catalog['methods']);
 
-        return response()->json(['data' => ['country' => $country, 'currency' => 'XOF', 'methods' => $methods]]);
+        return response()->json(['data' => ['country' => $country, 'currency' => app(GeneralSettings::class)->currency, 'methods' => $methods]]);
     }
 
     /**

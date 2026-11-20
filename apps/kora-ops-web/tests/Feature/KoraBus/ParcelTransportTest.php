@@ -352,8 +352,9 @@ it('resumes a submitted fiscal invoice after an outage and prints only the certi
     $attempts = app(FiscalSyncAttemptRecorder::class);
     $snapshots = app(EmecfInvoiceSnapshotService::class);
     expect(fn () => $job->handle($settings, $attempts, $snapshots))->toThrow(RuntimeException::class);
-    $this->getJson($web.'/documents?kind=receipt')->assertOk()->assertJsonPath('data.fiscal_status', 'failed')
-        ->assertJsonMissingPath('data.esc_pos_base64');
+    $provisional = $this->getJson($web.'/documents?kind=receipt')->assertOk()->assertJsonPath('data.fiscal_status', 'failed')
+        ->assertJsonMissingPath('data.fiscal_code');
+    expect(base64_decode((string) $provisional->json('data.esc_pos_base64'), true))->toContain('RECU PROVISOIRE');
     $job->handle($settings, $attempts, $snapshots);
     $this->getJson($web.'/documents?kind=receipt')->assertOk()
         ->assertJsonPath('data.fiscal_status', 'certified')->assertJsonPath('data.fiscal_qr_payload', 'DGI-CERTIFIED-QR');
