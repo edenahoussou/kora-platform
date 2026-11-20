@@ -1,0 +1,11 @@
+---
+title: Révoquer un lien de suivi
+description: "Révoque immédiatement le lien de suivi partagé."
+api: DELETE /api/v1/parcels/{parcel_uuid}/share
+---
+
+Révoque immédiatement le lien de suivi partagé. Réservé à l’expéditeur propriétaire. L’ancien jeton renvoie ensuite 404, sans révéler l’existence du colis.
+
+## Sécurité
+
+Les réponses n’exposent que des identifiants publics (UUID ou références) et les champs métier nécessaires au parcours. Aucun code de retrait, hash, secret ou payload fournisseur n’est documenté comme retournable.

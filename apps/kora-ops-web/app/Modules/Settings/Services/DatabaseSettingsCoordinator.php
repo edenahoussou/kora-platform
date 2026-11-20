@@ -64,6 +64,30 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
     }
 
     /** @param array<string, mixed> $values */
+    public function updateParcelSettings(array $values, User $actor): SettingsSnapshot
+    {
+        $this->authorize('parcels.configure', $actor);
+        $allowed = [
+            'parcelIntakeExpiryHours',
+            'parcelMinimumWeightGrams',
+            'parcelMaximumWeightGrams',
+            'parcelCashDeclarationThresholdFcfa',
+            'parcelFirstReminderDays',
+            'parcelSecondReminderDays',
+            'parcelReturnDays',
+            'parcelHandoffMaxAttempts',
+            'parcelFiscalAlertHours',
+            'parcelRoutingHorizonDays',
+            'parcelIdentityOverrideEnabled',
+        ];
+        if (array_diff(array_keys($values), $allowed) !== []) {
+            throw ValidationException::withMessages(['settings' => 'Paramètres runtime Colis uniquement.']);
+        }
+
+        return $this->persist(SettingsGroup::Operations, new OperationsSettingsUpdate($values), $actor);
+    }
+
+    /** @param array<string, mixed> $values */
     public function updateKoraPointDefaults(array $values, User $actor): SettingsSnapshot
     {
         $this->authorize('kora-points.terms', $actor);
@@ -187,11 +211,16 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
         if ($group === SettingsGroup::Operations) {
             return [
                 'parcelIntakeExpiryHours' => ['required', 'integer', 'between:1,720'],
+                'parcelMinimumWeightGrams' => ['required', 'integer', 'between:1,30000'],
+                'parcelMaximumWeightGrams' => ['required', 'integer', 'between:1,30000', 'gt:parcelMinimumWeightGrams'],
+                'parcelCashDeclarationThresholdFcfa' => ['required', 'integer', 'between:0,1000000000'],
                 'parcelFirstReminderDays' => ['required', 'integer', 'min:1'],
                 'parcelSecondReminderDays' => ['required', 'integer', 'gt:parcelFirstReminderDays'],
                 'parcelReturnDays' => ['required', 'integer', 'gt:parcelSecondReminderDays', 'max:365'],
                 'parcelHandoffMaxAttempts' => ['required', 'integer', 'between:1,20'],
                 'parcelFiscalAlertHours' => ['required', 'integer', 'between:1,23'],
+                'parcelRoutingHorizonDays' => ['required', 'integer', 'between:1,365'],
+                'parcelIdentityOverrideEnabled' => ['required', 'boolean'],
                 'koraPointCommissionBasisPoints' => ['nullable', 'integer', 'between:0,10000'],
                 'koraPointCeilingAmount' => ['nullable', 'integer', 'min:0', 'max:1000000000000'],
                 'koraPointGraceDays' => ['required', 'integer', 'between:0,365'],
@@ -288,6 +317,7 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
             'firebaseWebVapidKey' => ['nullable', 'string', 'max:500'],
             'firebaseServiceAccountJson' => ['nullable', 'string', 'max:30000'],
             'emecfTestMode' => ['required', 'boolean'],
+            'emecfCountry' => ['required', 'string', 'size:2', 'regex:/^[A-Z]{2}$/'],
             'emecfToken' => ['nullable', 'string', 'max:500'],
             'emecfDefaultIfu' => ['required', 'string', 'max:32'],
             'emecfTestInvoiceUrl' => ['required', 'url:http,https', 'max:500'],

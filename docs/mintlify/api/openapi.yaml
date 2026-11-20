@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
-  title: 'KORA BUS API Passager'
-  description: 'API REST V1 de l’application mobile passager KORA BUS.'
+  title: 'KORA API Passager'
+  description: 'API REST V1 de l’application mobile passager KORA : Bus et Colis.'
   version: 1.0.0
 servers:
   -
@@ -20,6 +20,9 @@ tags:
   -
     name: Auth
     description: "\nOTP challenge request and verification for registration, login, PIN reset and account unlock."
+  -
+    name: 'KORA App Colis'
+    description: ''
   -
     name: 'Passager — Notifications'
     description: "\nInbox BUS du passager authentifié. Les notifications sont isolées par compte."
@@ -4662,6 +4665,2044 @@ paths:
                   type: string
                   description: 'UUID de l’appareil courant. Optionnel ; permet aussi de retirer son token push.'
                   example: 00000000-0000-4000-8000-000000000000
+  /api/v1/parcels/corridors:
+    get:
+      summary: 'Lister les corridors Colis ouverts.'
+      operationId: listerLesCorridorsColisOuverts
+      description: "Retourne uniquement les corridors activés, dont les hubs de départ et d’arrivée sont actifs et non archivés.\nLes hubs sont filtrés par disponibilité opérationnelle. Aucun identifiant interne ni donnée personnelle n’est exposé."
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    -
+                      uuid: 00000000-0000-4000-8000-000000000001
+                      origin:
+                        uuid: 00000000-0000-4000-8000-000000000002
+                        city: Cotonou
+                        name: 'Cotonou · Dantokpa'
+                      destination:
+                        uuid: 00000000-0000-4000-8000-000000000003
+                        city: Parakou
+                        name: 'Parakou · Gare centrale'
+                properties:
+                  data:
+                    type: array
+                    example:
+                      -
+                        uuid: 00000000-0000-4000-8000-000000000001
+                        origin:
+                          uuid: 00000000-0000-4000-8000-000000000002
+                          city: Cotonou
+                          name: 'Cotonou · Dantokpa'
+                        destination:
+                          uuid: 00000000-0000-4000-8000-000000000003
+                          city: Parakou
+                          name: 'Parakou · Gare centrale'
+                    items:
+                      type: object
+                      properties:
+                        uuid:
+                          type: string
+                          example: 00000000-0000-4000-8000-000000000000
+                        origin:
+                          type: object
+                          properties:
+                            uuid:
+                              type: string
+                              example: 00000000-0000-4000-8000-000000000000
+                            city:
+                              type: string
+                              example: Cotonou
+                            name:
+                              type: string
+                              example: 'Cotonou · Dantokpa'
+                        destination:
+                          type: object
+                          properties:
+                            uuid:
+                              type: string
+                              example: 00000000-0000-4000-8000-000000000000
+                            city:
+                              type: string
+                              example: Parakou
+                            name:
+                              type: string
+                              example: 'Parakou · Gare centrale'
+        '429':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Too Many Attempts.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Too Many Attempts.'
+      tags:
+        - 'KORA App Colis'
+      security: []
+  /api/v1/parcels/quote:
+    post:
+      summary: 'Estime le prix TTC à partir du corridor et du poids déclaré, avant dépôt.'
+      operationId: estimeLePrixTTCPartirDuCorridorEtDuPoidsDclarAvantDpt
+      description: 'Le calcul est autoritatif côté serveur : le client ne doit jamais envoyer un montant.'
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    estimated: true
+                    weight_grams: 5000
+                    total: 1500
+                    net: 1271
+                    tax: 229
+                    currency: XOF
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      estimated:
+                        type: boolean
+                        example: false
+                      weight_grams:
+                        type: integer
+                        example: 5000
+                      total:
+                        type: integer
+                        example: 1500
+                      net:
+                        type: integer
+                        example: 1271
+                      tax:
+                        type: integer
+                        example: 229
+                      currency:
+                        type: string
+                        example: XOF
+        '409':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Opération incompatible avec l’état du colis ou du corridor.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Opération incompatible avec l’état du colis ou du corridor.'
+        '422':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Les données de cette opération sont invalides.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Les données de cette opération sont invalides.'
+        '429':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Too Many Attempts.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Too Many Attempts.'
+      tags:
+        - 'KORA App Colis'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                corridor_uuid:
+                  type: string
+                  description: 'Le champ value doit être un UUID valide.'
+                  example: 00000000-0000-4000-8000-000000000000
+                weight_grams:
+                  type: integer
+                  description: 'Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 1000000.'
+                  example: 7
+              required:
+                - corridor_uuid
+                - weight_grams
+      security: []
+  '/api/v1/parcels/tracking/{reference}':
+    get:
+      summary: 'Suivre un colis par sa référence logistique publique.'
+      operationId: suivreUnColisParSaRfrenceLogistiquePublique
+      description: "Contrat public minimal : référence, statut, trajet, poids, échéance de retrait, ETA et jalons publics.\nNe retourne jamais le nom, le téléphone, le contenu, le code de retrait, les hashes, les UUID internes\nou le payload d’un prestataire. Le statut `incident` signale un incident bloquant non résolu, sans détail."
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    reference: KC-20261119-95262
+                    status: in_transit
+                    origin: Cotonou
+                    destination: Parakou
+                    weight_grams: 5000
+                    withdraw_by: null
+                    eta: '2026-11-20T18:30:00+01:00'
+                    last_event_at: '2026-11-20T14:05:00+01:00'
+                    timeline:
+                      -
+                        kind: registered
+                        observed_at: '2026-11-19T10:15:00+01:00'
+                        city: Cotonou
+                      -
+                        kind: assigned
+                        observed_at: '2026-11-20T08:00:00+01:00'
+                        city: Cotonou
+                      -
+                        kind: in_transit
+                        observed_at: '2026-11-20T14:05:00+01:00'
+                        city: Parakou
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      reference:
+                        type: string
+                        example: KC-20261119-95262
+                      status:
+                        type: string
+                        example: in_transit
+                      origin:
+                        type: string
+                        example: Cotonou
+                      destination:
+                        type: string
+                        example: Parakou
+                      weight_grams:
+                        type: integer
+                        example: 5000
+                      withdraw_by:
+                        type: string
+                        example: null
+                        nullable: true
+                      eta:
+                        type: string
+                        example: '2026-01-01T00:00:00+00:00'
+                      last_event_at:
+                        type: string
+                        example: '2026-01-01T00:00:00+00:00'
+                      timeline:
+                        type: array
+                        example:
+                          -
+                            kind: registered
+                            observed_at: '2026-11-19T10:15:00+01:00'
+                            city: Cotonou
+                          -
+                            kind: assigned
+                            observed_at: '2026-11-20T08:00:00+01:00'
+                            city: Cotonou
+                          -
+                            kind: in_transit
+                            observed_at: '2026-11-20T14:05:00+01:00'
+                            city: Parakou
+                        items:
+                          type: object
+                          properties:
+                            kind:
+                              type: string
+                              example: registered
+                            observed_at:
+                              type: string
+                              example: '2026-01-01T00:00:00+00:00'
+                            city:
+                              type: string
+                              example: Cotonou
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Not Found'
+                properties:
+                  message:
+                    type: string
+                    example: 'Not Found'
+        '429':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Too Many Attempts.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Too Many Attempts.'
+      tags:
+        - 'KORA App Colis'
+      security: []
+    parameters:
+      -
+        in: path
+        name: reference
+        description: 'Référence logistique publique.'
+        example: KC-20261119-95262
+        required: true
+        schema:
+          type: string
+  '/api/v1/parcels/shared/{token}':
+    get:
+      summary: 'Suivre un colis via un lien partagé révocable.'
+      operationId: suivreUnColisViaUnLienPartagRvocable
+      description: "Le jeton est aléatoire (48 caractères) et seul son hash SHA-256 est stocké. La révocation invalide immédiatement\nl’ancien lien (404). Le payload est strictement identique au suivi public par référence, sans PII."
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    reference: KC-20261119-95262
+                    status: available
+                    origin: Cotonou
+                    destination: Parakou
+                    weight_grams: 5000
+                    withdraw_by: '2026-12-19T10:00:00+01:00'
+                    eta: '2026-11-20T18:30:00+01:00'
+                    last_event_at: '2026-11-20T18:10:00+01:00'
+                    timeline:
+                      -
+                        kind: registered
+                        observed_at: '2026-11-19T10:15:00+01:00'
+                        city: Cotonou
+                      -
+                        kind: available
+                        observed_at: '2026-11-20T18:10:00+01:00'
+                        city: Parakou
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      reference:
+                        type: string
+                        example: KC-20261119-95262
+                      status:
+                        type: string
+                        example: available
+                      origin:
+                        type: string
+                        example: Cotonou
+                      destination:
+                        type: string
+                        example: Parakou
+                      weight_grams:
+                        type: integer
+                        example: 5000
+                      withdraw_by:
+                        type: string
+                        example: '2026-01-01T00:00:00+00:00'
+                      eta:
+                        type: string
+                        example: '2026-01-01T00:00:00+00:00'
+                      last_event_at:
+                        type: string
+                        example: '2026-01-01T00:00:00+00:00'
+                      timeline:
+                        type: array
+                        example:
+                          -
+                            kind: registered
+                            observed_at: '2026-11-19T10:15:00+01:00'
+                            city: Cotonou
+                          -
+                            kind: available
+                            observed_at: '2026-11-20T18:10:00+01:00'
+                            city: Parakou
+                        items:
+                          type: object
+                          properties:
+                            kind:
+                              type: string
+                              example: registered
+                            observed_at:
+                              type: string
+                              example: '2026-01-01T00:00:00+00:00'
+                            city:
+                              type: string
+                              example: Cotonou
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Not Found'
+                properties:
+                  message:
+                    type: string
+                    example: 'Not Found'
+        '429':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Too Many Attempts.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Too Many Attempts.'
+      tags:
+        - 'KORA App Colis'
+      security: []
+    parameters:
+      -
+        in: path
+        name: token
+        description: 'Jeton de partage opaque de 48 caractères.'
+        example: AbCdEfGhIjKlMnOpQrStUvWxYz0123456789ABCDEFGHIJKL
+        required: true
+        schema:
+          type: string
+  /api/v1/parcels:
+    get:
+      summary: 'Liste paginée (25 par page) des colis où l’utilisateur est expéditeur ou destinataire vérifié.'
+      operationId: listePagine25ParPageDesColisOLutilisateurEstExpditeurOuDestinataireVrifi
+      description: "Les données personnelles du destinataire ne sont visibles qu’après vérification du téléphone actuel par OTP consommé.\nSeuls des UUID et références publiques sont exposés."
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    -
+                      uuid: 00000000-0000-4000-8000-000000000010
+                      reference: KC-20261119-95262
+                      tracking_url: 'https://staging.koraexpress.app/api/v1/parcels/tracking/KC-20261119-95262'
+                      status: registered
+                      origin: Cotonou
+                      destination: Parakou
+                      recipient_name: 'Destinataire privé'
+                      weight_grams: 5000
+                      can_pay: false
+                      can_receipt: true
+                  links:
+                    first: 'https://staging.koraexpress.app/api/v1/parcels?page=1'
+                    last: null
+                    prev: null
+                    next: null
+                  meta:
+                    current_page: 1
+                    per_page: 25
+                    total: 1
+                properties:
+                  data:
+                    type: array
+                    example:
+                      -
+                        uuid: 00000000-0000-4000-8000-000000000010
+                        reference: KC-20261119-95262
+                        tracking_url: 'https://staging.koraexpress.app/api/v1/parcels/tracking/KC-20261119-95262'
+                        status: registered
+                        origin: Cotonou
+                        destination: Parakou
+                        recipient_name: 'Destinataire privé'
+                        weight_grams: 5000
+                        can_pay: false
+                        can_receipt: true
+                    items:
+                      type: object
+                      properties:
+                        uuid:
+                          type: string
+                          example: 00000000-0000-4000-8000-000000000000
+                        reference:
+                          type: string
+                          example: KC-20261119-95262
+                        tracking_url:
+                          type: string
+                          example: 'https://staging.koraexpress.app/api/v1/parcels/tracking/KC-20261119-95262'
+                        status:
+                          type: string
+                          example: registered
+                        origin:
+                          type: string
+                          example: Cotonou
+                        destination:
+                          type: string
+                          example: Parakou
+                        recipient_name:
+                          type: string
+                          example: 'Destinataire privé'
+                        weight_grams:
+                          type: integer
+                          example: 5000
+                        can_pay:
+                          type: boolean
+                          example: false
+                        can_receipt:
+                          type: boolean
+                          example: false
+                  links:
+                    type: object
+                    properties:
+                      first:
+                        type: string
+                        example: 'https://staging.koraexpress.app/api/v1/parcels?page=1'
+                      last:
+                        type: string
+                        example: null
+                        nullable: true
+                      prev:
+                        type: string
+                        example: null
+                        nullable: true
+                      next:
+                        type: string
+                        example: null
+                        nullable: true
+                  meta:
+                    type: object
+                    properties:
+                      current_page:
+                        type: integer
+                        example: 1
+                      per_page:
+                        type: integer
+                        example: 25
+                      total:
+                        type: integer
+                        example: 1
+        '403':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+      tags:
+        - 'KORA App Colis'
+    post:
+      summary: 'Pré-enregistre un envoi au guichet (dépôt direct uniquement).'
+      operationId: prEnregistreUnEnvoiAuGuichetdptDirectUniquement
+      description: "`idempotency_key` est obligatoire : rejouer la même clé avec le même contenu renvoie le même colis (200), sans doublon.\nLa référence logistique et le code de retrait ne sont pas exposés avant inspection et paiement."
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 00000000-0000-4000-8000-000000000010
+                    reference: null
+                    status: preregistered
+                    origin: Cotonou
+                    destination: Parakou
+                    declared_grams: 5000
+                    inspection_state: pending_inspection
+                    can_pay: false
+                    timeline: []
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      reference:
+                        type: string
+                        example: null
+                        nullable: true
+                      status:
+                        type: string
+                        example: preregistered
+                      origin:
+                        type: string
+                        example: Cotonou
+                      destination:
+                        type: string
+                        example: Parakou
+                      declared_grams:
+                        type: integer
+                        example: 5000
+                      inspection_state:
+                        type: string
+                        example: pending_inspection
+                      can_pay:
+                        type: boolean
+                        example: false
+                      timeline:
+                        type: array
+                        example: []
+        '201':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 00000000-0000-4000-8000-000000000010
+                    reference: null
+                    tracking_url: null
+                    qr_payload: null
+                    status: preregistered
+                    origin: Cotonou
+                    destination: Parakou
+                    recipient_name: 'Destinataire privé'
+                    weight_grams: null
+                    declared_grams: 5000
+                    inspection_state: pending_inspection
+                    can_pay: false
+                    expires_at: '2026-11-22T10:00:00+01:00'
+                    timeline: []
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      reference:
+                        type: string
+                        example: null
+                        nullable: true
+                      tracking_url:
+                        type: string
+                        example: null
+                        nullable: true
+                      qr_payload:
+                        type: string
+                        example: null
+                        nullable: true
+                      status:
+                        type: string
+                        example: preregistered
+                      origin:
+                        type: string
+                        example: Cotonou
+                      destination:
+                        type: string
+                        example: Parakou
+                      recipient_name:
+                        type: string
+                        example: 'Destinataire privé'
+                      weight_grams:
+                        type: string
+                        example: null
+                        nullable: true
+                      declared_grams:
+                        type: integer
+                        example: 5000
+                      inspection_state:
+                        type: string
+                        example: pending_inspection
+                      can_pay:
+                        type: boolean
+                        example: false
+                      expires_at:
+                        type: string
+                        example: '2026-01-01T00:00:00+00:00'
+                      timeline:
+                        type: array
+                        example: []
+        '403':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+        '409':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Opération incompatible avec l’état du colis ou du corridor.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Opération incompatible avec l’état du colis ou du corridor.'
+        '422':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Les données de cette opération sont invalides.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Les données de cette opération sont invalides.'
+        '429':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Too Many Attempts.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Too Many Attempts.'
+      tags:
+        - 'KORA App Colis'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                corridor_uuid:
+                  type: string
+                  description: 'Le champ value doit être un UUID valide.'
+                  example: 00000000-0000-4000-8000-000000000000
+                  nullable: true
+                deposit_hub_uuid:
+                  type: string
+                  description: 'This field is required when <code>corridor_uuid</code> is not present. Le champ value doit être un UUID valide.'
+                  example: 00000000-0000-4000-8000-000000000000
+                destination_hub_uuid:
+                  type: string
+                  description: 'This field is required when <code>corridor_uuid</code> is not present. Le champ value doit être un UUID valide.'
+                  example: 00000000-0000-4000-8000-000000000000
+                idempotency_key:
+                  type: string
+                  description: 'Le champ value doit être un UUID valide.'
+                  example: 00000000-0000-4000-8000-000000000000
+                weight_grams:
+                  type: integer
+                  description: 'Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 1000000.'
+                  example: 1
+                sender_name:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 120 caractères.'
+                  example: l
+                sender_phone:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 32 caractères.'
+                  example: j
+                  nullable: true
+                recipient_name:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 120 caractères.'
+                  example: 'n'
+                recipient_phone:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 32 caractères.'
+                  example: i
+                contents:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 500 caractères.'
+                  example: k
+              required:
+                - idempotency_key
+                - weight_grams
+                - sender_name
+                - recipient_name
+                - recipient_phone
+                - contents
+  '/api/v1/parcels/{uuid}':
+    get:
+      summary: 'Détail d’un colis du titulaire ou d’un destinataire vérifié.'
+      operationId: dtailDunColisDuTitulaireOuDunDestinataireVrifi
+      description: 'Retourne les jalons, le devis, les flags d’action et l’état de remise. Le code de retrait et les hashes ne sont jamais retournés.'
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 00000000-0000-4000-8000-000000000010
+                    reference: KC-20261119-95262
+                    status: registered
+                    origin: Cotonou
+                    destination: Parakou
+                    recipient_name: 'Destinataire privé'
+                    weight_grams: 5000
+                    can_pay: false
+                    can_receipt: true
+                    withdraw_by: null
+                    eta: null
+                    timeline:
+                      -
+                        kind: registered
+                        observed_at: '2026-11-20T09:15:00+01:00'
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      reference:
+                        type: string
+                        example: KC-20261119-95262
+                      status:
+                        type: string
+                        example: registered
+                      origin:
+                        type: string
+                        example: Cotonou
+                      destination:
+                        type: string
+                        example: Parakou
+                      recipient_name:
+                        type: string
+                        example: 'Destinataire privé'
+                      weight_grams:
+                        type: integer
+                        example: 5000
+                      can_pay:
+                        type: boolean
+                        example: false
+                      can_receipt:
+                        type: boolean
+                        example: false
+                      withdraw_by:
+                        type: string
+                        example: null
+                        nullable: true
+                      eta:
+                        type: string
+                        example: null
+                        nullable: true
+                      timeline:
+                        type: array
+                        example:
+                          -
+                            kind: registered
+                            observed_at: '2026-11-20T09:15:00+01:00'
+                        items:
+                          type: object
+                          properties:
+                            kind:
+                              type: string
+                              example: registered
+                            observed_at:
+                              type: string
+                              example: '2026-01-01T00:00:00+00:00'
+        '403':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Not Found'
+                properties:
+                  message:
+                    type: string
+                    example: 'Not Found'
+      tags:
+        - 'KORA App Colis'
+    parameters:
+      -
+        in: path
+        name: uuid
+        description: 'UUID public du colis.'
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/parcels/{parcel_uuid}/cancel':
+    post:
+      summary: 'Annule un colis encore au statut pré-enregistré, avant inspection ou paiement.'
+      operationId: annuleUnColisEncoreAuStatutPrEnregistrAvantInspectionOuPaiement
+      description: 'Un colis refusé, payé, affecté ou remis ne peut jamais être annulé par cette opération.'
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 00000000-0000-4000-8000-000000000010
+                    reference: null
+                    status: cancelled
+                    origin: Cotonou
+                    destination: Parakou
+                    can_pay: false
+                    timeline:
+                      -
+                        kind: cancelled
+                        observed_at: '2026-11-20T09:20:00+01:00'
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      reference:
+                        type: string
+                        example: null
+                        nullable: true
+                      status:
+                        type: string
+                        example: cancelled
+                      origin:
+                        type: string
+                        example: Cotonou
+                      destination:
+                        type: string
+                        example: Parakou
+                      can_pay:
+                        type: boolean
+                        example: false
+                      timeline:
+                        type: array
+                        example:
+                          -
+                            kind: cancelled
+                            observed_at: '2026-11-20T09:20:00+01:00'
+                        items:
+                          type: object
+                          properties:
+                            kind:
+                              type: string
+                              example: cancelled
+                            observed_at:
+                              type: string
+                              example: '2026-01-01T00:00:00+00:00'
+        '403':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Not Found'
+                properties:
+                  message:
+                    type: string
+                    example: 'Not Found'
+        '409':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Opération incompatible avec l’état du colis ou du corridor.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Opération incompatible avec l’état du colis ou du corridor.'
+      tags:
+        - 'KORA App Colis'
+    parameters:
+      -
+        in: path
+        name: parcel_uuid
+        description: 'UUID public du colis.'
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/parcels/{parcel_uuid}/share':
+    post:
+      summary: 'Crée ou remplace le lien de suivi révocable d’un colis payé et référencé.'
+      operationId: creOuRemplaceLeLienDeSuiviRvocableDunColisPayEtRfrenc
+      description: "Réservé à l’expéditeur propriétaire. Chaque appel émet un nouveau jeton et invalide l’ancien.\nRetourne un chemin relatif ; le jeton complet n’est ni journalisé ni stocké en clair."
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    path: /api/v1/parcels/shared/AbCdEfGhIjKlMnOpQrStUvWxYz0123456789ABCDEFGHIJKL
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      path:
+                        type: string
+                        example: /api/v1/parcels/shared/AbCdEfGhIjKlMnOpQrStUvWxYz0123456789ABCDEFGHIJKL
+        '403':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Not Found'
+                properties:
+                  message:
+                    type: string
+                    example: 'Not Found'
+      tags:
+        - 'KORA App Colis'
+    delete:
+      summary: 'Révoque immédiatement le lien de suivi partagé.'
+      operationId: rvoqueImmdiatementLeLienDeSuiviPartag
+      description: 'Réservé à l’expéditeur propriétaire. Le jeton précédent renvoie ensuite 404, sans révéler l’existence du colis.'
+      parameters: []
+      responses:
+        '204':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example: {}
+                properties: {}
+        '403':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Not Found'
+                properties:
+                  message:
+                    type: string
+                    example: 'Not Found'
+      tags:
+        - 'KORA App Colis'
+    parameters:
+      -
+        in: path
+        name: parcel_uuid
+        description: 'UUID public du colis.'
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/parcels/{parcel_uuid}/incidents':
+    post:
+      summary: 'Signale un incident non bloquant sur un colis référencé.'
+      operationId: signaleUnIncidentNonBloquantSurUnColisRfrenc
+      description: "Accessible au titulaire ou au destinataire vérifié. Retourne uniquement l’UUID de l’incident, jamais le code\nde retrait ni le contenu du colis. L’incident est audité et notifié aux OPS."
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 00000000-0000-4000-8000-000000000030
+                    blocking: false
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      blocking:
+                        type: boolean
+                        example: false
+        '201':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 00000000-0000-4000-8000-000000000030
+                    blocking: false
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      blocking:
+                        type: boolean
+                        example: false
+        '403':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Not Found'
+                properties:
+                  message:
+                    type: string
+                    example: 'Not Found'
+        '409':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Opération incompatible avec l’état du colis ou du corridor.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Opération incompatible avec l’état du colis ou du corridor.'
+        '422':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Les données de cette opération sont invalides.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Les données de cette opération sont invalides.'
+        '429':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Too Many Attempts.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Too Many Attempts.'
+      tags:
+        - 'KORA App Colis'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                kind:
+                  type: string
+                  description: 'Nature du signalement.'
+                  example: damage
+                description:
+                  type: string
+                  description: 'Description factuelle, sans code de retrait.'
+                  example: 'Emballage endommagé'
+                idempotency_key:
+                  type: string
+                  description: 'UUID optionnel pour rejouer la déclaration sans créer un second incident.'
+                  example: 00000000-0000-4000-8000-000000000000
+                  nullable: true
+              required:
+                - kind
+                - description
+    parameters:
+      -
+        in: path
+        name: parcel_uuid
+        description: 'UUID public du colis.'
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/parcels/{parcel_uuid}/documents':
+    get:
+      summary: 'Récupère l’étiquette QR ou le reçu du colis.'
+      operationId: rcupreLtiquetteQROuLeReuDuColis
+      description: "`label` est accessible au titulaire et au destinataire autorisé, sans nom ni téléphone.\n`receipt` et `return_receipt` sont réservés à l’expéditeur propriétaire. `handoff_proof` reste une opération OPS\net n’est jamais servi par cette API client (404)."
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  -
+                    description: ''
+                    type: object
+                    example:
+                      data:
+                        kind: label
+                        width_mm: 58
+                        reference: KC-20261119-95262
+                        qr_payload: 'https://staging.koraexpress.app/api/v1/parcels/tracking/KC-20261119-95262'
+                        esc_pos_base64: G1A=
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          kind:
+                            type: string
+                            example: label
+                          width_mm:
+                            type: integer
+                            example: 58
+                          reference:
+                            type: string
+                            example: KC-20261119-95262
+                          qr_payload:
+                            type: string
+                            example: 'https://staging.koraexpress.app/api/v1/parcels/tracking/KC-20261119-95262'
+                          esc_pos_base64:
+                            type: string
+                            example: G1A=
+                  -
+                    description: ''
+                    type: object
+                    example:
+                      data:
+                        kind: receipt
+                        receipt_status: provisional
+                        reference: KC-20261119-95262
+                        currency: XOF
+                        charge:
+                          net: 1271
+                          tax: 229
+                          total: 1500
+                        fiscal:
+                          status: pending
+                          certified: false
+                        width_mm: 58
+                        fiscal_status: pending
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          kind:
+                            type: string
+                            example: receipt
+                          receipt_status:
+                            type: string
+                            example: provisional
+                          reference:
+                            type: string
+                            example: KC-20261119-95262
+                          currency:
+                            type: string
+                            example: XOF
+                          charge:
+                            type: object
+                            properties:
+                              net:
+                                type: integer
+                                example: 1271
+                              tax:
+                                type: integer
+                                example: 229
+                              total:
+                                type: integer
+                                example: 1500
+                          fiscal:
+                            type: object
+                            properties:
+                              status:
+                                type: string
+                                example: pending
+                              certified:
+                                type: boolean
+                                example: false
+                          width_mm:
+                            type: integer
+                            example: 58
+                          fiscal_status:
+                            type: string
+                            example: pending
+        '403':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Not Found'
+                properties:
+                  message:
+                    type: string
+                    example: 'Not Found'
+        '409':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Opération incompatible avec l’état du colis ou du corridor.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Opération incompatible avec l’état du colis ou du corridor.'
+      tags:
+        - 'KORA App Colis'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                kind:
+                  type: string
+                  description: ''
+                  example: label
+                  enum:
+                    - label
+                    - receipt
+                    - return_receipt
+                    - handoff_proof
+                  nullable: true
+    parameters:
+      -
+        in: path
+        name: parcel_uuid
+        description: 'UUID public du colis.'
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/parcels/{parcel_uuid}/payment-methods':
+    get:
+      summary: 'Liste les moyens de paiement autorisés pour le corridor du colis.'
+      operationId: listeLesMoyensDePaiementAutorissPourLeCorridorDuColis
+      description: "Réservé à l’expéditeur propriétaire. Les prestataires sont filtrés par pays et les capacités Wallet par corridor.\nAucun secret ni payload prestataire n’est exposé."
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    country: BJ
+                    currency: XOF
+                    methods:
+                      -
+                        code: cash
+                        label: Espèces
+                        enabled: true
+                        capabilities:
+                          cash: true
+                          points: false
+                        providers: []
+                      -
+                        code: wallet
+                        label: 'Wallet KORA'
+                        enabled: true
+                        capabilities:
+                          cash: true
+                          points: true
+                        providers: []
+                      -
+                        code: mobile_money
+                        label: 'Mobile Money'
+                        enabled: true
+                        capabilities:
+                          cash: true
+                          points: false
+                        providers:
+                          -
+                            code: fedapay
+                            countries:
+                              - BJ
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      country:
+                        type: string
+                        example: BJ
+                      currency:
+                        type: string
+                        example: XOF
+                      methods:
+                        type: array
+                        example:
+                          -
+                            code: cash
+                            label: Espèces
+                            enabled: true
+                            capabilities:
+                              cash: true
+                              points: false
+                            providers: []
+                          -
+                            code: wallet
+                            label: 'Wallet KORA'
+                            enabled: true
+                            capabilities:
+                              cash: true
+                              points: true
+                            providers: []
+                          -
+                            code: mobile_money
+                            label: 'Mobile Money'
+                            enabled: true
+                            capabilities:
+                              cash: true
+                              points: false
+                            providers:
+                              -
+                                code: fedapay
+                                countries:
+                                  - BJ
+                        items:
+                          type: object
+                          properties:
+                            code:
+                              type: string
+                              example: cash
+                            label:
+                              type: string
+                              example: Espèces
+                            enabled:
+                              type: boolean
+                              example: false
+                            capabilities:
+                              type: object
+                              properties:
+                                cash:
+                                  type: boolean
+                                  example: false
+                                points:
+                                  type: boolean
+                                  example: false
+                            providers:
+                              type: array
+                              example: []
+        '403':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Not Found'
+                properties:
+                  message:
+                    type: string
+                    example: 'Not Found'
+      tags:
+        - 'KORA App Colis'
+    parameters:
+      -
+        in: path
+        name: parcel_uuid
+        description: 'UUID public du colis.'
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/parcels/{parcel_uuid}/payments':
+    post:
+      summary: 'Initie le paiement du dernier devis pesé.'
+      operationId: initieLePaiementDuDernierDevisPes
+      description: "Le montant envoyé doit correspondre exactement au devis serveur ; sinon 409. `idempotency_key` évite un double débit.\nUn colis refusé ou bloqué par un incident ne peut jamais être payé."
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 00000000-0000-4000-8000-000000000020
+                    status: confirmed
+                    amount: 1500
+                    currency: XOF
+                    method: cash
+                    provider: cash
+                    provider_reference: null
+                    provider_transaction_id: null
+                    confirmed_at: '2026-11-20T09:30:00+01:00'
+                    last_verified_at: null
+                    next_action: show_parcel
+                    polling_interval_seconds: 10
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      status:
+                        type: string
+                        example: confirmed
+                      amount:
+                        type: integer
+                        example: 1500
+                      currency:
+                        type: string
+                        example: XOF
+                      method:
+                        type: string
+                        example: cash
+                      provider:
+                        type: string
+                        example: cash
+                      provider_reference:
+                        type: string
+                        example: null
+                        nullable: true
+                      provider_transaction_id:
+                        type: string
+                        example: null
+                        nullable: true
+                      confirmed_at:
+                        type: string
+                        example: '2026-01-01T00:00:00+00:00'
+                      last_verified_at:
+                        type: string
+                        example: null
+                        nullable: true
+                      next_action:
+                        type: string
+                        example: show_parcel
+                      polling_interval_seconds:
+                        type: integer
+                        example: 10
+        '403':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Not Found'
+                properties:
+                  message:
+                    type: string
+                    example: 'Not Found'
+        '409':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Le montant doit correspondre au dernier devis pesé ou un paiement est en cours.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Le montant doit correspondre au dernier devis pesé ou un paiement est en cours.'
+        '422':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Les données de cette opération sont invalides.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Les données de cette opération sont invalides.'
+        '429':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Too Many Attempts.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Too Many Attempts.'
+      tags:
+        - 'KORA App Colis'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                idempotency_key:
+                  type: string
+                  description: 'Le champ value doit être un UUID valide.'
+                  example: 00000000-0000-4000-8000-000000000000
+                method:
+                  type: string
+                  description: ''
+                  example: cash
+                  enum:
+                    - cash
+                    - mobile_money
+                    - card
+                    - wallet
+                amount:
+                  type: integer
+                  description: 'Le champ value doit être au moins 1.'
+                  example: 67
+                provider:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 32 caractères.'
+                  example: z
+                  nullable: true
+                mobile_money_network:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 32 caractères.'
+                  example: m
+                  nullable: true
+                wallet_amount:
+                  type: integer
+                  description: 'Le champ value doit être au moins 0.'
+                  example: 8
+                  nullable: true
+                points_amount:
+                  type: integer
+                  description: 'Le champ value doit être au moins 0.'
+                  example: 76
+                  nullable: true
+                cash_received_amount:
+                  type: integer
+                  description: 'Le champ value doit être au moins 1.'
+                  example: 16
+                  nullable: true
+                agency_payment_account_uuid:
+                  type: string
+                  description: 'Le champ value doit être un UUID valide.'
+                  example: 00000000-0000-4000-8000-000000000000
+                  nullable: true
+                provider_reference:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 128 caractères.'
+                  example: j
+                  nullable: true
+              required:
+                - idempotency_key
+                - method
+                - amount
+    parameters:
+      -
+        in: path
+        name: parcel_uuid
+        description: 'UUID public du colis.'
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/parcels/{parcel_uuid}/payments/{uuid}':
+    get:
+      summary: 'Consulte l’état d’une tentative de paiement du colis.'
+      operationId: consulteLtatDuneTentativeDePaiementDuColis
+      description: 'Réservé à l’expéditeur propriétaire. Retourne l’état de vérification, le montant et la prochaine action client.'
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 00000000-0000-4000-8000-000000000020
+                    status: pending
+                    amount: 1500
+                    currency: XOF
+                    method: mobile_money
+                    provider: fedapay
+                    provider_reference: TEST-REF-001
+                    confirmed_at: null
+                    last_verified_at: null
+                    next_action: verify
+                    polling_interval_seconds: 10
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      status:
+                        type: string
+                        example: pending
+                      amount:
+                        type: integer
+                        example: 1500
+                      currency:
+                        type: string
+                        example: XOF
+                      method:
+                        type: string
+                        example: mobile_money
+                      provider:
+                        type: string
+                        example: fedapay
+                      provider_reference:
+                        type: string
+                        example: TEST-REF-001
+                      confirmed_at:
+                        type: string
+                        example: null
+                        nullable: true
+                      last_verified_at:
+                        type: string
+                        example: null
+                        nullable: true
+                      next_action:
+                        type: string
+                        example: verify
+                      polling_interval_seconds:
+                        type: integer
+                        example: 10
+        '403':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Not Found'
+                properties:
+                  message:
+                    type: string
+                    example: 'Not Found'
+      tags:
+        - 'KORA App Colis'
+    parameters:
+      -
+        in: path
+        name: parcel_uuid
+        description: 'UUID public du colis.'
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+      -
+        in: path
+        name: uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+      -
+        in: path
+        name: payment_uuid
+        description: 'UUID public du paiement.'
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/parcels/{parcel_uuid}/payments/{payment_uuid}/verify':
+    post:
+      summary: 'Vérifie la transaction auprès du prestataire et met à jour l’état du paiement.'
+      operationId: vrifieLaTransactionAuprsDuPrestataireEtMetJourLtatDuPaiement
+      description: "Réservé à l’expéditeur propriétaire. Idempotent si le prestataire n’est pas supporté (retourne l’état courant),\nsinon la vérification est bornée par le rate limit. Aucun payload prestataire n’est retourné."
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 00000000-0000-4000-8000-000000000020
+                    status: confirmed
+                    amount: 1500
+                    currency: XOF
+                    method: mobile_money
+                    provider: fedapay
+                    provider_reference: TEST-REF-001
+                    provider_transaction_id: TEST-TX-001
+                    confirmed_at: '2026-11-20T09:35:00+01:00'
+                    last_verified_at: '2026-11-20T09:35:00+01:00'
+                    next_action: show_parcel
+                    polling_interval_seconds: 10
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      status:
+                        type: string
+                        example: confirmed
+                      amount:
+                        type: integer
+                        example: 1500
+                      currency:
+                        type: string
+                        example: XOF
+                      method:
+                        type: string
+                        example: mobile_money
+                      provider:
+                        type: string
+                        example: fedapay
+                      provider_reference:
+                        type: string
+                        example: TEST-REF-001
+                      provider_transaction_id:
+                        type: string
+                        example: TEST-TX-001
+                      confirmed_at:
+                        type: string
+                        example: '2026-01-01T00:00:00+00:00'
+                      last_verified_at:
+                        type: string
+                        example: '2026-01-01T00:00:00+00:00'
+                      next_action:
+                        type: string
+                        example: show_parcel
+                      polling_interval_seconds:
+                        type: integer
+                        example: 10
+        '403':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Droits insuffisants pour ce périmètre Colis.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Droits insuffisants pour ce périmètre Colis.'
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Not Found'
+                properties:
+                  message:
+                    type: string
+                    example: 'Not Found'
+        '409':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Opération incompatible avec l’état du colis ou du corridor.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Opération incompatible avec l’état du colis ou du corridor.'
+        '429':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Too Many Attempts.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Too Many Attempts.'
+      tags:
+        - 'KORA App Colis'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                transaction_id:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 128 caractères.'
+                  example: b
+                  nullable: true
+    parameters:
+      -
+        in: path
+        name: parcel_uuid
+        description: 'UUID public du colis.'
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+      -
+        in: path
+        name: payment_uuid
+        description: 'UUID public du paiement.'
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
   /api/v1/auth/passenger/notifications:
     get:
       summary: 'Liste l’inbox passager, de la plus récente à la plus ancienne.'

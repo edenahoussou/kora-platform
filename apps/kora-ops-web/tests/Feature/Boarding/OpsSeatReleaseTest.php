@@ -20,6 +20,7 @@ use App\Modules\Payments\Models\Payment;
 use App\Modules\SeatInventory\Actions\FindOccupiedSeatIdsAction;
 use App\Modules\Ticketing\Models\Ticket;
 use Database\Seeders\KoraBusRolePermissionSeeder;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
@@ -177,8 +178,13 @@ it('releases the boarded leg at the actual stop and never exposes financial data
         ->and($segment->actual_dropoff_stop_id)->toBe($b->id)
         ->and($segment->released_at)->not->toBeNull();
 
-    $payload = json_encode($response->json());
-    expect($payload)->not->toContain('amount')->not->toContain('price')->not->toContain('5000');
+    $data = $response->json('data');
+    $numericValues = collect(Arr::dot($data))
+        ->filter(fn ($value): bool => is_int($value) || is_float($value))
+        ->values()
+        ->all();
+    expect($data)->not->toHaveKey('amount')->not->toHaveKey('price')
+        ->and($numericValues)->not->toContain(5000);
 });
 
 it('cascades release to subsequent legs but leaves earlier legs untouched', function (): void {

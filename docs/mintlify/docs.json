@@ -1,7 +1,7 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "KORA BUS API Passager",
+  "name": "KORA API Passager",
   "colors": {
     "primary": "#1A56DB",
     "light": "#FCD34D",
@@ -104,6 +104,28 @@
                   "reference/bus/line",
                   "reference/bus/seats",
                   "reference/bus/itineraries"
+                ]
+              },
+              {
+                "group": "Colis (dépôt direct)",
+                "icon": "box",
+                "pages": [
+                  "reference/parcels/corridors",
+                  "reference/parcels/quote",
+                  "reference/parcels/tracking",
+                  "reference/parcels/shared",
+                  "reference/parcels/index",
+                  "reference/parcels/store",
+                  "reference/parcels/show",
+                  "reference/parcels/cancel",
+                  "reference/parcels/share",
+                  "reference/parcels/revoke",
+                  "reference/parcels/documents",
+                  "reference/parcels/methods",
+                  "reference/parcels/pay",
+                  "reference/parcels/payment",
+                  "reference/parcels/verify",
+                  "reference/parcels/incident"
                 ]
               },
               {

@@ -23,6 +23,12 @@ class ParcelCharge extends KoraModel
         ];
     }
 
+    /** @return BelongsTo<ParcelTariff, $this> */
+    public function tariff(): BelongsTo
+    {
+        return $this->belongsTo(ParcelTariff::class);
+    }
+
     /** @return BelongsTo<Parcel, $this> */
     public function parcel(): BelongsTo
     {

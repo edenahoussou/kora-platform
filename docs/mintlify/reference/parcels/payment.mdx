@@ -1,0 +1,11 @@
+---
+title: Consulter un paiement Colis
+description: "Consulte l’état d’une tentative de paiement et l’état de vérification."
+api: GET /api/v1/parcels/{parcel_uuid}/payments/{uuid}
+---
+
+Consulte l’état d’une tentative de paiement et l’état de vérification. Réservé à l’expéditeur propriétaire. Retourne le montant et la prochaine action client, sans payload prestataire complet.
+
+## Sécurité
+
+Les réponses n’exposent que des identifiants publics (UUID ou références) et les champs métier nécessaires au parcours. Aucun code de retrait, hash, secret ou payload fournisseur n’est documenté comme retournable.

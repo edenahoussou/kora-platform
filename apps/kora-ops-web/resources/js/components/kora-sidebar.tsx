@@ -8,6 +8,7 @@ import {
     FileText,
     LayoutDashboard,
     Megaphone,
+    Package,
     PanelLeftClose,
     PanelLeftOpen,
     ReceiptText,
@@ -452,6 +453,12 @@ const navItems: NavEntry[] = [
                 permission: 'pricing.view',
             },
         ],
+    },
+    {
+        title: 'Colis',
+        href: '/parcels',
+        icon: Package,
+        permission: 'parcels.view',
     },
     {
         title: 'Réseau commercial',

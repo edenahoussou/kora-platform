@@ -1,0 +1,11 @@
+---
+title: Créer ou remplacer un lien de suivi
+description: "Réservé à l’expéditeur propriétaire d’un colis payé et référencé."
+api: POST /api/v1/parcels/{parcel_uuid}/share
+---
+
+Réservé à l’expéditeur propriétaire d’un colis payé et référencé. Chaque appel émet un nouveau jeton et invalide l’ancien. La réponse contient un chemin relatif ; le jeton complet n’est ni journalisé ni stocké en clair.
+
+## Sécurité
+
+Les réponses n’exposent que des identifiants publics (UUID ou références) et les champs métier nécessaires au parcours. Aucun code de retrait, hash, secret ou payload fournisseur n’est documenté comme retournable.

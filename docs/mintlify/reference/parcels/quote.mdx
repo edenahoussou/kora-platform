@@ -1,0 +1,12 @@
+---
+title: Estimer le prix d’un envoi
+description: "Calcule le prix TTC pour un corridor et un poids déclaré avant dépôt."
+api: POST /api/v1/parcels/quote
+authMethod: none
+---
+
+Calcule le prix TTC pour un corridor et un poids déclaré avant dépôt. Le montant est autoritatif côté serveur : le client ne doit jamais envoyer un montant. Endpoint public, limité à 30 requêtes par minute.
+
+## Sécurité
+
+Les réponses n’exposent que des identifiants publics (UUID ou références) et les champs métier nécessaires au parcours. Aucun code de retrait, hash, secret ou payload fournisseur n’est documenté comme retournable.

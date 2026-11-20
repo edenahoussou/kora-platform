@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\Cash\Models\CashLedger;
 use App\Modules\Cash\Models\CashSession;
+use App\Modules\Parcels\Models\ParcelCharge;
 use App\Modules\Payments\Data\MobileMoneyNetwork;
 use App\Modules\Payments\Data\PaymentMethod;
 use App\Modules\Payments\Data\PaymentStatus;
@@ -136,6 +137,12 @@ class Payment extends KoraModel
     public function refunds(): HasMany
     {
         return $this->hasMany(PaymentRefund::class);
+    }
+
+    /** @return BelongsTo<ParcelCharge, $this> */
+    public function parcelCharge(): BelongsTo
+    {
+        return $this->belongsTo(ParcelCharge::class);
     }
 
     protected function casts(): array

@@ -1,0 +1,12 @@
+---
+title: Suivre un colis via un lien partagé
+description: "Le jeton de partage est opaque (48 caractères) et seul son hash SHA-256 est stocké."
+api: GET /api/v1/parcels/shared/{token}
+authMethod: none
+---
+
+Le jeton de partage est opaque (48 caractères) et seul son hash SHA-256 est stocké. La révocation invalide immédiatement l’ancien lien. Le payload est strictement identique au suivi public par référence, sans PII. Limité à 15 requêtes par minute.
+
+## Sécurité
+
+Les réponses n’exposent que des identifiants publics (UUID ou références) et les champs métier nécessaires au parcours. Aucun code de retrait, hash, secret ou payload fournisseur n’est documenté comme retournable.

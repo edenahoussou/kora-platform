@@ -39,11 +39,11 @@ return [
     'title' => config('app.name').' API Documentation',
 
     // A short description of your API. Will be included in the docs webpage, Postman collection and OpenAPI spec.
-    'description' => 'KORA BUS MVP REST API.',
+    'description' => 'KORA API REST V1 : Bus et Colis.',
 
     // Text to place in the "Introduction" section, right after the `description`. Markdown and HTML are supported.
     'intro_text' => <<<'INTRO'
-            KORA BUS MVP exposes public read endpoints for Bus search and protected operational endpoints as the product grows.
+            KORA exposes public read endpoints for Bus search and parcel tracking, plus protected client and operational endpoints.
 
             Public identifiers are UUIDs or domain codes. Numeric backend IDs are never part of public payloads.
         INTRO,

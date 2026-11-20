@@ -91,6 +91,12 @@ final class OperationsSettings extends Settings
 
     public int $parcelIntakeExpiryHours = 48;
 
+    public int $parcelMinimumWeightGrams = 1;
+
+    public int $parcelMaximumWeightGrams = 30000;
+
+    public int $parcelCashDeclarationThresholdFcfa = 500000;
+
     public int $parcelFirstReminderDays = 3;
 
     public int $parcelSecondReminderDays = 7;
@@ -102,6 +108,8 @@ final class OperationsSettings extends Settings
     public int $parcelFiscalAlertHours = 20;
 
     public int $parcelRoutingHorizonDays = 30;
+
+    public bool $parcelIdentityOverrideEnabled = true;
 
     public static function group(): string
     {

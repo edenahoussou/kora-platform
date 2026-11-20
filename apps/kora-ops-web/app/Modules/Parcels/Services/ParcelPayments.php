@@ -21,6 +21,7 @@ use App\Modules\Payments\Data\PaymentStatus;
 use App\Modules\Payments\Models\AgencyPaymentAccount;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\PaymentManager;
+use App\Modules\Settings\Settings\GeneralSettings;
 use App\Modules\Settings\Settings\IntegrationsSettings;
 use App\Modules\Settings\Settings\OperationsSettings;
 use App\Modules\Settings\Settings\WalletSettings;
@@ -33,7 +34,6 @@ use App\Modules\Wallet\Data\WalletPurchaseFunding;
 use App\Modules\Wallet\Data\WalletTransactionReason;
 use App\Modules\Wallet\Models\WalletHold;
 use App\Modules\Wallet\Services\WalletLedgerService;
-use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -67,43 +67,45 @@ class ParcelPayments
                 abort_unless($parcel->sender_user_id === $actor->id, 404);
             }
 
-            $charge = $parcel->charges()->where('return_leg', $parcel->status === 'returned')->whereNull('superseded_at')->latest('id')->firstOrFail();
+            $charge = $parcel->charges()->where('return_leg', $parcel->status === 'returned')->whereNull('superseded_at')->latest('id')->first();
+            abort_if($charge === null, 409, 'This parcel has no collectible quote.');
             $fingerprint = hash('sha256', json_encode($input, JSON_THROW_ON_ERROR));
             $attempts = Payment::query()->where('parcel_charge_id', $charge->id);
             $existing = (clone $attempts)->where('idempotency_key', $input['idempotency_key'])->first();
             if ($existing !== null) {
-                abort_unless($existing->request_fingerprint === $fingerprint, 409, 'Cette clé de paiement a déjà été utilisée.');
+                abort_unless($existing->request_fingerprint === $fingerprint, 409, 'This payment key has already been used.');
 
                 return $existing;
             }
-            abort_unless($this->isPayable($parcel, $charge), 409, 'Le devis de ce colis ne peut plus être encaissé.');
-            abort_if($attempts->where('status', PaymentStatus::Pending)->exists(), 409, 'Un paiement est déjà en cours.');
-            abort_unless((int) $input['amount'] === (int) $charge->total, 409, 'Le montant doit correspondre au dernier devis pesé.');
+            abort_unless($this->isPayable($parcel, $charge), 409, 'This parcel quote can no longer be collected.');
+            abort_if($attempts->where('status', PaymentStatus::Pending)->exists(), 409, 'A payment is already in progress.');
+            abort_unless((int) $input['amount'] === (int) $charge->total, 409, 'The amount must match the latest weighed quote.');
 
             $method = PaymentMethod::from($input['method']);
             $walletAmount = (int) ($input['wallet_amount'] ?? 0);
             $points = (int) ($input['points_amount'] ?? 0);
-            abort_if($walletAmount > 0 && ! $parcel->corridor->wallet_cash_enabled, 422, 'Le solde Wallet Colis est désactivé.');
+            abort_if($walletAmount > 0 && ! $parcel->corridor->wallet_cash_enabled, 422, 'The parcel wallet balance is disabled.');
             $funding = WalletPurchaseFunding::purchase((int) $charge->total, $walletAmount, $points, $this->walletSettings->pointValueFcfa);
             $provider = $input['provider'] ?? '';
             $network = MobileMoneyNetwork::tryFrom($input['mobile_money_network'] ?? '');
             $cashAttributes = [];
             if ($counter) {
                 abort_unless(in_array($method, [PaymentMethod::Cash, PaymentMethod::MobileMoney], true) && $walletAmount === 0 && $points === 0, 422);
-                $cashAttributes = $this->counterAttributes($actor, (int) $charge->total, $method, $network, $input);
+                $cashAttributes = $this->counterAttributes($actor, (int) $charge->total, $method, $network, $input, (int) $hub?->agency_id);
                 $provider = $method === PaymentMethod::Cash ? 'cash' : $network?->value;
             } elseif ($method === PaymentMethod::Wallet) {
-                abort_unless($funding->providerAmount === 0, 422, 'Le Wallet doit couvrir le montant du paiement.');
+                abort_unless($funding->providerAmount === 0, 422, 'The wallet must cover the payment amount.');
                 $provider = 'wallet';
             } else {
                 abort_unless($funding->providerAmount > 0 && in_array($method, [PaymentMethod::MobileMoney, PaymentMethod::Card], true), 422);
                 $country = strtoupper((string) $hub?->agency?->country);
                 $network ??= $provider === 'mtn_momo' ? MobileMoneyNetwork::MtnMomo : null;
                 $this->providers->assertAvailable($method->value, $provider, $network?->value);
-                abort_if(($network !== null && $network->country() !== $country)
-                    || ($provider === 'mtn_momo' && $country !== 'BJ')
-                    || ($provider === 'kkiapay' && ! in_array($country, app(IntegrationsSettings::class)->kkiapayCountries, true)), 422);
-                $providerFunding = $this->providers->providerAmount($provider, $funding->providerAmount, 'XOF');
+                $networkCountry = $network !== null ? strtoupper($network->country()) : null;
+                $kkiapayUnsupported = $provider === 'kkiapay'
+                    && ! in_array($country, app(IntegrationsSettings::class)->kkiapayCountries, true);
+                abort_if(($networkCountry !== null && $networkCountry !== $country) || $kkiapayUnsupported, 422, 'The selected payment provider is not available in this country.');
+                $providerFunding = $this->providers->providerAmount($provider, $funding->providerAmount, app(GeneralSettings::class)->currency);
                 $cashAttributes = ['provider_amount' => $providerFunding['amount'], 'provider_currency' => $providerFunding['currency']];
             }
 
@@ -115,7 +117,7 @@ class ParcelPayments
                 'provider' => $provider,
                 'mobile_money_network' => $network,
                 'amount' => $charge->total,
-                'currency' => 'XOF',
+                'currency' => app(GeneralSettings::class)->currency,
                 'status' => PaymentStatus::Pending,
                 'wallet_funding' => $funding->toArray(),
                 'payer_name' => $parcel->sender_name,
@@ -195,7 +197,7 @@ class ParcelPayments
             'mtn_momo' => $data['externalId'] ?? null,
             default => null,
         };
-        $currency = data_get($data, 'currency.iso') ?? ($data['currency'] ?? ($payment->provider === 'kkiapay' ? 'XOF' : null));
+        $currency = data_get($data, 'currency.iso') ?? ($data['currency'] ?? ($payment->provider === 'kkiapay' ? app(GeneralSettings::class)->currency : null));
         $amount = filter_var($data['amount'] ?? $authenticatedEvent['amount'] ?? null, FILTER_VALIDATE_INT);
         $receipt = $response->providerTransactionId ?? $response->providerReference;
         if ($correlation !== $payment->uuid || $currency !== $payment->provider_currency
@@ -334,39 +336,30 @@ class ParcelPayments
 
     private function register(Parcel $parcel, int $hubId): void
     {
-        $date = now()->format('Ymd');
-        for ($attempt = 0; $attempt < 8; $attempt++) {
-            try {
-                DB::transaction(fn () => $parcel->update([
-                    'reference' => sprintf('KC-%s-%05d', $date, random_int(0, 99999)),
-                    'status' => 'registered',
-                    'custody_hub_id' => $hubId,
-                ]));
-
-                return;
-            } catch (UniqueConstraintViolationException) {
-                $parcel->refresh();
-            }
+        if ($parcel->reference === null) {
+            app(ParcelReference::class)->assign($parcel);
         }
-        throw new \RuntimeException('Aucune référence Colis unique n’a pu être réservée.');
+
+        $parcel->update(['status' => 'registered', 'custody_hub_id' => $hubId]);
     }
 
     /**
      * @param  array<string, mixed>  $input
      * @return array<string, mixed>
      */
-    private function counterAttributes(User $actor, int $total, PaymentMethod $method, ?MobileMoneyNetwork $network, array $input): array
+    private function counterAttributes(User $actor, int $total, PaymentMethod $method, ?MobileMoneyNetwork $network, array $input, int $hubAgencyId): array
     {
         $session = CashSession::query()->where('agent_id', $actor->id)->where('agency_id', $actor->agency_id)
             ->whereDate('business_date', now()->toDateString())->where('status', CashSessionStatus::Open)->lockForUpdate()->first();
         if ($session === null) {
-            throw ValidationException::withMessages(['cash_session' => 'Ouvrez votre caisse avant l’encaissement.']);
+            throw ValidationException::withMessages(['cash_session' => 'Open your cash register before collecting a payment.']);
         }
+        abort_unless($session->agency_id === $hubAgencyId, 409, 'The open cash register does not belong to the parcel deposit agency.');
         $ledger = CashLedger::query()->where('cash_session_id', $session->id);
         $extra = [];
         if ($method === PaymentMethod::Cash) {
             $received = (int) ($input['cash_received_amount'] ?? 0);
-            abort_if($received < $total, 422, 'Montant reçu insuffisant.');
+            abort_if($received < $total, 422, 'The amount received is insufficient.');
             $ledger->where('kind', CashLedgerKind::Cash);
             $extra = ['cash_received_amount' => $received, 'change_amount' => $received - $total];
         } else {
@@ -394,7 +387,7 @@ class ParcelPayments
             'source_type' => Payment::class, 'source_id' => $payment->id,
             'type' => $payment->method === PaymentMethod::Cash ? 'counter_sale_cash' : 'counter_sale_mobile_money',
             'direction' => CashMovementDirection::In, 'status' => CashMovementStatus::Posted, 'amount' => $payment->amount,
-            'currency' => 'XOF', 'description' => 'Vente KORA Colis', 'created_by' => $actor->id, 'occurred_at' => now(),
+            'currency' => app(GeneralSettings::class)->currency, 'description' => 'Vente KORA Colis', 'created_by' => $actor->id, 'occurred_at' => now(),
         ]);
         $ledger->increment('expected_balance', $payment->amount);
         if ($payment->method === PaymentMethod::Cash) {

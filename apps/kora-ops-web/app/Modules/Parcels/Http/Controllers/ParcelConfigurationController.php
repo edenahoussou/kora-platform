@@ -3,22 +3,31 @@
 namespace App\Modules\Parcels\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
+use App\Modules\BusNetwork\Data\LineStatus;
+use App\Modules\BusNetwork\Data\StopStatus;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\IdentityAccess\Data\AgencyStatus;
 use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\KoraPoints\Models\KoraPoint;
 use App\Modules\Parcels\Http\Requests\ParcelConfigurationRequest;
+use App\Modules\Parcels\Http\Requests\ParcelSettingsRequest;
 use App\Modules\Parcels\Models\ParcelCorridor;
 use App\Modules\Parcels\Models\ParcelHub;
 use App\Modules\Parcels\Services\ParcelAccess;
 use App\Modules\Parcels\Services\ParcelPricing;
 use App\Modules\Parcels\Services\ParcelRouting;
 use App\Modules\Parcels\Services\ParcelTransport;
+use App\Modules\Settings\Contracts\SettingsCoordinator;
+use App\Modules\Settings\Settings\GeneralSettings;
+use App\Modules\Settings\Settings\IntegrationsSettings;
+use App\Modules\Settings\Settings\OperationsSettings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 /** @group KORA OPS Paramètres Colis */
 class ParcelConfigurationController extends Controller
@@ -33,24 +42,149 @@ class ParcelConfigurationController extends Controller
      * @response 200 {"data":{}}
      * @response 403 {"message":"Droits insuffisants pour ce périmètre Colis."}
      */
-    public function index(Request $request): JsonResponse
+    public function index(Request $request, GeneralSettings $settings): JsonResponse
     {
-        $this->access->require($request->user(), 'parcels.network');
+        $this->access->require($request->user(), 'parcels.view');
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 403);
+        $canConfigure = $actor->can('parcels.configure');
+        $canConfigureNetwork = $canConfigure && $actor->can('parcels.network');
         $hubs = ParcelHub::query()->with(['agency', 'koraPoint', 'stop'])->get()->map(fn (ParcelHub $hub): array => [
-            'uuid' => $hub->uuid, 'enabled' => $hub->enabled, 'kind' => $hub->kind,
+            'uuid' => $hub->uuid, 'enabled' => $hub->enabled, 'supports_weighing' => $hub->supports_weighing, 'kind' => $hub->kind,
             'agency_uuid' => $hub->agency?->uuid, 'kora_point_uuid' => $hub->koraPoint?->uuid, 'stop_uuid' => $hub->stop?->uuid,
             'name' => $hub->agency?->name, 'city' => $hub->stop?->city,
             'archived_at' => $hub->archived_at?->toIso8601String(),
+            'deposit_allowed' => $actor->can('parcels.intake') && $this->access->canViewHub($actor, $hub),
         ]);
         $corridors = ParcelCorridor::query()->with(['originHub', 'destinationHub', 'tariffs'])->get()->map(fn (ParcelCorridor $corridor): array => [
-            'uuid' => $corridor->uuid, 'origin_hub_uuid' => $corridor->originHub?->uuid, 'destination_hub_uuid' => $corridor->destinationHub?->uuid,
+            'uuid' => $corridor->uuid, 'origin_hub_uuid' => $corridor->originHub?->uuid, 'origin_hub_kind' => $corridor->originHub?->kind, 'destination_hub_uuid' => $corridor->destinationHub?->uuid,
             ...$corridor->only(['enabled', 'wallet_cash_enabled']),
             'tariffs' => $corridor->tariffs->sortByDesc('id')->values()->map(fn ($tariff) => $tariff->only([
-                'uuid', 'base_amount', 'step_amount', 'step_grams', 'maximum_grams', 'return_amount', 'created_at',
+                'uuid', 'deposit_kind', 'version', 'base_amount', 'step_amount', 'step_grams', 'maximum_grams', 'return_amount', 'created_at',
             ])),
         ]);
 
-        return response()->json(['data' => ['hubs' => $hubs, 'corridors' => $corridors]]);
+        $options = [
+            'internal_agencies' => $canConfigureNetwork
+                ? Agency::query()
+                    ->where('kind', 'internal')
+                    ->where('status', AgencyStatus::Active->value)
+                    ->orderBy('name')
+                    ->get(['uuid', 'name', 'city', 'country'])
+                    ->map(fn (Agency $agency): array => [
+                        'uuid' => $agency->uuid,
+                        'name' => $agency->name,
+                        'city' => $agency->city,
+                        'country' => $agency->country,
+                    ])
+                : [],
+            'partner_points' => $canConfigureNetwork
+                ? KoraPoint::query()
+                    ->where('status', 'active')
+                    ->whereHas('agency', fn ($query) => $query
+                        ->where('kind', 'partner')
+                        ->where('status', AgencyStatus::Active->value))
+                    ->with('agency')
+                    ->orderBy('address')
+                    ->get()
+                    ->map(fn (KoraPoint $point): array => [
+                        'uuid' => $point->uuid,
+                        'agency_uuid' => $point->agency?->uuid,
+                        'agency_name' => $point->agency?->name,
+                        'agency_country' => $point->agency?->country,
+                        'address' => $point->address,
+                        'responsible_name' => $point->responsible_name,
+                    ])
+                : [],
+            'stops' => Stop::query()
+                ->where('status', 'active')
+                ->whereHas('line', fn ($query) => $query->where('status', 'active'))
+                ->with('line')
+                ->orderBy('country')
+                ->orderBy('city')
+                ->orderBy('stop_order')
+                ->get()
+                ->map(fn (Stop $stop): array => [
+                    'uuid' => $stop->uuid,
+                    'name' => $stop->name,
+                    'city' => $stop->city,
+                    'country' => $stop->country,
+                    'stop_order' => $stop->stop_order,
+                    'line_uuid' => $stop->line?->uuid,
+                    'line_code' => $stop->line?->code,
+                    'line_name' => $stop->line?->name,
+                ]),
+        ];
+
+        return response()->json(['data' => [
+            'currency' => $settings->currency,
+            'hubs' => $hubs,
+            'corridors' => $corridors,
+            'options' => $options,
+            'permissions' => [
+                'canConfigure' => $canConfigure,
+                'canPublishTariffs' => $actor->can('parcels.tariffs'),
+                'canIntake' => $actor->can('parcels.intake'),
+            ],
+        ]]);
+    }
+
+    /**
+     * Consulter les paramètres runtime Colis.
+     *
+     * @authenticated
+     *
+     * @response 200 {"data":{"values":{}}}
+     * @response 403 {"message":"Droits insuffisants pour ce périmètre Colis."}
+     */
+    public function settings(Request $request, OperationsSettings $settings): JsonResponse
+    {
+        $this->access->require($request->user(), 'parcels.network');
+
+        return response()->json(['data' => [
+            'values' => $this->parcelSettingsValues($settings),
+            'permissions' => ['canManage' => $request->user()?->can('parcels.configure') === true],
+        ]]);
+    }
+
+    /**
+     * Mettre à jour les paramètres runtime Colis.
+     *
+     * @authenticated
+     *
+     * @response 200 {"data":{"values":{}}}
+     * @response 403 {"message":"Droits insuffisants pour ce périmètre Colis."}
+     * @response 422 {"message":"Les paramètres Colis sont incohérents."}
+     */
+    public function saveSettings(
+        ParcelSettingsRequest $request,
+        SettingsCoordinator $coordinator,
+    ): JsonResponse {
+        $this->access->require($request->user(), 'parcels.configure');
+        $coordinator->updateParcelSettings($request->validated(), $request->user());
+
+        return response()->json(['data' => [
+            'values' => $this->parcelSettingsValues(app(OperationsSettings::class)),
+            'permissions' => ['canManage' => true],
+        ]]);
+    }
+
+    /** @return array<string, int|bool> */
+    private function parcelSettingsValues(OperationsSettings $settings): array
+    {
+        return [
+            'parcelIntakeExpiryHours' => $settings->parcelIntakeExpiryHours,
+            'parcelMinimumWeightGrams' => $settings->parcelMinimumWeightGrams,
+            'parcelMaximumWeightGrams' => $settings->parcelMaximumWeightGrams,
+            'parcelCashDeclarationThresholdFcfa' => $settings->parcelCashDeclarationThresholdFcfa,
+            'parcelFirstReminderDays' => $settings->parcelFirstReminderDays,
+            'parcelSecondReminderDays' => $settings->parcelSecondReminderDays,
+            'parcelReturnDays' => $settings->parcelReturnDays,
+            'parcelHandoffMaxAttempts' => $settings->parcelHandoffMaxAttempts,
+            'parcelFiscalAlertHours' => $settings->parcelFiscalAlertHours,
+            'parcelRoutingHorizonDays' => $settings->parcelRoutingHorizonDays,
+            'parcelIdentityOverrideEnabled' => $settings->parcelIdentityOverrideEnabled,
+        ];
     }
 
     /**
@@ -64,7 +198,9 @@ class ParcelConfigurationController extends Controller
     public function hub(ParcelConfigurationRequest $request): JsonResponse
     {
         $this->access->require($request->user(), 'parcels.configure');
-        $stop = Stop::query()->where('uuid', $request->validated('stop_uuid'))->firstOrFail();
+        $stop = Stop::query()->with('line')->where('uuid', $request->validated('stop_uuid'))->firstOrFail();
+        abort_unless($stop->status === StopStatus::Active, 422, 'Deposit stop is not active.');
+        abort_unless($stop->line !== null && $stop->line->status === LineStatus::Active, 422, 'Deposit stop is not attached to an active line.');
 
         if ($request->filled('kora_point_uuid')) {
             $point = KoraPoint::query()->where('uuid', $request->validated('kora_point_uuid'))->with('agency')->firstOrFail();
@@ -75,22 +211,34 @@ class ParcelConfigurationController extends Controller
             $pointId = $point->id;
         } else {
             $agency = Agency::query()->where('uuid', $request->validated('agency_uuid'))->where('kind', 'internal')->firstOrFail();
+            abort_unless($agency->status === AgencyStatus::Active, 422, 'Internal agency is not active.');
             $kind = ParcelHub::KIND_AGENCY;
             $pointId = null;
         }
 
-        abort_unless(strtoupper((string) $agency->country) === strtoupper((string) $stop->country), 422, 'Le hub et son arrêt doivent être dans le même pays.');
+        abort_unless(strtoupper((string) $agency->country) === strtoupper((string) $stop->country), 422, 'The deposit hub and its stop must be in the same country.');
+        abort_if($kind === ParcelHub::KIND_AGENCY && ParcelHub::query()->where('agency_id', $agency->id)->where('stop_id', '!=', $stop->id)->exists(), 422, 'Internal agency is already attached to another deposit location.');
         abort_if($pointId !== null && ParcelHub::query()->where('kora_point_id', $pointId)->where('stop_id', '!=', $stop->id)->exists(), 422, 'Partner point is already attached to another deposit location.');
 
         return DB::transaction(function () use ($request, $agency, $stop, $kind, $pointId): JsonResponse {
+            $values = [
+                'kora_point_id' => $pointId,
+                'kind' => $kind,
+                'enabled' => $request->boolean('enabled'),
+                'archived_at' => null,
+            ];
+            if ($request->has('supports_weighing')) {
+                $values['supports_weighing'] = $request->boolean('supports_weighing');
+            }
             $hub = ParcelHub::query()->updateOrCreate(
                 ['agency_id' => $agency->id, 'stop_id' => $stop->id],
-                ['kora_point_id' => $pointId, 'kind' => $kind, 'enabled' => $request->boolean('enabled'), 'archived_at' => null],
+                $values,
             );
             activity('parcels')->performedOn($hub)->causedBy($request->user())->withProperties($request->validated())->log('parcel_hub_configured');
 
             return response()->json(['data' => [
                 'uuid' => $hub->uuid, 'kind' => $hub->kind, 'enabled' => $hub->enabled,
+                'supports_weighing' => $hub->supports_weighing,
                 'kora_point_uuid' => $hub->koraPoint?->uuid, 'archived_at' => $hub->archived_at?->toIso8601String(),
             ]]);
         });
@@ -160,6 +308,67 @@ class ParcelConfigurationController extends Controller
     }
 
     /**
+     * Lister la capacité des départs des corridors actifs.
+     *
+     * @authenticated
+     *
+     * @response 200 {"data":{}}
+     * @response 403 {"message":"Droits insuffisants pour ce périmètre Colis."}
+     */
+    public function capacityIndex(Request $request, ParcelRouting $routing): JsonResponse
+    {
+        $this->access->require($request->user(), 'parcels.configure');
+
+        $corridors = ParcelCorridor::query()
+            ->where('enabled', true)
+            ->with(['originHub.stop', 'destinationHub.stop'])
+            ->get();
+        $available = $routing->filterOperationallyAvailable($corridors);
+        $rows = [];
+
+        foreach ($available as $corridor) {
+            if ($corridor->originHub === null || $corridor->destinationHub === null) {
+                continue;
+            }
+
+            foreach ($routing->availability($corridor->originHub, $corridor->destinationHub) as $row) {
+                $departure = $row['departure'];
+                $uuid = $departure->uuid;
+
+                if (! isset($rows[$uuid])) {
+                    $rows[$uuid] = [
+                        'uuid' => $uuid,
+                        'line_code' => $departure->line?->code,
+                        'line_name' => $departure->line?->name,
+                        'departure_at' => $departure->scheduledDepartureAt()->toIso8601String(),
+                        'status' => $departure->status,
+                        'capacity_grams' => $row['capacity_grams'],
+                        'reserved_grams' => $row['reserved_grams'],
+                        'available_grams' => $row['capacity_grams'] === null ? null : max(0, $row['capacity_grams'] - $row['reserved_grams']),
+                        'corridor_uuids' => [],
+                    ];
+                }
+
+                $rows[$uuid]['corridor_uuids'][] = $corridor->uuid;
+            }
+        }
+
+        $departures = collect($rows)
+            ->map(function (array $row): array {
+                $row['corridor_uuids'] = array_values(array_unique($row['corridor_uuids']));
+
+                return $row;
+            })
+            ->sortBy(fn (array $row): string => $row['departure_at'])
+            ->values();
+
+        return response()->json(['data' => [
+            'horizon_days' => $routing->horizonDays(),
+            'departures' => $departures,
+        ]]);
+    }
+
+    /**
      * Configurer et activer un corridor Colis.
      *
      * @authenticated
@@ -168,23 +377,33 @@ class ParcelConfigurationController extends Controller
      * @response 403 {"message":"Droits insuffisants pour ce périmètre Colis."}
      * @response 409 {"message":"Opération incompatible avec l’état du colis ou du corridor."}
      */
-    public function corridor(ParcelConfigurationRequest $request, ParcelPricing $pricing, ParcelRouting $routing): JsonResponse
-    {
+    public function corridor(
+        ParcelConfigurationRequest $request,
+        ParcelPricing $pricing,
+        ParcelRouting $routing,
+        IntegrationsSettings $integrations,
+    ): JsonResponse {
         $this->access->require($request->user(), 'parcels.configure');
         $origin = ParcelHub::query()->where('uuid', $request->validated('origin_hub_uuid'))->with('stop')->firstOrFail();
         $destination = ParcelHub::query()->where('uuid', $request->validated('destination_hub_uuid'))->with('stop')->firstOrFail();
         abort_unless($origin->stop !== null && $destination->stop !== null
             && ($origin->stop->city !== $destination->stop->city || $origin->stop->country !== $destination->stop->country), 422);
 
-        return DB::transaction(function () use ($request, $origin, $destination, $pricing, $routing): JsonResponse {
+        return DB::transaction(function () use ($request, $origin, $destination, $pricing, $routing, $integrations): JsonResponse {
             $keys = ['origin_hub_id' => $origin->id, 'destination_hub_id' => $destination->id];
             $corridor = ParcelCorridor::query()->where($keys)->lockForUpdate()->first() ?? new ParcelCorridor($keys);
             $corridor->fill(Arr::except($request->validated(), ['origin_hub_uuid', 'destination_hub_uuid']));
             if ($corridor->enabled) {
                 $routing->assertStructurallyRoutable($origin, $destination);
-                abort_unless($corridor->exists, 409, 'Créez le corridor et publiez son tarif avant activation.');
+                abort_unless($corridor->exists, 409, 'Create the corridor and publish its tariff before activation.');
                 $pricing->ensureOpen($corridor);
-                abort_unless(strtoupper((string) $origin->agency?->country) === 'BJ', 409, 'Le fournisseur fiscal configuré couvre les encaissements au Bénin.');
+                $fiscalCountry = strtoupper(trim($integrations->emecfCountry));
+                abort_if($fiscalCountry === '', 409, 'No fiscal country is configured for parcel collections.');
+                abort_unless(
+                    strtoupper((string) $origin->agency?->country) === $fiscalCountry,
+                    409,
+                    'The configured fiscal provider does not cover parcel collections in this country.',
+                );
                 $pricing->calculate($corridor, 1);
             }
             $corridor->save();
@@ -207,11 +426,33 @@ class ParcelConfigurationController extends Controller
         $this->access->require($request->user(), 'parcels.tariffs');
 
         return DB::transaction(function () use ($request, $corridor): JsonResponse {
-            $corridor = ParcelCorridor::query()->lockForUpdate()->findOrFail($corridor->id);
-            $tariff = $corridor->tariffs()->create($request->validated() + ['created_by' => $request->user()->id]);
-            activity('parcels')->performedOn($tariff)->causedBy($request->user())->withProperties($request->validated())->log('parcel_tariff_published');
+            $corridor = ParcelCorridor::query()->with('originHub')->lockForUpdate()->findOrFail($corridor->id);
+            $depositKind = (string) $corridor->originHub?->kind;
+            abort_if($depositKind === '', 409, 'The parcel deposit location kind is incomplete.');
+            $requestedKind = $request->validated('deposit_kind');
 
-            return response()->json(['data' => ['uuid' => $tariff->uuid]], 201);
+            if (is_string($requestedKind) && $requestedKind !== $depositKind) {
+                throw ValidationException::withMessages([
+                    'deposit_kind' => 'The tariff grid must match the corridor deposit location kind.',
+                ]);
+            }
+
+            $version = (int) $corridor->tariffs()
+                ->where('deposit_kind', $depositKind)
+                ->max('version') + 1;
+            $attributes = $request->safe()->except('deposit_kind') + [
+                'deposit_kind' => $depositKind,
+                'version' => $version,
+                'created_by' => $request->user()->id,
+            ];
+            $tariff = $corridor->tariffs()->create($attributes);
+            activity('parcels')->performedOn($tariff)->causedBy($request->user())->withProperties($attributes)->log('parcel_tariff_published');
+
+            return response()->json(['data' => [
+                'uuid' => $tariff->uuid,
+                'deposit_kind' => $tariff->deposit_kind,
+                'version' => $tariff->version,
+            ]], 201);
         });
     }
 

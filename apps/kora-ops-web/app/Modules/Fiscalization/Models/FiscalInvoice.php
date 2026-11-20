@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\Fiscalization\Data\FiscalInvoiceDocumentKind;
 use App\Modules\Fiscalization\Data\FiscalInvoiceStatus;
+use App\Modules\Parcels\Models\ParcelCharge;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Support\Models\KoraModel;
 use Codianselme\LaraSygmef\Models\EmecfInvoice;
@@ -69,6 +70,12 @@ class FiscalInvoice extends KoraModel
     public function payment(): BelongsTo
     {
         return $this->belongsTo(Payment::class);
+    }
+
+    /** @return BelongsTo<ParcelCharge, $this> */
+    public function parcelCharge(): BelongsTo
+    {
+        return $this->belongsTo(ParcelCharge::class);
     }
 
     /** @return BelongsTo<EmecfInvoice, $this> */

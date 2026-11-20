@@ -2,6 +2,7 @@
 
 namespace App\Modules\Parcels\Models;
 
+use App\Models\User;
 use App\Modules\Support\Models\KoraModel;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,8 +17,8 @@ class ParcelEvent extends KoraModel
 
     protected static function booted(): void
     {
-        static::updating(fn () => throw new \LogicException('Les événements Colis sont immuables.'));
-        static::deleting(fn () => throw new \LogicException('Les événements Colis sont immuables.'));
+        static::updating(fn () => throw new \LogicException('Parcel events are immutable.'));
+        static::deleting(fn () => throw new \LogicException('Parcel events are immutable.'));
     }
 
     protected function casts(): array
@@ -32,5 +33,17 @@ class ParcelEvent extends KoraModel
     public function assignment(): BelongsTo
     {
         return $this->belongsTo(ParcelAssignment::class);
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function actor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'actor_id');
+    }
+
+    /** @return BelongsTo<ParcelHub, $this> */
+    public function hub(): BelongsTo
+    {
+        return $this->belongsTo(ParcelHub::class, 'hub_id');
     }
 }

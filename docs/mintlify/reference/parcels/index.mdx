@@ -1,0 +1,11 @@
+---
+title: Lister ses colis
+description: "Liste paginée (25 par page) des colis où le titulaire est expéditeur ou destinataire vérifié."
+api: GET /api/v1/parcels
+---
+
+Liste paginée (25 par page) des colis où le titulaire est expéditeur ou destinataire vérifié. Les données du destinataire ne sont visibles qu’après un OTP consommé sur le téléphone actuel. Les identifiants exposés sont des UUID ou des références publiques.
+
+## Sécurité
+
+Les réponses n’exposent que des identifiants publics (UUID ou références) et les champs métier nécessaires au parcours. Aucun code de retrait, hash, secret ou payload fournisseur n’est documenté comme retournable.

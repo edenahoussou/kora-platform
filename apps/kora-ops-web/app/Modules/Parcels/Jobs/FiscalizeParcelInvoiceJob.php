@@ -82,7 +82,7 @@ class FiscalizeParcelInvoiceJob implements ShouldBeUnique, ShouldQueue
 
         try {
             if (blank($settings->emecfToken) || blank($settings->emecfDefaultIfu) || $settings->emecfDefaultIfu === '0000000000000') {
-                throw new RuntimeException('e-MECeF Colis indisponible.');
+                throw new RuntimeException('Parcel e-MECeF service is unavailable.');
             }
             $emecf = app(EmecfService::class);
             $submission = [];
@@ -91,7 +91,7 @@ class FiscalizeParcelInvoiceJob implements ShouldBeUnique, ShouldQueue
                 $attempt = $attempts->start($invoice, 'submit', $this->nextAttempt($invoice, 'submit'), $payload);
                 $submission = $emecf->submitInvoice($payload);
                 if (($submission['success'] ?? false) !== true || empty($submission['data']['uid'])) {
-                    throw new RuntimeException('Soumission e-MECeF Colis échouée.');
+                    throw new RuntimeException('Parcel e-MECeF submission failed.');
                 }
                 $uid = (string) $submission['data']['uid'];
                 $invoice->update(['mecef_uid' => $uid, 'emecf_invoice_id' => $submission['invoice_id'] ?? EmecfInvoice::query()->where('uid', $uid)->value('id')]);
@@ -108,7 +108,7 @@ class FiscalizeParcelInvoiceJob implements ShouldBeUnique, ShouldQueue
             $qr = $result['data']['qrCode'] ?? null;
             $externalInvoice = $invoice->refresh()->emecfInvoice;
             if (blank($code) || blank($qr) || $externalInvoice === null) {
-                throw new RuntimeException('Certification e-MECeF Colis échouée.');
+                throw new RuntimeException('Parcel e-MECeF certification failed.');
             }
             $externalInvoice->update([
                 'status' => InvoiceStatus::CONFIRMED, 'finalized_at' => $externalInvoice->finalized_at ?? now(),

@@ -1,0 +1,11 @@
+---
+title: Signaler un incident sur un colis
+description: "Signale un incident non bloquant sur un colis référencé."
+api: POST /api/v1/parcels/{parcel_uuid}/incidents
+---
+
+Signale un incident non bloquant sur un colis référencé. Accessible au titulaire ou au destinataire vérifié. La réponse contient uniquement l’UUID de l’incident et sa qualification ; le code de retrait et le contenu du colis ne sont jamais exposés. Un `idempotency_key` optionnel permet de rejouer la déclaration sans créer un second incident ni une seconde notification. Limité à 5 requêtes par minute.
+
+## Sécurité
+
+Les réponses n’exposent que des identifiants publics (UUID ou références) et les champs métier nécessaires au parcours. Aucun code de retrait, hash, secret ou payload fournisseur n’est documenté comme retournable. Le statut public `incident` ne révèle ni le kind, ni la description, ni le responsable OPS.

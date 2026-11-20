@@ -16,4 +16,7 @@ interface SettingsCoordinator
         SettingsUpdate $update,
         User $actor,
     ): SettingsSnapshot;
+
+    /** @param array<string, mixed> $values */
+    public function updateParcelSettings(array $values, User $actor): SettingsSnapshot;
 }

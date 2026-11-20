@@ -33,8 +33,10 @@ use App\Modules\Wallet\Actions\FindOrCreateWalletAction;
 use Codianselme\LaraSygmef\Models\EmecfInvoice;
 use Codianselme\LaraSygmef\Services\EmecfService;
 use Database\Seeders\KoraBusRolePermissionSeeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
+use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function (): void {
@@ -64,6 +66,11 @@ function parcelScenario(): array
         'line_id' => $line->id, 'bus_id' => Bus::query()->create(['registration_number' => 'COLIS-'.Str::random(8), 'brand' => 'KORA', 'model' => 'Coach', 'seat_count' => 50, 'status' => 'active'])->id, 'conductor_id' => $conductor->id,
         'departure_date' => now()->toDateString(), 'departure_time' => '12:00', 'status' => DepartureStatus::Boarding,
     ]);
+    Departure::query()->create([
+        'line_id' => $line->id, 'bus_id' => Bus::query()->create(['registration_number' => 'INTAKE-'.Str::random(8), 'brand' => 'KORA', 'model' => 'Coach', 'seat_count' => 50, 'status' => 'active'])->id, 'conductor_id' => $conductor->id,
+        'departure_date' => now()->addDay()->toDateString(), 'departure_time' => '08:00', 'status' => DepartureStatus::Scheduled,
+        'stop_times' => [['stop_uuid' => $originStop->uuid], ['stop_uuid' => $destinationStop->uuid]],
+    ]);
     $session = CashSession::factory()->create(['agent_id' => $agent->id, 'agency_id' => $originAgency->id]);
     $ledger = CashLedger::factory()->create(['cash_session_id' => $session->id]);
 
@@ -73,7 +80,8 @@ function parcelScenario(): array
 function parcelIntakePayload(ParcelCorridor $corridor): array
 {
     return [
-        'corridor_uuid' => $corridor->uuid, 'sender_name' => 'Expéditeur privé', 'sender_phone' => '+2290191000000',
+        'corridor_uuid' => $corridor->uuid, 'idempotency_key' => (string) Str::uuid(),
+        'sender_name' => 'Expéditeur privé', 'sender_phone' => '+2290191000000',
         'recipient_name' => 'Destinataire privé', 'recipient_phone' => '+2290191000001',
         'contents' => 'Livres', 'weight_grams' => 5000,
     ];
@@ -99,14 +107,32 @@ it('keeps the payment, custody, offline replay and withdrawal consistent across 
     $payment = ['method' => 'cash', 'amount' => 3000, 'cash_received_amount' => 3000, 'idempotency_key' => (string) Str::uuid()];
     $this->postJson($web.'/pay', [...$payment, 'amount' => 1500])->assertConflict();
     $this->postJson($web.'/pay', $payment)->assertSuccessful()->assertJsonPath('data.status', 'confirmed');
+    $referenceAtIntake = $parcel->reference;
     $this->postJson($web.'/pay', $payment)->assertSuccessful();
     expect(CashMovement::query()->count())->toBe(1)
         ->and(FiscalInvoice::query()->count())->toBe(1)
-        ->and($parcel->refresh()->status)->toBe('registered');
-    $this->getJson('/api/v1/parcels/tracking/'.$parcel->reference)->assertExactJson([
-        'data' => ['status' => 'registered', 'origin' => 'Cotonou', 'destination' => 'Parakou'],
-    ]);
-    $this->getJson($web.'/documents?kind=label')->assertOk()->assertJsonPath('data.qr_payload', $parcel->reference);
+        ->and($parcel->refresh()->status)->toBe('registered')
+        ->and($parcel->reference)->toBe($referenceAtIntake);
+    $tracking = $this->getJson('/api/v1/parcels/tracking/'.$parcel->reference)->assertOk()
+        ->assertJsonPath('data.status', 'registered')
+        ->assertJsonPath('data.origin', 'Cotonou')
+        ->assertJsonPath('data.destination', 'Parakou')
+        ->assertJsonPath('data.weight_grams', 5001);
+    $publicData = $tracking->json('data');
+    expect(array_keys($publicData))->toBe([
+        'reference', 'status', 'origin', 'destination', 'weight_grams',
+        'withdraw_by', 'eta', 'last_event_at', 'timeline',
+    ])->and($publicData)->not->toHaveKey('sender_name')
+        ->not->toHaveKey('recipient_name')
+        ->not->toHaveKey('sender_phone')
+        ->not->toHaveKey('recipient_phone')
+        ->not->toHaveKey('contents')
+        ->not->toHaveKey('handoff_code')
+        ->not->toHaveKey('share_hash');
+    $this->getJson($web.'/documents?kind=label')->assertOk()->assertJsonPath(
+        'data.qr_payload',
+        route('api.v1.parcels.tracking', ['reference' => $parcel->reference]),
+    );
     $this->getJson($web.'/documents?kind=receipt')->assertOk()->assertJsonPath('data.fiscal_status', 'pending');
     $this->postJson($web.'/ready')->assertOk()->assertJsonPath('data.status', 'ready');
 
@@ -121,7 +147,7 @@ it('keeps the payment, custody, offline replay and withdrawal consistent across 
     $observedAt = now();
     $this->travel(10)->seconds();
     $departure->update(['status' => DepartureStatus::Departed, 'departed_at' => $departedAt]);
-    expect($parcel->refresh()->status)->toBe('ready');
+    expect($parcel->refresh()->status)->toBe('assigned');
 
     $batch = app(ProcessSyncBatchAction::class);
     $scan = [
@@ -160,7 +186,6 @@ it('records a refusal and sends a late provider confirmation to reconciliation',
     $this->actingAs($agent, 'web');
     $uuid = $this->postJson('/parcels/data', parcelIntakePayload($corridor))->assertSuccessful()->json('data.uuid');
     $web = '/parcels/data/'.$uuid;
-    $this->postJson($web.'/inspect', ['weight_grams' => 30001, 'category' => 'allowed'])->assertUnprocessable();
     $this->postJson($web.'/inspect', ['weight_grams' => 5000, 'category' => 'allowed'])->assertOk();
     $parcel = Parcel::query()->where('uuid', $uuid)->firstOrFail();
     $charge = $parcel->charges()->firstOrFail();
@@ -172,7 +197,7 @@ it('records a refusal and sends a late provider confirmation to reconciliation',
     $payment = app(ParcelPayments::class)->confirm($payment, PaymentStatus::Confirmed, 'late', []);
     expect($payment->failure_code)->toBe('parcel_reconciliation_required')
         ->and($charge->refresh()->settled_payment_id)->toBeNull()
-        ->and($parcel->refresh()->reference)->toBeNull()
+        ->and($parcel->refresh()->reference)->toMatch('/^KC-\d{8}-\d{5}$/')
         ->and($parcel->events()->where('kind', 'payment_reconciliation_required')->count())->toBe(1);
 });
 
@@ -217,6 +242,8 @@ it('releases unloaded cargo on departure cancellation and opens a single overdue
     $transport->scan($reverse, $conductor, $terminal, $parcel->reference, $originStop->uuid, false, now(), (string) Str::uuid());
     $this->actingAs($agent, 'web')->postJson($web.'/receive')->assertOk()->assertJsonPath('data.status', 'returned');
     $this->postJson($web.'/return-charge')->assertOk()->assertJsonPath('data.quote.total', 600);
+    $this->postJson($web.'/return-charge')->assertOk();
+    expect($parcel->charges()->where('return_leg', true)->count())->toBe(1);
     $message = ParcelOutbox::query()->where('kind', 'return_code')->firstOrFail()->payload['message'];
     $code = substr($message, -7, 6);
     $this->postJson($web.'/release', ['code' => $code])->assertConflict();
@@ -342,10 +369,94 @@ it('resumes a submitted fiscal invoice after an outage and prints only the certi
     $attempts = app(FiscalSyncAttemptRecorder::class);
     $snapshots = app(EmecfInvoiceSnapshotService::class);
     expect(fn () => $job->handle($settings, $attempts, $snapshots))->toThrow(RuntimeException::class);
-    $this->getJson($web.'/documents?kind=receipt')->assertOk()->assertJsonPath('data.fiscal_status', 'failed')
-        ->assertJsonMissingPath('data.esc_pos_base64');
+    $provisional = $this->getJson($web.'/documents?kind=receipt')->assertOk()->assertJsonPath('data.fiscal_status', 'failed')
+        ->assertJsonMissingPath('data.fiscal_code');
+    expect(base64_decode((string) $provisional->json('data.esc_pos_base64'), true))->toContain('RECU PROVISOIRE');
     $job->handle($settings, $attempts, $snapshots);
     $this->getJson($web.'/documents?kind=receipt')->assertOk()
         ->assertJsonPath('data.fiscal_status', 'certified')->assertJsonPath('data.fiscal_qr_payload', 'DGI-CERTIFIED-QR');
     expect($invoice->refresh()->mecef_uid)->toBe($external->uid);
+});
+
+it('requires reception before handoff and keeps the pickup code secret, single-use and reissuable', function (): void {
+    extract(parcelScenario());
+    $this->actingAs($agent, 'web');
+    $uuid = $this->postJson('/parcels/data', parcelIntakePayload($corridor))->assertSuccessful()->json('data.uuid');
+    $web = '/parcels/data/'.$uuid;
+    $this->postJson($web.'/inspect', ['weight_grams' => 5000, 'category' => 'allowed'])->assertOk();
+    $this->postJson($web.'/pay', [
+        'method' => 'cash', 'amount' => 1500, 'cash_received_amount' => 1500, 'idempotency_key' => (string) Str::uuid(),
+    ])->assertSuccessful();
+    $parcel = Parcel::query()->where('uuid', $uuid)->firstOrFail();
+    $parcel->update(['status' => 'arrived', 'custody_hub_id' => $corridor->destination_hub_id, 'available_at' => null, 'return_due_at' => null]);
+    $parcel->record('arrived', $conductor, ParcelHub::query()->findOrFail($corridor->destination_hub_id));
+
+    $this->actingAs($receiver, 'web');
+    $this->postJson($web.'/release', ['code' => '000000'])->assertConflict();
+    $this->postJson($web.'/receive')->assertOk()->assertJsonPath('data.status', 'available');
+    $this->getJson('/parcels/data/indicators')->assertOk()
+        ->assertJsonPath('meta.available', 1)->assertJsonPath('meta.total', 1);
+
+    $code = substr(ParcelOutbox::query()->where('kind', 'withdrawal_code')->firstOrFail()->payload['message'], -7, 6);
+    $parcel->refresh();
+    expect($parcel->handoff_hash)->not->toBeNull()
+        ->and($parcel->handoff_hash)->not->toBe($code)
+        ->and(DB::table('parcel_outboxes')->where('kind', 'withdrawal_code')->value('payload'))->not->toContain($code)
+        ->and($parcel->events()->where('kind', 'available')->where('details', 'like', '%'.$code.'%')->count())->toBe(0);
+
+    for ($attempt = 0; $attempt < 5; $attempt++) {
+        $this->postJson($web.'/release', ['code' => '000000'])->assertUnprocessable();
+    }
+    $this->postJson($web.'/release', ['code' => '000000'])->assertStatus(429);
+    expect($parcel->refresh()->handoff_attempts)->toBe(5);
+
+    $this->actingAs($ops, 'web')->postJson($web.'/reissue-code')->assertOk();
+    $newCode = substr(ParcelOutbox::query()->where('kind', 'withdrawal_code')->whereNull('completed_at')->firstOrFail()->payload['message'], -7, 6);
+    expect($newCode)->not->toBe($code)->and($parcel->refresh()->handoff_attempts)->toBe(0);
+
+    $this->actingAs($receiver, 'web');
+    $this->postJson($web.'/release', ['code' => $newCode])->assertOk()->assertJsonPath('data.status', 'withdrawn');
+    $this->postJson($web.'/release', ['code' => $newCode])->assertConflict();
+    expect($parcel->refresh()->handoff_hash)->toBeNull();
+
+    $this->withoutVite();
+    $proof = $this->get('/parcels/handoff/'.$uuid.'/print')->assertOk();
+    $proof->assertInertia(fn (Assert $page) => $page
+        ->component('parcel-handoff-proof')
+        ->where('proof.reference', $parcel->reference)
+        ->where('proof.outcome', 'withdrawn')
+        ->where('proof.verification.method', 'code'));
+    $proof->assertDontSee($newCode);
+
+    $this->getJson($web.'/documents?kind=handoff_proof')->assertOk()
+        ->assertJsonPath('data.kind', 'handoff_proof')->assertJsonMissingPath('data.handoff_code');
+    $this->actingAs($agent, 'web')->getJson($web.'/documents?kind=handoff_proof')->assertForbidden();
+});
+
+it('allows an audited identity override only with the override permission', function (): void {
+    extract(parcelScenario());
+    $this->actingAs($agent, 'web');
+    $uuid = $this->postJson('/parcels/data', parcelIntakePayload($corridor))->assertSuccessful()->json('data.uuid');
+    $web = '/parcels/data/'.$uuid;
+    $this->postJson($web.'/inspect', ['weight_grams' => 5000, 'category' => 'allowed'])->assertOk();
+    $this->postJson($web.'/pay', [
+        'method' => 'cash', 'amount' => 1500, 'cash_received_amount' => 1500, 'idempotency_key' => (string) Str::uuid(),
+    ])->assertSuccessful();
+    $parcel = Parcel::query()->where('uuid', $uuid)->firstOrFail();
+    $parcel->update(['status' => 'arrived', 'custody_hub_id' => $corridor->destination_hub_id]);
+    $this->actingAs($receiver, 'web')->postJson($web.'/receive')->assertOk();
+    $this->postJson($web.'/release', [
+        'identity_type' => 'national_id', 'reason' => 'Code non reçu par la destinataire',
+    ])->assertForbidden();
+
+    $admin = User::factory()->create()->assignRole('system_admin');
+    $this->actingAs($admin, 'web')->postJson($web.'/release', [
+        'identity_type' => 'national_id', 'reason' => 'Code non reçu par la destinataire',
+    ])->assertOk()->assertJsonPath('data.status', 'withdrawn')
+        ->assertJsonPath('data.handoff.method', 'identity');
+    $event = $parcel->events()->where('kind', 'withdrawn')->firstOrFail();
+    expect($event->details)->toMatchArray([
+        'identity_type' => 'national_id', 'reason' => 'Code non reçu par la destinataire',
+    ])->and($event->details)->not->toHaveKey('identity_number')
+        ->and($parcel->refresh()->handoff_hash)->toBeNull();
 });

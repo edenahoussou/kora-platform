@@ -8,7 +8,32 @@ class ParcelOperationRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        $user = $this->user();
+
+        if ($user === null) {
+            return false;
+        }
+
+        $routeName = (string) $this->route()?->getName();
+
+        if (str_starts_with($routeName, 'api.v1.parcels.')) {
+            return $user->can('parcels.customer');
+        }
+
+        return match ($this->route()?->getActionMethod()) {
+            'list', 'documents' => $user->can('parcels.view'),
+            'assign' => $user->can('parcels.assign'),
+            'scan' => $user->can('parcels.scan'),
+            'release' => $user->can('parcels.handoff'),
+            'correction', 'resolveIncident' => $user->can('parcels.override'),
+            'incident' => $user->can('parcels.intake')
+                || $user->can('parcels.assign')
+                || $user->can('parcels.handoff'),
+            'authorizeRefund', 'completeRefund' => $user->can('parcels.finance'),
+            'printResult' => $user->can('parcels.intake')
+                || $user->can('parcels.handoff'),
+            default => false,
+        };
     }
 
     /** @return array<string, list<string>> */
@@ -36,6 +61,8 @@ class ParcelOperationRequest extends FormRequest
             'incident' => [
                 'kind' => ['required', 'in:loss,damage,custody_discrepancy'],
                 'description' => ['required', 'string', 'max:2000'],
+                'idempotency_key' => ['nullable', 'uuid'],
+                ...($this->isOpsIncidentRoute() ? ['blocking' => ['nullable', 'boolean']] : []),
             ],
             'authorizeRefund' => [
                 'payment_uuid' => ['required', 'uuid'],
@@ -52,7 +79,7 @@ class ParcelOperationRequest extends FormRequest
                 'outcome' => ['required', 'in:printed,failed'],
             ],
             'documents' => [
-                'kind' => ['nullable', 'in:label,receipt,return_receipt'],
+                'kind' => ['nullable', 'in:label,receipt,return_receipt,handoff_proof'],
             ],
             'list' => [
                 'status' => ['nullable', 'string', 'max:32'],
@@ -62,5 +89,12 @@ class ParcelOperationRequest extends FormRequest
             ],
             default => [],
         };
+    }
+
+    private function isOpsIncidentRoute(): bool
+    {
+        $name = (string) $this->route()?->getName();
+
+        return str_contains($name, '.ops.') || str_starts_with($name, 'parcels.data.');
     }
 }

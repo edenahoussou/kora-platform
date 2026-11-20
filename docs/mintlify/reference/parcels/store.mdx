@@ -1,0 +1,11 @@
+---
+title: Pré-enregistrer un colis au guichet
+description: "Crée un colis en dépôt direct."
+api: POST /api/v1/parcels
+---
+
+Crée un colis en dépôt direct. `idempotency_key` est obligatoire : rejouer la même clé avec le même contenu renvoie le même colis sans doublon. La référence logistique et le code de retrait ne sont pas exposés avant inspection et paiement. Limité à 20 requêtes par minute.
+
+## Sécurité
+
+Les réponses n’exposent que des identifiants publics (UUID ou références) et les champs métier nécessaires au parcours. Aucun code de retrait, hash, secret ou payload fournisseur n’est documenté comme retournable.

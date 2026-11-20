@@ -146,8 +146,8 @@ if ($passengerOperations === []) {
     throw new RuntimeException('No passenger operations found in the Mintlify navigation.');
 }
 
-$spec->info->title = 'KORA BUS API Passager';
-$spec->info->description = 'API REST V1 de l’application mobile passager KORA BUS.';
+$spec->info->title = 'KORA API Passager';
+$spec->info->description = 'API REST V1 de l’application mobile passager KORA : Bus et Colis.';
 $spec->servers = [
     ['url' => 'https://staging.koraexpress.app', 'description' => 'Staging'],
     ['url' => 'https://prod.koraexpress.app', 'description' => 'Production'],

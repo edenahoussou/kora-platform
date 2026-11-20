@@ -191,6 +191,14 @@ const integrationFields: Record<string, IntegrationFieldDefinition[]> = {
     ],
     emecf: [
         {
+            key: 'emecfCountry',
+            label: 'Pays fiscal',
+            hint: 'Code ISO à deux lettres du pays couvert par le fournisseur fiscal (ex. BJ).',
+            type: 'text',
+            icon: Globe2,
+            required: true,
+        },
+        {
             key: 'emecfToken',
             label: 'Jeton e-MECeF',
             hint: 'Jeton d’accès fourni par la DGI.',
@@ -2120,6 +2128,155 @@ export default function SettingsPage({
                                 setNumber(
                                     'profitabilityGpsMaxSpeedKmh',
                                     nextValue,
+                                )
+                            }
+                        />
+                    </div>
+                </SettingsSection>
+                <SettingsSection
+                    title="Colis"
+                    description="Délais, poids, retraits et politique identité du réseau Colis. Ces valeurs sont lues à chaque exécution et auditées à chaque changement."
+                >
+                    <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                        <SettingsField
+                            label="Expiration intake"
+                            hint="Délai avant expiration d’un colis pré-enregistré ou pesé, non payé."
+                            value={value('parcelIntakeExpiryHours') as number}
+                            type="number"
+                            suffix="heures"
+                            disabled={!permissions.canManage}
+                            error={error('parcelIntakeExpiryHours')}
+                            onChange={(nextValue) =>
+                                setNumber('parcelIntakeExpiryHours', nextValue)
+                            }
+                        />
+                        <SettingsField
+                            label="Horizon de routage"
+                            hint="Fenêtre de jours examinée pour trouver un départ programmé disponible."
+                            value={value('parcelRoutingHorizonDays') as number}
+                            type="number"
+                            suffix="jours"
+                            disabled={!permissions.canManage}
+                            error={error('parcelRoutingHorizonDays')}
+                            onChange={(nextValue) =>
+                                setNumber('parcelRoutingHorizonDays', nextValue)
+                            }
+                        />
+                        <SettingsField
+                            label="Poids minimum de pesée"
+                            hint="Poids minimal accepté lors de l’inspection d’un colis."
+                            value={value('parcelMinimumWeightGrams') as number}
+                            type="number"
+                            suffix="g"
+                            disabled={!permissions.canManage}
+                            error={error('parcelMinimumWeightGrams')}
+                            onChange={(nextValue) =>
+                                setNumber('parcelMinimumWeightGrams', nextValue)
+                            }
+                        />
+                        <SettingsField
+                            label="Poids maximum de pesée"
+                            hint="Plafond opérationnel de la balance. Au-delà, le colis est refusé."
+                            value={value('parcelMaximumWeightGrams') as number}
+                            type="number"
+                            suffix="g"
+                            disabled={!permissions.canManage}
+                            error={error('parcelMaximumWeightGrams')}
+                            onChange={(nextValue) =>
+                                setNumber('parcelMaximumWeightGrams', nextValue)
+                            }
+                        />
+                        <SettingsField
+                            label="Seuil espèces déclarées"
+                            hint="Montant maximal d’espèces transportables sans refus (FCFA)."
+                            value={
+                                value(
+                                    'parcelCashDeclarationThresholdFcfa',
+                                ) as number
+                            }
+                            type="number"
+                            suffix="FCFA"
+                            disabled={!permissions.canManage}
+                            error={error('parcelCashDeclarationThresholdFcfa')}
+                            onChange={(nextValue) =>
+                                setNumber(
+                                    'parcelCashDeclarationThresholdFcfa',
+                                    nextValue,
+                                )
+                            }
+                        />
+                        <SettingsField
+                            label="Premier rappel"
+                            hint="Délai après disponibilité avant le premier rappel destinataire."
+                            value={value('parcelFirstReminderDays') as number}
+                            type="number"
+                            suffix="jours"
+                            disabled={!permissions.canManage}
+                            error={error('parcelFirstReminderDays')}
+                            onChange={(nextValue) =>
+                                setNumber('parcelFirstReminderDays', nextValue)
+                            }
+                        />
+                        <SettingsField
+                            label="Second rappel"
+                            hint="Délai après disponibilité avant le second rappel. Doit suivre le premier."
+                            value={value('parcelSecondReminderDays') as number}
+                            type="number"
+                            suffix="jours"
+                            disabled={!permissions.canManage}
+                            error={error('parcelSecondReminderDays')}
+                            onChange={(nextValue) =>
+                                setNumber('parcelSecondReminderDays', nextValue)
+                            }
+                        />
+                        <SettingsField
+                            label="Délai de retour"
+                            hint="Délai avant retour automatique à l’expéditeur. Doit suivre le second rappel."
+                            value={value('parcelReturnDays') as number}
+                            type="number"
+                            suffix="jours"
+                            disabled={!permissions.canManage}
+                            error={error('parcelReturnDays')}
+                            onChange={(nextValue) =>
+                                setNumber('parcelReturnDays', nextValue)
+                            }
+                        />
+                        <SettingsField
+                            label="Tentatives de retrait"
+                            hint="Nombre de codes erronés acceptés avant blocage de la remise."
+                            value={value('parcelHandoffMaxAttempts') as number}
+                            type="number"
+                            suffix="tentatives"
+                            disabled={!permissions.canManage}
+                            error={error('parcelHandoffMaxAttempts')}
+                            onChange={(nextValue) =>
+                                setNumber('parcelHandoffMaxAttempts', nextValue)
+                            }
+                        />
+                        <SettingsField
+                            label="Alerte fiscale"
+                            hint="Ancienneté d’une facture non certifiée avant alerte."
+                            value={value('parcelFiscalAlertHours') as number}
+                            type="number"
+                            suffix="heures"
+                            disabled={!permissions.canManage}
+                            error={error('parcelFiscalAlertHours')}
+                            onChange={(nextValue) =>
+                                setNumber('parcelFiscalAlertHours', nextValue)
+                            }
+                        />
+                        <SettingsToggle
+                            label="Pièce d’identité à la place du code"
+                            hint="Override exceptionnel sous parcels.override : type de pièce et motif seulement, aucun numéro stocké. Politique à valider métier."
+                            icon={IdCard}
+                            checked={Boolean(
+                                value('parcelIdentityOverrideEnabled'),
+                            )}
+                            disabled={!permissions.canManage}
+                            onChange={(checked) =>
+                                setValue(
+                                    'parcelIdentityOverrideEnabled',
+                                    checked,
                                 )
                             }
                         />

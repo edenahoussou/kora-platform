@@ -1,0 +1,12 @@
+---
+title: Suivre un colis par référence
+description: "Retourne le contrat public de suivi : référence, statut, trajet, poids, échéance de retrait, ETA et jalons publics."
+api: GET /api/v1/parcels/tracking/{reference}
+authMethod: none
+---
+
+Retourne le contrat public de suivi : référence, statut, trajet, poids, échéance de retrait, ETA et jalons publics. Le payload ne contient jamais le nom, le téléphone, le contenu, le code de retrait, les hashes ou le payload prestataire. Le statut `incident` signale un incident bloquant sans détail. Limité à 15 requêtes par minute.
+
+## Sécurité
+
+Les réponses n’exposent que des identifiants publics (UUID ou références) et les champs métier nécessaires au parcours. Aucun code de retrait, hash, secret ou payload fournisseur n’est documenté comme retournable.

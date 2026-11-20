@@ -126,6 +126,40 @@ it('does not ask for an impact confirmation when only alert delivery changes', f
         ->assertRedirect(route('administration.settings.operations', absolute: false));
 });
 
+it('exposes and persists the parcel routing horizon', function (): void {
+    $admin = settingsAdministrator();
+
+    $this->actingAs($admin)
+        ->get(route('administration.settings.operations'))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('snapshot.values.parcelRoutingHorizonDays', 30),
+        );
+
+    $this->actingAs($admin)
+        ->patch(route('administration.settings.operations.update'), [
+            'values' => ['parcelRoutingHorizonDays' => 45],
+        ])
+        ->assertRedirect(route('administration.settings.operations', absolute: false));
+
+    expect(app(OperationsSettings::class)->parcelRoutingHorizonDays)
+        ->toBe(45);
+});
+
+it('rejects an out-of-range parcel routing horizon', function (): void {
+    $admin = settingsAdministrator();
+
+    $this->actingAs($admin)
+        ->patch(route('administration.settings.operations.update'), [
+            'values' => ['parcelRoutingHorizonDays' => 0],
+        ])
+        ->assertRedirect()
+        ->assertSessionHasErrors('parcelRoutingHorizonDays');
+
+    expect(app(OperationsSettings::class)->parcelRoutingHorizonDays)
+        ->toBe(30);
+});
+
 it('keeps secrets masked through the integrations page and preserves blank submissions', function (): void {
     $admin = settingsAdministrator();
     $coordinator = app(SettingsCoordinator::class);
@@ -150,6 +184,36 @@ it('keeps secrets masked through the integrations page and preserves blank submi
     ])->assertRedirect();
 
     expect(app(IntegrationsSettings::class)->emecfToken)->toBe('route-secret');
+});
+
+it('persists the fiscal country used for parcel corridor activation', function (): void {
+    $admin = settingsAdministrator();
+
+    $this->actingAs($admin)
+        ->get(route('administration.settings.integrations'))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('snapshot.values.emecfCountry', 'BJ'),
+        );
+
+    $this->actingAs($admin)
+        ->patch(route('administration.settings.integrations.update'), [
+            'values' => ['emecfCountry' => 'TG'],
+        ])
+        ->assertRedirect();
+
+    expect(app(IntegrationsSettings::class)->emecfCountry)->toBe('TG');
+});
+
+it('rejects a malformed fiscal country code', function (): void {
+    $admin = settingsAdministrator();
+
+    $this->actingAs($admin)
+        ->patch(route('administration.settings.integrations.update'), [
+            'values' => ['emecfCountry' => 'Benin'],
+        ])
+        ->assertRedirect()
+        ->assertSessionHasErrors('emecfCountry');
 });
 
 it('sanitizes map attribution before it is persisted for browser map views', function (): void {

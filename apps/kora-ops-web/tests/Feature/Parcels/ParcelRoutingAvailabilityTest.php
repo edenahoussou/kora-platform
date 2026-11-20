@@ -10,6 +10,7 @@ use App\Modules\Parcels\Models\ParcelCorridor;
 use App\Modules\Parcels\Models\ParcelHub;
 use App\Modules\Parcels\Models\ParcelSouteBudget;
 use App\Modules\Parcels\Services\ParcelRouting;
+use App\Modules\Settings\Settings\IntegrationsSettings;
 use Database\Seeders\KoraBusRolePermissionSeeder;
 use Illuminate\Support\Str;
 
@@ -120,4 +121,78 @@ test('corridor activation is rejected when the origin stop does not precede the 
         'enabled' => true,
         'wallet_cash_enabled' => false,
     ])->assertConflict();
+});
+
+test('corridor activation uses the configured fiscal country instead of a hardcoded country', function (): void {
+    $fixture = routingCorridor(enabled: false);
+    $fixture['originAgency']->update(['country' => 'bj']);
+
+    $this->actingAs($fixture['ops'], 'web')->putJson('/parcels/data/corridors', [
+        'origin_hub_uuid' => $fixture['origin']->uuid,
+        'destination_hub_uuid' => $fixture['destination']->uuid,
+        'enabled' => true,
+        'wallet_cash_enabled' => false,
+    ])->assertSuccessful();
+});
+
+test('corridor activation rejects a country outside the configured fiscal coverage', function (): void {
+    $fixture = routingCorridor(enabled: false);
+    $settings = app(IntegrationsSettings::class);
+    $settings->emecfCountry = 'TG';
+    $settings->save();
+
+    $this->actingAs($fixture['ops'], 'web')->putJson('/parcels/data/corridors', [
+        'origin_hub_uuid' => $fixture['origin']->uuid,
+        'destination_hub_uuid' => $fixture['destination']->uuid,
+        'enabled' => true,
+        'wallet_cash_enabled' => false,
+    ])
+        ->assertConflict()
+        ->assertJsonPath('message', 'The configured fiscal provider does not cover parcel collections in this country.');
+});
+
+test('corridor activation accepts a country covered by the configured fiscal provider', function (): void {
+    $fixture = routingCorridor(enabled: false);
+    $fixture['originAgency']->update(['country' => 'TG']);
+    $fixture['destinationAgency']->update(['country' => 'TG']);
+    TaxRule::query()->update(['scope' => 'TG', 'tax_code' => 'COLIS-TG']);
+    $settings = app(IntegrationsSettings::class);
+    $settings->emecfCountry = 'TG';
+    $settings->save();
+
+    $this->actingAs($fixture['ops'], 'web')->putJson('/parcels/data/corridors', [
+        'origin_hub_uuid' => $fixture['origin']->uuid,
+        'destination_hub_uuid' => $fixture['destination']->uuid,
+        'enabled' => true,
+        'wallet_cash_enabled' => false,
+    ])->assertSuccessful();
+});
+
+test('capacity index exposes active corridor departures with soute usage', function (): void {
+    $fixture = routingCorridor();
+    $departure = routingDeparture($fixture, now()->addDay()->toDateString(), DepartureStatus::Scheduled);
+    ParcelSouteBudget::query()->create([
+        'departure_id' => $departure->id, 'bus_id' => $departure->bus_id, 'capacity_grams' => 30000,
+    ]);
+
+    $this->actingAs($fixture['ops'], 'web')
+        ->getJson('/parcels/data/capacity')
+        ->assertSuccessful()
+        ->assertJsonPath('data.horizon_days', 30)
+        ->assertJsonCount(1, 'data.departures')
+        ->assertJsonPath('data.departures.0.uuid', $departure->uuid)
+        ->assertJsonPath('data.departures.0.capacity_grams', 30000)
+        ->assertJsonPath('data.departures.0.reserved_grams', 0)
+        ->assertJsonPath('data.departures.0.available_grams', 30000)
+        ->assertJsonPath('data.departures.0.corridor_uuids.0', $fixture['corridor']->uuid);
+});
+
+test('capacity index requires the configure permission', function (): void {
+    $fixture = routingCorridor();
+    routingDeparture($fixture, now()->addDay()->toDateString(), DepartureStatus::Scheduled);
+    $viewer = User::factory()->create()->assignRole('general_management');
+
+    $this->actingAs($viewer, 'web')
+        ->getJson('/parcels/data/capacity')
+        ->assertForbidden();
 });

@@ -37,6 +37,25 @@ describe('SystemRole enum', function (): void {
             ->and(SystemRole::SystemAdmin->permissions())->toBe(SystemRole::allPermissions());
     });
 
+    it('grants every parcel permission to the system administrator', function (): void {
+        $parcelPermissions = [
+            'parcels.assign',
+            'parcels.configure',
+            'parcels.customer',
+            'parcels.finance',
+            'parcels.handoff',
+            'parcels.intake',
+            'parcels.network',
+            'parcels.override',
+            'parcels.scan',
+            'parcels.tariffs',
+            'parcels.view',
+        ];
+
+        expect(SystemRole::SystemAdmin->permissions())
+            ->toContain(...$parcelPermissions);
+    });
+
     it('differentiates bus_driver from conductor', function (): void {
         $driverPerms = SystemRole::BusDriver->permissions();
         $conductorPerms = SystemRole::Conductor->permissions();
@@ -67,8 +86,9 @@ describe('SystemRole enum', function (): void {
             ->and($all)->toContain('wallet.debit-counter', 'wallet.manage-restitutions', 'wallet.adjust')
             ->and($all)->toContain('wallet.ops.view', 'wallet.loyalty-rules.view', 'wallet.loyalty-rules.manage')
             ->and($all)->toContain('trip-logs.create')
-            ->and($all)->toHaveCount(119)
-            ->and(count(array_unique($all)))->toBe(119);
+            ->and($all)->toContain('parcels.manifest')
+            ->and($all)->toHaveCount(120)
+            ->and(count(array_unique($all)))->toBe(120);
     });
 
     it('registers every permission declared by a system role', function (): void {

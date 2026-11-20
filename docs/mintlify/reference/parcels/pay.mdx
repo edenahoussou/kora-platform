@@ -1,0 +1,11 @@
+---
+title: Payer un colis
+description: "Initie le paiement du dernier devis pesé."
+api: POST /api/v1/parcels/{parcel_uuid}/payments
+---
+
+Initie le paiement du dernier devis pesé. Le montant doit correspondre exactement au devis serveur, sinon 409. `idempotency_key` évite un double débit. Un colis refusé ou bloqué par un incident ne peut jamais être payé. Limité à 10 requêtes par minute.
+
+## Sécurité
+
+Les réponses n’exposent que des identifiants publics (UUID ou références) et les champs métier nécessaires au parcours. Aucun code de retrait, hash, secret ou payload fournisseur n’est documenté comme retournable.

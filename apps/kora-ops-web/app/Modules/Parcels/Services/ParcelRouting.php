@@ -55,6 +55,20 @@ class ParcelRouting
         abort_unless($corridor->origin_hub_id === $depositHub->id, 409, 'Deposit location must be the corridor origin hub; implicit transfers are not supported.');
     }
 
+    public function assertOperationallyAvailable(ParcelHub $origin, ParcelHub $destination, int $grams = 0): void
+    {
+        $this->assertStructurallyRoutable($origin, $destination);
+        $availability = $this->availability($origin, $destination);
+        abort_if($availability->isEmpty(), 409, 'No scheduled departure serves this corridor within the routing horizon.');
+
+        $hasCapacity = $availability->contains(function (array $row) use ($grams): bool {
+            $capacity = $row['capacity_grams'];
+
+            return $capacity === null || ((int) $capacity - (int) $row['reserved_grams']) >= $grams;
+        });
+        abort_unless($hasCapacity, 409, 'No scheduled departure has enough parcel capacity for this weight.');
+    }
+
     /** @return Collection<int, Departure> */
     public function departures(ParcelHub $origin, ParcelHub $destination, ?CarbonInterface $from = null): Collection
     {

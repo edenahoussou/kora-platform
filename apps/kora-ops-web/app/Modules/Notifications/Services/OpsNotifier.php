@@ -385,14 +385,15 @@ class OpsNotifier
         );
     }
 
-    public function parcelAlert(Parcel $parcel, string $key, bool $finance): void
+    /** @param array<string, mixed> $context */
+    public function parcelAlert(Parcel $parcel, string $key, bool $finance, array $context = []): void
     {
         $type = $finance ? OpsNotificationType::ParcelPaymentReconciliation : OpsNotificationType::ParcelIncident;
         $recipients = $this->resolver->usersWithPermission($finance ? 'parcels.finance' : 'parcels.network');
-        $this->publish($type, $type->value.':'.$key, $type->title(), [
+        $this->publish($type, $type->value.':'.$key, $type->title(), array_merge([
             'parcel_uuid' => $parcel->uuid,
             'reference' => $parcel->reference,
-        ], $recipients, null);
+        ], $context), $recipients, null);
     }
 
     public function fiscalizationFailed(FiscalInvoice $invoice): void
