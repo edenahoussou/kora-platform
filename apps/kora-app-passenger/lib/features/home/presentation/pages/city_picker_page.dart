@@ -7,16 +7,40 @@ import '../../../../core/widgets/screen_header.dart';
 import '../../../booking/domain/entities/city.dart';
 
 /// Lequel des deux champs de trajet cet écran renseigne.
-enum CityField {
-  origin,
-  destination;
+enum CityField { origin, destination }
 
-  /// Titre affiché en en-tête, repris de la maquette. Il se lit dans les
-  /// fichiers de langue et ne peut donc pas être porté par l'enum, dont
-  /// les valeurs sont constantes.
-  String titleOf(AppLocalization l10n) => switch (this) {
-    CityField.origin => l10n.cityPickerOriginTitle,
-    CityField.destination => l10n.cityPickerDestinationTitle,
+/// Ce qu'on compose en choisissant la ville : un voyage, ou l'envoi d'un
+/// colis. Le même écran sert les deux, mais pas avec les mêmes mots — on
+/// ne demande pas « d'où partez-vous ? » à qui dépose un carton.
+enum CityPickerPurpose {
+  trip,
+  parcel;
+
+  /// Les libellés se lisent dans les fichiers de langue : ils ne peuvent
+  /// donc pas être portés par l'enum, dont les valeurs sont constantes.
+  String eyebrowOf(AppLocalization l10n) => switch (this) {
+    CityPickerPurpose.trip => l10n.cityPickerEyebrow,
+    CityPickerPurpose.parcel => l10n.cityPickerParcelEyebrow,
+  };
+
+  String titleOf(AppLocalization l10n, CityField field) => switch ((
+    this,
+    field,
+  )) {
+    (CityPickerPurpose.trip, CityField.origin) => l10n.cityPickerOriginTitle,
+    (CityPickerPurpose.trip, CityField.destination) =>
+      l10n.cityPickerDestinationTitle,
+    (CityPickerPurpose.parcel, CityField.origin) =>
+      l10n.cityPickerParcelOriginTitle,
+    (CityPickerPurpose.parcel, CityField.destination) =>
+      l10n.cityPickerParcelDestinationTitle,
+  };
+
+  /// Sous-titre de chaque ligne : un arrêt pour le bus, un guichet pour
+  /// le colis — c'est ce qu'on y trouve qui change, pas la ville.
+  String stopOf(AppLocalization l10n) => switch (this) {
+    CityPickerPurpose.trip => l10n.cityPickerStop,
+    CityPickerPurpose.parcel => l10n.cityPickerParcelStop,
   };
 }
 
@@ -31,11 +55,16 @@ class CityPickerArgs {
     required this.cities,
     this.recentCities = const [],
     this.selected,
+    this.purpose = CityPickerPurpose.trip,
   });
 
   final List<City> cities;
   final List<City> recentCities;
   final City? selected;
+
+  /// Ce que l'appelant compose. Le trajet reste la valeur par défaut :
+  /// l'accueil ouvrait cet écran bien avant que le colis existe.
+  final CityPickerPurpose purpose;
 }
 
 /// Écran de sélection d'une ville — équivalent `locationPicker` de la
@@ -61,11 +90,13 @@ class CityPickerPage extends StatefulWidget {
     this.cities = const [],
     this.recentCities = const [],
     this.selected,
+    this.purpose = CityPickerPurpose.trip,
   });
 
   final CityField field;
   final List<City> cities;
   final List<City> recentCities;
+  final CityPickerPurpose purpose;
 
   /// Ville déjà renseignée dans le champ, pré-remplie dans la recherche.
   final City? selected;
@@ -108,8 +139,8 @@ class _CityPickerPageState extends State<CityPickerPage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               ScreenHeader(
-                eyebrow: context.l10n.cityPickerEyebrow,
-                title: widget.field.titleOf(context.l10n),
+                eyebrow: widget.purpose.eyebrowOf(context.l10n),
+                title: widget.purpose.titleOf(context.l10n, widget.field),
               ),
               KoraInput(
                 hint: context.l10n.cityPickerSearch,
@@ -131,6 +162,7 @@ class _CityPickerPageState extends State<CityPickerPage> {
                           _CityList(
                             cities: results,
                             selected: widget.selected,
+                            purpose: widget.purpose,
                             onSelect: _select,
                           ),
                           if (widget.recentCities.isNotEmpty) ...[
@@ -174,11 +206,13 @@ class _CityList extends StatelessWidget {
   const _CityList({
     required this.cities,
     required this.selected,
+    required this.purpose,
     required this.onSelect,
   });
 
   final List<City> cities;
   final City? selected;
+  final CityPickerPurpose purpose;
   final ValueChanged<City> onSelect;
 
   @override
@@ -195,6 +229,7 @@ class _CityList extends StatelessWidget {
             _CityTile(
               city: city,
               isSelected: city == selected,
+              purpose: purpose,
               // `.menu-item:last-child { border: 0 }`
               showDivider: city != cities.last,
               onTap: () => onSelect(city),
@@ -210,12 +245,14 @@ class _CityTile extends StatelessWidget {
   const _CityTile({
     required this.city,
     required this.isSelected,
+    required this.purpose,
     required this.showDivider,
     required this.onTap,
   });
 
   final City city;
   final bool isSelected;
+  final CityPickerPurpose purpose;
   final bool showDivider;
   final VoidCallback onTap;
 
@@ -271,10 +308,10 @@ class _CityTile extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  // Toujours « Arrêt KORA » : la liste ne montre que des
-                  // villes, et c'est le serveur qui choisit l'arrêt.
+                  // La liste ne montre que des villes : la ligne dit donc
+                  // ce qu'on y trouve — un arrêt, ou un guichet colis.
                   Text(
-                    context.l10n.cityPickerStop,
+                    purpose.stopOf(context.l10n),
                     style: TextStyle(color: koraColors.textMuted, fontSize: 9),
                   ),
                 ],

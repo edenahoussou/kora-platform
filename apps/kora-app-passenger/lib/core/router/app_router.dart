@@ -38,6 +38,23 @@ import '../../features/booking/presentation/pages/ticket_detail_page.dart';
 import '../../features/booking/presentation/pages/ticket_page.dart';
 import '../../features/booking/presentation/pages/tickets_page.dart';
 import '../../features/booking/presentation/widgets/seat_hold_watcher.dart';
+import '../../features/colis/presentation/bloc/colis_draft_cubit.dart';
+import '../../features/colis/presentation/pages/colis_checkout_args.dart';
+import '../../features/colis/presentation/pages/colis_contacts_page.dart';
+import '../../features/colis/presentation/pages/colis_content_page.dart';
+import '../../features/colis/presentation/pages/colis_gateway_page.dart';
+import '../../features/colis/presentation/pages/colis_momo_page.dart';
+import '../../features/colis/presentation/pages/colis_page.dart';
+import '../../features/colis/presentation/pages/colis_payment_page.dart';
+import '../../features/colis/presentation/pages/colis_pending_page.dart';
+import '../../features/colis/presentation/pages/colis_pickup_page.dart';
+import '../../features/colis/presentation/pages/colis_preregistered_page.dart';
+import '../../features/colis/presentation/pages/colis_quote_page.dart';
+import '../../features/colis/presentation/pages/colis_receipt_page.dart';
+import '../../features/colis/presentation/pages/colis_route_page.dart';
+import '../../features/colis/presentation/pages/colis_shipments_page.dart';
+import '../../features/colis/presentation/pages/colis_summary_page.dart';
+import '../../features/colis/presentation/pages/colis_tracking_page.dart';
 import '../../features/home/presentation/pages/city_picker_page.dart';
 import '../../features/home/presentation/pages/date_picker_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
@@ -79,7 +96,6 @@ import '../../features/welcome/presentation/pages/splash_page.dart';
 import '../../features/welcome/presentation/pages/welcome_page.dart';
 import '../di/injector.dart';
 import '../l10n/app_localization.dart';
-import '../widgets/coming_soon_page.dart';
 import 'auth_flow_navigator.dart';
 
 /// Couche CORE : configuration centrale de la navigation avec `go_router`.
@@ -194,6 +210,35 @@ class AppRouter {
   /// sièges comme le paiement, et le suivi peut y revenir.
   static const String assistanceRequestPath = '/assistance/demande';
   static const String assistanceStatusPath = '/assistance/suivi';
+
+  /// Le parcours d'envoi d'un colis — écrans 02 à 06 de la maquette.
+  ///
+  /// Un seul brouillon les traverse : le voyageur doit pouvoir revenir
+  /// corriger une étape sans perdre les suivantes.
+  static const String colisRoutePath = '/colis/envoi/itineraire';
+  static const String colisContentPath = '/colis/envoi/contenu';
+  static const String colisContactsPath = '/colis/envoi/contacts';
+  static const String colisSummaryPath = '/colis/envoi/recapitulatif';
+  static const String colisPreregisteredPath = '/colis/envoi/enregistre';
+  static const String colisQuotePath = '/colis/envoi/devis';
+  static const String colisPaymentPath = '/colis/envoi/paiement';
+  static const String colisReceiptPath = '/colis/envoi/recu';
+
+  /// Les trois écrans qui encaissent une expédition, un par
+  /// passerelle — comme pour un billet. FedaPay pousse la demande
+  /// sur le téléphone et réclame donc l'opérateur et le numéro ;
+  /// KKiaPay et la carte se règlent dans la feuille du
+  /// prestataire.
+  static const String colisMomoPath = '/colis/envoi/paiement/mobile-money';
+  static const String colisGatewayPath = '/colis/envoi/paiement/guichet';
+  static const String colisCardPath = '/colis/envoi/paiement/carte';
+  static const String colisPendingPath = '/colis/envoi/paiement/attente';
+
+  /// Le suivi après paiement : la liste, le détail d'un envoi, et le
+  /// retrait au guichet d'arrivée.
+  static const String colisShipmentsPath = '/colis/envois';
+  static const String colisTrackingPath = '/colis/envois/suivi';
+  static const String colisPickupPath = '/colis/envois/retrait';
 
   /// Les écrans de paiement, dans le tunnel : le décompte doit y courir
   /// aussi.
@@ -324,6 +369,7 @@ class AppRouter {
       cities: args?.cities ?? const [],
       recentCities: args?.recentCities ?? const [],
       selected: args?.selected,
+      purpose: args?.purpose ?? CityPickerPurpose.trip,
     );
   }
 
@@ -836,6 +882,96 @@ class AppRouter {
               path: holdExpiredPath,
               builder: (context, state) => const HoldExpiredPage(),
             ),
+            // Le parcours Colis partage un brouillon : chaque écran le
+            // relit et l'enrichit, et un retour n'efface rien.
+            GoRoute(
+              path: colisRoutePath,
+              builder: (context, state) =>
+                  const _ColisDraftScope(child: ColisRoutePage()),
+            ),
+            GoRoute(
+              path: colisContentPath,
+              builder: (context, state) =>
+                  const _ColisDraftScope(child: ColisContentPage()),
+            ),
+            GoRoute(
+              path: colisContactsPath,
+              builder: (context, state) =>
+                  const _ColisDraftScope(child: ColisContactsPage()),
+            ),
+            GoRoute(
+              path: colisSummaryPath,
+              builder: (context, state) =>
+                  const _ColisDraftScope(child: ColisSummaryPage()),
+            ),
+            GoRoute(
+              path: colisPreregisteredPath,
+              builder: (context, state) =>
+                  const _ColisDraftScope(child: ColisPreregisteredPage()),
+            ),
+            GoRoute(
+              path: colisQuotePath,
+              builder: (context, state) =>
+                  const _ColisDraftScope(child: ColisQuotePage()),
+            ),
+            GoRoute(
+              path: colisPaymentPath,
+              builder: (context, state) =>
+                  const _ColisDraftScope(child: ColisPaymentPage()),
+            ),
+            GoRoute(
+              path: colisMomoPath,
+              builder: (context, state) => _ColisDraftScope(
+                child: ColisMomoPage(args: state.extra as ColisCheckoutArgs?),
+              ),
+            ),
+            GoRoute(
+              path: colisGatewayPath,
+              builder: (context, state) => _ColisDraftScope(
+                child: ColisGatewayPage(
+                  isCard: false,
+                  args: state.extra as ColisCheckoutArgs?,
+                ),
+              ),
+            ),
+            GoRoute(
+              path: colisCardPath,
+              builder: (context, state) => _ColisDraftScope(
+                child: ColisGatewayPage(
+                  isCard: true,
+                  args: state.extra as ColisCheckoutArgs?,
+                ),
+              ),
+            ),
+            GoRoute(
+              path: colisPendingPath,
+              builder: (context, state) => _ColisDraftScope(
+                child: ColisPendingPage(
+                  args: state.extra as ColisCheckoutArgs?,
+                ),
+              ),
+            ),
+            GoRoute(
+              path: colisReceiptPath,
+              builder: (context, state) =>
+                  const _ColisDraftScope(child: ColisReceiptPage()),
+            ),
+            // Le suivi n'a pas besoin du brouillon : il lit un envoi
+            // déjà payé, désigné par sa référence.
+            GoRoute(
+              path: colisShipmentsPath,
+              builder: (context, state) => const ColisShipmentsPage(),
+            ),
+            GoRoute(
+              path: colisTrackingPath,
+              builder: (context, state) =>
+                  ColisTrackingPage(reference: state.extra as String?),
+            ),
+            GoRoute(
+              path: colisPickupPath,
+              builder: (context, state) =>
+                  ColisPickupPage(reference: state.extra as String?),
+            ),
             GoRoute(
               path: assistanceRequestPath,
               builder: (context, state) =>
@@ -942,18 +1078,15 @@ class AppRouter {
                 ),
               ],
             ),
-            // Colis : l'écran existe, dessiné d'après la maquette, mais
-            // sa fonctionnalité n'est pas écrite — ni domaine, ni source
-            // de données. L'onglet s'ouvre donc sur du vide, le temps
-            // que la feature arrive.
+            // Colis : l'onglet s'ouvre sur l'accueil du module, et non
+            // plus sur un écran d'attente. Le parcours d'envoi qui s'y
+            // accroche est encore nourri de données figées — aucune
+            // requête ne part —, mais l'enchaînement, lui, est réel.
             StatefulShellBranch(
               routes: [
                 GoRoute(
                   path: '/colis',
-                  builder: (context, state) => ComingSoonPage(
-                    eyebrow: context.l10n.parcelsEyebrow,
-                    title: context.l10n.parcelsTitle,
-                  ),
+                  builder: (context, state) => const ColisPage(),
                 ),
               ],
             ),
@@ -982,10 +1115,6 @@ class AppRouter {
 
 /// L'onglet Voyages dans la barre du bas, dans l'ordre des branches.
 const int _voyagesBranch = 1;
-
-/// L'onglet qui attend sa feature : son écran dort dans le dépôt, et
-/// l'app ne l'ouvre pas.
-const int _colisBranch = 2;
 
 /// Le `Scaffold` commun à tous les onglets : il porte la [KoraBottomNav]
 /// et affiche la branche active via [navigationShell].
@@ -1021,12 +1150,6 @@ class _ScaffoldWithNavBar extends StatelessWidget {
           ],
           currentIndex: navigationShell.currentIndex,
           onTap: (index) {
-            // Colis n'a pas encore de fonctionnalité : son écran dort
-            // dans le dépôt et l'onglet ne montrerait qu'un en-tête.
-            // L'appui ne mène donc nulle part, comme la tuile de
-            // l'accueil et celle de KORA Ride.
-            if (index == _colisBranch) return;
-
             // Ouvrir Voyages relit les billets : l'émission suit le
             // paiement de quelques secondes, et la branche garde son
             // état — sans ça, le billet qu'on vient d'acheter n'y
@@ -1062,5 +1185,24 @@ class GoRouterRefreshStream extends ChangeNotifier {
   void dispose() {
     _subscription.cancel();
     super.dispose();
+  }
+}
+
+/// Le brouillon d'envoi, partagé par les cinq écrans du parcours Colis.
+///
+/// Un singleton plutôt qu'un `extra` de `go_router` : le voyageur revient
+/// corriger son itinéraire depuis le récapitulatif, et un `extra` l'aurait
+/// obligé à ressaisir tout ce qui suit.
+class _ColisDraftScope extends StatelessWidget {
+  const _ColisDraftScope({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider<ColisDraftCubit>.value(
+      value: getIt<ColisDraftCubit>(),
+      child: child,
+    );
   }
 }

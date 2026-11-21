@@ -191,3 +191,66 @@ class SyncCountryLocalizationsDelegate
   @override
   bool shouldReload(SyncCountryLocalizationsDelegate old) => false;
 }
+
+/// L'indicatif d'un numéro, ouvrant [pickPhoneCountry].
+///
+/// L'inscription, la connexion et la fiche passager en dessinaient
+/// chacune une copie. Celle-ci est posée ici pour que les écrans qui
+/// s'ajoutent — le destinataire d'un colis, le premier — n'en fassent
+/// pas une de plus.
+class PhoneCountryButton extends StatelessWidget {
+  const PhoneCountryButton({
+    super.key,
+    required this.country,
+    required this.onCountry,
+  });
+
+  final PhoneCountry country;
+  final ValueChanged<PhoneCountry> onCountry;
+
+  Future<void> _pick(BuildContext context) async {
+    final picked = await pickPhoneCountry(context);
+    if (picked != null) onCountry(picked);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final koraColors = context.koraColors;
+
+    return SizedBox(
+      width: 124,
+      height: 56,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _pick(context),
+          borderRadius: BorderRadius.circular(AppRadius.base),
+          child: Ink(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppRadius.base),
+              border: Border.all(color: koraColors.line),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${country.flag}  ${country.code}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.body(koraColors.textPrimary),
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_drop_down,
+                  color: koraColors.textMuted,
+                  size: 20,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
