@@ -370,11 +370,16 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
             'mtnMomoUserId' => ['nullable', 'string', 'max:500'],
             'mtnMomoApiKey' => ['nullable', 'string', 'max:500'],
             'mtnMomoEnvironment' => ['required', 'in:sandbox,production'],
-            'mtnMomoCallbackUrl' => ['nullable', 'url:http,https', 'max:500'],
-            'mtnMomoTargetEnvironment' => ['required', 'string', 'max:64'],
+            'mtnMomoCallbackUrl' => ['nullable', 'url:https', 'max:500'],
+            'mtnMomoTargetEnvironment' => [
+                'required',
+                'string',
+                'max:64',
+                Rule::in(config('payments.providers.mtn_momo.target_environments', [])),
+            ],
             'mtnMomoSandboxCurrency' => ['required', 'regex:/^[A-Z]{3}$/'],
             'mtnMomoProductionCurrency' => ['required', 'regex:/^[A-Z]{3}$/'],
-            'mtnMomoWebhookSecret' => ['nullable', 'string', 'max:500'],
+            'mtnMomoWebhookSecret' => ['nullable', 'string', 'min:32', 'max:500'],
             'kkiapayEnabled' => ['required', 'boolean'],
             'kkiapayPublicKey' => ['nullable', 'string', 'max:500'],
             'kkiapayPrivateKey' => ['nullable', 'string', 'max:500'],
@@ -531,6 +536,14 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
 
         if ((bool) $values['mtnMomoEnabled'] && (blank($values['mtnMomoSubscriptionKey']) || blank($values['mtnMomoUserId']) || blank($values['mtnMomoApiKey']))) {
             $errors['mtnMomoSubscriptionKey'] = 'MTN MoMo credentials are required when the provider is enabled.';
+        }
+
+        if ((bool) $values['mtnMomoEnabled'] && blank($values['mtnMomoCallbackUrl'])) {
+            $errors['mtnMomoCallbackUrl'] = 'A public HTTPS callback URL is required when MTN MoMo is enabled.';
+        }
+
+        if ((bool) $values['mtnMomoEnabled'] && blank($values['mtnMomoWebhookSecret'])) {
+            $errors['mtnMomoWebhookSecret'] = 'A webhook secret of at least 32 characters is required when MTN MoMo is enabled.';
         }
 
         if ((bool) $values['kkiapayEnabled']

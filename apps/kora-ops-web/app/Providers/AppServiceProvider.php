@@ -211,6 +211,7 @@ class AppServiceProvider extends ServiceProvider
                 productionCurrency: $settings->mtnMomoProductionCurrency,
                 callbackUrl: $settings->mtnMomoCallbackUrl,
                 webhookSecret: $settings->mtnMomoWebhookSecret,
+                baseUrl: config('payments.providers.mtn_momo.base_url'),
             );
         });
     }

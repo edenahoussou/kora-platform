@@ -92,6 +92,12 @@ final class ReconcileWalletTopUpAction
             return $this->releaseStaleKkiapayTransaction($payment, $candidate->provider_transaction_id);
         }
 
+        return $this->applyResponse($payment, $response, $authenticatedEvent);
+    }
+
+    /** @param array<string, mixed> $authenticatedEvent */
+    public function applyResponse(Payment $payment, ProviderResponse $response, array $authenticatedEvent = []): Payment
+    {
         $data = $response->payload;
         $correlation = match ($payment->provider) {
             'fedapay' => data_get($data, 'custom_metadata.kora_payment_uuid'),
@@ -105,11 +111,13 @@ final class ReconcileWalletTopUpAction
         }
 
         $receipt = $response->providerTransactionId ?? $response->providerReference;
-        $amount = filter_var($data['amount'] ?? $authenticatedEvent['amount'] ?? null, FILTER_VALIDATE_INT);
+        $rawAmount = $data['amount'] ?? $authenticatedEvent['amount'] ?? null;
+        $amount = is_numeric($rawAmount) ? (float) $rawAmount : null;
         if ($response->status === PaymentStatus::Pending && (blank($receipt) || $correlation === null)) {
             return $payment->refresh();
         }
-        if ($correlation !== $payment->uuid || $amount !== (int) $payment->provider_amount
+        if ($correlation !== $payment->uuid || $amount === null
+            || abs($amount - (float) $payment->provider_amount) > 0.0001
             || $currency !== $payment->provider_currency || blank($receipt) || strlen($receipt) > 128) {
             Log::warning('Wallet top-up provider verification mismatch', [
                 'payment_uuid' => $payment->uuid,
@@ -164,7 +172,13 @@ final class ReconcileWalletTopUpAction
                 'last_verified_at' => now(),
             ]);
 
-            return $this->confirm->handle($locked, $response->isConfirmed() ? 'confirmed' : 'failed', $response->providerReference);
+            return $this->confirm->handle(
+                $locked,
+                $response->isConfirmed()
+                    ? 'confirmed'
+                    : ($response->status === PaymentStatus::Cancelled ? 'cancelled' : 'failed'),
+                $response->providerReference,
+            );
         });
     }
 

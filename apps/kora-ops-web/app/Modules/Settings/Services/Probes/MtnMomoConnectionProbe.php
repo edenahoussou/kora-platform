@@ -37,10 +37,34 @@ final class MtnMomoConnectionProbe implements IntegrationConnectionProbe
             );
         }
 
+        if (blank($this->settings->mtnMomoCallbackUrl) || blank($this->settings->mtnMomoWebhookSecret)) {
+            return ConnectionProbeResult::failure(
+                provider: $this->provider(),
+                environment: $environment,
+                durationMs: $this->duration($startedAt),
+                message: 'La configuration du callback MTN MoMo est incomplète.',
+            );
+        }
+
+        if (! in_array($this->settings->mtnMomoTargetEnvironment, config('payments.providers.mtn_momo.target_environments', []), true)) {
+            return ConnectionProbeResult::failure(
+                provider: $this->provider(),
+                environment: $environment,
+                durationMs: $this->duration($startedAt),
+                message: 'L’environnement cible MTN MoMo n’est pas reconnu.',
+            );
+        }
+
         try {
-            $baseUrl = $environment === 'production'
-                ? self::PRODUCTION_URL
-                : self::SANDBOX_URL;
+            $baseUrl = config('payments.providers.mtn_momo.base_url');
+
+            if (blank($baseUrl)) {
+                $baseUrl = $environment === 'production'
+                    ? self::PRODUCTION_URL
+                    : self::SANDBOX_URL;
+            }
+
+            $baseUrl = rtrim((string) $baseUrl, '/');
 
             $response = Http::asForm()
                 ->withHeaders([
@@ -48,10 +72,11 @@ final class MtnMomoConnectionProbe implements IntegrationConnectionProbe
                         $this->settings->mtnMomoUserId.':'.$this->settings->mtnMomoApiKey,
                     ),
                     'Ocp-Apim-Subscription-Key' => $this->settings->mtnMomoSubscriptionKey,
+                    'X-Target-Environment' => $this->settings->mtnMomoTargetEnvironment,
                 ])
                 ->timeout(15)
                 ->connectTimeout(5)
-                ->retry(2, 100)
+                ->retry(2, 100, null, false)
                 ->post($baseUrl.'/collection/token/');
 
             if ($response->successful() && filled($response->json('access_token'))) {

@@ -316,3 +316,46 @@ it('exposes profitability GPS thresholds and validates their bounds', function (
         $admin,
     ))->toThrow(ValidationException::class);
 });
+
+it('validates MTN MoMo callback, secret and target environment', function (): void {
+    $admin = settingsAdmin();
+    $this->actingAs($admin);
+    $coordinator = app(SettingsCoordinator::class);
+
+    $valid = [
+        'mtnMomoEnabled' => true,
+        'mtnMomoSubscriptionKey' => 'subscription-key',
+        'mtnMomoUserId' => 'api-user-id',
+        'mtnMomoApiKey' => 'api-key',
+        'mtnMomoEnvironment' => 'sandbox',
+        'mtnMomoCallbackUrl' => 'https://staging.kora.test/api/v1/payments/webhook/mtn-momo',
+        'mtnMomoTargetEnvironment' => 'mtnbenin',
+        'mtnMomoSandboxCurrency' => 'EUR',
+        'mtnMomoProductionCurrency' => 'XOF',
+        'mtnMomoWebhookSecret' => str_repeat('s', 32),
+    ];
+
+    foreach ([
+        array_replace($valid, ['mtnMomoCallbackUrl' => 'http://staging.kora.test/api/v1/payments/webhook/mtn-momo']),
+        array_replace($valid, ['mtnMomoWebhookSecret' => 'short']),
+        array_replace($valid, ['mtnMomoTargetEnvironment' => 'mtnunknown']),
+        array_replace($valid, ['mtnMomoCallbackUrl' => null]),
+    ] as $invalid) {
+        expect(fn () => $coordinator->update(
+            SettingsGroup::Integrations,
+            new IntegrationsSettingsUpdate($invalid),
+            $admin,
+        ))->toThrow(ValidationException::class);
+    }
+
+    $coordinator->update(
+        SettingsGroup::Integrations,
+        new IntegrationsSettingsUpdate($valid),
+        $admin,
+    );
+
+    app(IntegrationsSettings::class)->refresh();
+
+    expect(app(IntegrationsSettings::class)->mtnMomoTargetEnvironment)->toBe('mtnbenin')
+        ->and(app(IntegrationsSettings::class)->mtnMomoEnabled)->toBeTrue();
+});

@@ -62,6 +62,7 @@ class ConfirmPaymentAction
 
             $isSuccess = in_array(strtolower($status), ['success', 'confirmed'], true);
             $isPending = strtolower($status) === 'pending';
+            $isCancelled = strtolower($status) === 'cancelled';
 
             if ($lockedPayment->status->isTerminal()) {
                 // Si le paiement avait été marqué 'failed' uniquement suite à l'expiration de la réservation,
@@ -229,7 +230,7 @@ class ConfirmPaymentAction
                 ]);
             } else {
                 $lockedPayment->update([
-                    'status' => PaymentStatus::Failed,
+                    'status' => $isCancelled ? PaymentStatus::Cancelled : PaymentStatus::Failed,
                     'provider_reference' => $providerReference ?? $lockedPayment->provider_reference,
                     'provider_payload' => $mergedPayload,
                 ]);

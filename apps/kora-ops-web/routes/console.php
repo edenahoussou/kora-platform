@@ -36,6 +36,7 @@ Schedule::command('wallet:expiry-reminders')->dailyAt('08:00')->withoutOverlappi
 Schedule::command('wallet:anniversary-bonuses')->dailyAt('08:10')->withoutOverlapping()->onOneServer();
 Schedule::command('wallet:loyalty-rules:activate-scheduled')->everyMinute()->withoutOverlapping()->onOneServer();
 Schedule::command('wallet:reconcile-topups')->everyFiveMinutes()->withoutOverlapping()->onOneServer();
+Schedule::command('payments:reconcile-mtn-momo')->everyFiveMinutes()->withoutOverlapping()->onOneServer();
 
 Schedule::call(function (): void {
     app(ParcelHandoff::class)->advanceDueParcels();
