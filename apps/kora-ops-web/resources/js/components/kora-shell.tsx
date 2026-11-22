@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { KoraSidebar } from '@/components/kora-sidebar';
 import { KoraTopbar } from '@/components/kora-topbar';
 import { SupportChatWidget } from '@/components/support-chat-widget';
+import { useOpsNavigation } from '@/hooks/use-ops-navigation';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -19,6 +20,7 @@ type Props = {
 export function KoraShell({ children }: Props) {
     const { auth } = usePage().props;
     const user = auth?.user ?? undefined;
+    const { navigation, workspaceLabel } = useOpsNavigation();
     const [mobileOpen, setMobileOpen] = useState(false);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
         if (typeof window === 'undefined') {
@@ -43,6 +45,8 @@ export function KoraShell({ children }: Props) {
             )}
         >
             <KoraSidebar
+                navigation={navigation}
+                workspaceLabel={workspaceLabel}
                 collapsed={sidebarCollapsed}
                 mobileOpen={mobileOpen}
                 onMobileClose={() => setMobileOpen(false)}
@@ -50,6 +54,7 @@ export function KoraShell({ children }: Props) {
             />
             <div className="kora-main flex min-h-screen flex-col">
                 <KoraTopbar
+                    navigation={navigation}
                     user={user}
                     onMenuClick={() => setMobileOpen(true)}
                 />

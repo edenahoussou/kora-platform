@@ -58,6 +58,8 @@ it('grants the referral bonus to the referrer at the referee first use', functio
 });
 
 it('grants the anniversary bonus once per year', function (): void {
+    $this->travelTo(now('Africa/Porto-Novo')->setDate(2026, 6, 15)->setTime(12, 0));
+
     $scenario = walletScenario();
     Wallet::query()->whereKey($scenario['wallet']->getKey())->update([
         'created_at' => now()->subYear()->startOfDay(),

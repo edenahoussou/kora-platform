@@ -1,9 +1,10 @@
 import { router } from '@inertiajs/react';
-import { Menu, Moon, Search, Sun } from 'lucide-react';
+import { Menu, Moon, Sun } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { HelpMenu } from '@/components/help-menu';
 import { KoraCorridorFlagPicker } from '@/components/kora-corridor-flag-picker';
 import { KoraUserMenuContent } from '@/components/kora-user-menu';
+import { OpsMenuSearch } from '@/components/ops-menu-search';
 import { OpsNotificationDrawer } from '@/components/ops-notification-drawer';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -13,6 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAppearance } from '@/hooks/use-appearance';
 import { useInitials } from '@/hooks/use-initials';
+import type { OpsNavEntry } from '@/hooks/use-ops-navigation';
 import { getOpsMessaging, listenForOpsPush } from '@/lib/firebase-messaging';
 import type { OpsFirebaseConfig } from '@/lib/firebase-messaging';
 import { logout } from '@/routes';
@@ -24,12 +26,12 @@ import { update as updatePushPreference } from '@/routes/settings/notifications/
 import type { User } from '@/types';
 
 type Props = {
+    navigation: OpsNavEntry[];
     user?: User;
     onMenuClick?: () => void;
 };
 
-export function KoraTopbar({ user, onMenuClick }: Props) {
-    const [query, setQuery] = useState('');
+export function KoraTopbar({ navigation, user, onMenuClick }: Props) {
     const [unreadCount, setUnreadCount] = useState(0);
     const { resolvedAppearance, updateAppearance } = useAppearance();
 
@@ -124,14 +126,6 @@ export function KoraTopbar({ user, onMenuClick }: Props) {
         };
     }, [refreshUnreadCount]);
 
-    const handleSearch = (e: React.FormEvent) => {
-        e.preventDefault();
-
-        if (query.trim()) {
-            router.visit(`/search?q=${encodeURIComponent(query)}`);
-        }
-    };
-
     const handleLogout = async () => {
         const fingerprint = window.localStorage.getItem(
             'kora-ops-web-push-device',
@@ -182,7 +176,7 @@ export function KoraTopbar({ user, onMenuClick }: Props) {
     const initials = user ? getInitials(user.name) : 'KO';
 
     return (
-        <header className="kora-topbar sticky top-0 z-30 flex h-[4.75rem] items-center gap-4 border-b border-border bg-background/96 px-[clamp(1rem,3vw,1.875rem)] backdrop-blur-xl">
+        <header className="kora-topbar sticky top-0 z-30 flex h-[4.75rem] items-center gap-1 border-b border-border bg-background/96 px-2 backdrop-blur-xl min-[400px]:gap-2 sm:gap-4 sm:px-[clamp(1rem,3vw,1.875rem)]">
             {/* Mobile menu toggle */}
             <button
                 type="button"
@@ -193,22 +187,13 @@ export function KoraTopbar({ user, onMenuClick }: Props) {
                 <Menu className="size-5" />
             </button>
 
-            {/* Search — hidden on mobile */}
-            <form
-                onSubmit={handleSearch}
-                className="relative hidden max-w-[28.75rem] flex-1 md:block"
-            >
-                <Search className="absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-muted-foreground" />
-                <input
-                    type="search"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Rechercher un billet, un départ, un colis…"
-                    className="h-[2.625rem] w-full rounded-[0.75rem] border border-border bg-muted pr-4 pl-10 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
-                />
-            </form>
+            <OpsMenuSearch
+                key={user?.uuid}
+                navigation={navigation}
+                userUuid={user?.uuid}
+            />
 
-            <div className="flex-1" />
+            <div className="flex-1 md:hidden" />
 
             {/* Corridor transnational KORA (Bénin · Togo · Ghana · Côte d'Ivoire) */}
             <KoraCorridorFlagPicker />
