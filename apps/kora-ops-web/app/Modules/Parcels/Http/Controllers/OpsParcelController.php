@@ -38,6 +38,7 @@ use App\Modules\Parcels\Services\ParcelPayments;
 use App\Modules\Parcels\Services\ParcelPricing;
 use App\Modules\Parcels\Services\ParcelReceipts;
 use App\Modules\Parcels\Services\ParcelRouting;
+use App\Modules\Parcels\Services\ParcelTrackingMap;
 use App\Modules\Parcels\Services\ParcelTransport;
 use App\Modules\Payments\Http\Resources\PaymentResource;
 use App\Modules\Payments\Models\Payment;
@@ -117,6 +118,22 @@ class OpsParcelController extends Controller
     public function show(Request $request, Parcel $parcel): ParcelResource
     {
         return new ParcelResource($this->access->operations($request->user())->with(ParcelResource::relations())->findOrFail($parcel->id));
+    }
+
+    /**
+     * Suivre le parcours du colis : itinéraire prévu, trajet parcouru,
+     * position du bus et étapes. Réservé aux utilisateurs OPS habilités.
+     *
+     * @authenticated
+     *
+     * @response 200 {"data":{}}
+     * @response 403 {"message":"Droits insuffisants pour ce périmètre Colis."}
+     */
+    public function tracking(Request $request, Parcel $parcel, ParcelTrackingMap $tracking): JsonResponse
+    {
+        $scoped = $this->access->operations($request->user())->findOrFail($parcel->id);
+
+        return response()->json(['data' => $tracking->build($scoped)]);
     }
 
     /**
