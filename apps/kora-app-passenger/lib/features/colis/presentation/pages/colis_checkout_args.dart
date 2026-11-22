@@ -13,6 +13,8 @@ class ColisCheckoutArgs {
     this.walletApplied = 0,
     this.network,
     this.payerLabel,
+    this.payerPhone,
+    this.startedAt,
   });
 
   /// L'encaisseur choisi : `fedapay`, `kkiapay` ou `card`.
@@ -32,15 +34,31 @@ class ColisCheckoutArgs {
   /// « KKiaPay »).
   final String? payerLabel;
 
+  /// Le numéro débité, quand l'app l'a demandé. Rappelé pendant
+  /// l'attente : c'est sur ce téléphone que l'invite est partie, et le
+  /// payeur doit pouvoir vérifier qu'il regarde le bon.
+  final String? payerPhone;
+
+  /// L'heure où la demande est partie. L'attente ne se juge pas sans
+  /// elle : « il y a deux minutes » et « il y a un quart d'heure »
+  /// n'appellent pas le même geste.
+  final DateTime? startedAt;
+
   ColisGateway get gateway => colisGatewayOf(gatewayId);
 
   /// Le même règlement, une fois le payeur connu.
-  ColisCheckoutArgs withPayer({String? network, String? payerLabel}) =>
-      ColisCheckoutArgs(
-        gatewayId: gatewayId,
-        due: due,
-        walletApplied: walletApplied,
-        network: network ?? this.network,
-        payerLabel: payerLabel ?? this.payerLabel,
-      );
+  ColisCheckoutArgs withPayer({
+    String? network,
+    String? payerLabel,
+    String? payerPhone,
+    DateTime? startedAt,
+  }) => ColisCheckoutArgs(
+    gatewayId: gatewayId,
+    due: due,
+    walletApplied: walletApplied,
+    network: network ?? this.network,
+    payerLabel: payerLabel ?? this.payerLabel,
+    payerPhone: payerPhone ?? this.payerPhone,
+    startedAt: startedAt ?? this.startedAt,
+  );
 }

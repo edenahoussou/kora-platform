@@ -4,6 +4,8 @@
 // chemin dépend de celui qu'on touche, aucun débit n'est déclenché, et
 // la référence officielle naît au paiement — jamais avant.
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
@@ -43,7 +45,7 @@ void main() {
   Widget wrap(Widget child) =>
       BlocProvider<ColisDraftCubit>.value(value: draft, child: child);
 
-  Future<void> pumpFlow(WidgetTester tester) async {
+  Future<GoRouter> pumpFlow(WidgetTester tester) async {
     tester.view.physicalSize = const Size(390 * 3, 2600 * 3);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -104,6 +106,8 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+
+    return router;
   }
 
   /// Laisse la transition se jouer sans attendre l'arrêt des
@@ -117,6 +121,20 @@ void main() {
   /// Le bouton de règlement, quel que soit l'écran qui le porte.
   Finder payCta() => find.widgetWithText(KoraButton, 'Payer 800 FCFA');
 
+  /// Le bouton qui emmène vers l'écran de l'encaisseur coché.
+  Finder continueCta() =>
+      find.widgetWithText(KoraButton, 'Continuer vers le paiement (800 FCFA)');
+
+  /// Choisir un encaisseur : la maquette fait cocher, puis confirmer —
+  /// l'appui sur la carte ne quitte plus l'écran à lui seul.
+  Future<void> choose(WidgetTester tester, String gateway) async {
+    await tester.tap(find.text(gateway));
+    await tester.pumpAndSettle();
+
+    await tester.tap(continueCta());
+    await tester.pumpAndSettle();
+  }
+
   testWidgets('les encaisseurs sont ceux d’un billet', (tester) async {
     // Le colis se réglait par une liste d'opérateurs qui n'existait que
     // là : MTN, Moov, carte. Le passager a déjà payé un voyage par
@@ -126,11 +144,14 @@ void main() {
 
     expect(find.text('FedaPay'), findsOneWidget);
     expect(find.text('KKiaPay'), findsOneWidget);
-    expect(find.text('Carte bancaire'), findsOneWidget);
+    // La carte bancaire ne se propose pas pour une expédition : le
+    // règlement se fait en Mobile Money.
+    expect(find.text('Carte bancaire'), findsNothing);
 
-    // Choisir l'encaisseur **est** le geste : plus de bouton « Payer »
-    // sur cet écran, comme pour un billet.
+    // Rien ne s'encaisse sur cet écran : son bouton emmène vers celui
+    // de l'encaisseur coché, et c'est là que « Payer » apparaît.
     expect(payCta(), findsNothing);
+    expect(continueCta(), findsOneWidget);
   });
 
   testWidgets('FedaPay réclame l’opérateur et le numéro', (tester) async {
@@ -138,8 +159,7 @@ void main() {
     // numéro, il n'a personne à appeler.
     await pumpFlow(tester);
 
-    await tester.tap(find.text('FedaPay'));
-    await tester.pumpAndSettle();
+    await choose(tester, 'FedaPay');
 
     expect(find.text('Choisissez votre opérateur'), findsOneWidget);
     expect(tester.widget<KoraButton>(payCta()).onPressed, isNull);
@@ -161,22 +181,32 @@ void main() {
     // prestataire recueille elle-même le numéro.
     await pumpFlow(tester);
 
-    await tester.tap(find.text('KKiaPay'));
-    await tester.pumpAndSettle();
+    await choose(tester, 'KKiaPay');
 
     expect(find.text('Choisissez votre opérateur'), findsNothing);
     expect(find.byType(TextField), findsNothing);
     expect(tester.widget<KoraButton>(payCta()).onPressed, isNotNull);
   });
 
-  testWidgets('la carte bancaire passe par la fenêtre du prestataire', (
-    tester,
-  ) async {
+  testWidgets('l’écran carte ne saisit aucun numéro', (tester) async {
     // Aucun numéro de carte ne transite par nos écrans : les
     // obligations PCI-DSS y entreraient avec lui.
-    await pumpFlow(tester);
+    //
+    // L'écran ne s'atteint plus depuis la liste — la carte n'y figure
+    // plus — mais il reste servi par le routeur, et ce qu'il garantit
+    // vaut toujours d'être tenu.
+    final router = await pumpFlow(tester);
 
-    await tester.tap(find.text('Carte bancaire'));
+    unawaited(
+      router.push(
+        AppRouter.colisCardPath,
+        extra: const ColisCheckoutArgs(
+          gatewayId: 'card',
+          due: 800,
+          walletApplied: 1000,
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Paiement par carte'), findsOneWidget);
@@ -188,8 +218,7 @@ void main() {
   ) async {
     await pumpFlow(tester);
 
-    await tester.tap(find.text('KKiaPay'));
-    await tester.pumpAndSettle();
+    await choose(tester, 'KKiaPay');
     expect(draft.state.reference, isNull);
 
     await tester.tap(payCta());

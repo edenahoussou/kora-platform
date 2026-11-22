@@ -31,6 +31,33 @@ enum ColisDraftStage {
 /// description.
 enum ColisNature { clothing, documents, electronics, other }
 
+/// Ce qu'un règlement laisse derrière lui.
+///
+/// Le reçu doit pouvoir répondre, des mois plus tard : combien, par quel
+/// moyen, à quelle heure, sous quel identifiant. Recalculer ces valeurs
+/// à l'affichage les ferait dépendre de l'état courant du brouillon,
+/// alors qu'elles sont figées au paiement.
+class ColisSettlement extends Equatable {
+  const ColisSettlement({
+    required this.amount,
+    required this.method,
+    required this.transactionId,
+    required this.settledAt,
+  });
+
+  /// Le montant réellement encaissé, part Wallet comprise.
+  final int amount;
+
+  /// Par quoi le voyageur a payé, tel qu'on le lui a annoncé.
+  final String method;
+
+  final String transactionId;
+  final DateTime settledAt;
+
+  @override
+  List<Object?> get props => [amount, method, transactionId, settledAt];
+}
+
 /// Le brouillon d'envoi, porté d'un écran à l'autre du parcours.
 class ColisDraft extends Equatable {
   const ColisDraft({
@@ -49,6 +76,8 @@ class ColisDraft extends Equatable {
     this.certifiedWeightKg,
     this.reference,
     this.editing = false,
+    this.certified = false,
+    this.settlement,
   });
 
   final ColisDraftStage stage;
@@ -96,6 +125,21 @@ class ColisDraft extends Equatable {
   /// le parcours pour une adresse changée.
   final bool editing;
 
+  /// La certification sur l'honneur : aucun article interdit, et
+  /// l'inspection physique acceptée.
+  ///
+  /// Elle n'est pas décorative. L'agent d'escale ouvre les colis au
+  /// guichet, et c'est cette case qui fait du refus une conséquence
+  /// annoncée plutôt qu'une mauvaise surprise.
+  final bool certified;
+
+  /// Ce que le paiement a laissé derrière lui : combien, par quoi,
+  /// quand, et sous quel identifiant.
+  ///
+  /// Nul tant que rien n'est réglé. Le reçu en vit entièrement — un
+  /// montant réaffiché de mémoire ne vaudrait rien devant un litige.
+  final ColisSettlement? settlement;
+
   /// Le numéro du destinataire tel qu'on le dicte : indicatif compris.
   String get recipientPhoneFull => recipientPhone.trim().isEmpty
       ? ''
@@ -129,7 +173,7 @@ class ColisDraft extends Equatable {
   /// et le bouton restait gris sans dire pourquoi. Le guichet contrôle
   /// de toute façon le colis ouvert ; c'est lui qui tranche, pas un
   /// compteur de lettres.
-  bool get isContentComplete => content.trim().isNotEmpty;
+  bool get isContentComplete => content.trim().isNotEmpty && certified;
 
   bool get areContactsComplete =>
       senderName.trim().isNotEmpty &&
@@ -184,6 +228,8 @@ class ColisDraft extends Equatable {
     double? certifiedWeightKg,
     String? reference,
     bool? editing,
+    bool? certified,
+    ColisSettlement? settlement,
   }) {
     return ColisDraft(
       stage: stage ?? this.stage,
@@ -201,6 +247,8 @@ class ColisDraft extends Equatable {
       certifiedWeightKg: certifiedWeightKg ?? this.certifiedWeightKg,
       reference: reference ?? this.reference,
       editing: editing ?? this.editing,
+      certified: certified ?? this.certified,
+      settlement: settlement ?? this.settlement,
     );
   }
 
@@ -221,6 +269,8 @@ class ColisDraft extends Equatable {
     certifiedWeightKg,
     reference,
     editing,
+    certified,
+    settlement,
   ];
 }
 
@@ -258,10 +308,14 @@ class ColisDraftCubit extends Cubit<ColisDraft> {
       recipientPhone: state.recipientPhone,
       recipientCountry: state.recipientCountry,
       editing: state.editing,
+      certified: state.certified,
+      settlement: state.settlement,
     ),
   );
 
   void describe(String content) => emit(state.copyWith(content: content));
+
+  void certify(bool certified) => emit(state.copyWith(certified: certified));
 
   void chooseNature(ColisNature nature) => emit(state.copyWith(nature: nature));
 
@@ -307,6 +361,11 @@ class ColisDraftCubit extends Cubit<ColisDraft> {
   );
 
   /// Le paiement passe, et la référence officielle naît à cet instant.
-  void settle(String reference) =>
-      emit(state.copyWith(stage: ColisDraftStage.paid, reference: reference));
+  void settle(String reference, {ColisSettlement? settlement}) => emit(
+    state.copyWith(
+      stage: ColisDraftStage.paid,
+      reference: reference,
+      settlement: settlement,
+    ),
+  );
 }

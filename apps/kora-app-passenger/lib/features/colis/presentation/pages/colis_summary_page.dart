@@ -9,6 +9,7 @@ import '../../../../core/utils/title_color.dart';
 import '../../data/datasources/colis_network_mock.dart';
 import '../bloc/colis_draft_cubit.dart';
 import '../widgets/colis_step_scaffold.dart';
+import '../widgets/colis_surface.dart';
 
 /// Ouvre l'étape [step] en annonçant qu'on y vient pour corriger.
 ///
@@ -61,18 +62,8 @@ class ColisSummaryPage extends StatelessWidget {
               title: l10n.colisCorridorTitle,
               onEdit: () => _edit(context, AppRouter.colisRoutePath),
               children: [
-                _Line(
-                  label: l10n.colisOriginHub,
-                  value: origin?.label ?? '',
-                  caption: origin?.counter,
-                ),
-                const SizedBox(height: 10),
-                _Line(
-                  label: l10n.colisDestinationHub,
-                  value: destination?.label ?? '',
-                  caption: destination?.counter,
-                ),
-                const SizedBox(height: 10),
+                _CorridorRail(origin: origin, destination: destination),
+                const SizedBox(height: 12),
                 Row(
                   children: [
                     const Icon(
@@ -91,6 +82,14 @@ class ColisSummaryPage extends StatelessWidget {
                     ),
                   ],
                 ),
+                // Le corridor n'est pas choisi par le voyageur : il est
+                // assigné au guichet. Le dire ici évite qu'on cherche
+                // plus tard à changer de bus.
+                const SizedBox(height: 4),
+                Text(
+                  l10n.colisAssignedByOps,
+                  style: AppTextStyles.caption(context.koraColors.textMuted),
+                ),
               ],
             ),
             const SizedBox(height: AppSpacing.sm),
@@ -99,25 +98,29 @@ class ColisSummaryPage extends StatelessWidget {
               title: l10n.colisContentCardTitle,
               onEdit: () => _edit(context, AppRouter.colisContentPath),
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: _Tile(
-                        label: l10n.colisNatureLabel,
-                        value: draft.content,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _Tile(
-                        label: l10n.colisDeclaredWeightLabel,
-                        value: l10n.colisWeightWithUnit(
-                          colisWeightText(draft.declaredWeightKg),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: colisInsetDecoration(context),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _Tile(
+                          label: l10n.colisNatureLabel,
+                          value: draft.content,
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _Tile(
+                          label: l10n.colisDeclaredWeightLabel,
+                          value: l10n.colisWeightWithUnit(
+                            colisWeightText(draft.declaredWeightKg),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 10),
                 Row(
@@ -158,19 +161,49 @@ class ColisSummaryPage extends StatelessWidget {
                   name: draft.recipientName,
                   phone: draft.recipientPhoneFull,
                 ),
+                // Le nom saisi n'a de valeur que présenté avec une
+                // pièce : c'est sous les deux noms qu'il faut le lire.
+                const SizedBox(height: 10),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.badge_outlined,
+                      size: 15,
+                      color: context.koraColors.textMuted,
+                    ),
+                    const SizedBox(width: 7),
+                    Expanded(
+                      child: Text(
+                        l10n.colisIdentityAtPickup,
+                        style: AppTextStyles.caption(
+                          context.koraColors.textMuted,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
             const SizedBox(height: AppSpacing.sm),
             // La fourchette, jamais un prix : c'est ce qui distingue ce
             // récapitulatif d'un paiement.
+            _IndicativeFare(low: low, high: high),
+            const SizedBox(height: AppSpacing.sm),
+            // Pourquoi ce montant n'engage à rien : la pesée au guichet
+            // peut le déplacer, et personne ne paie à cette étape.
             KoraAlert(
-              icon: Icons.sell_outlined,
-              title: l10n.colisIndicativeTitle,
-              message: l10n.colisIndicativeText(
-                l10n.colisAmount(low),
-                l10n.colisAmount(high),
-              ),
+              // Le jaune d'information, pas le pavé doré : ce tarif
+              // n'est pas un danger, c'est une réserve.
+              variant: KoraAlertVariant.info,
+              icon: Icons.warning_amber_rounded,
+              title: l10n.colisProvisionalTitle,
+              message: l10n.colisProvisionalText,
             ),
+            const SizedBox(height: AppSpacing.sm),
+            // Ce qui attend le voyageur après ce bouton : trois gestes,
+            // dont un seul lui demande de se déplacer.
+            _NextSteps(city: draft.originHub?.city ?? ''),
           ],
         );
       },
@@ -200,8 +233,8 @@ class _SummaryCard extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: koraColors.surface,
-        borderRadius: BorderRadius.circular(19),
-        border: Border.all(color: koraColors.line),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        boxShadow: kColisCardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -236,44 +269,6 @@ class _SummaryCard extends StatelessWidget {
           ...children,
         ],
       ),
-    );
-  }
-}
-
-/// Un point du corridor : son rôle, son hub, son guichet.
-class _Line extends StatelessWidget {
-  const _Line({required this.label, required this.value, this.caption});
-
-  final String label;
-  final String value;
-  final String? caption;
-
-  @override
-  Widget build(BuildContext context) {
-    final koraColors = context.koraColors;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          label.toUpperCase(),
-          style: AppTextStyles.eyebrow(koraColors.textMuted),
-        ),
-        const SizedBox(height: 3),
-        Text(
-          value,
-          style: TextStyle(
-            color: context.koraTitleColor,
-            fontSize: 14,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        if (caption != null) ...[
-          const SizedBox(height: 2),
-          Text(caption!, style: AppTextStyles.caption(koraColors.textMuted)),
-        ],
-      ],
     );
   }
 }
@@ -357,6 +352,288 @@ class _Party extends StatelessWidget {
           KoraTag(label: tag, variant: KoraTagVariant.outline),
         ],
       ),
+    );
+  }
+}
+
+/// Le tarif de référence : une estimation, son cartouche, et la
+/// fourchette qui la borne.
+///
+/// L'alerte d'avant disait la fourchette sans dire qu'on ne paie pas
+/// ici. Les deux informations se lisent ensemble ou pas du tout.
+class _IndicativeFare extends StatelessWidget {
+  const _IndicativeFare({required this.low, required this.high});
+
+  final int low;
+  final int high;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final koraColors = context.koraColors;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: koraColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        boxShadow: kColisCardShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  l10n.colisIndicativeTitle,
+                  style: TextStyle(
+                    color: context.koraTitleColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              // Où le règlement aura lieu : en escale, pas ici.
+              KoraTag(
+                label: l10n.colisPaymentAtHub,
+                variant: KoraTagVariant.outline,
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            l10n.colisIndicativeEstimate,
+            style: AppTextStyles.caption(koraColors.textMuted),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            '~ ${l10n.colisAmount(high)}',
+            style: TextStyle(
+              color: context.koraTitleColor,
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            l10n.colisIndicativeText(
+              l10n.colisAmount(low),
+              l10n.colisAmount(high),
+            ),
+            style: AppTextStyles.caption(koraColors.textMuted),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Les trois gestes qui suivent le pré-enregistrement.
+///
+/// Le récapitulatif annonce un bouton, pas une fin : sans cette liste,
+/// on ne sait pas qu'il reste à se déplacer, à faire peser, et à payer.
+class _NextSteps extends StatelessWidget {
+  const _NextSteps({required this.city});
+
+  final String city;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final koraColors = context.koraColors;
+
+    final steps = <(String, String)>[
+      (l10n.colisNextStep1Title, l10n.colisNextStep1Text(city)),
+      (l10n.colisNextStep2Title, l10n.colisNextStep2Text),
+      (l10n.colisNextStep3Title, l10n.colisNextStep3Text),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          l10n.colisNextStepsTitle.toUpperCase(),
+          style: AppTextStyles.eyebrow(koraColors.textMuted),
+        ),
+        const SizedBox(height: 9),
+        for (var index = 0; index < steps.length; index++) ...[
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Le rang se lit avant le titre : c'est un ordre, pas une
+              // liste de possibilités.
+              Container(
+                width: 26,
+                height: 26,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: koraColors.background,
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  '${index + 1}',
+                  style: TextStyle(
+                    color: context.koraTitleColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      steps[index].$1,
+                      style: TextStyle(
+                        color: context.koraTitleColor,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      steps[index].$2,
+                      style: AppTextStyles.caption(koraColors.textMuted),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (index != steps.length - 1) const SizedBox(height: 12),
+        ],
+      ],
+    );
+  }
+}
+
+/// Le rail du corridor : deux pastilles reliées, et les hubs en regard.
+///
+/// La maquette l'encastre dans un bloc gris : c'est un rappel de ce
+/// qu'on a choisi, pas une nouvelle carte à lire.
+class _CorridorRail extends StatelessWidget {
+  const _CorridorRail({required this.origin, required this.destination});
+
+  final ColisHub? origin;
+  final ColisHub? destination;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final koraColors = context.koraColors;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: colisInsetDecoration(context),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 12,
+                  height: 12,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.kora,
+                  ),
+                ),
+                Container(
+                  width: 2,
+                  height: 30,
+                  margin: const EdgeInsets.symmetric(vertical: 2),
+                  color: koraColors.line,
+                ),
+                Container(
+                  width: 12,
+                  height: 12,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.gold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 11),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _RailPoint(
+                  label: l10n.colisOriginHub,
+                  city: origin?.city ?? '',
+                  hub: origin?.name ?? '',
+                ),
+                const SizedBox(height: 10),
+                _RailPoint(
+                  label: l10n.colisDestinationHub,
+                  city: destination?.city ?? '',
+                  hub: destination?.name ?? '',
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Un bout du corridor : son intitulé, sa ville, et sa gare entre
+/// parenthèses — comme la maquette les écrit.
+class _RailPoint extends StatelessWidget {
+  const _RailPoint({
+    required this.label,
+    required this.city,
+    required this.hub,
+  });
+
+  final String label;
+  final String city;
+  final String hub;
+
+  @override
+  Widget build(BuildContext context) {
+    final koraColors = context.koraColors;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(label, style: AppTextStyles.caption(koraColors.textMuted)),
+        const SizedBox(height: 2),
+        RichText(
+          text: TextSpan(
+            text: city,
+            style: TextStyle(
+              color: context.koraTitleColor,
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+            ),
+            children: [
+              TextSpan(
+                text: '  ($hub)',
+                style: TextStyle(
+                  color: koraColors.textMuted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

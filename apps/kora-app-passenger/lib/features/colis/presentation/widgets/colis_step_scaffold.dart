@@ -9,6 +9,7 @@ import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/brand_mini.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../bloc/colis_draft_cubit.dart';
+import 'colis_surface.dart';
 
 /// Valide l'étape courante et passe à [next] — sauf si le voyageur est
 /// venu corriger depuis le récapitulatif.
@@ -55,7 +56,7 @@ class ColisStepScaffold extends StatelessWidget {
   /// Le corps défilant de l'écran.
   final List<Widget> children;
 
-  /// Les actions, posées au bas de l'écran et toujours visibles.
+  /// Les actions, posées à la fin du contenu — elles défilent avec lui.
   final Widget footer;
 
   static const int totalSteps = 4;
@@ -149,15 +150,19 @@ class ColisStepScaffold extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
+              // Le pied défile avec le contenu : épinglé en bas, il
+              // mangeait le dernier bloc de la liste sur un écran court,
+              // et sur un écran long on ne savait plus ce qui restait à
+              // lire au-dessous de lui.
               Expanded(
                 child: ListView(
                   padding: EdgeInsets.only(bottom: AppSpacing.lg + keyboard),
-                  children: children,
+                  children: [
+                    ...children,
+                    const SizedBox(height: AppSpacing.lg),
+                    footer,
+                  ],
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-                child: footer,
               ),
             ],
           ),
@@ -173,7 +178,7 @@ class ColisStepFooter extends StatelessWidget {
   const ColisStepFooter({
     super.key,
     required this.label,
-    required this.hint,
+    this.hint,
     required this.onContinue,
     required this.onCancel,
   });
@@ -182,7 +187,11 @@ class ColisStepFooter extends StatelessWidget {
 
   /// Ce que la prochaine étape demandera : le voyageur décide de
   /// continuer en sachant ce qui l'attend.
-  final String hint;
+  /// Ce que l'étape promet, quand il y a quelque chose à promettre.
+  ///
+  /// Les « Étape suivante : … » ont disparu : la barre de progression
+  /// dit déjà où l'on en est, et le bouton dit où l'on va.
+  final String? hint;
 
   /// `null` tant que l'étape n'est pas remplie : le bouton se grise.
   final VoidCallback? onContinue;
@@ -202,14 +211,25 @@ class ColisStepFooter extends StatelessWidget {
           iconPosition: KoraButtonIconPosition.edges,
           onPressed: onContinue,
         ),
-        const SizedBox(height: 6),
-        Text(
-          hint,
-          textAlign: TextAlign.center,
-          style: AppTextStyles.caption(koraColors.textMuted),
+        if (hint case final hint?) ...[
+          const SizedBox(height: 6),
+          Text(
+            hint,
+            textAlign: TextAlign.center,
+            style: AppTextStyles.caption(koraColors.textMuted),
+          ),
+        ],
+        const SizedBox(height: 10),
+        // Deux boutons, pas plus : celui qui avance, et celui qui
+        // renonce. Le retour à l'étape précédente a disparu — le
+        // bouton système le fait déjà, et il doublait l'abandon d'un
+        // geste de même poids.
+        ColisFlatAction(
+          label: context.l10n.colisCancel,
+          icon: Icons.close_rounded,
+          tint: koraColors.textMuted,
+          onTap: onCancel,
         ),
-        const SizedBox(height: 2),
-        TextButton(onPressed: onCancel, child: Text(context.l10n.colisCancel)),
       ],
     );
   }

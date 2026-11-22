@@ -9,6 +9,7 @@ import '../../../../core/widgets/screen_header.dart';
 import '../../../payment/presentation/widgets/operator_badge.dart';
 import '../../../payment/presentation/widgets/payment_amount_card.dart';
 import '../../data/datasources/colis_network_mock.dart';
+import '../widgets/colis_surface.dart';
 import 'colis_checkout_args.dart';
 import 'colis_missing_checkout.dart';
 
@@ -123,7 +124,7 @@ class ColisGatewayPage extends StatelessWidget {
                       ),
                       const SizedBox(height: AppSpacing.sm),
                     ],
-                    KoraAlert(
+                    ColisNote(
                       icon: Icons.science_outlined,
                       title: l10n.colisPaymentMockTitle,
                       message: l10n.colisPaymentMockText,
@@ -140,7 +141,10 @@ class ColisGatewayPage extends StatelessWidget {
                   iconPosition: KoraButtonIconPosition.edges,
                   onPressed: () => context.push(
                     AppRouter.colisPendingPath,
-                    extra: args.withPayer(payerLabel: payer),
+                    extra: args.withPayer(
+                      payerLabel: payer,
+                      startedAt: DateTime.now(),
+                    ),
                   ),
                 ),
               ),

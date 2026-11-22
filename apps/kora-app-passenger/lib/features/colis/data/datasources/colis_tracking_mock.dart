@@ -72,6 +72,16 @@ class ColisTrackedParcel {
     required this.milestones,
     required this.counter,
     required this.outgoing,
+    required this.senderName,
+    required this.recipientName,
+    required this.recipientPhoneMasked,
+    required this.droppedAtTime,
+    required this.busNumber,
+    required this.sealNumber,
+    this.checkpoint,
+    this.collectedOn,
+    this.receivedOn,
+    this.keepUntil,
   });
 
   final String reference;
@@ -95,6 +105,37 @@ class ColisTrackedParcel {
   /// colis : la liste sépare les deux, et on ne retire pas ce qu'on
   /// envoie.
   final bool outgoing;
+
+  /// Qui a déposé, et qui viendra retirer. La liste montre le
+  /// destinataire : c'est à lui qu'on pense en cherchant un envoi.
+  final String senderName;
+  final String recipientName;
+
+  /// Le numéro du destinataire, masqué — `+229 95 •• •• 88`.
+  ///
+  /// Jamais en clair : le suivi se partage, et un numéro lisible sur une
+  /// capture d'écran suffit à usurper un retrait.
+  final String recipientPhoneMasked;
+
+  /// L'heure du dépôt au guichet de départ.
+  final String droppedAtTime;
+
+  /// Le convoi qui porte le colis — « #408 ». C'est ce qu'on cite au
+  /// guichet de régulation quand on cherche un car.
+  final String busNumber;
+
+  /// Le scellé de sûreté posé au dépôt, vérifié à l'arrivée.
+  final String sealNumber;
+
+  /// Le dernier poste de contrôle franchi, quand le colis roule.
+  final String? checkpoint;
+
+  /// La date du retrait effectif, pour un colis déjà remis.
+  final String? collectedOn;
+
+  /// La date d'arrivée au hub, et la limite de garde gratuite.
+  final String? receivedOn;
+  final String? keepUntil;
 
   /// Le rang du dernier jalon franchi, à partir de 1.
   int get step => milestones.where((milestone) => milestone.done).length;
@@ -123,6 +164,13 @@ final kColisTrackedParcels = <ColisTrackedParcel>[
     certifiedWeightKg: 4.2,
     outgoing: true,
     counter: _kDefaultCounter,
+    senderName: 'Koffi MENSAH',
+    recipientName: 'Amina BIO',
+    recipientPhoneMasked: '+229 95 •• •• 88',
+    droppedAtTime: '13:40',
+    busNumber: '#408',
+    sealNumber: '#SC-9842-BJ',
+    checkpoint: 'Dassa-Zoumè (15:22)',
     milestones: const [
       ColisMilestone(
         titleKey: 'colis_milestone_sealed',
@@ -168,6 +216,14 @@ final kColisTrackedParcels = <ColisTrackedParcel>[
     certifiedWeightKg: 2.5,
     outgoing: false,
     counter: _kDefaultCounter,
+    senderName: 'Rachida SALAMI',
+    recipientName: 'Koffi MENSAH',
+    recipientPhoneMasked: '+229 97 •• •• 45',
+    droppedAtTime: '06:40',
+    busNumber: '#212',
+    sealNumber: '#SC-9771-BJ',
+    receivedOn: '19 nov.',
+    keepUntil: '24 nov. (18h00)',
     milestones: const [
       ColisMilestone(
         titleKey: 'colis_milestone_sealed',
@@ -200,6 +256,96 @@ final kColisTrackedParcels = <ColisTrackedParcel>[
         done: false,
       ),
     ],
+  ),
+  ColisTrackedParcel(
+    reference: 'KC-20261102-04192',
+    status: ColisTrackingStatus.collected,
+    originCity: 'Porto-Novo',
+    originHub: 'Gare Ouando',
+    destinationCity: 'Parakou',
+    destinationHub: 'Hub Gare Nord',
+    line: 'RN3',
+    etaTime: '11:40',
+    certifiedWeightKg: 1.8,
+    outgoing: true,
+    counter: _kDefaultCounter,
+    senderName: 'Koffi MENSAH',
+    recipientName: 'Sèdjro AGBO',
+    recipientPhoneMasked: '+229 96 •• •• 03',
+    droppedAtTime: '07:15',
+    busNumber: '#118',
+    sealNumber: '#SC-9510-BJ',
+    collectedOn: '02 nov. 2026',
+    receivedOn: '01 nov.',
+    milestones: const [
+      ColisMilestone(
+        titleKey: 'colis_milestone_sealed',
+        time: '07:15',
+        detail: 'Porto-Novo · Gare Ouando — poids certifié 1,8 kg',
+        done: true,
+      ),
+      ColisMilestone(
+        titleKey: 'colis_milestone_loaded',
+        time: '07:50',
+        detail: 'Départ effectif 08:00 · convoi KORA ligne RN3',
+        done: true,
+      ),
+      ColisMilestone(
+        titleKey: 'colis_milestone_transit',
+        time: '08:00',
+        detail: 'Corridor interurbain RN3',
+        done: true,
+      ),
+      ColisMilestone(
+        titleKey: 'colis_milestone_arrived',
+        time: '11:40',
+        detail: 'Parakou · Hub Gare Nord',
+        done: true,
+      ),
+      ColisMilestone(
+        titleKey: 'colis_milestone_collected',
+        time: '09:05',
+        detail: 'Remis contre code de retrait et pièce d’identité',
+        done: true,
+      ),
+    ],
+  ),
+];
+
+/// Un pré-enregistrement non finalisé : saisi dans l'app, pas encore
+/// déposé au guichet.
+///
+/// Il n'a pas de référence officielle — seulement un numéro de
+/// brouillon, qui évite de refaire la saisie au comptoir.
+class ColisDraftParcel {
+  const ColisDraftParcel({
+    required this.draftNumber,
+    required this.originCity,
+    required this.originHub,
+    required this.destinationCity,
+    required this.destinationHub,
+    required this.indicativeFee,
+  });
+
+  final String draftNumber;
+  final String originCity;
+  final String originHub;
+  final String destinationCity;
+  final String destinationHub;
+
+  /// Le devis indicatif, en francs : ce que le guichet confirmera après
+  /// pesée.
+  final int indicativeFee;
+}
+
+const kColisDraftParcels = <ColisDraftParcel>[
+  ColisDraftParcel(
+    draftNumber: '#PR-892',
+    originCity: 'Cotonou',
+    originHub: 'Agence Dantokpa',
+    destinationCity: 'Bohicon',
+    destinationHub: 'Gare Carrefour',
+    indicativeFee: 2500,
   ),
 ];
 

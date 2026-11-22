@@ -13,6 +13,7 @@ import '../../../payment/presentation/widgets/labelled_field.dart';
 import '../../../payment/presentation/widgets/operator_tile.dart';
 import '../../../payment/presentation/widgets/payment_amount_card.dart';
 import '../../data/datasources/colis_network_mock.dart';
+import '../widgets/colis_surface.dart';
 import 'colis_checkout_args.dart';
 import 'colis_missing_checkout.dart';
 
@@ -164,10 +165,10 @@ class _ColisMomoPageState extends State<ColisMomoPage> {
                       icon: Icons.shield_outlined,
                       title: l10n.paymentMomoNoticeTitle,
                       message: l10n.paymentMomoNotice,
-                      variant: KoraAlertVariant.warning,
+                      variant: KoraAlertVariant.info,
                     ),
                     const SizedBox(height: AppSpacing.sm),
-                    KoraAlert(
+                    ColisNote(
                       icon: Icons.lock_outline_rounded,
                       title: l10n.colisPaymentMockTitle,
                       message: l10n.colisPaymentMockText,
@@ -193,6 +194,9 @@ class _ColisMomoPageState extends State<ColisMomoPage> {
                           extra: args.withPayer(
                             network: _network,
                             payerLabel: mobileMoneyLabel(_network!),
+                            payerPhone:
+                                '${_country.code} ${_phone.text.trim()}',
+                            startedAt: DateTime.now(),
                           ),
                         )
                       : null,

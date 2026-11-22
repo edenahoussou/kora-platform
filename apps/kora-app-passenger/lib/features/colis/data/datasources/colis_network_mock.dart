@@ -20,6 +20,12 @@ class ColisHub {
     required this.city,
     required this.name,
     required this.counter,
+    required this.zone,
+    required this.address,
+    required this.phone,
+    this.country = 'Bénin',
+    this.weekdayHours = '07h00 - 20h00',
+    this.weekendHours = '08h00 - 14h00',
   });
 
   final String id;
@@ -33,6 +39,28 @@ class ColisHub {
   /// Le guichet où le colis se dépose ou se retire.
   final String counter;
 
+  /// Le quartier et le rang du hub dans le réseau — « Quartier Dantokpa
+  /// · Hub Principal Sud ». C'est ce qui distingue deux gares d'une même
+  /// ville au moment de choisir.
+  final String zone;
+
+  /// L'adresse où l'on se rend réellement, telle qu'on la dirait à un
+  /// taxi.
+  final String address;
+
+  /// La ligne directe du guichet, pour appeler avant de se déplacer.
+  final String phone;
+
+  /// Le pays desservi : le réseau dépasse le Bénin, et une gare de Lomé
+  /// ne se choisit pas par inadvertance.
+  final String country;
+
+  /// Les heures d'ouverture du comptoir. Un colis ne se retire pas à
+  /// n'importe quelle heure, et c'est la première question qu'on se pose
+  /// en lisant « prêt à retirer ».
+  final String weekdayHours;
+  final String weekendHours;
+
   /// « Cotonou · Gare Centrale », tel que la maquette l'écrit.
   String get label => '$city · $name';
 }
@@ -44,36 +72,66 @@ const kColisHubs = <ColisHub>[
     city: 'Cotonou',
     name: 'Gare Centrale',
     counter: 'Guichet Colis Dantokpa',
+    zone: 'Quartier Dantokpa · Hub Principal Sud',
+    address: 'Boulevard Steinmetz · Marché Dantokpa',
+    phone: '+229 21 30 00 00',
+    weekdayHours: '06h00 - 20h30',
+    weekendHours: '08h00 - 14h00',
   ),
   ColisHub(
     id: 'ctn-etoile-rouge',
     city: 'Cotonou',
     name: 'Étoile Rouge',
     counter: 'Guichet Colis Étoile Rouge',
+    zone: 'Place de l’Étoile Rouge · Hub Secondaire',
+    address: 'Avenue de la Marina · Place de l’Étoile Rouge',
+    phone: '+229 21 30 00 12',
+    weekdayHours: '06h30 - 20h00',
+    weekendHours: '08h00 - 13h00',
   ),
   ColisHub(
     id: 'pkx-gare-nord',
     city: 'Parakou',
     name: 'Hub Gare Nord',
     counter: 'Comptoir colis Gare Nord',
+    zone: 'Avenue Albarika · Hub Central Nord',
+    address: 'Avenue des Transports · Carrefour Gare Nord',
+    phone: '+229 97 00 42 10',
+    weekdayHours: '07h00 - 20h00',
+    weekendHours: '08h00 - 14h00',
   ),
   ColisHub(
     id: 'boh-carrefour',
     city: 'Bohicon',
     name: 'Gare Carrefour',
     counter: 'Guichet Colis Carrefour',
+    zone: 'RNIE2 Carrefour Zakpo · Hub Relais',
+    address: 'RNIE2 · Carrefour Zakpo',
+    phone: '+229 97 00 42 22',
+    weekdayHours: '07h00 - 19h00',
+    weekendHours: '08h00 - 13h00',
   ),
   ColisHub(
     id: 'pno-gare',
     city: 'Porto-Novo',
     name: 'Gare Ouando',
     counter: 'Guichet Colis Ouando',
+    zone: 'Quartier Ouando · Hub Est',
+    address: 'Route de Porto-Novo · Marché Ouando',
+    phone: '+229 97 00 42 31',
+    weekdayHours: '07h00 - 19h30',
+    weekendHours: '08h00 - 13h00',
   ),
   ColisHub(
     id: 'djo-gare',
     city: 'Djougou',
     name: 'Gare Centrale',
     counter: 'Comptoir colis Djougou',
+    zone: 'Quartier Zongo · Hub Nord-Ouest',
+    address: 'Route de Djougou · Gare routière',
+    phone: '+229 97 00 42 47',
+    weekdayHours: '07h00 - 19h00',
+    weekendHours: '08h00 - 13h00',
   ),
 ];
 
@@ -171,6 +229,69 @@ String colisWeightText(double kg) {
       : rounded.toStringAsFixed(1).replaceAll('.', ',');
 }
 
+/// Le prochain depart du corridor, et la mise a disposition qui
+/// suit. Deux heures tirees de la grille de rotation, pas d'une
+/// estimation faite dans l'app : le destinataire se deplace dessus.
+const String kColisNextDeparture = '15h30';
+const String kColisPlannedArrival = '08h00';
+
+/// `#INC-AAAA-NNN` : le numero d'un dossier de reclamation.
+///
+/// Distinct de la reference du colis : un meme colis peut porter
+/// plusieurs signalements, et c'est le dossier qu'on suit ensuite.
+String colisNewIncidentNumber(DateTime now) {
+  final suffix = (now.millisecondsSinceEpoch % 1000).toString().padLeft(3, '0');
+
+  return '#INC-${now.year}-$suffix';
+}
+
+/// Le delai de garde gratuit au hub d'arrivee, et ce que coute
+/// chaque jour au-dela.
+///
+/// Le colis n'attend pas indefiniment : passe ce delai, il repart
+/// au hub de depart, et le destinataire doit le savoir en lisant
+/// « pret a retirer ».
+const int kColisFreeKeepingDays = 5;
+const int kColisStorageFeePerDay = 500;
+
+/// Depuis combien de minutes le suivi a ete relu.
+///
+/// Fige, faute de serveur : le jour ou le suivi viendra de l'API,
+/// c'est l'horodatage de la reponse qui le donnera.
+const int kColisRefreshedMinutes = 4;
+
+/// L'assistance KORA, citee des qu'un ecran peut laisser le
+/// voyageur sans recours : attente de paiement, retrait, litige.
+const String kColisSupportPhone = '+229 21 30 00 00';
+
+/// La duree pendant laquelle la demande de l'operateur reste
+/// valable, en minutes.
+const int kColisPaymentSessionMinutes = 10;
+
+/// `TRX-AAAAMMJJ-NNNN` : l'identifiant de la tentative de paiement.
+///
+/// Distinct de la reference KC-, et cite bien avant elle : c'est lui
+/// qu'on donne a l'assistance quand le paiement reste en attente,
+/// quand la reference officielle n'existe pas encore.
+String colisNewTransactionId(DateTime now) {
+  final date =
+      '${now.year}'
+      '${now.month.toString().padLeft(2, '0')}'
+      '${now.day.toString().padLeft(2, '0')}';
+  final suffix = (now.millisecondsSinceEpoch % 10000).toString().padLeft(
+    4,
+    '0',
+  );
+
+  return 'TRX-$date-$suffix';
+}
+
+/// L'agent d'escale qui a pesé et scellé le colis.
+///
+/// Cité sur le devis : une pesée contestée se règle en nommant qui
+/// l'a faite, et le ticket demande que le contrôle soit traçable.
+const String kColisWeighingAgent = '#742';
+
 /// Le solde KORA du compte de démonstration, en francs.
 ///
 /// Il ne couvre pas un envoi entier : la maquette montre justement le
@@ -225,7 +346,10 @@ const kColisGateways = <ColisGateway>[
     name: 'KKiaPay',
     logo: 'assets/images/kkiapay.png',
   ),
-  ColisGateway(id: ColisGateway.card, name: 'Carte bancaire', logo: null),
+  // Pas de carte bancaire : l'expédition se règle en Mobile Money, et
+  // une troisième ligne sans logo faisait nombre sans rien offrir de
+  // plus. L'écran de saisie du prestataire reste en place — il sert
+  // encore au billet.
 ];
 
 /// L'encaisseur portant [id], ou le premier de la liste.

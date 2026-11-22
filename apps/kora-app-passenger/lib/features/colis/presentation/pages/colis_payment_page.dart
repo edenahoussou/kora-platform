@@ -12,16 +12,23 @@ import '../../../payment/presentation/widgets/operator_badge.dart';
 import '../../data/datasources/colis_network_mock.dart';
 import '../bloc/colis_draft_cubit.dart';
 import '../widgets/colis_banner.dart';
+import '../widgets/colis_surface.dart';
 import 'colis_checkout_args.dart';
 
-/// Écran 08 — « Choix du moyen de paiement ».
+/// Écran 08 — « Paiement de l'expédition ».
 ///
 /// **Aucun paiement réel n'est déclenché** : le ticket l'interdit et
 /// aucun endpoint n'existe. L'écran compose le montant, laisse choisir
-/// entre le solde KORA et un opérateur, puis passe à la confirmation.
+/// entre le solde KORA et un encaisseur, puis passe à la confirmation.
 ///
-/// Le Wallet se déduit avant l'opérateur : c'est de l'argent déjà chez
+/// Le Wallet se déduit avant l'encaisseur : c'est de l'argent déjà chez
 /// KORA, et le faire payer deux fois serait un comble.
+///
+/// La maquette fait de ce choix une liste à cocher, suivie d'un bouton
+/// qui emmène vers l'écran de l'encaisseur retenu — et non d'une suite
+/// de cartes qui s'ouvrent au toucher. L'écran suivant reste le même
+/// que pour un billet : FedaPay réclame l'opérateur et le numéro,
+/// KKiaPay encaisse dans sa propre feuille.
 class ColisPaymentPage extends StatefulWidget {
   const ColisPaymentPage({super.key});
 
@@ -31,6 +38,11 @@ class ColisPaymentPage extends StatefulWidget {
 
 class _ColisPaymentPageState extends State<ColisPaymentPage> {
   var _useWallet = true;
+
+  /// L'encaisseur coché. Le premier l'est d'emblée, comme la maquette :
+  /// un écran de paiement qui n'a rien de sélectionné laisse croire
+  /// qu'il manque une étape.
+  var _gatewayId = kColisGateways.first.id;
 
   @override
   Widget build(BuildContext context) {
@@ -63,16 +75,11 @@ class _ColisPaymentPageState extends State<ColisPaymentPage> {
                     child: ListView(
                       padding: const EdgeInsets.only(bottom: AppSpacing.lg),
                       children: [
-                        ColisBanner(
-                          tag: l10n.colisQuoteIssued,
-                          tagVariant: KoraTagVariant.success,
-                          caption: draft.originHub?.counter ?? '',
-                          title: l10n.colisPaymentTitle,
-                          text: l10n.colisPaymentSubtitle(
-                            draft.originHub?.city ?? '',
-                            draft.destinationHub?.city ?? '',
-                          ),
-                        ),
+                        // L'en-tête de la maquette : trois lignes de
+                        // texte, sans carte. Le bandeau qui tenait cette
+                        // place pesait autant que le devis qu'il
+                        // annonçait.
+                        _PaymentHead(draft: draft),
                         const SizedBox(height: AppSpacing.md),
                         _DueCard(draft: draft),
                         const SizedBox(height: AppSpacing.sm),
@@ -85,47 +92,108 @@ class _ColisPaymentPageState extends State<ColisPaymentPage> {
                         ),
                         if (due > 0) ...[
                           const SizedBox(height: AppSpacing.md),
-                          Text(
-                            l10n.colisOperators.toUpperCase(),
-                            style: AppTextStyles.eyebrow(koraColors.textMuted),
+                          Padding(
+                            padding: const EdgeInsets.only(left: 4),
+                            child: Text(
+                              l10n.colisOperators,
+                              style: TextStyle(
+                                color: context.koraTitleColor,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
                           ),
                           const SizedBox(height: 8),
-                          // Choisir l'encaisseur **est** le geste : comme
-                          // pour un billet, il n'y a pas de bouton
-                          // « Payer » ici — la carte touchée ouvre
-                          // l'écran qui encaisse.
                           for (final gateway in kColisGateways) ...[
                             _GatewayTile(
                               gateway: gateway,
-                              onTap: () => context.push(
+                              selected: gateway.id == _gatewayId,
+                              onTap: () =>
+                                  setState(() => _gatewayId = gateway.id),
+                            ),
+                            const SizedBox(height: 10),
+                          ],
+                        ],
+                        const SizedBox(height: AppSpacing.sm),
+                        // Ce que le règlement déclenche, dit avant de
+                        // choisir par où payer : la référence officielle
+                        // et le code de retrait en dépendent.
+                        ColisNote(
+                          icon: Icons.lock_clock_outlined,
+                          title: l10n.colisAfterPaymentNote,
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        // Rien ne part vers un opérateur : la maquette
+                        // s'arrête au geste, et le ticket aussi.
+                        ColisNote(
+                          icon: Icons.lock_outline_rounded,
+                          title: l10n.colisPaymentMockTitle,
+                          message: l10n.colisPaymentMockText,
+                        ),
+                        if (due > 0) ...[
+                          const SizedBox(height: AppSpacing.md),
+                          KoraButton(
+                            label: l10n.colisPaymentContinue(
+                              l10n.colisAmount(due),
+                            ),
+                            icon: Icons.arrow_forward_rounded,
+                            iconPosition: KoraButtonIconPosition.edges,
+                            onPressed: () {
+                              final gateway = colisGatewayOf(_gatewayId);
+
+                              context.push(
                                 colisCheckoutPathOf(gateway),
                                 extra: ColisCheckoutArgs(
                                   gatewayId: gateway.id,
                                   due: due,
                                   walletApplied: wallet,
                                 ),
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                          ],
+                              );
+                            },
+                          ),
                         ],
                         const SizedBox(height: AppSpacing.sm),
-                        // Rien ne part vers un opérateur : la maquette
-                        // s'arrête au geste, et le ticket aussi.
-                        KoraAlert(
-                          icon: Icons.lock_outline_rounded,
-                          title: l10n.colisPaymentMockTitle,
-                          message: l10n.colisPaymentMockText,
+                        // Revenir au devis se dit en lien, pas en
+                        // bouton : c'est la sortie de l'écran, et un
+                        // second pavé à côté du premier ferait deux
+                        // actions de même poids.
+                        Center(
+                          child: InkWell(
+                            onTap: () => context.pop(),
+                            borderRadius: BorderRadius.circular(AppRadius.pill),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 8,
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.edit_note_rounded,
+                                    size: 17,
+                                    color: koraColors.textMuted,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Flexible(
+                                    child: Text(
+                                      l10n.colisEditQuote,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: koraColors.textMuted,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
+                        const SizedBox(height: AppSpacing.md),
                       ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-                    child: KoraButton(
-                      label: l10n.colisEditQuote,
-                      variant: KoraButtonVariant.ghost,
-                      onPressed: () => context.pop(),
                     ),
                   ),
                 ],
@@ -138,7 +206,72 @@ class _ColisPaymentPageState extends State<ColisPaymentPage> {
   }
 }
 
+/// L'en-tête de l'écran : d'où vient ce montant, et sur quoi il porte.
+///
+/// Le bleu digital et le bouclier disent en une ligne que le devis a été
+/// arrêté au hub, pesée faite — c'est ce qui autorise à encaisser.
+class _PaymentHead extends StatelessWidget {
+  const _PaymentHead({required this.draft});
+
+  final ColisDraft draft;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final koraColors = context.koraColors;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          children: [
+            const Icon(
+              Icons.verified_user_outlined,
+              size: 17,
+              color: AppColors.digital,
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                l10n.colisQuoteIssued.toUpperCase(),
+                style: AppTextStyles.eyebrow(AppColors.digital),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 5),
+        Text(
+          l10n.colisPaymentTitle,
+          style: TextStyle(
+            color: context.koraTitleColor,
+            fontSize: 23,
+            height: 1.15,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          l10n.colisPaymentSubtitle(
+            draft.originHub?.city ?? '',
+            draft.destinationHub?.city ?? '',
+          ),
+          style: TextStyle(
+            color: koraColors.textMuted,
+            fontSize: 13,
+            height: 1.4,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 /// Le montant dû, repris du devis certifié.
+///
+/// Le corridor en tête, le poids facturé en pastille, les deux lignes de
+/// frais dans un encart gris, et le total seul au-dessous : c'est la
+/// construction de la maquette, et elle fait lire le total en dernier.
 class _DueCard extends StatelessWidget {
   const _DueCard({required this.draft});
 
@@ -153,37 +286,140 @@ class _DueCard extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: koraColors.surface,
-        borderRadius: BorderRadius.circular(19),
-        border: Border.all(color: koraColors.line),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        boxShadow: kColisCardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            '${draft.originHub?.city}  →  ${draft.destinationHub?.city}',
-            style: TextStyle(
-              color: context.koraTitleColor,
-              fontSize: 14,
-              fontWeight: FontWeight.w900,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      l10n.colisCorridorTitle.toUpperCase(),
+                      style: AppTextStyles.eyebrow(koraColors.textMuted),
+                    ),
+                    const SizedBox(height: 3),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            draft.originHub?.city ?? '',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: context.koraTitleColor,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Icon(
+                          Icons.arrow_forward_rounded,
+                          size: 15,
+                          color: koraColors.textMuted,
+                        ),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            draft.destinationHub?.city ?? '',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: context.koraTitleColor,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Le poids facturé, en pastille grise : c'est lui qui
+              // explique le montant, et il doit se lire à côté.
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: koraColors.background,
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                ),
+                child: Text(
+                  l10n.colisBalanceTag(colisWeightText(draft.billableWeightKg)),
+                  style: TextStyle(
+                    color: context.koraTitleColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(11),
+            decoration: colisInsetDecoration(context),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ColisAmountRow(
+                  label: l10n.colisTransportFee(
+                    draft.destinationHub?.city ?? '',
+                    colisWeightText(draft.billableWeightKg),
+                  ),
+                  value: l10n.colisAmount(draft.transportFee),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              l10n.colisSealFee,
+                              style: AppTextStyles.body(koraColors.textMuted),
+                            ),
+                          ),
+                          const SizedBox(width: 5),
+                          // Le cadenas vert : ce supplément est ce qui
+                          // rend le colis inviolable, pas un frais de
+                          // dossier.
+                          const Icon(
+                            Icons.lock_rounded,
+                            size: 14,
+                            color: AppColors.success,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      l10n.colisAmount(kColisSealFee),
+                      style: TextStyle(
+                        color: context.koraTitleColor,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: AppSpacing.md),
-          ColisAmountRow(
-            label: l10n.colisTransportFee(
-              draft.destinationHub?.city ?? '',
-              colisWeightText(draft.billableWeightKg),
-            ),
-            value: l10n.colisAmount(draft.transportFee),
-          ),
-          const SizedBox(height: 9),
-          ColisAmountRow(
-            label: l10n.colisSealFee,
-            value: l10n.colisAmount(kColisSealFee),
-          ),
-          const SizedBox(height: 11),
-          Divider(height: 1, color: koraColors.line),
-          const SizedBox(height: 11),
+          const SizedBox(height: 12),
           ColisAmountRow(
             label: l10n.colisTotalDue,
             value: l10n.colisAmount(draft.total),
@@ -196,6 +432,10 @@ class _DueCard extends StatelessWidget {
 }
 
 /// Le solde KORA, déductible du montant dû.
+///
+/// La tuile marine à pictogramme doré de la maquette : c'est le seul
+/// moyen de paiement de l'écran qui soit KORA, et il se distingue des
+/// encaisseurs par sa couleur avant son libellé.
 class _WalletCard extends StatelessWidget {
   const _WalletCard({
     required this.enabled,
@@ -221,8 +461,8 @@ class _WalletCard extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: koraColors.surface,
-        borderRadius: BorderRadius.circular(19),
-        border: Border.all(color: koraColors.line),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        boxShadow: kColisCardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -231,20 +471,20 @@ class _WalletCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 34,
-                height: 34,
+                width: 40,
+                height: 40,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: koraColors.background,
-                  borderRadius: BorderRadius.circular(10),
+                  color: AppColors.kora,
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.account_balance_wallet_outlined,
-                  size: 18,
-                  color: context.koraTitleColor,
+                  size: 20,
+                  color: AppColors.gold,
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 11),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -254,7 +494,7 @@ class _WalletCard extends StatelessWidget {
                       l10n.colisWalletTitle,
                       style: TextStyle(
                         color: context.koraTitleColor,
-                        fontSize: 13,
+                        fontSize: 14,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
@@ -270,16 +510,67 @@ class _WalletCard extends StatelessWidget {
             ],
           ),
           if (enabled) ...[
-            const SizedBox(height: 10),
-            ColisAmountRow(
-              label: l10n.colisWalletApplied,
-              value: '− ${l10n.colisAmount(applied)}',
+            const SizedBox(height: 11),
+            // La déduction en vert, coche comprise : c'est une somme en
+            // moins à payer, et la maquette la met du côté des bonnes
+            // nouvelles.
+            Row(
+              children: [
+                const Icon(
+                  Icons.check_circle_rounded,
+                  size: 16,
+                  color: AppColors.success,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    l10n.colisWalletApplied,
+                    style: const TextStyle(
+                      color: AppColors.success,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                Text(
+                  '− ${l10n.colisAmount(applied)}',
+                  style: const TextStyle(
+                    color: AppColors.success,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-            ColisAmountRow(
-              label: l10n.colisRemainingDue,
-              value: l10n.colisAmount(due),
-              isTotal: true,
+            const SizedBox(height: 9),
+            // Le reste à payer dans son encart : c'est ce chiffre que
+            // l'encaisseur va demander, et il ne doit pas se confondre
+            // avec le total du devis.
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+              decoration: colisInsetDecoration(context),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      l10n.colisRemainingDue,
+                      style: TextStyle(
+                        color: context.koraTitleColor,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    l10n.colisAmount(due),
+                    style: TextStyle(
+                      color: context.koraTitleColor,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ],
@@ -290,10 +581,10 @@ class _WalletCard extends StatelessWidget {
 
 /// L'écran qui encaisse pour cette passerelle.
 ///
-/// Trois chemins, comme pour un billet : KKiaPay ouvre sa propre
-/// feuille, la carte se saisit dans celle du prestataire, et FedaPay
-/// pousse la demande sur le téléphone — il lui faut donc l'opérateur
-/// et le numéro d'avance.
+/// Deux chemins, comme pour un billet : KKiaPay ouvre sa propre feuille,
+/// et FedaPay pousse la demande sur le téléphone — il lui faut donc
+/// l'opérateur et le numéro d'avance. Le troisième, la fenêtre de
+/// saisie carte, ne se propose plus pour une expédition.
 String colisCheckoutPathOf(ColisGateway gateway) {
   if (gateway.isCard) return AppRouter.colisCardPath;
   return gateway.collectsInSheet
@@ -301,12 +592,17 @@ String colisCheckoutPathOf(ColisGateway gateway) {
       : AppRouter.colisMomoPath;
 }
 
-/// Un encaisseur : son logo, son nom, sa promesse, et le chevron qui
-/// dit qu'un écran suit.
+/// Un encaisseur à cocher : son logo, son nom, sa promesse, et le bouton
+/// radio qui dit qu'un seul sera débité.
 class _GatewayTile extends StatelessWidget {
-  const _GatewayTile({required this.gateway, required this.onTap});
+  const _GatewayTile({
+    required this.gateway,
+    required this.selected,
+    required this.onTap,
+  });
 
   final ColisGateway gateway;
+  final bool selected;
   final VoidCallback onTap;
 
   @override
@@ -314,85 +610,96 @@ class _GatewayTile extends StatelessWidget {
     final l10n = context.l10n;
     final koraColors = context.koraColors;
 
-    return KoraCard(
-      onTap: onTap,
-      child: Row(
-        children: [
-          if (gateway.logo case final asset?)
-            Container(
-              width: 38,
-              height: 38,
-              alignment: Alignment.center,
-              // Le blanc derrière le logo : la marque porte son
-              // propre fond, et le nôtre le salirait.
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(AppRadius.input),
-                border: Border.all(color: koraColors.line),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: Padding(
-                padding: const EdgeInsets.all(3),
-                child: Image.asset(asset, fit: BoxFit.contain),
-              ),
-            )
-          else
-            Container(
-              width: 38,
-              height: 38,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: AppColors.gold,
-                borderRadius: BorderRadius.circular(AppRadius.input),
-              ),
-              child: const Icon(
-                Icons.credit_card_rounded,
-                size: 20,
-                color: AppColors.kora,
-              ),
-            ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  gateway.name,
-                  style: AppTextStyles.titleMedium(context.koraTitleColor),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  gateway.isCard
-                      ? l10n.paymentMethodCardLead
-                      : l10n.colisGatewayMomoLead,
-                  style: AppTextStyles.body(koraColors.textMuted),
-                ),
-                // Les logos des opérateurs sous les deux passerelles
-                // Mobile Money : on reconnaît son réseau avant
-                // d'avoir lu la ligne.
-                if (!gateway.isCard) ...[
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      for (final network in kColisMomoNetworks)
-                        Padding(
-                          padding: const EdgeInsets.only(right: 6),
-                          child: OperatorBadge(network: network, size: 26),
-                        ),
-                    ],
-                  ),
-                ],
-              ],
-            ),
+    return Material(
+      color: selected ? koraColors.background : koraColors.surface,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            boxShadow: selected ? null : kColisCardShadow,
           ),
-          // Pas de pastille « Recommandé » : elle prenait sa largeur au
-          // milieu de la ligne, et la promesse de FedaPay tombait sur
-          // deux lignes quand celle de KKiaPay tenait sur une. L'écran
-          // des billets n'en porte pas non plus — deux encaisseurs qui
-          // font le même travail n'ont pas à être départagés ici.
-          Icon(Icons.chevron_right_rounded, color: koraColors.textMuted),
-        ],
+          child: Row(
+            children: [
+              // La tuile grise de la maquette : le logo y est posé, et
+              // la carte reste blanche. Un encadré blanc sur blanc ne
+              // se distinguait pas du fond de la carte.
+              //
+              // 56 px et non 40 : c'est le logo qu'on cherche du regard
+              // avant le nom, et à 40 px il se lisait mal — « FedaPay »
+              // et « KKiaPay » se ressemblent trop en petit.
+              Container(
+                width: 56,
+                height: 56,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: selected ? koraColors.surface : koraColors.background,
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: gateway.logo == null
+                    ? Icon(
+                        Icons.credit_card_rounded,
+                        size: 26,
+                        color: context.koraTitleColor,
+                      )
+                    : Padding(
+                        padding: const EdgeInsets.all(6),
+                        child: Image.asset(gateway.logo!, fit: BoxFit.contain),
+                      ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      gateway.name,
+                      style: AppTextStyles.titleMedium(context.koraTitleColor),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      gateway.isCard
+                          ? l10n.paymentMethodCardLead
+                          : l10n.colisGatewayMomoLead,
+                      style: AppTextStyles.body(koraColors.textMuted),
+                    ),
+                    // Les logos des opérateurs sous les deux passerelles
+                    // Mobile Money : on reconnaît son réseau avant
+                    // d'avoir lu la ligne.
+                    if (!gateway.isCard) ...[
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          for (final network in kColisMomoNetworks)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 6),
+                              child: OperatorBadge(network: network, size: 32),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 6),
+              // Le bouton radio de la maquette, à la place du chevron :
+              // le choix se coche ici, et c'est le bouton du bas qui
+              // emmène vers l'écran de l'encaisseur.
+              Icon(
+                selected
+                    ? Icons.radio_button_checked_rounded
+                    : Icons.radio_button_unchecked_rounded,
+                size: 22,
+                color: selected ? context.koraTitleColor : koraColors.textMuted,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

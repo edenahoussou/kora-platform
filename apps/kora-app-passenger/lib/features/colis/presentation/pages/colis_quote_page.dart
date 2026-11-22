@@ -11,6 +11,7 @@ import '../../../../core/widgets/screen_header.dart';
 import '../../data/datasources/colis_network_mock.dart';
 import '../bloc/colis_draft_cubit.dart';
 import '../widgets/colis_banner.dart';
+import '../widgets/colis_surface.dart';
 
 /// Écran 07 — « Poids confirmé & devis final ».
 ///
@@ -76,13 +77,20 @@ class _ColisQuotePageState extends State<ColisQuotePage> {
                       padding: const EdgeInsets.only(bottom: AppSpacing.lg),
                       children: [
                         ColisBanner(
-                          tag: l10n.colisWeightUpdated,
+                          icon: Icons.scale_rounded,
+                          tag: l10n.colisWeightCertifiedTag,
+                          tagVariant: KoraTagVariant.success,
                           caption: origin?.counter ?? '',
                           title: l10n.colisWeighedTitle,
                           text: l10n.colisWeighedText,
                         ),
                         const SizedBox(height: AppSpacing.md),
+                        // Le devis chiffre un trajet : sans lui à
+                        // l'écran, le montant ne se vérifie pas.
+                        _AxisCard(draft: draft),
+                        const SizedBox(height: AppSpacing.sm),
                         _WeighingCard(
+                          nature: _natureLabel(l10n, draft.nature),
                           declared: draft.declaredWeightKg,
                           certified: draft.certifiedWeightKg ?? 0,
                           gap: draft.weightGapKg,
@@ -94,32 +102,87 @@ class _ColisQuotePageState extends State<ColisQuotePage> {
                         // Le reçu et l'étiquette naissent du paiement,
                         // pas de la pesée : l'écran le redit avant de
                         // demander l'argent.
-                        KoraAlert(
+                        ColisNote(
                           icon: Icons.receipt_long_outlined,
                           title: l10n.colisReferenceOnPaymentTitle,
                           message: l10n.colisReferenceOnPaymentText,
                         ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
+                        const SizedBox(height: AppSpacing.sm),
+                        // Par quoi on pourra payer : la question se
+                        // pose avant d'appuyer, pas après.
+                        const _AcceptedMethods(),
+                        const SizedBox(height: AppSpacing.sm),
+                        // Le pied défile avec le contenu : épinglé en
+                        // bas, il recouvrait la fin de la liste.
+                        const SizedBox(height: AppSpacing.md),
+                        // Le montant dans le libellé : la maquette ne
+                        // fait pas appuyer sur « payer » sans redire
+                        // combien.
                         KoraButton(
-                          label: l10n.colisQuoteCta,
+                          label: l10n.colisPayFinalQuote(
+                            l10n.colisAmount(draft.total),
+                          ),
                           icon: Icons.arrow_forward_rounded,
                           iconPosition: KoraButtonIconPosition.edges,
                           onPressed: () =>
                               context.push(AppRouter.colisPaymentPath),
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 10),
+                        // L'assistance du guichet où le colis est
+                        // déposé : un bouton, parce qu'on l'appelle,
+                        // on ne se contente pas de la lire. Sur fond
+                        // blanc — le doré ne se donne qu'une fois.
+                        if (origin case final hub?) ...[
+                          ColisFlatAction(
+                            label: l10n.colisCounterSupport(hub.counter),
+                            icon: Icons.support_agent_rounded,
+                            onTap: () => KoraToaster.show(context, hub.phone),
+                          ),
+                          const SizedBox(height: 10),
+                        ],
                         Text(
                           l10n.colisQuoteHint,
                           textAlign: TextAlign.center,
                           style: AppTextStyles.caption(koraColors.textMuted),
+                        ),
+                        const SizedBox(height: 6),
+                        // Repartir sans payer reste possible : le devis
+                        // attend au guichet. En lien, pas en bouton —
+                        // deux boutons suffisent en bas d'écran.
+                        Center(
+                          child: InkWell(
+                            onTap: () => context.go('/colis'),
+                            borderRadius: BorderRadius.circular(AppRadius.pill),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 8,
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.chevron_left_rounded,
+                                    size: 18,
+                                    color: koraColors.textMuted,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Flexible(
+                                    child: Text(
+                                      l10n.colisBackHome,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: koraColors.textMuted,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -137,11 +200,15 @@ class _ColisQuotePageState extends State<ColisQuotePage> {
 /// Les deux poids, face à face : ce qui était annoncé, ce qui a été lu.
 class _WeighingCard extends StatelessWidget {
   const _WeighingCard({
+    required this.nature,
     required this.declared,
     required this.certified,
     required this.gap,
     required this.reclassified,
   });
+
+  /// La nature déclarée, telle que l'agent l'a vérifiée au guichet.
+  final String nature;
 
   final double declared;
   final double certified;
@@ -159,8 +226,8 @@ class _WeighingCard extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: koraColors.surface,
-        borderRadius: BorderRadius.circular(19),
-        border: Border.all(color: koraColors.line),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        boxShadow: kColisCardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -187,27 +254,31 @@ class _WeighingCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.md),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _WeightBox(
-                  label: l10n.colisDeclaredWeightLabel,
-                  weight: declared,
-                  caption: l10n.colisDeclaredOnline,
-                  strong: false,
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: colisInsetDecoration(context),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _WeightBox(
+                    label: l10n.colisDeclaredWeightLabel,
+                    weight: declared,
+                    caption: l10n.colisDeclaredOnline,
+                    strong: false,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _WeightBox(
-                  label: l10n.colisCertifiedWeightLabel,
-                  weight: certified,
-                  caption: l10n.colisCertifiedScale,
-                  strong: true,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _WeightBox(
+                    label: l10n.colisCertifiedWeightLabel,
+                    weight: certified,
+                    caption: l10n.colisCertifiedScale,
+                    strong: true,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           if (reclassified) ...[
             const SizedBox(height: 10),
@@ -229,6 +300,77 @@ class _WeighingCard extends StatelessWidget {
               ],
             ),
           ],
+          // L'écart de pesée s'explique : emballage renforcé, et non
+          // une balance qui dérive.
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                Icons.info_outline_rounded,
+                size: 15,
+                color: koraColors.textMuted,
+              ),
+              const SizedBox(width: 7),
+              Expanded(
+                child: Text(
+                  l10n.colisWeighingGapNote,
+                  style: AppTextStyles.caption(koraColors.textMuted),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Divider(height: 1, color: koraColors.line),
+          const SizedBox(height: 10),
+          // Ce que l'agent a vu dans le colis : le poids seul ne dit
+          // pas que le contenu déclaré a été vérifié.
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      l10n.colisNatureChecked,
+                      style: AppTextStyles.caption(koraColors.textMuted),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      nature,
+                      style: TextStyle(
+                        color: context.koraTitleColor,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              KoraTag(
+                label: l10n.colisAgentRef(kColisWeighingAgent),
+                variant: KoraTagVariant.outline,
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Icon(
+                Icons.check_rounded,
+                size: 15,
+                color: AppColors.success,
+              ),
+              const SizedBox(width: 7),
+              Expanded(
+                child: Text(
+                  l10n.colisVisualCompliance,
+                  style: AppTextStyles.caption(koraColors.textMuted),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 10),
           Row(
             children: [
@@ -330,8 +472,8 @@ class _PricingCard extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: koraColors.surface,
-        borderRadius: BorderRadius.circular(19),
-        border: Border.all(color: koraColors.line),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        boxShadow: kColisCardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -374,6 +516,7 @@ class _PricingCard extends StatelessWidget {
           ColisAmountRow(
             label: l10n.colisInsuranceFee,
             value: l10n.colisInsuranceFree,
+            valueColor: AppColors.success,
           ),
           const SizedBox(height: 11),
           Divider(height: 1, color: koraColors.line),
@@ -390,6 +533,211 @@ class _PricingCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Le libellé d'une nature de colis.
+///
+/// Un `switch` plutôt qu'une clé lue dynamiquement : `translate` ne
+/// s'emploie que depuis la couche de traduction, et une clé passée en
+/// donnée échappe de toute façon au compilateur.
+String _natureLabel(AppLocalization l10n, ColisNature nature) =>
+    switch (nature) {
+      ColisNature.clothing => l10n.colisNatureClothing,
+      ColisNature.documents => l10n.colisNatureDocuments,
+      ColisNature.electronics => l10n.colisNatureElectronics,
+      ColisNature.other => l10n.colisNatureOther,
+    };
+
+/// L'axe emprunté : d'où part le colis, où il est attendu.
+class _AxisCard extends StatelessWidget {
+  const _AxisCard({required this.draft});
+
+  final ColisDraft draft;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final koraColors = context.koraColors;
+    final origin = draft.originHub;
+    final destination = draft.destinationHub;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: koraColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        boxShadow: kColisCardShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  l10n.colisAxisTitle,
+                  style: TextStyle(
+                    color: context.koraTitleColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              KoraTag(
+                label: l10n.colisDirectDeparture,
+                variant: KoraTagVariant.outline,
+              ),
+            ],
+          ),
+          const SizedBox(height: 11),
+          _AxisPoint(
+            label: l10n.colisOriginHubLabel,
+            city: origin?.city ?? '',
+            hub: origin == null ? '' : '${origin.name} — ${origin.counter}',
+            isOrigin: true,
+          ),
+          const SizedBox(height: 10),
+          _AxisPoint(
+            label: l10n.colisDestinationHubLabel,
+            city: destination?.city ?? '',
+            hub: destination == null
+                ? ''
+                : '${destination.name} — ${destination.counter}',
+            isOrigin: false,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Un bout de l'axe : sa pastille, son intitulé, sa ville, son guichet.
+class _AxisPoint extends StatelessWidget {
+  const _AxisPoint({
+    required this.label,
+    required this.city,
+    required this.hub,
+    required this.isOrigin,
+  });
+
+  final String label;
+  final String city;
+  final String hub;
+  final bool isOrigin;
+
+  @override
+  Widget build(BuildContext context) {
+    final koraColors = context.koraColors;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 5),
+          child: Container(
+            width: 9,
+            height: 9,
+            decoration: BoxDecoration(
+              // Marine au départ, doré à l'arrivée : la même grammaire
+              // que les champs d'itinéraire de l'étape 1.
+              color: isOrigin ? AppColors.kora : AppColors.gold,
+              shape: BoxShape.circle,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label.toUpperCase(),
+                style: AppTextStyles.eyebrow(koraColors.textMuted),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                city,
+                style: TextStyle(
+                  color: context.koraTitleColor,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 1),
+              Text(hub, style: AppTextStyles.caption(koraColors.textMuted)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Les moyens de règlement acceptés au guichet comme dans l'app.
+class _AcceptedMethods extends StatelessWidget {
+  const _AcceptedMethods();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final koraColors = context.koraColors;
+
+    // Deux moyens, et non trois : la carte bancaire ne se propose plus
+    // pour une expédition, et l'annoncer ici ferait attendre au guichet
+    // un règlement que l'app ne sait pas prendre.
+    final methods = <(IconData, String)>[
+      (Icons.account_balance_wallet_outlined, l10n.colisMethodWallet),
+      (Icons.smartphone_rounded, l10n.colisMethodMomo),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          l10n.colisAcceptedMethods.toUpperCase(),
+          style: AppTextStyles.eyebrow(koraColors.textMuted),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            for (final method in methods) ...[
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 11),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: koraColors.surface,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    border: Border.all(color: koraColors.line),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(method.$1, size: 18, color: context.koraTitleColor),
+                      const SizedBox(height: 5),
+                      Text(
+                        method.$2,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: context.koraTitleColor,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (method.$2 != methods.last.$2) const SizedBox(width: 8),
+            ],
+          ],
+        ),
+      ],
     );
   }
 }

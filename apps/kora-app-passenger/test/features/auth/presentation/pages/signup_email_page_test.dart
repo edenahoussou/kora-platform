@@ -68,76 +68,28 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// Bascule vers l'inscription par adresse : l'écran s'ouvre désormais
-  /// sur le numéro, et ces cas-là parlent de l'e-mail.
-  Future<void> switchToEmail(WidgetTester tester) async {
-    await tester.tap(find.text('Inscription avec votre adresse e-mail ?'));
-    await tester.pumpAndSettle();
-  }
-
-  testWidgets('s’ouvre sur le numéro, champs vides', (tester) async {
-    // C'est par leur numéro que les voyageurs se reconnaissent ici ; le
-    // code arrive alors sur WhatsApp.
+  testWidgets('s’ouvre sur l’adresse, champs vides', (tester) async {
+    // L'inscription par numéro est désactivée : l'écran s'ouvre sur
+    // l'adresse, et plus aucun lien ne mène au téléphone.
     await pumpPage(tester);
 
-    expect(find.text('Votre numéro de téléphone'), findsOneWidget);
+    expect(find.text('Votre adresse email'), findsOneWidget);
     expect(find.text('CRÉATION DE COMPTE'), findsOneWidget);
+    expect(find.text('vous@exemple.com'), findsOneWidget);
+    expect(field('signup-email'), findsOneWidget);
+
+    // Ni le numéro, ni le nom qu'il réclamait, ni le lien de bascule.
+    expect(field('signup-phone'), findsNothing);
+    expect(find.text('Nom complet'), findsNothing);
     expect(
-      find.text('Nous vous enverrons un code de vérification sur WhatsApp.'),
-      findsOneWidget,
+      find.text('Inscription avec votre numéro de téléphone ?'),
+      findsNothing,
     );
 
     // Les champs ne proposent rien de tout fait, juste des exemples.
-    expect(find.text('🇧🇯  +229'), findsOneWidget);
-    expect(find.text('01 97 00 00 00'), findsOneWidget);
     for (final champ in tester.widgetList<TextField>(find.byType(TextField))) {
       expect(champ.controller!.text, isEmpty);
     }
-  });
-
-  testWidgets('le lien mène à l’inscription par adresse', (tester) async {
-    await pumpPage(tester);
-
-    await tester.tap(find.text('Inscription avec votre adresse e-mail ?'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Votre adresse email'), findsOneWidget);
-    expect(find.text('vous@exemple.com'), findsOneWidget);
-    // Le nom n'est demandé que par le téléphone.
-    expect(find.text('Nom complet'), findsNothing);
-    expect(field('signup-email'), findsOneWidget);
-  });
-
-  testWidgets('l’inscription par téléphone demande le nom', (tester) async {
-    // Le serveur répond `422 name_required` pour une inscription par
-    // téléphone sans nom : il n'a aucune adresse d'où en dériver un.
-    // Autant le demander ici plutôt que d'échouer après le code.
-    await pumpPage(tester);
-
-    expect(find.text('Votre numéro de téléphone'), findsOneWidget);
-    expect(find.text('Nom complet'), findsOneWidget);
-    expect(find.text('🇧🇯  +229'), findsOneWidget);
-
-    await tester.enterText(field('signup-phone'), '01 97 42 18 60');
-    await tester.tap(find.text('Recevoir mon code'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Nom requis'), findsOneWidget);
-    expect(submitted, isNull);
-  });
-
-  testWidgets('le numéro part au format international, avec le nom', (
-    tester,
-  ) async {
-    await pumpPage(tester);
-
-    await tester.enterText(field('signup-name'), 'Aïcha HOUNKPE');
-    await tester.enterText(field('signup-phone'), '01 97 42 18 60');
-    await tester.tap(find.text('Recevoir mon code'));
-    await tester.pumpAndSettle();
-
-    expect(submitted, '+2290197421860');
-    expect(repository.calls, contains('requestOtp:registration'));
   });
 
   testWidgets('un compte déjà créé mène à la connexion', (tester) async {
@@ -151,7 +103,6 @@ void main() {
     );
 
     await pumpPage(tester);
-    await switchToEmail(tester);
 
     await tester.enterText(field('signup-email'), 'aicha@example.com');
     await tester.tap(find.text('Recevoir mon code'));
@@ -186,7 +137,6 @@ void main() {
     );
 
     await pumpPage(tester);
-    await switchToEmail(tester);
 
     await tester.enterText(field('signup-email'), 'aicha@example.com');
     await tester.tap(find.text('Recevoir mon code'));
@@ -210,7 +160,6 @@ void main() {
 
   testWidgets('refuse un champ vide', (tester) async {
     await pumpPage(tester);
-    await switchToEmail(tester);
 
     await tester.tap(find.text('Recevoir mon code'));
     await tester.pumpAndSettle();
@@ -221,7 +170,6 @@ void main() {
 
   testWidgets('refuse une adresse mal formée', (tester) async {
     await pumpPage(tester);
-    await switchToEmail(tester);
 
     await tester.enterText(field('signup-email'), 'aicha.example.com');
     await tester.tap(find.text('Recevoir mon code'));
@@ -235,7 +183,6 @@ void main() {
     tester,
   ) async {
     await pumpPage(tester);
-    await switchToEmail(tester);
 
     await tester.enterText(field('signup-email'), '  aicha@example.com  ');
     await tester.tap(find.text('Recevoir mon code'));
@@ -247,7 +194,6 @@ void main() {
 
   testWidgets('efface l’erreur dès que la saisie reprend', (tester) async {
     await pumpPage(tester);
-    await switchToEmail(tester);
 
     await tester.tap(find.text('Recevoir mon code'));
     await tester.pumpAndSettle();
@@ -262,7 +208,6 @@ void main() {
     tester,
   ) async {
     await pumpPage(tester);
-    await switchToEmail(tester);
 
     await tester.enterText(field('signup-email'), 'passager@korabus.app');
     await tester.tap(find.text('Recevoir mon code'));
@@ -296,8 +241,7 @@ void main() {
       // doit pas valoir « code inconnu ».
       await pumpPage(tester);
 
-      await tester.enterText(field('signup-name'), 'Aïcha HOUNKPE');
-      await tester.enterText(field('signup-phone'), '01 97 42 18 60');
+      await tester.enterText(field('signup-email'), 'aicha@exemple.com');
       await tester.enterText(field('signup-referral'), 'ka1b2c3d');
       await tester.tap(find.text('Recevoir mon code'));
       await tester.pumpAndSettle();
@@ -312,8 +256,7 @@ void main() {
       // préexistant sans PIN.
       await pumpPage(tester);
 
-      await tester.enterText(field('signup-name'), 'Aïcha HOUNKPE');
-      await tester.enterText(field('signup-phone'), '01 97 42 18 60');
+      await tester.enterText(field('signup-email'), 'aicha@exemple.com');
       await tester.tap(find.text('Recevoir mon code'));
       await tester.pumpAndSettle();
 
@@ -326,12 +269,13 @@ void main() {
   ) async {
     await pumpPage(tester, locale: const Locale('en'));
 
-    expect(find.text('Your phone number'), findsOneWidget);
-    expect(find.text('Full name'), findsOneWidget);
-
-    await tester.tap(find.text('Sign up with your email address?'));
-    await tester.pumpAndSettle();
     expect(find.text('Your email address'), findsOneWidget);
+    expect(find.text('Referral code (optional)'), findsOneWidget);
+
+    // L'inscription par numéro est désactivée : ni son champ, ni le
+    // lien qui y menait.
+    expect(find.text('Full name'), findsNothing);
+    expect(find.text('Sign up with your phone number?'), findsNothing);
   });
 }
 

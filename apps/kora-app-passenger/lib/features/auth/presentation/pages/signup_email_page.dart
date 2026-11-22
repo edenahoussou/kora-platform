@@ -54,10 +54,14 @@ class _SignupEmailPageState extends State<SignupEmailPage> {
   /// renseigne sur soi, pas à un écran de sécurité.
   final _referral = TextEditingController();
 
-  /// Le téléphone par défaut : c'est le premier identifiant du
-  /// voyageur au Bénin, et celui qui reçoit le code sur WhatsApp.
-  /// L'adresse reste à un lien de là, pour qui préfère la sienne.
-  _SignupMode _mode = _SignupMode.phone;
+  /// L'adresse e-mail, et elle seule.
+  ///
+  /// L'inscription par téléphone est désactivée : le code du mode reste
+  /// en place — validation du numéro, champ « Nom complet » que le
+  /// serveur réclame alors — mais aucun lien n'y mène plus, et l'écran
+  /// s'ouvre sur l'adresse. Rétablir le choix tient en une ligne : il
+  /// suffit de rendre ce champ mutable et d'y rebrancher un lien.
+  final _SignupMode _mode = _SignupMode.email;
 
   PhoneCountry _country = PhoneCountry.benin;
 
@@ -88,18 +92,6 @@ class _SignupEmailPageState extends State<SignupEmailPage> {
       _country = country;
       if (rebased != _phone.text) _phone.text = rebased;
       _error = null;
-    });
-  }
-
-  /// Bascule adresse ↔ téléphone, en effaçant ce qui appartenait à
-  /// l'autre mode.
-  void _switchMode() {
-    setState(() {
-      _mode = _mode == _SignupMode.email
-          ? _SignupMode.phone
-          : _SignupMode.email;
-      _error = null;
-      _nameError = null;
     });
   }
 
@@ -366,18 +358,6 @@ class _SignupEmailPageState extends State<SignupEmailPage> {
                             label: l10n.signupSubmit,
                             isLoading: flow.isSubmitting,
                             onPressed: flow.isSubmitting ? null : _submit,
-                          ),
-                          const SizedBox(height: 4),
-                          // Sous le bouton, comme sur l'écran de
-                          // connexion : c'est le même geste, changer la
-                          // façon de se nommer.
-                          TextButton(
-                            onPressed: flow.isSubmitting ? null : _switchMode,
-                            child: Text(
-                              _mode == _SignupMode.email
-                                  ? l10n.signupSwitchToPhone
-                                  : l10n.signupSwitchToEmail,
-                            ),
                           ),
                         ],
                       ),

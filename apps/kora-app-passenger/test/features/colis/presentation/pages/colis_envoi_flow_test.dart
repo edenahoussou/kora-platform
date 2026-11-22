@@ -51,7 +51,10 @@ void main() {
       BlocProvider<ColisDraftCubit>.value(value: draft, child: child);
 
   Future<GoRouter> pumpFlow(WidgetTester tester) async {
-    tester.view.physicalSize = const Size(390 * 3, 2200 * 3);
+    // L'étape 2 s'est allongée — liste d'interdits, certification,
+    // réassurance : la fenêtre du test doit les contenir pour qu'on
+    // puisse les toucher.
+    tester.view.physicalSize = const Size(390 * 3, 3200 * 3);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
 
@@ -243,6 +246,7 @@ void main() {
       ..chooseOrigin('ctn-gare-centrale')
       ..chooseDestination('pkx-gare-nord')
       ..describe('Documents administratifs et fournitures de bureau')
+      ..certify(true)
       ..setRecipient(name: 'Amina BIO', phone: '95000088');
 
     await pumpFlow(tester);
@@ -272,6 +276,7 @@ void main() {
       ..chooseOrigin('ctn-gare-centrale')
       ..chooseDestination('pkx-gare-nord')
       ..describe('Documents administratifs')
+      ..certify(true)
       ..setRecipient(name: 'Amina BIO', phone: '95000088');
 
     await pumpFlow(tester);
@@ -312,6 +317,19 @@ void main() {
 
     await tester.enterText(find.byType(TextField).first, '2 pagnes');
     await tester.pumpAndSettle();
+    // La description suffit, mais la certification sur l'honneur reste
+    // due : l'agent ouvrira le colis au guichet.
+    expect(tester.widget<KoraButton>(cta).onPressed, isNull);
+
+    // La case n'est plus un `Checkbox` Material : la maquette la veut
+    // carrée, grise puis marine. On touche donc son libellé, qui est
+    // la cible réelle du geste.
+    // `findRichText` : le libellé porte son astérisque rouge dans un
+    // `RichText`, que le finder ignore sans ce drapeau.
+    await tester.tap(
+      find.textContaining('Je certifie sur l’honneur', findRichText: true),
+    );
+    await tester.pumpAndSettle();
 
     expect(tester.widget<KoraButton>(cta).onPressed, isNotNull);
   });
@@ -323,6 +341,7 @@ void main() {
       ..chooseOrigin('ctn-gare-centrale')
       ..chooseDestination('pkx-gare-nord')
       ..describe('Documents administratifs et fournitures de bureau')
+      ..certify(true)
       ..setRecipient(name: 'Amina BIO', phone: '95000088')
       ..preregister();
 

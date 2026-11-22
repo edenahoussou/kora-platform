@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:go_router/go_router.dart';
@@ -9,6 +10,7 @@ import '../../../../core/utils/title_color.dart';
 import '../../data/datasources/colis_network_mock.dart';
 import '../bloc/colis_draft_cubit.dart';
 import '../widgets/colis_step_scaffold.dart';
+import '../widgets/colis_surface.dart';
 
 /// Écran 03 — « Que contient votre colis ? ».
 ///
@@ -50,7 +52,6 @@ class _ColisContentPageState extends State<ColisContentPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final koraColors = context.koraColors;
 
     return BlocBuilder<ColisDraftCubit, ColisDraft>(
       builder: (context, draft) {
@@ -63,7 +64,6 @@ class _ColisContentPageState extends State<ColisContentPage> {
           subtitle: l10n.colisContentSubtitle,
           footer: ColisStepFooter(
             label: l10n.colisContentCta,
-            hint: l10n.colisContentHint,
             onContinue: draft.isContentComplete
                 ? () => colisAdvance(context, AppRouter.colisContactsPath)
                 : null,
@@ -76,108 +76,75 @@ class _ColisContentPageState extends State<ColisContentPage> {
             const SizedBox(height: AppSpacing.md),
             // La nature commande le contrôle au guichet : elle se
             // déclare avant qu'on décrive le détail.
-            Text(
-              l10n.colisNatureField,
-              style: TextStyle(
-                color: context.koraTitleColor,
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
+            _Field(
+              label: l10n.colisNatureField,
+              required: true,
+              child: _NatureSelect(
+                nature: draft.nature,
+                onChanged: cubit.chooseNature,
               ),
             ),
+            const SizedBox(height: AppSpacing.md),
+            _Field(
+              label: l10n.colisContentLabel,
+              required: true,
+              trailing: '${_content.text.characters.length}/$_maxContent',
+              help: l10n.colisContentHelp,
+              child: _ContentField(
+                controller: _content,
+                maxLength: _maxContent,
+                hint: l10n.colisContentPlaceholder,
+                onChanged: (value) {
+                  cubit.describe(value);
+                  setState(() {});
+                },
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            _Field(
+              label: l10n.colisWeightLabel,
+              required: true,
+              child: _WeightStepper(
+                weightKg: draft.declaredWeightKg,
+                onStep: cubit.stepWeight,
+              ),
+            ),
+            // La pesée certifiée se lit **sous le compteur**, collée à
+            // lui : c'est le poids qu'on vient de saisir qu'elle
+            // corrige, pas une remarque générale de l'écran.
             const SizedBox(height: 8),
-            _NatureField(nature: draft.nature, onChanged: cubit.chooseNature),
-            const SizedBox(height: AppSpacing.md),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    l10n.colisContentLabel,
-                    style: TextStyle(
-                      color: context.koraTitleColor,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-                Text(
-                  '${draft.content.characters.length}/$_maxContent',
-                  style: AppTextStyles.caption(koraColors.textMuted),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            TextField(
-              controller: _content,
-              maxLines: 3,
-              maxLength: _maxContent,
-              onChanged: cubit.describe,
-              style: AppTextStyles.body(context.koraTitleColor),
-              decoration: InputDecoration(
-                counterText: '',
-                hintText: l10n.colisContentPlaceholder,
-                filled: true,
-                fillColor: koraColors.surface,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                  borderSide: BorderSide(color: koraColors.line),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                  borderSide: BorderSide(color: koraColors.line),
-                ),
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              l10n.colisContentHelp,
-              style: AppTextStyles.caption(koraColors.textMuted),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              l10n.colisWeightLabel,
-              style: TextStyle(
-                color: context.koraTitleColor,
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 8),
-            _WeightStepper(
-              weightKg: draft.declaredWeightKg,
-              onStep: cubit.stepWeight,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            KoraInput(
-              label: l10n.colisDeclaredValue,
-              hint: l10n.colisDeclaredValueHint,
-              controller: _value,
-              keyboardType: TextInputType.number,
-              onChanged: (text) => cubit.setDeclaredValue(
-                int.tryParse(text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              l10n.colisDeclaredValueHelp,
-              style: AppTextStyles.caption(koraColors.textMuted),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            // La phrase que tout le parcours doit tenir : ce poids n'est
-            // pas celui qui sera facturé.
-            KoraAlert(
-              icon: Icons.scale_outlined,
+            _Inset(
+              icon: Icons.scale_rounded,
+              iconColor: AppColors.digital,
               title: l10n.colisWeighingTitle,
-              message: l10n.colisWeighingText,
+              text: l10n.colisWeighingText,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            _Field(
+              label: l10n.colisDeclaredValue,
+              required: true,
+              help: l10n.colisDeclaredValueHelp,
+              child: _ContentField(
+                controller: _value,
+                hint: l10n.colisDeclaredValueHint,
+                lines: 1,
+                digitsOnly: true,
+                onChanged: (value) =>
+                    cubit.setDeclaredValue(int.tryParse(value) ?? 0),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            // Les interdits, la liste et la certification : une seule
+            // carte. Les séparer laissait croire qu'on pouvait cocher
+            // sans avoir lu.
+            _ForbiddenCard(
+              certified: draft.certified,
+              onCertify: cubit.certify,
             ),
             const SizedBox(height: AppSpacing.sm),
-            // Ce que le guichet refusera : mieux vaut le lire ici que
-            // devant l'agent, le colis déjà emballé.
-            KoraAlert(
-              variant: KoraAlertVariant.critical,
-              icon: Icons.dangerous_outlined,
-              title: l10n.colisForbiddenTitle,
-              message: l10n.colisForbiddenText,
-            ),
+            // Le rappel de fin : une bande grise, pas une carte — il
+            // rassure, il n'informe pas.
+            _Reassurance(text: l10n.colisTraceabilityText),
           ],
         );
       },
@@ -338,9 +305,166 @@ class _StepButton extends StatelessWidget {
   }
 }
 
-/// La nature de l'envoi : quatre choix fermés, comme la maquette.
-class _NatureField extends StatelessWidget {
-  const _NatureField({required this.nature, required this.onChanged});
+/// Le libellé d'une nature, nommé à la compilation.
+String colisNatureLabel(AppLocalization l10n, ColisNature nature) =>
+    switch (nature) {
+      ColisNature.clothing => l10n.colisNatureClothing,
+      ColisNature.documents => l10n.colisNatureDocuments,
+      ColisNature.electronics => l10n.colisNatureElectronics,
+      ColisNature.other => l10n.colisNatureOther,
+    };
+
+/// Un champ du formulaire : son intitulé, le contrôle, et l'aide.
+///
+/// La maquette met l'intitulé **au-dessus** du champ, jamais dedans :
+/// un libellé qui disparaît à la première frappe ne dit plus ce qu'on
+/// est en train de remplir.
+class _Field extends StatelessWidget {
+  const _Field({
+    required this.label,
+    required this.child,
+    this.required = false,
+    this.trailing,
+    this.help,
+  });
+
+  final String label;
+  final Widget child;
+
+  /// Marqué d'une astérisque rouge, comme la maquette.
+  final bool required;
+
+  /// Le compteur de caractères, à droite de l'intitulé.
+  final String? trailing;
+
+  /// La ligne d'aide sous le champ, précédée de son pictogramme.
+  final String? help;
+
+  @override
+  Widget build(BuildContext context) {
+    final koraColors = context.koraColors;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: RichText(
+                text: TextSpan(
+                  text: label,
+                  style: TextStyle(
+                    color: context.koraTitleColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  children: [
+                    if (required)
+                      const TextSpan(
+                        text: ' *',
+                        style: TextStyle(color: AppColors.danger),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            if (trailing case final trailing?)
+              Text(
+                trailing,
+                style: AppTextStyles.caption(koraColors.textMuted),
+              ),
+          ],
+        ),
+        const SizedBox(height: 7),
+        child,
+        if (help case final help?) ...[
+          const SizedBox(height: 6),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                Icons.info_outline_rounded,
+                size: 15,
+                color: koraColors.textMuted,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  help,
+                  style: AppTextStyles.caption(koraColors.textMuted),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Un champ de saisie posé sur une carte blanche, sans bordure.
+///
+/// La maquette ne borde pas ses champs : elle les pose en blanc sur le
+/// fond mist, avec l'ombre des cartes. Une bordure en plus donnait deux
+/// signaux pour une seule limite.
+class _ContentField extends StatelessWidget {
+  const _ContentField({
+    required this.controller,
+    required this.hint,
+    required this.onChanged,
+    this.maxLength,
+    this.lines = 3,
+    this.digitsOnly = false,
+  });
+
+  final TextEditingController controller;
+  final String hint;
+  final ValueChanged<String> onChanged;
+  final int? maxLength;
+  final int lines;
+  final bool digitsOnly;
+
+  @override
+  Widget build(BuildContext context) {
+    final koraColors = context.koraColors;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: koraColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        boxShadow: kColisCardShadow,
+      ),
+      child: TextField(
+        controller: controller,
+        maxLines: lines,
+        maxLength: maxLength,
+        keyboardType: digitsOnly ? TextInputType.number : null,
+        inputFormatters: digitsOnly
+            ? [FilteringTextInputFormatter.digitsOnly]
+            : null,
+        onChanged: onChanged,
+        style: AppTextStyles.body(context.koraTitleColor),
+        decoration: InputDecoration(
+          counterText: '',
+          hintText: hint,
+          hintStyle: AppTextStyles.body(koraColors.textMuted),
+          filled: false,
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.all(14),
+        ),
+      ),
+    );
+  }
+}
+
+/// La nature de l'envoi, en liste déroulante.
+///
+/// Quatre pastilles prenaient deux lignes pour un choix unique, et
+/// poussaient le reste du formulaire sous le pli. Une liste déroulante
+/// dit la même chose sur une ligne.
+class _NatureSelect extends StatelessWidget {
+  const _NatureSelect({required this.nature, required this.onChanged});
 
   final ColisNature nature;
   final ValueChanged<ColisNature> onChanged;
@@ -350,51 +474,296 @@ class _NatureField extends StatelessWidget {
     final l10n = context.l10n;
     final koraColors = context.koraColors;
 
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        for (final value in ColisNature.values)
-          Material(
-            color: value == nature ? AppColors.kora : koraColors.surface,
-            borderRadius: BorderRadius.circular(AppRadius.pill),
-            child: InkWell(
-              onTap: () => onChanged(value),
-              borderRadius: BorderRadius.circular(AppRadius.pill),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 13,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(AppRadius.pill),
-                  border: Border.all(
-                    color: value == nature ? AppColors.kora : koraColors.line,
-                  ),
-                ),
-                child: Text(
-                  colisNatureLabel(l10n, value),
-                  style: TextStyle(
-                    color: value == nature
-                        ? AppColors.white
-                        : koraColors.textMuted,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        color: koraColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        boxShadow: kColisCardShadow,
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<ColisNature>(
+          value: nature,
+          isExpanded: true,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          icon: Icon(Icons.expand_more_rounded, color: koraColors.textMuted),
+          style: TextStyle(
+            color: context.koraTitleColor,
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
           ),
-      ],
+          onChanged: (value) {
+            if (value != null) onChanged(value);
+          },
+          items: [
+            for (final item in ColisNature.values)
+              DropdownMenuItem(
+                value: item,
+                child: Text(colisNatureLabel(l10n, item)),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }
 
-/// Le libellé d'une nature, nommé à la compilation.
-String colisNatureLabel(AppLocalization l10n, ColisNature nature) =>
-    switch (nature) {
-      ColisNature.clothing => l10n.colisNatureClothing,
-      ColisNature.documents => l10n.colisNatureDocuments,
-      ColisNature.electronics => l10n.colisNatureElectronics,
-      ColisNature.other => l10n.colisNatureOther,
-    };
+/// Un encart gris collé au champ qu'il commente.
+class _Inset extends StatelessWidget {
+  const _Inset({
+    required this.icon,
+    required this.title,
+    required this.text,
+    this.iconColor,
+  });
+
+  final IconData icon;
+  final String title;
+  final String text;
+  final Color? iconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final koraColors = context.koraColors;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: colisInsetDecoration(context),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Icon(
+              icon,
+              size: 20,
+              color: iconColor ?? context.koraTitleColor,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: context.koraTitleColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(text, style: AppTextStyles.caption(koraColors.textMuted)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Les articles interdits, et la certification qui les suit.
+///
+/// Une seule carte : le pictogramme rouge, la liste encastrée, puis la
+/// case à cocher. Les séparer laissait certifier sans avoir lu, et
+/// c'est précisément ce que cette case engage.
+class _ForbiddenCard extends StatelessWidget {
+  const _ForbiddenCard({required this.certified, required this.onCertify});
+
+  final bool certified;
+  final ValueChanged<bool> onCertify;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final koraColors = context.koraColors;
+
+    final items = [
+      l10n.colisForbidden1,
+      l10n.colisForbidden2,
+      l10n.colisForbidden3,
+      l10n.colisForbidden4,
+      l10n.colisForbidden5,
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: koraColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        boxShadow: kColisCardShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              // Le bouclier sur fond rouge pâle : l'interdit se signale
+              // par la couleur, pas par un encadré entier en rouge.
+              Container(
+                width: 28,
+                height: 28,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.danger.withValues(alpha: 0.14),
+                ),
+                child: const Icon(
+                  Icons.shield_outlined,
+                  size: 16,
+                  color: AppColors.danger,
+                ),
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Text(
+                  l10n.colisForbiddenTitle,
+                  style: TextStyle(
+                    color: context.koraTitleColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: colisInsetDecoration(context),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  l10n.colisForbiddenLead,
+                  style: AppTextStyles.caption(koraColors.textMuted),
+                ),
+                const SizedBox(height: 8),
+                for (final item in items) ...[
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Une puce ronde et rouge, de six pixels : c'est
+                      // la liste d'interdits de la maquette, pas une
+                      // colonne de pictogrammes.
+                      Container(
+                        width: 6,
+                        height: 6,
+                        margin: const EdgeInsets.only(top: 7, right: 9),
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.danger,
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          item,
+                          style: TextStyle(
+                            color: context.koraTitleColor,
+                            fontSize: 13,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (item != items.last) const SizedBox(height: 6),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          // La case : carrée, grise au repos, marine une fois cochée.
+          InkWell(
+            onTap: () => onCertify(!certified),
+            borderRadius: BorderRadius.circular(AppRadius.base),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 20,
+                    height: 20,
+                    margin: const EdgeInsets.only(top: 2),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: certified ? AppColors.kora : koraColors.background,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: certified
+                        ? const Icon(
+                            Icons.check_rounded,
+                            size: 15,
+                            color: AppColors.white,
+                          )
+                        : null,
+                  ),
+                  const SizedBox(width: 11),
+                  Expanded(
+                    child: RichText(
+                      text: TextSpan(
+                        text: l10n.colisCertifyLabel,
+                        style: TextStyle(
+                          color: context.koraTitleColor,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                        children: const [
+                          TextSpan(
+                            text: ' *',
+                            style: TextStyle(color: AppColors.danger),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// La bande de réassurance qui ferme l'étape.
+class _Reassurance extends StatelessWidget {
+  const _Reassurance({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final koraColors = context.koraColors;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+      decoration: colisInsetDecoration(context),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.verified_user_rounded,
+            size: 18,
+            color: AppColors.success,
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Text(
+              text,
+              style: AppTextStyles.caption(koraColors.textMuted),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

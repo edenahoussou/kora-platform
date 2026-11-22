@@ -11,6 +11,7 @@ import '../../../home/presentation/pages/city_picker_page.dart';
 import '../../data/datasources/colis_network_mock.dart';
 import '../bloc/colis_draft_cubit.dart';
 import '../widgets/colis_step_scaffold.dart';
+import '../widgets/colis_surface.dart';
 
 /// Écran 02 — « D'où part votre colis ? ».
 ///
@@ -27,12 +28,6 @@ class ColisRoutePage extends StatefulWidget {
 }
 
 class _ColisRoutePageState extends State<ColisRoutePage> {
-  /// L'emplacement que le prochain choix remplira : départ ou arrivée.
-  ///
-  /// Il ne commande plus aucune liste — il ne sert qu'à dire au voyageur
-  /// où il en est, en soulignant l'emplacement à remplir.
-  var _pickingOrigin = true;
-
   /// Ouvre le sélecteur de villes de l'accueil, celui du parcours Bus.
   ///
   /// Le même écran pour le même geste : chercher une ville desservie.
@@ -101,15 +96,14 @@ class _ColisRoutePageState extends State<ColisRoutePage> {
 
   void _choose(ColisHub hub, {required bool origin}) {
     final cubit = context.read<ColisDraftCubit>();
+    // L'emplacement à remplir ne se souligne plus : la maquette le dit
+    // par la pastille du rail, pleine dès qu'un guichet est retenu, et
+    // une bordure dorée en plus brouillait les deux signaux.
     if (origin) {
       cubit.chooseOrigin(hub.id);
-      // Le voyageur vient de dire d'où il part : la suite logique est
-      // l'arrivée, et la lui désigner évite un aller-retour.
-      setState(() => _pickingOrigin = false);
       return;
     }
     cubit.chooseDestination(hub.id);
-    setState(() => _pickingOrigin = true);
   }
 
   @override
@@ -127,38 +121,17 @@ class _ColisRoutePageState extends State<ColisRoutePage> {
           subtitle: l10n.colisRouteSubtitle,
           footer: ColisStepFooter(
             label: l10n.colisRouteCta,
-            hint: l10n.colisRouteHint,
             onContinue: served
                 ? () => colisAdvance(context, AppRouter.colisContentPath)
                 : null,
             onCancel: () => context.go('/colis'),
           ),
           children: [
-            _HubSlot(
-              label: l10n.colisOriginHub,
-              hub: draft.originHub,
-              selected: _pickingOrigin,
-              onTap: () => _pickCity(context, origin: true),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: _HubSlot(
-                    label: l10n.colisDestinationHub,
-                    hub: draft.destinationHub,
-                    selected: !_pickingOrigin,
-                    onTap: () => _pickCity(context, origin: false),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // Le retour est le second envoi le plus fréquent : un
-                // bouton vaut mieux que deux choix refaits à la main.
-                KoraIconButton(
-                  icon: Icons.swap_vert_rounded,
-                  onTap: context.read<ColisDraftCubit>().swapHubs,
-                ),
-              ],
+            _RouteCard(
+              draft: draft,
+              onPickOrigin: () => _pickCity(context, origin: true),
+              onPickDestination: () => _pickCity(context, origin: false),
+              onSwap: context.read<ColisDraftCubit>().swapHubs,
             ),
             const SizedBox(height: AppSpacing.sm),
             if (draft.hasRoute && !served)
@@ -174,8 +147,11 @@ class _ColisRoutePageState extends State<ColisRoutePage> {
                   message: l10n.colisRouteUnservedText,
                 ),
               ),
-            KoraAlert(
-              icon: Icons.auto_awesome_rounded,
+            ColisNote(
+              // Le bouclier de la maquette, pas l'étincelle : ce qui
+              // est promis ici est une garantie d'acheminement, pas un
+              // tour de magie.
+              icon: Icons.verified_user_outlined,
               title: l10n.colisAutoAssignTitle,
               message: l10n.colisAutoAssignText,
             ),
@@ -187,19 +163,207 @@ class _ColisRoutePageState extends State<ColisRoutePage> {
 }
 
 /// Un emplacement d'itinéraire : départ ou arrivée, rempli ou en attente.
-class _HubSlot extends StatelessWidget {
-  const _HubSlot({
-    required this.label,
-    required this.hub,
-    required this.selected,
-    required this.onTap,
+/// La carte d'itinéraire : les deux emplacements, le rail qui les
+/// relie, et le bouton d'inversion posé par-dessus.
+///
+/// Une seule carte blanche, et non deux encadrés : les deux
+/// emplacements décrivent un même trajet, et le rail vertical le dit
+/// mieux qu'une bordure dorée sur celui qu'on va remplir. C'est la
+/// construction de la maquette, reprise telle quelle.
+class _RouteCard extends StatelessWidget {
+  const _RouteCard({
+    required this.draft,
+    required this.onPickOrigin,
+    required this.onPickDestination,
+    required this.onSwap,
   });
+
+  final ColisDraft draft;
+  final VoidCallback onPickOrigin;
+  final VoidCallback onPickDestination;
+  final VoidCallback onSwap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final koraColors = context.koraColors;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: koraColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+      ),
+      // `Stack` : le bouton d'inversion mord sur le bord droit des deux
+      // blocs, à cheval entre eux. Dans la colonne il les écartait.
+      child: Stack(
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _Rail(filled: draft.originHub != null, isOrigin: true),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _HubSlot(
+                        label: l10n.colisOriginHub,
+                        hub: draft.originHub,
+                        onTap: onPickOrigin,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _Rail(filled: draft.destinationHub != null, isOrigin: false),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _HubSlot(
+                      label: l10n.colisDestinationHub,
+                      hub: draft.destinationHub,
+                      onTap: onPickDestination,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              // Le même geste que toucher un emplacement, nommé : on ne
+              // devine pas qu'un bloc gris s'ouvre.
+              Center(
+                child: TextButton.icon(
+                  onPressed: onPickOrigin,
+                  icon: const Icon(Icons.search_rounded, size: 18),
+                  label: Text(l10n.colisHubPlaceholder),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.digital,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          // Le retour est le second envoi le plus fréquent : un bouton
+          // vaut mieux que deux choix refaits à la main.
+          Positioned(
+            right: 0,
+            top: 0,
+            bottom: 0,
+            child: Center(
+              child: Material(
+                color: koraColors.surface,
+                shape: const CircleBorder(),
+                elevation: 3,
+                shadowColor: AppColors.kora.withValues(alpha: 0.18),
+                child: InkWell(
+                  onTap: onSwap,
+                  customBorder: const CircleBorder(),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: koraColors.line),
+                    ),
+                    child: Icon(
+                      Icons.swap_vert_rounded,
+                      size: 20,
+                      color: context.koraTitleColor,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Le rail de gauche : une pastille cerclée, et le trait qui descend
+/// vers la suivante.
+///
+/// Marine au départ, dorée à l'arrivée — c'est la pastille qui dit
+/// lequel des deux emplacements on regarde, pas une bordure.
+class _Rail extends StatelessWidget {
+  const _Rail({required this.filled, required this.isOrigin});
+
+  /// L'emplacement porte déjà un guichet. Il ne change plus que
+  /// l'intensité du halo : la couleur, elle, dit le sens du trajet.
+  final bool filled;
+  final bool isOrigin;
+
+  @override
+  Widget build(BuildContext context) {
+    final koraColors = context.koraColors;
+    final color = isOrigin ? AppColors.kora : AppColors.gold;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const SizedBox(height: 8),
+        Container(
+          width: 16,
+          height: 16,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            // Marine au départ, dorée à l'arrivée, remplie ou non : la
+            // pastille dit quel bout du trajet on regarde, pas si le
+            // guichet est choisi. Grisée tant que le champ est vide,
+            // elle ne distinguait plus les deux emplacements.
+            color: color,
+            // Le halo de la maquette : quatre pixels de la teinte, très
+            // pâles, qui détachent la pastille du fond.
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: filled ? 0.22 : 0.12),
+                spreadRadius: 4,
+              ),
+            ],
+          ),
+          child: Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isOrigin ? AppColors.white : AppColors.kora,
+            ),
+          ),
+        ),
+        if (isOrigin) ...[
+          const SizedBox(height: 4),
+          Expanded(child: Container(width: 2, color: koraColors.line)),
+          const SizedBox(height: 4),
+        ],
+      ],
+    );
+  }
+}
+
+/// Un emplacement : son intitulé, le guichet retenu, et le chevron qui
+/// dit qu'il s'ouvre.
+///
+/// Un bloc gris encastré dans la carte, sans bordure : c'est un champ
+/// de formulaire, pas une carte à lui seul.
+class _HubSlot extends StatelessWidget {
+  const _HubSlot({required this.label, required this.hub, required this.onTap});
 
   final String label;
   final ColisHub? hub;
-
-  /// L'emplacement que la liste du dessous va remplir.
-  final bool selected;
   final VoidCallback onTap;
 
   @override
@@ -208,67 +372,63 @@ class _HubSlot extends StatelessWidget {
     final l10n = context.l10n;
 
     return Material(
-      color: koraColors.surface,
+      color: koraColors.background,
       borderRadius: BorderRadius.circular(AppRadius.md),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppRadius.md),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppRadius.md),
-            border: Border.all(
-              color: selected ? AppColors.gold : koraColors.line,
-              width: selected ? 2 : 1,
-            ),
-          ),
-          child: Row(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 9,
-                height: 9,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: hub == null
-                      ? koraColors.line
-                      : (selected ? AppColors.gold : AppColors.kora),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
                       label.toUpperCase(),
-                      style: AppTextStyles.eyebrow(koraColors.textMuted),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      hub?.label ?? l10n.colisHubPlaceholder,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: hub == null
-                            ? koraColors.textMuted
-                            : context.koraTitleColor,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w900,
+                        color: context.koraTitleColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.6,
                       ),
                     ),
-                    if (hub != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        hub!.counter,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.caption(koraColors.textMuted),
-                      ),
-                    ],
-                  ],
+                  ),
+                  // La place du chevron est tenue même quand le bouton
+                  // d'inversion passe par-dessus : sans elle, les deux
+                  // blocs n'auraient pas la même largeur de texte.
+                  const SizedBox(width: 44),
+                  Icon(
+                    Icons.expand_more_rounded,
+                    size: 20,
+                    color: koraColors.textMuted,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                hub?.label ?? l10n.colisHubPlaceholder,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: hub == null
+                      ? koraColors.textMuted
+                      : context.koraTitleColor,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
+              if (hub != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  hub!.counter,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.caption(koraColors.textMuted),
+                ),
+              ],
             ],
           ),
         ),
@@ -330,6 +490,25 @@ class _HubTile extends StatelessWidget {
                     Text(
                       hub.counter,
                       style: AppTextStyles.caption(koraColors.textMuted),
+                    ),
+                    // Le quartier et le rang du hub : c'est ce qui
+                    // distingue deux gares d'une même ville quand on
+                    // ne connaît que leur nom.
+                    const SizedBox(height: 2),
+                    Text(
+                      hub.zone,
+                      style: AppTextStyles.caption(koraColors.textMuted),
+                    ),
+                    const SizedBox(height: 2),
+                    // Le réseau dépasse le Bénin : une gare de Lomé ne
+                    // se choisit pas par inadvertance.
+                    Text(
+                      hub.country,
+                      style: TextStyle(
+                        color: koraColors.textMuted,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ],
                 ),

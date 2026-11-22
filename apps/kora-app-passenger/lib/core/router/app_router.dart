@@ -43,6 +43,7 @@ import '../../features/colis/presentation/pages/colis_checkout_args.dart';
 import '../../features/colis/presentation/pages/colis_contacts_page.dart';
 import '../../features/colis/presentation/pages/colis_content_page.dart';
 import '../../features/colis/presentation/pages/colis_gateway_page.dart';
+import '../../features/colis/presentation/pages/colis_incident_page.dart';
 import '../../features/colis/presentation/pages/colis_momo_page.dart';
 import '../../features/colis/presentation/pages/colis_page.dart';
 import '../../features/colis/presentation/pages/colis_payment_page.dart';
@@ -239,6 +240,12 @@ class AppRouter {
   static const String colisShipmentsPath = '/colis/envois';
   static const String colisTrackingPath = '/colis/envois/suivi';
   static const String colisPickupPath = '/colis/envois/retrait';
+
+  /// Le signalement d'un incident sur un envoi suivi.
+  ///
+  /// Rattache aux envois, pas au parcours de creation : on signale
+  /// ce qui roule deja, jamais ce qu'on est en train de composer.
+  static const String colisIncidentPath = '/colis/envois/incident';
 
   /// Les écrans de paiement, dans le tunnel : le décompte doit y courir
   /// aussi.
@@ -961,6 +968,11 @@ class AppRouter {
             GoRoute(
               path: colisShipmentsPath,
               builder: (context, state) => const ColisShipmentsPage(),
+            ),
+            GoRoute(
+              path: colisIncidentPath,
+              builder: (context, state) =>
+                  ColisIncidentPage(reference: state.extra as String?),
             ),
             GoRoute(
               path: colisTrackingPath,

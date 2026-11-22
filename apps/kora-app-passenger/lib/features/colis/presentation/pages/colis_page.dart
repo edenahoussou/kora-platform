@@ -11,6 +11,7 @@ import '../../../../core/widgets/brand_mini.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../data/datasources/colis_mock_data.dart';
 import '../bloc/colis_draft_cubit.dart';
+import '../widgets/colis_surface.dart';
 
 /// Écran 01 de la maquette KORA Colis — l'accueil de l'onglet : suivre un
 /// envoi par sa référence, en ouvrir un nouveau, et voir où en sont ceux
@@ -123,6 +124,19 @@ class _ColisPageState extends State<ColisPage> {
                           extra: shipment.reference,
                         ),
                       ),
+                    // Ce qui vaut pour tous les envois, et qu'on ne lit
+                    // nulle part ailleurs : où l'on dépose, où l'on
+                    // retire, et ce qu'il faut présenter.
+                    const SizedBox(height: 6),
+                    ColisNote(
+                      icon: Icons.verified_user_outlined,
+                      title: l10n.colisSecurityProtocolTitle,
+                      message: l10n.colisSecurityProtocolText,
+                    ),
+                    // Le bouton d'assistance flotte à 84 px du bord :
+                    // sans cette marge, il recouvrait cette carte une
+                    // fois la liste arrivée en bout de course.
+                    const SizedBox(height: 104),
                   ],
                 ),
               ),
@@ -278,8 +292,9 @@ class _SearchBox extends StatelessWidget {
       padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
         color: koraColors.surface,
-        borderRadius: BorderRadius.circular(19),
-        border: Border.all(color: koraColors.line),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        // Cette carte-ci flotte au-dessus du bandeau : elle garde son
+        // ombre portée, plus marquée que celle des cartes de contenu.
         boxShadow: [
           BoxShadow(
             color: AppColors.kora.withValues(alpha: isDark ? 0.33 : 0.11),
@@ -307,8 +322,8 @@ class _SearchBox extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: context.koraTitleColor,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w900,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
@@ -329,19 +344,17 @@ class _SearchBox extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 7),
-          Container(
-            height: 44,
-            padding: const EdgeInsets.symmetric(horizontal: 7),
-            decoration: BoxDecoration(
-              color: koraColors.background,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: koraColors.line),
-            ),
-            child: Row(
-              children: [
-                const _ScanIcon(),
-                const SizedBox(width: 6),
-                Expanded(
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  height: 44,
+                  padding: const EdgeInsets.symmetric(horizontal: 13),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: koraColors.background,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
                   child: TextField(
                     controller: controller,
                     textCapitalization: TextCapitalization.characters,
@@ -362,61 +375,43 @@ class _SearchBox extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 4),
-                // `.parcel-search-box label button` : le carré doré du
-                // scan, dans le champ lui-même.
-                Material(
-                  color: AppColors.gold.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(8),
-                  child: InkWell(
-                    onTap: onScan,
-                    borderRadius: BorderRadius.circular(8),
-                    child: SizedBox(
-                      width: 28,
-                      height: 28,
-                      child: Icon(
-                        Icons.qr_code_scanner_rounded,
-                        size: 16,
-                        color: isDark ? koraColors.textPrimary : AppColors.kora,
-                      ),
+              ),
+              const SizedBox(width: 8),
+              // Le scan est un bouton à part, carré, à côté du champ :
+              // logé dedans, il rognait la saisie et se confondait avec
+              // un pictogramme décoratif.
+              Material(
+                color: koraColors.background,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                child: InkWell(
+                  onTap: onScan,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  child: SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: Icon(
+                      Icons.qr_code_scanner_rounded,
+                      size: 20,
+                      color: context.koraTitleColor,
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
           const SizedBox(height: 9),
+          // Discret, et non doré : la maquette ne garde qu'une action
+          // dominante par écran, et c'est « Nouvel envoi » juste en
+          // dessous. Deux pavés dorés l'un sur l'autre ne laissaient
+          // plus voir lequel était le geste principal.
           KoraButton(
             label: l10n.parcelsTrackCta,
+            variant: KoraButtonVariant.secondary,
             icon: Icons.arrow_forward_rounded,
-            iconPosition: KoraButtonIconPosition.edges,
             onPressed: onTrack,
           ),
         ],
       ),
-    );
-  }
-}
-
-/// `.parcel-scan-icon` : le petit rectangle avec sa ligne de scan dorée.
-class _ScanIcon extends StatelessWidget {
-  const _ScanIcon();
-
-  @override
-  Widget build(BuildContext context) {
-    final koraColors = context.koraColors;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final border = isDark ? koraColors.textPrimary : AppColors.kora;
-
-    return Container(
-      width: 19,
-      height: 17,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(3),
-        border: Border.all(color: border.withValues(alpha: 0.72), width: 1.5),
-      ),
-      child: Container(width: 11, height: 1, color: AppColors.gold),
     );
   }
 }
@@ -580,8 +575,8 @@ class _ShipmentCard extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: koraColors.surface,
-        borderRadius: BorderRadius.circular(19),
-        border: Border.all(color: koraColors.line),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        boxShadow: kColisCardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

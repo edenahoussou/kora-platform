@@ -16,6 +16,7 @@ class ColisBanner extends StatelessWidget {
     required this.title,
     required this.text,
     this.tagVariant = KoraTagVariant.gold,
+    this.icon,
   });
 
   final String tag;
@@ -27,56 +28,98 @@ class ColisBanner extends StatelessWidget {
   final String text;
   final KoraTagVariant tagVariant;
 
+  /// Le pictogramme posé sur une tuile dorée, à gauche du bandeau — la
+  /// balance d'une pesée, par exemple. La maquette s'en sert pour dire
+  /// de quel geste l'écran rend compte, avant même son titre.
+  final IconData? icon;
+
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.kora,
-        borderRadius: BorderRadius.circular(19),
+        borderRadius: BorderRadius.circular(AppRadius.md),
       ),
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            children: [
-              KoraTag(label: tag, variant: tagVariant),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  caption,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.end,
-                  style: AppTextStyles.caption(
-                    AppColors.white.withValues(alpha: 0.72),
-                  ),
-                ),
+          if (icon case final icon?) ...[
+            Container(
+              width: 40,
+              height: 40,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: AppColors.gold,
+                borderRadius: BorderRadius.circular(AppRadius.sm),
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            title,
-            style: const TextStyle(
-              color: AppColors.white,
-              fontSize: 20,
-              height: 1.15,
-              fontWeight: FontWeight.w900,
+              child: Icon(icon, size: 22, color: AppColors.kora),
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            text,
-            style: TextStyle(
-              color: AppColors.white.withValues(alpha: 0.72),
-              fontSize: 12,
-              height: 1.4,
-            ),
-          ),
+            const SizedBox(width: 12),
+          ],
+          Expanded(child: _Body(this)),
         ],
       ),
+    );
+  }
+}
+
+/// Le contenu du bandeau : sa pastille, son guichet, son titre, sa
+/// phrase. Séparé pour que la tuile dorée puisse se poser à côté sans
+/// décaler le texte d'une ligne.
+class _Body extends StatelessWidget {
+  const _Body(this.banner);
+
+  final ColisBanner banner;
+
+  @override
+  Widget build(BuildContext context) {
+    final tag = banner.tag;
+    final caption = banner.caption;
+    final title = banner.title;
+    final text = banner.text;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          children: [
+            KoraTag(label: tag, variant: banner.tagVariant),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                caption,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.end,
+                style: AppTextStyles.caption(
+                  AppColors.white.withValues(alpha: 0.72),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Text(
+          title,
+          style: const TextStyle(
+            color: AppColors.white,
+            fontSize: 20,
+            height: 1.15,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          text,
+          style: TextStyle(
+            color: AppColors.white.withValues(alpha: 0.72),
+            fontSize: 12,
+            height: 1.4,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -91,11 +134,16 @@ class ColisAmountRow extends StatelessWidget {
     required this.label,
     required this.value,
     this.isTotal = false,
+    this.valueColor,
   });
 
   final String label;
   final String value;
   final bool isTotal;
+
+  /// La couleur de la valeur, quand elle n'est pas un montant — « Offerte »
+  /// se dit en vert sur la maquette, et non dans le bleu des sommes dues.
+  final Color? valueColor;
 
   @override
   Widget build(BuildContext context) {
@@ -120,7 +168,7 @@ class ColisAmountRow extends StatelessWidget {
         Text(
           value,
           style: TextStyle(
-            color: context.koraTitleColor,
+            color: valueColor ?? context.koraTitleColor,
             fontSize: isTotal ? 20 : 13,
             fontWeight: isTotal ? FontWeight.w900 : FontWeight.w800,
           ),
