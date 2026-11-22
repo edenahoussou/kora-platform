@@ -8,6 +8,7 @@ services:
     working_dir: /app
     env_file: .env.staging
     environment:
+      KORA_BRAND_ENV: staging
       QUEUE_CONNECTION: redis
       DB_CONNECTION: pgsql
       DB_HOST: postgres
@@ -25,7 +26,6 @@ services:
       MAIL_USERNAME: ""
       MAIL_PASSWORD: ""
       MAIL_FROM_ADDRESS: no-reply@kora.demo
-      MAIL_FROM_NAME: KORA Staging
       LOG_STACK: docker
     command: [ "sh", "-c", "chown -R www-data:www-data /app/storage /app/bootstrap/cache && exec supervisord -c /etc/supervisor/conf.d/supervisord.conf" ]
     volumes:

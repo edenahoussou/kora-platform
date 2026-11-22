@@ -58,6 +58,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property Carbon|null $locked_until
  * @property Carbon|null $email_verified_at
  * @property string $password
+ * @property bool $initial_web_access_pending
  * @property bool $must_change_password
  * @property Carbon|null $password_changed_at
  * @property string|null $two_factor_secret
@@ -197,6 +198,7 @@ class User extends Authenticatable implements HasMedia, PasskeyUser
             'password' => 'hashed',
             'pin_hash' => 'hashed',
             'must_change_password' => 'boolean',
+            'initial_web_access_pending' => 'boolean',
             'password_changed_at' => 'datetime',
             'status' => UserStatus::class,
             'two_factor_confirmed_at' => 'datetime',

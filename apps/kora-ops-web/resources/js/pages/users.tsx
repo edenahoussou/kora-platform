@@ -1,4 +1,4 @@
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import {
     AlertTriangle,
     Building2,
@@ -19,6 +19,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { UserCredentialsDialog } from '@/components/users/user-credentials-dialog';
+import type { UserCredentials } from '@/components/users/user-credentials-dialog';
 import { UserDetailDrawer } from '@/components/users/user-detail-drawer';
 import { UserFormModal } from '@/components/users/user-form-modal';
 import { cn } from '@/lib/utils';
@@ -48,8 +49,6 @@ type UsersPageProps = {
     permissions?: {
         canManage?: boolean;
     };
-    temporaryPassword?: string | null;
-    otpChallengeUuid?: string | null;
 };
 
 /** Flash Inertia : racine de l'objet page (`page.flash`), jamais dans `props`. */
@@ -129,6 +128,7 @@ function webAccessStatusLabel(
 
     return {
         pending_delivery: 'Accès en attente',
+        failed: 'Échec de l’envoi',
         sent: 'Accès envoyé',
         expired: 'Accès expiré',
         used: 'Mot de passe changé',
@@ -195,13 +195,7 @@ export default function UsersPage({
     agencies = [],
     koraPointOrganizations = [],
     permissions = { canManage: false },
-    temporaryPassword: propTempPassword,
-    otpChallengeUuid: propOtpChallenge,
 }: UsersPageProps) {
-    const page = usePage();
-    const pageProps = page.props as unknown as UsersPageProps;
-    const credentialsFlash = page.flash as CredentialsFlash;
-
     const [query, setQuery] = useState(filters.q ?? '');
     const [selectedRole, setSelectedRole] = useState(filters.role ?? 'all');
     const [selectedAgency, setSelectedAgency] = useState(
@@ -224,32 +218,16 @@ export default function UsersPage({
         null,
     );
 
-    const [credentialsOpen, setCredentialsOpen] = useState(false);
-    const [credPassword, setCredPassword] = useState<string | null>(null);
-    const [credOtp, setCredOtp] = useState<string | null>(null);
-    const [credUserName, setCredUserName] = useState<string | null>(null);
-    const [credUserEmail, setCredUserEmail] = useState<string | null>(null);
-
-    const [dismissedSecret, setDismissedSecret] = useState<string | null>(null);
-
-    const flashTemp =
-        credentialsFlash.temporaryPassword ??
-        propTempPassword ??
-        pageProps?.temporaryPassword;
-    const flashOtp =
-        credentialsFlash.otpChallengeUuid ??
-        propOtpChallenge ??
-        pageProps?.otpChallengeUuid;
-
-    const hasNewFlash = Boolean(
-        (flashTemp && flashTemp !== dismissedSecret) ||
-        (flashOtp && flashOtp !== dismissedSecret),
+    const [credentials, setCredentials] = useState<UserCredentials | null>(
+        null,
     );
+    const credentialsTrigger = useRef<HTMLElement | null>(null);
 
-    const isCredentialsOpen = credentialsOpen || hasNewFlash;
-    const activePassword =
-        credPassword ?? (hasNewFlash ? (flashTemp ?? null) : null);
-    const activeOtp = credOtp ?? (hasNewFlash ? (flashOtp ?? null) : null);
+    const rememberCredentialsTrigger = () => {
+        const trigger = document.activeElement;
+        credentialsTrigger.current =
+            trigger instanceof HTMLElement ? trigger : null;
+    };
 
     // KPI stats calculés sur la liste
     const counts = useMemo(() => {
@@ -373,11 +351,13 @@ export default function UsersPage({
     };
 
     const openCreate = () => {
+        rememberCredentialsTrigger();
         setEditingUser(null);
         setModalOpen(true);
     };
 
     const openEdit = (user: AdministrationUser) => {
+        rememberCredentialsTrigger();
         setEditingUser(user);
         setModalOpen(true);
     };
@@ -394,17 +374,14 @@ export default function UsersPage({
         if (
             !window.confirm(
                 isKoraPoint
-                    ? `Renvoyer l’accès web initial de ${user.name} ? L’ancien mot de passe sera invalidé et un nouveau sera envoyé par e-mail, avec repli SMS si l’e-mail échoue.`
+                    ? `Renvoyer l’accès web initial de ${user.name} ? L’ancien mot de passe sera invalidé et un nouveau sera envoyé par e-mail.`
                     : `Réinitialiser le mot de passe de ${user.name} ? Un mot de passe temporaire unique sera généré.`,
             )
         ) {
             return;
         }
 
-        if (!isKoraPoint) {
-            setCredUserName(user.name);
-            setCredUserEmail(user.email);
-        }
+        rememberCredentialsTrigger();
 
         router.post(
             usersActions.password.reset.url({ user: user.uuid }),
@@ -412,12 +389,15 @@ export default function UsersPage({
             {
                 preserveScroll: true,
                 onSuccess: (page) => {
-                    const temp = (page.flash as CredentialsFlash)
-                        .temporaryPassword;
+                    const temp = (page.flash as CredentialsFlash | undefined)
+                        ?.temporaryPassword;
 
                     if (temp) {
-                        setCredPassword(temp);
-                        setCredentialsOpen(true);
+                        setCredentials({
+                            temporaryPassword: temp,
+                            userName: user.name,
+                            userEmail: user.email,
+                        });
                     }
                 },
             },
@@ -433,20 +413,23 @@ export default function UsersPage({
             return;
         }
 
-        setCredUserName(user.name);
-        setCredUserEmail(user.email);
+        rememberCredentialsTrigger();
         router.post(
             usersActions.pin.reset.url({ user: user.uuid }),
             {},
             {
                 preserveScroll: true,
                 onSuccess: (page) => {
-                    const challenge = (page.flash as CredentialsFlash)
-                        .otpChallengeUuid;
+                    const challenge = (
+                        page.flash as CredentialsFlash | undefined
+                    )?.otpChallengeUuid;
 
                     if (challenge) {
-                        setCredOtp(challenge);
-                        setCredentialsOpen(true);
+                        setCredentials({
+                            otpChallengeUuid: challenge,
+                            userName: user.name,
+                            userEmail: user.email,
+                        });
                     }
                 },
             },
@@ -565,6 +548,7 @@ export default function UsersPage({
                             <button
                                 type="button"
                                 className="btn btn-primary"
+                                id="users-create-button"
                                 onClick={openCreate}
                             >
                                 <Plus className="size-4" /> Nouvel utilisateur
@@ -1072,6 +1056,7 @@ export default function UsersPage({
                 agencies={agencies}
                 koraPointOrganizations={koraPointOrganizations}
                 onOpenChange={setModalOpen}
+                onCredentials={setCredentials}
             />
 
             {/* Drawer 360° de consultation & gestion */}
@@ -1091,22 +1076,16 @@ export default function UsersPage({
                 onRestore={handleRestore}
             />
 
-            {/* Dialogue de restitution sécurisée des identifiants */}
             <UserCredentialsDialog
-                open={isCredentialsOpen}
-                temporaryPassword={activePassword}
-                otpChallengeUuid={activeOtp}
-                userName={credUserName}
-                userEmail={credUserEmail}
-                onClose={() => {
-                    setCredentialsOpen(false);
-                    setCredPassword(null);
-                    setCredOtp(null);
+                credentials={credentials}
+                onClose={() => setCredentials(null)}
+                returnFocus={() => {
+                    const trigger = credentialsTrigger.current;
 
-                    if (flashTemp) {
-                        setDismissedSecret(flashTemp);
-                    } else if (flashOtp) {
-                        setDismissedSecret(flashOtp);
+                    if (trigger?.isConnected) {
+                        trigger.focus();
+                    } else {
+                        document.getElementById('users-create-button')?.focus();
                     }
                 }}
             />

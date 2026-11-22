@@ -41,6 +41,7 @@ class PassengerDeletionRequestedNotification extends Notification implements Sho
     {
         $mail = (new MailMessage)
             ->subject('Demande de suppression de compte passager')
+            ->markdown('notifications::email', ['preview' => 'Nous avons reçu votre demande de suppression de compte passager.'])
             ->greeting('Bonjour,')
             ->line('Une demande de suppression de compte a été déposée depuis la page publique KORA.')
             ->line('Téléphone du compte : '.$this->phone);

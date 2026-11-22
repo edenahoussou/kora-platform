@@ -4,35 +4,32 @@ namespace App\Modules\IdentityAccess\Actions;
 
 use App\Models\User;
 use App\Modules\IdentityAccess\Contracts\PassengerIdentityResolver;
-use App\Modules\IdentityAccess\Data\OtpPurpose;
 use App\Modules\IdentityAccess\Data\RoleCategory;
-use App\Modules\IdentityAccess\Data\SystemRole;
+use App\Modules\IdentityAccess\Data\UserStatus;
 use App\Modules\IdentityAccess\Http\Requests\UserRoleResolver;
 use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\IdentityAccess\Models\KoraPointWebAccessInvitation;
 use App\Modules\KoraPoints\Models\KoraPointOrganization;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class CreateUserAction
 {
     public function __construct(
-        private readonly IssueOtpChallengeAction $issueOtpChallenge,
-        private readonly IssueKoraPointWebAccessAction $issueKoraPointWebAccess,
+        private readonly DeliverInitialWebAccessAction $deliverInitialWebAccess,
         private readonly UserRoleResolver $roleResolver,
         private readonly PassengerIdentityResolver $identityResolver,
     ) {}
 
     /**
      * @param  array{name: string, email: string, phone: string|null, country_code: string|null, birth_date: string|null, status: string, agency_uuid: string|null, kora_point_organization_uuid: string|null, role: string}  $attributes
-     * @return array{user: User, temporary_password: string|null, otp_challenge_uuid: string|null, web_access_invitation: KoraPointWebAccessInvitation|null}
+     * @return array{user: User, temporary_password: string|null, web_access_invitation: KoraPointWebAccessInvitation|null}
      */
-    public function execute(array $attributes, User $actor, Request $request): array
+    public function execute(array $attributes, User $actor): array
     {
-        $temporaryPassword = Str::password(32);
+        $temporaryPassword = Str::random(32);
 
-        [$user, $role] = DB::transaction(function () use ($attributes, $temporaryPassword): array {
+        [$user, $role, $webAccessInvitation] = DB::transaction(function () use ($attributes, $temporaryPassword, $actor): array {
             $role = $this->roleResolver->resolve((string) $attributes['role']);
             $agency = $this->resolveAgency($attributes['agency_uuid'] ?? null);
             $organization = $this->resolveKoraPointOrganization($attributes['kora_point_organization_uuid'] ?? null);
@@ -51,31 +48,19 @@ class CreateUserAction
                 'must_change_password' => true,
             ]);
 
-            $user->forceFill(['kora_point_organization_id' => $organization?->getKey()])->save();
+            $user->forceFill([
+                'kora_point_organization_id' => $organization?->getKey(),
+                'initial_web_access_pending' => $user->status === UserStatus::Suspended,
+            ])->save();
 
             $user->syncRoles([$role->name]);
 
-            return [$user, $role];
+            $invitation = $user->status === UserStatus::Active
+                ? $this->deliverInitialWebAccess->execute($user, $actor, $temporaryPassword)
+                : null;
+
+            return [$user, $role, $invitation];
         });
-
-        $systemRole = SystemRole::tryFrom($role->name);
-        $isKoraPointRole = in_array($systemRole, [
-            SystemRole::KoraPointAgent,
-            SystemRole::KoraPointSupervisor,
-            SystemRole::KoraPointTreasurer,
-        ], true);
-        $challenge = null;
-        $webAccessInvitation = null;
-
-        if ($isKoraPointRole) {
-            $webAccessInvitation = $this->issueKoraPointWebAccess->execute($user, $actor, $temporaryPassword);
-        } else {
-            $challenge = $this->issueOtpChallenge->handle(
-                $user,
-                OtpPurpose::Registration,
-                $request,
-            );
-        }
 
         activity('identity-access')
             ->performedOn($user)
@@ -89,8 +74,7 @@ class CreateUserAction
 
         return [
             'user' => $user->refresh()->load(['agency', 'roles']),
-            'temporary_password' => $isKoraPointRole ? null : $temporaryPassword,
-            'otp_challenge_uuid' => $challenge?->uuid,
+            'temporary_password' => $user->status === UserStatus::Active && ! $user->isKoraPointUser() ? $temporaryPassword : null,
             'web_access_invitation' => $webAccessInvitation?->refresh(),
         ];
     }

@@ -49,6 +49,7 @@ class OtpCodeNotification extends Notification implements ShouldBeEncrypted, Sho
     {
         return (new MailMessage)
             ->subject('Votre code de vérification KORA')
+            ->markdown('notifications::email', ['preview' => 'Utilisez le code contenu dans ce message pour poursuivre votre vérification.'])
             ->greeting('Bonjour,')
             ->line('Voici votre code de vérification KORA :')
             ->line($this->code)

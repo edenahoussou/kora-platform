@@ -5,14 +5,17 @@ namespace App\Modules\IdentityAccess\Actions;
 use App\Models\User;
 use App\Modules\IdentityAccess\Contracts\PassengerIdentityResolver;
 use App\Modules\IdentityAccess\Data\RoleCategory;
+use App\Modules\IdentityAccess\Data\UserStatus;
 use App\Modules\IdentityAccess\Http\Requests\UserRoleResolver;
 use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\KoraPoints\Models\KoraPointOrganization;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class UpdateUserAction
 {
     public function __construct(
+        private readonly DeliverInitialWebAccessAction $deliverInitialWebAccess,
         private readonly UserRoleResolver $roleResolver,
         private readonly PassengerIdentityResolver $identityResolver,
     ) {}
@@ -30,7 +33,8 @@ class UpdateUserAction
             'role' => $user->roles->first()?->name,
         ];
 
-        $updated = DB::transaction(function () use ($user, $attributes): User {
+        $updated = DB::transaction(function () use ($user, $attributes, $actor): User {
+            $user = User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
             $role = $this->roleResolver->resolve((string) $attributes['role']);
             $agency = $this->resolveAgency($attributes['agency_uuid'] ?? null);
             $organization = $this->resolveKoraPointOrganization($attributes['kora_point_organization_uuid'] ?? null);
@@ -51,6 +55,17 @@ class UpdateUserAction
             ])->save();
 
             $user->syncRoles([$role->name]);
+
+            if ($user->initial_web_access_pending && $user->status === UserStatus::Active) {
+                $temporaryPassword = Str::random(32);
+                $user->forceFill([
+                    'password' => $temporaryPassword,
+                    'must_change_password' => true,
+                    'password_changed_at' => null,
+                    'initial_web_access_pending' => false,
+                ])->save();
+                $this->deliverInitialWebAccess->execute($user, $actor, $temporaryPassword);
+            }
 
             return $user->refresh()->load(['agency', 'koraPointOrganization', 'roles']);
         });

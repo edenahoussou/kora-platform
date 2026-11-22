@@ -4,6 +4,7 @@ namespace App\Modules\IdentityAccess\Jobs;
 
 use App\Models\User;
 use App\Modules\IdentityAccess\Data\SystemRole;
+use App\Modules\IdentityAccess\Data\UserStatus;
 use App\Modules\IdentityAccess\Models\KoraPointWebAccessInvitation;
 use App\Modules\IdentityAccess\Services\KoraPointWebAccessDelivery;
 use App\Modules\KoraPoints\Models\KoraPoint;
@@ -16,6 +17,7 @@ use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use RuntimeException;
 use SensitiveParameter;
 use Throwable;
 
@@ -53,6 +55,8 @@ class SendKoraPointWebAccessJob implements ShouldBeEncrypted, ShouldBeUnique, Sh
             $invitation === null
             || $invitation->status !== KoraPointWebAccessInvitation::STATUS_PENDING_DELIVERY
             || $invitation->user === null
+            || $invitation->user->status !== UserStatus::Active
+            || ! $invitation->user->must_change_password
             || ! Hash::check($this->temporaryPassword, $invitation->user->password)
         ) {
             return;
@@ -68,31 +72,19 @@ class SendKoraPointWebAccessJob implements ShouldBeEncrypted, ShouldBeUnique, Sh
             loginUrl: route('login'),
         );
 
-        $channel = 'email';
-        $mailError = null;
-
         try {
             $delivery->sendEmail($user->email, $notification);
         } catch (Throwable $exception) {
-            $mailError = $exception;
+            Log::warning('KORA POINT web access could not be delivered.', [
+                'user_uuid' => $user->uuid,
+                'invitation_uuid' => $invitation->uuid,
+                'email_exception' => $exception::class,
+            ]);
 
-            if (! $delivery->canSendSms($user->phone)) {
-                $this->logDeliveryFailure($user, $invitation, $exception, null);
-
-                return;
-            }
-
-            try {
-                $delivery->sendSms((string) $user->phone, $notification, $invitation->uuid);
-                $channel = 'sms';
-            } catch (Throwable $smsException) {
-                $this->logDeliveryFailure($user, $invitation, $mailError, $smsException);
-
-                return;
-            }
+            throw new RuntimeException('La livraison de l’accès web KORA POINT a échoué.');
         }
 
-        DB::transaction(function () use ($channel): void {
+        DB::transaction(function (): void {
             $currentInvitation = KoraPointWebAccessInvitation::query()
                 ->lockForUpdate()
                 ->where('uuid', $this->invitationUuid)
@@ -114,19 +106,19 @@ class SendKoraPointWebAccessJob implements ShouldBeEncrypted, ShouldBeUnique, Sh
             $sentAt = now();
             $currentInvitation->update([
                 'status' => KoraPointWebAccessInvitation::STATUS_SENT,
-                'delivery_channel' => $channel,
+                'delivery_channel' => 'email',
                 'sent_at' => $sentAt,
                 'expires_at' => $sentAt->copy()->addHours(72),
             ]);
         });
     }
 
-    public function failed(?Throwable $exception): void
+    public function failed(): void
     {
-        Log::warning('KORA POINT web access delivery job failed.', [
-            'invitation_uuid' => $this->invitationUuid,
-            'exception' => $exception === null ? null : $exception::class,
-        ]);
+        KoraPointWebAccessInvitation::query()
+            ->where('uuid', $this->invitationUuid)
+            ->where('status', KoraPointWebAccessInvitation::STATUS_PENDING_DELIVERY)
+            ->update(['status' => KoraPointWebAccessInvitation::STATUS_FAILED]);
     }
 
     private function roleLabel(User $user): string
@@ -169,19 +161,5 @@ class SendKoraPointWebAccessJob implements ShouldBeEncrypted, ShouldBeUnique, Sh
         }
 
         return 'Réseau KORA POINT · affectation à finaliser';
-    }
-
-    private function logDeliveryFailure(
-        User $user,
-        KoraPointWebAccessInvitation $invitation,
-        Throwable $mailError,
-        ?Throwable $smsError,
-    ): void {
-        Log::warning('KORA POINT web access could not be delivered.', [
-            'user_uuid' => $user->uuid,
-            'invitation_uuid' => $invitation->uuid,
-            'email_exception' => $mailError::class,
-            'sms_exception' => $smsError === null ? null : $smsError::class,
-        ]);
     }
 }

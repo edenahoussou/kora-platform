@@ -1,4 +1,4 @@
-<x-mail::message>
+<x-mail::message :mail-message="$message ?? null" :preview="$title">
 # {{ $title }}
 
 {{ $alertMessage }}
@@ -19,6 +19,4 @@
 **Code :** {{ $code }}
 
 Cette alerte est aussi disponible dans les notifications KORA OPS.
-
-{{ config('app.name') }}
 </x-mail::message>

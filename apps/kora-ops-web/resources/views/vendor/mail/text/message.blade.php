@@ -1,8 +1,9 @@
+@props(['preview' => null, 'mailMessage' => null])
 <x-mail::layout>
     {{-- Header --}}
     <x-slot:header>
         <x-mail::header :url="config('app.url')">
-            {{ config('app.name') }}
+            {{ config('app.brand.name') }}
         </x-mail::header>
     </x-slot:header>
 
@@ -21,7 +22,7 @@
     {{-- Footer --}}
     <x-slot:footer>
         <x-mail::footer>
-            © {{ date('Y') }} {{ config('app.name') }}. @lang('All rights reserved.')
+            {{ $legalFooter }}
         </x-mail::footer>
     </x-slot:footer>
 </x-mail::layout>

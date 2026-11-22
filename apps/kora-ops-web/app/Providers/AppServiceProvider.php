@@ -41,6 +41,7 @@ use App\Modules\Notifications\Channels\OpsMailChannel;
 use App\Modules\Notifications\Channels\PassengerDatabaseChannel;
 use App\Modules\Notifications\Channels\PassengerFcmChannel;
 use App\Modules\Notifications\Channels\SmsChannel;
+use App\Modules\Notifications\Mail\TransactionalMailFooter;
 use App\Modules\Notifications\Observers\PaymentRefundNotificationObserver;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\Models\PaymentRefund;
@@ -93,8 +94,10 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\View as ViewFacade;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\View\View;
 use Kkiapay\Kkiapay;
 use Laravel\Fortify\Events\PasswordUpdatedViaController;
 use Laravel\Fortify\Events\RecoveryCodesGenerated;
@@ -220,6 +223,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        ViewFacade::composer('mail::message', function (View $view): void {
+            $view->with('legalFooter', app(TransactionalMailFooter::class)->text());
+        });
+
         Notification::extend('opsPush', fn (): OpsFirebaseChannel => app(OpsFirebaseChannel::class));
         Notification::extend('opsMail', fn (): OpsMailChannel => app(OpsMailChannel::class));
         Notification::extend('passengerDatabase', fn (): PassengerDatabaseChannel => app(PassengerDatabaseChannel::class));

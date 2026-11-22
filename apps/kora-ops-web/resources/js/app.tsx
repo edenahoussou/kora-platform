@@ -8,7 +8,9 @@ import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import PublicLegalLayout from '@/layouts/public-legal-layout';
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+const appName =
+    document.querySelector<HTMLMetaElement>('meta[name="kora-brand"]')
+        ?.content || 'Kora Express';
 
 // Keep the retry marker across reloads of the same Vite entry.
 window.addEventListener('vite:preloadError', (event) => {

@@ -40,6 +40,7 @@ class PassengerAccountErasedNotification extends Notification implements ShouldQ
     {
         return (new MailMessage)
             ->subject('Suppression de votre compte KORA')
+            ->markdown('notifications::email', ['preview' => 'La suppression de votre compte passager a été traitée.'])
             ->greeting('Bonjour,')
             ->line('Votre compte KORA et vos données personnelles ont été définitivement supprimés à la suite de la demande d’effacement traitée par nos services.')
             ->line('Si vous n’êtes pas à l’origine de cette demande, contactez le support KORA.');

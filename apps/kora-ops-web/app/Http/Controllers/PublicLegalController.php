@@ -91,7 +91,7 @@ class PublicLegalController extends Controller
             'supportEmail' => (string) config('legal.support_email'),
             'company' => [
                 'name' => $settings->emecfShopName ?: 'KORA EXPRESS',
-                'director' => 'Raïmi ADET',
+                'director' => (string) config('legal.company_director'),
                 'rccm' => $settings->emecfRccm ?: 'RB/COT/26 B 43098',
                 'nim' => $settings->emecfNim ?: 'TS01019552',
                 'address' => trim(implode(', ', array_filter([

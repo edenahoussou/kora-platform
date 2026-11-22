@@ -1,11 +1,9 @@
+@props(['logo'])
 <tr>
-<td>
-<table class="footer" align="center" width="570" cellpadding="0" cellspacing="0" role="presentation">
-<tr>
-<td class="content-cell" align="center">
-{{ Illuminate\Mail\Markdown::parse($slot) }}
-</td>
-</tr>
-</table>
+<td class="legal-footer">
+<div class="footer-brand">
+<img src="{{ $logo }}" width="100" height="40" alt="{{ config('app.brand.name') }}" class="footer-logo">
+</div>
+{{ $slot }}
 </td>
 </tr>

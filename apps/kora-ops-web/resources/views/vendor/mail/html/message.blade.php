@@ -1,9 +1,12 @@
-<x-mail::layout>
-    {{-- Header --}}
+@props(['preview' => null, 'mailMessage' => null])
+@php
+    $logo = $mailMessage instanceof \Illuminate\Mail\Message
+        ? $mailMessage->embed(public_path('kora-logo-invoice.png'))
+        : asset('kora-logo-invoice.png');
+@endphp
+<x-mail::layout :preview="$preview">
     <x-slot:header>
-        <x-mail::header :url="config('app.url')">
-            {{ config('app.name') }}
-        </x-mail::header>
+        <x-mail::header />
     </x-slot:header>
 
     {{-- Body --}}
@@ -20,8 +23,8 @@
 
     {{-- Footer --}}
     <x-slot:footer>
-        <x-mail::footer>
-            © {{ date('Y') }} KORA EXPRESS. Tous droits réservés.
+        <x-mail::footer :logo="$logo">
+            {{ $legalFooter }}
             </x-mail:footer>
     </x-slot:footer>
 </x-mail::layout>

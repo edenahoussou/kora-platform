@@ -9,7 +9,9 @@ class UnlockUserAction
 {
     public function execute(User $user, User $actor): User
     {
-        $status = $user->trashed() ? UserStatus::Suspended : UserStatus::Active;
+        $status = $user->trashed() || ($user->initial_web_access_pending && $user->status === UserStatus::Suspended)
+            ? UserStatus::Suspended
+            : UserStatus::Active;
 
         $user->forceFill([
             'failed_pin_attempts' => 0,

@@ -47,6 +47,7 @@ class HealthCheckFailedNotification extends Notification implements ShouldQueue
     {
         $mail = (new MailMessage)
             ->subject('[KORA OPS] Santé dégradée — '.$this->failureCount().' check'.($this->failureCount() > 1 ? 's' : '').' en échec')
+            ->markdown('notifications::email', ['preview' => 'Consultez les contrôles de santé qui nécessitent une intervention.'])
             ->greeting('Alerte santé applicative')
             ->line('Les vérifications suivantes remontent un problème sur '.config('app.name').' ('.config('app.env').') :');
 

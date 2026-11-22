@@ -1,4 +1,4 @@
-<x-mail::message>
+<x-mail::message :mail-message="$message ?? null" preview="Une dépense de voyage attend votre validation dans KORA OPS.">
 # Dépense de voyage à valider
 
 Une dépense **{{ mb_strtolower($kindLabel) }}** de **{{ $amount }} {{ $currency }}** vient d'être saisie depuis KORA OPS Mobile{{ $submitter ? ' par '.$submitter : '' }}. Elle est **{{ mb_strtolower($statusLabel) }}** de validation au bureau.
@@ -100,6 +100,4 @@ Valider ou rejeter (Finance › Dépenses)
 @endif
 
 La dépense n'est comptabilisée (rentabilité, caisse) qu'après approbation par un responsable habilité (responsable d'agence, DAF, direction générale ou administrateur).
-
-{{ config('app.name') }}
 </x-mail::message>

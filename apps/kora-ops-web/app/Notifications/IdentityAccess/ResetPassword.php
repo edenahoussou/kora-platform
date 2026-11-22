@@ -47,13 +47,14 @@ class ResetPassword extends Notification
         ], false));
 
         return (new MailMessage)
-            ->subject('KORA OPS — Réinitialisation de votre mot de passe')
+            ->subject('Réinitialisez votre mot de passe')
+            ->markdown('notifications::email', ['preview' => 'Utilisez ce lien pour choisir un nouveau mot de passe.'])
             ->greeting('Bonjour,')
-            ->line("Vous recevez cet e-mail parce qu'une demande de réinitialisation de mot de passe a été effectuée pour votre compte KORA OPS.")
+            ->line('Vous avez demandé à réinitialiser le mot de passe de votre compte Kora Express.')
             ->action('Réinitialiser mon mot de passe', $url)
             ->line("Ce lien de réinitialisation expirera dans **{$expire} minutes**.")
-            ->line("Si vous n'êtes pas à l'origine de cette demande, aucune action supplémentaire n'est requise et votre mot de passe reste inchangé.")
-            ->salutation("Cordialement, l'équipe KORA Express");
+            ->line('Si vous n’êtes pas à l’origine de cette demande, vous pouvez ignorer ce message.')
+            ->salutation('Cordialement,');
     }
 
     /**

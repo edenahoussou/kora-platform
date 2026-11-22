@@ -14,6 +14,7 @@ use App\Modules\IdentityAccess\Data\UserStatus;
 use App\Modules\IdentityAccess\Exceptions\AuthBusinessException;
 use App\Modules\IdentityAccess\Exceptions\AuthLockedException;
 use App\Modules\IdentityAccess\Exceptions\AuthSuspendedException;
+use App\Modules\IdentityAccess\Jobs\SendAccountWelcomeJob;
 use App\Modules\IdentityAccess\Models\AuthOtpChallenge;
 use App\Modules\IdentityAccess\Models\UserDevice;
 use App\Modules\Notifications\Channels\OtpCodeChannel;
@@ -40,6 +41,7 @@ class AuthSessionService
         private AuthIdentifierResolver $identifierResolver,
         private FindOrCreateWalletAction $findOrCreateWallet,
         private AttachReferralCodeAction $attachReferralCode,
+        private StoreReviewGate $storeReviewGate,
     ) {}
 
     /**
@@ -90,6 +92,10 @@ class AuthSessionService
 
         if (! $challengeIsEmail && $emailOwner !== null && $emailOwner->isNot($user)) {
             throw new AuthBusinessException('email_taken', 'Cette adresse email est déjà utilisée par un autre compte.');
+        }
+
+        if ($user?->initial_web_access_pending && $user->status === UserStatus::Suspended) {
+            throw new AuthBusinessException('account_suspended', 'Ce compte doit être activé par un administrateur.', 403);
         }
 
         if ($user !== null && $user->pin_hash) {
@@ -158,6 +164,10 @@ class AuthSessionService
         if ($referralCode !== '') {
             $wallet = $this->findOrCreateWallet->handle($user);
             $this->attachReferralCode->handle($wallet, $referralCode);
+        }
+
+        if ($user->wasRecentlyCreated && ! $this->storeReviewGate->isReviewChallenge($challenge)) {
+            SendAccountWelcomeJob::dispatch($user->uuid, passengerApp: true)->afterCommit();
         }
 
         return $this->issueSessionForDevice($user, $input);
@@ -246,6 +256,10 @@ class AuthSessionService
 
         if (! $user) {
             throw ValidationException::withMessages(['email' => ['Compte introuvable.']]);
+        }
+
+        if ($user->initial_web_access_pending && $user->status === UserStatus::Suspended) {
+            throw ValidationException::withMessages(['email' => 'Ce compte doit être activé par un administrateur.']);
         }
 
         $user->forceFill([
