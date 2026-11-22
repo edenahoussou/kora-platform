@@ -1,11 +1,169 @@
 ---
 title: Payer un colis
-description: "Initie le paiement du dernier devis pesé."
+description: "POST /api/v1/parcels/{parcel_uuid}/payments initie le paiement du dernier devis pesé, avec idempotence."
 api: POST /api/v1/parcels/{parcel_uuid}/payments
 ---
 
-Initie le paiement du dernier devis pesé. Le montant doit correspondre exactement au devis serveur, sinon 409. `idempotency_key` évite un double débit. Un colis refusé ou bloqué par un incident ne peut jamais être payé. Limité à 10 requêtes par minute.
+Initie le paiement du dernier devis pesé. Le montant doit correspondre exactement au devis serveur, sinon `409`. `idempotency_key` évite un double débit. Un colis refusé ou bloqué par un incident ne peut jamais être payé.
+
+## Paramètres
+
+<ParamField path="parcel_uuid" type="UUID" required>
+  UUID public du colis.
+</ParamField>
+
+<ParamField body="idempotency_key" type="UUID" required>
+  Clé unique par tentative de paiement.
+</ParamField>
+
+<ParamField body="method" type="string" required>
+  `mobile_money`, `card` ou `wallet`. `cash` est refusé en `422` côté client.
+</ParamField>
+
+<ParamField body="amount" type="integer" required>
+  Montant exact du devis, en devise du corridor.
+</ParamField>
+
+<ParamField body="provider" type="string">
+  Prestataire pour mobile money ou carte.
+</ParamField>
+
+<ParamField body="mobile_money_network" type="string">
+  Réseau mobile money, si applicable.
+</ParamField>
+
+<ParamField body="wallet_amount" type="integer">
+  Part payée depuis le solde Wallet.
+</ParamField>
+
+<ParamField body="points_amount" type="integer">
+  Points Wallet utilisés.
+</ParamField>
+
+## Corps de la requête
+
+<RequestExample>
+
+```bash cURL
+curl -X POST 'https://staging.koraexpress.app/api/v1/parcels/00000000-0000-4000-8000-000000000010/payments' \
+  -H 'Authorization: Bearer $KORA_TOKEN' \
+  -H 'Accept: application/json' \
+  -H 'Content-Type: application/json' \
+  --data '{"idempotency_key":"00000000-0000-4000-8000-000000000097","method":"wallet","amount":1500,"points_amount":1500}'
+```
+
+```bash cURL
+curl -X POST 'https://staging.koraexpress.app/api/v1/parcels/00000000-0000-4000-8000-000000000010/payments' \
+  -H 'Authorization: Bearer $KORA_TOKEN' \
+  -H 'Accept: application/json' \
+  -H 'Content-Type: application/json' \
+  --data '{"idempotency_key":"00000000-0000-4000-8000-000000000096","method":"mobile_money","amount":1500,"provider":"fedapay","mobile_money_network":"mtn_momo"}'
+```
+
+```dart Dart
+final response = await dio.post('/api/v1/parcels/$uuid/payments', data: {
+  'idempotency_key': idempotencyKey,
+  'method': 'wallet',
+  'amount': 1500,
+  'points_amount': 1500,
+}, options: Options(headers: {
+  'Authorization': 'Bearer $token',
+}));
+final payment = response.data['data'];
+```
+
+</RequestExample>
+
+## Réponse
+
+<ResponseExample>
+
+```json 201
+{
+  "data": {
+    "uuid": "00000000-0000-4000-8000-000000000030",
+    "status": "confirmed",
+    "amount": 1500,
+    "currency": "XOF",
+    "method": "wallet",
+    "provider": "wallet",
+    "provider_reference": null,
+    "provider_transaction_id": null,
+    "provider_currency": null,
+    "provider_amount": null,
+    "mobile_money_network": null,
+    "payer_phone": "+2290000000000",
+    "wallet_funding": {
+      "wallet_amount": 0,
+      "points_amount": 1500,
+      "point_value_fcfa": 1,
+      "points_value_fcfa": 1500,
+      "provider_amount_fcfa": 0
+    },
+    "confirmed_at": "2026-11-22T19:21:12+00:00",
+    "last_verified_at": null,
+    "next_action": "show_parcel",
+    "expires_at": null,
+    "polling_interval_seconds": 10
+  }
+}
+```
+
+```json 200
+{
+  "data": {
+    "uuid": "00000000-0000-4000-8000-000000000030",
+    "status": "confirmed",
+    "amount": 1500,
+    "currency": "XOF",
+    "method": "wallet",
+    "provider": "wallet",
+    "provider_reference": null,
+    "provider_transaction_id": null,
+    "provider_currency": null,
+    "provider_amount": null,
+    "mobile_money_network": null,
+    "payer_phone": "+2290000000000",
+    "wallet_funding": {
+      "wallet_amount": 0,
+      "points_amount": 1500,
+      "point_value_fcfa": 1,
+      "points_value_fcfa": 1500,
+      "provider_amount_fcfa": 0
+    },
+    "confirmed_at": "2026-11-22T19:21:12+00:00",
+    "last_verified_at": null,
+    "next_action": "show_parcel",
+    "expires_at": null,
+    "polling_interval_seconds": 10
+  }
+}
+```
+
+</ResponseExample>
+
+## Règles
+
+- Le premier paiement renvoie `201` ; le rejeu exact de la même clé renvoie `200`.
+- `201` et `200` partagent le même corps `data` ; le client peut traiter les deux comme un succès.
+- `cash` est refusé en `422` avec `Le moyen de paiement cash n’est pas disponible depuis l’application.`
+- `amount` différent du devis, devis absent ou paiement en cours renvoie `409`.
+- `next_action` guide l’UI : `show_parcel`, `verify`, `retry` ou `contact_support`.
+- Un paiement confirmé ne doit jamais être rejoué avec une nouvelle clé pour éviter un double débit.
+
+## Codes de réponse
+
+| Code | Corps / message |
+|---|---|
+| `201` | Paiement créé et confirmé. |
+| `200` | Rejeu exact. |
+| `401` | `{"message":"Unauthenticated."}` |
+| `403` | `{"message":"This action is unauthorized."}` |
+| `404` | `{"message":"Not Found"}` |
+| `409` | `{"message":"This parcel has no collectible quote."}` ou montant différent / paiement en cours. |
+| `422` | `{"message":"Le moyen de paiement cash n’est pas disponible depuis l’application.","errors":{"method":["Le moyen de paiement cash n’est pas disponible depuis l’application."]}}` |
+| `429` | `{"message":"Too Many Attempts."}` |
 
 ## Sécurité
 
-Les réponses n’exposent que des identifiants publics (UUID ou références) et les champs métier nécessaires au parcours. Aucun code de retrait, hash, secret ou payload fournisseur n’est documenté comme retournable.
+`Authorization: Bearer <token Sanctum>` requis. Réservé à l’expéditeur propriétaire. Un tiers reçoit `404`. Limité à 10 requêtes par minute.

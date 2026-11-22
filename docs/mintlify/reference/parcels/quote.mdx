@@ -1,12 +1,121 @@
 ---
 title: Estimer le prix d’un envoi
-description: "Calcule le prix TTC pour un corridor et un poids déclaré avant dépôt."
+description: "POST /api/v1/parcels/quote calcule un devis TTC autoritatif pour un corridor et un poids déclaré."
 api: POST /api/v1/parcels/quote
 authMethod: none
 ---
 
-Calcule le prix TTC pour un corridor et un poids déclaré avant dépôt. Le montant est autoritatif côté serveur : le client ne doit jamais envoyer un montant. Endpoint public, limité à 30 requêtes par minute.
+Endpoint public de devis. Le client envoie un corridor et un poids ; il ne doit jamais envoyer un montant. Le serveur retourne les paliers, la TVA et le total TTC.
+
+## Paramètres
+
+<ParamField body="corridor_uuid" type="UUID" required>
+  Corridor retourné par `GET /api/v1/parcels/corridors`.
+</ParamField>
+
+<ParamField body="weight_grams" type="integer" required>
+  Poids déclaré en grammes, entre `1` et `1000000`.
+</ParamField>
+
+## Corps de la requête
+
+<RequestExample>
+
+```bash cURL
+curl -X POST 'https://staging.koraexpress.app/api/v1/parcels/quote' \
+  -H 'Accept: application/json' \
+  -H 'Content-Type: application/json' \
+  --data '{"corridor_uuid":"00000000-0000-4000-8000-000000000001","weight_grams":5000}'
+```
+
+```dart Dart
+final response = await dio.post('/api/v1/parcels/quote', data: {
+  'corridor_uuid': corridorUuid,
+  'weight_grams': 5000,
+});
+final quote = response.data['data'];
+```
+
+</RequestExample>
+
+## Réponse
+
+<ResponseExample>
+
+```json 200
+{
+  "data": {
+    "tariff_uuid": "00000000-0000-4000-8000-000000000101",
+    "tariff_version": 2,
+    "deposit_kind": "agency",
+    "weight_grams": 5000,
+    "currency": "XOF",
+    "maximum_grams": 30000,
+    "base_amount": 1500,
+    "step_amount": 0,
+    "step_grams": 1000,
+    "extra_steps": 4,
+    "tiers": [
+      {
+        "kind": "base",
+        "from_grams": 1,
+        "to_grams": 1000,
+        "amount": 1500
+      },
+      {
+        "kind": "step",
+        "from_grams": 1001,
+        "to_grams": 2000,
+        "amount": 0
+      },
+      {
+        "kind": "step",
+        "from_grams": 2001,
+        "to_grams": 3000,
+        "amount": 0
+      },
+      {
+        "kind": "step",
+        "from_grams": 3001,
+        "to_grams": 4000,
+        "amount": 0
+      },
+      {
+        "kind": "step",
+        "from_grams": 4001,
+        "to_grams": 5000,
+        "amount": 0
+      }
+    ],
+    "total": 1500,
+    "net": 1500,
+    "tax": 0,
+    "tax_code": "TVA-PARCEL-0",
+    "tax_rate": "0.0000",
+    "fiscal_group": "A",
+    "estimated": true
+  }
+}
+```
+
+</ResponseExample>
+
+## Règles
+
+- `total`, `net` et `tax` sont calculés côté serveur ; le client ne peut pas les imposer.
+- Les paliers `tiers` permettent d’afficher le détail du prix sans recalcul local.
+- Un poids `0` renvoie `422` ; un corridor fermé ou sans tarif renvoie `409`.
+- Le devis est un aperçu avant dépôt. Le montant collectible final est créé après pesée et inspection.
+
+## Codes de réponse
+
+| Code | Corps / message |
+|---|---|
+| `200` | Devis calculé. |
+| `409` | `{"message":"Parcel corridor is unavailable."}` |
+| `422` | `{"message":"Le champ weight grams doit être au moins 1.","errors":{"weight_grams":["Le champ weight grams doit être au moins 1."]}}` |
+| `429` | `{"message":"Too Many Attempts."}` |
 
 ## Sécurité
 
-Les réponses n’exposent que des identifiants publics (UUID ou références) et les champs métier nécessaires au parcours. Aucun code de retrait, hash, secret ou payload fournisseur n’est documenté comme retournable.
+Aucune authentification. La réponse ne contient que des identifiants publics et aucun nom, téléphone, contenu, code de retrait, hash ou payload prestataire. Limité à 30 requêtes par minute.

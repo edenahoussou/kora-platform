@@ -228,6 +228,34 @@ it('denies holder endpoints without authentication and hides a foreign parcel', 
     $this->getJson('/api/v1/parcels/'.$uuid.'/documents?kind=label')->assertNotFound();
 });
 
+it('returns explicit business messages for client payment, cancellation and unreferenced incidents', function (): void {
+    extract(apiParcelScenario());
+    Sanctum::actingAs($sender);
+
+    $cancelled = $this->postJson('/api/v1/parcels', apiParcelPayload($corridor))->assertCreated()->json('data.uuid');
+    $this->postJson('/api/v1/parcels/'.$cancelled.'/cancel')->assertOk();
+    $this->postJson('/api/v1/parcels/'.$cancelled.'/cancel')
+        ->assertStatus(409)
+        ->assertJsonPath('message', 'Le colis ne peut pas être annulé dans son statut actuel.');
+
+    $cash = $this->postJson('/api/v1/parcels', apiParcelPayload($corridor))->assertCreated()->json('data.uuid');
+    $this->postJson('/api/v1/parcels/'.$cash.'/payments', [
+        'idempotency_key' => (string) Str::uuid(),
+        'method' => 'cash',
+        'amount' => 1500,
+    ])->assertStatus(422)
+        ->assertJsonPath('message', 'Le moyen de paiement cash n’est pas disponible depuis l’application.')
+        ->assertJsonPath('errors.method.0', 'Le moyen de paiement cash n’est pas disponible depuis l’application.');
+
+    $parcel = apiCreatePaidParcel($this, $corridor, $agent, $sender);
+    $parcel->update(['reference' => null]);
+    Sanctum::actingAs($sender);
+    $this->postJson('/api/v1/parcels/'.$parcel->uuid.'/incidents', [
+        'kind' => 'damage', 'description' => 'Carton enfoncé',
+    ])->assertStatus(409)
+        ->assertJsonPath('message', 'The parcel has no logistics reference.');
+});
+
 it('enforces the public tracking rate limit', function (): void {
     extract(apiParcelScenario());
     $parcel = apiCreatePaidParcel($this, $corridor, $agent, $sender);

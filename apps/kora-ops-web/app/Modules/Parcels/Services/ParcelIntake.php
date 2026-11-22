@@ -264,7 +264,7 @@ class ParcelIntake
             } else {
                 abort_unless($parcel->sender_user_id === $actor->id, 404);
             }
-            abort_unless(in_array($parcel->status, ['preregistered', 'weighed'], true), 409);
+            abort_unless(in_array($parcel->status, ['preregistered', 'weighed'], true), 409, 'Le colis ne peut pas être annulé dans son statut actuel.');
             $parcel->update(['status' => 'cancelled']);
             $parcel->record('cancelled', $actor);
 

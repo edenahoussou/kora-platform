@@ -1,11 +1,256 @@
 ---
-title: Pré-enregistrer un colis au guichet
-description: "Crée un colis en dépôt direct."
+title: Pré-enregistrer un colis
+description: "POST /api/v1/parcels crée un colis en dépôt direct, avec idempotence obligatoire."
 api: POST /api/v1/parcels
 ---
 
-Crée un colis en dépôt direct. `idempotency_key` est obligatoire : rejouer la même clé avec le même contenu renvoie le même colis sans doublon. La référence logistique et le code de retrait ne sont pas exposés avant inspection et paiement. Limité à 20 requêtes par minute.
+Crée un colis en dépôt direct. Fournir soit un `corridor_uuid`, soit la paire `deposit_hub_uuid` + `destination_hub_uuid`. `idempotency_key` est obligatoire : le rejeu exact renvoie `200` avec le même colis ; un rejeu avec un poids différent renvoie `409`.
+
+## Paramètres
+
+<ParamField body="corridor_uuid" type="UUID">
+  Corridor ouvert pour le trajet. Alternative : fournir `deposit_hub_uuid` et `destination_hub_uuid`.
+</ParamField>
+
+<ParamField body="deposit_hub_uuid" type="UUID">
+  Hub de dépôt, requis si `corridor_uuid` est absent.
+</ParamField>
+
+<ParamField body="destination_hub_uuid" type="UUID">
+  Hub de destination, requis si `corridor_uuid` est absent.
+</ParamField>
+
+<ParamField body="idempotency_key" type="UUID" required>
+  Clé unique par tentative de création.
+</ParamField>
+
+<ParamField body="weight_grams" type="integer" required>
+  Poids déclaré, entre `1` et `1000000`.
+</ParamField>
+
+<ParamField body="sender_name" type="string" required>
+  Nom de l’expéditeur.
+</ParamField>
+
+<ParamField body="sender_phone" type="string">
+  Téléphone de l’expéditeur, si différent du compte.
+</ParamField>
+
+<ParamField body="recipient_name" type="string" required>
+  Nom du destinataire.
+</ParamField>
+
+<ParamField body="recipient_phone" type="string" required>
+  Téléphone du destinataire.
+</ParamField>
+
+<ParamField body="contents" type="string" required>
+  Description factuelle du contenu, sans code de retrait.
+</ParamField>
+
+## Corps de la requête
+
+<RequestExample>
+
+```bash cURL
+curl -X POST 'https://staging.koraexpress.app/api/v1/parcels' \
+  -H 'Authorization: Bearer $KORA_TOKEN' \
+  -H 'Accept: application/json' \
+  -H 'Content-Type: application/json' \
+  --data '{"corridor_uuid":"00000000-0000-4000-8000-000000000001","idempotency_key":"00000000-0000-4000-8000-000000000099","weight_grams":5000,"sender_name":"Expéditeur Exemple","sender_phone":"+22900000000","recipient_name":"Destinataire Exemple","recipient_phone":"+22900000001","contents":"Documents"}'
+```
+
+```dart Dart
+final response = await dio.post('/api/v1/parcels', data: {
+  'corridor_uuid': corridorUuid,
+  'idempotency_key': idempotencyKey,
+  'weight_grams': 5000,
+  'sender_name': 'Expéditeur Exemple',
+  'recipient_name': 'Destinataire Exemple',
+  'recipient_phone': '+22900000001',
+  'contents': 'Documents',
+});
+final parcel = response.data['data'];
+```
+
+</RequestExample>
+
+## Réponse
+
+<ResponseExample>
+
+```json 201
+{
+  "uuid": "00000000-0000-4000-8000-000000000010",
+  "reference": "KC-20260101-00002",
+  "tracking_url": "https://staging.koraexpress.app/api/v1/parcels/tracking/KC-20260101-00002",
+  "qr_payload": "https://staging.koraexpress.app/api/v1/parcels/tracking/KC-20260101-00002",
+  "status": "preregistered",
+  "origin": "Cotonou",
+  "destination": "Porto-Novo",
+  "sender_name": "Expéditeur Exemple",
+  "recipient_name": "Destinataire Exemple",
+  "contents": "Documents",
+  "weight_grams": null,
+  "declared_grams": 5000,
+  "inspection_state": "pending_inspection",
+  "inspection": {
+    "state": "pending_inspection",
+    "category": null,
+    "refusal_reason": null,
+    "inspected_at": null,
+    "hub_uuid": null,
+    "hub_name": null
+  },
+  "can_pay": false,
+  "can_receipt": false,
+  "can_ready": false,
+  "can_assign": false,
+  "can_manifest": false,
+  "can_receive": false,
+  "can_release": false,
+  "can_reissue": false,
+  "can_override_handoff": false,
+  "can_return_charge": false,
+  "can_pay_return": false,
+  "can_print_handoff_proof": false,
+  "origin_hub_uuid": "00000000-0000-4000-8000-000000000002",
+  "destination_hub_uuid": "00000000-0000-4000-8000-000000000003",
+  "custody_hub_uuid": null,
+  "deposit_hub_uuid": "00000000-0000-4000-8000-000000000002",
+  "deposit_hub": {
+    "uuid": "00000000-0000-4000-8000-000000000002",
+    "kind": "agency",
+    "city": "Cotonou"
+  },
+  "selling_agency_uuid": "00000000-0000-4000-8000-000000000004",
+  "selling_agency": {
+    "uuid": "00000000-0000-4000-8000-000000000004",
+    "name": "Agence Cotonou"
+  },
+  "withdraw_by": null,
+  "return_handed_over_at": null,
+  "handoff": {
+    "received_at": null,
+    "received_by": null,
+    "delivered_at": null,
+    "delivered_by": null,
+    "hub_uuid": null,
+    "hub_name": null,
+    "outcome": null,
+    "method": null,
+    "identity_type": null,
+    "attempts": 0,
+    "max_attempts": 5,
+    "attempts_remaining": 5
+  },
+  "expires_at": "2026-11-24T19:20:19+00:00",
+  "updated_at": "2026-11-22T19:20:19+00:00",
+  "departure_uuid": null,
+  "eta": null,
+  "tracking_updated_at": null,
+  "incident_open": false,
+  "quote": null
+}
+```
+
+```json 200
+{
+  "uuid": "00000000-0000-4000-8000-000000000010",
+  "reference": "KC-20260101-00002",
+  "tracking_url": "https://staging.koraexpress.app/api/v1/parcels/tracking/KC-20260101-00002",
+  "qr_payload": "https://staging.koraexpress.app/api/v1/parcels/tracking/KC-20260101-00002",
+  "status": "preregistered",
+  "origin": "Cotonou",
+  "destination": "Porto-Novo",
+  "sender_name": "Expéditeur Exemple",
+  "recipient_name": "Destinataire Exemple",
+  "contents": "Documents",
+  "weight_grams": null,
+  "declared_grams": 5000,
+  "inspection_state": "pending_inspection",
+  "inspection": {
+    "state": "pending_inspection",
+    "category": null,
+    "refusal_reason": null,
+    "inspected_at": null,
+    "hub_uuid": null,
+    "hub_name": null
+  },
+  "can_pay": false,
+  "can_receipt": false,
+  "can_ready": false,
+  "can_assign": false,
+  "can_manifest": false,
+  "can_receive": false,
+  "can_release": false,
+  "can_reissue": false,
+  "can_override_handoff": false,
+  "can_return_charge": false,
+  "can_pay_return": false,
+  "can_print_handoff_proof": false,
+  "origin_hub_uuid": "00000000-0000-4000-8000-000000000002",
+  "destination_hub_uuid": "00000000-0000-4000-8000-000000000003",
+  "custody_hub_uuid": null,
+  "deposit_hub_uuid": "00000000-0000-4000-8000-000000000002",
+  "deposit_hub": {
+    "uuid": "00000000-0000-4000-8000-000000000002",
+    "kind": "agency",
+    "city": "Cotonou"
+  },
+  "selling_agency_uuid": "00000000-0000-4000-8000-000000000004",
+  "selling_agency": {
+    "uuid": "00000000-0000-4000-8000-000000000004",
+    "name": "Agence Cotonou"
+  },
+  "withdraw_by": null,
+  "return_handed_over_at": null,
+  "handoff": {
+    "received_at": null,
+    "received_by": null,
+    "delivered_at": null,
+    "delivered_by": null,
+    "hub_uuid": null,
+    "hub_name": null,
+    "outcome": null,
+    "method": null,
+    "identity_type": null,
+    "attempts": 0,
+    "max_attempts": 5,
+    "attempts_remaining": 5
+  },
+  "expires_at": "2026-11-24T19:20:19+00:00",
+  "updated_at": "2026-11-22T19:20:19+00:00",
+  "departure_uuid": null,
+  "eta": null,
+  "tracking_updated_at": null,
+  "incident_open": false,
+  "quote": null
+}
+```
+
+</ResponseExample>
+
+## Règles
+
+- Fournir soit `corridor_uuid`, soit `deposit_hub_uuid` + `destination_hub_uuid`. La paire de hubs permet un dépôt direct sans corridor préexistant.
+- `201` à la création ; `200` si la même clé est rejouée avec exactement le même contenu.
+- Un rejeu avec un poids différent renvoie `409` et ne crée pas de second colis.
+- Le colis est créé au statut `preregistered` ; il n’est pas encore pesé ni payé.
+- `reference` peut déjà être présente, mais le code de retrait et le hash ne sont jamais retournés.
+
+## Codes de réponse
+
+| Code | Corps / message |
+|---|---|
+| `201` | Colis créé. |
+| `200` | Rejeu exact de la même clé. |
+| `401` | `{"message":"Unauthenticated."}` |
+| `403` | `{"message":"This action is unauthorized."}` |
+| `409` | `{"message":"This idempotency key was already used with different intake data."}` |
+| `422` | `{"message":"Le champ weight grams doit être au moins 1.","errors":{"weight_grams":["Le champ weight grams doit être au moins 1."]}}` |
+| `429` | `{"message":"Too Many Attempts."}` |
 
 ## Sécurité
 
-Les réponses n’exposent que des identifiants publics (UUID ou références) et les champs métier nécessaires au parcours. Aucun code de retrait, hash, secret ou payload fournisseur n’est documenté comme retournable.
+`Authorization: Bearer <token Sanctum>` requis. Le titulaire doit posséder `parcels.customer`. Un tiers reçoit `404`, jamais l’existence du colis. Limité à 20 requêtes par minute.

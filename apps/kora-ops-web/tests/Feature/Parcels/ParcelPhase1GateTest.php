@@ -548,13 +548,14 @@ it('exports supervised aggregates and publishes an OpenAPI contract without PII'
         ->not->toContain('Description privée');
 
     $openApi = Yaml::parseFile(base_path('../../docs/mintlify/api/openapi.yaml'));
-    $public = $openApi['paths']['/api/v1/parcels/tracking/{reference}']['get']['responses'][200]['content']['application/json']['schema']['example']['data'];
+    $trackingMedia = $openApi['paths']['/api/v1/parcels/tracking/{reference}']['get']['responses'][200]['content']['application/json'];
+    $public = ($trackingMedia['example'] ?? $trackingMedia['schema']['example'])['data'];
 
     expect(array_keys($public))->toBe([
         'reference', 'status', 'origin', 'destination', 'weight_grams',
         'withdraw_by', 'eta', 'last_event_at', 'timeline',
     ]);
-    expect(array_keys($openApi['paths']['/api/v1/parcels/tracking/{reference}']['get']['responses']['200']['content']['application/json']['schema']['properties']['data']['properties']))
+    expect(array_keys($openApi['components']['schemas']['ParcelTrackingResponse']['properties']['data']['properties']))
         ->toBe(array_keys($public));
 
     expect($public)->not->toHaveKey('sender_name')

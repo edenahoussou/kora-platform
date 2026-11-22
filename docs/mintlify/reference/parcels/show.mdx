@@ -1,11 +1,146 @@
 ---
 title: Consulter un colis
-description: "Détail d’un colis du titulaire ou d’un destinataire vérifié : jalons, devis, flags d’action et état de remise."
+description: "GET /api/v1/parcels/{uuid} retourne le détail métier d’un colis accessible au titulaire ou au destinataire vérifié."
 api: GET /api/v1/parcels/{uuid}
 ---
 
-Détail d’un colis du titulaire ou d’un destinataire vérifié : jalons, devis, flags d’action et état de remise. Le code de retrait, les hashes et les secrets ne sont jamais retournés. Un tiers reçoit une réponse 404.
+Détail d’un colis : inspection, devis, flags d’action et état de remise. Le code de retrait, les hashes et les secrets ne sont jamais retournés. Un tiers reçoit `404`.
+
+## Paramètres
+
+<ParamField path="uuid" type="UUID" required>
+  UUID public du colis.
+</ParamField>
+
+## Requête
+
+<RequestExample>
+
+```bash cURL
+curl -X GET 'https://staging.koraexpress.app/api/v1/parcels/00000000-0000-4000-8000-000000000010' \
+  -H 'Authorization: Bearer $KORA_TOKEN' \
+  -H 'Accept: application/json'
+```
+
+```dart Dart
+final response = await dio.get('/api/v1/parcels/$uuid', options: Options(headers: {
+  'Authorization': 'Bearer $token',
+}));
+final parcel = response.data['data'];
+```
+
+</RequestExample>
+
+## Réponse
+
+<ResponseExample>
+
+```json 200
+{
+  "uuid": "00000000-0000-4000-8000-000000000010",
+  "reference": "KC-20260101-00003",
+  "tracking_url": "https://staging.koraexpress.app/api/v1/parcels/tracking/KC-20260101-00003",
+  "qr_payload": "https://staging.koraexpress.app/api/v1/parcels/tracking/KC-20260101-00003",
+  "status": "registered",
+  "origin": "Cotonou",
+  "destination": "Porto-Novo",
+  "sender_name": "Expéditeur Exemple",
+  "recipient_name": "Destinataire Exemple",
+  "contents": "Documents",
+  "weight_grams": 5000,
+  "declared_grams": 5000,
+  "inspection_state": "accepted",
+  "inspection": {
+    "state": "accepted",
+    "category": "allowed",
+    "refusal_reason": null,
+    "inspected_at": "2026-11-22T19:21:10+00:00",
+    "hub_uuid": "00000000-0000-4000-8000-000000000002",
+    "hub_name": "Cotonou · Dantokpa"
+  },
+  "can_pay": false,
+  "can_receipt": true,
+  "can_ready": false,
+  "can_assign": false,
+  "can_manifest": false,
+  "can_receive": false,
+  "can_release": false,
+  "can_reissue": false,
+  "can_override_handoff": false,
+  "can_return_charge": false,
+  "can_pay_return": false,
+  "can_print_handoff_proof": false,
+  "origin_hub_uuid": "00000000-0000-4000-8000-000000000002",
+  "destination_hub_uuid": "00000000-0000-4000-8000-000000000003",
+  "custody_hub_uuid": "00000000-0000-4000-8000-000000000002",
+  "deposit_hub_uuid": "00000000-0000-4000-8000-000000000002",
+  "deposit_hub": {
+    "uuid": "00000000-0000-4000-8000-000000000002",
+    "kind": "agency",
+    "city": "Cotonou"
+  },
+  "selling_agency_uuid": "00000000-0000-4000-8000-000000000004",
+  "selling_agency": {
+    "uuid": "00000000-0000-4000-8000-000000000004",
+    "name": "Agence Cotonou"
+  },
+  "withdraw_by": null,
+  "return_handed_over_at": null,
+  "handoff": {
+    "received_at": null,
+    "received_by": null,
+    "delivered_at": null,
+    "delivered_by": null,
+    "hub_uuid": null,
+    "hub_name": null,
+    "outcome": null,
+    "method": null,
+    "identity_type": null,
+    "attempts": 0,
+    "max_attempts": 5,
+    "attempts_remaining": 5
+  },
+  "expires_at": "2026-11-24T19:20:19+00:00",
+  "updated_at": "2026-11-22T19:20:19+00:00",
+  "departure_uuid": null,
+  "eta": null,
+  "tracking_updated_at": null,
+  "incident_open": false,
+  "quote": {
+    "uuid": "00000000-0000-4000-8000-000000000020",
+    "net": 1500,
+    "tax": 0,
+    "total": 1500,
+    "currency": "XOF",
+    "tariff_uuid": "00000000-0000-4000-8000-000000000101",
+    "tariff_version": 2,
+    "deposit_kind": "agency",
+    "base_amount": 1500,
+    "step_amount": 0,
+    "step_grams": 1000,
+    "maximum_grams": 30000
+  }
+}
+```
+
+</ResponseExample>
+
+## Règles
+
+- `timeline` n’est présent que si la relation `events` est chargée ; les réponses client show/list ne la chargent pas par défaut.
+- Les flags `can_*` indiquent les actions autorisées à l’instant du appel ; ils ne remplacent pas le contrôle serveur.
+- `quote` reflète le dernier devis pesé ; il peut être `null` avant pesée.
+- `inspection` expose uniquement l’état, la catégorie, le motif de refus et le hub, jamais l’agent OPS.
+
+## Codes de réponse
+
+| Code | Corps / message |
+|---|---|
+| `200` | Détail du colis. |
+| `401` | `{"message":"Unauthenticated."}` |
+| `403` | `{"message":"This action is unauthorized."}` |
+| `404` | `{"message":"Not Found"}` |
 
 ## Sécurité
 
-Les réponses n’exposent que des identifiants publics (UUID ou références) et les champs métier nécessaires au parcours. Aucun code de retrait, hash, secret ou payload fournisseur n’est documenté comme retournable.
+`Authorization: Bearer <token Sanctum>` requis. Le titulaire doit posséder `parcels.customer`. Un tiers reçoit `404`, jamais l’existence du colis. En local avec `APP_DEBUG=true`, Laravel peut ajouter `exception`, `file`, `line` et `trace` à une erreur `404`. Ce n’est pas le contrat public : la production doit garder `APP_DEBUG=false` et ne renvoyer que `message: Not Found`.
