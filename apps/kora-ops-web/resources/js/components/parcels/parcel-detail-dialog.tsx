@@ -3,7 +3,6 @@ import {
     Ban,
     Building2,
     CalendarClock,
-    ExternalLink,
     FileCheck2,
     KeyRound,
     Package,
@@ -16,12 +15,9 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import { KoraStatusBadge } from '@/components/kora-status-badge';
+import { useEffect, useState } from 'react';
 import { ParcelButton } from '@/components/parcels/parcel-button';
-import {
-    parcelStatusLabel,
-    parcelStatusTone,
-} from '@/components/parcels/status';
+import { ParcelTrackingPanel } from '@/components/parcels/parcel-tracking-panel';
 import type { ParcelListItem } from '@/components/parcels/types';
 import {
     Dialog,
@@ -31,6 +27,10 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import type {
+    ParcelTracking,
+    ParcelTrackingResponse,
+} from '@/types/parcel-tracking';
 
 type Props = {
     parcel: ParcelListItem | null;
@@ -60,23 +60,98 @@ function formatDateTime(value: string | null): string {
     }).format(new Date(value));
 }
 
+type TrackingState = {
+    key: string;
+    data: ParcelTracking | null;
+    loading: boolean;
+    error: string | null;
+};
+
 export function ParcelDetailDialog({ parcel, onOpenChange }: Props) {
+    const [retryNonce, setRetryNonce] = useState(0);
+    const [trackingState, setTrackingState] = useState<TrackingState | null>(
+        null,
+    );
+
+    const parcelUuid = parcel?.uuid ?? null;
+    const trackingKey =
+        parcelUuid === null ? null : `${parcelUuid}:${retryNonce}`;
+    const currentState =
+        trackingState?.key === trackingKey ? trackingState : null;
+    const tracking = currentState?.data ?? null;
+    const trackingLoading =
+        trackingKey !== null && (currentState === null || currentState.loading);
+    const trackingError = currentState?.error ?? null;
+
+    useEffect(() => {
+        if (parcelUuid === null || trackingKey === null) {
+            return;
+        }
+
+        const controller = new AbortController();
+        const requestKey = trackingKey;
+
+        fetch(`/parcels/data/${parcelUuid}/tracking`, {
+            credentials: 'same-origin',
+            headers: {
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            signal: controller.signal,
+        })
+            .then(async (response) => {
+                if (!response.ok) {
+                    throw new Error(
+                        response.status === 403
+                            ? 'Droits insuffisants pour consulter le suivi de ce colis.'
+                            : 'Le suivi du colis est momentanément indisponible.',
+                    );
+                }
+
+                const payload =
+                    (await response.json()) as ParcelTrackingResponse;
+
+                setTrackingState({
+                    key: requestKey,
+                    data: payload.data,
+                    loading: false,
+                    error: null,
+                });
+            })
+            .catch((reason: unknown) => {
+                if (
+                    reason instanceof DOMException &&
+                    reason.name === 'AbortError'
+                ) {
+                    return;
+                }
+
+                setTrackingState({
+                    key: requestKey,
+                    data: null,
+                    loading: false,
+                    error:
+                        reason instanceof Error
+                            ? reason.message
+                            : 'Le suivi du colis est momentanément indisponible.',
+                });
+            });
+
+        return () => controller.abort();
+    }, [parcelUuid, trackingKey]);
+
     return (
         <Dialog open={parcel !== null} onOpenChange={onOpenChange}>
-            <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-[46rem]">
+            <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-[66rem]">
                 {parcel && (
                     <>
                         <DialogHeader>
                             <DialogTitle className="flex flex-wrap items-center gap-2">
                                 Colis {parcel.reference}
-                                <KoraStatusBadge
-                                    tone={parcelStatusTone(parcel.status)}
-                                    label={parcelStatusLabel(parcel.status)}
-                                />
                             </DialogTitle>
                             <DialogDescription>
-                                Dossier Colis OPS : expéditeur, destinataire,
-                                trajet, poids et état de suivi.
+                                Dossier Colis OPS : parcours, expéditeur,
+                                destinataire, poids et état de suivi.
                             </DialogDescription>
                         </DialogHeader>
 
@@ -86,6 +161,13 @@ export function ParcelDetailDialog({ parcel, onOpenChange }: Props) {
                                 Un incident est ouvert sur ce colis.
                             </div>
                         )}
+
+                        <ParcelTrackingPanel
+                            tracking={tracking}
+                            loading={trackingLoading}
+                            error={trackingError}
+                            onRetry={() => setRetryNonce((value) => value + 1)}
+                        />
 
                         <div className="grid gap-4 sm:grid-cols-[1fr_11rem]">
                             <div className="grid gap-3">
@@ -242,17 +324,6 @@ export function ParcelDetailDialog({ parcel, onOpenChange }: Props) {
                                 >
                                     <FileCheck2 className="size-3.5" />
                                     Preuve de remise
-                                </a>
-                            )}
-                            {parcel.tracking_url && (
-                                <a
-                                    href={parcel.tracking_url}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="btn btn-primary"
-                                >
-                                    <ExternalLink className="size-3.5" />
-                                    Ouvrir le suivi client
                                 </a>
                             )}
                         </DialogFooter>

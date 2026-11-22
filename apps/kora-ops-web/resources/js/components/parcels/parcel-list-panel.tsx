@@ -4,7 +4,6 @@ import {
     ChevronRight,
     CreditCard,
     Ellipsis,
-    ExternalLink,
     Eye,
     FileText,
     KeyRound,
@@ -56,7 +55,6 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
@@ -661,8 +659,7 @@ export function ParcelListPanel({
                     (parcel.can_manifest === true &&
                         parcel.departure_uuid !== null) ||
                     (parcel.can_assign === true &&
-                        parcel.status === 'assigned') ||
-                    parcel.tracking_url !== null;
+                        parcel.status === 'assigned');
 
                 return (
                     <div className="flex flex-wrap justify-end gap-1.5">
@@ -745,21 +742,6 @@ export function ParcelListPanel({
                                                 Preuve de remise
                                             </a>
                                         </DropdownMenuItem>
-                                    )}
-                                    {parcel.tracking_url && (
-                                        <>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuItem asChild>
-                                                <a
-                                                    href={parcel.tracking_url}
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                >
-                                                    <ExternalLink className="size-4" />
-                                                    Suivi client
-                                                </a>
-                                            </DropdownMenuItem>
-                                        </>
                                     )}
                                 </DropdownMenuContent>
                             </DropdownMenu>
