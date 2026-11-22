@@ -157,6 +157,16 @@ foreach ($spec->paths as $path => $item) {
     $spec->paths->{$path} = (object) array_intersect_key((array) $item, $passengerOperations[$path] + ['parameters' => true]);
 }
 $spec->tags = array_values(array_filter($spec->tags, static fn (object $tag): bool => isset($passengerTags[$tag->name])));
+
+// Scribe génère les réponses en schémas inline. Conserver les schémas nommés
+// exposés aux intégrateurs, dans un fichier stable pour que la régénération
+// OpenAPI ne les supprime pas et que le contrôle CI reste déterministe.
+$schemasPath = dirname(__DIR__).'/scripts/openapi-schemas.yaml';
+if (is_file($schemasPath)) {
+    $schemas = Yaml::parseFile($schemasPath, Yaml::PARSE_OBJECT_FOR_MAP);
+    $spec->components->schemas = $schemas->schemas ?? new stdClass;
+}
+
 $normalizedOpenApi = Yaml::dump($spec, 20, 2, Yaml::DUMP_EMPTY_ARRAY_AS_SEQUENCE | Yaml::DUMP_OBJECT_AS_MAP);
 
 if (file_put_contents($openApiPath, $normalizedOpenApi) === false) {
