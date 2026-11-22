@@ -35,7 +35,7 @@ final class MtnMomoAdapter implements PaymentProvider
         private readonly string $userId,
         private readonly string $apiKey,
         private readonly string $environment,
-        private readonly string $targetEnvironment = 'mtnbenin',
+        private readonly string $targetEnvironment = 'sandbox',
         private readonly string $sandboxCurrency = 'EUR',
         private readonly string $productionCurrency = 'XOF',
         private readonly ?string $callbackUrl = null,
@@ -91,6 +91,10 @@ final class MtnMomoAdapter implements PaymentProvider
                 'Ocp-Apim-Subscription-Key' => $this->subscriptionKey,
                 'X-Target-Environment' => $this->targetEnvironment,
             ])->timeout(15)->connectTimeout(5)->retry(2, 100)->post("{$this->baseUrl()}/collection/token/");
+
+            if ($this->isTargetEnvironmentRefusal($response)) {
+                throw new MtnMomoConfigurationException('MTN MoMo refused the configured target environment.');
+            }
 
             if (! $response->ok()) {
                 Log::error('MTN MoMo token request failed', [
@@ -209,6 +213,24 @@ final class MtnMomoAdapter implements PaymentProvider
 
     public function initiate(Payment $payment, array $payload = []): ProviderResponse
     {
+        if (($issue = $this->configurationIssue()) !== null) {
+            Log::error('MTN MoMo configuration refused before initiation', [
+                'payment_uuid' => $payment->uuid,
+                'environment' => $this->environment,
+                'target_environment' => $this->targetEnvironment,
+            ]);
+
+            return new ProviderResponse(
+                status: PaymentStatus::Failed,
+                providerReference: $payment->provider_reference,
+                payload: [
+                    'initiation_issue' => 'target_environment_refused',
+                    'configuration_issue' => $issue,
+                ],
+                message: 'La configuration MTN MoMo a été refusée : environnement cible incompatible avec le mode sandbox/production.',
+            );
+        }
+
         $referenceId = $payment->provider_reference
             ?: ($payment->reservation_id === null ? $payment->uuid : (string) Str::uuid());
 
@@ -267,6 +289,27 @@ final class MtnMomoAdapter implements PaymentProvider
                 );
             }
 
+            // An explicit target-environment refusal is a configuration error,
+            // not an outage: never leave an orphan pending payment behind.
+            if ($this->isTargetEnvironmentRefusal($response)) {
+                Log::error('MTN MoMo refused the configured target environment', [
+                    'payment_uuid' => $payment->uuid,
+                    'status' => $response->status(),
+                    'environment' => $this->environment,
+                    'target_environment' => $this->targetEnvironment,
+                ]);
+
+                return new ProviderResponse(
+                    status: PaymentStatus::Failed,
+                    providerReference: $referenceId,
+                    payload: [
+                        'initiation_issue' => 'target_environment_refused',
+                        'provider_status' => $response->status(),
+                    ],
+                    message: 'La configuration MTN MoMo a été refusée : environnement cible non autorisé.',
+                );
+            }
+
             if ($this->isAmbiguousStatus($response->status())) {
                 Log::warning('MTN MoMo requestToPay returned an ambiguous status', [
                     'payment_uuid' => $payment->uuid,
@@ -300,6 +343,19 @@ final class MtnMomoAdapter implements PaymentProvider
                 ],
                 message: 'MTN MoMo requestToPay was rejected.',
             );
+        } catch (MtnMomoConfigurationException $e) {
+            Log::error('MTN MoMo configuration refused initiation', [
+                'payment_uuid' => $payment->uuid,
+                'environment' => $this->environment,
+                'target_environment' => $this->targetEnvironment,
+            ]);
+
+            return new ProviderResponse(
+                status: PaymentStatus::Failed,
+                providerReference: $referenceId,
+                payload: ['initiation_issue' => 'target_environment_refused'],
+                message: 'La configuration MTN MoMo a été refusée : environnement cible non autorisé.',
+            );
         } catch (Throwable $e) {
             Log::error('MTN MoMo initiate failed', [
                 'payment_uuid' => $payment->uuid,
@@ -318,6 +374,18 @@ final class MtnMomoAdapter implements PaymentProvider
 
     public function verify(Payment $payment): ProviderResponse
     {
+        if (($issue = $this->configurationIssue()) !== null) {
+            return new ProviderResponse(
+                status: PaymentStatus::Failed,
+                providerReference: $payment->provider_reference,
+                payload: [
+                    'verification_issue' => 'target_environment_refused',
+                    'configuration_issue' => $issue,
+                ],
+                message: 'La configuration MTN MoMo a été refusée : environnement cible incompatible avec le mode sandbox/production.',
+            );
+        }
+
         if ($payment->provider_reference === null || $payment->provider_reference === '') {
             return new ProviderResponse(
                 status: PaymentStatus::Pending,
@@ -367,7 +435,7 @@ final class MtnMomoAdapter implements PaymentProvider
                     return new ProviderResponse(
                         status: PaymentStatus::Pending,
                         providerReference: $payment->provider_reference,
-                        providerTransactionId: $transactionId,
+                        providerTransactionId: null,
                         payload: array_merge($data, ['verification_issue' => $issue]),
                         message: 'MTN MoMo payload could not be matched safely to this payment.',
                     );
@@ -380,6 +448,19 @@ final class MtnMomoAdapter implements PaymentProvider
                 providerTransactionId: $transactionId,
                 payload: $data,
                 message: "MTN MoMo status: {$mtnStatus}",
+            );
+        } catch (MtnMomoConfigurationException $e) {
+            Log::error('MTN MoMo configuration refused verification', [
+                'payment_uuid' => $payment->uuid,
+                'environment' => $this->environment,
+                'target_environment' => $this->targetEnvironment,
+            ]);
+
+            return new ProviderResponse(
+                status: PaymentStatus::Failed,
+                providerReference: $payment->provider_reference,
+                payload: ['verification_issue' => 'target_environment_refused'],
+                message: 'La configuration MTN MoMo a été refusée : environnement cible non autorisé.',
             );
         } catch (Throwable $e) {
             Log::error('MTN MoMo verify failed', [
@@ -448,6 +529,42 @@ final class MtnMomoAdapter implements PaymentProvider
     private function isAmbiguousStatus(int $status): bool
     {
         return $status >= 500 || in_array($status, [408, 409, 429], true);
+    }
+
+    private function configurationIssue(): ?string
+    {
+        if ($this->environment === 'sandbox' && $this->targetEnvironment !== 'sandbox') {
+            return 'sandbox_requires_sandbox_target';
+        }
+
+        if ($this->environment === 'production' && $this->targetEnvironment === 'sandbox') {
+            return 'production_forbids_sandbox_target';
+        }
+
+        return null;
+    }
+
+    /**
+     * MTN answers NOT_ALLOWED_TARGET_ENVIRONMENT with HTTP 500. That status
+     * would otherwise be classified as ambiguous and leave the payment pending.
+     */
+    private function isTargetEnvironmentRefusal(Response $response): bool
+    {
+        if ($response->status() < 400) {
+            return false;
+        }
+
+        $code = $response->json('code');
+
+        if (is_string($code) && strtoupper($code) === 'NOT_ALLOWED_TARGET_ENVIRONMENT') {
+            return true;
+        }
+
+        $message = $response->json('message');
+        $body = $response->body();
+
+        return (is_string($message) && str_contains($message, 'NOT_ALLOWED_TARGET_ENVIRONMENT'))
+            || str_contains($body, 'NOT_ALLOWED_TARGET_ENVIRONMENT');
     }
 
     /**

@@ -209,6 +209,48 @@ it('resolves a payment from the MTN referenceId when externalId is absent', func
         ->and($reservation->fresh()->status)->toBe(ReservationStatus::Paid);
 });
 
+it('does not persist a financialTransactionId from an inconsistent MTN response', function (): void {
+    bindMtnWebhookAdapter(mtnWebhookAdapter());
+
+    $reservation = Reservation::create([
+        'created_by_user_id' => User::factory()->create()->id,
+        'status' => ReservationStatus::Held,
+        'total_amount' => 15000,
+        'currency' => 'XOF',
+        'channel' => 'mobile',
+        'expires_at' => now()->addMinutes(15),
+    ]);
+    $payment = Payment::create([
+        'reservation_id' => $reservation->id,
+        'method' => PaymentMethod::MobileMoney,
+        'provider' => 'mtn_momo',
+        'provider_reference' => 'MM-MISMATCH-1',
+        'provider_amount' => 15000,
+        'provider_currency' => 'EUR',
+        'idempotency_key' => (string) Str::uuid(),
+        'amount' => 15000,
+        'currency' => 'XOF',
+        'status' => PaymentStatus::Pending,
+    ]);
+
+    fakeMtnVerification([
+        'status' => 'SUCCESSFUL',
+        'amount' => '15000',
+        'currency' => 'EUR',
+        'externalId' => (string) Str::uuid(),
+        'financialTransactionId' => 'FIN-MISMATCH',
+    ]);
+
+    $this->postJson(mtnWebhookUrl(mtnWebhookCallbackToken()), [
+        'externalId' => $payment->uuid,
+        'status' => 'SUCCESSFUL',
+        'financialTransactionId' => 'FIN-MISMATCH',
+    ])->assertOk()->assertJsonPath('status', 'pending');
+
+    expect($payment->fresh()->status)->toBe(PaymentStatus::Pending)
+        ->and($payment->fresh()->provider_transaction_id)->toBeNull();
+});
+
 it('confirms a bus payment once and never dispatches a second ticket job on duplicate callback', function (): void {
     Queue::fake([IssueReservationTicketsJob::class]);
     bindMtnWebhookAdapter(mtnWebhookAdapter());
@@ -302,6 +344,57 @@ it('maps an MTN cancellation to cancelled and expires the reservation', function
     expect($payment->fresh()->status)->toBe(PaymentStatus::Cancelled)
         ->and($reservation->fresh()->status)->toBe(ReservationStatus::Expired);
 });
+
+it('accepts MTN callbacks over %s with the same signature checks', function (string $httpMethod): void {
+    bindMtnWebhookAdapter(mtnWebhookAdapter());
+
+    $user = User::factory()->create();
+    $reservation = Reservation::create([
+        'created_by_user_id' => $user->id,
+        'status' => ReservationStatus::Held,
+        'total_amount' => 15000,
+        'currency' => 'XOF',
+        'channel' => 'mobile',
+        'expires_at' => now()->addMinutes(15),
+    ]);
+    $payment = Payment::create([
+        'reservation_id' => $reservation->id,
+        'method' => PaymentMethod::MobileMoney,
+        'provider' => 'mtn_momo',
+        'provider_reference' => 'MM-'.strtoupper($httpMethod).'-1',
+        'provider_amount' => 15000,
+        'provider_currency' => 'EUR',
+        'idempotency_key' => (string) Str::uuid(),
+        'amount' => 15000,
+        'currency' => 'XOF',
+        'status' => PaymentStatus::Pending,
+    ]);
+
+    fakeMtnVerification([
+        'status' => 'SUCCESSFUL',
+        'amount' => '15000',
+        'currency' => 'EUR',
+        'externalId' => $payment->uuid,
+        'financialTransactionId' => 'FIN-'.strtoupper($httpMethod),
+    ]);
+
+    $method = $httpMethod.'Json';
+    $this->{$method}(mtnWebhookUrl(mtnWebhookCallbackToken()), [
+        'externalId' => $payment->uuid,
+        'status' => 'SUCCESSFUL',
+    ])->assertOk()->assertJsonPath('status', 'confirmed');
+
+    $this->{$method}(mtnWebhookUrl('bad-token'), [
+        'externalId' => $payment->uuid,
+        'status' => 'SUCCESSFUL',
+    ])->assertStatus(403);
+
+    expect($payment->fresh()->status)->toBe(PaymentStatus::Confirmed)
+        ->and($reservation->fresh()->status)->toBe(ReservationStatus::Paid);
+})->with([
+    'POST' => ['post'],
+    'PUT' => ['put'],
+]);
 
 it('rejects an invalid MTN callback token before any provider call', function (): void {
     bindMtnWebhookAdapter(mtnWebhookAdapter());

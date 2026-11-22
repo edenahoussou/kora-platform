@@ -613,7 +613,7 @@ const integrationFields: Record<string, IntegrationFieldDefinition[]> = {
         {
             key: 'mtnMomoTargetEnvironment',
             label: 'Environnement cible',
-            hint: 'X-Target-Environment — marché MTN qui traite la transaction : mtnbenin, mtnivorycoast, mtnghana, mtnuganda, etc.',
+            hint: 'X-Target-Environment — « sandbox » avec l’environnement sandbox ; en production, le code marché MTN (mtnbenin, mtnivorycoast, mtnghana, mtnuganda, etc.).',
             source: 'Documentation MTN MoMo → X-Target-Environment. La liste est validée côté serveur.',
             icon: Globe2,
             required: true,

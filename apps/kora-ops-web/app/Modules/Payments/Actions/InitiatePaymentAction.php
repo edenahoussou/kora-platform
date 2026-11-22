@@ -225,16 +225,31 @@ class InitiatePaymentAction
             'mobile_money_network' => $mobileMoneyNetwork,
         ], fn ($value): bool => $value !== null));
 
-        $payment->update([
-            'status' => $providerResponse->status,
-            'provider_reference' => $providerResponse->providerReference,
-            'provider_transaction_id' => $providerResponse->providerTransactionId,
-            'provider_payload' => array_merge($payment->provider_payload ?? [], $providerResponse->payload),
-            'failure_code' => $providerResponse->isFailed() ? 'provider_initiation_failed' : null,
-            'failure_message' => $providerResponse->isFailed() ? $providerResponse->message : null,
-        ]);
+        $update = DB::transaction(function () use ($payment, $providerResponse): array {
+            $locked = Payment::query()->whereKey($payment->getKey())->lockForUpdate()->firstOrFail();
 
-        if ($providerResponse->isFailed() && $walletHoldId !== null) {
+            // A provider callback may confirm the payment before the 202
+            // response reaches us. Never overwrite a terminal decision.
+            if ($locked->status !== PaymentStatus::Pending) {
+                return ['payment' => $locked, 'release_hold' => false];
+            }
+
+            $locked->update([
+                'status' => $providerResponse->status,
+                'provider_reference' => $providerResponse->providerReference,
+                'provider_transaction_id' => $providerResponse->providerTransactionId,
+                'provider_payload' => array_merge($locked->provider_payload ?? [], $providerResponse->payload),
+                'failure_code' => $providerResponse->isFailed() ? 'provider_initiation_failed' : null,
+                'failure_message' => $providerResponse->isFailed() ? $providerResponse->message : null,
+            ]);
+
+            return [
+                'payment' => $locked,
+                'release_hold' => $providerResponse->isFailed(),
+            ];
+        });
+
+        if ($update['release_hold'] && $walletHoldId !== null) {
             $hold = WalletHold::query()->whereKey($walletHoldId)->first();
             if ($hold !== null) {
                 $this->releaseWalletHold->handle($hold);
@@ -242,7 +257,7 @@ class InitiatePaymentAction
         }
 
         return [
-            'payment' => $payment->fresh(['reservation.segments.departure']),
+            'payment' => $update['payment']->fresh(['reservation.segments.departure']),
             'is_replay' => false,
         ];
     }

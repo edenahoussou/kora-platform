@@ -7,6 +7,7 @@ use App\Modules\Payments\Contracts\ProviderResponse;
 use App\Modules\Payments\Data\PaymentStatus;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Wallet\Actions\ReconcileWalletTopUpAction;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -28,6 +29,7 @@ final class ApplyProviderResponseAction
         Payment $payment,
         ProviderResponse $response,
         array $authenticatedEvent = [],
+        ?string $authenticatedTransactionId = null,
     ): Payment {
         if ($payment->parcel_charge_id !== null) {
             return app(ParcelPayments::class)->confirmResponse($payment, $response, $authenticatedEvent);
@@ -37,7 +39,16 @@ final class ApplyProviderResponseAction
             return app(ReconcileWalletTopUpAction::class)->applyResponse($payment, $response, $authenticatedEvent);
         }
 
-        if ($payment->provider === 'mtn_momo'
+        $inconsistentPending = $response->isPending()
+            && filled($response->payload['verification_issue'] ?? null);
+
+        $isMtn = $payment->provider === 'mtn_momo';
+        $candidateTransactionId = $isMtn
+            ? $response->providerTransactionId
+            : ($authenticatedTransactionId ?? $response->providerTransactionId);
+
+        if (! $inconsistentPending
+            && $isMtn
             && $response->providerTransactionId !== null
             && $payment->provider_transaction_id !== null
             && ! hash_equals($payment->provider_transaction_id, $response->providerTransactionId)) {
@@ -50,10 +61,29 @@ final class ApplyProviderResponseAction
             return $payment->refresh();
         }
 
-        if ($payment->provider === 'mtn_momo'
-            && $response->providerTransactionId !== null
-            && $payment->provider_transaction_id === null) {
-            $payment->update(['provider_transaction_id' => $response->providerTransactionId]);
+        $shouldPersistTransactionId = ! $inconsistentPending
+            && $candidateTransactionId !== null
+            && $payment->provider_transaction_id === null
+            && ! $payment->status->isTerminal()
+            && ($isMtn || ! $response->isPending());
+
+        if ($shouldPersistTransactionId) {
+            DB::transaction(function () use ($payment, $candidateTransactionId): void {
+                $locked = Payment::query()
+                    ->whereKey($payment->getKey())
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($locked === null
+                    || $locked->provider_transaction_id !== null
+                    || $locked->status->isTerminal()) {
+                    return;
+                }
+
+                $locked->update(['provider_transaction_id' => $candidateTransactionId]);
+            });
+
+            $payment->refresh();
         }
 
         $status = match ($response->status) {

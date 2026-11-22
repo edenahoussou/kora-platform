@@ -92,7 +92,7 @@ return new class extends SettingsMigration
             $settings->addEncrypted('mtnMomoApiKey', $mtn['api_key'] ?? null);
             $settings->add('mtnMomoEnvironment', (string) ($mtn['environment'] ?? 'sandbox'));
             $settings->add('mtnMomoCallbackUrl', $mtn['callback_url'] ?? null);
-            $settings->add('mtnMomoTargetEnvironment', (string) ($mtn['target_environment'] ?? 'mtnbenin'));
+            $settings->add('mtnMomoTargetEnvironment', (string) ($mtn['target_environment'] ?? 'sandbox'));
             $settings->add('mtnMomoSandboxCurrency', (string) ($mtn['sandbox_currency'] ?? 'EUR'));
             $settings->add('mtnMomoProductionCurrency', (string) ($mtn['production_currency'] ?? 'XOF'));
             $settings->addEncrypted('mtnMomoWebhookSecret', $mtn['webhook_secret'] ?? null);

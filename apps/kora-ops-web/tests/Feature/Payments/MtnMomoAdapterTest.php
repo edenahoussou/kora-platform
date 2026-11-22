@@ -31,7 +31,7 @@ function mtnMomoAdapter(array $overrides = []): MtnMomoAdapter
         environment: $overrides['environment'] ?? 'sandbox',
         callbackUrl: $overrides['callbackUrl'] ?? 'https://staging.kora.test/api/v1/payments/webhook/mtn-momo',
         webhookSecret: $overrides['webhookSecret'] ?? str_repeat('a', 40),
-        targetEnvironment: $overrides['targetEnvironment'] ?? 'mtnbenin',
+        targetEnvironment: $overrides['targetEnvironment'] ?? 'sandbox',
         baseUrl: $overrides['baseUrl'] ?? null,
     );
 }
@@ -244,7 +244,8 @@ it('fails closed on external id, amount or currency mismatch', function (array $
     $response = mtnMomoAdapter()->verify($payment);
 
     expect($response->status)->toBe(PaymentStatus::Pending)
-        ->and($response->payload['verification_issue'] ?? null)->toBe($issue);
+        ->and($response->payload['verification_issue'] ?? null)->toBe($issue)
+        ->and($response->providerTransactionId)->toBeNull();
 })->with([
     'external id' => [[
         'status' => 'SUCCESSFUL',
@@ -337,10 +338,63 @@ it('rejects a callback when no secret is configured', function (): void {
     expect($adapter->verifyWebhook($request))->toBeNull();
 });
 
+it('fails as a configuration refusal when mtnbenin is used in the sandbox', function (): void {
+    $payment = mtnMomoPayment();
+    Http::fake();
+
+    $response = mtnMomoAdapter([
+        'environment' => 'sandbox',
+        'targetEnvironment' => 'mtnbenin',
+    ])->initiate($payment, ['phone' => '+22997000000']);
+
+    expect($response->status)->toBe(PaymentStatus::Failed)
+        ->and($response->payload['initiation_issue'] ?? null)->toBe('target_environment_refused')
+        ->and($payment->fresh()->status)->toBe(PaymentStatus::Pending);
+
+    Http::assertNothingSent();
+});
+
+it('maps an MTN NOT_ALLOWED_TARGET_ENVIRONMENT 500 to a configuration failure', function (): void {
+    $payment = mtnMomoPayment();
+    Http::fake([
+        'https://sandbox.momodeveloper.mtn.com/collection/token/' => Http::response(['access_token' => 'token-1']),
+        'https://sandbox.momodeveloper.mtn.com/collection/v1_0/requesttopay' => Http::response([
+            'code' => 'NOT_ALLOWED_TARGET_ENVIRONMENT',
+            'message' => 'Target environment not allowed.',
+        ], 500),
+    ]);
+
+    $response = mtnMomoAdapter()->initiate($payment, ['phone' => '+22997000000']);
+
+    expect($response->status)->toBe(PaymentStatus::Failed)
+        ->and($response->payload['initiation_issue'] ?? null)->toBe('target_environment_refused');
+});
+
+it('sends X-Target-Environment sandbox on token and collection calls in sandbox mode', function (): void {
+    $payment = mtnMomoPayment();
+    $seen = [];
+
+    Http::fake(function (ClientRequest $request) use (&$seen) {
+        $seen[] = $request->header('X-Target-Environment')[0] ?? null;
+
+        if (str_ends_with($request->url(), '/collection/token/')) {
+            return Http::response(['access_token' => 'token-1']);
+        }
+
+        return Http::response([], 202);
+    });
+
+    $response = mtnMomoAdapter()->initiate($payment, ['phone' => '+22997000000']);
+
+    expect($response->status)->toBe(PaymentStatus::Pending)
+        ->and($seen)->toBe(['sandbox', 'sandbox']);
+});
+
 it('supports a configurable base url and sends the target environment on token requests', function (): void {
     $payment = mtnMomoPayment();
     $adapter = mtnMomoAdapter([
         'baseUrl' => 'https://momoapi.momo.africa/',
+        'environment' => 'production',
         'targetEnvironment' => 'mtnghana',
     ]);
 

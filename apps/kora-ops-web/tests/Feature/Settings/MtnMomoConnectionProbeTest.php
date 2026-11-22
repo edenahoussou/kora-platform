@@ -19,7 +19,7 @@ function mtnProbeSettings(array $overrides = []): void
         'mtnMomoApiKey' => 'api-key',
         'mtnMomoEnvironment' => 'sandbox',
         'mtnMomoCallbackUrl' => 'https://staging.kora.test/api/v1/payments/webhook/mtn-momo',
-        'mtnMomoTargetEnvironment' => 'mtnbenin',
+        'mtnMomoTargetEnvironment' => 'sandbox',
         'mtnMomoSandboxCurrency' => 'EUR',
         'mtnMomoProductionCurrency' => 'XOF',
         'mtnMomoWebhookSecret' => str_repeat('p', 32),
@@ -68,6 +68,20 @@ it('rejects a missing callback secret and an unknown target environment', functi
     'target' => ['target', 'environnement cible MTN MoMo n’est pas reconnu'],
 ]);
 
+it('rejects a market target environment in sandbox mode before any HTTP call', function (): void {
+    Http::preventStrayRequests();
+    Http::fake();
+
+    mtnProbeSettings(['mtnMomoTargetEnvironment' => 'mtnbenin']);
+
+    $result = app(IntegrationConnectionProbeManager::class)->test('mtn_momo');
+
+    expect($result->status)->toBe('configuration_refused')
+        ->and($result->safeMessage)->toContain('sandbox MTN exige');
+
+    Http::assertNothingSent();
+});
+
 it('tests the token endpoint with the configured base url and target environment', function (): void {
     config()->set('payments.providers.mtn_momo.base_url', 'https://momoapi.momo.africa');
 
@@ -85,7 +99,7 @@ it('tests the token endpoint with the configured base url and target environment
         ->and($result->safeMessage)->not->toContain('api-key');
 
     Http::assertSent(fn ($request): bool => $request->url() === 'https://momoapi.momo.africa/collection/token/'
-        && $request->hasHeader('X-Target-Environment', 'mtnbenin')
+        && $request->hasHeader('X-Target-Environment', 'sandbox')
         && $request->hasHeader('Ocp-Apim-Subscription-Key', 'subscription-key'));
 });
 

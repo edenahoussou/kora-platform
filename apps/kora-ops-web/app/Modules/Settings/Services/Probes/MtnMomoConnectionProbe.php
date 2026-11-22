@@ -55,6 +55,26 @@ final class MtnMomoConnectionProbe implements IntegrationConnectionProbe
             );
         }
 
+        if ($environment === 'sandbox' && $this->settings->mtnMomoTargetEnvironment !== 'sandbox') {
+            return ConnectionProbeResult::failure(
+                provider: $this->provider(),
+                environment: $environment,
+                durationMs: $this->duration($startedAt),
+                message: 'Configuration refusée : le sandbox MTN exige X-Target-Environment « sandbox ».',
+                status: 'configuration_refused',
+            );
+        }
+
+        if ($environment === 'production' && $this->settings->mtnMomoTargetEnvironment === 'sandbox') {
+            return ConnectionProbeResult::failure(
+                provider: $this->provider(),
+                environment: $environment,
+                durationMs: $this->duration($startedAt),
+                message: 'Configuration refusée : « sandbox » est interdit en production.',
+                status: 'configuration_refused',
+            );
+        }
+
         try {
             $baseUrl = config('payments.providers.mtn_momo.base_url');
 

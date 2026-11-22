@@ -12,15 +12,21 @@ use App\Modules\BusNetwork\Models\PhysicalStop;
 use App\Modules\BusNetwork\Models\Seat;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Models\Departure;
+use App\Modules\Payments\Actions\ConfirmPaymentAction;
+use App\Modules\Payments\Contracts\PaymentProvider;
+use App\Modules\Payments\Contracts\ProviderResponse;
 use App\Modules\Payments\Data\PaymentStatus;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\PaymentManager;
 use App\Modules\Payments\Providers\Fake\FakePaymentProvider;
 use App\Modules\Settings\Settings\IntegrationsSettings;
 use App\Modules\Ticketing\Data\TicketIssuanceStatus;
+use App\Modules\Ticketing\Jobs\IssueReservationTicketsJob;
 use App\Modules\Ticketing\Models\Ticket;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 
@@ -350,6 +356,55 @@ it('explicitly verifies a pending payment through the provider adapter', functio
         ->assertJsonPath('data.next_action', 'wait_for_tickets');
 
     expect($payment->fresh()->last_verified_at)->not->toBeNull();
+});
+
+it('preserves a callback confirmation that lands before the 202 response', function (): void {
+    Queue::fake([IssueReservationTicketsJob::class]);
+    $scenario = paymentTestScenario();
+    $passenger = ReservationPassenger::create([
+        'reservation_id' => $scenario['reservation']->id,
+        'first_name' => 'Rachida',
+        'last_name' => 'BIO',
+        'phone' => '+2290197421861',
+        'nationality' => 'BJ',
+    ]);
+    $scenario['segment']->update(['reservation_passenger_id' => $passenger->id]);
+
+    $manager = new PaymentManager;
+    $property = (new ReflectionClass($manager))->getProperty('resolved');
+    $property->setValue($manager, [
+        'mtn_momo' => new CallbackBefore202Provider,
+        'fake' => new FakePaymentProvider,
+    ]);
+    $this->app->instance(PaymentManager::class, $manager);
+
+    Sanctum::actingAs($scenario['user']);
+    $payload = [
+        'reservation_uuid' => $scenario['reservation']->uuid,
+        'method' => 'mobile_money',
+        'provider' => 'mtn_momo',
+        'phone' => '+2290197421861',
+        'mobile_money_network' => 'mtn_momo',
+        'idempotency_key' => (string) Str::uuid(),
+    ];
+
+    $this->postJson('/api/v1/payments/initiate', $payload)
+        ->assertCreated()
+        ->assertJsonPath('data.status', 'confirmed');
+
+    $payment = Payment::query()->sole();
+
+    expect($payment->status)->toBe(PaymentStatus::Confirmed)
+        ->and($payment->provider_reference)->toBe('MM-RACE-202')
+        ->and($scenario['reservation']->fresh()->status)->toBe(ReservationStatus::Paid);
+
+    Queue::assertPushed(IssueReservationTicketsJob::class, 1);
+
+    $this->postJson('/api/v1/payments/initiate', $payload)
+        ->assertOk()
+        ->assertJsonPath('data.status', 'confirmed');
+
+    Queue::assertPushed(IssueReservationTicketsJob::class, 1);
 });
 
 it('issues one ticket per passenger asynchronously after payment confirmation', function (): void {
@@ -770,4 +825,50 @@ function paymentTestScenario(): array
     ]);
 
     return compact('user', 'line', 'origin', 'destination', 'bus', 'seat1A', 'departure', 'reservation', 'segment');
+}
+
+final class CallbackBefore202Provider implements PaymentProvider
+{
+    public function initiate(Payment $payment, array $payload = []): ProviderResponse
+    {
+        // Simulate MTN delivering its callback and the server confirming the
+        // payment while requestToPay is still on the wire, before the 202.
+        app(ConfirmPaymentAction::class)->handle(
+            payment: $payment,
+            status: 'confirmed',
+            providerReference: 'MM-RACE-202',
+            providerPayload: ['transaction_id' => 'RACE-TX'],
+        );
+
+        return new ProviderResponse(
+            status: PaymentStatus::Pending,
+            providerReference: 'MM-RACE-202',
+            payload: ['status' => 'PENDING', 'late' => '202'],
+            message: '202 arrived after the callback.',
+        );
+    }
+
+    public function verify(Payment $payment): ProviderResponse
+    {
+        return new ProviderResponse(
+            status: PaymentStatus::Confirmed,
+            providerReference: 'MM-RACE-202',
+            payload: ['status' => 'SUCCESSFUL'],
+        );
+    }
+
+    public function verifyWebhook(Request $request): ?array
+    {
+        return null;
+    }
+
+    public function supports(string $method, string $provider): bool
+    {
+        return $provider === 'mtn_momo';
+    }
+
+    public function name(): string
+    {
+        return 'mtn_momo';
+    }
 }

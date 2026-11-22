@@ -329,7 +329,7 @@ it('validates MTN MoMo callback, secret and target environment', function (): vo
         'mtnMomoApiKey' => 'api-key',
         'mtnMomoEnvironment' => 'sandbox',
         'mtnMomoCallbackUrl' => 'https://staging.kora.test/api/v1/payments/webhook/mtn-momo',
-        'mtnMomoTargetEnvironment' => 'mtnbenin',
+        'mtnMomoTargetEnvironment' => 'sandbox',
         'mtnMomoSandboxCurrency' => 'EUR',
         'mtnMomoProductionCurrency' => 'XOF',
         'mtnMomoWebhookSecret' => str_repeat('s', 32),
@@ -339,6 +339,11 @@ it('validates MTN MoMo callback, secret and target environment', function (): vo
         array_replace($valid, ['mtnMomoCallbackUrl' => 'http://staging.kora.test/api/v1/payments/webhook/mtn-momo']),
         array_replace($valid, ['mtnMomoWebhookSecret' => 'short']),
         array_replace($valid, ['mtnMomoTargetEnvironment' => 'mtnunknown']),
+        array_replace($valid, ['mtnMomoTargetEnvironment' => 'mtnbenin']),
+        array_replace($valid, [
+            'mtnMomoEnvironment' => 'production',
+            'mtnMomoTargetEnvironment' => 'sandbox',
+        ]),
         array_replace($valid, ['mtnMomoCallbackUrl' => null]),
     ] as $invalid) {
         expect(fn () => $coordinator->update(
@@ -356,6 +361,6 @@ it('validates MTN MoMo callback, secret and target environment', function (): vo
 
     app(IntegrationsSettings::class)->refresh();
 
-    expect(app(IntegrationsSettings::class)->mtnMomoTargetEnvironment)->toBe('mtnbenin')
+    expect(app(IntegrationsSettings::class)->mtnMomoTargetEnvironment)->toBe('sandbox')
         ->and(app(IntegrationsSettings::class)->mtnMomoEnabled)->toBeTrue();
 });

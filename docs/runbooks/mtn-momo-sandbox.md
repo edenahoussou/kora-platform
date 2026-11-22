@@ -109,12 +109,17 @@ Dans **Administration → Paramètres → Intégrations** :
 | API User ID | UUID de l’API User sandbox |
 | Clé API | clé de l’API User sandbox |
 | URL de callback | `https://<host-public>/api/v1/payments/webhook/mtn-momo` |
-| Environnement cible | marché réel, ex. `mtnbenin`, `mtnghana`, `mtnivorycoast` |
+| Environnement cible | `sandbox` (obligatoire avec l’environnement `sandbox`) |
 | Devise sandbox | `EUR` |
 | Devise production | devise locale, ex. `XOF` |
 | Secret webhook | chaîne aléatoire de **32 caractères minimum** |
 
-Marchés cibles reconnus par la validation serveur :
+Valeurs acceptées :
+
+- en **sandbox**, `X-Target-Environment` doit valoir exactement `sandbox` ;
+- en **production**, la valeur doit être un code marché réel.
+
+Codes marché reconnus en production :
 
 ```text
 mtnuganda, mtnghana, mtnivorycoast, mtnzambia, mtncameroon, mtnbenin,
@@ -123,6 +128,12 @@ mtnsouthsudan, mtnnigeria, mtnrwanda
 ```
 
 La liste est fermée et validée côté serveur. Togo n’y figure pas.
+
+Un couple `sandbox` + `mtnbenin` est une **erreur de configuration** : MTN répond
+`NOT_ALLOWED_TARGET_ENVIRONMENT` en HTTP 500. KORA refuse ce couple dès les
+Settings, le probe et l’adaptateur ; le paiement passe en `Failed` avec
+`initiation_issue = target_environment_refused` et ne reste jamais `Pending`
+orphelin.
 
 ### Génération du secret webhook
 
@@ -144,6 +155,8 @@ Quand MTN MoMo est activé, l’enregistrement est refusé si :
 - l’URL de callback n’est pas une URL HTTPS valide ;
 - le secret webhook fait moins de 32 caractères ;
 - l’environnement cible n’est pas dans la liste serveur ;
+- l’environnement cible vaut `sandbox` alors que l’environnement est `production` ;
+- l’environnement cible est un code marché alors que l’environnement est `sandbox` ;
 - les credentials sont incomplets.
 
 Les erreurs sont volontairement génériques et ne reprennent aucun secret.
@@ -158,7 +171,8 @@ Le probe contrôle **avant** l’appel token :
 
 - présence des credentials ;
 - présence de l’URL de callback et du secret webhook ;
-- appartenance de l’environnement cible à la liste serveur.
+- appartenance de l’environnement cible à la liste serveur ;
+- cohérence `sandbox` ↔ cible `sandbox`, et production ↔ code marché.
 
 Puis il appelle `POST /collection/token/` avec :
 

@@ -138,7 +138,7 @@ final class IntegrationsSettings extends Settings
 
     public ?string $mtnMomoCallbackUrl = null;
 
-    public string $mtnMomoTargetEnvironment = 'mtnbenin';
+    public string $mtnMomoTargetEnvironment = 'sandbox';
 
     public string $mtnMomoSandboxCurrency = 'EUR';
 
