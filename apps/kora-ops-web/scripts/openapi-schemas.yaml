@@ -881,3 +881,39 @@ schemas:
             $ref: '#/components/schemas/LabelDocument'
           -
             $ref: '#/components/schemas/ReceiptDocument'
+
+requestBodies:
+  '/api/v1/parcels/{parcel_uuid}/incidents':
+    post:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - kind
+              - description
+            properties:
+              kind:
+                type: string
+                enum:
+                  - loss
+                  - damage
+                  - custody_discrepancy
+                example: damage
+                description: 'Nature du signalement.'
+              description:
+                type: string
+                maxLength: 2000
+                example: 'Emballage endommagé'
+                description: 'Description factuelle, sans code de retrait.'
+              idempotency_key:
+                type: string
+                format: uuid
+                nullable: true
+                example: 00000000-0000-4000-8000-000000000099
+                description: 'Clé optionnelle pour rejouer la déclaration sans créer un second incident.'
+          example:
+            kind: damage
+            description: 'Emballage endommagé'
+            idempotency_key: 00000000-0000-4000-8000-000000000099

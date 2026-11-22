@@ -149,7 +149,7 @@ it('publishes a complete and non-leaking OpenAPI contract for every parcel clien
         ->and($revoke['responses'][204])->not->toHaveKey('content');
 
     $cancel = $spec['paths']['/api/v1/parcels/{parcel_uuid}/cancel']['post'];
-    expect($cancel['responses'][409]['content']['application/json']['example']['message'])
+    expect($cancel['responses'][409]['content']['application/json']['schema']['example']['message'])
         ->toBe('Le colis ne peut pas être annulé dans son statut actuel.');
 
     $incident = $spec['paths']['/api/v1/parcels/{parcel_uuid}/incidents']['post'];
@@ -157,9 +157,9 @@ it('publishes a complete and non-leaking OpenAPI contract for every parcel clien
     expect($incidentSchema['properties']['kind']['enum'])
         ->toBe(['loss', 'damage', 'custody_discrepancy'])
         ->and($incidentSchema['properties']['description']['maxLength'])->toBe(2000)
-        ->and($incident['responses'][409]['content']['application/json']['example']['message'])
+        ->and($incident['responses'][409]['content']['application/json']['schema']['example']['message'])
         ->toBe('The parcel has no logistics reference.')
-        ->and($incident['responses'][422]['content']['application/json']['example']['message'])
+        ->and($incident['responses'][422]['content']['application/json']['schema']['example']['message'])
         ->toBe('La valeur sélectionnée pour kind est invalide.');
 
     $store = $spec['paths']['/api/v1/parcels']['post'];

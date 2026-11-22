@@ -147,7 +147,7 @@ class ParcelController extends Controller
      * @response 200 {"data":{"uuid":"00000000-0000-4000-8000-000000000010","reference":null,"status":"cancelled","origin":"Cotonou","destination":"Parakou","can_pay":false,"timeline":[{"kind":"cancelled","observed_at":"2026-11-20T09:20:00+01:00"}]}}
      * @response 403 {"message":"Droits insuffisants pour ce périmètre Colis."}
      * @response 404 {"message":"Not Found"}
-     * @response 409 {"message":"Opération incompatible avec l’état du colis ou du corridor."}
+     * @response 409 {"message":"Le colis ne peut pas être annulé dans son statut actuel."}
      */
     public function cancel(Request $request, Parcel $parcel): ParcelResource
     {
@@ -343,7 +343,7 @@ class ParcelController extends Controller
      * @response 200 {"data":{"uuid":"00000000-0000-4000-8000-000000000020","status":"confirmed","amount":1500,"currency":"XOF","method":"mobile_money","provider":"fedapay","provider_reference":"TEST-REF-001","provider_transaction_id":"TEST-TX-001","confirmed_at":"2026-11-20T09:35:00+01:00","last_verified_at":"2026-11-20T09:35:00+01:00","next_action":"show_parcel","polling_interval_seconds":10}}
      * @response 403 {"message":"Droits insuffisants pour ce périmètre Colis."}
      * @response 404 {"message":"Not Found"}
-     * @response 409 {"message":"Opération incompatible avec l’état du colis ou du corridor."}
+     * @response 422 {"message":"The transaction id field must not be greater than 128 characters.","errors":{"transaction_id":["The transaction id field must not be greater than 128 characters."]}}
      * @response 429 {"message":"Too Many Attempts."}
      */
     public function verify(ParcelPaymentRequest $request, Parcel $parcel, Payment $payment, ParcelPayments $payments, PaymentManager $manager): PaymentResource
@@ -400,8 +400,8 @@ class ParcelController extends Controller
      * @response 201 {"data":{"uuid":"00000000-0000-4000-8000-000000000030","blocking":false}}
      * @response 403 {"message":"Droits insuffisants pour ce périmètre Colis."}
      * @response 404 {"message":"Not Found"}
-     * @response 409 {"message":"Opération incompatible avec l’état du colis ou du corridor."}
-     * @response 422 {"message":"Les données de cette opération sont invalides."}
+     * @response 409 {"message":"The parcel has no logistics reference."}
+     * @response 422 {"message":"La valeur sélectionnée pour kind est invalide.","errors":{"kind":["La valeur sélectionnée pour kind est invalide."]}}
      * @response 429 {"message":"Too Many Attempts."}
      */
     public function incident(ParcelOperationRequest $request, Parcel $parcel, ParcelNotifications $notifications): JsonResponse
