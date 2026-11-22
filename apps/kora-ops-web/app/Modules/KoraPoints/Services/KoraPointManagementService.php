@@ -225,7 +225,7 @@ class KoraPointManagementService
                     'agency_uuid' => $point->agency->uuid,
                     'kora_point_organization_uuid' => null,
                     'role' => 'kora_point_agent',
-                ], $actor, request());
+                ], $actor);
             }
 
             $documentFile = $data['document_file'] ?? null;
@@ -290,7 +290,7 @@ class KoraPointManagementService
                     'agency_uuid' => null,
                     'kora_point_organization_uuid' => $organization->uuid,
                     'role' => (string) $memberData['role'],
-                ], $actor, request());
+                ], $actor);
 
                 $memberUser = $result['user'];
                 activity('kora-points')
@@ -459,7 +459,7 @@ class KoraPointManagementService
      * Creates a new active agent account for a point and issues its web access invitation.
      *
      * @param  array{name: string, email: string, phone?: string|null}  $data
-     * @return array{user: User, temporary_password: string|null, otp_challenge_uuid: string|null, web_access_invitation: KoraPointWebAccessInvitation|null}
+     * @return array{user: User, temporary_password: string|null, web_access_invitation: KoraPointWebAccessInvitation|null}
      */
     public function createAgent(User $actor, KoraPoint $point, array $data, Request $request): array
     {
@@ -478,7 +478,7 @@ class KoraPointManagementService
             'agency_uuid' => $point->agency->uuid,
             'kora_point_organization_uuid' => null,
             'role' => 'kora_point_agent',
-        ], $actor, $request);
+        ], $actor);
 
         activity('kora-points')
             ->performedOn($result['user'])
@@ -493,7 +493,7 @@ class KoraPointManagementService
      * Creates an active organization supervisor or treasurer and issues the existing web invitation.
      *
      * @param  array{name: string, email: string, phone?: string|null, role: string}  $data
-     * @return array{user: User, temporary_password: string|null, otp_challenge_uuid: string|null, web_access_invitation: KoraPointWebAccessInvitation|null}
+     * @return array{user: User, temporary_password: string|null, web_access_invitation: KoraPointWebAccessInvitation|null}
      */
     public function createOrganizationMember(User $actor, KoraPointOrganization $organization, array $data, Request $request): array
     {
@@ -504,7 +504,7 @@ class KoraPointManagementService
             throw ValidationException::withMessages(['role' => 'Choisissez un rôle autorisé pour l’organisation.']);
         }
 
-        return DB::transaction(function () use ($actor, $organization, $data, $request): array {
+        return DB::transaction(function () use ($actor, $organization, $data): array {
             $lockedOrganization = KoraPointOrganization::query()
                 ->lockForUpdate()
                 ->whereKey($organization->getKey())
@@ -524,7 +524,7 @@ class KoraPointManagementService
                 'agency_uuid' => null,
                 'kora_point_organization_uuid' => $lockedOrganization->uuid,
                 'role' => $data['role'],
-            ], $actor, $request);
+            ], $actor);
         }, 3);
     }
 

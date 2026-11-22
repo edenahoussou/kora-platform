@@ -15,6 +15,8 @@ class KoraPointWebAccessInvitation extends KoraModel
 
     public const string STATUS_PENDING_DELIVERY = 'pending_delivery';
 
+    public const string STATUS_FAILED = 'failed';
+
     public const string STATUS_SENT = 'sent';
 
     public const string STATUS_EXPIRED = 'expired';

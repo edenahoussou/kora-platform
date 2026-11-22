@@ -145,18 +145,16 @@ class UserController extends Controller
 
     public function store(StoreUserRequest $request, CreateUserAction $createUser): RedirectResponse
     {
-        $result = $createUser->execute($request->payload(), $request->user(), $request);
+        $result = $createUser->execute($request->payload(), $request->user());
 
         if ($result['temporary_password'] !== null) {
             Inertia::flash('temporaryPassword', $result['temporary_password']);
         }
 
-        if ($result['otp_challenge_uuid'] !== null) {
-            Inertia::flash('otpChallengeUuid', $result['otp_challenge_uuid']);
-        }
-
         $message = $result['web_access_invitation'] === null
-            ? __('Utilisateur créé avec succès.')
+            ? ($result['temporary_password'] === null
+                ? __('Utilisateur créé. Les accès seront envoyés après activation.')
+                : __('Utilisateur créé. L’e-mail de bienvenue est en cours d’envoi.'))
             : $this->webAccessMessage($result['web_access_invitation']->status);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
@@ -343,6 +341,10 @@ class UserController extends Controller
 
     private function webAccessMessage(string $status): string
     {
+        if ($status === 'failed') {
+            return 'L’e-mail d’accès web n’a pas pu être envoyé. Vous pouvez renvoyer l’accès depuis Utilisateurs.';
+        }
+
         $delivery = $status === 'sent' ? 'envoyé' : 'en attente de livraison';
 
         return "Accès web initial {$delivery}. Le mot de passe n’est pas affiché dans OPS; consultez son état ou renvoyez l’accès depuis Utilisateurs.";

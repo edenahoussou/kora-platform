@@ -142,7 +142,7 @@ it('attaches a referral on new account registration and notifies only the referr
     expect($refereeWallet->referred_by_user_id)->toBe($referrer->getKey())
         ->and($refereeWallet->points_balance)->toBe(0)
         ->and($referrerWallet->refresh()->points_balance)->toBe(0)
-        ->and($referee->notifications()->count())->toBe(0)
+        ->and($referee->notifications()->get()->pluck('data.type')->all())->toBe(str_contains($identifier, '@') ? [] : ['account_welcome'])
         ->and($notice->data['type'])->toBe('wallet_referral_attached')
         ->and($notice->data['data'])->toBe(['resource' => 'wallet', 'wallet_uuid' => $referrerWallet->uuid]);
 
@@ -163,6 +163,26 @@ it('attaches a referral on new account registration and notifies only the referr
     'email with push' => ['referral@example.com', true],
     'phone without push' => ['+2290153234060', false],
 ]);
+
+it('requires an administrator to activate a suspended new web account before mobile registration', function (): void {
+    $user = User::factory()->create(['status' => 'suspended']);
+    $user->forceFill(['initial_web_access_pending' => true])->save();
+    [$challenge, $verificationToken] = verifiedOtpChallenge($user->email, OtpPurpose::Registration);
+
+    $this->postJson('/api/v1/auth/register/complete', [
+        'otp_challenge_uuid' => $challenge->uuid,
+        'verification_token' => $verificationToken,
+        'name' => $user->name,
+        'pin' => '1234',
+        'pin_confirmation' => '1234',
+        'device_name' => 'Appareil de test',
+        'platform' => 'android',
+        'device_fingerprint' => 'suspended-web-account',
+    ])->assertForbidden()->assertJsonPath('error.code', 'account_suspended');
+
+    expect($user->refresh()->initial_web_access_pending)->toBeTrue()
+        ->and($user->pin_hash)->toBeNull();
+});
 
 it('logs in with a known trusted device using pin', function (): void {
     $this->seed(KoraBusRolePermissionSeeder::class);

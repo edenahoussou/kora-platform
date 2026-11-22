@@ -9,6 +9,7 @@ use App\Modules\IdentityAccess\Data\OAuthProvider;
 use App\Modules\IdentityAccess\Data\UserStatus;
 use App\Modules\IdentityAccess\Exceptions\AuthSuspendedException;
 use App\Modules\IdentityAccess\Exceptions\OAuthEmailRequiredException;
+use App\Modules\IdentityAccess\Jobs\SendAccountWelcomeJob;
 use App\Modules\IdentityAccess\Models\UserSocialAccount;
 use App\Modules\Settings\Settings\IntegrationsSettings;
 use Carbon\CarbonInterface;
@@ -98,6 +99,10 @@ class AuthSocialService
         }
 
         $token = $this->issueDeviceToken->handle($user, $device);
+
+        if ($created) {
+            SendAccountWelcomeJob::dispatch($user->uuid, passengerApp: true)->afterCommit();
+        }
 
         return [
             'user' => $user->refresh(),

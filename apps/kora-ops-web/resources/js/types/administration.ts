@@ -48,7 +48,13 @@ export type AdministrationUser = {
     kora_point_organization: KoraPointOrganizationOption | null;
     role: Pick<AdministrationRole, 'code' | 'label' | 'category'> | null;
     web_access: {
-        status: 'pending_delivery' | 'sent' | 'expired' | 'used' | 'replaced';
+        status:
+            | 'pending_delivery'
+            | 'failed'
+            | 'sent'
+            | 'expired'
+            | 'used'
+            | 'replaced';
         delivery_channel: 'email' | 'sms' | null;
         sent_at: string | null;
         expires_at: string | null;

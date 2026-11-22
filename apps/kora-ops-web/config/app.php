@@ -1,6 +1,12 @@
 <?php
 
+$stagingBrand = env('KORA_BRAND_ENV', env('APP_ENV')) === 'staging';
+
 return [
+    'brand' => [
+        'name' => $stagingBrand ? 'Kora Express Staging' : 'Kora Express',
+        'staging' => $stagingBrand,
+    ],
 
     /*
     |--------------------------------------------------------------------------

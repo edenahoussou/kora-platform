@@ -1,3 +1,4 @@
+import type { Page } from '@inertiajs/core';
 import { useForm } from '@inertiajs/react';
 import {
     Building2,
@@ -19,6 +20,7 @@ import type {
     AdministrationUser,
     KoraPointOrganizationOption,
 } from '@/types/administration';
+import type { UserCredentials } from './user-credentials-dialog';
 
 type Props = {
     open: boolean;
@@ -27,6 +29,7 @@ type Props = {
     agencies: AdministrationAgency[];
     koraPointOrganizations: KoraPointOrganizationOption[];
     onOpenChange: (open: boolean) => void;
+    onCredentials: (credentials: UserCredentials) => void;
 };
 
 type FormValues = {
@@ -86,6 +89,7 @@ export function UserFormModal({
     agencies,
     koraPointOrganizations,
     onOpenChange,
+    onCredentials,
 }: Props) {
     const isEditing = Boolean(user);
     const form = useForm<FormValues>(valuesFromUser(user));
@@ -162,9 +166,22 @@ export function UserFormModal({
                 : null,
         }));
 
+        const { name, email } = form.data;
         const options = {
             preserveScroll: true,
-            onSuccess: () => onOpenChange(false),
+            onSuccess: (page: Page) => {
+                onOpenChange(false);
+                const flash = page.flash as
+                    { temporaryPassword?: string } | undefined;
+
+                if (flash?.temporaryPassword) {
+                    onCredentials({
+                        temporaryPassword: flash.temporaryPassword,
+                        userName: name,
+                        userEmail: email,
+                    });
+                }
+            },
         };
 
         if (isEditing && user) {
@@ -211,7 +228,7 @@ export function UserFormModal({
                             <p>
                                 {isEditing
                                     ? `Mise à jour du profil et des accès de ${user?.name}.`
-                                    : 'Créez un compte opérationnel avec mot de passe temporaire à usage unique.'}
+                                    : 'Créez un compte Kora Express avec un mot de passe provisoire envoyé par e-mail.'}
                             </p>
                         </div>
                     </div>
@@ -338,8 +355,8 @@ export function UserFormModal({
                                     </small>
                                 ) : (
                                     <small className="text-muted-foreground">
-                                        Format international avec indicatif pays
-                                        pour la réception des OTP et alertes.
+                                        Numéro facultatif au format
+                                        international.
                                     </small>
                                 )}
                             </label>
@@ -650,9 +667,9 @@ export function UserFormModal({
                                     </small>
                                 ) : (
                                     <small className="text-muted-foreground">
-                                        Un compte actif permet la connexion
-                                        immédiate avec le mot de passe
-                                        temporaire.
+                                        {isEditing
+                                            ? 'Un compte suspendu ne peut pas se connecter.'
+                                            : 'Les identifiants sont envoyés après activation du compte.'}
                                     </small>
                                 )}
                             </label>

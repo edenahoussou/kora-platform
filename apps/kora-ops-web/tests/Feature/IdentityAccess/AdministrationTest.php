@@ -3,6 +3,7 @@
 use App\Models\User;
 use App\Modules\IdentityAccess\Data\RoleCategory;
 use App\Modules\IdentityAccess\Data\UserDeviceStatus;
+use App\Modules\IdentityAccess\Jobs\SendAccountWelcomeJob;
 use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\IdentityAccess\Models\Role;
 use App\Modules\IdentityAccess\Services\OpsSessionGuard;
@@ -10,6 +11,7 @@ use App\Notifications\IdentityAccess\OtpCodeNotification;
 use Database\Seeders\KoraBusRolePermissionSeeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Queue;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function (): void {
@@ -51,8 +53,9 @@ it('lists users with filters and public identifiers only', function (): void {
         );
 });
 
-it('creates an agency user with a temporary password and registration otp', function (): void {
+it('creates an agency user with a temporary password and a welcome email instead of a registration otp', function (): void {
     Notification::fake();
+    Queue::fake([SendAccountWelcomeJob::class]);
     $admin = administrationUser();
     $agency = Agency::query()->create([
         'code' => 'COT',
@@ -84,7 +87,35 @@ it('creates an agency user with a temporary password and registration otp', func
         ->and($user->must_change_password)->toBeTrue()
         ->and(Hash::check((string) $temporaryPassword, $user->password))->toBeTrue();
 
-    Notification::assertSentTo($user, OtpCodeNotification::class);
+    Notification::assertNotSentTo($user, OtpCodeNotification::class);
+    expect(session()->get('inertia.flash_data'))->not->toHaveKey('otpChallengeUuid');
+    Queue::assertPushed(SendAccountWelcomeJob::class, fn (SendAccountWelcomeJob $job): bool => $job->userUuid === $user->uuid);
+});
+
+it('delays first web access until a suspended account is activated once', function (): void {
+    Queue::fake([SendAccountWelcomeJob::class]);
+    $admin = administrationUser();
+    $data = [
+        'name' => 'Utilisateur suspendu',
+        'email' => 'suspended@example.test',
+        'status' => 'suspended',
+        'role' => 'operations_director',
+    ];
+    $this->actingAs($admin)->post(route('users.store'), $data)->assertRedirect();
+    $user = User::query()->where('email', $data['email'])->sole();
+    $initialHash = $user->password;
+
+    expect($user->initial_web_access_pending)->toBeTrue();
+    Queue::assertNotPushed(SendAccountWelcomeJob::class);
+
+    $data['status'] = 'active';
+    $this->patch(route('users.update', $user), $data)->assertRedirect();
+    $this->patch(route('users.update', $user), $data)->assertRedirect();
+
+    expect($user->refresh()->initial_web_access_pending)->toBeFalse()
+        ->and($user->password)->not->toBe($initialHash)
+        ->and($user->must_change_password)->toBeTrue();
+    Queue::assertPushed(SendAccountWelcomeJob::class, 1);
 });
 
 it('rejects an agency role without an agency', function (): void {

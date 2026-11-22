@@ -44,6 +44,7 @@ class MonthlyBillingStatementNotification extends Notification implements Should
 
         $message = (new MailMessage)
             ->subject(sprintf('[KORA] Relevé de facturation %s — %s', $periodLabel, $this->account->name))
+            ->markdown('notifications::email', ['preview' => 'Votre relevé de facturation mensuel est disponible en pièce jointe.'])
             ->greeting(sprintf('Bonjour %s,', $this->recipientName ?? $this->account->name))
             ->line(sprintf(
                 'Veuillez recevoir ci-joint le relevé de facturation consolidé de %s (réf. %s) pour la période de %s, accompagné des factures de vente normalisées (MECeF) de la période.',

@@ -34,6 +34,7 @@ class SecurityAlertNotification extends Notification implements ShouldQueue
     {
         $mail = (new MailMessage)
             ->subject('[KORA OPS] '.$this->event->subject())
+            ->markdown('notifications::email', ['preview' => 'Consultez les détails de cette activité sur votre compte.'])
             ->greeting('Alerte de sécurité')
             ->lines($this->event->lines());
 

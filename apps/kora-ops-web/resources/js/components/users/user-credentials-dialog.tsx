@@ -1,189 +1,156 @@
-import { Check, Copy, KeyRound, ShieldAlert, X } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogTitle,
+} from '@/components/ui/dialog';
+
+export type UserCredentials = {
+    temporaryPassword?: string;
+    otpChallengeUuid?: string;
+    userName?: string;
+    userEmail?: string;
+};
 
 type Props = {
-    open: boolean;
-    temporaryPassword?: string | null;
-    otpChallengeUuid?: string | null;
-    userName?: string | null;
-    userEmail?: string | null;
+    credentials: UserCredentials | null;
     onClose: () => void;
+    returnFocus: () => void;
 };
 
 export function UserCredentialsDialog({
-    open,
-    temporaryPassword,
-    otpChallengeUuid,
-    userName,
-    userEmail,
+    credentials,
     onClose,
+    returnFocus,
 }: Props) {
-    const [copied, setCopied] = useState(false);
+    const [copying, setCopying] = useState(false);
+    const [copyError, setCopyError] = useState(false);
+    const attempt = useRef(0);
+    const dialog = useRef<HTMLDivElement>(null);
 
-    if (!open || (!temporaryPassword && !otpChallengeUuid)) {
-        return null;
-    }
+    const close = () => {
+        attempt.current += 1;
+        setCopying(false);
+        setCopyError(false);
+        onClose();
+    };
 
-    const copyCredentials = async () => {
-        const lines: string[] = [];
-
-        if (userName) {
-            lines.push(`Utilisateur : ${userName}`);
+    const copyAndClose = async () => {
+        if (!credentials || copying) {
+            return;
         }
 
-        if (userEmail) {
-            lines.push(`Email : ${userEmail}`);
-        }
+        const { userName, userEmail, temporaryPassword, otpChallengeUuid } =
+            credentials;
+        const text = [
+            userName && `Utilisateur : ${userName}`,
+            userEmail && `E-mail : ${userEmail}`,
+            temporaryPassword &&
+                `Mot de passe provisoire : ${temporaryPassword}`,
+            otpChallengeUuid && `Référence OTP : ${otpChallengeUuid}`,
+        ]
+            .filter(Boolean)
+            .join('\n');
 
-        if (temporaryPassword) {
-            lines.push(`Mot de passe temporaire : ${temporaryPassword}`);
-        }
-
-        if (otpChallengeUuid) {
-            lines.push(`Référence OTP : ${otpChallengeUuid}`);
-        }
-
-        const textToCopy = lines.join('\n');
+        const currentAttempt = ++attempt.current;
+        setCopying(true);
+        setCopyError(false);
 
         try {
-            await navigator.clipboard.writeText(textToCopy);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2500);
+            if (navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(text);
+            } else {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.className = 'fixed opacity-0';
+                dialog.current?.append(textarea);
+
+                try {
+                    textarea.select();
+
+                    if (!document.execCommand('copy')) {
+                        throw new Error('La copie a échoué.');
+                    }
+                } finally {
+                    textarea.remove();
+                }
+            }
+
+            if (attempt.current === currentAttempt) {
+                close();
+            }
         } catch {
-            // Fallback si clipboard API échoue
-            const textarea = document.createElement('textarea');
-            textarea.value = textToCopy;
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textarea);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2500);
+            if (attempt.current === currentAttempt) {
+                setCopyError(true);
+                setCopying(false);
+            }
         }
     };
 
     return (
-        <div
-            className="cash-modal-backdrop"
-            role="presentation"
-            onMouseDown={(event) =>
-                event.target === event.currentTarget && onClose()
-            }
+        <Dialog
+            open={credentials !== null}
+            onOpenChange={(open) => !open && close()}
         >
-            <div
-                className="cash-modal max-w-[32rem]!"
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="credentials-modal-title"
+            <DialogContent
+                ref={dialog}
+                showClose={false}
+                onCloseAutoFocus={(event) => {
+                    event.preventDefault();
+                    returnFocus();
+                }}
             >
-                <div className="cash-modal-head">
-                    <div className="flex items-start gap-3">
-                        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-gold/20 text-gold">
-                            <KeyRound className="size-5" />
-                        </span>
-                        <div>
-                            <span className="section-kicker text-gold">
-                                Sécurité & Identifiants
-                            </span>
-                            <h3
-                                id="credentials-modal-title"
-                                className="text-lg font-black text-foreground"
-                            >
-                                Identifiants générés
-                            </h3>
-                            <p className="text-xs text-muted-foreground">
-                                {userName
-                                    ? `Accès initial pour ${userName}`
-                                    : 'Nouveaux paramètres d’accès générés.'}
-                            </p>
-                        </div>
+                <DialogTitle>Identifiants générés</DialogTitle>
+                <DialogDescription>
+                    {credentials?.userName
+                        ? `Accès pour ${credentials.userName}`
+                        : 'Accès utilisateur'}
+                </DialogDescription>
+                {credentials?.temporaryPassword && (
+                    <div className="rounded-lg border bg-muted/30 p-4">
+                        <p className="text-sm font-semibold">
+                            Mot de passe provisoire
+                        </p>
+                        <p className="mt-2 font-mono text-sm break-all select-all">
+                            {credentials.temporaryPassword}
+                        </p>
+                        <p className="mt-2 text-sm text-muted-foreground">
+                            L’utilisateur devra le changer à sa première
+                            connexion.
+                        </p>
                     </div>
+                )}
+                {credentials?.otpChallengeUuid && (
+                    <p className="text-sm break-all select-all">
+                        Référence OTP {credentials.otpChallengeUuid}
+                    </p>
+                )}
+                {copyError && (
+                    <p role="alert" className="text-sm text-destructive">
+                        La copie a échoué. Réessayez ou sélectionnez le texte
+                        pour le copier manuellement.
+                    </p>
+                )}
+                <DialogClose asChild>
                     <button
                         type="button"
-                        onClick={onClose}
-                        className="cash-modal-close"
-                        aria-label="Fermer"
+                        className="btn btn-ghost absolute top-4 right-4 text-sm"
+                        aria-label="Fermer le pop-up"
                     >
-                        <X className="size-4" />
+                        ×
                     </button>
-                </div>
-
-                <div className="space-y-4">
-                    {temporaryPassword && (
-                        <div className="rounded-xl border border-border bg-muted/30 p-4">
-                            <span className="text-[0.6875rem] font-bold tracking-wider text-muted-foreground uppercase">
-                                Mot de passe temporaire
-                            </span>
-                            <div className="mt-2 flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-3.5 py-2.5">
-                                <span className="font-mono text-base font-black tracking-wider text-foreground select-all">
-                                    {temporaryPassword}
-                                </span>
-                                <button
-                                    type="button"
-                                    onClick={copyCredentials}
-                                    className="btn btn-ghost text-xs font-bold text-gold hover:text-gold"
-                                    title="Copier les identifiants"
-                                >
-                                    {copied ? (
-                                        <>
-                                            <Check className="size-3.5 text-emerald-500" />
-                                            <span className="text-emerald-500">
-                                                Copié !
-                                            </span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Copy className="size-3.5" />
-                                            <span>Copier</span>
-                                        </>
-                                    )}
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    {otpChallengeUuid && (
-                        <div className="rounded-xl border border-border bg-muted/20 p-3.5">
-                            <span className="text-[0.6875rem] font-bold tracking-wider text-muted-foreground uppercase">
-                                Référence Challenge OTP
-                            </span>
-                            <p className="mt-1 font-mono text-xs font-semibold text-muted-foreground">
-                                {otpChallengeUuid}
-                            </p>
-                            <small className="mt-1 block text-[0.6875rem] text-muted-foreground">
-                                Le code OTP de validation a été envoyé
-                                directement au numéro de l’agent.
-                            </small>
-                        </div>
-                    )}
-
-                    <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-xs text-amber-800 dark:text-amber-300">
-                        <ShieldAlert className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
-                        <div>
-                            <strong className="block font-bold">
-                                Important pour la sécurité
-                            </strong>
-                            <p className="mt-0.5 text-[0.6875rem] leading-relaxed">
-                                Ce mot de passe temporaire ne sera plus jamais
-                                réaffiché. Transmettez-le de façon sécurisée à
-                                l’utilisateur. Il lui sera demandé de définir un
-                                mot de passe personnel dès sa première
-                                connexion.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="cash-modal-actions mt-6">
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="btn btn-primary w-full justify-center font-black shadow-md hover:shadow-lg"
-                    >
-                        J’ai bien noté les accès
-                    </button>
-                </div>
-            </div>
-        </div>
+                </DialogClose>
+                <button
+                    type="button"
+                    disabled={copying}
+                    onClick={copyAndClose}
+                    className="btn btn-primary w-full justify-center"
+                >
+                    {copying ? 'Copie en cours…' : 'J’ai bien noté les accès'}
+                </button>
+            </DialogContent>
+        </Dialog>
     );
 }

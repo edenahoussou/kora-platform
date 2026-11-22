@@ -330,7 +330,7 @@ it('does not create a KORA POINT supervisor from Users without an organization',
     expect(User::query()->where('email', 'users.kora.unassigned@example.com')->exists())->toBeFalse();
 });
 
-it('includes all required credentials and first login instructions in email and sms messages', function (): void {
+it('includes all required credentials and first login instructions in email', function (): void {
     $notification = new KoraPointWebAccessNotification(
         name: 'Afi Kora',
         role: 'Agent KORA POINT',
@@ -341,31 +341,25 @@ it('includes all required credentials and first login instructions in email and 
     );
     $email = $notification->toMail(new AnonymousNotifiable);
     $emailContent = implode(' ', [...$email->introLines, ...$email->outroLines]);
-    $smsContent = $notification->toSms();
 
-    foreach (['Afi Kora', 'Agent KORA POINT', 'Point Akpakpa', 'afi@example.com', 'known-temporary-password', '72 heures', 'première connexion'] as $expected) {
+    foreach (['Agent KORA POINT', 'Point Akpakpa', '72 heures', 'première connexion'] as $expected) {
         expect($emailContent)->toContain($expected);
     }
 
     expect($email->actionUrl)->toBe('https://ops.example.com/login')
-        ->and($smsContent)->toContain('Afi Kora')
-        ->and($smsContent)->toContain('Agent KORA POINT')
-        ->and($smsContent)->toContain('Point Akpakpa')
-        ->and($smsContent)->toContain('afi@example.com')
-        ->and($smsContent)->toContain('known-temporary-password')
-        ->and($smsContent)->toContain('https://ops.example.com/login')
-        ->and($smsContent)->toContain('72 h')
-        ->and($smsContent)->toContain('première connexion');
+        ->and($email->greeting)->toContain('Afi Kora')
+        ->and($email->viewData['welcomeCredentials'])->toMatchArray([
+            'Identifiant' => 'afi@example.com',
+            'Mot de passe provisoire' => 'known-temporary-password',
+        ]);
 });
 
-it('sends email first and starts the 72 hour expiry only after accepted delivery', function (): void {
+it('sends email and starts the 72 hour expiry only after accepted delivery', function (): void {
     $point = KoraPoint::factory()->create();
     $user = koraPointAccessAccount($point->agency_id, password: 'email-first-password');
     $invitation = koraPointAccessInvitation($user, password: 'email-first-password');
     $delivery = Mockery::mock(KoraPointWebAccessDelivery::class);
     $delivery->shouldReceive('sendEmail')->once()->ordered()->with($user->email, Mockery::type(KoraPointWebAccessNotification::class));
-    $delivery->shouldNotReceive('canSendSms');
-    $delivery->shouldNotReceive('sendSms');
 
     $this->travelTo(now()->startOfSecond());
     (new SendKoraPointWebAccessJob($invitation->uuid, 'email-first-password'))->handle($delivery);
@@ -378,41 +372,28 @@ it('sends email first and starts the 72 hour expiry only after accepted delivery
         ->and($sent->getAttributes())->not->toHaveKey('temporary_password');
 });
 
-it('falls back to SMS only when email delivery throws', function (): void {
-    $point = KoraPoint::factory()->create();
-    $user = koraPointAccessAccount($point->agency_id, password: 'sms-fallback-password');
-    $invitation = koraPointAccessInvitation($user, password: 'sms-fallback-password');
-    $delivery = Mockery::mock(KoraPointWebAccessDelivery::class);
-    $delivery->shouldReceive('sendEmail')->once()->ordered()->andThrow(new RuntimeException('mail transport unavailable'));
-    $delivery->shouldReceive('canSendSms')->once()->ordered()->with($user->phone)->andReturnTrue();
-    $delivery->shouldReceive('sendSms')->once()->ordered()->with($user->phone, Mockery::type(KoraPointWebAccessNotification::class), $invitation->uuid);
-
-    (new SendKoraPointWebAccessJob($invitation->uuid, 'sms-fallback-password'))->handle($delivery);
-
-    expect($invitation->refresh()->status)->toBe('sent')
-        ->and($invitation->delivery_channel)->toBe('sms');
-});
-
-it('keeps an invitation pending and preserves the account when email and SMS both fail', function (): void {
+it('marks an email delivery failure without sending SMS or logging credentials', function (): void {
     $point = KoraPoint::factory()->create();
     $user = koraPointAccessAccount($point->agency_id, password: 'never-log-this-password');
     $invitation = koraPointAccessInvitation($user, password: 'never-log-this-password');
     $delivery = Mockery::mock(KoraPointWebAccessDelivery::class);
     $delivery->shouldReceive('sendEmail')->once()->andThrow(new RuntimeException('never-log-this-password'));
-    $delivery->shouldReceive('canSendSms')->once()->with($user->phone)->andReturnTrue();
-    $delivery->shouldReceive('sendSms')->once()->andThrow(new RuntimeException('never-log-this-password'));
     Log::spy();
 
-    (new SendKoraPointWebAccessJob($invitation->uuid, 'never-log-this-password'))->handle($delivery);
+    $job = new SendKoraPointWebAccessJob($invitation->uuid, 'never-log-this-password');
+    expect(fn () => $job->handle($delivery))->toThrow(RuntimeException::class, 'La livraison de l’accès web KORA POINT a échoué.');
+    expect($invitation->refresh()->status)->toBe('pending_delivery');
+
+    $job->failed();
 
     Log::shouldHaveReceived('warning')->once()->with(
         'KORA POINT web access could not be delivered.',
         Mockery::on(fn (array $context): bool => ! str_contains(json_encode($context), 'never-log-this-password')),
     );
 
-    expect($invitation->refresh()->status)->toBe('pending_delivery')
-        ->and(KoraPoint::query()->whereKey($point->getKey())->exists())->toBeTrue()
-        ->and(User::query()->whereKey($user->getKey())->exists())->toBeTrue()
+    expect($invitation->refresh()->status)->toBe('failed')
+        ->and($invitation->delivery_channel)->toBeNull()
+        ->and($invitation->expires_at)->toBeNull()
         ->and(Hash::check('never-log-this-password', $user->refresh()->password))->toBeTrue();
 });
 

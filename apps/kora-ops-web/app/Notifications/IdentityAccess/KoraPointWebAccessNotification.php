@@ -33,30 +33,23 @@ final class KoraPointWebAccessNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Vos accès web KORA POINT')
+            ->subject('Bienvenue dans l’équipe Kora Express · KORA POINT')
+            ->markdown('notifications::email', [
+                'preview' => 'Votre accès web KORA POINT est prêt. Retrouvez vos identifiants pour votre première connexion.',
+                'welcomeCredentials' => [
+                    'Identifiant' => $this->email,
+                    'Mot de passe provisoire' => $this->temporaryPassword,
+                ],
+            ])
             ->greeting('Bonjour '.$this->name.',')
-            ->line('Votre compte web KORA POINT est prêt.')
-            ->line('Nom : '.$this->name)
+            ->line('Bienvenue dans l’équipe Kora Express ! Nous sommes ravis de vous accueillir.')
+            ->line('Votre espace KORA POINT est prêt. Vous y retrouverez les outils utiles à votre mission.')
             ->line('Rôle : '.$this->role)
             ->line('Point ou organisation : '.$this->pointOrOrganization)
-            ->line('E-mail de connexion : '.$this->email)
-            ->line('Mot de passe provisoire : '.$this->temporaryPassword)
             ->action('Se connecter à KORA OPS', $this->loginUrl)
             ->line('Ce mot de passe expire 72 heures après son envoi.')
-            ->line('Vous devez le changer dès votre première connexion.');
-    }
-
-    public function toSms(): string
-    {
-        return implode("\n", [
-            'KORA OPS - accès web initial',
-            'Nom : '.$this->name,
-            'Rôle : '.$this->role,
-            'Point/organisation : '.$this->pointOrOrganization,
-            'Connexion : '.$this->email,
-            'Mot de passe provisoire : '.$this->temporaryPassword,
-            'URL : '.$this->loginUrl,
-            'Expire 72 h après envoi. Changez-le à la première connexion.',
-        ]);
+            ->line('À votre première connexion, vous serez invité à choisir votre mot de passe personnel.')
+            ->line('En cas de difficulté, contactez votre responsable ou l’administrateur qui a créé votre compte.')
+            ->salutation("Cordialement,\n\nL’équipe Kora Express");
     }
 }

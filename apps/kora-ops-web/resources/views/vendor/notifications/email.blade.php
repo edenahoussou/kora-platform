@@ -1,12 +1,15 @@
-<x-mail::message>
-{{-- Greeting --}}
+<x-mail::message :mail-message="$message ?? null" :preview="$preview ?? $subject">
+@if (filled($subject))
+# {{ $subject }}
+@endif
+
 @if (! empty($greeting))
-# {{ $greeting }}
+{{ $greeting }}
 @else
 @if ($level === 'error')
-# @lang('Whoops!')
+@lang('Whoops!')
 @else
-# @lang('Hello!')
+@lang('Hello!')
 @endif
 @endif
 
@@ -15,6 +18,17 @@
 {{ $line }}
 
 @endforeach
+
+@if (! empty($welcomeCredentials))
+<x-mail::panel>
+**Vos accès**
+
+@foreach ($welcomeCredentials as $label => $value)
+**{{ $label }}** : {{ $value }}
+
+@endforeach
+</x-mail::panel>
+@endif
 
 {{-- Action Button --}}
 @isset($actionText)
@@ -39,16 +53,14 @@
 @if (! empty($salutation))
 {{ $salutation }}
 @else
-@lang('Regards,')<br>
-{{ config('app.name') }}
+Cordialement,
 @endif
 
 {{-- Subcopy --}}
 @isset($actionText)
 <x-slot:subcopy>
 @lang(
-    "If you're having trouble clicking the \":actionText\" button, copy and paste the URL below\n".
-    'into your web browser:',
+    'Si le bouton « :actionText » ne fonctionne pas, copiez ce lien dans votre navigateur.',
     [
         'actionText' => $actionText,
     ]

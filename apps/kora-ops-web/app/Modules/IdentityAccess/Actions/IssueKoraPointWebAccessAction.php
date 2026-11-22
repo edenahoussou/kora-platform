@@ -3,10 +3,12 @@
 namespace App\Modules\IdentityAccess\Actions;
 
 use App\Models\User;
+use App\Modules\IdentityAccess\Data\UserStatus;
 use App\Modules\IdentityAccess\Jobs\SendKoraPointWebAccessJob;
 use App\Modules\IdentityAccess\Models\KoraPointWebAccessInvitation;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class IssueKoraPointWebAccessAction
 {
@@ -14,16 +16,21 @@ class IssueKoraPointWebAccessAction
 
     public function execute(User $user, User $actor, ?string $temporaryPassword = null): KoraPointWebAccessInvitation
     {
-        $temporaryPassword ??= Str::password(32);
+        $temporaryPassword ??= Str::random(32);
 
         return DB::transaction(function () use ($user, $actor, $temporaryPassword): KoraPointWebAccessInvitation {
             $lockedUser = User::query()->lockForUpdate()->whereKey($user->getKey())->firstOrFail();
+
+            if ($lockedUser->status !== UserStatus::Active) {
+                throw ValidationException::withMessages(['status' => 'Activez le compte avant de renvoyer ses accès.']);
+            }
 
             KoraPointWebAccessInvitation::query()
                 ->where('user_id', $lockedUser->getKey())
                 ->whereIn('status', [
                     KoraPointWebAccessInvitation::STATUS_PENDING_DELIVERY,
                     KoraPointWebAccessInvitation::STATUS_SENT,
+                    KoraPointWebAccessInvitation::STATUS_FAILED,
                 ])
                 ->update(['status' => KoraPointWebAccessInvitation::STATUS_REPLACED]);
 
