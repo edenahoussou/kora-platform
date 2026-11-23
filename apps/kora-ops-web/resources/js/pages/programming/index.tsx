@@ -1278,9 +1278,7 @@ export default function ProgrammingPage({
                         onClick={cancelPeriod}
                         className="cursor-pointer gap-2 bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     >
-                        {loading && (
-                            <Loader2 className="size-4 animate-spin" />
-                        )}
+                        {loading && <Loader2 className="size-4 animate-spin" />}
                         {loading
                             ? 'Annulation en cours…'
                             : 'Confirmer l’annulation'}
@@ -1329,10 +1327,7 @@ export default function ProgrammingPage({
                             htmlFor="cancel-period-password"
                             className="flex items-center gap-1.5 text-xs font-bold text-foreground"
                         >
-                            <Lock
-                                size={13}
-                                className="text-muted-foreground"
-                            />
+                            <Lock size={13} className="text-muted-foreground" />
                             Confirmez avec votre mot de passe
                             <span className="text-destructive">*</span>
                         </label>

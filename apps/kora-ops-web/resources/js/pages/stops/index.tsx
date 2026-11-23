@@ -64,11 +64,15 @@ export default function StopsPage({
 }: StopsPageProps) {
     const [searchQuery, setSearchQuery] = useState(filters.q ?? '');
     const [selectedCity, setSelectedCity] = useState(filters.city ?? 'all');
-    const [selectedStatus, setSelectedStatus] = useState(filters.status ?? 'all');
+    const [selectedStatus, setSelectedStatus] = useState(
+        filters.status ?? 'all',
+    );
 
     // Modals
     const [editorOpen, setEditorOpen] = useState(false);
-    const [editingStop, setEditingStop] = useState<PhysicalStopItem | null>(null);
+    const [editingStop, setEditingStop] = useState<PhysicalStopItem | null>(
+        null,
+    );
 
     const [stopPendingDeletion, setStopPendingDeletion] =
         useState<PhysicalStopItem | null>(null);
@@ -77,9 +81,7 @@ export default function StopsPage({
     const [deleteSubmitting, setDeleteSubmitting] = useState(false);
 
     // Apply filters
-    const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-        null,
-    );
+    const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const handleSearchChange = (value: string) => {
         setSearchQuery(value);
@@ -186,8 +188,10 @@ export default function StopsPage({
                             Points d’arrêt physiques
                         </h1>
                         <p className="mt-1.5 text-[0.8125rem] leading-6 text-muted-foreground">
-                            Gérez les gares, carrefours et lieux physiques de montée et descente.
-                            Chaque point porte ses coordonnées GPS exactes partagées par toutes les lignes.
+                            Gérez les gares, carrefours et lieux physiques de
+                            montée et descente. Chaque point porte ses
+                            coordonnées GPS exactes partagées par toutes les
+                            lignes.
                         </p>
                     </div>
 
@@ -201,7 +205,8 @@ export default function StopsPage({
                                 }}
                                 className="btn btn-primary"
                             >
-                                <Plus className="size-4" /> Nouveau point d’arrêt
+                                <Plus className="size-4" /> Nouveau point
+                                d’arrêt
                             </button>
                         )}
                     </div>
@@ -217,19 +222,25 @@ export default function StopsPage({
                     </div>
                     <div className="cash-kpi-strip grid grid-cols-2 gap-3 sm:grid-cols-3">
                         <div className="cash-kpi-item">
-                            <span className="kpi-label text-gold">Villes couvertes</span>
+                            <span className="kpi-label text-gold">
+                                Villes couvertes
+                            </span>
                             <strong className="kpi-value text-gold">
                                 {metrics.citiesCount}
                             </strong>
                         </div>
                         <div className="cash-kpi-item">
-                            <span className="kpi-label text-gold">Rattachés aux lignes</span>
+                            <span className="kpi-label text-gold">
+                                Rattachés aux lignes
+                            </span>
                             <strong className="kpi-value text-gold">
                                 {metrics.attached}
                             </strong>
                         </div>
                         <div className="cash-kpi-item">
-                            <span className="kpi-label text-gold">Isolés / En attente</span>
+                            <span className="kpi-label text-gold">
+                                Isolés / En attente
+                            </span>
                             <strong className="kpi-value text-gold">
                                 {metrics.unattached}
                             </strong>
@@ -251,7 +262,7 @@ export default function StopsPage({
                                 }
                             }}
                             placeholder="Rechercher par code, nom ou ville…"
-                            className="h-11 w-full rounded-xl bg-muted/55 pl-9 pr-3 text-xs font-bold text-foreground placeholder:text-muted-foreground focus:bg-card focus:outline-hidden focus:ring-2 focus:ring-gold/35"
+                            className="h-11 w-full rounded-xl bg-muted/55 pr-3 pl-9 text-xs font-bold text-foreground placeholder:text-muted-foreground focus:bg-card focus:ring-2 focus:ring-gold/35 focus:outline-hidden"
                         />
                     </div>
 
@@ -262,10 +273,13 @@ export default function StopsPage({
                             onChange={(e) => {
                                 setSelectedCity(e.target.value);
                                 applyFilters({
-                                    city: e.target.value === 'all' ? '' : e.target.value,
+                                    city:
+                                        e.target.value === 'all'
+                                            ? ''
+                                            : e.target.value,
                                 });
                             }}
-                            className="cash-filter-select h-11 w-full appearance-none rounded-xl bg-muted/55 px-3 pr-8 text-xs font-bold text-foreground ring-1 ring-black/[0.045] focus:bg-card focus:outline-hidden focus:ring-2 focus:ring-gold/35"
+                            className="cash-filter-select h-11 w-full appearance-none rounded-xl bg-muted/55 px-3 pr-8 text-xs font-bold text-foreground ring-1 ring-black/[0.045] focus:bg-card focus:ring-2 focus:ring-gold/35 focus:outline-hidden"
                         >
                             <option value="all">Toutes les villes</option>
                             {cities.map((city) => (
@@ -284,10 +298,13 @@ export default function StopsPage({
                             onChange={(e) => {
                                 setSelectedStatus(e.target.value);
                                 applyFilters({
-                                    status: e.target.value === 'all' ? '' : e.target.value,
+                                    status:
+                                        e.target.value === 'all'
+                                            ? ''
+                                            : e.target.value,
                                 });
                             }}
-                            className="cash-filter-select h-11 w-full appearance-none rounded-xl bg-muted/55 px-3 pr-8 text-xs font-bold text-foreground ring-1 ring-black/[0.045] focus:bg-card focus:outline-hidden focus:ring-2 focus:ring-gold/35"
+                            className="cash-filter-select h-11 w-full appearance-none rounded-xl bg-muted/55 px-3 pr-8 text-xs font-bold text-foreground ring-1 ring-black/[0.045] focus:bg-card focus:ring-2 focus:ring-gold/35 focus:outline-hidden"
                         >
                             <option value="all">Tous les statuts</option>
                             <option value="active">Actif</option>
@@ -315,7 +332,8 @@ export default function StopsPage({
                                 Aucun point d’arrêt trouvé
                             </p>
                             <p className="mt-1 text-xs">
-                                Modifiez vos critères de recherche ou créez un nouveau point d’arrêt.
+                                Modifiez vos critères de recherche ou créez un
+                                nouveau point d’arrêt.
                             </p>
                             <button
                                 type="button"
@@ -331,12 +349,22 @@ export default function StopsPage({
                                 <thead className="bg-muted/45 text-[0.625rem] font-black tracking-[0.14em] text-muted-foreground uppercase">
                                     <tr>
                                         <th className="px-4 py-3">Code</th>
-                                        <th className="px-4 py-3">Point d’arrêt</th>
-                                        <th className="px-4 py-3">Ville & Pays</th>
-                                        <th className="px-4 py-3">Coordonnées GPS</th>
-                                        <th className="px-4 py-3">Lignes connectées</th>
+                                        <th className="px-4 py-3">
+                                            Point d’arrêt
+                                        </th>
+                                        <th className="px-4 py-3">
+                                            Ville & Pays
+                                        </th>
+                                        <th className="px-4 py-3">
+                                            Coordonnées GPS
+                                        </th>
+                                        <th className="px-4 py-3">
+                                            Lignes connectées
+                                        </th>
                                         <th className="px-4 py-3">Statut</th>
-                                        <th className="px-4 py-3 text-right">Actions</th>
+                                        <th className="px-4 py-3 text-right">
+                                            Actions
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -374,9 +402,16 @@ export default function StopsPage({
 
                                             {/* Coordonnées GPS */}
                                             <td className="px-4 py-3.5 font-mono text-xs">
-                                                {stop.latitude !== null && stop.longitude !== null ? (
+                                                {stop.latitude !== null &&
+                                                stop.longitude !== null ? (
                                                     <span className="text-foreground">
-                                                        {stop.latitude.toFixed(5)}, {stop.longitude.toFixed(5)}
+                                                        {stop.latitude.toFixed(
+                                                            5,
+                                                        )}
+                                                        ,{' '}
+                                                        {stop.longitude.toFixed(
+                                                            5,
+                                                        )}
                                                     </span>
                                                 ) : (
                                                     <span className="text-muted-foreground italic">
@@ -412,7 +447,8 @@ export default function StopsPage({
                                                     label={
                                                         stop.status === 'active'
                                                             ? 'Actif'
-                                                            : stop.status === 'archived'
+                                                            : stop.status ===
+                                                                'archived'
                                                               ? 'Archivé'
                                                               : 'Inactif'
                                                     }
@@ -431,8 +467,12 @@ export default function StopsPage({
                                                         <button
                                                             type="button"
                                                             onClick={() => {
-                                                                setEditingStop(stop);
-                                                                setEditorOpen(true);
+                                                                setEditingStop(
+                                                                    stop,
+                                                                );
+                                                                setEditorOpen(
+                                                                    true,
+                                                                );
                                                             }}
                                                             className="grid size-9 cursor-pointer place-items-center rounded-lg border border-border bg-card text-foreground shadow-xs transition-colors hover:border-gold hover:bg-gold/10"
                                                             title="Modifier ou repositionner sur la carte"
@@ -444,9 +484,15 @@ export default function StopsPage({
                                                         <button
                                                             type="button"
                                                             onClick={() => {
-                                                                setStopPendingDeletion(stop);
-                                                                setDeletePassword('');
-                                                                setDeleteError('');
+                                                                setStopPendingDeletion(
+                                                                    stop,
+                                                                );
+                                                                setDeletePassword(
+                                                                    '',
+                                                                );
+                                                                setDeleteError(
+                                                                    '',
+                                                                );
                                                             }}
                                                             className="grid size-9 cursor-pointer place-items-center rounded-lg border border-destructive/40 bg-card text-destructive shadow-xs transition-colors hover:border-destructive hover:bg-destructive hover:text-white"
                                                             title="Supprimer le point d’arrêt"
@@ -467,7 +513,8 @@ export default function StopsPage({
                     {stops.total > 0 && (
                         <div className="flex flex-col gap-4 px-4 py-3 text-[0.6875rem] text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
                             <span>
-                                {stops.from ?? 0}–{stops.to ?? 0} sur {stops.total} points d’arrêt
+                                {stops.from ?? 0}–{stops.to ?? 0} sur{' '}
+                                {stops.total} points d’arrêt
                             </span>
                             <div className="flex items-center gap-[5px]">
                                 <button
@@ -475,7 +522,13 @@ export default function StopsPage({
                                     onClick={() =>
                                         router.get(
                                             '/stops',
-                                            { ...filters, page: Math.max(1, stops.current_page - 1) },
+                                            {
+                                                ...filters,
+                                                page: Math.max(
+                                                    1,
+                                                    stops.current_page - 1,
+                                                ),
+                                            },
                                             { preserveScroll: true },
                                         )
                                     }
@@ -485,18 +538,27 @@ export default function StopsPage({
                                     <ChevronRight className="size-3.5 rotate-180" />
                                 </button>
                                 <span className="px-2 font-bold text-foreground">
-                                    Page {stops.current_page} / {stops.last_page}
+                                    Page {stops.current_page} /{' '}
+                                    {stops.last_page}
                                 </span>
                                 <button
                                     type="button"
                                     onClick={() =>
                                         router.get(
                                             '/stops',
-                                            { ...filters, page: Math.min(stops.last_page, stops.current_page + 1) },
+                                            {
+                                                ...filters,
+                                                page: Math.min(
+                                                    stops.last_page,
+                                                    stops.current_page + 1,
+                                                ),
+                                            },
                                             { preserveScroll: true },
                                         )
                                     }
-                                    disabled={stops.current_page === stops.last_page}
+                                    disabled={
+                                        stops.current_page === stops.last_page
+                                    }
                                     className="grid size-[31px] place-items-center rounded-[8px] bg-muted text-foreground transition-all hover:bg-gold/15 disabled:pointer-events-none disabled:opacity-35"
                                 >
                                     <ChevronRight className="size-3.5" />
@@ -538,16 +600,18 @@ export default function StopsPage({
                                 Supprimer le point d’arrêt
                             </DialogTitle>
                             <DialogDescription>
-                                Êtes-vous sûr de vouloir supprimer définitivement ce point d’arrêt ? La
-                                suppression nécessite la saisie de votre mot de passe pour des raisons de
-                                sécurité.
+                                Êtes-vous sûr de vouloir supprimer
+                                définitivement ce point d’arrêt ? La suppression
+                                nécessite la saisie de votre mot de passe pour
+                                des raisons de sécurité.
                             </DialogDescription>
                         </DialogHeader>
 
                         <div className="space-y-3 py-2 text-xs">
                             <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-3.5 text-foreground">
                                 <div className="font-bold">
-                                    {stopPendingDeletion.name} ({stopPendingDeletion.city},{' '}
+                                    {stopPendingDeletion.name} (
+                                    {stopPendingDeletion.city},{' '}
                                     {stopPendingDeletion.country})
                                 </div>
                                 <div className="mt-1 font-mono text-[0.6875rem] text-muted-foreground">
@@ -583,8 +647,8 @@ export default function StopsPage({
 
                             {deleteError && (
                                 <div className="flex items-start gap-2 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-destructive">
-                                    <AlertTriangle className="size-4 shrink-0 mt-0.5" />
-                                    <p className="font-semibold leading-relaxed">
+                                    <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+                                    <p className="leading-relaxed font-semibold">
                                         {deleteError}
                                     </p>
                                 </div>
@@ -616,7 +680,9 @@ export default function StopsPage({
                                 {deleteSubmitting && (
                                     <Loader2 className="size-4 animate-spin" />
                                 )}
-                                {deleteSubmitting ? 'Suppression en cours…' : 'Confirmer la suppression'}
+                                {deleteSubmitting
+                                    ? 'Suppression en cours…'
+                                    : 'Confirmer la suppression'}
                             </Button>
                         </DialogFooter>
                     </DialogContent>

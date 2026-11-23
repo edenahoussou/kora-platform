@@ -54,7 +54,10 @@ export function StopMapPicker({
         const map = L.map(containerRef.current, {
             zoomControl: true,
             scrollWheelZoom: true,
-        }).setView(initialCenter, latitude !== null && longitude !== null ? 14 : 7);
+        }).setView(
+            initialCenter,
+            latitude !== null && longitude !== null ? 14 : 7,
+        );
 
         L.tileLayer(tileUrl, { attribution, maxZoom: 19 }).addTo(map);
 
@@ -149,7 +152,8 @@ export function StopMapPicker({
                 <MapPin className="size-3 text-gold" />
                 {latitude !== null && longitude !== null ? (
                     <span>
-                        {latitude.toFixed(6)}, {longitude.toFixed(6)} (glissez le marqueur ou cliquez)
+                        {latitude.toFixed(6)}, {longitude.toFixed(6)} (glissez
+                        le marqueur ou cliquez)
                     </span>
                 ) : (
                     <span>Cliquez sur la carte pour positionner l'arrêt</span>

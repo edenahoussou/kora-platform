@@ -88,9 +88,7 @@ function StopEditorForm({
     const [placeResults, setPlaceResults] = useState<PlaceResult[]>([]);
     const [placesLoading, setPlacesLoading] = useState(false);
     const [emptyNoticeVisible, setEmptyNoticeVisible] = useState(false);
-    const placesTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-        null,
-    );
+    const placesTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const emptyNoticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
         null,
     );
@@ -156,8 +154,12 @@ function StopEditorForm({
         setEmptyNoticeVisible(false);
     };
     const [country, setCountry] = useState(stop?.country ?? 'BJ');
-    const [latitude, setLatitude] = useState<number | null>(stop?.latitude ?? null);
-    const [longitude, setLongitude] = useState<number | null>(stop?.longitude ?? null);
+    const [latitude, setLatitude] = useState<number | null>(
+        stop?.latitude ?? null,
+    );
+    const [longitude, setLongitude] = useState<number | null>(
+        stop?.longitude ?? null,
+    );
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [submitting, setSubmitting] = useState(false);
 
@@ -233,44 +235,45 @@ function StopEditorForm({
                                 placeResults.length > 0 ||
                                 emptyNoticeVisible) && (
                                 <div className="absolute top-full right-0 left-0 z-[1000] mt-1 max-h-64 overflow-y-auto rounded-xl border border-border bg-card p-1 shadow-xl">
-                                {placesLoading && (
-                                    <div className="flex items-center gap-2 px-3 py-2.5 text-xs text-muted-foreground">
-                                        <Loader2 className="size-3.5 animate-spin" />
-                                        Recherche en cours…
-                                    </div>
-                                )}
-                                {!placesLoading &&
-                                    placeResults.length === 0 && (
-                                        <div className="px-3 py-2.5 text-xs text-muted-foreground">
-                                            Aucun lieu trouvé. Votre saisie sera
-                                            utilisée comme nom du point.
+                                    {placesLoading && (
+                                        <div className="flex items-center gap-2 px-3 py-2.5 text-xs text-muted-foreground">
+                                            <Loader2 className="size-3.5 animate-spin" />
+                                            Recherche en cours…
                                         </div>
                                     )}
-                                {placeResults.map((place, index) => (
-                                    <button
-                                        key={`${place.latitude}-${place.longitude}-${index}`}
-                                        type="button"
-                                        onClick={() =>
-                                            handlePlaceSelect(place)
-                                        }
-                                        className="flex w-full items-center gap-2 rounded-lg p-2.5 text-left text-xs transition-colors hover:bg-muted"
-                                    >
-                                        <span className="grid size-6 shrink-0 place-items-center rounded-md bg-gold/20 text-[var(--kora)] dark:text-gold">
-                                            <MapPin className="size-3.5" />
-                                        </span>
-                                        <div className="min-w-0">
-                                            <strong className="block truncate font-semibold text-foreground">
-                                                {place.label}
-                                            </strong>
-                                            <span className="block truncate text-[0.6875rem] text-muted-foreground">
-                                                {place.detail || place.city},{' '}
-                                                {place.country}
+                                    {!placesLoading &&
+                                        placeResults.length === 0 && (
+                                            <div className="px-3 py-2.5 text-xs text-muted-foreground">
+                                                Aucun lieu trouvé. Votre saisie
+                                                sera utilisée comme nom du
+                                                point.
+                                            </div>
+                                        )}
+                                    {placeResults.map((place, index) => (
+                                        <button
+                                            key={`${place.latitude}-${place.longitude}-${index}`}
+                                            type="button"
+                                            onClick={() =>
+                                                handlePlaceSelect(place)
+                                            }
+                                            className="flex w-full items-center gap-2 rounded-lg p-2.5 text-left text-xs transition-colors hover:bg-muted"
+                                        >
+                                            <span className="grid size-6 shrink-0 place-items-center rounded-md bg-gold/20 text-[var(--kora)] dark:text-gold">
+                                                <MapPin className="size-3.5" />
                                             </span>
-                                        </div>
-                                    </button>
-                                ))}
-                            </div>
-                        )}
+                                            <div className="min-w-0">
+                                                <strong className="block truncate font-semibold text-foreground">
+                                                    {place.label}
+                                                </strong>
+                                                <span className="block truncate text-[0.6875rem] text-muted-foreground">
+                                                    {place.detail || place.city}
+                                                    , {place.country}
+                                                </span>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                     </div>
                     {errors.name && (
                         <p className="text-xs font-semibold text-destructive">
@@ -410,7 +413,7 @@ function StopEditorForm({
                                 )
                             }
                             placeholder="Ex : 6.370300"
-                            className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-mono text-foreground focus:border-gold focus:outline-hidden"
+                            className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 font-mono text-xs text-foreground focus:border-gold focus:outline-hidden"
                         />
                         {errors.latitude && (
                             <p className="mt-1 text-xs font-semibold text-destructive">
@@ -438,7 +441,7 @@ function StopEditorForm({
                                 )
                             }
                             placeholder="Ex : 2.391200"
-                            className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-mono text-foreground focus:border-gold focus:outline-hidden"
+                            className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 font-mono text-xs text-foreground focus:border-gold focus:outline-hidden"
                         />
                         {errors.longitude && (
                             <p className="mt-1 text-xs font-semibold text-destructive">
