@@ -79,6 +79,66 @@ void main() {
       expect(catalog.providerForNetwork('wave'), isNull);
     });
 
+    test('MTN MoMo direct passe devant FedaPay quand le serveur l’annonce '
+        'en premier', () {
+      // L'ordre vient du serveur : `PaymentManager::catalog()` place MTN
+      // MoMo avant FedaPay dès que l'intégration directe est active, pour
+      // que le réseau MTN soit débité sans intermédiaire. L'app n'a rien à
+      // décider — mais elle doit suivre cet ordre, sinon le paiement
+      // repart chez l'agrégateur et l'intégration directe ne sert jamais.
+      final catalog = PaymentCatalogModel.fromJson(const {
+        'country': 'BJ',
+        'currency': 'XOF',
+        'methods': [
+          {
+            'code': 'mobile_money',
+            'label': 'Mobile Money',
+            'enabled': true,
+            'providers': [
+              {
+                'code': 'mtn_momo',
+                'label': 'MTN MoMo',
+                'enabled': true,
+                'networks': ['mtn_momo'],
+                'requires': ['phone', 'mobile_money_network'],
+                'interaction': 'push',
+                'polling_interval_seconds': 10,
+                'verification': 'server_verify',
+              },
+              {
+                'code': 'fedapay',
+                'label': 'FedaPay',
+                'enabled': true,
+                'networks': ['mtn_momo', 'moov_flooz', 'celtiis_cash'],
+                'requires': ['phone', 'mobile_money_network'],
+                'interaction': 'push_or_redirect',
+                'polling_interval_seconds': 10,
+                'verification': 'server_verify',
+              },
+            ],
+          },
+        ],
+      }).toEntity();
+
+      final provider = catalog.providerForNetwork('mtn_momo');
+
+      expect(provider?.code, 'mtn_momo');
+      // Push pur : aucune page web du provider, donc l'écran d'attente ne
+      // doit pas en promettre une.
+      expect(provider?.interaction, 'push');
+      expect(provider?.mayRedirect, isFalse);
+      expect(provider?.collectsInApp, isFalse);
+      expect(provider?.pollingInterval, const Duration(seconds: 10));
+      // Les réseaux que MTN direct ne sert pas restent chez l'agrégateur.
+      expect(catalog.providerForNetwork('moov_flooz')?.code, 'fedapay');
+      // Le sélecteur ne montre toujours qu'une fois MTN.
+      expect(catalog.mobileMoneyNetworks, [
+        'mtn_momo',
+        'moov_flooz',
+        'celtiis_cash',
+      ]);
+    });
+
     test('un provider désactivé disparaît des choix', () {
       final catalog = PaymentCatalogModel.fromJson(const {
         'country': 'BJ',

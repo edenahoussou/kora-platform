@@ -177,29 +177,10 @@ class _MethodView extends StatelessWidget {
       ];
     }
 
-    if (method.code == PaymentCatalog.cardCode) {
-      final provider = method.enabledProviders.firstOrNull;
-
-      return [
-        _MethodTile(
-          icon: Icons.credit_card_rounded,
-          logoAsset: provider == null ? null : _logoOf(provider),
-          title: l10n.walletTopUpMethodCard,
-          // La passerelle qui encaisse la carte, sous le libellé : le
-          // voyageur verra sa fenêtre s'ouvrir, autant la nommer.
-          lead: provider == null
-              ? l10n.walletTopUpMethodCardLead
-              : '${l10n.walletTopUpMethodCardLead} · ${provider.label}',
-          onTap: provider == null
-              ? null
-              : () => _open(
-                  context,
-                  path: AppRouter.paymentCardPath,
-                  provider: provider.code,
-                ),
-        ),
-      ];
-    }
+    // La carte bancaire ne se propose plus, ici comme sur l'écran de
+    // paiement d'un billet : la recharge passe par le Mobile Money. Le
+    // catalogue serveur peut continuer de l'annoncer — c'est l'écran qui
+    // ne la montre pas.
 
     return const [];
   }
@@ -209,6 +190,7 @@ class _MethodView extends StatelessWidget {
   String? _logoOf(PaymentProvider provider) => switch (provider.code) {
     'kkiapay' => 'assets/images/kkiapay.png',
     'fedapay' => 'assets/images/fedapay.jpg',
+    'mtn_momo' => 'assets/images/mtn_momo.png',
     _ => null,
   };
 
@@ -280,8 +262,8 @@ class _MethodTile extends StatelessWidget {
               children: [
                 if (logoAsset case final asset?)
                   Container(
-                    width: 34,
-                    height: 34,
+                    width: 48,
+                    height: 48,
                     alignment: Alignment.center,
                     // Le blanc derrière le logo : la marque porte son
                     // propre fond, et le gris de la tuile le salirait.
@@ -292,20 +274,20 @@ class _MethodTile extends StatelessWidget {
                     ),
                     clipBehavior: Clip.antiAlias,
                     child: Padding(
-                      padding: const EdgeInsets.all(3),
+                      padding: const EdgeInsets.all(4),
                       child: Image.asset(asset, fit: BoxFit.contain),
                     ),
                   )
                 else
                   Container(
-                    width: 34,
-                    height: 34,
+                    width: 48,
+                    height: 48,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: koraColors.background,
                       borderRadius: BorderRadius.circular(11),
                     ),
-                    child: Icon(icon, size: 18, color: strong),
+                    child: Icon(icon, size: 24, color: strong),
                   ),
                 const SizedBox(width: 9),
                 Expanded(

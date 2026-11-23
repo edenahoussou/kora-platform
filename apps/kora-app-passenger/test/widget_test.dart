@@ -21,6 +21,7 @@ import 'package:kora_app_passenger/core/l10n/app_localization.dart';
 import 'package:kora_app_passenger/core/router/app_router.dart';
 import 'package:kora_app_passenger/core/utils/date_formats.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_data_source.dart';
+import 'package:kora_app_passenger/features/colis/presentation/pages/colis_page.dart';
 import 'package:kora_app_passenger/features/wallet/presentation/pages/wallet_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -182,6 +183,20 @@ void main() {
         reason: 'onglet "$label" absent de la bottom nav',
       );
     }
+
+    // Colis s'annonce mais n'ouvre pas : l'onglet reste à sa place, et
+    // l'appui laisse le voyageur où il est.
+    await tester.tap(
+      find.descendant(
+        of: find.byType(KoraBottomNav),
+        matching: find.text('Colis'),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.byType(ColisPage), findsNothing);
+    expect(find.text('Rechercher un voyage'), findsOneWidget);
   });
 
   testWidgets('l’onglet Wallet ouvre le Wallet, pas un écran d’attente', (

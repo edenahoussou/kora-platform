@@ -167,12 +167,14 @@ class _HomeContent extends StatelessWidget {
               // promettre de l'ouvrir.
               onTap: null,
             ),
-            // Colis a désormais son écran : la tuile y mène, comme celle
-            // du Wallet. Seul Ride reste muet, faute d'écran.
+            // Colis a son écran, mais le module n'ouvre pas encore : la
+            // tuile l'annonce sans y mener, comme celle de Ride. Masquer
+            // l'onglet et laisser cette porte ouverte reviendrait à ne
+            // rien masquer du tout.
             QuickAccessItem(
               label: context.l10n.homeQuickParcels,
               icon: _quickIcon(context, KoraNavIconType.parcel),
-              onTap: () => context.go('/colis'),
+              onTap: null,
             ),
             QuickAccessItem(
               label: context.l10n.homeQuickWallet,
