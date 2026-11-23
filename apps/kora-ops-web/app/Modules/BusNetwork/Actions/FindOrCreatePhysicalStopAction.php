@@ -87,6 +87,20 @@ class FindOrCreatePhysicalStopAction
         return Str::of((string) $value)->ascii()->lower()->replaceMatches('/[\s\-\']+/u', ' ')->trim()->value();
     }
 
+    /**
+     * Doublon métier : même nom dans la même ville et le même pays,
+     * insensible à la casse, aux accents et aux espaces.
+     */
+    public static function findDuplicateByName(string $name, string $city, string $country, ?string $exceptUuid = null): ?PhysicalStop
+    {
+        return PhysicalStop::query()
+            ->where('country', strtoupper($country))
+            ->when($exceptUuid !== null, fn ($query) => $query->where('uuid', '!=', $exceptUuid))
+            ->get()
+            ->first(fn (PhysicalStop $stop): bool => self::normalize($stop->name) === self::normalize($name)
+                && self::normalize($stop->city) === self::normalize($city));
+    }
+
     private function generateCode(): string
     {
         do {

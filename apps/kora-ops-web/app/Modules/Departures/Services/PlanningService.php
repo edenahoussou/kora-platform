@@ -348,4 +348,82 @@ class PlanningService
             return ['rows' => $rows, 'token' => $digest, 'applied' => $apply];
         });
     }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return array{cancelled: int, protected: int, total: int}
+     */
+    public function cancelPeriod(CarbonImmutable $from, CarbonImmutable $until, array $filters, User $actor): array
+    {
+        return DB::transaction(function () use ($from, $until, $filters, $actor): array {
+            $query = PlannedDeparture::query()
+                ->with('departure')
+                ->where('state', '!=', 'excluded')
+                ->whereDate('service_date', '>=', $from->toDateString())
+                ->whereDate('service_date', '<=', $until->toDateString());
+
+            if (! empty($filters['programme'])) {
+                $query->whereHas('programme', fn (Builder $q) => $q->where('uuid', $filters['programme']));
+            }
+
+            /** @var list<PlannedDeparture> $items */
+            $items = $query->lockForUpdate()->get()
+                ->filter(function (PlannedDeparture $item) use ($filters): bool {
+                    foreach (['line' => 'line_uuid', 'bus' => 'bus_uuid', 'direction' => 'direction'] as $filter => $field) {
+                        if (! empty($filters[$filter]) && ($item->snapshot[$field] ?? null) !== $filters[$filter]) {
+                            return false;
+                        }
+                    }
+                    if (! empty($filters['person']) && ! in_array($filters['person'], array_intersect_key($item->snapshot, array_flip(['driver_uuid', 'secondary_driver_uuid', 'conductor_uuid', 'mechanic_uuid'])), true)) {
+                        return false;
+                    }
+                    if (! empty($filters['exceptions']) && ! $item->is_exception) {
+                        return false;
+                    }
+
+                    return empty($filters['state']) || $item->state === $filters['state'];
+                })->values()->all();
+            $protection = $this->protectedBatch($items);
+
+            $cancelled = 0;
+            $protected = 0;
+
+            foreach ($items as $index => $item) {
+                if ($protection[$index]) {
+                    $protected++;
+
+                    continue;
+                }
+
+                if ($item->departure !== null) {
+                    $item->departure->update(['status' => 'cancelled']);
+                }
+
+                $item->update([
+                    'state' => 'excluded',
+                    'is_exception' => true,
+                    'revision' => $item->revision + 1,
+                ]);
+
+                $cancelled++;
+            }
+
+            activity()
+                ->causedBy($actor)
+                ->withProperties([
+                    'from' => $from->toDateString(),
+                    'until' => $until->toDateString(),
+                    'filters' => $filters,
+                    'cancelled' => $cancelled,
+                    'protected' => $protected,
+                ])
+                ->log('programming.cancelled_period');
+
+            return [
+                'cancelled' => $cancelled,
+                'protected' => $protected,
+                'total' => count($items),
+            ];
+        });
+    }
 }

@@ -34,4 +34,9 @@ class LinePolicy
     {
         return $this->allows($user, 'network.deactivate');
     }
+
+    public function delete(User $user, Line $line): bool
+    {
+        return $this->allows($user, 'network.deactivate');
+    }
 }

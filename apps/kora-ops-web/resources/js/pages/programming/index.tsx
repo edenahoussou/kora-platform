@@ -10,6 +10,8 @@ import {
     HelpCircle,
     Layers,
     ListChecks,
+    Loader2,
+    Lock,
     Plus,
     RotateCcw,
     Settings2,
@@ -134,6 +136,8 @@ export default function ProgrammingPage({
     const [bus, setBus] = useState('');
     const [search, setSearch] = useState('');
     const [archive, setArchive] = useState<Template | null>(null);
+    const [cancelPeriodOpen, setCancelPeriodOpen] = useState(false);
+    const [cancelPassword, setCancelPassword] = useState('');
     const [result, setResult] = useState('');
     const [loading, setLoading] = useState(false);
     const [showGuide, setShowGuide] = useState(
@@ -228,6 +232,31 @@ export default function ProgrammingPage({
         }
     }
 
+    async function cancelPeriod() {
+        setLoading(true);
+        const response = await api.send<{
+            cancelled: number;
+            protected: number;
+            total: number;
+        }>('/programming/cancel-period', {
+            from,
+            until,
+            filters,
+            password: cancelPassword,
+        });
+
+        setLoading(false);
+
+        if (response) {
+            setCancelPeriodOpen(false);
+            setCancelPassword('');
+            setResult(
+                `${response.cancelled} départ(s) annulé(s) sur la période. ${response.protected} départ(s) avec passagers protégé(s) et préservé(s).`,
+            );
+            router.reload();
+        }
+    }
+
     const selection = items.filter((i) => selected.includes(i.uuid));
     const ready = selection.filter((i) => i.state === 'ready').length;
     const matchingTemplates = templates.filter((t) =>
@@ -280,7 +309,7 @@ export default function ProgrammingPage({
                 {/* HEADER */}
                 <header
                     data-onboarding="prog-header"
-                    className="flex flex-wrap items-end justify-between gap-5"
+                    className="flex flex-col gap-5"
                 >
                     <div>
                         <div className="mb-2 text-xs font-semibold text-muted-foreground">
@@ -325,6 +354,17 @@ export default function ProgrammingPage({
                                     : 'Préparer une période'}
                             </Link>
                         </PrimaryButton>
+                        {tab === 'planning' && canCancel && (
+                            <Button
+                                type="button"
+                                variant="destructive"
+                                onClick={() => setCancelPeriodOpen(true)}
+                                className="ml-auto cursor-pointer gap-2"
+                            >
+                                <RotateCcw size={15} />
+                                Annuler la programmation
+                            </Button>
+                        )}
                     </div>
                 </header>
 
@@ -1221,6 +1261,93 @@ export default function ProgrammingPage({
                     modèle ne sera plus proposé pour de nouvelles périodes de
                     planification.
                 </p>
+            </Confirm>
+
+            <Confirm
+                open={cancelPeriodOpen}
+                title="Annuler la programmation de la période"
+                busy={loading}
+                onClose={() => {
+                    setCancelPeriodOpen(false);
+                    setCancelPassword('');
+                }}
+                action={
+                    <Button
+                        variant="destructive"
+                        disabled={loading || !cancelPassword.trim()}
+                        onClick={cancelPeriod}
+                        className="cursor-pointer gap-2 bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                        {loading && <Loader2 className="size-4 animate-spin" />}
+                        {loading
+                            ? 'Annulation en cours…'
+                            : 'Confirmer l’annulation'}
+                    </Button>
+                }
+            >
+                <div className="grid gap-3 text-sm text-foreground">
+                    <p>
+                        Vous vous apprêtez à annuler toute la programmation pour
+                        la période du <strong>{dateLabel(from)}</strong> au{' '}
+                        <strong>{dateLabel(until)}</strong>.
+                    </p>
+                    {hasActiveFilters && (
+                        <p className="rounded-xl border border-gold/40 bg-gold/10 p-3 text-xs text-foreground">
+                            <strong>Filtres actifs :</strong> Seuls les départs
+                            correspondant à vos filtres de recherche actuels
+                            seront ciblés.
+                        </p>
+                    )}
+                    <div className="rounded-xl border border-border bg-muted/40 p-4 text-xs leading-relaxed text-muted-foreground">
+                        <strong className="block font-bold text-foreground">
+                            Règles d’intégrité et protection des voyageurs :
+                        </strong>
+                        <ul className="mt-1.5 list-disc space-y-1 pl-4">
+                            <li>
+                                Les départs en préparation (brouillons) seront
+                                exclus.
+                            </li>
+                            <li>
+                                Les départs publiés sans réservations seront
+                                annulés.
+                            </li>
+                            <li>
+                                Les départs ayant déjà des passagers (billets
+                                vendus ou paiements confirmés) sont{' '}
+                                <strong className="text-foreground">
+                                    protégés
+                                </strong>{' '}
+                                et ne seront pas annulés pour garantir le
+                                service aux voyageurs.
+                            </li>
+                        </ul>
+                    </div>
+                    <div className="grid gap-1.5">
+                        <label
+                            htmlFor="cancel-period-password"
+                            className="flex items-center gap-1.5 text-xs font-bold text-foreground"
+                        >
+                            <Lock size={13} className="text-muted-foreground" />
+                            Confirmez avec votre mot de passe
+                            <span className="text-destructive">*</span>
+                        </label>
+                        <Input
+                            id="cancel-period-password"
+                            type="password"
+                            required
+                            autoComplete="current-password"
+                            value={cancelPassword}
+                            disabled={loading}
+                            onChange={(e) => setCancelPassword(e.target.value)}
+                            placeholder="Votre mot de passe utilisateur…"
+                        />
+                        {typeof api.errors.password === 'string' && (
+                            <p className="text-xs font-semibold text-destructive">
+                                {api.errors.password}
+                            </p>
+                        )}
+                    </div>
+                </div>
             </Confirm>
 
             <OnboardingTour

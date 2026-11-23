@@ -1,12 +1,16 @@
 import { Head, router } from '@inertiajs/react';
 import {
+    AlertTriangle,
     ArrowLeftRight,
     ArrowRight,
     CheckCircle2,
     ChevronRight,
     Clock,
     Eye,
+    FileText,
     Globe2,
+    Loader2,
+    Lock,
     MapPin,
     MoreHorizontal,
     Pencil,
@@ -14,6 +18,7 @@ import {
     RotateCcw,
     Route,
     Search,
+    Trash2,
     X,
 } from 'lucide-react';
 import { lazy, Suspense, useMemo, useState } from 'react';
@@ -23,6 +28,14 @@ import type {
     PhysicalStopRecord,
 } from '@/components/network/types';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -49,6 +62,7 @@ type PageProps = {
         canCreate: boolean;
         canUpdate: boolean;
         canDeactivate: boolean;
+        canDelete?: boolean;
         canManageStops: boolean;
     };
 };
@@ -91,6 +105,13 @@ export default function NetworkPage({
     const [selectedLineForView, setSelectedLineForView] =
         useState<LineRecord | null>(null);
     const [drawerTab, setDrawerTab] = useState<'stops' | 'fares'>('stops');
+
+    // Suppression définitive de ligne
+    const [linePendingDeletion, setLinePendingDeletion] =
+        useState<LineRecord | null>(null);
+    const [deletePassword, setDeletePassword] = useState('');
+    const [deleteError, setDeleteError] = useState('');
+    const [deleteSubmitting, setDeleteSubmitting] = useState(false);
 
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
@@ -171,14 +192,44 @@ export default function NetworkPage({
         setCurrentPage(1);
     };
 
-    const toggleLineStatus = (line: LineRecord) => {
-        const nextStatus = line.status === 'active' ? 'archived' : 'active';
-
+    const changeLineStatus = (
+        line: LineRecord,
+        nextStatus: 'active' | 'draft' | 'archived',
+    ) => {
         router.patch(
             network.status.url({ line: line.uuid }),
             { status: nextStatus },
             { preserveScroll: true },
         );
+    };
+
+    const confirmDeleteLine = () => {
+        if (!linePendingDeletion) {
+            return;
+        }
+
+        setDeleteSubmitting(true);
+        setDeleteError('');
+
+        router.delete(network.destroy.url({ line: linePendingDeletion.uuid }), {
+            data: linePendingDeletion.hasDepartures
+                ? { password: deletePassword }
+                : {},
+            preserveScroll: true,
+            onError: (errors) => {
+                setDeleteSubmitting(false);
+
+                if (errors.password) {
+                    setDeleteError(errors.password);
+                }
+            },
+            onSuccess: () => {
+                setDeleteSubmitting(false);
+                setLinePendingDeletion(null);
+                setDeletePassword('');
+                setDeleteError('');
+            },
+        });
     };
 
     const openLinePreview = (line: LineRecord) => {
@@ -605,19 +656,74 @@ export default function NetworkPage({
                                                                     Studio
                                                                 </DropdownMenuItem>
                                                             )}
-                                                            {permissions.canDeactivate && (
+                                                            {permissions.canDeactivate &&
+                                                                line.status !==
+                                                                    'archived' && (
+                                                                    <DropdownMenuItem
+                                                                        onClick={() =>
+                                                                            changeLineStatus(
+                                                                                line,
+                                                                                'archived',
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <RotateCcw className="size-4" />
+                                                                        Désactiver
+                                                                        /
+                                                                        Archiver
+                                                                    </DropdownMenuItem>
+                                                                )}
+                                                            {permissions.canDeactivate &&
+                                                                line.status !==
+                                                                    'active' && (
+                                                                    <DropdownMenuItem
+                                                                        onClick={() =>
+                                                                            changeLineStatus(
+                                                                                line,
+                                                                                'active',
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <CheckCircle2 className="size-4 text-emerald-600" />
+                                                                        Activer
+                                                                        la ligne
+                                                                    </DropdownMenuItem>
+                                                                )}
+                                                            {permissions.canDeactivate &&
+                                                                line.status !==
+                                                                    'draft' && (
+                                                                    <DropdownMenuItem
+                                                                        onClick={() =>
+                                                                            changeLineStatus(
+                                                                                line,
+                                                                                'draft',
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <FileText className="size-4 text-amber-500" />
+                                                                        Remettre
+                                                                        en
+                                                                        brouillon
+                                                                    </DropdownMenuItem>
+                                                                )}
+                                                            {permissions.canDelete && (
                                                                 <DropdownMenuItem
-                                                                    onClick={() =>
-                                                                        toggleLineStatus(
+                                                                    onClick={() => {
+                                                                        setLinePendingDeletion(
                                                                             line,
-                                                                        )
-                                                                    }
+                                                                        );
+                                                                        setDeletePassword(
+                                                                            '',
+                                                                        );
+                                                                        setDeleteError(
+                                                                            '',
+                                                                        );
+                                                                    }}
+                                                                    className="text-destructive focus:text-destructive"
                                                                 >
-                                                                    <RotateCcw className="size-4" />
-                                                                    {line.status ===
-                                                                    'active'
-                                                                        ? 'Archiver la ligne'
-                                                                        : 'Réactiver la ligne'}
+                                                                    <Trash2 className="size-4" />
+                                                                    Supprimer
+                                                                    définitivement
                                                                 </DropdownMenuItem>
                                                             )}
                                                         </DropdownMenuContent>
@@ -869,7 +975,120 @@ export default function NetworkPage({
                 </div>
             )}
 
-            {/* 7. Studio Cartographique Interactif Leaflet */}
+            {/* 7. Modal de confirmation de suppression de ligne */}
+            {linePendingDeletion && (
+                <Dialog
+                    open={true}
+                    onOpenChange={(open) => {
+                        if (!open && !deleteSubmitting) {
+                            setLinePendingDeletion(null);
+                            setDeletePassword('');
+                            setDeleteError('');
+                        }
+                    }}
+                >
+                    <DialogContent className="sm:max-w-lg">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2 text-destructive">
+                                <Trash2 className="size-5" />
+                                Supprimer la ligne {linePendingDeletion.code}
+                            </DialogTitle>
+                            <DialogDescription>
+                                {linePendingDeletion.hasDepartures
+                                    ? 'Cette ligne comporte des départs existants dans le système. La suppression définitive nécessite la saisie de votre mot de passe pour des raisons de sécurité.'
+                                    : 'Êtes-vous sûr de vouloir supprimer définitivement cette ligne ? Cette action supprimera la ligne et son itinéraire.'}
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        <div className="space-y-4 py-2">
+                            <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-3.5 text-xs text-foreground">
+                                <div className="font-bold">
+                                    {linePendingDeletion.name} (
+                                    {linePendingDeletion.itinerary})
+                                </div>
+                                {linePendingDeletion.hasDepartures && (
+                                    <div className="mt-1.5 flex items-center gap-1.5 text-destructive">
+                                        <AlertTriangle className="size-4 shrink-0" />
+                                        <span>
+                                            {linePendingDeletion.departuresCount ??
+                                                'Plusieurs'}{' '}
+                                            départ(s) rattaché(s) à cette ligne.
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {linePendingDeletion.hasDepartures && (
+                                <div className="space-y-2">
+                                    <label
+                                        htmlFor="delete-line-password"
+                                        className="flex items-center gap-1.5 text-xs font-bold text-foreground"
+                                    >
+                                        <Lock className="size-3.5 text-muted-foreground" />
+                                        Confirmez avec votre mot de passe
+                                        <span className="text-destructive">
+                                            *
+                                        </span>
+                                    </label>
+                                    <input
+                                        id="delete-line-password"
+                                        type="password"
+                                        required
+                                        autoFocus
+                                        value={deletePassword}
+                                        onChange={(e) => {
+                                            setDeletePassword(e.target.value);
+                                            setDeleteError('');
+                                        }}
+                                        placeholder="Votre mot de passe utilisateur…"
+                                        className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground shadow-xs focus:border-gold focus:outline-hidden"
+                                    />
+                                    {deleteError && (
+                                        <p className="text-xs font-semibold text-destructive">
+                                            {deleteError}
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        <DialogFooter className="gap-2 sm:gap-0">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                disabled={deleteSubmitting}
+                                onClick={() => {
+                                    setLinePendingDeletion(null);
+                                    setDeletePassword('');
+                                    setDeleteError('');
+                                }}
+                            >
+                                Annuler
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="destructive"
+                                disabled={
+                                    deleteSubmitting ||
+                                    (linePendingDeletion.hasDepartures &&
+                                        !deletePassword.trim())
+                                }
+                                onClick={confirmDeleteLine}
+                                className="cursor-pointer gap-2"
+                            >
+                                {deleteSubmitting && (
+                                    <Loader2 className="size-4 animate-spin" />
+                                )}
+                                {deleteSubmitting
+                                    ? 'Suppression en cours…'
+                                    : 'Supprimer définitivement'}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            )}
+
+            {/* 8. Studio Cartographique Interactif Leaflet */}
             {studioOpen && (
                 <Suspense fallback={null}>
                     <LineCreatorStudio

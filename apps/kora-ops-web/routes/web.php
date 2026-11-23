@@ -12,6 +12,7 @@ use App\Modules\BusNetwork\Http\Controllers\BusModelController;
 use App\Modules\BusNetwork\Http\Controllers\BusSeatStatusController;
 use App\Modules\BusNetwork\Http\Controllers\LineController;
 use App\Modules\BusNetwork\Http\Controllers\MapSettingsController;
+use App\Modules\BusNetwork\Http\Controllers\PhysicalStopController;
 use App\Modules\BusNetwork\Http\Controllers\SeatLayoutController;
 use App\Modules\Cash\Http\Controllers\CashMediaController;
 use App\Modules\Cash\Http\Controllers\CashSessionController;
@@ -168,6 +169,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('programmes/{programme:uuid}/actions', [ProgrammingController::class, 'programmeAction'])->name('programmes.actions');
         Route::get('items/{item:uuid}', [ProgrammingController::class, 'item'])->name('items.show');
         Route::post('actions', [ProgrammingController::class, 'mutate'])->name('actions');
+        Route::post('cancel-period', [ProgrammingController::class, 'cancelPeriod'])->name('cancel-period');
     });
 
     Route::get('departures', [DepartureController::class, 'index'])->name('departures.index');
@@ -228,6 +230,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('network', [LineController::class, 'store'])->name('network.store');
     Route::put('network/{line:uuid}', [LineController::class, 'update'])->name('network.update');
     Route::patch('network/{line:uuid}/status', [LineController::class, 'changeStatus'])->name('network.status');
+    Route::delete('network/{line:uuid}', [LineController::class, 'destroy'])->name('network.destroy');
+    Route::get('stops', [PhysicalStopController::class, 'index'])->name('stops.index');
+    Route::post('stops', [PhysicalStopController::class, 'store'])->name('stops.store');
+    Route::put('stops/{physicalStop:uuid}', [PhysicalStopController::class, 'update'])->name('stops.update');
+    Route::delete('stops/{physicalStop:uuid}', [PhysicalStopController::class, 'destroy'])->name('stops.destroy');
 
     // V1 MVP — Flotte (Ressources)
     Route::get('fleet', [BusController::class, 'index'])->name('fleet.index');

@@ -316,11 +316,34 @@ class PlanningReadService
         $view = $filters['view'] ?? 'week';
         $from = $view === 'week' ? $date->startOfWeek() : ($view === 'month' ? $date->startOfMonth()->startOfWeek() : $date);
         $until = $view === 'week' ? $date->endOfWeek() : ($view === 'month' ? $date->endOfMonth()->endOfWeek() : $date);
-        $query = PlannedDeparture::query()->with(['programme', 'departure', 'version'])->whereDate('service_date', '>=', $from->toDateString())->whereDate('service_date', '<=', $until->toDateString())->orderBy('scheduled_at');
+        $templates = DepartureTemplate::query()->with('versions')->latest()->get();
+        $versionsById = [];
+        foreach ($templates as $template) {
+            foreach ($template->versions as $version) {
+                $version->setRelation('template', $template);
+                $versionsById[$version->id] = $version;
+            }
+        }
+        $programmes = DepartureProgramme::query()->latest()->get();
+        $programmesById = $programmes->keyBy('id');
+        foreach ($programmes as $programme) {
+            $programme->setRelation('version', $versionsById[$programme->version_id] ?? null);
+        }
+        $runs = ProgrammingRun::query()->latest('updated_at')->limit(30)->get();
+        foreach ($runs as $run) {
+            $run->setRelation('programme', $programmesById[$run->programme_id] ?? null);
+        }
+
+        $query = PlannedDeparture::query()->with('departure')->whereDate('service_date', '>=', $from->toDateString())->whereDate('service_date', '<=', $until->toDateString())->orderBy('scheduled_at');
         if (! empty($filters['programme'])) {
             $query->whereHas('programme', fn ($q) => $q->where('uuid', $filters['programme']));
         }
         $occurrences = $query->get();
+        foreach ($occurrences as $item) {
+            $item->setRelation('programme', $programmesById[$item->programme_id] ?? null);
+            $item->setRelation('version', $versionsById[$item->version_id] ?? null);
+        }
+
         $assessments = $this->publication->assessBatch(array_values($occurrences->all()));
         $occupancies = $this->batchOccupancy(array_values($occurrences->all()));
         $protections = $this->planning->protectedBatch(array_values($occurrences->all()));
@@ -356,9 +379,9 @@ class PlanningReadService
             'items' => $items->all(), 'counts' => $counts,
             'filters' => $filters + ['date' => $date->toDateString(), 'view' => $view, 'tab' => 'planning'],
             'from' => $from->toDateString(), 'until' => $until->toDateString(),
-            'templates' => DepartureTemplate::query()->with('versions')->latest()->get()->map(fn ($t): array => $this->template($t))->all(),
-            'programmes' => DepartureProgramme::query()->with('version.template')->latest()->get()->map(fn ($p): array => $this->programme($p))->all(),
-            'runs' => ProgrammingRun::query()->with('programme')->latest('updated_at')->limit(30)->get()->map(fn ($r): array => $this->run($r))->all(),
+            'templates' => $templates->map(fn (DepartureTemplate $template): array => $this->template($template))->all(),
+            'programmes' => $programmes->map(fn (DepartureProgramme $programme): array => $this->programme($programme))->all(),
+            'runs' => $runs->map(fn (ProgrammingRun $run): array => $this->run($run))->all(),
             'references' => $this->references(),
         ];
     }

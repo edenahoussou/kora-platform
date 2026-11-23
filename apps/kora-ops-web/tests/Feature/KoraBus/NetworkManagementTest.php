@@ -1,9 +1,12 @@
 <?php
 
 use App\Models\User;
+use App\Modules\Booking\Models\Reservation;
+use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\Line;
 use App\Modules\BusNetwork\Models\PhysicalStop;
+use App\Modules\BusNetwork\Models\Seat;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Models\Fare;
@@ -585,4 +588,208 @@ it('filters lines by type and builds itinerary from active stops', function (): 
             ->where('lines.0.itinerary', 'Cotonou → Parakou')
             ->where('lines.0.segmentsCount', 1)
             ->has('lines', 1));
+});
+
+it('updates line status between active, draft and archived', function (): void {
+    $line = makeLine(['status' => 'active']);
+    $manager = networkManager();
+
+    $this->actingAs($manager)
+        ->patch(route('network.status', $line), ['status' => 'draft'])
+        ->assertRedirect(route('network.index', absolute: false));
+
+    expect($line->refresh()->status->value)->toBe('draft');
+
+    $this->actingAs($manager)
+        ->patch(route('network.status', $line), ['status' => 'archived'])
+        ->assertRedirect(route('network.index', absolute: false));
+
+    expect($line->refresh()->status->value)->toBe('archived');
+});
+
+it('deletes a line without departures without requiring password', function (): void {
+    $line = makeLine();
+    $manager = networkManager();
+
+    $this->actingAs($manager)
+        ->delete(route('network.destroy', $line))
+        ->assertRedirect(route('network.index', absolute: false));
+
+    expect($line->refresh()->trashed())->toBeTrue();
+});
+
+it('requires password confirmation to delete a line with departures', function (): void {
+    $line = makeLine();
+    $manager = networkManager();
+    $bus = Bus::query()->create(['registration_number' => 'BUS-'.Str::random(4), 'brand' => 'KORA', 'model' => 'Coach', 'seat_count' => 1, 'status' => 'active']);
+    Departure::query()->create([
+        'line_id' => $line->id,
+        'bus_id' => $bus->id,
+        'departure_date' => '2026-09-10',
+        'departure_time' => '08:00',
+        'status' => 'scheduled',
+    ]);
+
+    // Sans mot de passe -> rejet 422
+    $this->actingAs($manager)
+        ->delete(route('network.destroy', $line))
+        ->assertSessionHasErrors(['password']);
+
+    // Avec mauvais mot de passe -> rejet 422
+    $this->actingAs($manager)
+        ->delete(route('network.destroy', $line), ['password' => 'wrong-password'])
+        ->assertSessionHasErrors(['password']);
+
+    // Avec bon mot de passe (défaut UserFactory: 'password') -> succès
+    $this->actingAs($manager)
+        ->delete(route('network.destroy', $line), ['password' => 'password'])
+        ->assertRedirect(route('network.index', absolute: false));
+
+    expect($line->refresh()->trashed())->toBeTrue();
+});
+
+it('rejects deleting a line with departures when active reservations exist', function (): void {
+    $line = makeLine();
+    $manager = networkManager();
+    $bus = Bus::query()->create(['registration_number' => 'BUS-'.Str::random(4), 'brand' => 'KORA', 'model' => 'Coach', 'seat_count' => 1, 'status' => 'active']);
+    $stop1 = makeStop($line, makePhysicalStop(['name' => 'Stop 1']), 1);
+    $stop2 = makeStop($line, makePhysicalStop(['name' => 'Stop 2']), 2);
+    $departure = Departure::query()->create([
+        'line_id' => $line->id,
+        'bus_id' => $bus->id,
+        'departure_date' => '2026-09-10',
+        'departure_time' => '08:00',
+        'status' => 'scheduled',
+    ]);
+
+    $reservation = Reservation::create(['status' => 'confirmed', 'total_amount' => 5000, 'currency' => 'XOF', 'channel' => 'online']);
+    $seat = Seat::query()->create(['bus_id' => $bus->id, 'code' => 'S1', 'type' => 'standard', 'status' => 'active']);
+    ReservationSegment::create([
+        'reservation_id' => $reservation->id,
+        'leg_order' => 1,
+        'departure_id' => $departure->id,
+        'seat_id' => $seat->id,
+        'origin_stop_id' => $stop1->id,
+        'destination_stop_id' => $stop2->id,
+        'origin_stop_order' => 1,
+        'destination_stop_order' => 2,
+        'status' => 'confirmed',
+    ]);
+
+    $this->actingAs($manager)
+        ->delete(route('network.destroy', $line), ['password' => 'password'])
+        ->assertSessionHasErrors(['password']);
+
+    expect($line->refresh()->trashed())->toBeFalse();
+});
+
+it('lists physical stops with pagination and search', function (): void {
+    makePhysicalStop(['name' => 'Gare Centrale', 'city' => 'Cotonou']);
+    makePhysicalStop(['name' => 'Gare du Nord', 'city' => 'Parakou']);
+
+    $this->actingAs(networkManager())
+        ->get(route('stops.index', ['q' => 'Centrale']))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('stops.data.0.name', 'Gare Centrale')
+            ->has('stops.data', 1));
+});
+
+it('creates a new physical stop via stops.store', function (): void {
+    $this->actingAs(networkManager())
+        ->post(route('stops.store'), [
+            'name' => 'Nouveau Terminal',
+            'city' => 'Abomey',
+            'country' => 'BJ',
+            'latitude' => 7.185,
+            'longitude' => 1.988,
+        ])
+        ->assertRedirect(route('stops.index', absolute: false));
+
+    $stop = PhysicalStop::query()->where('name', 'Nouveau Terminal')->first();
+    expect($stop)->not->toBeNull()
+        ->and($stop->city)->toBe('Abomey')
+        ->and((float) $stop->latitude)->toBe(7.185)
+        ->and((float) $stop->longitude)->toBe(1.988);
+});
+
+it('rejects duplicate physical stops normalized on case, accents and spaces', function (): void {
+    makePhysicalStop(['name' => 'Gare de Dantokpa', 'city' => 'Cotonou', 'country' => 'BJ']);
+
+    // Variantes normalisées du même point (casse, accents, espaces) -> rejet
+    $this->actingAs(networkManager())
+        ->post(route('stops.store'), [
+            'name' => '  gare de dantôkpa ',
+            'city' => ' cotonou ',
+            'country' => 'BJ',
+        ])
+        ->assertSessionHasErrors(['name']);
+
+    // Renommage vers un doublon existant -> rejet aussi en édition
+    $other = makePhysicalStop(['name' => 'Gare de Porto-Novo', 'city' => 'Porto-Novo', 'country' => 'BJ']);
+
+    $this->actingAs(networkManager())
+        ->put(route('stops.update', $other), [
+            'name' => 'GARE DE DANTOKPA',
+            'city' => 'Cotonou',
+            'country' => 'BJ',
+        ])
+        ->assertSessionHasErrors(['name']);
+
+    // Même nom dans une autre ville -> point différent, autorisé
+    $this->actingAs(networkManager())
+        ->post(route('stops.store'), [
+            'name' => 'Gare de Dantokpa',
+            'city' => 'Parakou',
+            'country' => 'BJ',
+        ])
+        ->assertRedirect(route('stops.index', absolute: false));
+});
+
+it('updates a physical stop and propagates changes to line stops', function (): void {
+    $physical = makePhysicalStop(['name' => 'Gare Initiale', 'city' => 'Cotonou', 'latitude' => 6.36, 'longitude' => 2.42]);
+    $line = makeLine();
+    $lineStop = makeStop($line, $physical, 1);
+
+    $this->actingAs(networkManager())
+        ->put(route('stops.update', $physical), [
+            'name' => 'Gare Rénovée',
+            'city' => 'Cotonou',
+            'country' => 'BJ',
+            'latitude' => 6.3712,
+            'longitude' => 2.4356,
+        ])
+        ->assertRedirect(route('stops.index', absolute: false));
+
+    expect($physical->refresh()->name)->toBe('Gare Rénovée')
+        ->and((float) $physical->latitude)->toBe(6.3712)
+        ->and($lineStop->refresh()->name)->toBe('Gare Rénovée')
+        ->and((float) $lineStop->latitude)->toBe(6.3712);
+});
+
+it('refuses deleting a physical stop attached to active lines but allows when unattached', function (): void {
+    $physical = makePhysicalStop(['name' => 'Gare Utilisée']);
+    $line = makeLine();
+    makeStop($line, $physical, 1);
+
+    // Sans mot de passe valide -> échec 422
+    $this->actingAs(networkManager())
+        ->delete(route('stops.destroy', $physical), ['password' => 'wrong-password'])
+        ->assertSessionHasErrors(['password']);
+
+    // Tentative de suppression alors que rattaché -> échec 422
+    $this->actingAs(networkManager())
+        ->delete(route('stops.destroy', $physical), ['password' => 'password'])
+        ->assertSessionHasErrors(['stop']);
+
+    expect($physical->refresh()->trashed())->toBeFalse();
+
+    // Suppression de la ligne -> l'arrêt n'est plus rattaché à une ligne active
+    $line->delete();
+
+    $this->actingAs(networkManager())
+        ->delete(route('stops.destroy', $physical), ['password' => 'password'])
+        ->assertRedirect(route('stops.index', absolute: false));
+
+    expect($physical->refresh()->trashed())->toBeTrue();
 });
