@@ -354,6 +354,58 @@ it('assesses a month without repeating reference queries for every occurrence', 
     expect(count($workspace['items']))->toBeGreaterThan(15)->and(count($queries))->toBeLessThan(75);
 });
 
+it('reuses loaded resource names when assessing conflicting occurrences', function (): void {
+    $driver = User::factory()->create();
+    $driver->assignRole('bus_driver');
+    $this->slot = array_replace($this->slot, [
+        'bus_uuid' => $this->bus->uuid,
+        'driver_uuid' => $driver->uuid,
+        'days' => [1],
+    ]);
+    $planning = app(PlanningService::class);
+    $first = programmingProgramme($this, ['ends_on' => '2026-09-07']);
+    $planning->generate($first, $first->starts_on, $first->ends_on, $this->actor);
+    $second = programmingProgramme($this, ['ends_on' => '2026-09-07']);
+    $planning->generate($second, $second->starts_on, $second->ends_on, $this->actor);
+
+    DB::enableQueryLog();
+    DB::flushQueryLog();
+    $workspace = app(PlanningReadService::class)->workspace(['date' => '2026-09-07', 'view' => 'week']);
+    $resourceNameQueries = collect(DB::getQueryLog())->filter(fn (array $entry): bool => str_contains($entry['query'], 'select "registration_number" from "buses" where "buses"."id" =')
+        || str_contains($entry['query'], 'select "name", "id" from "users" where "id" in'));
+    DB::disableQueryLog();
+    $blockers = collect($workspace['items'])->pluck('blockers')->flatten()->implode(' ');
+
+    expect($workspace['items'])->toHaveCount(2)
+        ->and(collect($workspace['items'])->every(fn (array $item): bool => $item['state'] === 'blocked'))->toBeTrue()
+        ->and($blockers)->toContain('KORA-TEST')->toContain($driver->name)
+        ->and($resourceNameQueries)->toBeEmpty();
+});
+
+it('reuses programme and version relations across workspace sections', function (): void {
+    $planning = app(PlanningService::class);
+    $first = programmingProgramme($this, ['ends_on' => '2026-09-07']);
+    $second = programmingProgramme($this, ['ends_on' => '2026-09-07']);
+
+    foreach ([$first, $second] as $programme) {
+        $planning->generate($programme, $programme->starts_on, $programme->ends_on, $this->actor);
+    }
+
+    DB::enableQueryLog();
+    DB::flushQueryLog();
+    $workspace = app(PlanningReadService::class)->workspace(['date' => '2026-09-07', 'view' => 'week']);
+    $queries = collect(DB::getQueryLog());
+    DB::disableQueryLog();
+    $programmeLoads = $queries->filter(fn (array $entry): bool => str_contains($entry['query'], 'from "departure_programmes" where "departure_programmes"."id" in'));
+    $versionLoads = $queries->filter(fn (array $entry): bool => str_contains($entry['query'], 'from "departure_template_versions" where "departure_template_versions"."id" in'));
+
+    expect($workspace['items'])->toHaveCount(2)
+        ->and($workspace['programmes'])->toHaveCount(2)
+        ->and($workspace['runs'])->toHaveCount(2)
+        ->and($programmeLoads)->toBeEmpty()
+        ->and($versionLoads)->toBeEmpty();
+});
+
 it('checks segment protection for every workspace occurrence in a bounded number of queries', function (): void {
     $this->slot['bus_uuid'] = $this->bus->uuid;
     $programme = programmingProgramme($this, ['ends_on' => '2026-10-01']);
@@ -413,4 +465,61 @@ it('loads manual departure crew and seat occupancy without per-departure queries
         ->and($items->firstWhere('uuid', $second->uuid)['occupancy']['booked'])->toBe(0)
         ->and($segmentQueries)->toHaveCount(1)
         ->and($perUserLookups)->toHaveCount(0);
+});
+
+it('cancels an entire programming period while preserving sold departures', function (): void {
+    $this->slot['bus_uuid'] = $this->bus->uuid;
+    $programme = programmingProgramme($this, ['ends_on' => '2026-09-14']);
+    $planning = app(PlanningService::class);
+    $planning->generate($programme, $programme->starts_on, $programme->ends_on, $this->actor);
+
+    $occurrences = $programme->occurrences()->orderBy('service_date')->get();
+    expect($occurrences)->toHaveCount(6);
+
+    $first = $occurrences[0];
+    $second = $occurrences[1];
+
+    // Publish first with a reservation -> protected
+    $planning->mutate([['uuid' => $first->uuid, 'revision' => 1]], 'publish', [], $this->actor);
+    $firstDeparture = $first->refresh()->departure;
+    $reservation = Reservation::create(['status' => 'confirmed', 'total_amount' => 5000, 'currency' => 'XOF', 'channel' => 'online']);
+    ReservationSegment::create([
+        'reservation_id' => $reservation->id,
+        'leg_order' => 1,
+        'departure_id' => $firstDeparture->id,
+        'seat_id' => Seat::query()->where('bus_id', $this->bus->id)->first()->id,
+        'origin_stop_id' => Stop::query()->where('line_id', $this->line->id)->orderBy('stop_order')->first()->id,
+        'destination_stop_id' => Stop::query()->where('line_id', $this->line->id)->orderBy('stop_order', 'desc')->first()->id,
+        'origin_stop_order' => 1,
+        'destination_stop_order' => 2,
+        'status' => 'confirmed',
+    ]);
+
+    // Publish second without reservation -> unprotected
+    $planning->mutate([['uuid' => $second->uuid, 'revision' => 1]], 'publish', [], $this->actor);
+    $secondDeparture = $second->refresh()->departure;
+
+    $this->actingAs($this->actor)->postJson(route('programming.cancel-period'), [
+        'from' => '2026-09-07',
+        'until' => '2026-09-14',
+        'password' => 'wrong-password',
+    ])->assertUnprocessable();
+
+    $response = $this->actingAs($this->actor)->postJson(route('programming.cancel-period'), [
+        'from' => '2026-09-07',
+        'until' => '2026-09-14',
+        'password' => 'password',
+    ]);
+
+    $response->assertOk()
+        ->assertJson([
+            'cancelled' => 5,
+            'protected' => 1,
+            'total' => 6,
+        ]);
+
+    expect($first->refresh()->state)->toBe('planned')
+        ->and($firstDeparture->refresh()->status->value)->toBe('scheduled')
+        ->and($second->refresh()->state)->toBe('excluded')
+        ->and($secondDeparture->refresh()->status->value)->toBe('cancelled');
 });

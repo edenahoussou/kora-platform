@@ -3,6 +3,7 @@
 namespace App\Modules\BusNetwork\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\BusNetwork\Actions\ChangeLineStatusAction;
 use App\Modules\BusNetwork\Actions\CreateLineAction;
 use App\Modules\BusNetwork\Actions\SyncLineStopsAction;
@@ -14,13 +15,16 @@ use App\Modules\BusNetwork\Http\Requests\UpdateLineRequest;
 use App\Modules\BusNetwork\Models\Line;
 use App\Modules\BusNetwork\Models\PhysicalStop;
 use App\Modules\BusNetwork\Models\Stop;
+use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Data\FareStatus;
 use App\Modules\DynamicPricing\Models\Fare;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -33,6 +37,7 @@ class LineController extends Controller
         $query = Line::query()
             ->withCount(['stops as stops_count' => fn ($q) => $q])
             ->withCount(['stops as active_stops_count' => fn ($q) => $q->where('status', 'active')])
+            ->withCount(['departures as departures_count' => fn ($q) => $q])
             ->with([
                 'stops' => fn ($q) => $q->orderBy('stop_order'),
                 'stops.physicalStop:id,uuid',
@@ -74,6 +79,7 @@ class LineController extends Controller
                 'canCreate' => Gate::allows('create', Line::class),
                 'canUpdate' => Gate::allows('update', new Line),
                 'canDeactivate' => Gate::allows('deactivate', new Line),
+                'canDelete' => Gate::allows('delete', new Line),
                 'canManageStops' => Gate::allows('create', Stop::class),
             ],
         ]);
@@ -114,6 +120,41 @@ class LineController extends Controller
         $changeLineStatus->execute($line, LineStatus::from($data['status']));
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Statut de la ligne mis à jour.')]);
+
+        return to_route('network.index');
+    }
+
+    public function destroy(Request $request, Line $line): RedirectResponse
+    {
+        Gate::authorize('delete', $line);
+
+        if ($line->departures()->exists()) {
+            $request->validate([
+                'password' => ['required', 'string', 'current_password'],
+            ]);
+
+            $hasActiveBookings = ReservationSegment::query()
+                ->whereHas('departure', fn (Builder $q) => $q->where('line_id', $line->id))
+                ->whereNotIn('status', ['expired', 'cancelled'])
+                ->exists();
+
+            if ($hasActiveBookings) {
+                throw ValidationException::withMessages([
+                    'password' => __('Impossible de supprimer la ligne : des réservations ou billets actifs sont en cours sur ses départs. Veuillez plutôt désactiver ou archiver la ligne.'),
+                ]);
+            }
+        }
+
+        DB::transaction(function () use ($line): void {
+            Departure::query()
+                ->where('line_id', $line->id)
+                ->where('status', 'scheduled')
+                ->update(['status' => 'cancelled']);
+
+            $line->delete();
+        });
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Ligne supprimée avec succès.')]);
 
         return to_route('network.index');
     }
@@ -168,6 +209,8 @@ class LineController extends Controller
             'stopsCount' => (int) ($line->stops_count ?? 0),
             'activeStopsCount' => $activeCount,
             'segmentsCount' => max(0, $activeCount - 1),
+            'departuresCount' => (int) ($line->departures_count ?? 0),
+            'hasDepartures' => (int) ($line->departures_count ?? 0) > 0,
             'distanceKm' => $line->distance_km !== null ? (int) $line->distance_km : null,
             'estimatedDurationMinutes' => $line->estimated_duration_minutes !== null ? (int) $line->estimated_duration_minutes : null,
             'status' => (string) LineStatus::from((string) $line->getRawOriginal('status'))->value,

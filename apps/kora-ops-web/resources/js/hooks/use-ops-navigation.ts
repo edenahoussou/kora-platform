@@ -431,8 +431,13 @@ const navItems: OpsNavEntry[] = [
                 permission: ['tracking.view-agency', 'tracking.view-network'],
             },
             {
-                title: 'Lignes & arrêts',
+                title: 'Lignes commerciales',
                 href: '/network',
+                permission: 'network.view',
+            },
+            {
+                title: 'Points d’arrêt',
+                href: '/stops',
                 permission: 'network.view',
             },
             { title: 'Tarifs', href: '/fares', permission: 'pricing.view' },

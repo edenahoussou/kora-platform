@@ -5,6 +5,7 @@ namespace App\Modules\Departures\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Jobs\ProcessProgrammingSelection;
 use App\Models\User;
+use App\Modules\Departures\Http\Requests\CancelPeriodRequest;
 use App\Modules\Departures\Http\Requests\PlanningMutationRequest;
 use App\Modules\Departures\Http\Requests\PlanningQueryRequest;
 use App\Modules\Departures\Http\Requests\ProgrammeRequest;
@@ -168,6 +169,19 @@ class ProgrammingController extends Controller
         });
 
         return response()->json(['saved' => true]);
+    }
+
+    public function cancelPeriod(CancelPeriodRequest $request): JsonResponse
+    {
+        $data = $request->validated();
+        $actor = $this->actor($request->user());
+        $from = CarbonImmutable::parse((string) $data['from']);
+        $until = CarbonImmutable::parse((string) $data['until']);
+        $filters = (array) ($data['filters'] ?? []);
+
+        $result = $this->planning->cancelPeriod($from, $until, $filters, $actor);
+
+        return response()->json($result);
     }
 
     private function actor(mixed $user): User

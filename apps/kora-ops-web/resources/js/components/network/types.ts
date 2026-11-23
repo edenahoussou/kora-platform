@@ -43,6 +43,8 @@ export type LineRecord = {
     stopsCount: number;
     activeStopsCount: number;
     segmentsCount: number;
+    departuresCount?: number;
+    hasDepartures?: boolean;
     distanceKm: number | null;
     estimatedDurationMinutes: number | null;
     status: 'active' | 'draft' | 'archived';

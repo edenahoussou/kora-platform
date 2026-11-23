@@ -17,7 +17,7 @@ use Illuminate\Validation\ValidationException;
 
 class PublicationService
 {
-    /** @var array{lines: array<array-key, Line>, buses: array<array-key, Bus>, people: array<string, User>, fares: Collection<int, Fare>, planned: Collection<int, PlannedDeparture>, departures: Collection<int, Departure>}|null */
+    /** @var array{lines: array<array-key, Line>, buses: array<array-key, Bus>, people: array<string, User>, peopleById: array<array-key, User>, fares: Collection<int, Fare>, planned: Collection<int, PlannedDeparture>, departures: Collection<int, Departure>}|null */
     private ?array $batch = null;
 
     public function __construct(private TemplateService $templates) {}
@@ -96,15 +96,19 @@ class PublicationService
         }
         $from = collect($items)->min('scheduled_at')->subDays(8);
         $until = collect($items)->max('arrival_at')->addDay();
-        $people = [];
+        $peopleIds = [];
         foreach ($items as $item) {
-            array_push($people, $item->driver_id, $item->secondary_driver_id, $item->conductor_id, $item->mechanic_id);
+            array_push($peopleIds, $item->driver_id, $item->secondary_driver_id, $item->conductor_id, $item->mechanic_id);
         }
-        $lines = array_map(fn (PlannedDeparture $item): int => $item->line_id, $items);
+        $peopleIds = array_values(array_unique(array_filter($peopleIds)));
+        $lines = array_values(array_unique(array_map(fn (PlannedDeparture $item): int => $item->line_id, $items)));
+        $buses = array_values(array_unique(array_filter(array_map(fn (PlannedDeparture $item): ?int => $item->bus_id, $items))));
+        $people = User::query()->with('roles')->whereIn('id', $peopleIds)->get();
         $this->batch = [
             'lines' => Line::query()->with('stops')->whereIn('id', $lines)->get()->keyBy('id')->all(),
-            'buses' => Bus::query()->with('seats')->whereIn('id', array_filter(array_map(fn (PlannedDeparture $item): ?int => $item->bus_id, $items)))->get()->keyBy('id')->all(),
-            'people' => User::query()->with('roles')->whereIn('id', array_filter($people))->get()->keyBy('uuid')->all(),
+            'buses' => Bus::query()->with('seats')->whereIn('id', $buses)->get()->keyBy('id')->all(),
+            'people' => $people->keyBy('uuid')->all(),
+            'peopleById' => $people->keyBy('id')->all(),
             'fares' => Fare::query()->whereIn('line_id', $lines)->where('status', 'active')->get(),
             'planned' => PlannedDeparture::query()->where('state', '!=', 'excluded')->whereNull('departure_id')->where('scheduled_at', '<', UtcDateTime::databaseValue($until, $items[0]))->where('arrival_at', '>', UtcDateTime::databaseValue($from, $items[0]))->get(),
             'departures' => Departure::query()->with('plannedOccurrence')->whereIn('status', ['scheduled', 'boarding', 'departed'])->whereDate('departure_date', '>=', $from->toDateString())->whereDate('departure_date', '<=', $until->toDateString())->get(),
@@ -235,8 +239,20 @@ class PublicationService
         $crews = ['driver_id' => 'chauffeur principal', 'secondary_driver_id' => 'chauffeur secondaire', 'conductor_id' => 'convoyeur', 'mechanic_id' => 'mécanicien'];
         $conflictingBus = $item->bus_id !== null && collect($collisions)->contains(fn (array $c): bool => $c['other']->bus_id === $item->bus_id);
         $conflictingPeople = array_filter($crews, fn (string $label, string $field): bool => $item->$field !== null && collect($collisions)->contains(fn (array $c): bool => in_array($item->$field, [$c['other']->driver_id, $c['other']->secondary_driver_id, $c['other']->conductor_id, $c['other']->mechanic_id], true)), ARRAY_FILTER_USE_BOTH);
-        $busName = $conflictingBus ? Bus::query()->whereKey($item->bus_id)->value('registration_number') : null;
-        $names = $conflictingPeople !== [] ? User::query()->whereIn('id', array_map(fn (string $field): ?int => $item->$field, array_keys($conflictingPeople)))->pluck('name', 'id') : collect();
+        $busName = null;
+        if ($conflictingBus) {
+            $busName = $this->batch !== null
+                ? ($this->batch['buses'][$item->bus_id]->registration_number ?? null)
+                : Bus::query()->whereKey($item->bus_id)->value('registration_number');
+        }
+        $names = collect();
+        if ($conflictingPeople !== []) {
+            $names = $this->batch !== null
+                ? collect($conflictingPeople)->mapWithKeys(fn (string $label, string $field): array => [
+                    $item->$field => $this->batch['peopleById'][$item->$field]->name ?? null,
+                ])
+                : User::query()->whereIn('id', array_map(fn (string $field): ?int => $item->$field, array_keys($conflictingPeople)))->pluck('name', 'id');
+        }
 
         $conflicts = [];
         foreach ($collisions as $collision) {
