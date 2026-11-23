@@ -17,6 +17,7 @@ import {
     Scale,
     Search,
     SlidersHorizontal,
+    Tag,
     TriangleAlert,
     Truck,
     Undo2,
@@ -658,6 +659,7 @@ export function ParcelListPanel({
                     parcel.can_reissue === true ||
                     parcel.can_print_handoff_proof === true ||
                     parcel.can_receipt === true ||
+                    parcel.can_label === true ||
                     (parcel.can_manifest === true &&
                         parcel.departure_uuid !== null) ||
                     (parcel.can_assign === true &&
@@ -724,6 +726,18 @@ export function ParcelListPanel({
                                                 </a>
                                             </DropdownMenuItem>
                                         )}
+                                    {parcel.can_label && (
+                                        <DropdownMenuItem asChild>
+                                            <a
+                                                href={`/parcels/${parcel.uuid}/label`}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                            >
+                                                <Tag className="size-4" />
+                                                Bordereau d’envoi
+                                            </a>
+                                        </DropdownMenuItem>
+                                    )}
                                     {parcel.can_receipt && (
                                         <DropdownMenuItem
                                             onClick={() =>

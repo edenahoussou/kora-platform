@@ -213,6 +213,7 @@ export type ParcelListItem = {
     status: string;
     can_pay?: boolean;
     can_receipt?: boolean;
+    can_label?: boolean;
     can_ready?: boolean;
     can_assign?: boolean;
     can_manifest?: boolean;

@@ -33,6 +33,7 @@ use App\Modules\IdentityAccess\Http\Controllers\AgencyController;
 use App\Modules\IdentityAccess\Http\Controllers\TerminalP501Controller;
 use App\Modules\Parcels\Http\Controllers\OpsParcelController;
 use App\Modules\Parcels\Http\Controllers\ParcelHandoffProofController;
+use App\Modules\Parcels\Http\Controllers\ParcelLabelController;
 use App\Modules\Parcels\Http\Controllers\ParcelManifestPrintController;
 use App\Modules\Passengers\Http\Controllers\PassengerErasureController;
 use App\Modules\Passengers\Http\Controllers\PassengerIndexController;
@@ -298,6 +299,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('parcels/data')->name('parcels.data.')->group(base_path('routes/parcels-ops.php'));
     Route::get('parcels/manifest/{departure:uuid}/print', ParcelManifestPrintController::class)->name('parcels.manifest.print');
     Route::get('parcels/handoff/{parcel:uuid}/print', ParcelHandoffProofController::class)->name('parcels.handoff.print');
+    Route::get('parcels/{parcel:uuid}/label', [ParcelLabelController::class, 'show'])
+        ->middleware(['can:parcels.view', 'can:parcels.intake'])
+        ->name('parcels.label.show');
+    Route::get('parcels/{parcel:uuid}/label.pdf', [ParcelLabelController::class, 'pdf'])
+        ->middleware(['can:parcels.view', 'can:parcels.intake'])
+        ->name('parcels.label.pdf');
 
     // =========================================================
     // V2 — Placeholders (coming-soon page)
