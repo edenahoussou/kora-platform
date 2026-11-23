@@ -66,7 +66,7 @@ export function KoraCorridorFlagPicker({
                                         'relative size-6 shrink-0 overflow-hidden rounded-full shadow-xs ring-2 transition-transform duration-200 group-hover:scale-105',
                                         isCurrent
                                             ? 'scale-110 shadow-[0_0_10px_rgba(246,176,0,0.45)] ring-gold'
-                                            : 'opacity-90 ring-card group-hover:opacity-100',
+                                            : 'hidden opacity-90 ring-card group-hover:opacity-100 min-[400px]:block',
                                     )}
                                     title={`${country.name} (${country.code})`}
                                 >
@@ -87,7 +87,7 @@ export function KoraCorridorFlagPicker({
                         </span>
                     </span>
 
-                    <ChevronDown className="size-3 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                    <ChevronDown className="hidden size-3 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180 min-[400px]:block" />
                 </button>
             </DropdownMenuTrigger>
 
