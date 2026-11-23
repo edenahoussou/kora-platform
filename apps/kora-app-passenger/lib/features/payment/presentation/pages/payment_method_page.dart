@@ -10,7 +10,6 @@ import '../../../../core/widgets/screen_header.dart';
 import '../../../booking/presentation/bloc/seat_hold_bloc.dart';
 import '../../domain/entities/payment_catalog.dart';
 import '../bloc/payment_catalog_bloc.dart';
-import '../widgets/operator_badge.dart';
 import '../widgets/payment_amount_card.dart';
 import 'payment_args.dart';
 
@@ -145,9 +144,6 @@ class PaymentMethodPage extends StatelessWidget {
               title: provider.label,
               lead: l10n.paymentMethodMomo,
               logoAsset: _logoOf(provider),
-              // Les logos des opérateurs remplacent leur énumération : on
-              // reconnaît son réseau avant d'avoir lu la ligne.
-              logos: true,
               // Deux passerelles, deux écrans : KKiaPay encaisse dans sa
               // propre fenêtre et y demande l'opérateur, tandis que
               // FedaPay pousse la demande sur le téléphone et réclame
@@ -194,6 +190,7 @@ class PaymentMethodPage extends StatelessWidget {
   String? _logoOf(PaymentProvider provider) => switch (provider.code) {
     'kkiapay' => 'assets/images/kkiapay.png',
     'fedapay' => 'assets/images/fedapay.jpg',
+    'mtn_momo' => 'assets/images/mtn_momo.png',
     _ => null,
   };
 
@@ -292,7 +289,6 @@ class _MethodTile extends StatelessWidget {
     required this.title,
     required this.lead,
     required this.onTap,
-    this.logos = false,
     this.logoAsset,
   });
 
@@ -300,9 +296,6 @@ class _MethodTile extends StatelessWidget {
   final String code;
   final String title;
   final String lead;
-
-  /// Montre les vignettes des réseaux sous la ligne de description.
-  final bool logos;
 
   /// Le logo de la passerelle, à la place du pictogramme doré.
   ///
@@ -334,8 +327,8 @@ class _MethodTile extends StatelessWidget {
         children: [
           if (logoAsset case final asset?)
             Container(
-              width: 38,
-              height: 38,
+              width: 52,
+              height: 52,
               alignment: Alignment.center,
               // Le blanc derrière le logo, comme pour les opérateurs : la
               // marque porte son propre fond.
@@ -346,20 +339,20 @@ class _MethodTile extends StatelessWidget {
               ),
               clipBehavior: Clip.antiAlias,
               child: Padding(
-                padding: const EdgeInsets.all(3),
+                padding: const EdgeInsets.all(4),
                 child: Image.asset(asset, fit: BoxFit.contain),
               ),
             )
           else
             Container(
-              width: 38,
-              height: 38,
+              width: 52,
+              height: 52,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: AppColors.gold,
                 borderRadius: BorderRadius.circular(AppRadius.input),
               ),
-              child: Icon(_icon, size: 20, color: AppColors.kora),
+              child: Icon(_icon, size: 26, color: AppColors.kora),
             ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
@@ -377,18 +370,6 @@ class _MethodTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(lead, style: AppTextStyles.body(koraColors.textMuted)),
-                if (logos) ...[
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      for (final network in OperatorBadge.logoNetworks)
-                        Padding(
-                          padding: const EdgeInsets.only(right: 6),
-                          child: OperatorBadge(network: network, size: 26),
-                        ),
-                    ],
-                  ),
-                ],
               ],
             ),
           ),

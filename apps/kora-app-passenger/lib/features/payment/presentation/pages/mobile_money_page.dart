@@ -193,8 +193,23 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
     if (country != null) _onCountryChanged(country);
   }
 
+  /// La seule marque servie par la passerelle, s'il n'y en a qu'une.
+  ///
+  /// MTN MoMo en direct ne débite que MTN : la liste des opérateurs s'y
+  /// réduisait à une vignette, qu'il fallait pourtant toucher avant de
+  /// pouvoir payer. Le voyageur a déjà choisi sa passerelle sur l'écran
+  /// d'avant — on ne la lui fait pas rechoisir sous un autre nom.
+  String? _soleBrand(BuildContext context) {
+    final brands = _gateway(context)?.networkBrands ?? const <String>[];
+    return brands.length == 1 ? brands.first : null;
+  }
+
+  /// La marque retenue : celle que le voyageur a touchée, ou la seule
+  /// que sa passerelle sache débiter.
+  String? get _chosenOperator => _operator ?? _soleBrand(context);
+
   String? get _operatorError =>
-      _operator == null ? context.l10n.paymentMomoOperatorRequired : null;
+      _chosenOperator == null ? context.l10n.paymentMomoOperatorRequired : null;
 
   /// Vrai quand la saisie suffit à lancer la demande.
   ///
@@ -293,13 +308,14 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
     // l'indicatif composé. Envoyer `moov_flooz` avec un numéro ivoirien
     // ferait débiter un compte dans le mauvais pays — le serveur déduit
     // le pays du réseau, pas du numéro.
-    final network = provider.networkFor(_operator!, _countryCode);
+    final operator = _chosenOperator!;
+    final network = provider.networkFor(operator, _countryCode);
     if (network == null) {
       setState(() => _showErrors = true);
       KoraToaster.show(
         context,
         context.l10n.paymentMomoNetworkCountry(
-          mobileMoneyLabel(_operator!),
+          mobileMoneyLabel(operator),
           _country.name,
         ),
       );
@@ -563,16 +579,24 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
                     // de choisir par où il paie.
                     PaymentAmountCard(total: args.total.formatted),
                     const SizedBox(height: AppSpacing.md),
-                    SectionTitle(title: l10n.paymentMomoOperator),
                     BlocBuilder<PaymentCatalogBloc, PaymentCatalogState>(
                       builder: (context, catalog) {
                         if (!catalog.hasMobileMoney) {
-                          return KoraCard(
-                            variant: KoraCardVariant.mist,
-                            child: Text(
-                              _hint(context, catalog),
-                              style: AppTextStyles.body(koraColors.textMuted),
-                            ),
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              SectionTitle(title: l10n.paymentMomoOperator),
+                              KoraCard(
+                                variant: KoraCardVariant.mist,
+                                child: Text(
+                                  _hint(context, catalog),
+                                  style: AppTextStyles.body(
+                                    koraColors.textMuted,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.md),
+                            ],
                           );
                         }
 
@@ -584,6 +608,13 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
                             _gateway(context)?.networkBrands ??
                             const <String>[];
 
+                        // Une seule marque servie : il n'y a rien à
+                        // choisir. L'écran se réduit au numéro à débiter,
+                        // et la marque part quand même avec la demande.
+                        if (brands.length <= 1) {
+                          return const SizedBox.shrink();
+                        }
+
                         // Deux par ligne : en colonne, les six
                         // opérateurs repoussaient le champ du numéro
                         // sous le pli, et le voyageur appuyait sur
@@ -591,6 +622,7 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
+                            SectionTitle(title: l10n.paymentMomoOperator),
                             for (var row = 0; row < brands.length; row += 2)
                               Padding(
                                 padding: const EdgeInsets.only(
@@ -641,11 +673,11 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
                                   ),
                                 ),
                               ),
+                            const SizedBox(height: AppSpacing.md),
                           ],
                         );
                       },
                     ),
-                    const SizedBox(height: AppSpacing.md),
                     LabelledField(
                       label: l10n.paymentMomoPhone,
                       // Le message sous le bloc entier, pas sous le seul

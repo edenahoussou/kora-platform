@@ -1090,10 +1090,11 @@ class AppRouter {
                 ),
               ],
             ),
-            // Colis : l'onglet s'ouvre sur l'accueil du module, et non
-            // plus sur un écran d'attente. Le parcours d'envoi qui s'y
-            // accroche est encore nourri de données figées — aucune
-            // requête ne part —, mais l'enchaînement, lui, est réel.
+            // Colis : la branche existe et l'écran est écrit, mais le
+            // module n'ouvre pas encore. L'onglet garde sa place dans la
+            // barre — en retirer un déplacerait tous les autres, et le
+            // voyageur perdrait ses repères pour rien — et c'est la barre
+            // qui refuse d'y mener.
             StatefulShellBranch(
               routes: [
                 GoRoute(
@@ -1127,6 +1128,9 @@ class AppRouter {
 
 /// L'onglet Voyages dans la barre du bas, dans l'ordre des branches.
 const int _voyagesBranch = 1;
+
+/// L'onglet Colis, présent dans la barre mais sans écran à ouvrir.
+const int _colisBranch = 2;
 
 /// Le `Scaffold` commun à tous les onglets : il porte la [KoraBottomNav]
 /// et affiche la branche active via [navigationShell].
@@ -1162,6 +1166,11 @@ class _ScaffoldWithNavBar extends StatelessWidget {
           ],
           currentIndex: navigationShell.currentIndex,
           onTap: (index) {
+            // Colis s'annonce sans s'ouvrir : tant que le module n'est pas
+            // livré, l'appui ne mène nulle part plutôt que sur un écran
+            // qu'on ne veut pas encore montrer.
+            if (index == _colisBranch) return;
+
             // Ouvrir Voyages relit les billets : l'émission suit le
             // paiement de quelques secondes, et la branche garde son
             // état — sans ça, le billet qu'on vient d'acheter n'y
