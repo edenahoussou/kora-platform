@@ -49,6 +49,7 @@ import '../../features/booking/presentation/bloc/seat_hold_bloc.dart';
 import '../../features/booking/presentation/bloc/seats_bloc.dart';
 import '../../features/booking/presentation/bloc/ticket_document_cubit.dart';
 import '../../features/booking/presentation/bloc/tickets_bloc.dart';
+import '../../features/colis/presentation/bloc/colis_draft_cubit.dart';
 import '../../features/home/presentation/bloc/home_bloc.dart';
 import '../../features/language/data/datasources/language_local_data_source.dart';
 import '../../features/language/data/repositories/language_repository_impl.dart';
@@ -370,6 +371,9 @@ void _registerBookingFeature() {
     () => CancelTicketCubit(getIt(), getIt()),
   );
 
+  // Un singleton : le brouillon survit aux cinq écrans du parcours
+  // d'envoi, et c'est tout son intérêt.
+  getIt.registerLazySingleton<ColisDraftCubit>(ColisDraftCubit.new);
   getIt.registerFactory<AssistanceRequestCubit>(
     () => AssistanceRequestCubit(getIt()),
   );

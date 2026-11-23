@@ -352,6 +352,500 @@ class AppLocalization {
   String get searchRoundtripSoon => translate('search_roundtrip_soon');
 
   // -------------------------------------------------------- écran Colis
+  String get colisNewShipment => translate('colis_new_shipment');
+  String colisStepOf(int step, int total) => _withArgs('colis_step_of', {
+    'step': step.toString(),
+    'total': total.toString(),
+  });
+  String colisProgress(int percent) =>
+      _withArgs('colis_progress', {'percent': percent.toString()});
+  String get colisStepRouteShort => translate('colis_step_route_short');
+  String colisPreviousStep(String step) =>
+      _withArgs('colis_previous_step', {'step': step});
+  String get colisBackToInfo => translate('colis_back_to_info');
+  String get colisCancel => translate('colis_cancel');
+  String get colisEdit => translate('colis_edit');
+  String colisAmount(int amount) =>
+      _withArgs('colis_amount', {'amount': _grouped(amount)});
+
+  /// Les milliers se séparent, comme sur la maquette : « 2 500 FCFA » se
+  /// lit d'un coup d'œil, « 2500 FCFA » se compte. L'espace est
+  /// insécable, sans quoi un montant se coupait en fin de ligne.
+  static String _grouped(int amount) {
+    final digits = amount.abs().toString();
+    final out = StringBuffer(amount < 0 ? '-' : '');
+
+    for (var i = 0; i < digits.length; i++) {
+      if (i != 0 && (digits.length - i) % 3 == 0) out.write('\u00A0');
+      out.write(digits[i]);
+    }
+
+    return out.toString();
+  }
+
+  String get colisWeightUnit => translate('colis_weight_unit');
+  String colisWeightValue(String weight) =>
+      _withArgs('colis_weight_value', {'weight': weight.toString()});
+  String colisWeightWithUnit(String weight) =>
+      _withArgs('colis_weight_with_unit', {'weight': weight.toString()});
+  String colisWeightDeclared(String weight) =>
+      _withArgs('colis_weight_declared', {'weight': weight.toString()});
+  String colisRange(String low, String high) => _withArgs('colis_range', {
+    'low': low.toString(),
+    'high': high.toString(),
+  });
+  String get colisStepRoute => translate('colis_step_route');
+  String get colisRouteTitle => translate('colis_route_title');
+  String get colisRouteSubtitle => translate('colis_route_subtitle');
+  String get colisRouteCta => translate('colis_route_cta');
+  String get colisRouteHint => translate('colis_route_hint');
+  String get colisOriginHub => translate('colis_origin_hub');
+  String get colisDestinationHub => translate('colis_destination_hub');
+  String get colisHubPlaceholder => translate('colis_hub_placeholder');
+  String get colisRouteUnservedTitle => translate('colis_route_unserved_title');
+  String get colisRouteUnservedText => translate('colis_route_unserved_text');
+  String get colisAutoAssignTitle => translate('colis_auto_assign_title');
+  String get colisAutoAssignText => translate('colis_auto_assign_text');
+  String get colisStepContent => translate('colis_step_content');
+  String get colisContentTitle => translate('colis_content_title');
+  String get colisContentSubtitle => translate('colis_content_subtitle');
+  String get colisContentCta => translate('colis_content_cta');
+  String get colisContentHint => translate('colis_content_hint');
+  String get colisSelectedRoute => translate('colis_selected_route');
+  String get colisContentLabel => translate('colis_content_label');
+  String get colisContentPlaceholder => translate('colis_content_placeholder');
+  String get colisContentHelp => translate('colis_content_help');
+  String get colisWeightLabel => translate('colis_weight_label');
+  String get colisWeighingTitle => translate('colis_weighing_title');
+  String get colisWeighingText => translate('colis_weighing_text');
+  String get colisStepContacts => translate('colis_step_contacts');
+  String get colisContactsTitle => translate('colis_contacts_title');
+  String get colisContactsSubtitle => translate('colis_contacts_subtitle');
+  String get colisContactsCta => translate('colis_contacts_cta');
+  String get colisContactsHint => translate('colis_contacts_hint');
+  String get colisSenderTitle => translate('colis_sender_title');
+  String get colisSenderSubtitle => translate('colis_sender_subtitle');
+  String get colisSenderTag => translate('colis_sender_tag');
+  String get colisSenderTag2 => translate('colis_sender_tag2');
+  String get colisSenderName => translate('colis_sender_name');
+  String get colisSenderPhone => translate('colis_sender_phone');
+  String get colisSenderPhoneHelp => translate('colis_sender_phone_help');
+  String get colisRecipientTitle => translate('colis_recipient_title');
+  String get colisRecipientSubtitle => translate('colis_recipient_subtitle');
+  String get colisRecipientTag => translate('colis_recipient_tag');
+  String get colisRecipientTag2 => translate('colis_recipient_tag2');
+  String get colisRecipientName => translate('colis_recipient_name');
+  String get colisRecipientNameHint => translate('colis_recipient_name_hint');
+  String get colisRecipientNameHelp => translate('colis_recipient_name_help');
+  String get colisRecipientPhone => translate('colis_recipient_phone');
+  String get colisIdentityTitle => translate('colis_identity_title');
+  String get colisIdentityText => translate('colis_identity_text');
+  String get colisPrivacyTitle => translate('colis_privacy_title');
+  String get colisPrivacyText => translate('colis_privacy_text');
+  String get colisAssignedByOps => translate('colis_assigned_by_ops');
+  String get colisIdentityAtPickup => translate('colis_identity_at_pickup');
+  String get colisPaymentAtHub => translate('colis_payment_at_hub');
+  String get colisIndicativeEstimate => translate('colis_indicative_estimate');
+  String get colisProvisionalTitle => translate('colis_provisional_title');
+  String get colisProvisionalText => translate('colis_provisional_text');
+  String get colisNextStepsTitle => translate('colis_next_steps_title');
+  String get colisNextStep1Title => translate('colis_next_step_1_title');
+  String colisNextStep1Text(String city) =>
+      _withArgs('colis_next_step_1_text', {'city': city});
+  String get colisNextStep2Title => translate('colis_next_step_2_title');
+  String get colisNextStep2Text => translate('colis_next_step_2_text');
+  String get colisNextStep3Title => translate('colis_next_step_3_title');
+  String get colisNextStep3Text => translate('colis_next_step_3_text');
+  String get colisPickupCodeTitle => translate('colis_pickup_code_title');
+  String get colisPickupCodeText => translate('colis_pickup_code_text');
+  String get colisStepSummary => translate('colis_step_summary');
+  String get colisSummaryTitle => translate('colis_summary_title');
+  String get colisSummarySubtitle => translate('colis_summary_subtitle');
+  String get colisSummaryCta => translate('colis_summary_cta');
+  String get colisSummaryHint => translate('colis_summary_hint');
+  String get colisCorridorTitle => translate('colis_corridor_title');
+  String get colisServiceLine => translate('colis_service_line');
+  String get colisContentCardTitle => translate('colis_content_card_title');
+  String get colisContactsCardTitle => translate('colis_contacts_card_title');
+  String get colisNatureLabel => translate('colis_nature_label');
+  String get colisDeclaredWeightLabel =>
+      translate('colis_declared_weight_label');
+  String get colisPackagingNote => translate('colis_packaging_note');
+  String get colisIndicativeTitle => translate('colis_indicative_title');
+  String colisIndicativeText(String low, String high) => _withArgs(
+    'colis_indicative_text',
+    {'low': low.toString(), 'high': high.toString()},
+  );
+  String get colisPreregisteredTitle => translate('colis_preregistered_title');
+  String get colisPreregisteredText => translate('colis_preregistered_text');
+  String get colisPreregisteredCta => translate('colis_preregistered_cta');
+  String get colisBackHome => translate('colis_back_home');
+  String get colisShipmentsSearch => translate('colis_shipments_search');
+  String get colisBackToParcels => translate('colis_back_to_parcels');
+  String get colisToDropOff => translate('colis_to_drop_off');
+  String get colisNoReferenceTitle => translate('colis_no_reference_title');
+  String get colisNoReferenceText => translate('colis_no_reference_text');
+  String get colisLinkTitle => translate('colis_link_title');
+  String get colisDirectDeparture => translate('colis_direct_departure');
+  String get colisSenderHub => translate('colis_sender_hub');
+  String get colisRecipientHub => translate('colis_recipient_hub');
+  String get colisNatureWeight => translate('colis_nature_weight');
+  String get colisIndicativeFare => translate('colis_indicative_fare');
+  String get colisFinalAtCounter => translate('colis_final_at_counter');
+  String get colisRotationNote => translate('colis_rotation_note');
+  String get colisComplianceTitle => translate('colis_compliance_title');
+  String get colisCompliance1 => translate('colis_compliance_1');
+  String get colisCompliance2 => translate('colis_compliance_2');
+  String get colisCounterOpen => translate('colis_counter_open');
+  String colisCounterHours(String hours) =>
+      _withArgs('colis_counter_hours', {'hours': hours});
+  String get colisCounterCall => translate('colis_counter_call');
+  String get colisCounterWhatsapp => translate('colis_counter_whatsapp');
+  String get colisCounterDirections => translate('colis_counter_directions');
+  String get colisAxisTitle => translate('colis_axis_title');
+  String get colisOriginHubLabel => translate('colis_origin_hub_label');
+  String get colisDestinationHubLabel =>
+      translate('colis_destination_hub_label');
+  String get colisNatureChecked => translate('colis_nature_checked');
+  String get colisVisualCompliance => translate('colis_visual_compliance');
+  String colisAgentRef(String agent) =>
+      _withArgs('colis_agent_ref', {'agent': agent});
+  String get colisWeighingGapNote => translate('colis_weighing_gap_note');
+  String get colisAcceptedMethods => translate('colis_accepted_methods');
+  String get colisMethodWallet => translate('colis_method_wallet');
+  String get colisMethodMtnMomo => translate('colis_method_mtn_momo');
+  String get colisMethodMomo => translate('colis_method_momo');
+  String get colisMethodCardShort => translate('colis_method_card_short');
+  String colisCounterSupport(String counter) =>
+      _withArgs('colis_counter_support', {'counter': counter});
+  String colisProtocolSteps(int count) =>
+      _withArgs('colis_protocol_steps', {'count': count});
+  String get colisProtocolTitle => translate('colis_protocol_title');
+  String get colisProtocolStep1Title => translate('colis_protocol_step1_title');
+  String colisProtocolStep1Text(String counter) =>
+      _withArgs('colis_protocol_step1_text', {'counter': counter.toString()});
+  String get colisProtocolStep2Title => translate('colis_protocol_step2_title');
+  String get colisProtocolStep2Text => translate('colis_protocol_step2_text');
+  String get colisProtocolStep3Title => translate('colis_protocol_step3_title');
+  String get colisProtocolStep3Text => translate('colis_protocol_step3_text');
+  String get colisProtocolStep4Title => translate('colis_protocol_step4_title');
+  String get colisProtocolStep4Text => translate('colis_protocol_step4_text');
+  String get colisWeightCertifiedTag => translate('colis_weight_certified_tag');
+  String get colisWeightUpdated => translate('colis_weight_updated');
+  String get colisWeighedTitle => translate('colis_weighed_title');
+  String get colisWeighedText => translate('colis_weighed_text');
+  String get colisWeighingCardTitle => translate('colis_weighing_card_title');
+  String colisWeightGap(String gap) =>
+      _withArgs('colis_weight_gap', {'gap': gap});
+  String get colisCertifiedWeightLabel =>
+      translate('colis_certified_weight_label');
+  String get colisDeclaredOnline => translate('colis_declared_online');
+  String get colisCertifiedScale => translate('colis_certified_scale');
+  String get colisReclassifiedText => translate('colis_reclassified_text');
+  String get colisControlledBy => translate('colis_controlled_by');
+  String get colisPricingTitle => translate('colis_pricing_title');
+  String get colisPaymentExpected => translate('colis_payment_expected');
+  String colisTransportFee(String city, String weight) =>
+      _withArgs('colis_transport_fee', {'city': city, 'weight': weight});
+  String get colisPackagingFee => translate('colis_packaging_fee');
+  String get colisSealFee => translate('colis_seal_fee');
+  String get colisInsuranceFee => translate('colis_insurance_fee');
+  String get colisInsuranceFree => translate('colis_insurance_free');
+  String get colisNetDue => translate('colis_net_due');
+  String get colisTaxesIncluded => translate('colis_taxes_included');
+  String get colisReferenceOnPaymentTitle =>
+      translate('colis_reference_on_payment_title');
+  String get colisReferenceOnPaymentText =>
+      translate('colis_reference_on_payment_text');
+  String colisPayFinalQuote(String amount) =>
+      _withArgs('colis_pay_final_quote', {'amount': amount});
+  String get colisQuoteCta => translate('colis_quote_cta');
+  String get colisQuoteHint => translate('colis_quote_hint');
+  String get colisQuoteIssued => translate('colis_quote_issued');
+  String get colisPaymentTitle => translate('colis_payment_title');
+  String colisPaymentSubtitle(String origin, String destination) => _withArgs(
+    'colis_payment_subtitle',
+    {'origin': origin, 'destination': destination},
+  );
+  String get colisTotalDue => translate('colis_total_due');
+  String get colisWalletTitle => translate('colis_wallet_title');
+  String colisWalletBalance(int amount) =>
+      _withArgs('colis_wallet_balance', {'amount': _grouped(amount)});
+  String get colisWalletApplied => translate('colis_wallet_applied');
+  String get colisRemainingDue => translate('colis_remaining_due');
+  String get colisOperators => translate('colis_operators');
+  String get colisRecommended => translate('colis_recommended');
+  String get colisMethodInstant => translate('colis_method_instant');
+  String get colisMethodUssd => translate('colis_method_ussd');
+  String get colisMethodCard => translate('colis_method_card');
+  String get colisPaymentMockTitle => translate('colis_payment_mock_title');
+  String get colisPaymentMockText => translate('colis_payment_mock_text');
+  String get colisCheckoutEyebrow => translate('colis_checkout_eyebrow');
+  String get colisGatewayMomoLead => translate('colis_gateway_momo_lead');
+  String colisGatewaySheetLead(String gateway) =>
+      _withArgs('colis_gateway_sheet_lead', {'gateway': gateway});
+  String colisCorridorTag(String origin, String destination) => _withArgs(
+    'colis_corridor_tag',
+    {'origin': origin, 'destination': destination},
+  );
+  String colisBalanceTag(String weight) =>
+      _withArgs('colis_balance_tag', {'weight': weight});
+  String get colisAfterPaymentNote => translate('colis_after_payment_note');
+  String colisTransactionId(String id) =>
+      _withArgs('colis_transaction_id', {'id': id});
+  String get colisSplitTitle => translate('colis_split_title');
+  String get colisSplitSettled => translate('colis_split_settled');
+  String colisSplitDetail(String transport, String seal) =>
+      _withArgs('colis_split_detail', {'transport': transport, 'seal': seal});
+  String get colisPushSent => translate('colis_push_sent');
+  String colisInitiatedAt(String time) =>
+      _withArgs('colis_initiated_at', {'time': time});
+  String colisSessionActive(int minutes) =>
+      _withArgs('colis_session_active', {'minutes': '$minutes'});
+  String colisParcelLine(String weight) =>
+      _withArgs('colis_parcel_line', {'weight': weight});
+  String get colisNoDoublePayTitle => translate('colis_no_double_pay_title');
+  String get colisNoDoublePayText => translate('colis_no_double_pay_text');
+  String get colisCheckStatus => translate('colis_check_status');
+  String get colisResendPush => translate('colis_resend_push');
+  String colisOperatorSupport(String phone) =>
+      _withArgs('colis_operator_support', {'phone': phone});
+  String get colisFailurePreview => translate('colis_failure_preview');
+  String get colisFailureTitle => translate('colis_failure_title');
+  String get colisFailureReason => translate('colis_failure_reason');
+  String get colisFailureText => translate('colis_failure_text');
+  String get colisPendingTag => translate('colis_pending_tag');
+  String get colisPendingTitle => translate('colis_pending_title');
+  String get colisPendingText => translate('colis_pending_text');
+  String get colisPendingSimulate => translate('colis_pending_simulate');
+  String get colisPendingSwitch => translate('colis_pending_switch');
+  String colisPayCta(int amount) =>
+      _withArgs('colis_pay_cta', {'amount': amount.toString()});
+  String colisPaymentContinue(String amount) =>
+      _withArgs('colis_payment_continue', {'amount': amount});
+  String get colisEditQuote => translate('colis_edit_quote');
+  String get colisShipmentValidated => translate('colis_shipment_validated');
+  String colisRegisteredAt(String city) =>
+      _withArgs('colis_registered_at', {'city': city});
+  String get colisWeighedSealed => translate('colis_weighed_sealed');
+  String get colisSecureCustody => translate('colis_secure_custody');
+  String get colisNextDeparture => translate('colis_next_departure');
+  String get colisSettlementTitle => translate('colis_settlement_title');
+  String get colisPaymentVerified => translate('colis_payment_verified');
+  String get colisAmountPaid => translate('colis_amount_paid');
+  String get colisDebitMethod => translate('colis_debit_method');
+  String get colisOfficialTimestamp => translate('colis_official_timestamp');
+  String get colisTransactionLabel => translate('colis_transaction_label');
+  String colisTodayAt(String time) =>
+      _withArgs('colis_today_at', {'time': time});
+  String colisTomorrowAt(String time) =>
+      _withArgs('colis_tomorrow_at', {'time': time});
+  String get colisTrackCta => translate('colis_track_cta');
+  String get colisReceiptDownload => translate('colis_receipt_download');
+  String get colisPaidTitle => translate('colis_paid_title');
+  String get colisPaidText => translate('colis_paid_text');
+  String get colisRefShort => translate('colis_ref_short');
+  String get colisOfficialReference => translate('colis_official_reference');
+  String get colisReceiptNote => translate('colis_receipt_note');
+  String get colisAssignedRoute => translate('colis_assigned_route');
+  String colisSealedAt(String city) =>
+      _withArgs('colis_sealed_at', {'city': city});
+  String colisPaidWeight(String weight) =>
+      _withArgs('colis_paid_weight', {'weight': weight});
+  String get colisShipmentsEyebrow => translate('colis_shipments_eyebrow');
+  String get colisTabActive => translate('colis_tab_active');
+  String get colisTabHistory => translate('colis_tab_history');
+  String get colisTabDrafts => translate('colis_tab_drafts');
+  String get colisTrackParcel => translate('colis_track_parcel');
+  String colisDroppedAt(String time) =>
+      _withArgs('colis_dropped_at', {'time': time});
+  String get colisPickupCodeSent => translate('colis_pickup_code_sent');
+  String get colisDetailsLive => translate('colis_details_live');
+  String get colisDraftPending => translate('colis_draft_pending');
+  String colisDraftNumber(String number) =>
+      _withArgs('colis_draft_number', {'number': number});
+  String colisIndicativeQuote(String amount) =>
+      _withArgs('colis_indicative_quote', {'amount': amount});
+  String get colisDraftHint => translate('colis_draft_hint');
+  String get colisDraftCancel => translate('colis_draft_cancel');
+  String get colisDraftFinish => translate('colis_draft_finish');
+  String get colisDelivered => translate('colis_delivered');
+  String colisCollectedOn(String date) =>
+      _withArgs('colis_collected_on', {'date': date});
+  String get colisReceipt => translate('colis_receipt');
+  String get colisEmptyTitle => translate('colis_empty_title');
+  String get colisEmptyText => translate('colis_empty_text');
+  String get colisTrackExternal => translate('colis_track_external');
+  String get colisTrackExternalHint => translate('colis_track_external_hint');
+  String get colisReferenceField => translate('colis_reference_field');
+  String get colisSearchStatus => translate('colis_search_status');
+  String get colisShipmentsTitle => translate('colis_shipments_title');
+  String colisSent(int count) =>
+      _withArgs('colis_sent', {'count': count.toString()});
+  String colisToReceive(int count) =>
+      _withArgs('colis_to_receive', {'count': count.toString()});
+  String get colisShipmentsEmpty => translate('colis_shipments_empty');
+  String colisStepOfTotal(int step, int total) => _withArgs(
+    'colis_step_of_total',
+    {'step': step.toString(), 'total': total.toString()},
+  );
+  String colisEtaShort(String time) =>
+      _withArgs('colis_eta_short', {'time': time});
+  String colisReadySince(String time) =>
+      _withArgs('colis_ready_since', {'time': time});
+  String get colisStatusSealed => translate('colis_status_sealed');
+  String get colisStatusTransit => translate('colis_status_transit');
+  String get colisStatusReady => translate('colis_status_ready');
+  String get colisStatusCollected => translate('colis_status_collected');
+  String get colisOfficialShipmentNo => translate('colis_official_shipment_no');
+  String get colisActive => translate('colis_active');
+  String get colisUpcoming => translate('colis_upcoming');
+  String get colisSecureSession => translate('colis_secure_session');
+  String colisRefreshedAgo(int minutes) =>
+      _withArgs('colis_refreshed_ago', {'minutes': '$minutes'});
+  String get colisRefresh => translate('colis_refresh');
+  String colisBusNumber(String number) =>
+      _withArgs('colis_bus_number', {'number': number});
+  String colisCheckpoint(String place) =>
+      _withArgs('colis_checkpoint', {'place': place});
+  String get colisNoIncident => translate('colis_no_incident');
+  String get colisMilestonesSource => translate('colis_milestones_source');
+  String get colisRecipientSection => translate('colis_recipient_section');
+  String get colisDeliveryProtocol => translate('colis_delivery_protocol');
+  String get colisDesignatedRecipient =>
+      translate('colis_designated_recipient');
+  String get colisMasked => translate('colis_masked');
+  String get colisPickupPlace => translate('colis_pickup_place');
+  String colisCounterUntil(String time) =>
+      _withArgs('colis_counter_until', {'time': time});
+  String get colisAntiImpersonation => translate('colis_anti_impersonation');
+  String get colisAntiImpersonationText =>
+      translate('colis_anti_impersonation_text');
+  String get colisIdentityAtCounter => translate('colis_identity_at_counter');
+  String get colisShowLabel => translate('colis_show_label');
+  String get colisShareTracking => translate('colis_share_tracking');
+  String colisLineSupport(String line) =>
+      _withArgs('colis_line_support', {'line': line});
+  String get colisConvoyDesk => translate('colis_convoy_desk');
+  String get colisReportIncident => translate('colis_report_incident');
+  String get colisWaybillRef => translate('colis_waybill_ref');
+  String get colisDeliveryConditions => translate('colis_delivery_conditions');
+  String colisConditionsCount(int count) =>
+      _withArgs('colis_conditions_count', {'count': '$count'});
+  String get colisCondition1Title => translate('colis_condition_1_title');
+  String get colisCondition1Text => translate('colis_condition_1_text');
+  String get colisCondition2Title => translate('colis_condition_2_title');
+  String get colisCondition2Text => translate('colis_condition_2_text');
+  String get colisCondition3Title => translate('colis_condition_3_title');
+  String get colisCondition3Text => translate('colis_condition_3_text');
+  String get colisCodeSentTo => translate('colis_code_sent_to');
+  String get colisNoCodeHere => translate('colis_no_code_here');
+  String get colisFreeKeeping => translate('colis_free_keeping');
+  String colisFreeKeepingDays(int days) =>
+      _withArgs('colis_free_keeping_days', {'days': '$days'});
+  String colisReceivedOn(String date) =>
+      _withArgs('colis_received_on', {'date': date});
+  String colisKeepUntil(String date) =>
+      _withArgs('colis_keep_until', {'date': date});
+  String get colisSealedDetails => translate('colis_sealed_details');
+  String get colisArrivalCheckOk => translate('colis_arrival_check_ok');
+  String get colisSender => translate('colis_sender');
+  String get colisSealNumber => translate('colis_seal_number');
+  String get colisSharePublic => translate('colis_share_public');
+  String get colisSharePublicText => translate('colis_share_public_text');
+  String get colisShareLink => translate('colis_share_link');
+  String get colisLinkCopied => translate('colis_link_copied');
+  String get colisDirections => translate('colis_directions');
+  String colisFreeKeepingText(String until, String fee) =>
+      _withArgs('colis_free_keeping_text', {'until': until, 'fee': fee});
+  String colisNeedHelp(String phone) =>
+      _withArgs('colis_need_help', {'phone': phone});
+  String get colisIncidentEyebrow => translate('colis_incident_eyebrow');
+  String get colisIncidentTitle => translate('colis_incident_title');
+  String get colisIncidentLead => translate('colis_incident_lead');
+  String get colisCertifiedParcel => translate('colis_certified_parcel');
+  String get colisTrackingNumber => translate('colis_tracking_number');
+  String get colisIncidentReasonLabel =>
+      translate('colis_incident_reason_label');
+  String get colisIncidentSingleChoice =>
+      translate('colis_incident_single_choice');
+  String get colisReasonLossTitle => translate('colis_reason_loss_title');
+  String get colisReasonLossText => translate('colis_reason_loss_text');
+  String get colisReasonDamageTitle => translate('colis_reason_damage_title');
+  String get colisReasonDamageText => translate('colis_reason_damage_text');
+  String get colisReasonCustodyTitle => translate('colis_reason_custody_title');
+  String get colisReasonCustodyText => translate('colis_reason_custody_text');
+  String get colisIncidentDescriptionLabel =>
+      translate('colis_incident_description_label');
+  String get colisIncidentDescriptionHint =>
+      translate('colis_incident_description_hint');
+  String get colisIncidentDescriptionHelp =>
+      translate('colis_incident_description_help');
+  String get colisGuaranteeTitle => translate('colis_guarantee_title');
+  String get colisGuaranteeText => translate('colis_guarantee_text');
+  String get colisIncidentSend => translate('colis_incident_send');
+  String get colisIncidentSent => translate('colis_incident_sent');
+  String get colisClaimSample => translate('colis_claim_sample');
+  String get colisClaimOpened => translate('colis_claim_opened');
+  String get colisClaimsSupport => translate('colis_claims_support');
+  String colisClaimOpenedText(String corridor) =>
+      _withArgs('colis_claim_opened_text', {'corridor': corridor});
+  String colisClaimContact(String name) =>
+      _withArgs('colis_claim_contact', {'name': name});
+  String get colisTrackingTitle => translate('colis_tracking_title');
+  String get colisDeparture => translate('colis_departure');
+  String get colisArrival => translate('colis_arrival');
+  String colisLineTag(String line) =>
+      _withArgs('colis_line_tag', {'line': line});
+  String get colisEtaLabel => translate('colis_eta_label');
+  String colisEtaToday(String time) =>
+      _withArgs('colis_eta_today', {'time': time});
+  String colisEtaSource(String line) =>
+      _withArgs('colis_eta_source', {'line': line});
+  String colisCertifiedAt(String weight) =>
+      _withArgs('colis_certified_at', {'weight': weight});
+  String get colisMilestonesTitle => translate('colis_milestones_title');
+  String get colisMilestoneSealed => translate('colis_milestone_sealed');
+  String get colisMilestoneLoaded => translate('colis_milestone_loaded');
+  String get colisMilestoneTransit => translate('colis_milestone_transit');
+  String get colisMilestoneArrived => translate('colis_milestone_arrived');
+  String get colisMilestoneCollected => translate('colis_milestone_collected');
+  String get colisPickupCta => translate('colis_pickup_cta');
+  String get colisPickupTitle => translate('colis_pickup_title');
+  String get colisArrivedTitle => translate('colis_arrived_title');
+  String get colisArrivedText => translate('colis_arrived_text');
+  String get colisCounterTitle => translate('colis_counter_title');
+  String get colisWeekdays => translate('colis_weekdays');
+  String get colisWeekend => translate('colis_weekend');
+  String get colisBringTitle => translate('colis_bring_title');
+  String get colisBringText => translate('colis_bring_text');
+  String get colisParcelTitle => translate('colis_parcel_title');
+  String get colisNatureField => translate('colis_nature_field');
+  String get colisNatureClothing => translate('colis_nature_clothing');
+  String get colisNatureDocuments => translate('colis_nature_documents');
+  String get colisNatureElectronics => translate('colis_nature_electronics');
+  String get colisNatureOther => translate('colis_nature_other');
+  String get colisDeclaredValue => translate('colis_declared_value');
+  String get colisDeclaredValueHint => translate('colis_declared_value_hint');
+  String get colisDeclaredValueHelp => translate('colis_declared_value_help');
+  String get colisSecurityProtocolTitle =>
+      translate('colis_security_protocol_title');
+  String get colisSecurityProtocolText =>
+      translate('colis_security_protocol_text');
+  String get colisForbiddenLead => translate('colis_forbidden_lead');
+  String get colisForbidden1 => translate('colis_forbidden_1');
+  String get colisForbidden2 => translate('colis_forbidden_2');
+  String get colisForbidden3 => translate('colis_forbidden_3');
+  String get colisForbidden4 => translate('colis_forbidden_4');
+  String get colisForbidden5 => translate('colis_forbidden_5');
+  String get colisCertifyLabel => translate('colis_certify_label');
+  String get colisCertifyRequired => translate('colis_certify_required');
+  String get colisTraceabilityText => translate('colis_traceability_text');
+  String get colisForbiddenTitle => translate('colis_forbidden_title');
+  String get colisForbiddenText => translate('colis_forbidden_text');
+  String get colisHubSheetTitle => translate('colis_hub_sheet_title');
+  String colisHubSheetSubtitle(String city) =>
+      _withArgs('colis_hub_sheet_subtitle', {'city': city});
   String get parcelsEyebrow => translate('parcels_eyebrow');
   String get parcelsTitle => translate('parcels_title');
   String get parcelsHelp => translate('parcels_help');
@@ -359,6 +853,28 @@ class AppLocalization {
   String get parcelsHeroTitle => translate('parcels_hero_title');
   String get parcelsHeroText => translate('parcels_hero_text');
   String get parcelsReferenceLabel => translate('parcels_reference_label');
+  String get parcelsReferenceCaption => translate('parcels_reference_caption');
+  String parcelsActiveTitle(int count) =>
+      _withArgs('parcels_active_title', {'count': '$count'});
+  String get parcelsSeeAll => translate('parcels_see_all');
+  String parcelsLine(String line) => _withArgs('parcels_line', {'line': line});
+  String get parcelsStepDropped => translate('parcels_step_dropped');
+  String get parcelsStepTransit => translate('parcels_step_transit');
+  String parcelsStepHub(String city) =>
+      _withArgs('parcels_step_hub', {'city': city});
+  String parcelsStepDeparted(String time) =>
+      _withArgs('parcels_step_departed', {'time': time});
+  String parcelsStepPlanned(String time) =>
+      _withArgs('parcels_step_planned', {'time': time});
+  String get parcelsLastUpdate => translate('parcels_last_update');
+  String parcelsLastUpdateValue(String time) =>
+      _withArgs('parcels_last_update_value', {'time': time});
+  String get parcelsEta => translate('parcels_eta');
+  String parcelsEtaValue(String time) =>
+      _withArgs('parcels_eta_value', {'time': time});
+  String get parcelsWithdrawalNote => translate('parcels_withdrawal_note');
+  String get parcelsDetailsCta => translate('parcels_details_cta');
+  String get parcelsReferenceCopied => translate('parcels_reference_copied');
   String get parcelsReferenceHint => translate('parcels_reference_hint');
   String get parcelsScan => translate('parcels_scan');
   String get parcelsTrackCta => translate('parcels_track_cta');
@@ -673,6 +1189,12 @@ class AppLocalization {
   String get cityPickerOriginTitle => translate('city_picker_origin_title');
   String get cityPickerDestinationTitle =>
       translate('city_picker_destination_title');
+  String get cityPickerParcelEyebrow => translate('city_picker_parcel_eyebrow');
+  String get cityPickerParcelOriginTitle =>
+      translate('city_picker_parcel_origin_title');
+  String get cityPickerParcelDestinationTitle =>
+      translate('city_picker_parcel_destination_title');
+  String get cityPickerParcelStop => translate('city_picker_parcel_stop');
   String get cityPickerSearch => translate('city_picker_search');
   String get cityPickerSuggestions => translate('city_picker_suggestions');
   String get cityPickerRecent => translate('city_picker_recent');

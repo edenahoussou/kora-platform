@@ -1,17 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../core/di/injector.dart';
 import '../../../../core/l10n/app_localization.dart';
+import '../../../../core/router/app_router.dart';
+import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/brand_mini.dart';
 import '../../../../core/widgets/screen_header.dart';
+import '../../data/datasources/colis_mock_data.dart';
+import '../bloc/colis_draft_cubit.dart';
+import '../widgets/colis_surface.dart';
 
-/// Écran `parcel-search` de la maquette — l'onglet « Colis » : suivre un
-/// envoi par sa référence, en créer un, et retrouver les envois en cours.
+/// Écran 01 de la maquette KORA Colis — l'accueil de l'onglet : suivre un
+/// envoi par sa référence, en ouvrir un nouveau, et voir où en sont ceux
+/// qui roulent.
 ///
-/// Les données sont figées ici : la feature `parcel` n'existe pas encore
-/// (aucun domaine, aucun repository). L'écran est complet visuellement et
-/// se branchera sur une vraie source sans changer de forme, comme l'a fait
-/// le parcours Bus.
+/// Les données sont figées dans [kMockColisShipments] : le socle serveur
+/// existe (ADR 0028) mais l'OpenAPI mobile ne publie encore aucun endpoint
+/// `parcel`. L'écran se branchera sur une vraie source sans changer de
+/// forme, comme l'a fait le parcours Bus.
 class ColisPage extends StatefulWidget {
   const ColisPage({super.key});
 
@@ -55,9 +64,12 @@ class _ColisPageState extends State<ColisPage> {
                 leading: const BrandMini(),
                 eyebrow: l10n.parcelsEyebrow,
                 title: l10n.parcelsTitle,
+                // La cloche de la maquette, et non une icône d'aide :
+                // l'écran de notifications existe déjà, celui de l'aide
+                // Colis non.
                 action: KoraIconButton(
-                  icon: Icons.help_outline_rounded,
-                  onTap: () => KoraToaster.show(context, l10n.parcelsHelp),
+                  icon: Icons.notifications_none_rounded,
+                  onTap: () => context.push(AppRouter.notificationsPath),
                 ),
               ),
               Expanded(
@@ -81,18 +93,50 @@ class _ColisPageState extends State<ColisPage> {
                       ),
                     ),
                     const SizedBox(height: 9),
-                    _CreateCta(onTap: _soon),
+                    _CreateCta(
+                      onTap: () {
+                        // Le brouillon repart de zéro à chaque envoi,
+                        // mais garde le déposant : c'est le compte.
+                        //
+                        // Pris au conteneur, et non au contexte :
+                        // l'accueil vit dans la coquille à onglets, hors
+                        // du fournisseur qui couvre les cinq écrans du
+                        // parcours.
+                        getIt<ColisDraftCubit>().start(
+                          senderName: 'Koffi MENSAH',
+                          senderPhone: '+229 97 12 34 45',
+                        );
+                        context.push(AppRouter.colisRoutePath);
+                      },
+                    ),
                     const SizedBox(height: 18),
-                    _SectionHead(
-                      eyebrow: l10n.parcelsRecentEyebrow,
-                      title: l10n.parcelsRecentTitle,
-                      actionLabel: l10n.actionSeeAll,
-                      onAction: _soon,
+                    _ActiveHead(
+                      count: kMockColisShipments.length,
+                      onSeeAll: () =>
+                          context.push(AppRouter.colisShipmentsPath),
                     ),
                     const SizedBox(height: 9),
-                    _ActiveParcelCard(onTap: _soon),
-                    const SizedBox(height: 9),
-                    _HelpLink(onTap: _soon),
+                    for (final shipment in kMockColisShipments)
+                      _ShipmentCard(
+                        shipment: shipment,
+                        onDetails: () => context.push(
+                          AppRouter.colisTrackingPath,
+                          extra: shipment.reference,
+                        ),
+                      ),
+                    // Ce qui vaut pour tous les envois, et qu'on ne lit
+                    // nulle part ailleurs : où l'on dépose, où l'on
+                    // retire, et ce qu'il faut présenter.
+                    const SizedBox(height: 6),
+                    ColisNote(
+                      icon: Icons.verified_user_outlined,
+                      title: l10n.colisSecurityProtocolTitle,
+                      message: l10n.colisSecurityProtocolText,
+                    ),
+                    // Le bouton d'assistance flotte à 84 px du bord :
+                    // sans cette marge, il recouvrait cette carte une
+                    // fois la liste arrivée en bout de course.
+                    const SizedBox(height: 104),
                   ],
                 ),
               ),
@@ -148,37 +192,47 @@ class _Hero extends StatelessWidget {
       // texte et ressemble à un projecteur rectangulaire.
       child: Stack(
         children: [
+          // Le corridor en fond : la carte annonce un acheminement, et
+          // une image le dit avant le texte.
+          //
+          // À demi-transparente, pour que le navy de la carte remonte
+          // au travers : à pleine opacité, le ciel et le parvis
+          // passaient sous le surtitre doré et l'accroche blanche, qui
+          // ne se lisaient plus. C'est le fond qui doit céder devant le
+          // texte, pas l'inverse.
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.45,
+              child: Image.asset(
+                'assets/images/colis_hero.jpg',
+                fit: BoxFit.cover,
+                alignment: Alignment.centerRight,
+                // Le navy du thème reste derrière : si l'image manque,
+                // la carte garde sa couleur plutôt que de virer au
+                // blanc.
+                errorBuilder: (context, error, stack) =>
+                    const SizedBox.shrink(),
+              ),
+            ),
+          ),
           // `radial-gradient(circle at 95% 0, rgba(0,87,184,.42),
-          // transparent 43%)` : le halo bleu du coin haut droit.
+          // transparent 43%)` : le halo bleu du coin haut droit, posé
+          // par-dessus l'image pour la teinter sans l'effacer.
           const Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
                 gradient: RadialGradient(
                   center: Alignment(0.9, -1),
                   radius: 0.86,
-                  colors: [Color(0x6B0057B8), Colors.transparent],
+                  colors: [Color(0x260057B8), Colors.transparent],
                 ),
               ),
             ),
           ),
-          // `.parcel-route-art { right: -12px; top: 24px }`
-          const Positioned(right: -12, top: 24, child: _RouteArt()),
-          // `.parcel-hero::after` : le biseau doré.
-          Positioned(
-            right: -75,
-            bottom: 37,
-            child: Transform.rotate(
-              angle: -27 * 3.1415926535 / 180,
-              child: Container(
-                width: 230,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: AppColors.gold,
-                  borderRadius: BorderRadius.circular(AppRadius.pill),
-                ),
-              ),
-            ),
-          ),
+          // L'orbite et le biseau de la maquette CSS ne sont plus
+          // peints : ils tenaient lieu d'illustration tant que le fond
+          // était uni. Sur l'image, l'orbite se posait sur l'agence et
+          // le biseau barrait les colis.
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 19, vertical: 21),
             child: Column(
@@ -201,14 +255,16 @@ class _Hero extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 7),
-                // `max-width: 190px` : le texte passe à la ligne plutôt
-                // que de courir sous l'orbite, à droite de la carte.
+                // La maquette CSS disait `max-width: 190px`, quand le
+                // fond était uni. Sur l'image, la première ligne allait
+                // alors mourir dans le phare du fourgon, qui commence
+                // vers 162 : 145 la coupe un mot plus tôt, bien avant.
                 SizedBox(
-                  width: 190,
+                  width: 145,
                   child: Text(
                     l10n.parcelsHeroText,
                     style: TextStyle(
-                      color: AppColors.white.withValues(alpha: 0.62),
+                      color: AppColors.white.withValues(alpha: 0.74),
                       fontSize: 11,
                       height: 1.4,
                     ),
@@ -216,78 +272,6 @@ class _Hero extends StatelessWidget {
                 ),
               ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// `.parcel-route-art` : trois cercles concentriques, trois escales et le
-/// K en filigrane.
-class _RouteArt extends StatelessWidget {
-  const _RouteArt();
-
-  @override
-  Widget build(BuildContext context) {
-    Widget ring(double inset, double alpha) => Positioned.fill(
-      child: Padding(
-        padding: EdgeInsets.all(inset),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: AppColors.white.withValues(alpha: alpha)),
-          ),
-        ),
-      ),
-    );
-
-    Widget stop({required Color border}) => Container(
-      width: 7,
-      height: 7,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: AppColors.kora,
-        border: Border.all(color: border, width: 2),
-      ),
-    );
-
-    return SizedBox(
-      width: 118,
-      height: 118,
-      child: Stack(
-        children: [
-          ring(0, 0.1),
-          ring(17, 0.08),
-          ring(38, 0.08),
-          // `.parcel-route-art b { left: 48px; top: 47px; font-size: 37px }`
-          // — le K n'est pas centré sur les cercles : il est posé plus
-          // bas et déborde du petit cercle central. Pas de `height`
-          // forcée : la hauteur de ligne par défaut reproduit celle du
-          // navigateur, dont ces coordonnées dépendent.
-          Positioned(
-            left: 48,
-            top: 47,
-            child: Text(
-              'K',
-              style: TextStyle(
-                color: AppColors.white.withValues(alpha: 0.12),
-                fontSize: 37,
-                fontStyle: FontStyle.italic,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ),
-          Positioned(
-            left: 14,
-            bottom: 27,
-            child: stop(border: AppColors.white),
-          ),
-          Positioned(left: 48, top: 18, child: stop(border: AppColors.white)),
-          Positioned(
-            right: 12,
-            bottom: 35,
-            child: stop(border: AppColors.gold),
           ),
         ],
       ),
@@ -317,8 +301,9 @@ class _SearchBox extends StatelessWidget {
       padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
         color: koraColors.surface,
-        borderRadius: BorderRadius.circular(19),
-        border: Border.all(color: koraColors.line),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        // Cette carte-ci flotte au-dessus du bandeau : elle garde son
+        // ombre portée, plus marquée que celle des cartes de contenu.
         boxShadow: [
           BoxShadow(
             color: AppColors.kora.withValues(alpha: isDark ? 0.33 : 0.11),
@@ -331,24 +316,54 @@ class _SearchBox extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            l10n.parcelsReferenceLabel.toUpperCase(),
-            style: AppTextStyles.eyebrow(koraColors.textMuted),
+          Row(
+            children: [
+              Icon(
+                Icons.search_rounded,
+                size: 15,
+                color: context.koraTitleColor,
+              ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  l10n.parcelsReferenceLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: context.koraTitleColor,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              // La maquette précise à droite ce que le champ accepte :
+              // le numéro d'envoi, mais aussi celui du récépissé remis
+              // au guichet. Les deux textes plient plutôt que de pousser
+              // la ligne hors de l'écran sur un petit téléphone.
+              Flexible(
+                child: Text(
+                  l10n.parcelsReferenceCaption,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.end,
+                  style: AppTextStyles.caption(koraColors.textMuted),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 7),
-          Container(
-            height: 44,
-            padding: const EdgeInsets.symmetric(horizontal: 7),
-            decoration: BoxDecoration(
-              color: koraColors.background,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: koraColors.line),
-            ),
-            child: Row(
-              children: [
-                const _ScanIcon(),
-                const SizedBox(width: 6),
-                Expanded(
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  height: 44,
+                  padding: const EdgeInsets.symmetric(horizontal: 13),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: koraColors.background,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
                   child: TextField(
                     controller: controller,
                     textCapitalization: TextCapitalization.characters,
@@ -369,34 +384,39 @@ class _SearchBox extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 4),
-                // `.parcel-search-box label button` : le carré doré du
-                // scan, dans le champ lui-même.
-                Material(
-                  color: AppColors.gold.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(8),
-                  child: InkWell(
-                    onTap: onScan,
-                    borderRadius: BorderRadius.circular(8),
-                    child: SizedBox(
-                      width: 28,
-                      height: 28,
-                      child: Icon(
-                        Icons.qr_code_scanner_rounded,
-                        size: 16,
-                        color: isDark ? koraColors.textPrimary : AppColors.kora,
-                      ),
+              ),
+              const SizedBox(width: 8),
+              // Le scan est un bouton à part, carré, à côté du champ :
+              // logé dedans, il rognait la saisie et se confondait avec
+              // un pictogramme décoratif.
+              Material(
+                color: koraColors.background,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                child: InkWell(
+                  onTap: onScan,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  child: SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: Icon(
+                      Icons.qr_code_scanner_rounded,
+                      size: 20,
+                      color: context.koraTitleColor,
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
           const SizedBox(height: 9),
+          // Discret, et non doré : la maquette ne garde qu'une action
+          // dominante par écran, et c'est « Nouvel envoi » juste en
+          // dessous. Deux pavés dorés l'un sur l'autre ne laissaient
+          // plus voir lequel était le geste principal.
           KoraButton(
             label: l10n.parcelsTrackCta,
+            variant: KoraButtonVariant.secondary,
             icon: Icons.arrow_forward_rounded,
-            iconPosition: KoraButtonIconPosition.edges,
             onPressed: onTrack,
           ),
         ],
@@ -405,35 +425,11 @@ class _SearchBox extends StatelessWidget {
   }
 }
 
-/// `.parcel-scan-icon` : le petit rectangle avec sa ligne de scan dorée.
-class _ScanIcon extends StatelessWidget {
-  const _ScanIcon();
-
-  @override
-  Widget build(BuildContext context) {
-    final koraColors = context.koraColors;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final border = isDark ? koraColors.textPrimary : AppColors.kora;
-
-    return Container(
-      width: 19,
-      height: 17,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(3),
-        border: Border.all(color: border.withValues(alpha: 0.72), width: 1.5),
-      ),
-      child: Container(width: 11, height: 1, color: AppColors.gold),
-    );
-  }
-}
-
-/// `.parcel-create-cta` : la ligne « Envoyer un nouveau colis », avec son
-/// carré doré.
+/// « Nouvel envoi » : la seule action dorée de l'écran.
 ///
-/// Volontairement pas un [KoraMenuList] d'un seul élément : la maquette
-/// lui donne un pictogramme **doré** (`background: var(--gold)`) là où une
-/// liste de menu porte un carré neutre.
+/// La maquette en fait une carte pleine, pas une ligne de liste : c'est
+/// l'entrée du parcours d'envoi, et elle doit se voir avant les envois
+/// déjà partis.
 class _CreateCta extends StatelessWidget {
   const _CreateCta({required this.onTap});
 
@@ -442,22 +438,18 @@ class _CreateCta extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final koraColors = context.koraColors;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final strong = isDark ? koraColors.textPrimary : AppColors.kora;
 
+    // La carte est dorée dans les deux thèmes : le navy du texte se lit
+    // sur l'or, de jour comme de nuit, et c'est la seule action de
+    // l'écran qui doit sauter aux yeux.
     return Material(
-      color: koraColors.surface,
+      color: AppColors.gold,
       borderRadius: BorderRadius.circular(15),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(15),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: koraColors.line),
-          ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           child: Row(
             children: [
               Container(
@@ -465,13 +457,193 @@ class _CreateCta extends StatelessWidget {
                 height: 32,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: AppColors.gold,
+                  color: AppColors.kora,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(
                   Icons.add_rounded,
                   size: 19,
+                  color: AppColors.white,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      l10n.parcelsCreateTitle,
+                      style: const TextStyle(
+                        color: AppColors.kora,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      l10n.parcelsCreateSubtitle,
+                      style: TextStyle(
+                        color: AppColors.kora.withValues(alpha: 0.72),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Container(
+                width: 24,
+                height: 24,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.kora.withValues(alpha: 0.12),
+                ),
+                child: const Icon(
+                  Icons.chevron_right_rounded,
+                  size: 17,
                   color: AppColors.kora,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Le titre de la section des envois, et le lien vers la liste.
+///
+/// Le compte est dans le titre : « Envois en cours (1) » dit d'un coup
+/// qu'il y a quelque chose à surveiller, là où un surtitre « Activité
+/// récente » laissait la question ouverte.
+class _ActiveHead extends StatelessWidget {
+  const _ActiveHead({required this.count, required this.onSeeAll});
+
+  final int count;
+  final VoidCallback onSeeAll;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Flexible(
+          child: Text(
+            l10n.parcelsActiveTitle(count),
+            style: TextStyle(
+              color: context.koraTitleColor,
+              fontSize: 15,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+        TextButton(
+          onPressed: onSeeAll,
+          style: TextButton.styleFrom(
+            padding: EdgeInsets.zero,
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          child: Text(l10n.parcelsSeeAll),
+        ),
+      ],
+    );
+  }
+}
+
+/// Un envoi en cours : son état, son trajet, et où il en est.
+///
+/// Les trois étapes ne sont pas décoratives — elles portent la promesse
+/// du module : le voyageur sait, sans appeler personne, que son colis est
+/// parti et quand il sera retirable.
+class _ShipmentCard extends StatelessWidget {
+  const _ShipmentCard({required this.shipment, required this.onDetails});
+
+  final ColisShipment shipment;
+  final VoidCallback onDetails;
+
+  Future<void> _copyReference(BuildContext context) async {
+    final confirmation = context.l10n.parcelsReferenceCopied;
+    await Clipboard.setData(ClipboardData(text: shipment.reference));
+    if (context.mounted) KoraToaster.show(context, confirmation);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final koraColors = context.koraColors;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: koraColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        boxShadow: kColisCardShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              const _StatusChip(),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  shipment.reference,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.end,
+                  style: TextStyle(
+                    color: koraColors.textMuted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    // Une référence se relit caractère par caractère quand
+                    // on la dicte au guichet.
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+              // Dictée au téléphone, elle se trompe d'un chiffre ; copiée,
+              // elle part juste.
+              InkWell(
+                onTap: () => _copyReference(context),
+                borderRadius: BorderRadius.circular(6),
+                child: Padding(
+                  padding: const EdgeInsets.all(3),
+                  child: Icon(
+                    Icons.copy_rounded,
+                    size: 14,
+                    color: koraColors.textMuted,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 30,
+                height: 30,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: koraColors.background,
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: Icon(
+                  Icons.inventory_2_outlined,
+                  size: 16,
+                  color: context.koraTitleColor,
                 ),
               ),
               const SizedBox(width: 9),
@@ -481,342 +653,279 @@ class _CreateCta extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      l10n.parcelsCreateTitle,
+                      '${shipment.originCity} (${shipment.originHub})'
+                      '  →  '
+                      '${shipment.destinationCity} '
+                      '(${shipment.destinationHub})',
                       style: TextStyle(
-                        color: strong,
-                        fontSize: 12,
+                        color: context.koraTitleColor,
+                        fontSize: 13,
+                        height: 1.25,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      l10n.parcelsCreateSubtitle,
-                      style: TextStyle(
-                        color: koraColors.textMuted,
-                        fontSize: 10,
-                      ),
+                      l10n.parcelsLine(shipment.line),
+                      style: AppTextStyles.caption(koraColors.textMuted),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: AppSpacing.sm),
-              Icon(
-                Icons.chevron_right_rounded,
-                size: 18,
-                color: koraColors.textMuted,
-              ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// `.parcel-section-head` : surtitre, titre, et le lien à droite.
-class _SectionHead extends StatelessWidget {
-  const _SectionHead({
-    required this.eyebrow,
-    required this.title,
-    required this.actionLabel,
-    required this.onAction,
-  });
-
-  final String eyebrow;
-  final String title;
-  final String actionLabel;
-  final VoidCallback onAction;
-
-  @override
-  Widget build(BuildContext context) {
-    final koraColors = context.koraColors;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              eyebrow.toUpperCase(),
-              style: AppTextStyles.eyebrow(koraColors.textMuted),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              title,
-              style: TextStyle(
-                color: isDark ? koraColors.textPrimary : AppColors.kora,
-                fontSize: 15,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ],
-        ),
-        TextButton(
-          onPressed: onAction,
-          style: TextButton.styleFrom(
-            padding: EdgeInsets.zero,
-            minimumSize: Size.zero,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-          child: Text(actionLabel),
-        ),
-      ],
-    );
-  }
-}
-
-/// `.parcel-active-card` : l'envoi en cours, avec sa pastille qui bat.
-class _ActiveParcelCard extends StatelessWidget {
-  const _ActiveParcelCard({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    final koraColors = context.koraColors;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final strong = isDark ? koraColors.textPrimary : AppColors.kora;
-
-    return Material(
-      color: koraColors.surface,
-      borderRadius: BorderRadius.circular(19),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(19),
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(19),
-            border: Border.all(color: koraColors.line),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisSize: MainAxisSize.min,
+          const SizedBox(height: 14),
+          _Timeline(shipment: shipment),
+          const SizedBox(height: 14),
+          Row(
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 7,
-                    height: 7,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppColors.gold,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.gold.withValues(alpha: 0.15),
-                          spreadRadius: 4,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    l10n.parcelsStatusTransit.toUpperCase(),
-                    style: AppTextStyles.eyebrow(AppColors.digital),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 13),
-              Row(
-                children: [
-                  Expanded(
-                    child: _RoutePoint(
-                      label: l10n.parcelsFrom,
-                      city: 'Cotonou',
-                      strong: strong,
-                    ),
-                  ),
-                  SizedBox(
-                    width: 56,
-                    child: Row(
-                      children: [
-                        _Dot(color: strong),
-                        Expanded(
-                          child: Container(height: 1, color: koraColors.line),
-                        ),
-                        const _Dot(color: AppColors.gold),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: _RoutePoint(
-                      label: l10n.parcelsTo,
-                      city: 'Parakou',
-                      strong: strong,
-                      alignEnd: true,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 13),
-              Divider(height: 1, color: koraColors.line),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'KC-…40982',
-                      style: TextStyle(
-                        color: koraColors.textMuted,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    '${l10n.relativeDays(0)} · 16:30',
-                    style: TextStyle(
-                      color: strong,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  const Icon(
-                    Icons.chevron_right_rounded,
-                    size: 18,
-                    color: AppColors.digital,
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _RoutePoint extends StatelessWidget {
-  const _RoutePoint({
-    required this.label,
-    required this.city,
-    required this.strong,
-    this.alignEnd = false,
-  });
-
-  final String label;
-  final String city;
-  final Color strong;
-  final bool alignEnd;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: alignEnd
-          ? CrossAxisAlignment.end
-          : CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          label,
-          style: TextStyle(color: context.koraColors.textMuted, fontSize: 10),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          city,
-          style: TextStyle(
-            color: strong,
-            fontSize: 13,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _Dot extends StatelessWidget {
-  const _Dot({required this.color});
-
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 7,
-      height: 7,
-      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-    );
-  }
-}
-
-/// `.parcel-help-link` : le renvoi vers l'aide quand une référence ne
-/// donne rien.
-class _HelpLink extends StatelessWidget {
-  const _HelpLink({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    final koraColors = context.koraColors;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 9),
-          child: Row(
-            children: [
-              Container(
-                width: 25,
-                height: 25,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: koraColors.background,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  '?',
-                  style: TextStyle(
-                    color: isDark ? koraColors.textPrimary : AppColors.kora,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w900,
-                  ),
+              Expanded(
+                child: _InfoTile(
+                  label: l10n.parcelsLastUpdate,
+                  value: l10n.parcelsLastUpdateValue(shipment.lastUpdateTime),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
+                child: _InfoTile(
+                  label: l10n.parcelsEta,
+                  value: l10n.parcelsEtaValue(shipment.etaTime),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // Le code de retrait est le seul secret du parcours : il ne
+          // passe pas par l'app, et qui envoie doit le savoir avant de
+          // chercher où le lire.
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.sms_outlined, size: 14, color: koraColors.textMuted),
+              const SizedBox(width: 7),
+              Expanded(
+                child: Text(
+                  l10n.parcelsWithdrawalNote,
+                  style: AppTextStyles.caption(koraColors.textMuted),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          KoraButton(
+            label: l10n.parcelsDetailsCta,
+            variant: KoraButtonVariant.secondary,
+            icon: Icons.arrow_forward_rounded,
+            iconPosition: KoraButtonIconPosition.edges,
+            onPressed: onDetails,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// La pastille d'état, verte tant que le colis avance.
+class _StatusChip extends StatelessWidget {
+  const _StatusChip();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: AppColors.success.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.success,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            context.l10n.parcelsStatusTransit.toUpperCase(),
+            style: AppTextStyles.eyebrow(AppColors.success),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Les trois étapes de l'acheminement : dépôt, route, hub d'arrivée.
+class _Timeline extends StatelessWidget {
+  const _Timeline({required this.shipment});
+
+  final ColisShipment shipment;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final koraColors = context.koraColors;
+
+    final labels = [
+      l10n.parcelsStepDropped,
+      l10n.parcelsStepTransit,
+      l10n.parcelsStepHub(shipment.steps.last.hubCity ?? ''),
+    ];
+    final captions = [
+      shipment.steps[0].time,
+      l10n.parcelsStepDeparted(shipment.steps[1].time),
+      l10n.parcelsStepPlanned(shipment.steps[2].time),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Les pastilles et leurs liaisons, sur une seule ligne : les
+        // libellés dessous suivent la même répartition.
+        SizedBox(
+          height: 18,
+          child: Row(
+            children: [
+              for (final (index, step) in shipment.steps.indexed) ...[
+                if (index > 0)
+                  Expanded(
+                    child: Container(
+                      height: 2,
+                      color: step.state == ColisStepState.planned
+                          ? koraColors.line
+                          : AppColors.kora,
+                    ),
+                  ),
+                _StepDot(state: step.state),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (final (index, step) in shipment.steps.indexed)
+              Expanded(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: index == 0
+                      ? CrossAxisAlignment.start
+                      : (index == shipment.steps.length - 1
+                            ? CrossAxisAlignment.end
+                            : CrossAxisAlignment.center),
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      l10n.parcelsHelpTitle,
+                      labels[index],
                       style: TextStyle(
-                        color: isDark ? koraColors.textPrimary : AppColors.kora,
-                        fontSize: 12,
+                        color: step.state == ColisStepState.current
+                            ? AppColors.gold
+                            : (step.state == ColisStepState.planned
+                                  ? koraColors.textMuted
+                                  : context.koraTitleColor),
+                        fontSize: 11,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      l10n.parcelsHelpSubtitle,
-                      style: TextStyle(
-                        color: koraColors.textMuted,
-                        fontSize: 10,
-                      ),
+                      captions[index],
+                      style: AppTextStyles.caption(koraColors.textMuted),
                     ),
                   ],
                 ),
               ),
-              Icon(
-                Icons.chevron_right_rounded,
-                size: 18,
-                color: koraColors.textMuted,
-              ),
-            ],
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// La pastille d'une étape : pleine et cochée derrière, dorée au présent,
+/// creuse devant.
+class _StepDot extends StatelessWidget {
+  const _StepDot({required this.state});
+
+  final ColisStepState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final koraColors = context.koraColors;
+
+    return switch (state) {
+      ColisStepState.done => Container(
+        width: 18,
+        height: 18,
+        alignment: Alignment.center,
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          color: AppColors.kora,
+        ),
+        child: const Icon(Icons.check_rounded, size: 11, color: Colors.white),
+      ),
+      ColisStepState.current => Container(
+        width: 18,
+        height: 18,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: AppColors.gold,
+          border: Border.all(
+            color: AppColors.gold.withValues(alpha: 0.28),
+            width: 3,
           ),
         ),
+      ),
+      ColisStepState.planned => Container(
+        width: 18,
+        height: 18,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: koraColors.surface,
+          border: Border.all(color: koraColors.line, width: 2),
+        ),
+      ),
+    };
+  }
+}
+
+/// Une tuile d'information sous la frise : un intitulé, une valeur.
+class _InfoTile extends StatelessWidget {
+  const _InfoTile({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final koraColors = context.koraColors;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      decoration: BoxDecoration(
+        color: koraColors.background,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label, style: AppTextStyles.caption(koraColors.textMuted)),
+          const SizedBox(height: 3),
+          Text(
+            value,
+            style: TextStyle(
+              color: context.koraTitleColor,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -117,7 +117,13 @@ class PaymentMethodPage extends StatelessWidget {
       ];
     }
 
-    final methods = state.catalog.methods;
+    // La carte bancaire ne se propose plus : le règlement se fait au
+    // Wallet ou par l'une des deux passerelles Mobile Money. Le
+    // catalogue serveur peut continuer de l'annoncer — c'est l'écran
+    // qui ne la montre pas.
+    final methods = state.catalog.methods
+        .where((method) => method.code != PaymentCatalog.cardCode)
+        .toList();
     if (methods.isEmpty) {
       return [_CatalogNotice(message: l10n.paymentMethodNone)];
     }

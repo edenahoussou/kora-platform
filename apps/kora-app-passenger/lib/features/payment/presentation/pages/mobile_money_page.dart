@@ -22,7 +22,7 @@ import '../bloc/payment_catalog_bloc.dart';
 import '../bloc/payment_flow_bloc.dart';
 import '../widgets/kkiapay_checkout.dart';
 import '../widgets/labelled_field.dart';
-import '../widgets/operator_badge.dart';
+import '../widgets/operator_tile.dart';
 import '../widgets/payment_amount_card.dart';
 import 'payment_args.dart';
 import 'payment_flow_args.dart';
@@ -624,7 +624,7 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
                                                         ? AppSpacing.sm / 2
                                                         : 0,
                                                   ),
-                                                  child: _OperatorTile(
+                                                  child: OperatorTile(
                                                     network: brands[col],
                                                     selected:
                                                         _operator ==
@@ -810,67 +810,6 @@ class _SecurityNotice extends StatelessWidget {
 ///
 /// La liste des réseaux vient du serveur ; un code inconnu garde donc sa
 /// place, avec une vignette neutre plutôt qu'un trou.
-class _OperatorTile extends StatelessWidget {
-  const _OperatorTile({
-    required this.network,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String network;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final koraColors = context.koraColors;
-
-    // Deux vignettes par ligne : la place manque pour le logo, le nom
-    // **et** la pastille de sélection côte à côte. Le nom descend donc
-    // sous le logo, et la sélection se lit au liseré doré et au fond
-    // teinté plutôt qu'à une pastille qui rognerait le nom.
-    return Semantics(
-      button: true,
-      selected: selected,
-      label: mobileMoneyLabel(network),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.sm,
-            vertical: 10,
-          ),
-          decoration: BoxDecoration(
-            color: selected
-                ? AppColors.gold.withValues(alpha: 0.12)
-                : koraColors.surface,
-            borderRadius: BorderRadius.circular(AppRadius.md),
-            border: Border.all(
-              color: selected ? AppColors.gold : koraColors.line,
-              width: selected ? 2 : 1,
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              OperatorBadge(network: network),
-              const SizedBox(height: 6),
-              Text(
-                mobileMoneyLabel(network),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.titleMedium(context.koraTitleColor),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 /// Sépare un numéro enregistré en indicatif et partie nationale.
 ///
 /// Le compte KORA stocke le numéro complet (`+229 0152235689`) ; l'écran,

@@ -40,6 +40,7 @@ class KoraInput extends StatefulWidget {
     this.enabled = true,
     this.keyboardType,
     this.inputFormatters,
+    this.required = false,
   });
 
   final String? label;
@@ -69,12 +70,32 @@ class KoraInput extends StatefulWidget {
   /// [TextField] sous-jacent.
   final List<TextInputFormatter>? inputFormatters;
 
+  /// Ajoute une astérisque rouge à l'intitulé.
+  ///
+  /// La maquette marque ainsi les champs sans lesquels l'écran ne laisse
+  /// pas continuer. Le rouge est celui des erreurs : c'est la même
+  /// promesse, faite avant la faute plutôt qu'après.
+  final bool required;
+
   @override
   State<KoraInput> createState() => _KoraInputState();
 }
 
 class _KoraInputState extends State<KoraInput> {
   late bool _obscured = widget.obscureText;
+
+  /// `.field > span { color: var(--kora) }` : le libellé d'un champ est
+  /// en bleu KORA, pas dans la couleur du texte courant (graphite), qui
+  /// le rendait presque noir en thème clair. En thème sombre, ce bleu
+  /// serait invisible : `textPrimary` (blanc) y reste le bon choix.
+  TextStyle _labelStyle(BuildContext context, KoraColors koraColors) =>
+      TextStyle(
+        color: Theme.of(context).brightness == Brightness.dark
+            ? koraColors.textPrimary
+            : AppColors.kora,
+        fontSize: 13,
+        fontWeight: FontWeight.w800,
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -88,21 +109,25 @@ class _KoraInputState extends State<KoraInput> {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (widget.label != null) ...[
-          // `.field > span { color: var(--kora) }` : le libellé d'un champ
-          // est en bleu KORA, pas dans la couleur du texte courant
-          // (graphite), qui le rendait presque noir en thème clair. En
-          // thème sombre, ce bleu serait invisible : `textPrimary` (blanc)
-          // y reste le bon choix.
-          Text(
-            widget.label!,
-            style: TextStyle(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? koraColors.textPrimary
-                  : AppColors.kora,
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
+          // Un simple `Text` quand rien n'est dû : l'astérisque impose un
+          // `RichText`, et un libellé en deux morceaux ne se lit plus
+          // comme un seul texte — ni pour l'accessibilité, ni pour qui
+          // cherche ce libellé à l'écran.
+          if (!widget.required)
+            Text(widget.label!, style: _labelStyle(context, koraColors))
+          else
+            Text.rich(
+              TextSpan(
+                text: widget.label!,
+                style: _labelStyle(context, koraColors),
+                children: const [
+                  TextSpan(
+                    text: ' *',
+                    style: TextStyle(color: AppColors.danger),
+                  ),
+                ],
+              ),
             ),
-          ),
           const SizedBox(height: AppSpacing.sm),
         ],
         TextField(
