@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Modules\Parcels\Models\Parcel;
 use App\Modules\Parcels\Models\ParcelEvent;
 use App\Modules\Parcels\Models\ParcelHub;
+use App\Modules\Parcels\Services\ParcelLabelDocument;
 use App\Modules\Settings\Settings\GeneralSettings;
 use App\Modules\Settings\Settings\OperationsSettings;
 use Illuminate\Http\Request;
@@ -35,6 +36,7 @@ class ParcelResource extends JsonResource
         $receivedEvent = $handoffEvent !== null && in_array($handoffEvent->kind, ['available', 'returned'], true) ? $handoffEvent : null;
         $deliveredEvent = $handoffEvent !== null && in_array($handoffEvent->kind, ['withdrawn', 'return_handed_over'], true) ? $handoffEvent : null;
         $handoffHub = $handoffEvent !== null ? $handoffEvent->hub : $parcel->custodyHub;
+        $labelHub = $parcel->custodyHub ?? $parcel->depositHub ?? $parcel->corridor?->originHub;
         $handoffHubAccess = function (?ParcelHub $hub, string $permission) use ($user): bool {
             return $hub !== null
                 && $user !== null
@@ -78,6 +80,11 @@ class ParcelResource extends JsonResource
             ],
             'can_pay' => $canIntake && $parcel->status === 'weighed' && $charge !== null && ! $parcel->incidents->contains(fn ($incident) => $incident->blocking && $incident->resolved_at === null) && $parcel->expires_at->isFuture(),
             'can_receipt' => $canIntake && $chargeSettled,
+            'can_label' => $canIntake
+                && ParcelLabelDocument::statusAllowsPrinting($parcel->status)
+                && is_string($parcel->reference)
+                && $parcel->reference !== ''
+                && $handoffHubAccess($labelHub, 'parcels.intake'),
             'can_ready' => $parcel->status === 'registered' && $chargeSettled && $canIntake,
             'can_assign' => in_array($parcel->status, ['ready', 'assigned', 'return_pending'], true)
                 && $chargeSettled

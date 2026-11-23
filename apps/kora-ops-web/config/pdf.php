@@ -70,6 +70,23 @@ return [
             ],
         ],
 
+        // A4 paysage — bordereau d’envoi Colis, deux volets séparables.
+        // Marges à 0 : la feuille gère elle-même ses zones de sécurité.
+        'parcel_label_a4' => [
+            'paper_size' => [210, 297], // mm — A4, orienté paysage ci-dessous
+            'landscape' => true,
+            'margins' => [0, 0, 0, 0],
+            'window_size' => [1123, 794], // A4 paysage @ 96dpi
+            'device_scale_factor' => 2,
+            'wait_until_network_idle' => false,
+            'emulate_media' => 'print',
+            'args' => [
+                '--disable-crash-reporter',
+                '--font-render-hinting=medium',
+                '--enable-font-antialiasing',
+            ],
+        ],
+
         'invoice' => [
             'paper_size' => [210, 297],
             'margins' => [10, 10, 10, 10],
