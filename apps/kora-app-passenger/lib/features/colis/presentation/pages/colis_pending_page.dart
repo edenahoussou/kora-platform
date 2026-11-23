@@ -8,7 +8,6 @@ import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/title_color.dart';
 import '../../data/datasources/colis_network_mock.dart';
 import '../bloc/colis_draft_cubit.dart';
-import '../widgets/colis_banner.dart';
 import '../widgets/colis_surface.dart';
 import 'colis_checkout_args.dart';
 import 'colis_missing_checkout.dart';
@@ -56,18 +55,17 @@ class ColisPendingPage extends StatelessWidget {
                 // rien n'est acquis ici, et un grand disque coché
                 // ferait croire au contraire.
                 _PendingHeader(
-                  payer: payer,
-                  due: args.due,
                   transactionId: colisNewTransactionId(
                     args.startedAt ?? DateTime.now(),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
-                _SplitCard(args: args, draft: draft),
-                const SizedBox(height: AppSpacing.sm),
-                _OperatorCard(args: args, payer: payer),
-                const SizedBox(height: AppSpacing.sm),
-                _ParcelLine(draft: draft),
+                // Un seul bloc, comme la maquette : le montant dû en
+                // tête, puis sa répartition, le canal de l'opérateur et
+                // le trajet, chacun dans son encart. Trois cartes
+                // séparées faisaient trois sujets là où il n'y en a
+                // qu'un — ce qu'on paie, et par où.
+                _DueBlock(args: args, draft: draft, payer: payer),
                 const SizedBox(height: AppSpacing.sm),
                 // Le message qui évite le double débit, sur le jaune
                 // d'information et non sur une note grise : c'est la
@@ -127,10 +125,8 @@ class ColisPendingPage extends StatelessWidget {
                   label: l10n.colisCheckStatus,
                   icon: Icons.refresh_rounded,
                   iconPosition: KoraButtonIconPosition.edges,
-                  onPressed: () => KoraToaster.show(
-                    context,
-                    l10n.colisPendingText(payer, args.due),
-                  ),
+                  onPressed: () =>
+                      KoraToaster.show(context, l10n.colisPendingText),
                 ),
                 const SizedBox(height: 10),
                 // Les deux secours, côte à côte et sur fond blanc,
@@ -199,16 +195,22 @@ class ColisPendingPage extends StatelessWidget {
   }
 }
 
-/// La répartition du règlement : ce que le solde couvre, ce que
-/// l'opérateur encaisse, et le détail du montant.
+/// Ce qu'on doit, comment il se répartit, par quel canal il part, et ce
+/// qu'il paie.
 ///
-/// Sans elle, le payeur voit un montant partiel sur sa facture
-/// d'opérateur et croit à une erreur.
-class _SplitCard extends StatelessWidget {
-  const _SplitCard({required this.args, required this.draft});
+/// La maquette tient les quatre dans une seule carte blanche : le
+/// montant en tête, puis trois encarts. Sans elle, le payeur voyait un
+/// montant partiel sur sa facture d'opérateur et croyait à une erreur.
+class _DueBlock extends StatelessWidget {
+  const _DueBlock({
+    required this.args,
+    required this.draft,
+    required this.payer,
+  });
 
   final ColisCheckoutArgs args;
   final ColisDraft draft;
+  final String payer;
 
   @override
   Widget build(BuildContext context) {
@@ -226,59 +228,171 @@ class _SplitCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
+          // Le montant, seul en tête : son intitulé en surtitre à
+          // gauche, la somme en gros à droite.
           Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Expanded(
                 child: Text(
-                  l10n.colisSplitTitle,
-                  style: TextStyle(
-                    color: context.koraTitleColor,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w900,
-                  ),
+                  l10n.colisTotalDue.toUpperCase(),
+                  style: AppTextStyles.eyebrow(koraColors.textMuted),
                 ),
               ),
-              KoraTag(
-                label: l10n.colisSplitSettled,
-                variant: KoraTagVariant.outline,
-              ),
+              const SizedBox(width: 10),
+              _Amount(amount: l10n.colisAmount(draft.total)),
             ],
           ),
-          const SizedBox(height: 11),
-          ColisAmountRow(
-            label: l10n.colisTotalDue,
-            value: l10n.colisAmount(draft.total),
-            isTotal: true,
-          ),
-          if (args.walletApplied > 0) ...[
-            const SizedBox(height: 9),
-            ColisAmountRow(
-              label: l10n.colisWalletTitle,
-              value: l10n.colisAmount(args.walletApplied),
+          const SizedBox(height: 12),
+          // La répartition : ce que le solde couvre, ce que l'opérateur
+          // encaisse, et sur quoi porte le total.
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: colisInsetDecoration(context),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (args.walletApplied > 0) ...[
+                  _SplitLine(
+                    icon: Icons.account_balance_wallet_outlined,
+                    label: l10n.colisWalletTitle,
+                    value: l10n.colisAmount(args.walletApplied),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                _SplitLine(
+                  icon: Icons.phonelink_ring_outlined,
+                  label: payer,
+                  value: l10n.colisAmount(args.due),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        l10n.colisSplitDetail(
+                          l10n.colisAmount(draft.transportFee),
+                          l10n.colisAmount(kColisSealFee),
+                        ),
+                        style: AppTextStyles.caption(koraColors.textMuted),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      l10n.colisSplitSettled,
+                      style: const TextStyle(
+                        color: AppColors.digital,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
-          const SizedBox(height: 9),
-          ColisAmountRow(
-            label: args.payerLabel ?? args.gateway.name,
-            value: l10n.colisAmount(args.due),
           ),
-          const SizedBox(height: 8),
-          Text(
-            l10n.colisSplitDetail(
-              l10n.colisAmount(draft.transportFee),
-              l10n.colisAmount(kColisSealFee),
-            ),
-            style: AppTextStyles.caption(koraColors.textMuted),
-          ),
+          const SizedBox(height: 10),
+          _Channel(args: args, payer: payer),
+          const SizedBox(height: 10),
+          _ParcelLine(draft: draft),
         ],
       ),
     );
   }
 }
 
-/// Qui encaisse, sur quel numéro, et depuis quand.
-class _OperatorCard extends StatelessWidget {
-  const _OperatorCard({required this.args, required this.payer});
+/// La somme, en gros, et son unité en petit à côté.
+class _Amount extends StatelessWidget {
+  const _Amount({required this.amount});
+
+  /// Déjà mis en forme — « 2 500 FCFA ».
+  final String amount;
+
+  @override
+  Widget build(BuildContext context) {
+    final koraColors = context.koraColors;
+    // L'unité se détache du nombre : les milliers, eux, sont séparés par
+    // une espace insécable, qui ne se coupe donc pas ici.
+    final cut = amount.lastIndexOf(' ');
+    final figure = cut == -1 ? amount : amount.substring(0, cut);
+    final unit = cut == -1 ? null : amount.substring(cut + 1);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
+      children: [
+        Text(
+          figure,
+          style: TextStyle(
+            color: context.koraTitleColor,
+            fontSize: 24,
+            fontWeight: FontWeight.w900,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+        if (unit case final unit?) ...[
+          const SizedBox(width: 4),
+          Text(
+            unit,
+            style: TextStyle(
+              color: koraColors.textMuted,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Une part du règlement : d'où elle vient, combien elle couvre.
+class _SplitLine extends StatelessWidget {
+  const _SplitLine({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final koraColors = context.koraColors;
+
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: koraColors.textMuted),
+        const SizedBox(width: 7),
+        Expanded(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTextStyles.body(koraColors.textMuted),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          value,
+          style: TextStyle(
+            color: context.koraTitleColor,
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Le canal de l'opérateur : qui encaisse, sur quel numéro, où en est
+/// l'invite, et depuis combien de temps la session court.
+class _Channel extends StatelessWidget {
+  const _Channel({required this.args, required this.payer});
 
   final ColisCheckoutArgs args;
   final String payer;
@@ -290,24 +404,29 @@ class _OperatorCard extends StatelessWidget {
     final startedAt = args.startedAt;
 
     return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: koraColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        boxShadow: kColisCardShadow,
-      ),
+      padding: const EdgeInsets.all(12),
+      decoration: colisInsetDecoration(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             children: [
-              Icon(
-                Icons.cell_tower_rounded,
-                size: 17,
-                color: context.koraTitleColor,
+              Container(
+                width: 28,
+                height: 28,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.gold.withValues(alpha: 0.3),
+                ),
+                child: Icon(
+                  Icons.cell_tower_rounded,
+                  size: 16,
+                  color: context.koraTitleColor,
+                ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 9),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -315,16 +434,18 @@ class _OperatorCard extends StatelessWidget {
                   children: [
                     Text(
                       payer,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: context.koraTitleColor,
                         fontSize: 13,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                     // Le numéro débité : c'est sur ce téléphone-là que
                     // l'invite est partie, et pas un autre.
                     if (args.payerPhone case final phone?) ...[
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 1),
                       Text(
                         phone,
                         style: AppTextStyles.caption(koraColors.textMuted),
@@ -333,44 +454,68 @@ class _OperatorCard extends StatelessWidget {
                   ],
                 ),
               ),
-              KoraTag(
-                label: l10n.colisSessionActive(kColisPaymentSessionMinutes),
-                variant: KoraTagVariant.outline,
+              const SizedBox(width: 8),
+              // L'invite est partie : la maquette le dit en pastille
+              // bleue, un fait acquis et non une alerte.
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.digital.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.done_rounded,
+                      size: 13,
+                      color: AppColors.digital,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      l10n.colisPushSent,
+                      style: const TextStyle(
+                        color: AppColors.digital,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 11),
+          const SizedBox(height: 9),
           Row(
             children: [
-              const Icon(
-                Icons.done_rounded,
-                size: 15,
-                color: AppColors.success,
-              ),
-              const SizedBox(width: 7),
+              if (startedAt != null) ...[
+                Icon(
+                  Icons.schedule_rounded,
+                  size: 14,
+                  color: koraColors.textMuted,
+                ),
+                const SizedBox(width: 5),
+                Expanded(
+                  child: Text(
+                    l10n.colisInitiatedAt(_clock(startedAt)),
+                    style: AppTextStyles.caption(koraColors.textMuted),
+                  ),
+                ),
+              ] else
+                const Spacer(),
+              const SizedBox(width: 8),
+              // Le délai qui court : c'est la seule mise en garde de
+              // l'encart, et elle se dit en ambre, pas en pastille.
               Text(
-                l10n.colisPushSent,
-                style: AppTextStyles.caption(koraColors.textMuted),
+                l10n.colisSessionActive(kColisPaymentSessionMinutes),
+                style: const TextStyle(
+                  color: AppColors.warning,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ],
           ),
-          if (startedAt != null) ...[
-            const SizedBox(height: 7),
-            Row(
-              children: [
-                Icon(
-                  Icons.schedule_rounded,
-                  size: 15,
-                  color: koraColors.textMuted,
-                ),
-                const SizedBox(width: 7),
-                Text(
-                  l10n.colisInitiatedAt(_clock(startedAt)),
-                  style: AppTextStyles.caption(koraColors.textMuted),
-                ),
-              ],
-            ),
-          ],
         ],
       ),
     );
@@ -384,7 +529,8 @@ class _OperatorCard extends StatelessWidget {
   }
 }
 
-/// Ce qu'on est en train de payer, en une ligne.
+/// Ce qu'on est en train de payer, en une ligne : d'où à où, et quel
+/// poids a servi au calcul.
 class _ParcelLine extends StatelessWidget {
   const _ParcelLine({required this.draft});
 
@@ -394,38 +540,54 @@ class _ParcelLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final koraColors = context.koraColors;
+    final origin = draft.originHub;
+    final destination = draft.destinationHub;
 
-    return Row(
-      children: [
-        Icon(
-          Icons.local_shipping_outlined,
-          size: 17,
-          color: koraColors.textMuted,
-        ),
-        const SizedBox(width: 9),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '${draft.originHub?.city ?? ''} → '
-                '${draft.destinationHub?.city ?? ''}',
-                style: TextStyle(
-                  color: context.koraTitleColor,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                l10n.colisParcelLine(colisWeightText(draft.billableWeightKg)),
-                style: AppTextStyles.caption(koraColors.textMuted),
-              ),
-            ],
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: colisInsetDecoration(context),
+      child: Row(
+        children: [
+          Icon(
+            Icons.local_shipping_outlined,
+            size: 19,
+            color: context.koraTitleColor,
           ),
-        ),
-      ],
+          const SizedBox(width: 9),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${origin?.city ?? ''} (${origin?.name ?? ''}) → '
+                  '${destination?.city ?? ''} (${destination?.name ?? ''})',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: context.koraTitleColor,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 1),
+                Text(
+                  l10n.colisParcelLine(colisWeightText(draft.billableWeightKg)),
+                  style: AppTextStyles.caption(koraColors.textMuted),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          // Le colis est scellé : le bouclier le redit à l'endroit même
+          // où l'on vérifie ce qu'on paie.
+          Icon(
+            Icons.verified_user_outlined,
+            size: 17,
+            color: koraColors.textMuted,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -544,14 +706,8 @@ class _FailurePreviewState extends State<_FailurePreview> {
 /// une carte, une pastille d'état, l'identifiant de la tentative, puis
 /// l'avertissement sur la référence absente.
 class _PendingHeader extends StatelessWidget {
-  const _PendingHeader({
-    required this.payer,
-    required this.due,
-    required this.transactionId,
-  });
+  const _PendingHeader({required this.transactionId});
 
-  final String payer;
-  final int due;
   final String transactionId;
 
   @override
@@ -595,12 +751,8 @@ class _PendingHeader extends StatelessWidget {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      l10n.colisPendingTag,
-                      style: TextStyle(
-                        color: context.koraTitleColor,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                      ),
+                      l10n.colisPendingTag.toUpperCase(),
+                      style: AppTextStyles.eyebrow(AppColors.warning),
                     ),
                   ],
                 ),
@@ -654,7 +806,7 @@ class _PendingHeader extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      l10n.colisPendingText(payer, due),
+                      l10n.colisPendingText,
                       style: AppTextStyles.caption(koraColors.textMuted),
                     ),
                   ],

@@ -133,4 +133,12 @@ class AppColors {
 
   /// Rouge utilisé pour les statuts négatifs (ex: incident, erreur).
   static const Color danger = Color(0xFF9C2430);
+
+  /// Ambre foncé des mises en garde qui ne bloquent pas : un délai qui
+  /// court, un tarif encore provisoire.
+  ///
+  /// Le doré de la marque ne tient pas ce rôle : à 11 px sur du blanc il
+  /// se lit mal, et il signifie « action » partout ailleurs dans l'app.
+  /// Valeur reprise du token `warning` des maquettes Colis.
+  static const Color warning = Color(0xFFA15C00);
 }

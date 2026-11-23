@@ -193,17 +193,26 @@ class _Hero extends StatelessWidget {
       child: Stack(
         children: [
           // Le corridor en fond : la carte annonce un acheminement, et
-          // une image le dit avant le texte. Elle est composée pour
-          // KORA — son voile dégradé garde la moitié gauche sombre, là
-          // où se posent le surtitre et l'accroche.
+          // une image le dit avant le texte.
+          //
+          // À demi-transparente, pour que le navy de la carte remonte
+          // au travers : à pleine opacité, le ciel et le parvis
+          // passaient sous le surtitre doré et l'accroche blanche, qui
+          // ne se lisaient plus. C'est le fond qui doit céder devant le
+          // texte, pas l'inverse.
           Positioned.fill(
-            child: Image.asset(
-              'assets/images/colis_hero.jpg',
-              fit: BoxFit.cover,
-              alignment: Alignment.centerRight,
-              // Le navy du thème reste derrière : si l'image manque, la
-              // carte garde sa couleur plutôt que de virer au blanc.
-              errorBuilder: (context, error, stack) => const SizedBox.shrink(),
+            child: Opacity(
+              opacity: 0.45,
+              child: Image.asset(
+                'assets/images/colis_hero.jpg',
+                fit: BoxFit.cover,
+                alignment: Alignment.centerRight,
+                // Le navy du thème reste derrière : si l'image manque,
+                // la carte garde sa couleur plutôt que de virer au
+                // blanc.
+                errorBuilder: (context, error, stack) =>
+                    const SizedBox.shrink(),
+              ),
             ),
           ),
           // `radial-gradient(circle at 95% 0, rgba(0,87,184,.42),

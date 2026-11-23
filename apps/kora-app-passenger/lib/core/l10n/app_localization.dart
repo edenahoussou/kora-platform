@@ -366,7 +366,23 @@ class AppLocalization {
   String get colisCancel => translate('colis_cancel');
   String get colisEdit => translate('colis_edit');
   String colisAmount(int amount) =>
-      _withArgs('colis_amount', {'amount': amount.toString()});
+      _withArgs('colis_amount', {'amount': _grouped(amount)});
+
+  /// Les milliers se séparent, comme sur la maquette : « 2 500 FCFA » se
+  /// lit d'un coup d'œil, « 2500 FCFA » se compte. L'espace est
+  /// insécable, sans quoi un montant se coupait en fin de ligne.
+  static String _grouped(int amount) {
+    final digits = amount.abs().toString();
+    final out = StringBuffer(amount < 0 ? '-' : '');
+
+    for (var i = 0; i < digits.length; i++) {
+      if (i != 0 && (digits.length - i) % 3 == 0) out.write('\u00A0');
+      out.write(digits[i]);
+    }
+
+    return out.toString();
+  }
+
   String get colisWeightUnit => translate('colis_weight_unit');
   String colisWeightValue(String weight) =>
       _withArgs('colis_weight_value', {'weight': weight.toString()});
@@ -497,6 +513,7 @@ class AppLocalization {
   String get colisWeighingGapNote => translate('colis_weighing_gap_note');
   String get colisAcceptedMethods => translate('colis_accepted_methods');
   String get colisMethodWallet => translate('colis_method_wallet');
+  String get colisMethodMtnMomo => translate('colis_method_mtn_momo');
   String get colisMethodMomo => translate('colis_method_momo');
   String get colisMethodCardShort => translate('colis_method_card_short');
   String colisCounterSupport(String counter) =>
@@ -530,6 +547,7 @@ class AppLocalization {
   String get colisPaymentExpected => translate('colis_payment_expected');
   String colisTransportFee(String city, String weight) =>
       _withArgs('colis_transport_fee', {'city': city, 'weight': weight});
+  String get colisPackagingFee => translate('colis_packaging_fee');
   String get colisSealFee => translate('colis_seal_fee');
   String get colisInsuranceFee => translate('colis_insurance_fee');
   String get colisInsuranceFree => translate('colis_insurance_free');
@@ -552,7 +570,7 @@ class AppLocalization {
   String get colisTotalDue => translate('colis_total_due');
   String get colisWalletTitle => translate('colis_wallet_title');
   String colisWalletBalance(int amount) =>
-      _withArgs('colis_wallet_balance', {'amount': amount.toString()});
+      _withArgs('colis_wallet_balance', {'amount': _grouped(amount)});
   String get colisWalletApplied => translate('colis_wallet_applied');
   String get colisRemainingDue => translate('colis_remaining_due');
   String get colisOperators => translate('colis_operators');
@@ -598,8 +616,7 @@ class AppLocalization {
   String get colisFailureText => translate('colis_failure_text');
   String get colisPendingTag => translate('colis_pending_tag');
   String get colisPendingTitle => translate('colis_pending_title');
-  String colisPendingText(String payer, int amount) =>
-      _withArgs('colis_pending_text', {'payer': payer, 'amount': '$amount'});
+  String get colisPendingText => translate('colis_pending_text');
   String get colisPendingSimulate => translate('colis_pending_simulate');
   String get colisPendingSwitch => translate('colis_pending_switch');
   String colisPayCta(int amount) =>

@@ -104,10 +104,12 @@ class _ColisPaymentPageState extends State<ColisPaymentPage> {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          for (final gateway in kColisGateways) ...[
+                          for (final (index, gateway)
+                              in kColisGateways.indexed) ...[
                             _GatewayTile(
                               gateway: gateway,
                               selected: gateway.id == _gatewayId,
+                              recommended: index == 0,
                               onTap: () =>
                                   setState(() => _gatewayId = gateway.id),
                             ),
@@ -118,10 +120,7 @@ class _ColisPaymentPageState extends State<ColisPaymentPage> {
                         // Ce que le règlement déclenche, dit avant de
                         // choisir par où payer : la référence officielle
                         // et le code de retrait en dépendent.
-                        ColisNote(
-                          icon: Icons.lock_clock_outlined,
-                          title: l10n.colisAfterPaymentNote,
-                        ),
+                        _RegistrationNote(text: l10n.colisAfterPaymentNote),
                         const SizedBox(height: AppSpacing.sm),
                         // Rien ne part vers un opérateur : la maquette
                         // s'arrête au geste, et le ticket aussi.
@@ -592,18 +591,26 @@ String colisCheckoutPathOf(ColisGateway gateway) {
       : AppRouter.colisMomoPath;
 }
 
-/// Un encaisseur à cocher : son logo, son nom, sa promesse, et le bouton
-/// radio qui dit qu'un seul sera débité.
+/// Un encaisseur à cocher : son logo, son nom, ce qu'il promet, et le
+/// bouton radio qui dit qu'un seul sera débité.
+///
+/// La maquette empile le nom puis une ligne de qualificatifs — une
+/// pastille et une phrase courte — et pose le radio à droite. Le logo
+/// reste la première chose qu'on voit.
 class _GatewayTile extends StatelessWidget {
   const _GatewayTile({
     required this.gateway,
     required this.selected,
     required this.onTap,
+    this.recommended = false,
   });
 
   final ColisGateway gateway;
   final bool selected;
   final VoidCallback onTap;
+
+  /// La pastille verte de la maquette, sur la première option.
+  final bool recommended;
 
   @override
   Widget build(BuildContext context) {
@@ -651,7 +658,7 @@ class _GatewayTile extends StatelessWidget {
                         child: Image.asset(gateway.logo!, fit: BoxFit.contain),
                       ),
               ),
-              const SizedBox(width: AppSpacing.md),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -659,26 +666,60 @@ class _GatewayTile extends StatelessWidget {
                   children: [
                     Text(
                       gateway.name,
-                      style: AppTextStyles.titleMedium(context.koraTitleColor),
+                      style: TextStyle(
+                        color: context.koraTitleColor,
+                        fontSize: 15,
+                        height: 1.15,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      gateway.isCard
-                          ? l10n.paymentMethodCardLead
-                          : l10n.colisGatewayMomoLead,
-                      style: AppTextStyles.body(koraColors.textMuted),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        if (recommended) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.success.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(AppRadius.sm),
+                            ),
+                            child: Text(
+                              l10n.colisRecommended,
+                              style: const TextStyle(
+                                color: AppColors.success,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                        ],
+                        Expanded(
+                          child: Text(
+                            gateway.isCard
+                                ? l10n.paymentMethodCardLead
+                                : l10n.colisGatewayMomoLead,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.caption(koraColors.textMuted),
+                          ),
+                        ),
+                      ],
                     ),
                     // Les logos des opérateurs sous les deux passerelles
                     // Mobile Money : on reconnaît son réseau avant
                     // d'avoir lu la ligne.
                     if (!gateway.isCard) ...[
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 7),
                       Row(
                         children: [
                           for (final network in kColisMomoNetworks)
                             Padding(
                               padding: const EdgeInsets.only(right: 6),
-                              child: OperatorBadge(network: network, size: 32),
+                              child: OperatorBadge(network: network, size: 30),
                             ),
                         ],
                       ),
@@ -686,7 +727,7 @@ class _GatewayTile extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
               // Le bouton radio de la maquette, à la place du chevron :
               // le choix se coche ici, et c'est le bouton du bas qui
               // emmène vers l'écran de l'encaisseur.
@@ -700,6 +741,61 @@ class _GatewayTile extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Ce que l'enregistrement déclenche, une fois le règlement passé.
+///
+/// Fond gris et tuile marine à pictogramme doré : la maquette le
+/// distingue ainsi des notes blanches de l'écran — c'est la seule
+/// promesse que l'app fait ici, et elle ne doit pas se lire comme une
+/// mention de bas de page.
+class _RegistrationNote extends StatelessWidget {
+  const _RegistrationNote({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final koraColors = context.koraColors;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: koraColors.background,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: AppColors.kora,
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+            ),
+            child: const Icon(
+              Icons.lock_clock_outlined,
+              size: 17,
+              color: AppColors.gold,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                color: context.koraTitleColor,
+                fontSize: 12.5,
+                height: 1.45,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

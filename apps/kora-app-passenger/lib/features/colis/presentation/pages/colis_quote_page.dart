@@ -8,6 +8,7 @@ import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/brand_mini.dart';
 import '../../../../core/widgets/screen_header.dart';
+import '../../../payment/presentation/widgets/operator_badge.dart';
 import '../../data/datasources/colis_network_mock.dart';
 import '../bloc/colis_draft_cubit.dart';
 import '../widgets/colis_banner.dart';
@@ -509,7 +510,7 @@ class _PricingCard extends StatelessWidget {
           ),
           const SizedBox(height: 9),
           ColisAmountRow(
-            label: l10n.colisSealFee,
+            label: l10n.colisPackagingFee,
             value: l10n.colisAmount(kColisSealFee),
           ),
           const SizedBox(height: 9),
@@ -689,9 +690,18 @@ class _AcceptedMethods extends StatelessWidget {
     // Deux moyens, et non trois : la carte bancaire ne se propose plus
     // pour une expédition, et l'annoncer ici ferait attendre au guichet
     // un règlement que l'app ne sait pas prendre.
-    final methods = <(IconData, String)>[
-      (Icons.account_balance_wallet_outlined, l10n.colisMethodWallet),
-      (Icons.smartphone_rounded, l10n.colisMethodMomo),
+    // Quatre pavés : le solde KORA, les deux passerelles qui
+    // encaissent, et le réseau Mobile Money le plus demandé sur le
+    // corridor. Les deux premiers portent leur logo — c'est à lui qu'on
+    // les reconnaît au guichet comme dans l'app.
+    final methods = <_Method>[
+      _Method(
+        label: l10n.colisMethodWallet,
+        icon: Icons.account_balance_wallet_outlined,
+      ),
+      for (final gateway in kColisGateways)
+        _Method(label: gateway.name, logo: gateway.logo),
+      _Method(label: l10n.colisMethodMtnMomo, network: 'mtn_momo'),
     ];
 
     return Column(
@@ -705,23 +715,28 @@ class _AcceptedMethods extends StatelessWidget {
         const SizedBox(height: 8),
         Row(
           children: [
-            for (final method in methods) ...[
+            for (final (index, method) in methods.indexed) ...[
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 11),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 10,
+                  ),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: koraColors.surface,
                     borderRadius: BorderRadius.circular(AppRadius.md),
-                    border: Border.all(color: koraColors.line),
+                    boxShadow: kColisCardShadow,
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(method.$1, size: 18, color: context.koraTitleColor),
-                      const SizedBox(height: 5),
+                      SizedBox(height: 22, child: method.mark(context)),
+                      const SizedBox(height: 6),
                       Text(
-                        method.$2,
+                        method.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: context.koraTitleColor,
@@ -733,11 +748,39 @@ class _AcceptedMethods extends StatelessWidget {
                   ),
                 ),
               ),
-              if (method.$2 != methods.last.$2) const SizedBox(width: 8),
+              if (index != methods.length - 1) const SizedBox(width: 6),
             ],
           ],
         ),
       ],
     );
+  }
+}
+
+/// Un moyen de règlement annoncé : son logo, son réseau ou son
+/// pictogramme, et son nom.
+class _Method {
+  const _Method({required this.label, this.icon, this.logo, this.network});
+
+  final String label;
+
+  /// Le pictogramme, quand le moyen n'a pas de marque — le solde KORA.
+  final IconData? icon;
+
+  /// Le logo de la passerelle, tel que le catalogue le porte.
+  final String? logo;
+
+  /// Le réseau Mobile Money, dont la vignette vit avec les opérateurs.
+  final String? network;
+
+  Widget mark(BuildContext context) {
+    if (network case final network?) {
+      return OperatorBadge(network: network, size: 22);
+    }
+    if (logo case final logo?) {
+      return Image.asset(logo, fit: BoxFit.contain);
+    }
+
+    return Icon(icon, size: 20, color: context.koraTitleColor);
   }
 }
