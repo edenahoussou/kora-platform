@@ -1,11 +1,60 @@
 ---
 title: Révoquer un lien de suivi
-description: "Révoque immédiatement le lien de suivi partagé."
+description: "DELETE /api/v1/parcels/{parcel_uuid}/share révoque le jeton et renvoie 204 sans corps."
 api: DELETE /api/v1/parcels/{parcel_uuid}/share
 ---
 
-Révoque immédiatement le lien de suivi partagé. Réservé à l’expéditeur propriétaire. L’ancien jeton renvoie ensuite 404, sans révéler l’existence du colis.
+Révoque immédiatement le lien de suivi partagé. L’ancien jeton renvoie ensuite `404`, sans révéler l’existence du colis. La réponse est `204 No Content`, sans corps JSON.
+
+## Paramètres
+
+<ParamField path="parcel_uuid" type="UUID" required>
+  UUID public du colis.
+</ParamField>
+
+## Requête
+
+<RequestExample>
+
+```bash cURL
+curl -X DELETE 'https://staging.koraexpress.app/api/v1/parcels/00000000-0000-4000-8000-000000000010/share' \
+  -H 'Authorization: Bearer $KORA_TOKEN' \
+  -H 'Accept: application/json'
+```
+
+```dart Dart
+final response = await dio.delete('/api/v1/parcels/$uuid/share', options: Options(headers: {
+  'Authorization': 'Bearer $token',
+}));
+```
+
+</RequestExample>
+
+## Réponse
+
+<ResponseExample>
+
+```http 204
+HTTP/1.1 204 No Content
+```
+
+</ResponseExample>
+
+## Règles
+
+- Un `204` ne doit contenir aucun corps, aucun JSON et aucun `Content-Type` utile.
+- Après révocation, `GET /shared/{token}` renvoie `404`.
+- La révocation est idempotente du point de vue sécurité : un ancien lien ne redevient jamais valide.
+
+## Codes de réponse
+
+| Code | Corps / message |
+|---|---|
+| `204` | Lien révoqué, aucun corps. |
+| `401` | `{"message":"Unauthenticated."}` |
+| `403` | `{"message":"This action is unauthorized."}` |
+| `404` | `{"message":"Not Found"}` |
 
 ## Sécurité
 
-Les réponses n’exposent que des identifiants publics (UUID ou références) et les champs métier nécessaires au parcours. Aucun code de retrait, hash, secret ou payload fournisseur n’est documenté comme retournable.
+`Authorization: Bearer <token Sanctum>` requis. Réservé à l’expéditeur propriétaire. Un tiers reçoit `404`.

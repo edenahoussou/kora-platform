@@ -5,11 +5,11 @@ namespace App\Modules\Payments\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\Parcels\Services\ParcelPayments;
+use App\Modules\Payments\Actions\ApplyProviderResponseAction;
 use App\Modules\Payments\Actions\CancelPaymentAction;
 use App\Modules\Payments\Actions\ConfirmPaymentAction;
 use App\Modules\Payments\Actions\InitiatePaymentAction;
 use App\Modules\Payments\Actions\VerifyPaymentAction;
-use App\Modules\Payments\Contracts\ProviderResponse;
 use App\Modules\Payments\Http\Requests\InitiatePaymentRequest;
 use App\Modules\Payments\Http\Resources\PaymentResource;
 use App\Modules\Payments\Models\Payment;
@@ -309,9 +309,18 @@ class PaymentController extends Controller
                 return response()->json(['error' => 'Invalid webhook signature.'], 403);
             }
 
-            $updatedPayment = $payment->reservation_id === null && $payment->parcel_charge_id === null
-                ? app(ReconcileWalletTopUpAction::class)->verify($payment)
-                : $this->confirmProviderResponse($payment, $adapter->verify($payment), $confirmPayment);
+            $transactionId = $this->transactionIdFromPayload($provider, $verifiedPayload);
+
+            $updatedPayment = match (true) {
+                $payment->parcel_charge_id !== null => app(ParcelPayments::class)->verify($payment, $transactionId, $verifiedPayload),
+                $payment->reservation_id === null => app(ReconcileWalletTopUpAction::class)->verify($payment, $transactionId, $verifiedPayload),
+                default => app(ApplyProviderResponseAction::class)->handle(
+                    $payment,
+                    $adapter->verify($this->verificationCandidate($payment, $provider, $transactionId)),
+                    $verifiedPayload,
+                    $transactionId,
+                ),
+            };
 
             return response()->json([
                 'status' => $updatedPayment->status->value,
@@ -372,9 +381,8 @@ class PaymentController extends Controller
     public function webhookFedaPay(
         Request $request,
         PaymentManager $manager,
-        ConfirmPaymentAction $confirmPayment,
     ): JsonResponse {
-        return $this->processProviderWebhook($request, $manager, $confirmPayment, 'fedapay');
+        return $this->processProviderWebhook($request, $manager, 'fedapay');
     }
 
     /**
@@ -404,9 +412,8 @@ class PaymentController extends Controller
     public function webhookMtnMomo(
         Request $request,
         PaymentManager $manager,
-        ConfirmPaymentAction $confirmPayment,
     ): JsonResponse {
-        return $this->processProviderWebhook($request, $manager, $confirmPayment, 'mtn_momo');
+        return $this->processProviderWebhook($request, $manager, 'mtn_momo');
     }
 
     /**
@@ -437,9 +444,8 @@ class PaymentController extends Controller
     public function webhookKkiapay(
         Request $request,
         PaymentManager $manager,
-        ConfirmPaymentAction $confirmPayment,
     ): JsonResponse {
-        return $this->processProviderWebhook($request, $manager, $confirmPayment, 'kkiapay');
+        return $this->processProviderWebhook($request, $manager, 'kkiapay');
     }
 
     /**
@@ -448,7 +454,6 @@ class PaymentController extends Controller
     private function processProviderWebhook(
         Request $request,
         PaymentManager $manager,
-        ConfirmPaymentAction $confirmPayment,
         string $providerKey,
     ): JsonResponse {
         $adapter = $manager->resolve($providerKey);
@@ -470,34 +475,48 @@ class PaymentController extends Controller
         if ($paymentUuid instanceof \Stringable) {
             $paymentUuid = (string) $paymentUuid;
         }
-        if (! is_string($paymentUuid) || $paymentUuid === '') {
+
+        $referenceId = $verifiedPayload['referenceId'] ?? null;
+        if ($referenceId instanceof \Stringable) {
+            $referenceId = (string) $referenceId;
+        }
+
+        $paymentUuid = is_string($paymentUuid) && $paymentUuid !== '' ? $paymentUuid : null;
+        $referenceId = is_string($referenceId) && $referenceId !== '' ? $referenceId : null;
+
+        if ($paymentUuid === null && $referenceId === null) {
             return response()->json(['error' => 'Payment reference not found in webhook.'], 400);
         }
 
-        abort_unless(Str::isUuid($paymentUuid), 404, 'Payment not found.');
-        $payment = Payment::query()->where('provider', $providerKey)->where('uuid', $paymentUuid)->first();
+        $payment = null;
+        if ($paymentUuid !== null && Str::isUuid($paymentUuid)) {
+            $payment = Payment::query()->where('provider', $providerKey)->where('uuid', $paymentUuid)->first();
+        }
+
+        if ($payment === null && $referenceId !== null) {
+            $payment = Payment::query()
+                ->where('provider', $providerKey)
+                ->where('provider_reference', $referenceId)
+                ->first();
+        }
 
         if ($payment === null) {
             return response()->json(['error' => 'Payment not found.'], 404);
         }
 
-        $transactionId = match ($providerKey) {
-            'kkiapay' => $verifiedPayload['transactionId'] ?? null,
-            'fedapay' => $verifiedPayload['id'] ?? null,
-            default => null,
-        };
-        $transactionId = is_scalar($transactionId) && strlen((string) $transactionId) <= 128 ? (string) $transactionId : null;
+        $transactionId = $this->transactionIdFromPayload($providerKey, $verifiedPayload);
 
         if ($payment->parcel_charge_id !== null) {
             $updatedPayment = app(ParcelPayments::class)->verify($payment, $transactionId, $verifiedPayload);
         } elseif ($payment->reservation_id === null) {
             $updatedPayment = app(ReconcileWalletTopUpAction::class)->verify($payment, $transactionId, $verifiedPayload);
         } else {
-            if ($payment->provider_transaction_id === null && $providerKey === 'kkiapay' && $transactionId !== null) {
-                $payment->update(['provider_transaction_id' => $transactionId]);
-            }
-
-            $updatedPayment = $this->confirmProviderResponse($payment, $adapter->verify($payment), $confirmPayment);
+            $updatedPayment = app(ApplyProviderResponseAction::class)->handle(
+                $payment,
+                $adapter->verify($this->verificationCandidate($payment, $providerKey, $transactionId)),
+                $verifiedPayload,
+                $transactionId,
+            );
         }
 
         return response()->json([
@@ -570,9 +589,16 @@ class PaymentController extends Controller
 
         // Always verify the real status via the FedaPay API.
         $adapter = $manager->resolve($payment->provider);
-        $updatedPayment = $payment->reservation_id === null && $payment->parcel_charge_id === null
-            ? app(ReconcileWalletTopUpAction::class)->verify($payment)
-            : $this->confirmProviderResponse($payment, $adapter->verify($payment), $confirmPayment);
+        $updatedPayment = match (true) {
+            $payment->parcel_charge_id !== null => app(ParcelPayments::class)->verify($payment, $transactionId),
+            $payment->reservation_id === null => app(ReconcileWalletTopUpAction::class)->verify($payment, $transactionId),
+            default => app(ApplyProviderResponseAction::class)->handle(
+                $payment,
+                $adapter->verify($this->verificationCandidate($payment, $payment->provider, $transactionId)),
+                [],
+                $transactionId,
+            ),
+        };
 
         return response()->json([
             'status' => $updatedPayment->status->value,
@@ -582,17 +608,36 @@ class PaymentController extends Controller
         ]);
     }
 
-    private function confirmProviderResponse(Payment $payment, ProviderResponse $response, ConfirmPaymentAction $confirm): Payment
+    /**
+     * Adapter verification must query the transaction ID proven by the
+     * authenticated webhook, without mutating the persisted payment row.
+     */
+    private function verificationCandidate(Payment $payment, string $providerKey, ?string $transactionId): Payment
     {
-        if ($payment->parcel_charge_id !== null) {
-            return app(ParcelPayments::class)->confirmResponse($payment, $response);
+        if ($transactionId === null || ! in_array($providerKey, ['kkiapay', 'fedapay'], true)) {
+            return $payment;
         }
 
-        return $confirm->handle(
-            payment: $payment,
-            status: $response->isConfirmed() ? 'confirmed' : ($response->isFailed() ? 'failed' : 'pending'),
-            providerReference: $response->providerReference,
-            providerPayload: $response->payload,
-        );
+        $candidate = clone $payment;
+        $candidate->provider_transaction_id = $transactionId;
+
+        return $candidate;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function transactionIdFromPayload(string $providerKey, array $payload): ?string
+    {
+        $transactionId = match ($providerKey) {
+            'kkiapay' => $payload['transactionId'] ?? null,
+            'fedapay' => $payload['id'] ?? null,
+            'mtn_momo' => $payload['financialTransactionId'] ?? null,
+            default => null,
+        };
+
+        return is_scalar($transactionId) && strlen((string) $transactionId) <= 128
+            ? (string) $transactionId
+            : null;
     }
 }

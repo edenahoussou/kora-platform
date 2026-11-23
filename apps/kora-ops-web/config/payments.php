@@ -48,8 +48,30 @@ return [
             'user_id' => env('MTN_MOMO_USER_ID'),
             'api_key' => env('MTN_MOMO_API_KEY'),
             'environment' => env('MTN_MOMO_ENVIRONMENT', 'sandbox'),
+            'base_url' => env('MTN_MOMO_BASE_URL'),
             'callback_url' => env('MTN_MOMO_CALLBACK_URL'),
-            'target_environment' => env('MTN_MOMO_TARGET_ENVIRONMENT', 'mtnbenin'),
+            'target_environment' => env('MTN_MOMO_TARGET_ENVIRONMENT', 'sandbox'),
+            // Official MTN MoMo sandbox/production target environments. Keep
+            // the list explicit so a typo cannot silently target another market.
+            'target_environments' => [
+                // The MTN sandbox only accepts the literal `sandbox` target.
+                // Production targets are market codes.
+                'sandbox',
+                'mtnuganda',
+                'mtnghana',
+                'mtnivorycoast',
+                'mtnzambia',
+                'mtncameroon',
+                'mtnbenin',
+                'mtncongo',
+                'mtnswaziland',
+                'mtnguineaconakry',
+                'mtnsouthafrica',
+                'mtnliberia',
+                'mtnsouthsudan',
+                'mtnnigeria',
+                'mtnrwanda',
+            ],
             // MTN's public sandbox documentation uses EUR for test calls. The
             // production currency is the currency of the provisioned account.
             'sandbox_currency' => env('MTN_MOMO_SANDBOX_CURRENCY', 'EUR'),

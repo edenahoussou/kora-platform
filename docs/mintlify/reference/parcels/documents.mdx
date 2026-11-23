@@ -1,11 +1,143 @@
 ---
 title: Obtenir l’étiquette ou le reçu
-description: "`label` est accessible au titulaire et au destinataire autorisé, sans nom ni téléphone."
+description: "GET /api/v1/parcels/{parcel_uuid}/documents sert label, receipt et return_receipt sans jamais servir handoff_proof."
 api: GET /api/v1/parcels/{parcel_uuid}/documents
 ---
 
-`label` est accessible au titulaire et au destinataire autorisé, sans nom ni téléphone. `receipt` et `return_receipt` sont réservés à l’expéditeur propriétaire. `handoff_proof` reste une opération OPS et n’est jamais servi par cette API client (404).
+`label` est accessible au titulaire et au destinataire autorisé, sans nom ni téléphone. `receipt` et `return_receipt` sont réservés à l’expéditeur propriétaire et exigent une charge réglée. `handoff_proof` reste une opération OPS et renvoie `404` ici.
+
+## Paramètres
+
+<ParamField path="parcel_uuid" type="UUID" required>
+  UUID public du colis.
+</ParamField>
+
+<ParamField query="kind" type="string">
+  `label` (défaut), `receipt` ou `return_receipt`. `handoff_proof` n’est pas servi.
+</ParamField>
+
+## Requête
+
+<RequestExample>
+
+```bash cURL
+curl -X GET 'https://staging.koraexpress.app/api/v1/parcels/00000000-0000-4000-8000-000000000010/documents?kind=label' \
+  -H 'Authorization: Bearer $KORA_TOKEN' \
+  -H 'Accept: application/json'
+```
+
+```bash cURL
+curl -X GET 'https://staging.koraexpress.app/api/v1/parcels/00000000-0000-4000-8000-000000000010/documents?kind=receipt' \
+  -H 'Authorization: Bearer $KORA_TOKEN' \
+  -H 'Accept: application/json'
+```
+
+```dart Dart
+final response = await dio.get('/api/v1/parcels/$uuid/documents', queryParameters: {
+  'kind': 'label',
+}, options: Options(headers: {
+  'Authorization': 'Bearer $token',
+}));
+```
+
+</RequestExample>
+
+## Réponse
+
+<ResponseExample>
+
+```json 200 label
+{
+  "data": {
+    "kind": "label",
+    "width_mm": 58,
+    "reference": "KC-20260101-00002",
+    "qr_payload": "https://staging.koraexpress.app/api/v1/parcels/tracking/KC-20260101-00002",
+    "esc_pos_base64": "G0BLT1JBIENPTElT"
+  }
+}
+```
+
+```json 200 receipt
+{
+  "data": {
+    "kind": "receipt",
+    "receipt_status": "provisional",
+    "receipt_label": "Reçu provisoire · non certifié fiscalement",
+    "reference": "KC-20260101-00003",
+    "issued_at": "2026-11-22T19:21:12+00:00",
+    "currency": "XOF",
+    "qr_payload": "https://staging.koraexpress.app/api/v1/parcels/tracking/KC-20260101-00003",
+    "parties": {
+      "sender_name": "Expéditeur Exemple",
+      "sender_phone": "+2290000000000",
+      "recipient_name": "Destinataire Exemple",
+      "recipient_phone": "+2290000000001"
+    },
+    "route": {
+      "origin": "Cotonou",
+      "destination": "Porto-Novo",
+      "corridor_uuid": "00000000-0000-4000-8000-000000000001"
+    },
+    "parcel": {
+      "weight_grams": 5000,
+      "declared_grams": 5000,
+      "contents": "Documents"
+    },
+    "charge": {
+      "net": 1500,
+      "tax": 0,
+      "total": 1500,
+      "tax_code": "TVA-PARCEL-0",
+      "tax_rate": "0.0000",
+      "fiscal_group": "A",
+      "tariff_uuid": "00000000-0000-4000-8000-000000000101",
+      "tariff_version": 2,
+      "deposit_kind": "agency"
+    },
+    "payment": {
+      "uuid": "00000000-0000-4000-8000-000000000030",
+      "method": "wallet",
+      "provider": "wallet",
+      "confirmed_at": "2026-11-22T19:21:12+00:00",
+      "cash_received_amount": null,
+      "change_amount": null
+    },
+    "fiscal": {
+      "status": "pending",
+      "certified": false,
+      "code": null,
+      "qr_payload": null,
+      "invoice_uuid": "00000000-0000-4000-8000-000000000040"
+    },
+    "width_mm": 58,
+    "fiscal_status": "pending",
+    "esc_pos_base64": "G0BLT1JBIENPTElT"
+  }
+}
+```
+
+</ResponseExample>
+
+## Règles
+
+- `label` ne contient ni nom, ni téléphone, ni contenu ; il contient la référence, le QR et l’ESC/POS.
+- `receipt` est réservé au propriétaire et exige une charge réglée ; sans charge, la réponse est `404`.
+- `receipt.parties` contient réellement noms et téléphones : le payload est propriétaire. Les valeurs de cet exemple sont fictives et ne doivent jamais être copiées en production.
+- `esc_pos_base64` est tronqué dans ces exemples ; le payload réel est une commande ESC/POS complète.
+- `GET documents` n’a pas de `requestBody` : `kind` est un paramètre de query.
+- `handoff_proof` renvoie `404` avec `Unsupported document kind.`.
+
+## Codes de réponse
+
+| Code | Corps / message |
+|---|---|
+| `200` | Étiquette ou reçu. |
+| `401` | `{"message":"Unauthenticated."}` |
+| `403` | `{"message":"This action is unauthorized."}` |
+| `404` | `{"message":"Not Found"}` ou `{"message":"Unsupported document kind."}` ou reçu sans charge. |
+| `409` | `{"message":"The parcel has no logistics reference."}` |
 
 ## Sécurité
 
-Les réponses n’exposent que des identifiants publics (UUID ou références) et les champs métier nécessaires au parcours. Aucun code de retrait, hash, secret ou payload fournisseur n’est documenté comme retournable.
+`Authorization: Bearer <token Sanctum>` requis. `label` : titulaire ou destinataire autorisé. `receipt` et `return_receipt` : propriétaire uniquement. Un tiers reçoit `404`.

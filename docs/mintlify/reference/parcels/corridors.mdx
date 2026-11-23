@@ -1,12 +1,67 @@
 ---
 title: Lister les corridors Colis ouverts
-description: "Liste les corridors Colis activés et opérationnellement disponibles."
+description: "GET /api/v1/parcels/corridors retourne les corridors activés et opérationnellement disponibles, avec hubs publics."
 api: GET /api/v1/parcels/corridors
 authMethod: none
 ---
 
-Liste les corridors Colis activés et opérationnellement disponibles. Chaque hub expose uniquement son UUID public, sa ville et son nom. Aucun identifiant interne ni donnée personnelle n’est retourné. Endpoint public, limité à 30 requêtes par minute et par client.
+Endpoint public. Il ne retourne que les corridors activés dont les hubs de départ et d’arrivée sont actifs, non archivés et disponibles. Chaque hub expose uniquement son UUID public, sa ville et son nom.
+
+## Requête
+
+<RequestExample>
+
+```bash cURL
+curl -X GET 'https://staging.koraexpress.app/api/v1/parcels/corridors' \
+  -H 'Accept: application/json'
+```
+
+```dart Dart
+final response = await dio.get('/api/v1/parcels/corridors');
+final corridors = response.data['data'] as List;
+```
+
+</RequestExample>
+
+## Réponse
+
+<ResponseExample>
+
+```json 200
+{
+  "data": [
+    {
+      "uuid": "00000000-0000-4000-8000-000000000001",
+      "origin": {
+        "uuid": "00000000-0000-4000-8000-000000000002",
+        "city": "Cotonou",
+        "name": "Cotonou · Dantokpa"
+      },
+      "destination": {
+        "uuid": "00000000-0000-4000-8000-000000000003",
+        "city": "Porto-Novo",
+        "name": "Porto-Novo · Gare centrale"
+      }
+    }
+  ]
+}
+```
+
+</ResponseExample>
+
+## Règles
+
+- Un corridor fermé, dont un hub est inactif ou archivé, n’apparaît pas.
+- Les UUID exposés sont publics et peuvent être réutilisés pour `POST /quote` et `POST /parcels`.
+- La réponse est publique et ne contient aucune donnée personnelle.
+
+## Codes de réponse
+
+| Code | Corps / message |
+|---|---|
+| `200` | Liste de corridors, éventuellement vide. |
+| `429` | `{"message":"Too Many Attempts."}` |
 
 ## Sécurité
 
-Les réponses n’exposent que des identifiants publics (UUID ou références) et les champs métier nécessaires au parcours. Aucun code de retrait, hash, secret ou payload fournisseur n’est documenté comme retournable.
+Aucune authentification. La réponse ne contient que des identifiants publics et aucun nom, téléphone, contenu, code de retrait, hash ou payload prestataire. Limité à 30 requêtes par minute.

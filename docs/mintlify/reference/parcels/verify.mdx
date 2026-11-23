@@ -1,11 +1,111 @@
 ---
 title: Vérifier un paiement Colis
-description: "Vérifie la transaction auprès du prestataire et met à jour l’état du paiement."
+description: "POST /api/v1/parcels/{parcel_uuid}/payments/{payment_uuid}/verify vérifie la transaction auprès du prestataire."
 api: POST /api/v1/parcels/{parcel_uuid}/payments/{payment_uuid}/verify
 ---
 
-Vérifie la transaction auprès du prestataire et met à jour l’état du paiement. Réservé à l’expéditeur propriétaire. Si le prestataire n’est pas supporté, l’état courant est retourné sans erreur. Limité à 10 requêtes par minute.
+Vérifie la transaction auprès du prestataire et met à jour l’état du paiement. Réservé à l’expéditeur propriétaire. Si le prestataire n’est pas supporté, l’état courant est retourné sans erreur. `transaction_id` est optionnel et borné à 128 caractères.
+
+## Paramètres
+
+<ParamField path="parcel_uuid" type="UUID" required>
+  UUID public du colis.
+</ParamField>
+
+<ParamField path="payment_uuid" type="UUID" required>
+  UUID public du paiement.
+</ParamField>
+
+<ParamField body="transaction_id" type="string">
+  Identifiant de transaction prestataire, maximum 128 caractères.
+</ParamField>
+
+## Corps de la requête
+
+<RequestExample>
+
+```bash cURL
+curl -X POST 'https://staging.koraexpress.app/api/v1/parcels/00000000-0000-4000-8000-000000000010/payments/00000000-0000-4000-8000-000000000030/verify' \
+  -H 'Authorization: Bearer $KORA_TOKEN' \
+  -H 'Accept: application/json' \
+  -H 'Content-Type: application/json' \
+  --data '{"transaction_id":"TEST-TX-0001"}'
+```
+
+```bash cURL
+curl -X POST 'https://staging.koraexpress.app/api/v1/parcels/00000000-0000-4000-8000-000000000010/payments/00000000-0000-4000-8000-000000000030/verify' \
+  -H 'Authorization: Bearer $KORA_TOKEN' \
+  -H 'Accept: application/json' \
+  -H 'Content-Type: application/json' \
+  --data '{}'
+```
+
+```dart Dart
+final response = await dio.post('/api/v1/parcels/$parcelUuid/payments/$paymentUuid/verify', data: {
+  'transaction_id': transactionId,
+}, options: Options(headers: {
+  'Authorization': 'Bearer $token',
+}));
+final payment = response.data['data'];
+```
+
+</RequestExample>
+
+## Réponse
+
+<ResponseExample>
+
+```json 200
+{
+  "data": {
+    "uuid": "00000000-0000-4000-8000-000000000030",
+    "status": "confirmed",
+    "amount": 1500,
+    "currency": "XOF",
+    "method": "wallet",
+    "provider": "wallet",
+    "provider_reference": null,
+    "provider_transaction_id": null,
+    "provider_currency": null,
+    "provider_amount": null,
+    "mobile_money_network": null,
+    "payer_phone": "+2290000000000",
+    "wallet_funding": {
+      "wallet_amount": 0,
+      "points_amount": 1500,
+      "point_value_fcfa": 1,
+      "points_value_fcfa": 1500,
+      "provider_amount_fcfa": 0
+    },
+    "confirmed_at": "2026-11-22T19:21:12+00:00",
+    "last_verified_at": null,
+    "next_action": "show_parcel",
+    "expires_at": null,
+    "polling_interval_seconds": 10
+  }
+}
+```
+
+</ResponseExample>
+
+## Règles
+
+- `transaction_id` est optionnel : un paiement Wallet confirmé peut être vérifié avec `{}`.
+- Un `transaction_id` de plus de 128 caractères renvoie `422`.
+- Un prestataire non supporté retourne la ressource courante sans erreur.
+- La vérification ne crée pas un second paiement et ne modifie pas l’idempotence.
+
+## Codes de réponse
+
+| Code | Corps / message |
+|---|---|
+| `200` | Paiement vérifié ou état courant retourné. |
+| `401` | `{"message":"Unauthenticated."}` |
+| `403` | `{"message":"This action is unauthorized."}` |
+| `404` | `{"message":"Not Found"}` |
+| `422` | `{"message":"Le champ transaction id ne doit pas dépasser 128 caractères.","errors":{"transaction_id":["Le champ transaction id ne doit pas dépasser 128 caractères."]}}` |
+| `429` | `{"message":"Too Many Attempts."}` |
 
 ## Sécurité
 
-Les réponses n’exposent que des identifiants publics (UUID ou références) et les champs métier nécessaires au parcours. Aucun code de retrait, hash, secret ou payload fournisseur n’est documenté comme retournable.
+`Authorization: Bearer <token Sanctum>` requis. Réservé à l’expéditeur propriétaire. Un tiers reçoit `404`. Limité à 10 requêtes par minute.

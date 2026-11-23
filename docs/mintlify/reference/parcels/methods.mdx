@@ -1,11 +1,97 @@
 ---
 title: Lister les moyens de paiement du colis
-description: "Retourne les moyens de paiement autorisés pour le corridor du colis, filtrés par pays et par capacités Wallet."
+description: "GET /api/v1/parcels/{parcel_uuid}/payment-methods retourne les moyens autorisés pour le corridor, sans cash côté client."
 api: GET /api/v1/parcels/{parcel_uuid}/payment-methods
 ---
 
-Retourne les moyens de paiement autorisés pour le corridor du colis, filtrés par pays et par capacités Wallet. Réservé à l’expéditeur propriétaire. Aucun secret ni payload prestataire n’est exposé.
+Retourne le pays, la devise et les moyens autorisés pour le corridor. Les prestataires sont filtrés par pays et les capacités Wallet par corridor. L’application cliente ne propose pas `cash`.
+
+## Paramètres
+
+<ParamField path="parcel_uuid" type="UUID" required>
+  UUID public du colis.
+</ParamField>
+
+## Requête
+
+<RequestExample>
+
+```bash cURL
+curl -X GET 'https://staging.koraexpress.app/api/v1/parcels/00000000-0000-4000-8000-000000000010/payment-methods' \
+  -H 'Authorization: Bearer $KORA_TOKEN' \
+  -H 'Accept: application/json'
+```
+
+```dart Dart
+final response = await dio.get('/api/v1/parcels/$uuid/payment-methods', options: Options(headers: {
+  'Authorization': 'Bearer $token',
+}));
+final methods = response.data['data']['methods'] as List;
+```
+
+</RequestExample>
+
+## Réponse
+
+<ResponseExample>
+
+```json 200
+{
+  "data": {
+    "country": "BJ",
+    "currency": "XOF",
+    "methods": [
+      {
+        "code": "mobile_money",
+        "label": "Mobile Money",
+        "enabled": false,
+        "providers": []
+      },
+      {
+        "code": "card",
+        "label": "Carte bancaire",
+        "enabled": false,
+        "providers": []
+      },
+      {
+        "code": "wallet",
+        "label": "Wallet KORA",
+        "enabled": true,
+        "availability": "points_only",
+        "providers": [],
+        "requires": [
+          "wallet_amount"
+        ],
+        "capabilities": {
+          "cash": false,
+          "points": true
+        },
+        "min_points_amount": 100,
+        "point_value_fcfa": 1
+      }
+    ]
+  }
+}
+```
+
+</ResponseExample>
+
+## Règles
+
+- `cash` n’est pas un moyen client : il reste réservé au guichet OPS.
+- Un moyen `enabled=false` ne doit pas être proposé, même s’il apparaît dans le catalogue filtré.
+- `wallet` peut être `availability: points_only` selon le corridor et `point_value_fcfa`.
+- Les prestataires absents du pays du corridor sont retirés de `providers`.
+
+## Codes de réponse
+
+| Code | Corps / message |
+|---|---|
+| `200` | Moyens de paiement filtrés. |
+| `401` | `{"message":"Unauthenticated."}` |
+| `403` | `{"message":"This action is unauthorized."}` |
+| `404` | `{"message":"Not Found"}` |
 
 ## Sécurité
 
-Les réponses n’exposent que des identifiants publics (UUID ou références) et les champs métier nécessaires au parcours. Aucun code de retrait, hash, secret ou payload fournisseur n’est documenté comme retournable.
+`Authorization: Bearer <token Sanctum>` requis. Réservé à l’expéditeur propriétaire. Un tiers reçoit `404`.

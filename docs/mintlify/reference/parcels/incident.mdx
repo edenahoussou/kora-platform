@@ -1,11 +1,99 @@
 ---
 title: Signaler un incident sur un colis
-description: "Signale un incident non bloquant sur un colis référencé."
+description: "POST /api/v1/parcels/{parcel_uuid}/incidents déclare un incident non bloquant, avec idempotence optionnelle."
 api: POST /api/v1/parcels/{parcel_uuid}/incidents
 ---
 
-Signale un incident non bloquant sur un colis référencé. Accessible au titulaire ou au destinataire vérifié. La réponse contient uniquement l’UUID de l’incident et sa qualification ; le code de retrait et le contenu du colis ne sont jamais exposés. Un `idempotency_key` optionnel permet de rejouer la déclaration sans créer un second incident ni une seconde notification. Limité à 5 requêtes par minute.
+Signale un incident non bloquant sur un colis référencé. Accessible au titulaire ou au destinataire vérifié. La réponse contient uniquement l’UUID de l’incident et `blocking`. Le code de retrait et le contenu ne sont jamais exposés.
+
+## Paramètres
+
+<ParamField path="parcel_uuid" type="UUID" required>
+  UUID public du colis.
+</ParamField>
+
+<ParamField body="kind" type="string" required>
+  `loss`, `damage` ou `custody_discrepancy`.
+</ParamField>
+
+<ParamField body="description" type="string" required>
+  Description factuelle, maximum 2000 caractères, sans code de retrait.
+</ParamField>
+
+<ParamField body="idempotency_key" type="UUID">
+  Clé optionnelle pour rejouer sans créer un second incident.
+</ParamField>
+
+## Corps de la requête
+
+<RequestExample>
+
+```bash cURL
+curl -X POST 'https://staging.koraexpress.app/api/v1/parcels/00000000-0000-4000-8000-000000000010/incidents' \
+  -H 'Authorization: Bearer $KORA_TOKEN' \
+  -H 'Accept: application/json' \
+  -H 'Content-Type: application/json' \
+  --data '{"kind":"damage","description":"Emballage légèrement endommagé","idempotency_key":"00000000-0000-4000-8000-000000000098"}'
+```
+
+```dart Dart
+final response = await dio.post('/api/v1/parcels/$uuid/incidents', data: {
+  'kind': 'damage',
+  'description': 'Emballage légèrement endommagé',
+  'idempotency_key': idempotencyKey,
+}, options: Options(headers: {
+  'Authorization': 'Bearer $token',
+}));
+final incident = response.data['data'];
+```
+
+</RequestExample>
+
+## Réponse
+
+<ResponseExample>
+
+```json 201
+{
+  "data": {
+    "uuid": "00000000-0000-4000-8000-000000000050",
+    "blocking": false
+  }
+}
+```
+
+```json 200
+{
+  "data": {
+    "uuid": "00000000-0000-4000-8000-000000000050",
+    "blocking": false
+  }
+}
+```
+
+</ResponseExample>
+
+## Règles
+
+- `201` à la création ; `200` si la même clé est rejouée avec le même kind et la même description.
+- La même clé avec un autre incident renvoie `409`.
+- Un colis sans référence logistique renvoie `409` avec `The parcel has no logistics reference.`.
+- Un incident non bloquant ne change pas le statut public du colis ; un incident bloquant est traité côté OPS.
+- La réponse ne contient ni kind, ni description, ni téléphone, ni code de retrait.
+
+## Codes de réponse
+
+| Code | Corps / message |
+|---|---|
+| `201` | Incident créé. |
+| `200` | Rejeu exact. |
+| `401` | `{"message":"Unauthenticated."}` |
+| `403` | `{"message":"This action is unauthorized."}` |
+| `404` | `{"message":"Not Found"}` |
+| `409` | `{"message":"The parcel has no logistics reference."}` ou clé réutilisée avec un autre incident. |
+| `422` | `{"message":"La valeur sélectionnée pour kind est invalide.","errors":{"kind":["La valeur sélectionnée pour kind est invalide."]}}` |
+| `429` | `{"message":"Too Many Attempts."}` |
 
 ## Sécurité
 
-Les réponses n’exposent que des identifiants publics (UUID ou références) et les champs métier nécessaires au parcours. Aucun code de retrait, hash, secret ou payload fournisseur n’est documenté comme retournable. Le statut public `incident` ne révèle ni le kind, ni la description, ni le responsable OPS.
+`Authorization: Bearer <token Sanctum>` requis. Le titulaire doit posséder `parcels.customer`. Un tiers reçoit `404`, jamais l’existence du colis. Limité à 5 requêtes par minute.

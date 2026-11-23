@@ -1,11 +1,66 @@
 ---
 title: Créer ou remplacer un lien de suivi
-description: "Réservé à l’expéditeur propriétaire d’un colis payé et référencé."
+description: "POST /api/v1/parcels/{parcel_uuid}/share émet un jeton opaque de 48 caractères et invalide l’ancien."
 api: POST /api/v1/parcels/{parcel_uuid}/share
 ---
 
-Réservé à l’expéditeur propriétaire d’un colis payé et référencé. Chaque appel émet un nouveau jeton et invalide l’ancien. La réponse contient un chemin relatif ; le jeton complet n’est ni journalisé ni stocké en clair.
+Réservé à l’expéditeur propriétaire d’un colis référencé. Chaque appel émet un nouveau jeton de 48 caractères et invalide l’ancien. La réponse contient un chemin relatif ; le jeton complet n’est ni journalisé ni stocké en clair.
+
+## Paramètres
+
+<ParamField path="parcel_uuid" type="UUID" required>
+  UUID public du colis.
+</ParamField>
+
+## Requête
+
+<RequestExample>
+
+```bash cURL
+curl -X POST 'https://staging.koraexpress.app/api/v1/parcels/00000000-0000-4000-8000-000000000010/share' \
+  -H 'Authorization: Bearer $KORA_TOKEN' \
+  -H 'Accept: application/json'
+```
+
+```dart Dart
+final response = await dio.post('/api/v1/parcels/$uuid/share', options: Options(headers: {
+  'Authorization': 'Bearer $token',
+}));
+final path = response.data['data']['path'];
+```
+
+</RequestExample>
+
+## Réponse
+
+<ResponseExample>
+
+```json 200
+{
+  "data": {
+    "path": "/api/v1/parcels/shared/AbCdEfGhIjKlMnOpQrStUvWxYz0123456789ABCDEFGHIJKL"
+  }
+}
+```
+
+</ResponseExample>
+
+## Règles
+
+- Le chemin retourné est relatif et ne doit pas être présenté comme une URL absolue.
+- Le jeton fait exactement 48 caractères et seul son hash SHA-256 est stocké.
+- Un nouvel appel invalide immédiatement le précédent jeton.
+- Un colis sans référence, ou dont le titulaire n’est pas propriétaire, renvoie `404`.
+
+## Codes de réponse
+
+| Code | Corps / message |
+|---|---|
+| `200` | Nouveau chemin de partage. |
+| `401` | `{"message":"Unauthenticated."}` |
+| `403` | `{"message":"This action is unauthorized."}` |
+| `404` | `{"message":"Not Found"}` |
 
 ## Sécurité
 
-Les réponses n’exposent que des identifiants publics (UUID ou références) et les champs métier nécessaires au parcours. Aucun code de retrait, hash, secret ou payload fournisseur n’est documenté comme retournable.
+`Authorization: Bearer <token Sanctum>` requis. Réservé à l’expéditeur propriétaire. Un tiers reçoit `404`.

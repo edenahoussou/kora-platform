@@ -409,7 +409,8 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     // Provider-specific webhook endpoints.
     Route::post('payments/webhook/fedapay', [PaymentController::class, 'webhookFedaPay'])
         ->name('payments.webhook.fedapay');
-    Route::post('payments/webhook/mtn-momo', [PaymentController::class, 'webhookMtnMomo'])
+    Route::match(['post', 'put'], 'payments/webhook/mtn-momo/{callbackToken?}', [PaymentController::class, 'webhookMtnMomo'])
+        ->middleware('throttle:60,1')
         ->name('payments.webhook.mtn-momo');
     Route::post('payments/webhook/kkiapay', [PaymentController::class, 'webhookKkiapay'])
         ->name('payments.webhook.kkiapay');

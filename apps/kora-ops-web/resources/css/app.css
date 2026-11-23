@@ -11086,3 +11086,28 @@
         display: none !important;
     }
 }
+
+/* Carte de suivi Colis — info-bulles discrètes, sans dépendance thème. */
+.leaflet-container img.leaflet-tile {
+    opacity: 1 !important;
+}
+
+.kora-parcel-tracking-tooltip,
+.kora-parcel-tracking-popup {
+    padding: 8px 10px;
+    border: 1px solid rgba(0, 29, 78, 0.12);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 12px 30px -16px rgba(0, 29, 78, 0.55);
+    color: #0f172a;
+}
+
+.kora-parcel-tracking-tooltip::before,
+.kora-parcel-tracking-popup::before {
+    border-top-color: rgba(0, 29, 78, 0.12);
+}
+
+.kora-parcel-tracking-tooltip .leaflet-tooltip-content,
+.kora-parcel-tracking-popup .leaflet-popup-content {
+    margin: 0;
+}

@@ -198,10 +198,12 @@ class ParcelPayments
             default => null,
         };
         $currency = data_get($data, 'currency.iso') ?? ($data['currency'] ?? ($payment->provider === 'kkiapay' ? app(GeneralSettings::class)->currency : null));
-        $amount = filter_var($data['amount'] ?? $authenticatedEvent['amount'] ?? null, FILTER_VALIDATE_INT);
+        $rawAmount = $data['amount'] ?? $authenticatedEvent['amount'] ?? null;
+        $amount = is_numeric($rawAmount) ? (float) $rawAmount : null;
         $receipt = $response->providerTransactionId ?? $response->providerReference;
         if ($correlation !== $payment->uuid || $currency !== $payment->provider_currency
-            || $amount !== $payment->provider_amount || blank($receipt) || strlen($receipt) > 128) {
+            || $amount === null || abs($amount - (float) $payment->provider_amount) > 0.0001
+            || blank($receipt) || strlen($receipt) > 128) {
             Log::warning('Parcel payment provider verification mismatch', ['payment_uuid' => $payment->uuid, 'provider' => $payment->provider]);
 
             return $payment->refresh();

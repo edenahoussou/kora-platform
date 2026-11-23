@@ -17,11 +17,16 @@ use App\Modules\Parcels\Models\ParcelCorridor;
 use App\Modules\Parcels\Models\ParcelHub;
 use App\Modules\Parcels\Services\ParcelIntake;
 use App\Modules\Parcels\Services\ParcelPayments;
+use App\Modules\Payments\Contracts\PaymentProvider;
+use App\Modules\Payments\Contracts\ProviderResponse;
 use App\Modules\Payments\Data\PaymentMethod;
 use App\Modules\Payments\Data\PaymentStatus;
 use App\Modules\Payments\Models\AgencyPaymentAccount;
 use App\Modules\Payments\Models\Payment;
+use App\Modules\Payments\Providers\FedaPayAdapter;
+use App\Modules\Payments\Providers\KKiaPayAdapter;
 use Database\Seeders\KoraBusRolePermissionSeeder;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
@@ -129,6 +134,81 @@ function payCash($test, array $fixture, ?string $key = null, ?int $amount = null
             'cash_received_amount' => $amount ?? $charge->total,
         ]);
 }
+
+test('a FedaPay parcel webhook verifies with the authenticated transaction id missing from the payment row', function (): void {
+    $fixture = paymentReceiptFixture();
+    $charge = $fixture['parcel']->charges()->whereNull('superseded_at')->sole();
+
+    $payment = Payment::query()->create([
+        'parcel_charge_id' => $charge->id,
+        'idempotency_key' => (string) Str::uuid(),
+        'method' => PaymentMethod::MobileMoney,
+        'provider' => 'fedapay',
+        'provider_reference' => 'FEDA-REF-001',
+        'provider_amount' => $charge->total,
+        'provider_currency' => 'XOF',
+        'amount' => $charge->total,
+        'currency' => 'XOF',
+        'status' => PaymentStatus::Pending,
+    ]);
+
+    $provider = new WebhookCorrelationProvider(
+        providerName: 'fedapay',
+        expectedTransactionId: 'TX-FEDA-NEW',
+        webhookPayload: [
+            'id' => 'TX-FEDA-NEW',
+            'status' => 'approved',
+            'custom_metadata' => ['kora_payment_uuid' => $payment->uuid],
+        ],
+    );
+    $this->app->instance(FedaPayAdapter::class, $provider);
+
+    $this->postJson('/api/v1/payments/webhook/fedapay', $provider->webhookPayload)
+        ->assertOk()
+        ->assertJsonPath('status', 'confirmed');
+
+    expect($provider->seenTransactionId)->toBe('TX-FEDA-NEW')
+        ->and($payment->fresh()->status)->toBe(PaymentStatus::Confirmed)
+        ->and($payment->fresh()->provider_transaction_id)->toBe('TX-FEDA-NEW');
+});
+
+test('a KKiaPay parcel retry uses the new authenticated id instead of the stale stored one', function (): void {
+    $fixture = paymentReceiptFixture();
+    $charge = $fixture['parcel']->charges()->whereNull('superseded_at')->sole();
+
+    $payment = Payment::query()->create([
+        'parcel_charge_id' => $charge->id,
+        'idempotency_key' => (string) Str::uuid(),
+        'method' => PaymentMethod::MobileMoney,
+        'provider' => 'kkiapay',
+        'provider_reference' => 'TX-KK-OLD',
+        'provider_transaction_id' => 'TX-KK-OLD',
+        'provider_amount' => $charge->total,
+        'provider_currency' => 'XOF',
+        'amount' => $charge->total,
+        'currency' => 'XOF',
+        'status' => PaymentStatus::Pending,
+    ]);
+
+    $provider = new WebhookCorrelationProvider(
+        providerName: 'kkiapay',
+        expectedTransactionId: 'TX-KK-NEW',
+        webhookPayload: [
+            'transactionId' => 'TX-KK-NEW',
+            'partnerId' => $payment->uuid,
+            'status' => 'SUCCESS',
+        ],
+    );
+    $this->app->instance(KKiaPayAdapter::class, $provider);
+
+    $this->postJson('/api/v1/payments/webhook/kkiapay', $provider->webhookPayload)
+        ->assertOk()
+        ->assertJsonPath('status', 'confirmed');
+
+    expect($provider->seenTransactionId)->toBe('TX-KK-NEW')
+        ->and($payment->fresh()->status)->toBe(PaymentStatus::Confirmed)
+        ->and($payment->fresh()->provider_transaction_id)->toBe('TX-KK-NEW');
+});
 
 test('a cash deposit settles one charge, one cash movement and one invoice', function (): void {
     $fixture = paymentReceiptFixture();
@@ -350,3 +430,70 @@ test('a partner point uses its own agency cash session', function (): void {
 
     payCash($this, $fixture)->assertSuccessful();
 });
+
+final class WebhookCorrelationProvider implements PaymentProvider
+{
+    public ?string $seenTransactionId = null;
+
+    public function __construct(
+        private readonly string $providerName,
+        private readonly string $expectedTransactionId,
+        public readonly array $webhookPayload,
+    ) {}
+
+    public function initiate(Payment $payment, array $payload = []): ProviderResponse
+    {
+        return new ProviderResponse(status: PaymentStatus::Pending);
+    }
+
+    public function verify(Payment $payment): ProviderResponse
+    {
+        $this->seenTransactionId = $payment->provider_transaction_id;
+
+        if ($this->seenTransactionId !== $this->expectedTransactionId) {
+            return new ProviderResponse(
+                status: PaymentStatus::Pending,
+                providerReference: $payment->provider_reference,
+                payload: ['reason' => 'transaction_id_missing'],
+            );
+        }
+
+        $payload = match ($this->providerName) {
+            'fedapay' => [
+                'custom_metadata' => ['kora_payment_uuid' => $payment->uuid],
+                'currency' => ['iso' => $payment->provider_currency],
+                'amount' => (string) $payment->provider_amount,
+                'status' => 'approved',
+            ],
+            'kkiapay' => [
+                'partnerId' => $payment->uuid,
+                'currency' => ['iso' => $payment->provider_currency],
+                'amount' => (string) $payment->provider_amount,
+                'status' => 'SUCCESS',
+            ],
+            default => [],
+        };
+
+        return new ProviderResponse(
+            status: PaymentStatus::Confirmed,
+            providerReference: $this->expectedTransactionId,
+            providerTransactionId: $this->expectedTransactionId,
+            payload: $payload,
+        );
+    }
+
+    public function verifyWebhook(Request $request): ?array
+    {
+        return $this->webhookPayload;
+    }
+
+    public function supports(string $method, string $provider): bool
+    {
+        return $provider === $this->providerName;
+    }
+
+    public function name(): string
+    {
+        return $this->providerName;
+    }
+}

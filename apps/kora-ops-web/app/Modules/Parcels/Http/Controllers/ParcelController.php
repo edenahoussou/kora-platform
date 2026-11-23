@@ -147,7 +147,7 @@ class ParcelController extends Controller
      * @response 200 {"data":{"uuid":"00000000-0000-4000-8000-000000000010","reference":null,"status":"cancelled","origin":"Cotonou","destination":"Parakou","can_pay":false,"timeline":[{"kind":"cancelled","observed_at":"2026-11-20T09:20:00+01:00"}]}}
      * @response 403 {"message":"Droits insuffisants pour ce périmètre Colis."}
      * @response 404 {"message":"Not Found"}
-     * @response 409 {"message":"Opération incompatible avec l’état du colis ou du corridor."}
+     * @response 409 {"message":"Le colis ne peut pas être annulé dans son statut actuel."}
      */
     public function cancel(Request $request, Parcel $parcel): ParcelResource
     {
@@ -217,7 +217,7 @@ class ParcelController extends Controller
     public function share(Request $request, Parcel $parcel): JsonResponse
     {
         $this->access->require($request->user(), 'parcels.customer');
-        abort_unless($parcel->sender_user_id === $request->user()->id && $parcel->reference !== null, 404);
+        abort_unless($parcel->sender_user_id === $request->user()->id && $parcel->reference !== null, 404, 'Not Found');
         $token = Str::random(48);
         DB::transaction(function () use ($parcel, $request, $token): void {
             $parcel = Parcel::query()->lockForUpdate()->findOrFail($parcel->id);
@@ -243,7 +243,7 @@ class ParcelController extends Controller
     public function revokeShare(Request $request, Parcel $parcel): JsonResponse
     {
         $this->access->require($request->user(), 'parcels.customer');
-        abort_unless($parcel->sender_user_id === $request->user()->id, 404);
+        abort_unless($parcel->sender_user_id === $request->user()->id, 404, 'Not Found');
         DB::transaction(function () use ($parcel, $request): void {
             $parcel = Parcel::query()->lockForUpdate()->findOrFail($parcel->id);
             $parcel->update(['share_hash' => null]);
@@ -262,14 +262,14 @@ class ParcelController extends Controller
      *
      * @urlParam parcel_uuid string required UUID public du colis. Example: 00000000-0000-4000-8000-000000000010
      *
-     * @response 200 {"data":{"country":"BJ","currency":"XOF","methods":[{"code":"cash","label":"Espèces","enabled":true,"capabilities":{"cash":true,"points":false},"providers":[]},{"code":"wallet","label":"Wallet KORA","enabled":true,"capabilities":{"cash":true,"points":true},"providers":[]},{"code":"mobile_money","label":"Mobile Money","enabled":true,"capabilities":{"cash":true,"points":false},"providers":[{"code":"fedapay","countries":["BJ"]}]}]}}
+     * @response 200 {"data":{"country":"BJ","currency":"XOF","methods":[{"code":"mobile_money","label":"Mobile Money","enabled":false,"providers":[]},{"code":"card","label":"Carte bancaire","enabled":false,"providers":[]},{"code":"wallet","label":"Wallet KORA","enabled":true,"availability":"points_only","providers":[],"requires":["wallet_amount"],"capabilities":{"cash":false,"points":true},"min_points_amount":100,"point_value_fcfa":1}]}}
      * @response 403 {"message":"Droits insuffisants pour ce périmètre Colis."}
      * @response 404 {"message":"Not Found"}
      */
     public function methods(Request $request, Parcel $parcel, PaymentManager $manager): JsonResponse
     {
         $this->access->require($request->user(), 'parcels.customer');
-        abort_unless($parcel->sender_user_id === $request->user()->id, 404);
+        abort_unless($parcel->sender_user_id === $request->user()->id, 404, 'Not Found');
         $country = strtoupper((string) $parcel->corridor?->originHub?->agency?->country);
         $catalog = $manager->catalog();
         $methods = array_map(function (array $method) use ($country, $parcel): array {
@@ -297,11 +297,12 @@ class ParcelController extends Controller
      *
      * @urlParam parcel_uuid string required UUID public du colis. Example: 00000000-0000-4000-8000-000000000010
      *
-     * @response 200 {"data":{"uuid":"00000000-0000-4000-8000-000000000020","status":"confirmed","amount":1500,"currency":"XOF","method":"cash","provider":"cash","provider_reference":null,"provider_transaction_id":null,"confirmed_at":"2026-11-20T09:30:00+01:00","last_verified_at":null,"next_action":"show_parcel","polling_interval_seconds":10}}
+     * @response 201 {"data":{"uuid":"00000000-0000-4000-8000-000000000020","status":"confirmed","amount":1500,"currency":"XOF","method":"wallet","provider":"wallet","provider_reference":null,"provider_transaction_id":null,"confirmed_at":"2026-11-20T09:30:00+01:00","last_verified_at":null,"next_action":"show_parcel","polling_interval_seconds":10}}
+     * @response 200 {"data":{"uuid":"00000000-0000-4000-8000-000000000020","status":"confirmed","amount":1500,"currency":"XOF","method":"wallet","provider":"wallet","provider_reference":null,"provider_transaction_id":null,"confirmed_at":"2026-11-20T09:30:00+01:00","last_verified_at":null,"next_action":"show_parcel","polling_interval_seconds":10}}
      * @response 403 {"message":"Droits insuffisants pour ce périmètre Colis."}
      * @response 404 {"message":"Not Found"}
      * @response 409 {"message":"Le montant doit correspondre au dernier devis pesé ou un paiement est en cours."}
-     * @response 422 {"message":"Les données de cette opération sont invalides."}
+     * @response 422 {"message":"Le moyen de paiement cash n’est pas disponible depuis l’application.","errors":{"method":["Le moyen de paiement cash n’est pas disponible depuis l’application."]}}
      * @response 429 {"message":"Too Many Attempts."}
      */
     public function pay(ParcelPaymentRequest $request, Parcel $parcel, ParcelPayments $payments): PaymentResource
@@ -342,7 +343,7 @@ class ParcelController extends Controller
      * @response 200 {"data":{"uuid":"00000000-0000-4000-8000-000000000020","status":"confirmed","amount":1500,"currency":"XOF","method":"mobile_money","provider":"fedapay","provider_reference":"TEST-REF-001","provider_transaction_id":"TEST-TX-001","confirmed_at":"2026-11-20T09:35:00+01:00","last_verified_at":"2026-11-20T09:35:00+01:00","next_action":"show_parcel","polling_interval_seconds":10}}
      * @response 403 {"message":"Droits insuffisants pour ce périmètre Colis."}
      * @response 404 {"message":"Not Found"}
-     * @response 409 {"message":"Opération incompatible avec l’état du colis ou du corridor."}
+     * @response 422 {"message":"The transaction id field must not be greater than 128 characters.","errors":{"transaction_id":["The transaction id field must not be greater than 128 characters."]}}
      * @response 429 {"message":"Too Many Attempts."}
      */
     public function verify(ParcelPaymentRequest $request, Parcel $parcel, Payment $payment, ParcelPayments $payments, PaymentManager $manager): PaymentResource
@@ -374,9 +375,9 @@ class ParcelController extends Controller
     {
         $parcel = $this->access->customer($request->user())->findOrFail($parcel->id);
         $kind = $request->validated('kind') ?? 'label';
-        abort_unless(in_array($kind, ['label', 'receipt', 'return_receipt'], true), 404);
+        abort_unless(in_array($kind, ['label', 'receipt', 'return_receipt'], true), 404, 'Unsupported document kind.');
         if ($kind !== 'label') {
-            abort_unless($parcel->sender_user_id === $request->user()->id, 404);
+            abort_unless($parcel->sender_user_id === $request->user()->id, 404, 'Not Found');
         }
 
         return response()->json(['data' => $documents->render($parcel, $kind)]);
@@ -399,8 +400,8 @@ class ParcelController extends Controller
      * @response 201 {"data":{"uuid":"00000000-0000-4000-8000-000000000030","blocking":false}}
      * @response 403 {"message":"Droits insuffisants pour ce périmètre Colis."}
      * @response 404 {"message":"Not Found"}
-     * @response 409 {"message":"Opération incompatible avec l’état du colis ou du corridor."}
-     * @response 422 {"message":"Les données de cette opération sont invalides."}
+     * @response 409 {"message":"The parcel has no logistics reference."}
+     * @response 422 {"message":"La valeur sélectionnée pour kind est invalide.","errors":{"kind":["La valeur sélectionnée pour kind est invalide."]}}
      * @response 429 {"message":"Too Many Attempts."}
      */
     public function incident(ParcelOperationRequest $request, Parcel $parcel, ParcelNotifications $notifications): JsonResponse
@@ -413,7 +414,7 @@ class ParcelController extends Controller
 
         return DB::transaction(function () use ($request, $parcel, $notifications, $data, $idempotencyKey): JsonResponse {
             $parcel = Parcel::query()->lockForUpdate()->findOrFail($parcel->id);
-            abort_if($parcel->reference === null, 409);
+            abort_if($parcel->reference === null, 409, 'The parcel has no logistics reference.');
 
             if ($idempotencyKey !== null) {
                 $existing = $parcel->incidents()->where('idempotency_key', $idempotencyKey)->first();

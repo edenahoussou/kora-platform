@@ -39,7 +39,23 @@ class ParcelOperationRequest extends FormRequest
     /** @return array<string, list<string>> */
     public function rules(): array
     {
-        return match ($this->route()?->getActionMethod()) {
+        $method = $this->route()?->getActionMethod();
+
+        if ($method === 'incident') {
+            $rules = [
+                'kind' => ['required', 'in:loss,damage,custody_discrepancy'],
+                'description' => ['required', 'string', 'max:2000'],
+                'idempotency_key' => ['nullable', 'uuid'],
+            ];
+
+            if ($this->isOpsIncidentRoute()) {
+                $rules['blocking'] = ['nullable', 'boolean'];
+            }
+
+            return $rules;
+        }
+
+        return match ($method) {
             'assign' => [
                 'departure_uuid' => ['required', 'uuid'],
             ],
@@ -57,12 +73,6 @@ class ParcelOperationRequest extends FormRequest
             ],
             'correction', 'resolveIncident' => [
                 'reason' => ['required', 'string', 'max:500'],
-            ],
-            'incident' => [
-                'kind' => ['required', 'in:loss,damage,custody_discrepancy'],
-                'description' => ['required', 'string', 'max:2000'],
-                'idempotency_key' => ['nullable', 'uuid'],
-                ...($this->isOpsIncidentRoute() ? ['blocking' => ['nullable', 'boolean']] : []),
             ],
             'authorizeRefund' => [
                 'payment_uuid' => ['required', 'uuid'],
@@ -89,6 +99,17 @@ class ParcelOperationRequest extends FormRequest
             ],
             default => [],
         };
+    }
+
+    /** @return array<string, array{description: string}> */
+    public function bodyParameters(): array
+    {
+        return [
+            'kind' => ['description' => 'Nature du signalement : loss, damage ou custody_discrepancy.'],
+            'description' => ['description' => 'Description factuelle de l’incident, sans code de retrait.'],
+            'idempotency_key' => ['description' => 'Clé d’idempotence pour rejouer la déclaration sans créer un second incident.'],
+            'blocking' => ['description' => 'Indique si l’incident bloque la suite du parcours.'],
+        ];
     }
 
     private function isOpsIncidentRoute(): bool

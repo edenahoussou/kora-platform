@@ -3,6 +3,7 @@
 namespace App\Modules\Parcels\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class ParcelPaymentRequest extends FormRequest
 {
@@ -26,7 +27,9 @@ class ParcelPaymentRequest extends FormRequest
         return match ($this->route()?->getActionMethod()) {
             'pay' => [
                 'idempotency_key' => ['required', 'uuid'],
-                'method' => ['required', 'in:cash,mobile_money,card,wallet'],
+                'method' => ['required', Rule::in($this->clientParcelRoute()
+                    ? ['mobile_money', 'card', 'wallet']
+                    : ['cash', 'mobile_money', 'card', 'wallet'])],
                 'amount' => ['required', 'integer', 'min:1'],
                 'provider' => ['nullable', 'string', 'max:32'],
                 'mobile_money_network' => ['nullable', 'string', 'max:32'],
@@ -41,5 +44,18 @@ class ParcelPaymentRequest extends FormRequest
             ],
             default => [],
         };
+    }
+
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        return [
+            'method.in' => 'Le moyen de paiement cash n’est pas disponible depuis l’application.',
+        ];
+    }
+
+    private function clientParcelRoute(): bool
+    {
+        return str_starts_with((string) $this->route()?->getName(), 'api.v1.parcels.');
     }
 }

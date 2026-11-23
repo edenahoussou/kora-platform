@@ -182,8 +182,8 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
         }
 
         $validator = Validator::make($merged, $this->rules($group));
-        $validator->after(function ($validator) use ($group, $merged): void {
-            foreach ($this->dependencyErrors($group, $merged) as $field => $message) {
+        $validator->after(function ($validator) use ($group, $merged, $submitted): void {
+            foreach ($this->dependencyErrors($group, $merged, $submitted) as $field => $message) {
                 $validator->errors()->add($field, $message);
             }
         });
@@ -370,11 +370,16 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
             'mtnMomoUserId' => ['nullable', 'string', 'max:500'],
             'mtnMomoApiKey' => ['nullable', 'string', 'max:500'],
             'mtnMomoEnvironment' => ['required', 'in:sandbox,production'],
-            'mtnMomoCallbackUrl' => ['nullable', 'url:http,https', 'max:500'],
-            'mtnMomoTargetEnvironment' => ['required', 'string', 'max:64'],
+            'mtnMomoCallbackUrl' => ['nullable', 'url:https', 'max:500'],
+            'mtnMomoTargetEnvironment' => [
+                'required',
+                'string',
+                'max:64',
+                Rule::in(config('payments.providers.mtn_momo.target_environments', [])),
+            ],
             'mtnMomoSandboxCurrency' => ['required', 'regex:/^[A-Z]{3}$/'],
             'mtnMomoProductionCurrency' => ['required', 'regex:/^[A-Z]{3}$/'],
-            'mtnMomoWebhookSecret' => ['nullable', 'string', 'max:500'],
+            'mtnMomoWebhookSecret' => ['nullable', 'string', 'min:32', 'max:500'],
             'kkiapayEnabled' => ['required', 'boolean'],
             'kkiapayPublicKey' => ['nullable', 'string', 'max:500'],
             'kkiapayPrivateKey' => ['nullable', 'string', 'max:500'],
@@ -419,7 +424,12 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
      * @param  array<string, mixed>  $values
      * @return array<string, string>
      */
-    private function dependencyErrors(SettingsGroup $group, array $values): array
+    /**
+     * @param  array<string, mixed>  $values
+     * @param  array<string, mixed>  $submitted
+     * @return array<string, string>
+     */
+    private function dependencyErrors(SettingsGroup $group, array $values, array $submitted = []): array
     {
         if ($group === SettingsGroup::Operations) {
             $errors = [];
@@ -531,6 +541,27 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
 
         if ((bool) $values['mtnMomoEnabled'] && (blank($values['mtnMomoSubscriptionKey']) || blank($values['mtnMomoUserId']) || blank($values['mtnMomoApiKey']))) {
             $errors['mtnMomoSubscriptionKey'] = 'MTN MoMo credentials are required when the provider is enabled.';
+        }
+
+        if ((bool) $values['mtnMomoEnabled'] && blank($values['mtnMomoCallbackUrl'])) {
+            $errors['mtnMomoCallbackUrl'] = 'A public HTTPS callback URL is required when MTN MoMo is enabled.';
+        }
+
+        if ((bool) $values['mtnMomoEnabled'] && blank($values['mtnMomoWebhookSecret'])) {
+            $errors['mtnMomoWebhookSecret'] = 'A webhook secret of at least 32 characters is required when MTN MoMo is enabled.';
+        }
+
+        $mtnEnvironment = $values['mtnMomoEnvironment'] ?? null;
+        $mtnTarget = $values['mtnMomoTargetEnvironment'] ?? null;
+        $mtnSubmitted = array_key_exists('mtnMomoEnvironment', $submitted)
+            || array_key_exists('mtnMomoTargetEnvironment', $submitted);
+
+        if ($mtnSubmitted && $mtnEnvironment === 'sandbox' && $mtnTarget !== 'sandbox') {
+            $errors['mtnMomoTargetEnvironment'] = 'En environnement sandbox, l’environnement cible MTN doit être « sandbox ».';
+        }
+
+        if ($mtnSubmitted && $mtnEnvironment === 'production' && $mtnTarget === 'sandbox') {
+            $errors['mtnMomoTargetEnvironment'] = 'L’environnement cible « sandbox » est interdit en production.';
         }
 
         if ((bool) $values['kkiapayEnabled']

@@ -1,12 +1,122 @@
 ---
 title: Suivre un colis par référence
-description: "Retourne le contrat public de suivi : référence, statut, trajet, poids, échéance de retrait, ETA et jalons publics."
+description: "GET /api/v1/parcels/tracking/{reference} retourne le contrat public de suivi, sans PII ni secrets."
 api: GET /api/v1/parcels/tracking/{reference}
 authMethod: none
 ---
 
-Retourne le contrat public de suivi : référence, statut, trajet, poids, échéance de retrait, ETA et jalons publics. Le payload ne contient jamais le nom, le téléphone, le contenu, le code de retrait, les hashes ou le payload prestataire. Le statut `incident` signale un incident bloquant sans détail. Limité à 15 requêtes par minute.
+Contrat public minimal pour la page de suivi et le QR. Il contient la référence, le statut, le trajet, le poids, l’échéance de retrait, l’ETA, le dernier événement et les jalons publics.
+
+## Paramètres
+
+<ParamField path="reference" type="string" required>
+  Référence logistique au format `KC-YYYYMMDD-#####`.
+</ParamField>
+
+## Requête
+
+<RequestExample>
+
+```bash cURL
+curl -X GET 'https://staging.koraexpress.app/api/v1/parcels/tracking/KC-20260101-00001' \
+  -H 'Accept: application/json'
+```
+
+```dart Dart
+final response = await dio.get('/api/v1/parcels/tracking/$reference');
+final tracking = response.data['data'];
+```
+
+</RequestExample>
+
+## Réponse
+
+<ResponseExample>
+
+```json 200
+{
+  "data": {
+    "reference": "KC-20260101-00001",
+    "status": "withdrawn",
+    "origin": "Cotonou",
+    "destination": "Porto-Novo",
+    "weight_grams": 2400,
+    "withdraw_by": "2026-12-20T05:59:47+00:00",
+    "eta": "2026-11-20T05:56:05+00:00",
+    "last_event_at": "2026-11-20T06:05:00+00:00",
+    "timeline": [
+      {
+        "kind": "preregistered",
+        "observed_at": "2026-11-19T20:31:22+00:00",
+        "city": "Cotonou"
+      },
+      {
+        "kind": "weighed",
+        "observed_at": "2026-11-20T03:16:32+00:00",
+        "city": "Cotonou"
+      },
+      {
+        "kind": "registered",
+        "observed_at": "2026-11-20T03:20:39+00:00",
+        "city": "Cotonou"
+      },
+      {
+        "kind": "ready",
+        "observed_at": "2026-11-20T05:07:56+00:00",
+        "city": "Cotonou"
+      },
+      {
+        "kind": "assigned",
+        "observed_at": "2026-11-20T05:08:47+00:00",
+        "city": "Cotonou"
+      },
+      {
+        "kind": "loaded",
+        "observed_at": "2026-11-20T05:56:04+00:00",
+        "city": "Cotonou"
+      },
+      {
+        "kind": "in_transit",
+        "observed_at": "2026-11-20T05:56:04+00:00",
+        "city": null
+      },
+      {
+        "kind": "unloaded",
+        "observed_at": "2026-11-20T05:56:05+00:00",
+        "city": "Porto-Novo"
+      },
+      {
+        "kind": "available",
+        "observed_at": "2026-11-20T05:59:47+00:00",
+        "city": "Porto-Novo"
+      },
+      {
+        "kind": "withdrawn",
+        "observed_at": "2026-11-20T06:05:00+00:00",
+        "city": "Porto-Novo"
+      }
+    ]
+  }
+}
+```
+
+</ResponseExample>
+
+## Règles
+
+- Le payload ne contient jamais `sender_name`, `recipient_name`, téléphone, `contents`, code de retrait, hash ou payload prestataire.
+- `timeline` ne contient que des jalons whitelistés : `preregistered`, `weighed`, `registered`, `ready`, `assigned`, `loaded`, `in_transit`, `unloaded`, `available`, `withdrawn`.
+- Un incident bloquant apparaît comme statut `incident`, sans kind, description ni responsable OPS.
+- Une référence inconnue renvoie `404`, sans révéler de données de colis.
+
+## Codes de réponse
+
+| Code | Corps / message |
+|---|---|
+| `200` | Suivi public. |
+| `404` | `{"message":"Not Found"}` |
+| `429` | `{"message":"Too Many Attempts."}` |
 
 ## Sécurité
 
-Les réponses n’exposent que des identifiants publics (UUID ou références) et les champs métier nécessaires au parcours. Aucun code de retrait, hash, secret ou payload fournisseur n’est documenté comme retournable.
+Aucune authentification. La réponse ne contient que des identifiants publics et aucun nom, téléphone, contenu, code de retrait, hash ou payload prestataire. Limité à 15 requêtes par minute. En local avec `APP_DEBUG=true`, Laravel peut ajouter `exception`, `file`, `line` et `trace` à une erreur `404`. Ce n’est pas le contrat public : la production doit garder `APP_DEBUG=false` et ne renvoyer que `message: Not Found`.

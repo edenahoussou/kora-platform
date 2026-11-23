@@ -1,11 +1,178 @@
 ---
 title: Lister ses colis
-description: "Liste paginée (25 par page) des colis où le titulaire est expéditeur ou destinataire vérifié."
+description: "GET /api/v1/parcels retourne une liste paginée de 25 colis où le titulaire est expéditeur ou destinataire vérifié."
 api: GET /api/v1/parcels
 ---
 
-Liste paginée (25 par page) des colis où le titulaire est expéditeur ou destinataire vérifié. Les données du destinataire ne sont visibles qu’après un OTP consommé sur le téléphone actuel. Les identifiants exposés sont des UUID ou des références publiques.
+Liste paginée de 25 colis. Les données du destinataire ne sont visibles qu’après un OTP consommé sur le téléphone courant. La réponse ne contient pas `timeline` : elle est chargée uniquement lorsque la relation `events` est demandée sur le détail.
+
+## Requête
+
+<RequestExample>
+
+```bash cURL
+curl -X GET 'https://staging.koraexpress.app/api/v1/parcels' \
+  -H 'Authorization: Bearer $KORA_TOKEN' \
+  -H 'Accept: application/json'
+```
+
+```dart Dart
+final response = await dio.get('/api/v1/parcels', options: Options(headers: {
+  'Authorization': 'Bearer $token',
+}));
+final parcels = response.data['data'] as List;
+```
+
+</RequestExample>
+
+## Réponse
+
+<ResponseExample>
+
+```json 200
+{
+  "data": [
+    {
+      "uuid": "00000000-0000-4000-8000-000000000010",
+      "reference": "KC-20260101-00003",
+      "tracking_url": "https://staging.koraexpress.app/api/v1/parcels/tracking/KC-20260101-00003",
+      "qr_payload": "https://staging.koraexpress.app/api/v1/parcels/tracking/KC-20260101-00003",
+      "status": "registered",
+      "origin": "Cotonou",
+      "destination": "Porto-Novo",
+      "sender_name": "Expéditeur Exemple",
+      "recipient_name": "Destinataire Exemple",
+      "contents": "Documents",
+      "weight_grams": 5000,
+      "declared_grams": 5000,
+      "inspection_state": "accepted",
+      "inspection": {
+        "state": "accepted",
+        "category": "allowed",
+        "refusal_reason": null,
+        "inspected_at": "2026-11-22T19:21:10+00:00",
+        "hub_uuid": "00000000-0000-4000-8000-000000000002",
+        "hub_name": "Cotonou · Dantokpa"
+      },
+      "can_pay": false,
+      "can_receipt": true,
+      "can_ready": false,
+      "can_assign": false,
+      "can_manifest": false,
+      "can_receive": false,
+      "can_release": false,
+      "can_reissue": false,
+      "can_override_handoff": false,
+      "can_return_charge": false,
+      "can_pay_return": false,
+      "can_print_handoff_proof": false,
+      "origin_hub_uuid": "00000000-0000-4000-8000-000000000002",
+      "destination_hub_uuid": "00000000-0000-4000-8000-000000000003",
+      "custody_hub_uuid": "00000000-0000-4000-8000-000000000002",
+      "deposit_hub_uuid": "00000000-0000-4000-8000-000000000002",
+      "deposit_hub": {
+        "uuid": "00000000-0000-4000-8000-000000000002",
+        "kind": "agency",
+        "city": "Cotonou"
+      },
+      "selling_agency_uuid": "00000000-0000-4000-8000-000000000004",
+      "selling_agency": {
+        "uuid": "00000000-0000-4000-8000-000000000004",
+        "name": "Agence Cotonou"
+      },
+      "withdraw_by": null,
+      "return_handed_over_at": null,
+      "handoff": {
+        "received_at": null,
+        "received_by": null,
+        "delivered_at": null,
+        "delivered_by": null,
+        "hub_uuid": null,
+        "hub_name": null,
+        "outcome": null,
+        "method": null,
+        "identity_type": null,
+        "attempts": 0,
+        "max_attempts": 5,
+        "attempts_remaining": 5
+      },
+      "expires_at": "2026-11-24T19:20:19+00:00",
+      "updated_at": "2026-11-22T19:20:19+00:00",
+      "departure_uuid": null,
+      "eta": null,
+      "tracking_updated_at": null,
+      "incident_open": false,
+      "quote": {
+        "uuid": "00000000-0000-4000-8000-000000000020",
+        "net": 1500,
+        "tax": 0,
+        "total": 1500,
+        "currency": "XOF",
+        "tariff_uuid": "00000000-0000-4000-8000-000000000101",
+        "tariff_version": 2,
+        "deposit_kind": "agency",
+        "base_amount": 1500,
+        "step_amount": 0,
+        "step_grams": 1000,
+        "maximum_grams": 30000
+      }
+    }
+  ],
+  "links": {
+    "first": "https://staging.koraexpress.app/api/v1/parcels?page=1",
+    "last": "https://staging.koraexpress.app/api/v1/parcels?page=1",
+    "prev": null,
+    "next": null
+  },
+  "meta": {
+    "current_page": 1,
+    "from": 1,
+    "last_page": 1,
+    "links": [
+      {
+        "url": null,
+        "label": "pagination.previous",
+        "page": null,
+        "active": false
+      },
+      {
+        "url": "https://staging.koraexpress.app/api/v1/parcels?page=1",
+        "label": "1",
+        "page": 1,
+        "active": true
+      },
+      {
+        "url": null,
+        "label": "pagination.next",
+        "page": null,
+        "active": false
+      }
+    ],
+    "path": "https://staging.koraexpress.app/api/v1/parcels",
+    "per_page": 25,
+    "to": 1,
+    "total": 1
+  }
+}
+```
+
+</ResponseExample>
+
+## Règles
+
+- Pagination fixe à 25 éléments ; `meta.total` donne le nombre de colis accessibles.
+- Un colis où le titulaire n’est ni expéditeur ni destinataire vérifié n’apparaît pas.
+- `timeline` n’est pas incluse dans la liste ; utilisez `GET /parcels/{uuid}` ou le suivi public.
+- Aucun code de retrait, hash, secret ou identifiant numérique interne n’est exposé.
+
+## Codes de réponse
+
+| Code | Corps / message |
+|---|---|
+| `200` | Liste paginée. |
+| `401` | `{"message":"Unauthenticated."}` |
+| `403` | `{"message":"This action is unauthorized."}` |
 
 ## Sécurité
 
-Les réponses n’exposent que des identifiants publics (UUID ou références) et les champs métier nécessaires au parcours. Aucun code de retrait, hash, secret ou payload fournisseur n’est documenté comme retournable.
+`Authorization: Bearer <token Sanctum>` requis. Le titulaire doit posséder `parcels.customer`. Un tiers reçoit `404`, jamais l’existence du colis.

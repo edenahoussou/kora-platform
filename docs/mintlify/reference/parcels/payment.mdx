@@ -1,11 +1,93 @@
 ---
 title: Consulter un paiement Colis
-description: "Consulte l’état d’une tentative de paiement et l’état de vérification."
+description: "GET /api/v1/parcels/{parcel_uuid}/payments/{uuid} retourne l’état et la prochaine action du paiement."
 api: GET /api/v1/parcels/{parcel_uuid}/payments/{uuid}
 ---
 
-Consulte l’état d’une tentative de paiement et l’état de vérification. Réservé à l’expéditeur propriétaire. Retourne le montant et la prochaine action client, sans payload prestataire complet.
+Consulte l’état d’une tentative de paiement et l’état de vérification. Réservé à l’expéditeur propriétaire. Retourne le montant, le moyen, le financement Wallet et `next_action`, sans payload prestataire complet.
+
+## Paramètres
+
+<ParamField path="parcel_uuid" type="UUID" required>
+  UUID public du colis.
+</ParamField>
+
+<ParamField path="uuid" type="UUID" required>
+  UUID public du paiement.
+</ParamField>
+
+## Requête
+
+<RequestExample>
+
+```bash cURL
+curl -X GET 'https://staging.koraexpress.app/api/v1/parcels/00000000-0000-4000-8000-000000000010/payments/00000000-0000-4000-8000-000000000030' \
+  -H 'Authorization: Bearer $KORA_TOKEN' \
+  -H 'Accept: application/json'
+```
+
+```dart Dart
+final response = await dio.get('/api/v1/parcels/$parcelUuid/payments/$paymentUuid', options: Options(headers: {
+  'Authorization': 'Bearer $token',
+}));
+final payment = response.data['data'];
+```
+
+</RequestExample>
+
+## Réponse
+
+<ResponseExample>
+
+```json 200
+{
+  "data": {
+    "uuid": "00000000-0000-4000-8000-000000000030",
+    "status": "confirmed",
+    "amount": 1500,
+    "currency": "XOF",
+    "method": "wallet",
+    "provider": "wallet",
+    "provider_reference": null,
+    "provider_transaction_id": null,
+    "provider_currency": null,
+    "provider_amount": null,
+    "mobile_money_network": null,
+    "payer_phone": "+2290000000000",
+    "wallet_funding": {
+      "wallet_amount": 0,
+      "points_amount": 1500,
+      "point_value_fcfa": 1,
+      "points_value_fcfa": 1500,
+      "provider_amount_fcfa": 0
+    },
+    "confirmed_at": "2026-11-22T19:21:12+00:00",
+    "last_verified_at": null,
+    "next_action": "show_parcel",
+    "expires_at": null,
+    "polling_interval_seconds": 10
+  }
+}
+```
+
+</ResponseExample>
+
+## Règles
+
+- Le paiement doit appartenir au colis et le colis au propriétaire ; sinon `404`.
+- `provider_reference` et `provider_transaction_id` peuvent être `null` pour Wallet.
+- `wallet_funding` n’est présent que pour un financement Wallet.
+- Aucun payload prestataire complet, aucune clé et aucun secret ne sont exposés.
+
+## Codes de réponse
+
+| Code | Corps / message |
+|---|---|
+| `200` | État du paiement. |
+| `401` | `{"message":"Unauthenticated."}` |
+| `403` | `{"message":"This action is unauthorized."}` |
+| `404` | `{"message":"Not Found"}` |
 
 ## Sécurité
 
-Les réponses n’exposent que des identifiants publics (UUID ou références) et les champs métier nécessaires au parcours. Aucun code de retrait, hash, secret ou payload fournisseur n’est documenté comme retournable.
+`Authorization: Bearer <token Sanctum>` requis. Réservé à l’expéditeur propriétaire. Un tiers reçoit `404`.

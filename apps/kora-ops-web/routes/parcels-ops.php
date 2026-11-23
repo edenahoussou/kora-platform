@@ -31,6 +31,7 @@ Route::controller(OpsParcelController::class)->group(function (): void {
     Route::get('deposit-locations', 'depositLocations')->middleware('can:parcels.intake')->name('deposit-locations');
     Route::get('departures/{departure:uuid}/manifest', 'manifest')->name('departures.manifest');
     Route::get('{parcel:uuid}', 'show')->middleware('can:parcels.view')->name('show');
+    Route::get('{parcel:uuid}/tracking', 'tracking')->middleware('can:parcels.view')->name('tracking');
     Route::get('{parcel:uuid}/assignment-options', 'assignmentOptions')->middleware('can:parcels.assign')->name('assignment-options');
     Route::post('{parcel:uuid}/inspect', 'inspect')->middleware('can:parcels.intake')->name('inspect');
     Route::post('{parcel:uuid}/cancel', 'cancel')->middleware('can:parcels.intake')->name('cancel');
