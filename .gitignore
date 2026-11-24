@@ -31,3 +31,5 @@ infra/docker/redis-data/
 rebase-main.sh
 
 rebase-branch.sh
+# VPS deployment DB backups (created on the server, must survive git clean)
+backups/
