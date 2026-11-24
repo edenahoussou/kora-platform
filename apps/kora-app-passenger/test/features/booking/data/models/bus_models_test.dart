@@ -35,6 +35,37 @@ void main() {
       expect(city.isSearchable, isTrue);
     });
 
+    test('les arrêts de la ville remontent jusqu’au sélecteur', () {
+      // « Cotonou » ne dit pas d'où part le bus : le sélecteur affiche
+      // donc les points d'arrêt sous la ville. Ils servent à nommer, pas
+      // à choisir — la recherche part toujours au nom de la ville.
+      final city = CityModel.fromJson({
+        'city': 'Cotonou',
+        'country': 'BJ',
+        'physical_stops': [
+          {'uuid': 'stop-une', 'name': 'Gare de Dantokpa'},
+          {'uuid': 'stop-deux', 'name': 'Gare de Godomey'},
+          // Un arrêt sans nom ne laisse pas de trou dans la ligne.
+          {'uuid': 'stop-trois', 'name': ''},
+        ],
+      }).toEntity()!;
+
+      expect(city.stops, ['Gare de Dantokpa', 'Gare de Godomey']);
+      // La ville reste la clé de recherche, inchangée.
+      expect(city.id, 'Cotonou');
+      expect(city.label, 'Cotonou');
+    });
+
+    test('une ville sans arrêts nommés n’invente rien', () {
+      final city = CityModel.fromJson({
+        'city': 'Bohicon',
+        'country': 'BJ',
+        'stops_count': 1,
+      }).toEntity()!;
+
+      expect(city.stops, isEmpty);
+    });
+
     test('une ville à plusieurs arrêts ne donne qu’une entrée', () {
       // Le cas qui faisait annoncer « Aucun voyage ce jour-là » : deux
       // entrées « Cotonou » dans le sélecteur, dont une seule portait les

@@ -5,6 +5,7 @@ import '../../domain/entities/departure.dart';
 import '../../domain/entities/itinerary.dart';
 import '../../domain/entities/line.dart';
 import '../../domain/entities/price.dart';
+import '../../domain/entities/trip_stop.dart';
 
 /// Couche DATA : un itinéraire de `GET bus/itineraries`.
 ///
@@ -71,6 +72,52 @@ class ItineraryModel {
     );
   }
 
+  /// Un arrêt du trajet : le point physique d'abord, l'arrêt de ligne
+  /// en repli.
+  ///
+  /// `physical_stop` est nul sur les arrêts hérités, pas encore
+  /// rattachés à un point : on reprend alors `name` et `city`, comme
+  /// l'app le faisait avant que le serveur ne publie les points.
+  static TripStop _tripStopOf(Map<String, dynamic> stop) {
+    final physical = ApiJson.map(stop['physical_stop']);
+
+    final name = ApiJson.stringOrNull(physical['name']);
+    final city = ApiJson.stringOrNull(physical['city']);
+    final km = stop['km_from_origin'];
+
+    return TripStop(
+      name: name?.isNotEmpty == true ? name! : ApiJson.string(stop['name']),
+      city: city?.isNotEmpty == true
+          ? city
+          : ApiJson.stringOrNull(stop['city']),
+      kmFromOrigin: km is num ? km.toDouble() : double.tryParse('$km'),
+      departureAt: _wallClockOrNull(stop['departure_at']),
+      arrivalAt: _wallClockOrNull(stop['arrival_at']),
+      timezone: ApiJson.stringOrNull(stop['timezone']),
+    );
+  }
+
+  /// L'heure **telle qu'on la lit à l'arrêt**, sans la ramener au fuseau
+  /// du téléphone.
+  ///
+  /// Le serveur date déjà chaque passage dans le fuseau de l'arrêt
+  /// (`2026-11-24T07:31:00+01:00`). `DateTime.parse` convertirait cet
+  /// instant à l'heure de l'appareil : un voyageur béninois lirait 08:31
+  /// pour un bus qui passe à 07:31 devant la gare d'Abidjan. On garde
+  /// donc la partie murale de l'horodatage et on laisse tomber l'offset,
+  /// que le serveur a déjà appliqué.
+  static DateTime? _wallClockOrNull(Object? raw) {
+    final text = ApiJson.stringOrNull(raw);
+    if (text == null || text.isEmpty) return null;
+
+    final local = RegExp(
+      r'^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(:\d{2})?',
+    ).stringMatch(text);
+    if (local == null) return null;
+
+    return DateTime.tryParse(local.replaceFirst(' ', 'T'));
+  }
+
   /// Un tronçon, ou `null` si sa date est illisible.
   static Departure? _legOf(Map<String, dynamic> leg) {
     final departsAt = _dateOrNull(leg['departure_at']);
@@ -117,6 +164,9 @@ class ItineraryModel {
             ),
       ],
       busLabel: _busLabel(bus),
+      tripStops: [
+        for (final stop in ApiJson.list(leg['trip_stops'])) _tripStopOf(stop),
+      ],
     );
   }
 

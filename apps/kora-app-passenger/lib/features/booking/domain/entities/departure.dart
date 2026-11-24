@@ -3,6 +3,7 @@ import 'package:equatable/equatable.dart';
 import 'amenity.dart';
 import 'line.dart';
 import 'price.dart';
+import 'trip_stop.dart';
 
 /// Les gammes de bus proposées par KORA EXPRESS. Le libellé est celui
 /// affiché dans le badge doré de la carte de départ (`DepartureCard` du
@@ -39,6 +40,7 @@ class Departure extends Equatable {
     this.destinationCountry,
     this.amenities = const [],
     this.busLabel,
+    this.tripStops = const [],
   });
 
   final String id;
@@ -112,6 +114,13 @@ class Departure extends Equatable {
   final String? originStopId;
   final String? destinationStopId;
 
+  /// Les arrêts que ce tronçon dessert, dans l'ordre de circulation.
+  ///
+  /// Vide quand la réponse ne les porte pas — une donnée mockée, un
+  /// serveur plus ancien : l'écran retombe alors sur les arrêts de la
+  /// ligne, qu'il date comme il peut.
+  final List<TripStop> tripStops;
+
   /// Ce qu'on affiche dans le badge du véhicule : le bus réel s'il est
   /// connu, la gamme sinon.
   String get vehicleLabel => busLabel ?? comfort.label;
@@ -138,5 +147,6 @@ class Departure extends Equatable {
     seatsAvailable,
     amenities,
     busLabel,
+    tripStops,
   ];
 }

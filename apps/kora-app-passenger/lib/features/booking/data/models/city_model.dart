@@ -27,6 +27,7 @@ class CityModel {
     required this.city,
     required this.country,
     this.servedStops,
+    this.stopNames = const [],
   });
 
   factory CityModel.fromJson(Map<String, dynamic> json) {
@@ -43,6 +44,11 @@ class CityModel {
       city: ApiJson.string(json['city']),
       country: ApiJson.string(json['country']),
       servedStops: stops,
+      stopNames: [
+        for (final stop in ApiJson.list(json['physical_stops']))
+          if (ApiJson.string(stop['name']).isNotEmpty)
+            ApiJson.string(stop['name']),
+      ],
     );
   }
 
@@ -56,12 +62,19 @@ class CityModel {
   /// n'en dit rien.
   final int? servedStops;
 
+  /// Les noms des points d'arrêt, dans l'ordre du serveur.
+  ///
+  /// Le sélecteur les affiche sous la ville : « Cotonou » ne dit pas d'où
+  /// part le bus, « Gare de Dantokpa » si. Ils ne servent qu'à ça — la
+  /// recherche continue de partir au nom de la ville.
+  final List<String> stopNames;
+
   /// L'entrée à proposer au voyageur, ou `null` quand il n'y en a pas :
   /// une ville sans nom, ou que le catalogue annonce sans arrêt.
   City? toEntity() {
     if (city.isEmpty || servedStops == 0) return null;
 
-    return City(id: city, name: city, code: codeFor(city));
+    return City(id: city, name: city, code: codeFor(city), stops: stopNames);
   }
 
   /// Code à trois lettres affiché sur un billet (`Cotonou` → `COT`).

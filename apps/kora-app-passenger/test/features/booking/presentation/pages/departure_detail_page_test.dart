@@ -16,6 +16,7 @@ import 'package:kora_app_passenger/features/booking/domain/entities/departure.da
 import 'package:kora_app_passenger/features/booking/domain/entities/itinerary.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/line.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/search_criteria.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/trip_stop.dart';
 import 'package:kora_app_passenger/features/booking/domain/repositories/booking_repository.dart';
 import 'package:kora_app_passenger/features/booking/domain/repositories/departure_repository.dart';
 import 'package:kora_app_passenger/features/booking/presentation/bloc/departure_detail_cubit.dart';
@@ -148,6 +149,62 @@ void main() {
     // dans le dos du voyageur.
     expect(find.text('Kandi'), findsNothing);
     expect(find.text('Malanville'), findsNothing);
+  });
+
+  testWidgets('nomme le point d’arrêt physique et date chaque étape', (
+    tester,
+  ) async {
+    // `trip_stops` donne ce que la frise n'avait jamais eu : le nom du
+    // point où l'on monte — les clients appellent pour ça — et l'heure
+    // de passage. Sans lui, l'écran n'affichait que des villes et des
+    // kilomètres.
+    await pumpDetail(
+      tester,
+      value: Departure(
+        id: departure.id,
+        line: departure.line,
+        departsAt: departure.departsAt,
+        comfort: departure.comfort,
+        price: departure.price,
+        seatsTotal: departure.seatsTotal,
+        seatsAvailable: departure.seatsAvailable,
+        amenities: departure.amenities,
+        tripStops: [
+          TripStop(
+            name: 'Gare de Dantokpa',
+            city: 'Cotonou',
+            kmFromOrigin: 0,
+            departureAt: DateTime(2026, 8, 14, 7, 30),
+          ),
+          TripStop(
+            name: 'Gare routière de Bohicon',
+            city: 'Bohicon',
+            kmFromOrigin: 128,
+            arrivalAt: DateTime(2026, 8, 14, 9, 50),
+            departureAt: DateTime(2026, 8, 14, 10, 5),
+          ),
+          TripStop(
+            name: 'Gare de Malanville',
+            city: 'Malanville',
+            kmFromOrigin: 733,
+            arrivalAt: DateTime(2026, 8, 14, 17, 15),
+          ),
+        ],
+      ),
+    );
+
+    // Le point physique en tête, la ville en sous-titre.
+    expect(find.text('Gare routière de Bohicon'), findsOneWidget);
+    expect(find.text('Bohicon'), findsWidgets);
+
+    // L'escale porte enfin ses deux horaires : jusqu'ici, l'arrivée
+    // n'était affichée nulle part.
+    expect(find.text('Arrivée 09:50 · Départ 10:05 · 128 km'), findsOneWidget);
+
+    // À l'origine, seul le départ a un sens ; au terminus, seule
+    // l'arrivée.
+    expect(find.text('Départ 07:30'), findsOneWidget);
+    expect(find.text('Arrivée 17:15 · 733 km'), findsOneWidget);
   });
 
   testWidgets('liste les services à bord', (tester) async {

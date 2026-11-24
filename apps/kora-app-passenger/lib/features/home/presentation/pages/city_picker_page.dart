@@ -256,6 +256,20 @@ class _CityTile extends StatelessWidget {
   final bool showDivider;
   final VoidCallback onTap;
 
+  /// Les arrêts de la ville, ou la mention générique à défaut.
+  ///
+  /// Le guichet colis garde la sienne : les points d'arrêt bus ne sont
+  /// pas des guichets, et les annoncer comme tels enverrait le client
+  /// déposer son colis à la mauvaise porte.
+  String _stopsLabel(BuildContext context) {
+    final l10n = context.l10n;
+    if (purpose != CityPickerPurpose.trip || city.stops.isEmpty) {
+      return purpose.stopOf(l10n);
+    }
+
+    return city.stops.join(' · ');
+  }
+
   @override
   Widget build(BuildContext context) {
     final koraColors = context.koraColors;
@@ -308,10 +322,16 @@ class _CityTile extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  // La liste ne montre que des villes : la ligne dit donc
-                  // ce qu'on y trouve — un arrêt, ou un guichet colis.
+                  // La liste ne montre que des villes, mais elle dit
+                  // lesquels de ses arrêts KORA s'y trouvent : « Cotonou »
+                  // ne dit pas d'où part le bus, « Gare de Dantokpa » si.
+                  // Faute de noms — une ville mockée, une recherche
+                  // récente reconstruite — on retombe sur ce qu'on y
+                  // trouve : un arrêt, ou un guichet colis.
                   Text(
-                    purpose.stopOf(context.l10n),
+                    _stopsLabel(context),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(color: koraColors.textMuted, fontSize: 9),
                   ),
                 ],

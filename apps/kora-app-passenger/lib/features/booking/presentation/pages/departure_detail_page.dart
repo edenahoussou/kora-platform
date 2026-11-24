@@ -17,6 +17,7 @@ import '../../domain/entities/itinerary.dart';
 import '../../domain/entities/journey.dart';
 import '../../domain/entities/line_stop.dart';
 import '../../domain/entities/trip_segment.dart';
+import '../../domain/entities/trip_stop.dart';
 import '../bloc/departure_detail_cubit.dart';
 import '../widgets/amenity_view.dart';
 import '../widgets/state_view.dart';
@@ -176,12 +177,22 @@ class _DetailContent extends StatelessWidget {
     final stops = _stopsOfLeg(leg);
     final segments = leg.line.segments;
 
+    // Ce qui décide d'afficher la frise, ce sont les étapes qu'on a à
+    // montrer. `trip_stops` vient du tronçon lui-même : il ne dépend
+    // plus de `GET bus/lines/{uuid}`, dont l'échec faisait disparaître
+    // des étapes que le serveur avait pourtant données. Deux arrêts
+    // restent les deux terminus, et la frise répéterait le bandeau du
+    // haut sans rien apprendre.
+    final steps = leg.tripStops.isNotEmpty
+        ? leg.tripStops.length
+        : stops.length;
+
     return [
       if (leg.amenities.isNotEmpty) ...[
         SectionTitle(title: l10n.departureDetailComfort),
         _ServiceGrid(amenities: leg.amenities),
       ],
-      if (stops.length > 2) ...[
+      if (steps > 2) ...[
         SectionTitle(title: l10n.departureDetailStops),
         KoraCard(
           child: _StopsTimeline(stops: stops, departure: leg),
@@ -640,14 +651,18 @@ class _ServiceTile extends StatelessWidget {
   }
 }
 
-/// `miniTimeline` : les arrêts de la ligne, dans l'ordre du trajet.
+/// `miniTimeline` : les arrêts du trajet, dans l'ordre de circulation.
 ///
-/// **Le serveur ne publie aucune heure de passage intermédiaire** —
-/// `GET bus/lines/{uuid}` rend le rang et la distance depuis l'origine,
-/// rien de plus. On date donc les deux terminus, qu'on connaît par le
-/// départ, et on situe les escales au kilomètre. Interpoler des horaires
-/// sur la distance en inventerait, et c'est précisément ce qu'un voyageur
-/// qui descend en route ne doit pas croire.
+/// Depuis que `bus/itineraries` publie `trip_stops`, le serveur nomme le
+/// **point d'arrêt physique** de chaque étape et dit à quelle heure le
+/// bus y passe. La frise les affiche tels quels : le nom du point en
+/// tête, la ville en dessous, puis les horaires et le kilométrage. Les
+/// clients appellent pour savoir où prendre le bus exactement — « Gare
+/// de Dantokpa » répond à la question, « Cotonou » non.
+///
+/// Sans `trip_stops` — une donnée mockée, une réponse plus ancienne — on
+/// retombe sur les arrêts de la ligne : les deux terminus datés par le
+/// départ, les escales situées au kilomètre, et aucun horaire inventé.
 class _StopsTimeline extends StatelessWidget {
   const _StopsTimeline({required this.stops, required this.departure});
 
@@ -656,27 +671,78 @@ class _StopsTimeline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = context.l10n;
+    final trip = departure.tripStops;
 
     return Column(
-      children: [
-        for (var i = 0; i < stops.length; i++)
-          _TimelineItem(
-            label: stops[i].label,
-            detail: switch (i) {
-              0 => l10n.departureDetailStopDeparture(
-                KoraDateFormats.time.format(departure.departsAt),
-              ),
-              _ when i == stops.length - 1 => l10n.departureDetailStopArrival(
-                KoraDateFormats.time.format(departure.arrivesAt),
-              ),
-              _ => _distanceOf(stops[i], l10n),
-            },
-            isFirst: i == 0,
-            isLast: i == stops.length - 1,
-          ),
-      ],
+      children: trip.isEmpty ? _fromLine(context) : _fromTrip(context, trip),
     );
+  }
+
+  /// La frise complète : nom du point, ville, horaires, kilométrage.
+  List<Widget> _fromTrip(BuildContext context, List<TripStop> trip) {
+    final l10n = context.l10n;
+    final last = trip.length - 1;
+
+    return [
+      for (var i = 0; i < trip.length; i++)
+        _TimelineItem(
+          label: trip[i].name,
+          subtitle: trip[i].subtitle,
+          detail: _scheduleOf(trip[i], i, last, l10n),
+          isFirst: i == 0,
+          isLast: i == last,
+        ),
+    ];
+  }
+
+  /// Ce qu'on sait du passage à cette étape, en une ligne.
+  ///
+  /// À l'origine, seul le départ a un sens ; au terminus, seule
+  /// l'arrivée. Entre les deux, le voyageur veut les deux : l'heure à
+  /// laquelle il peut monter, et celle où le bus repart sans lui.
+  /// L'arrivée aux escales ne s'affichait nulle part jusqu'ici.
+  String? _scheduleOf(
+    TripStop stop,
+    int index,
+    int last,
+    AppLocalization l10n,
+  ) {
+    final km = stop.kmFromOrigin;
+    final arrival = stop.arrivalAt;
+    final departure = stop.departureAt;
+
+    final parts = <String>[
+      if (index != 0 && arrival != null)
+        l10n.departureDetailStopEta(KoraDateFormats.time.format(arrival)),
+      if (index != last && departure != null)
+        l10n.departureDetailStopEtd(KoraDateFormats.time.format(departure)),
+      if (km != null && km > 0) l10n.departureDetailStopKm(km.round()),
+    ];
+
+    return parts.isEmpty ? null : parts.join(' · ');
+  }
+
+  /// Le repli : les arrêts de la ligne, sans heure de passage.
+  List<Widget> _fromLine(BuildContext context) {
+    final l10n = context.l10n;
+
+    return [
+      for (var i = 0; i < stops.length; i++)
+        _TimelineItem(
+          label: stops[i].label,
+          detail: switch (i) {
+            0 => l10n.departureDetailStopDeparture(
+              KoraDateFormats.time.format(departure.departsAt),
+            ),
+            _ when i == stops.length - 1 => l10n.departureDetailStopArrival(
+              KoraDateFormats.time.format(departure.arrivesAt),
+            ),
+            _ => _distanceOf(stops[i], l10n),
+          },
+          isFirst: i == 0,
+          isLast: i == stops.length - 1,
+        ),
+    ];
   }
 
   /// « à 128 km du départ », ou rien quand la distance manque.
@@ -694,9 +760,14 @@ class _TimelineItem extends StatelessWidget {
     required this.detail,
     required this.isFirst,
     required this.isLast,
+    this.subtitle,
   });
 
   final String label;
+
+  /// La ville qui porte l'arrêt, sous son nom. Nulle quand elle répète ce
+  /// nom, ou quand la frise retombe sur les arrêts de la ligne.
+  final String? subtitle;
 
   /// L'heure pour un terminus, la distance pour une escale, `null` quand
   /// le serveur n'en dit rien.
@@ -745,6 +816,13 @@ class _TimelineItem extends StatelessWidget {
                     label,
                     style: AppTextStyles.titleMedium(context.koraTitleColor),
                   ),
+                  if (subtitle case final town?) ...[
+                    const SizedBox(height: 1),
+                    Text(
+                      town,
+                      style: AppTextStyles.caption(koraColors.textMuted),
+                    ),
+                  ],
                   if (detail != null) ...[
                     const SizedBox(height: 2),
                     Text(
