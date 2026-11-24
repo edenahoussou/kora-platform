@@ -810,7 +810,7 @@ class ItinerarySearchService
             $lines = Line::query()
                 ->whereIn('id', $missingLineIds)
                 ->with([
-                    'stops' => fn ($q) => $q->where('status', StopStatus::Active->value)->orderBy('stop_order'),
+                    'stops' => fn ($q) => $q->where('status', StopStatus::Active->value)->orderBy('stop_order')->with('physicalStop'),
                     'fares' => fn ($q) => $q->where('status', 'active')->with('serviceClass'),
                 ])
                 ->get();

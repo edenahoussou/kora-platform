@@ -1205,6 +1205,13 @@ paths:
                         country: BJ
                         stop_order: 1
                         km_from_origin: 0
+                        physical_stop:
+                          uuid: a1b2c3d4-8f1a-4b3e-9a1a-2f4b6c8d0e31
+                          name: 'Gare de Dantokpa'
+                          city: Cotonou
+                          country: BJ
+                          latitude: 6.3654
+                          longitude: 2.4183
                       -
                         uuid: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e22
                         name: 'Abidjan · Adjamé'
@@ -1212,6 +1219,7 @@ paths:
                         country: CI
                         stop_order: 2
                         km_from_origin: 1020
+                        physical_stop: null
                 properties:
                   data:
                     type: object
@@ -1256,6 +1264,13 @@ paths:
                             country: BJ
                             stop_order: 1
                             km_from_origin: 0
+                            physical_stop:
+                              uuid: a1b2c3d4-8f1a-4b3e-9a1a-2f4b6c8d0e31
+                              name: 'Gare de Dantokpa'
+                              city: Cotonou
+                              country: BJ
+                              latitude: 6.3654
+                              longitude: 2.4183
                           -
                             uuid: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e22
                             name: 'Abidjan · Adjamé'
@@ -1263,6 +1278,7 @@ paths:
                             country: CI
                             stop_order: 2
                             km_from_origin: 1020
+                            physical_stop: null
                         items:
                           type: object
                           properties:
@@ -1284,6 +1300,27 @@ paths:
                             km_from_origin:
                               type: integer
                               example: 0
+                            physical_stop:
+                              type: object
+                              properties:
+                                uuid:
+                                  type: string
+                                  example: 00000000-0000-4000-8000-000000000000
+                                name:
+                                  type: string
+                                  example: 'Gare de Dantokpa'
+                                city:
+                                  type: string
+                                  example: Cotonou
+                                country:
+                                  type: string
+                                  example: BJ
+                                latitude:
+                                  type: number
+                                  example: 6.3654
+                                longitude:
+                                  type: number
+                                  example: 2.4183
               example:
                 data:
                   uuid: 9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f
@@ -1306,6 +1343,13 @@ paths:
                       country: BJ
                       stop_order: 1
                       km_from_origin: 0
+                      physical_stop:
+                        uuid: a1b2c3d4-8f1a-4b3e-9a1a-2f4b6c8d0e31
+                        name: 'Gare de Dantokpa'
+                        city: Cotonou
+                        country: BJ
+                        latitude: 6.3654
+                        longitude: 2.4183
                     -
                       uuid: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e22
                       name: 'Abidjan · Adjamé'
@@ -1313,6 +1357,7 @@ paths:
                       country: CI
                       stop_order: 2
                       km_from_origin: 1020
+                      physical_stop: null
         '404':
           description: 'Line not found'
           content:

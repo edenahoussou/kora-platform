@@ -117,7 +117,15 @@ class BusCatalogController extends Controller
      *         "city": "Cotonou",
      *         "country": "BJ",
      *         "stop_order": 1,
-     *         "km_from_origin": 0
+     *         "km_from_origin": 0,
+     *         "physical_stop": {
+     *           "uuid": "a1b2c3d4-8f1a-4b3e-9a1a-2f4b6c8d0e31",
+     *           "name": "Gare de Dantokpa",
+     *           "city": "Cotonou",
+     *           "country": "BJ",
+     *           "latitude": 6.3654,
+     *           "longitude": 2.4183
+     *         }
      *       },
      *       {
      *         "uuid": "5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e22",
@@ -125,7 +133,8 @@ class BusCatalogController extends Controller
      *         "city": "Abidjan",
      *         "country": "CI",
      *         "stop_order": 2,
-     *         "km_from_origin": 1020
+     *         "km_from_origin": 1020,
+     *         "physical_stop": null
      *       }
      *     ]
      *   }

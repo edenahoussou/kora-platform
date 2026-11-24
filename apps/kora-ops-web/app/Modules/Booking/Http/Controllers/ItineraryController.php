@@ -17,6 +17,7 @@ use App\Modules\Booking\Services\DepartureStopTimeResolver;
 use App\Modules\Booking\Services\ItineraryData;
 use App\Modules\Booking\Services\ItineraryLegData;
 use App\Modules\Booking\Services\ItinerarySearchService;
+use App\Modules\BusNetwork\Models\PhysicalStop;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\Settings\Settings\OperationsSettings;
@@ -64,6 +65,7 @@ class ItineraryController extends Controller
      * @responseField data.legs.pricing_rule_uuid string UUID of the pricing rule that matched, or null when no rule applied.
      * @responseField data.legs.fill_rate number Percentage of sellable seats held or occupied on the leg segment (0-100).
      * @responseField data.legs.hours_before_departure number Hours between now and the scheduled departure. Negative when the departure is in the past.
+     * @responseField data.legs.trip_stops array Every stop the leg passes through, in circulation order. Each item carries the stop fields plus physical_stop (uuid, name, city, country, latitude, longitude; null for legacy unlinked stops), km_from_origin, departure_at and arrival_at (ISO 8601 in the stop's timezone; null when unknown) and timezone.
      *
      * @response 200 scenario="One-way itineraries" {
      *   "data": [
@@ -433,6 +435,7 @@ class ItineraryController extends Controller
             ] : null,
             'origin_stop' => $this->serializeStop($leg->originStop),
             'destination_stop' => $this->serializeStop($leg->destinationStop),
+            'trip_stops' => $this->serializeTripStops($leg->departure),
             'amount' => $leg->amount,
             'base_amount' => $leg->baseAmount,
             'coefficient' => $leg->coefficient,
@@ -460,6 +463,46 @@ class ItineraryController extends Controller
             'city' => $stop->city,
             'country' => $stop->country,
             'stop_order' => $stop->stop_order,
+            'physical_stop' => $this->serializePhysicalStop($stop->physicalStop),
+        ];
+    }
+
+    /**
+     * Stops in actual circulation order with per-stop schedule — the data the
+     * passenger timeline needs (boarding point name, times at each stop).
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function serializeTripStops(Departure $departure): array
+    {
+        return array_values(
+            $departure->tripStops()
+                ->map(fn (Stop $stop): array => array_merge($this->serializeStop($stop), [
+                    'km_from_origin' => (float) $stop->km_from_origin,
+                    'departure_at' => $this->stopTimeResolver->departureAt($departure, $stop)
+                        ?->setTimezone($this->stopTimeResolver->timezoneFor($departure, $stop))->toIso8601String(),
+                    'arrival_at' => $this->stopTimeResolver->arrivalAt($departure, $stop)
+                        ?->setTimezone($this->stopTimeResolver->timezoneFor($departure, $stop))->toIso8601String(),
+                    'timezone' => $this->stopTimeResolver->timezoneFor($departure, $stop),
+                ]))
+                ->all()
+        );
+    }
+
+    /** @return array<string, mixed>|null */
+    private function serializePhysicalStop(?PhysicalStop $physicalStop): ?array
+    {
+        if ($physicalStop === null) {
+            return null;
+        }
+
+        return [
+            'uuid' => $physicalStop->uuid,
+            'name' => $physicalStop->name,
+            'city' => $physicalStop->city,
+            'country' => $physicalStop->country,
+            'latitude' => $physicalStop->latitude !== null ? (float) $physicalStop->latitude : null,
+            'longitude' => $physicalStop->longitude !== null ? (float) $physicalStop->longitude : null,
         ];
     }
 

@@ -23,6 +23,12 @@ class StopResource extends JsonResource
             'country' => $this->country,
             'stop_order' => $this->stop_order,
             'km_from_origin' => (float) $this->km_from_origin,
+            'physical_stop' => $this->whenLoaded(
+                'physicalStop',
+                fn (): ?PhysicalStopResource => $this->physicalStop !== null
+                    ? new PhysicalStopResource($this->physicalStop)
+                    : null,
+            ),
         ];
     }
 }

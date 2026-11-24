@@ -126,7 +126,7 @@ class DepartureSearchService
             ->where('status', DepartureStatus::Scheduled->value)
             ->whereIn('line_id', $lineIds)
             ->with([
-                'line.stops' => fn ($query) => $query->where('status', StopStatus::Active->value)->orderBy('stop_order'),
+                'line.stops' => fn ($query) => $query->where('status', StopStatus::Active->value)->orderBy('stop_order')->with('physicalStop'),
                 'bus.seats',
                 'bus.composition',
                 'bus.amenities',
@@ -151,7 +151,7 @@ class DepartureSearchService
         return Line::query()
             ->where('status', 'active')
             ->when($lineUuid, fn ($query, string $uuid) => $query->where('uuid', $uuid))
-            ->with(['stops' => fn ($query) => $query->where('status', StopStatus::Active->value)->orderBy('stop_order')])
+            ->with(['stops' => fn ($query) => $query->where('status', StopStatus::Active->value)->orderBy('stop_order')->with('physicalStop')])
             ->get()
             ->filter(function (Line $line) use ($from, $to): bool {
                 if ($from === null && $to === null) {
@@ -200,7 +200,7 @@ class DepartureSearchService
      */
     public function resolveSegment(Departure $departure, string $originStopUuid, string $destinationStopUuid): array
     {
-        $departure->loadMissing('line.stops');
+        $departure->loadMissing('line.stops.physicalStop');
         /** @var list<array{stop_uuid: string, departure_minutes: int|null, arrival_minutes: int|null, timezone: string}> $stopTimes */
         $stopTimes = $departure->stop_times ?? [];
 

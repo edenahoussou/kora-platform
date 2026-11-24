@@ -297,8 +297,48 @@ it('shows a line with ordered stops', function (): void {
         ->assertJsonPath('data.uuid', $scenario['line']->uuid)
         ->assertJsonPath('data.stops.0.city', 'Cotonou')
         ->assertJsonPath('data.stops.2.city', 'Abidjan')
+        ->assertJsonPath('data.stops.0.physical_stop.name', 'Cotonou Central API')
+        ->assertJsonPath('data.stops.0.physical_stop.city', 'Cotonou')
+        ->assertJsonPath('data.stops.2.physical_stop.name', 'Abidjan Central API')
         ->assertJsonMissingPath('data.id')
-        ->assertJsonMissingPath('data.stops.0.id');
+        ->assertJsonMissingPath('data.stops.0.id')
+        ->assertJsonMissingPath('data.stops.0.physical_stop.id');
+});
+
+it('exposes every trip stop with physical stop and per-stop times on itinerary legs', function (): void {
+    $scenario = koraBusApiScenario();
+
+    // Departure with explicit stop_times: intermediate stop gets real times.
+    $departure = Departure::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'line_id' => $scenario['line']->id,
+        'bus_id' => $scenario['bus']->id,
+        'departure_date' => '2026-08-15',
+        'departure_time' => '09:00',
+        'estimated_arrival_at' => CarbonImmutable::parse('2026-08-15 18:45'),
+        'status' => 'scheduled',
+        'stop_times' => [
+            ['stop_uuid' => $scenario['origin']->uuid, 'arrival_minutes' => null, 'departure_minutes' => 0, 'timezone' => 'Africa/Porto-Novo'],
+            ['stop_uuid' => $scenario['middle']->uuid, 'arrival_minutes' => 300, 'departure_minutes' => 310, 'timezone' => 'Africa/Lome'],
+            ['stop_uuid' => $scenario['destination']->uuid, 'arrival_minutes' => 1024, 'departure_minutes' => null, 'timezone' => 'Africa/Abidjan'],
+        ],
+    ]);
+
+    $response = $this->getJson('/api/v1/bus/itineraries?from_physical_stop_uuid='.$scenario['origin']->physicalStop->uuid.'&to_physical_stop_uuid='.$scenario['destination']->physicalStop->uuid.'&date=2026-08-15')
+        ->assertOk();
+
+    $leg = collect($response->json('data.*.legs'))->flatten(1)->firstWhere('departure_uuid', $departure->uuid);
+
+    expect($leg['trip_stops'])->toHaveCount(3)
+        ->and($leg['trip_stops'][0]['physical_stop']['name'])->toBe('Cotonou Central API')
+        ->and($leg['trip_stops'][0]['departure_at'])->not->toBeNull()
+        ->and($leg['trip_stops'][1]['physical_stop']['name'])->toBe('Lome Central API')
+        ->and($leg['trip_stops'][1]['physical_stop']['city'])->toBe('Lome')
+        ->and($leg['trip_stops'][1]['arrival_at'])->not->toBeNull()
+        ->and($leg['trip_stops'][1]['departure_at'])->not->toBeNull()
+        ->and($leg['trip_stops'][1]['timezone'])->toBe('Africa/Lome')
+        ->and($leg['trip_stops'][2]['arrival_at'])->not->toBeNull()
+        ->and($leg['origin_stop']['physical_stop']['name'])->toBe('Cotonou Central API');
 });
 
 it('lists seat availability for an origin destination segment', function (): void {
