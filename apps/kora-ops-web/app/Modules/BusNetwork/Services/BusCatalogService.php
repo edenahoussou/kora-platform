@@ -36,6 +36,7 @@ class BusCatalogService
     {
         return $line->load(['stops' => fn ($query) => $query
             ->where('status', StopStatus::Active->value)
-            ->orderBy('stop_order')]);
+            ->orderBy('stop_order')
+            ->with('physicalStop')]);
     }
 }
