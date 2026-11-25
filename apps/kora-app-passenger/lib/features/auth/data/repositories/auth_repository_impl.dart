@@ -256,13 +256,25 @@ class AuthRepositoryImpl implements AuthRepository {
       423 => AccountLockedFailure(
         message ?? 'Compte temporairement verrouillé après trop d’essais.',
       ),
-      null => const NetworkFailure(),
+      // Aucune réponse : il reste à savoir si le téléphone est hors
+      // ligne, ou si c'est le serveur qui traîne. Les confondre envoyait
+      // le voyageur vérifier sa connexion pendant qu'un appel bloqué en
+      // production expirait au bout de quinze secondes.
+      null => _unreachable(error),
       _ when status >= 500 => ServerFailure(
         message ?? 'Le serveur est momentanément indisponible.',
       ),
       _ => ServerFailure(message ?? 'Une erreur est survenue.'),
     };
   }
+
+  /// Ce que vaut une requête qui n'a jamais reçu de réponse.
+  static Failure _unreachable(DioException error) => switch (error.type) {
+    DioExceptionType.connectionTimeout ||
+    DioExceptionType.sendTimeout ||
+    DioExceptionType.receiveTimeout => const TimeoutFailure(),
+    _ => const NetworkFailure(),
+  };
 
   /// Un 422 qui ne porte que sur un champ : on retient son nom pour
   /// que l'écran pose le message sous le champ fautif.

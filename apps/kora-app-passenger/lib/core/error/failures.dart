@@ -33,6 +33,20 @@ class NetworkFailure extends Failure {
   ]);
 }
 
+/// Le serveur n'a pas répondu dans le délai imparti.
+///
+/// À distinguer de [NetworkFailure] : le téléphone est bien en ligne, et
+/// dire « vérifie ta connexion » envoie alors le voyageur chercher une
+/// panne chez lui alors qu'elle est sur le serveur. C'est exactement ce
+/// qui est arrivé sur la connexion par e-mail, qu'un appel bloqué côté
+/// production faisait expirer au bout de quinze secondes.
+class TimeoutFailure extends Failure {
+  const TimeoutFailure([
+    super.message =
+        'Le serveur met trop de temps à répondre. Réessaie dans un instant.',
+  ]);
+}
+
 /// Échec de lecture/écriture dans le stockage local (cache, préférences).
 class CacheFailure extends Failure {
   const CacheFailure([super.message = 'Erreur de stockage local.']);

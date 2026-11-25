@@ -163,7 +163,18 @@ class _PushListenerState extends State<PushListener> {
   /// Passe par [KoraToaster], comme tous les autres messages de l'app : un
   /// `SnackBar` Material au milieu d'une interface KORA se voyait, et pas
   /// pour les bonnes raisons.
-  void _tell(String text) => KoraToaster.show(context, text);
+  void _tell(String text) {
+    // Ce widget vit **au-dessus** du `Navigator` : son contexte ne porte
+    // aucun `Overlay`, et le toast levait « Null check operator used on a
+    // null value » à chaque démarrage, dans un `async` que personne
+    // n'attrapait. Le message se pose donc sur le contexte du
+    // navigateur, le premier qui ait un `Overlay`.
+    final navigator =
+        AppRouter.router.routerDelegate.navigatorKey.currentContext;
+    if (navigator == null || !navigator.mounted) return;
+
+    KoraToaster.show(navigator, text);
+  }
 
   @override
   Widget build(BuildContext context) {

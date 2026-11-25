@@ -63,4 +63,28 @@ void main() {
     await tester.pump(KoraToaster.defaultDuration + const Duration(seconds: 1));
     await tester.pumpAndSettle();
   });
+
+  testWidgets('un contexte sans Overlay ne fait pas tomber l’app', (
+    tester,
+  ) async {
+    // Un écouteur global — notifications, session — vit au-dessus du
+    // `Navigator` : son contexte ne porte aucun `Overlay`, et
+    // `Overlay.of` y levait « Null check operator used on a null value »
+    // dans un `async` que personne n'attrapait. Un message d'information
+    // ne vaut pas de faire tomber l'écran : on renonce au toast.
+    late BuildContext orphan;
+
+    await tester.pumpWidget(
+      Builder(
+        builder: (context) {
+          orphan = context;
+          return const SizedBox.shrink();
+        },
+      ),
+    );
+
+    expect(() => KoraToaster.show(orphan, 'Sans Overlay.'), returnsNormally);
+    await tester.pump();
+    expect(find.text('Sans Overlay.'), findsNothing);
+  });
 }

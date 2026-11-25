@@ -169,6 +169,39 @@ void main() {
       });
     });
 
+    test('un arrêt précisé remplace le nom de la ville', () async {
+      // `from_city` et `from_physical_stop_uuid` s'excluent côté serveur
+      // (`required_without` l'un de l'autre) : on n'envoie jamais les
+      // deux. Dès que le voyageur a choisi son arrêt, c'est lui qui fait
+      // foi, et le serveur ne cherche plus que les départs de ce point.
+      stubGet(const {'data': <dynamic>[]});
+
+      await dataSource.searchDepartures(
+        SearchCriteria(
+          origin: cotonou.atStop(
+            const CityStop(uuid: 'uuid-dantokpa', name: 'Gare de Dantokpa'),
+          ),
+          destination: abidjan,
+          date: DateTime(2026, 8, 20),
+        ),
+      );
+
+      final captured =
+          verify(
+                () => dio.get<dynamic>(
+                  ApiConstants.busItineraries,
+                  queryParameters: captureAny(named: 'queryParameters'),
+                ),
+              ).captured.single
+              as Map<String, dynamic>;
+
+      expect(captured['from_physical_stop_uuid'], 'uuid-dantokpa');
+      expect(captured.containsKey('from_city'), isFalse);
+      // La destination, elle, n'a rien été précisée : elle reste une ville.
+      expect(captured['to_city'], 'Abidjan');
+      expect(captured.containsKey('to_physical_stop_uuid'), isFalse);
+    });
+
     test('complète la date sur deux chiffres', () async {
       stubGet(const {'data': <dynamic>[]});
 

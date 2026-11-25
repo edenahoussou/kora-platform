@@ -1199,6 +1199,23 @@ class AppLocalization {
   String get cityPickerSuggestions => translate('city_picker_suggestions');
   String get cityPickerRecent => translate('city_picker_recent');
   String get cityPickerStop => translate('city_picker_stop');
+
+  /// « 3 arrêts KORA » : le nombre de points d'embarquement d'une ville.
+  ///
+  /// Une ville peut en avoir plusieurs, et le voyageur doit le savoir
+  /// avant de choisir — pas une fois devant la mauvaise gare.
+  String cityPickerStopsCount(int count) => _withArgs(
+    count > 1 ? 'city_picker_stops_count_plural' : 'city_picker_stops_count',
+    {'count': '$count'},
+  );
+
+  /// Le titre du second choix, quand une ville porte plusieurs arrêts.
+  String cityPickerStopTitle(String city) =>
+      _withArgs('city_picker_stop_title', {'city': city});
+
+  String get cityPickerStopLead => translate('city_picker_stop_lead');
+  String get cityPickerStopAll => translate('city_picker_stop_all');
+  String get cityPickerStopAllLead => translate('city_picker_stop_all_lead');
   String cityPickerNoResult(String query) =>
       _withArgs('city_picker_no_result', {'query': query});
   String get departuresEyebrow => translate('departures_eyebrow');

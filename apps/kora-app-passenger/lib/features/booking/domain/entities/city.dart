@@ -17,6 +17,21 @@ import 'package:equatable/equatable.dart';
 /// pour le voyageur — c'est ce choix impossible qui lui faisait annoncer
 /// « Aucun voyage ce jour-là » quand la ville en avait deux et que les
 /// départs étaient sur l'autre.
+/// Couche DOMAIN : un point d'arrêt KORA dans une ville.
+///
+/// L'identifiant compte autant que le nom : c'est lui que
+/// `bus/itineraries` attend en `from_physical_stop_uuid` quand le
+/// voyageur précise d'où il part.
+class CityStop extends Equatable {
+  const CityStop({required this.uuid, required this.name});
+
+  final String uuid;
+  final String name;
+
+  @override
+  List<Object?> get props => [uuid, name];
+}
+
 class City extends Equatable {
   const City({
     required this.id,
@@ -24,6 +39,7 @@ class City extends Equatable {
     required this.code,
     this.station,
     this.stops = const [],
+    this.stopUuid,
   });
 
   /// Ville désignée par son seul nom.
@@ -54,14 +70,35 @@ class City extends Equatable {
   final String? station;
 
   /// Les points d'arrêt KORA de la ville, tels que `bus/cities` les
-  /// nomme (`Gare de Dantokpa`, `Gare de Godomey`).
+  /// rend.
   ///
-  /// Ils servent à **dire** où l'on monte, pas à choisir : la recherche
-  /// part toujours au nom de la ville, et c'est le serveur qui explore
-  /// tous ses points. Les proposer un par un ramènerait le « Aucun
-  /// voyage ce jour-là » d'une ville à deux gares dont les départs
-  /// partaient de l'autre.
-  final List<String> stops;
+  /// Ils disent au voyageur où l'on monte. Il peut en retenir un quand
+  /// la ville en porte plusieurs — voir [atStop] — mais rien ne l'y
+  /// oblige : sans précision, la recherche part au nom de la ville et
+  /// c'est le serveur qui explore tous les points. C'est ce repli qui
+  /// évite le « Aucun voyage ce jour-là » d'une ville à deux gares dont
+  /// les départs partaient de l'autre.
+  final List<CityStop> stops;
+
+  /// L'arrêt retenu, quand le voyageur en a choisi un.
+  ///
+  /// Part en `from_physical_stop_uuid` / `to_physical_stop_uuid` : le
+  /// serveur ne cherche alors que les départs de ce point-là.
+  final String? stopUuid;
+
+  /// La même ville, ramenée à [stop].
+  ///
+  /// Le nom de l'arrêt passe dans [station], donc dans [label] : le
+  /// voyageur relit son choix dans le champ de recherche au lieu de
+  /// devoir s'en souvenir.
+  City atStop(CityStop stop) => City(
+    id: id,
+    name: name,
+    code: code,
+    station: stop.name,
+    stops: stops,
+    stopUuid: stop.uuid,
+  );
 
   /// Vrai quand cette ville peut servir de point de départ ou d'arrivée à
   /// une recherche : il suffit qu'elle ait un nom.
@@ -72,5 +109,5 @@ class City extends Equatable {
   String get label => station == null ? name : '$name · $station';
 
   @override
-  List<Object?> get props => [id, name, code, station, stops];
+  List<Object?> get props => [id, name, code, station, stops, stopUuid];
 }

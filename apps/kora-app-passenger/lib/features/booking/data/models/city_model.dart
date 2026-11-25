@@ -27,14 +27,14 @@ class CityModel {
     required this.city,
     required this.country,
     this.servedStops,
-    this.stopNames = const [],
+    this.stops = const [],
   });
 
   factory CityModel.fromJson(Map<String, dynamic> json) {
     // Absent de la réponse : on ne sait rien, et ne rien savoir ne doit
     // pas vider le sélecteur. Présent et vide : le catalogue dit que la
     // ville n'est desservie par aucun arrêt.
-    final stops =
+    final count =
         json.containsKey('physical_stops') || json.containsKey('stops_count')
         ? ApiJson.intOrNull(json['stops_count']) ??
               ApiJson.list(json['physical_stops']).length
@@ -43,11 +43,14 @@ class CityModel {
     return CityModel(
       city: ApiJson.string(json['city']),
       country: ApiJson.string(json['country']),
-      servedStops: stops,
-      stopNames: [
+      servedStops: count,
+      stops: [
         for (final stop in ApiJson.list(json['physical_stops']))
           if (ApiJson.string(stop['name']).isNotEmpty)
-            ApiJson.string(stop['name']),
+            CityStop(
+              uuid: ApiJson.string(stop['uuid']),
+              name: ApiJson.string(stop['name']),
+            ),
       ],
     );
   }
@@ -62,19 +65,20 @@ class CityModel {
   /// n'en dit rien.
   final int? servedStops;
 
-  /// Les noms des points d'arrêt, dans l'ordre du serveur.
+  /// Les points d'arrêt, dans l'ordre du serveur.
   ///
   /// Le sélecteur les affiche sous la ville : « Cotonou » ne dit pas d'où
-  /// part le bus, « Gare de Dantokpa » si. Ils ne servent qu'à ça — la
-  /// recherche continue de partir au nom de la ville.
-  final List<String> stopNames;
+  /// part le bus, « Gare de Dantokpa » si. Quand il y en a plusieurs, le
+  /// voyageur peut en retenir un, et c'est alors son `uuid` qui part au
+  /// serveur.
+  final List<CityStop> stops;
 
   /// L'entrée à proposer au voyageur, ou `null` quand il n'y en a pas :
   /// une ville sans nom, ou que le catalogue annonce sans arrêt.
   City? toEntity() {
     if (city.isEmpty || servedStops == 0) return null;
 
-    return City(id: city, name: city, code: codeFor(city), stops: stopNames);
+    return City(id: city, name: city, code: codeFor(city), stops: stops);
   }
 
   /// Code à trois lettres affiché sur un billet (`Cotonou` → `COT`).

@@ -50,7 +50,15 @@ void main() {
         ],
       }).toEntity()!;
 
-      expect(city.stops, ['Gare de Dantokpa', 'Gare de Godomey']);
+      expect(city.stops.map((stop) => stop.name), [
+        'Gare de Dantokpa',
+        'Gare de Godomey',
+      ]);
+      // L'identifiant suit le nom : c'est lui qui part au serveur quand
+      // le voyageur précise son arrêt.
+      expect(city.stops.map((stop) => stop.uuid), ['stop-une', 'stop-deux']);
+      // Tant qu'aucun arrêt n'est retenu, la recherche reste par ville.
+      expect(city.stopUuid, isNull);
       // La ville reste la clé de recherche, inchangée.
       expect(city.id, 'Cotonou');
       expect(city.label, 'Cotonou');

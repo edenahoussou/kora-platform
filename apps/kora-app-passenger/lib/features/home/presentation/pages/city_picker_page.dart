@@ -124,7 +124,27 @@ class _CityPickerPageState extends State<CityPickerPage> {
         .toList();
   }
 
-  void _select(City city) => Navigator.of(context).pop(city);
+  /// Retient la ville, et demande l'arrêt quand il y en a plusieurs.
+  ///
+  /// Le second choix ne s'impose pas : « Tous les arrêts » garde la
+  /// recherche par ville, celle qui trouve les départs des deux gares à
+  /// la fois. C'est le repli qui évite de renvoyer « Aucun voyage ce
+  /// jour-là » à qui aurait choisi la mauvaise.
+  Future<void> _select(City city) async {
+    if (widget.purpose != CityPickerPurpose.trip || city.stops.length < 2) {
+      Navigator.of(context).pop(city);
+      return;
+    }
+
+    final chosen = await showModalBottomSheet<City>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheet) => _StopSheet(city: city),
+    );
+
+    if (chosen == null || !mounted) return;
+    Navigator.of(context).pop(chosen);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -267,7 +287,64 @@ class _CityTile extends StatelessWidget {
       return purpose.stopOf(l10n);
     }
 
-    return city.stops.join(' · ');
+    return city.stops.map((stop) => stop.name).join(' · ');
+  }
+
+  /// La ligne des arrêts : une épingle bleue devant chaque nom.
+  ///
+  /// Le point médian d'avant se perdait dans le gris de la ligne, et on
+  /// ne voyait pas où un arrêt finissait et où le suivant commençait.
+  /// L'épingle sépare **et** annonce ce qu'on lit : un lieu.
+  ///
+  /// Deux lignes au maximum : les couper à la première n'en montrerait
+  /// qu'un, et annoncer trois arrêts pour n'en nommer qu'un laisserait
+  /// le voyageur deviner les autres.
+  Widget _stopsLine(BuildContext context, KoraColors koraColors) {
+    final style = TextStyle(color: koraColors.textMuted, fontSize: 9);
+
+    if (purpose != CityPickerPurpose.trip || city.stops.isEmpty) {
+      return Text(_stopsLabel(context), maxLines: 2, style: style);
+    }
+
+    return Text.rich(
+      TextSpan(
+        children: [
+          for (final stop in city.stops) ...[
+            WidgetSpan(
+              alignment: PlaceholderAlignment.middle,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 2),
+                child: Icon(
+                  Icons.place_rounded,
+                  size: 11,
+                  color: AppColors.digital,
+                ),
+              ),
+            ),
+            TextSpan(text: stop.name),
+            if (stop != city.stops.last) const TextSpan(text: '   '),
+          ],
+        ],
+      ),
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      style: style,
+    );
+  }
+
+  /// Le nombre d'arrêts, annoncé seulement quand il y en a plusieurs.
+  ///
+  /// Une ville peut porter deux ou trois points d'embarquement — Cotonou
+  /// en a plusieurs — et le voyageur doit le savoir **avant** de choisir,
+  /// pas une fois devant la mauvaise gare. Un arrêt unique n'a rien à
+  /// annoncer : son nom suffit, et « 1 arrêt KORA » ne ferait
+  /// qu'allonger la ligne.
+  String? _countLabel(BuildContext context) {
+    if (purpose != CityPickerPurpose.trip || city.stops.length < 2) {
+      return null;
+    }
+
+    return context.l10n.cityPickerStopsCount(city.stops.length);
   }
 
   @override
@@ -328,12 +405,16 @@ class _CityTile extends StatelessWidget {
                   // Faute de noms — une ville mockée, une recherche
                   // récente reconstruite — on retombe sur ce qu'on y
                   // trouve : un arrêt, ou un guichet colis.
-                  Text(
-                    _stopsLabel(context),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: koraColors.textMuted, fontSize: 9),
-                  ),
+                  if (_countLabel(context) case final count?)
+                    Text(
+                      count,
+                      style: TextStyle(
+                        color: context.koraTitleColor,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  _stopsLine(context, koraColors),
                 ],
               ),
             ),
@@ -350,6 +431,140 @@ class _CityTile extends StatelessWidget {
 }
 
 /// Aucune ville ne correspond à la saisie.
+/// Le second choix : quel arrêt, dans une ville qui en porte plusieurs.
+///
+/// Il s'ouvre **après** la ville, et jamais avant : une liste qui
+/// mélangerait villes et arrêts ferait choisir « Cotonou » ou « Arrêt
+/// Cotonou » sans qu'on sache ce qui les distingue.
+class _StopSheet extends StatelessWidget {
+  const _StopSheet({required this.city});
+
+  final City city;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final koraColors = context.koraColors;
+
+    return SafeArea(
+      top: false,
+      child: Container(
+        margin: const EdgeInsets.all(11),
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: koraColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              l10n.cityPickerStopTitle(city.name),
+              style: AppTextStyles.heading2(context.koraTitleColor),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              l10n.cityPickerStopLead,
+              style: AppTextStyles.body(koraColors.textMuted),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            // « Tous les arrêts » en tête : c'est le choix qui trouve le
+            // plus de départs, et celui que le serveur sait traiter seul.
+            _StopRow(
+              label: l10n.cityPickerStopAll,
+              lead: l10n.cityPickerStopAllLead,
+              icon: Icons.travel_explore_rounded,
+              onTap: () => Navigator.of(context).pop(city),
+            ),
+            for (final stop in city.stops)
+              _StopRow(
+                label: stop.name,
+                icon: Icons.place_rounded,
+                onTap: () => Navigator.of(context).pop(city.atStop(stop)),
+              ),
+            const SizedBox(height: AppSpacing.sm),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Une ligne de la feuille des arrêts.
+class _StopRow extends StatelessWidget {
+  const _StopRow({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    this.lead,
+  });
+
+  final String label;
+  final String? lead;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final koraColors = context.koraColors;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.base),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 11),
+        child: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: koraColors.background,
+                borderRadius: BorderRadius.circular(AppRadius.base),
+              ),
+              child: Icon(icon, size: 17, color: context.koraTitleColor),
+            ),
+            const SizedBox(width: AppSpacing.sm + 2),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: context.koraTitleColor,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  if (lead case final text?) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      text,
+                      style: TextStyle(
+                        color: koraColors.textMuted,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              size: 20,
+              color: koraColors.textMuted,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _NoCityFound extends StatelessWidget {
   const _NoCityFound({required this.query});
 

@@ -92,7 +92,11 @@ void main() {
       expect(failure, isA<NetworkFailure>());
     });
 
-    test('délai dépassé → NetworkFailure', () async {
+    test('délai dépassé → TimeoutFailure', () async {
+      // Pas un `NetworkFailure` : le téléphone est en ligne, c'est le
+      // serveur qui traîne. Les confondre envoyait le voyageur chercher
+      // une panne chez lui — ce qui est arrivé sur la connexion par
+      // e-mail, qu'un appel bloqué côté serveur faisait expirer.
       final failure = await failureFor(
         DioException(
           requestOptions: RequestOptions(path: '/'),
@@ -100,7 +104,8 @@ void main() {
         ),
       );
 
-      expect(failure, isA<NetworkFailure>());
+      expect(failure, isA<TimeoutFailure>());
+      expect(failure.message, contains('trop de temps'));
     });
 
     test('401 → AuthFailure', () async {
