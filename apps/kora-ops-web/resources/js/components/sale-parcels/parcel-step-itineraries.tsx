@@ -11,19 +11,33 @@ import {
 import { useMemo } from 'react';
 import { ParcelButton } from '@/components/parcels/parcel-button';
 import { cn } from '@/lib/utils';
-import { getItinerariesForHub } from './mock-data';
 import type { ParcelIntakeDraft, ParcelItinerary } from './types';
 
 interface Props {
     draft: ParcelIntakeDraft;
+    itineraries: ParcelItinerary[];
     onSelectItinerary: (itinerary: ParcelItinerary | null) => void;
     onToggleDefer: (defer: boolean) => void;
     onChangeWindow: (window: 'today' | 'tomorrow' | 'all') => void;
     onNext: () => void;
 }
 
+function timeLabel(iso: string | null, timezone?: string): string {
+    if (!iso) {
+        return '—';
+    }
+
+    return new Intl.DateTimeFormat('fr-FR', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        ...(timezone ? { timeZone: timezone } : {}),
+    }).format(new Date(iso));
+}
+
 export function ParcelStepItineraries({
     draft,
+    itineraries,
     onSelectItinerary,
     onToggleDefer,
     onChangeWindow,
@@ -31,16 +45,16 @@ export function ParcelStepItineraries({
 }: Props) {
     const allItineraries = useMemo(() => {
         if (!draft.destinationHub) {
-return [];
-}
+            return [];
+        }
 
-        return getItinerariesForHub(draft.destinationHub);
-    }, [draft.destinationHub]);
+        return itineraries;
+    }, [draft.destinationHub, itineraries]);
 
     const visibleItineraries = useMemo(() => {
         if (draft.dispatchWindow === 'all') {
-return allItineraries;
-}
+            return allItineraries;
+        }
 
         const targetOffset = draft.dispatchWindow === 'today' ? 0 : 1;
 
@@ -62,13 +76,13 @@ return allItineraries;
                     Sélectionnez une destination ci-dessus
                 </h2>
                 <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-muted-foreground">
-                    Choisissez l&apos;agence ou le point partenaire de retrait dans
-                    le bandeau bleu KORA (raccourci{' '}
+                    Choisissez l&apos;agence ou le point partenaire de retrait
+                    dans le bandeau bleu KORA (raccourci{' '}
                     <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px]">
                         Alt+D
                     </kbd>
-                    ) pour charger automatiquement les cars directs, correspondances
-                    et places en soute.
+                    ) pour charger automatiquement les cars directs,
+                    correspondances et places en soute.
                 </p>
             </div>
         );
@@ -78,7 +92,7 @@ return allItineraries;
         draft.selectedItinerary !== null || draft.deferToNextAvailableCargo;
 
     return (
-        <section className="departure-results animate-in fade-in slide-in-from-bottom-2 duration-200">
+        <section className="departure-results animate-in duration-200 fade-in slide-in-from-bottom-2">
             <div className="results-head">
                 <div>
                     <span className="section-kicker">
@@ -116,8 +130,8 @@ return allItineraries;
                             </div>
                             <div>
                                 <h3 className="text-sm font-bold text-foreground">
-                                    Aucun départ disponible aujourd&apos;hui vers{' '}
-                                    {draft.destinationHub.city}
+                                    Aucun départ disponible aujourd&apos;hui
+                                    vers {draft.destinationHub.city}
                                 </h3>
                                 <p className="mt-0.5 text-xs text-muted-foreground">
                                     Les derniers cars du jour ont déjà quitté
@@ -232,19 +246,22 @@ return allItineraries;
                                                                 }
                                                             </span>
                                                             <span className="font-mono text-[10px] text-muted-foreground">
-                                                                ({leg.departureRef}{' '}
-                                                                ·{' '}
+                                                                (
                                                                 {
-                                                                    leg.busRegistration
+                                                                    leg.departureRef
                                                                 }
                                                                 )
                                                             </span>
                                                         </div>
                                                         <div className="mt-0.5 flex items-center gap-2 text-[10px] text-muted-foreground">
                                                             <span>
-                                                                {leg.departureTime}{' '}
+                                                                {
+                                                                    leg.departureTime
+                                                                }{' '}
                                                                 –{' '}
-                                                                {leg.arrivalTime}
+                                                                {
+                                                                    leg.arrivalTime
+                                                                }
                                                             </span>
                                                             <span>•</span>
                                                             <span
@@ -256,12 +273,10 @@ return allItineraries;
                                                                         : 'text-emerald-600 dark:text-emerald-400',
                                                                 )}
                                                             >
-                                                                Soute :{' '}
-                                                                {
-                                                                    leg.availableCargoKg
-                                                                }{' '}
-                                                                / {leg.totalCargoKg}{' '}
-                                                                kg libres
+                                                                {leg.availableCargoKg >=
+                                                                9999
+                                                                    ? 'Soute non plafonnée'
+                                                                    : `Soute : ${leg.availableCargoKg} / ${leg.totalCargoKg} kg libres`}
                                                             </span>
                                                         </div>
                                                     </div>
@@ -282,6 +297,85 @@ return allItineraries;
                                                 </div>
                                             ))}
                                         </div>
+
+                                        {isSelected &&
+                                            itinerary.stops &&
+                                            itinerary.stops.length > 0 && (
+                                                <div
+                                                    className="mt-2 rounded-xl border border-border/80 bg-background/70 p-3"
+                                                    onClick={(event) =>
+                                                        event.stopPropagation()
+                                                    }
+                                                >
+                                                    <div className="flex items-center justify-between gap-2 text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
+                                                        <span className="inline-flex items-center gap-1.5">
+                                                            <MapPin className="size-3 text-gold" />
+                                                            Arrêts desservis
+                                                        </span>
+                                                        <span>
+                                                            {
+                                                                itinerary.stops
+                                                                    .length
+                                                            }{' '}
+                                                            arrêts
+                                                        </span>
+                                                    </div>
+                                                    <ol className="mt-2 grid max-h-52 gap-x-4 gap-y-1 overflow-y-auto pr-1 text-[11px] sm:grid-cols-2">
+                                                        {itinerary.stops.map(
+                                                            (
+                                                                stop,
+                                                                stopIndex,
+                                                            ) => (
+                                                                <li
+                                                                    key={
+                                                                        stop.uuid
+                                                                    }
+                                                                    className={cn(
+                                                                        'flex items-baseline gap-2 border-l-2 py-0.5 pl-2',
+                                                                        stop.is_origin
+                                                                            ? 'border-emerald-500'
+                                                                            : stop.is_destination
+                                                                              ? 'border-gold'
+                                                                              : 'border-border',
+                                                                    )}
+                                                                >
+                                                                    <span className="w-10 shrink-0 font-mono text-[10px] text-muted-foreground">
+                                                                        {timeLabel(
+                                                                            stop.is_destination
+                                                                                ? (stop.arrival_at ??
+                                                                                      stop.departure_at)
+                                                                                : (stop.departure_at ??
+                                                                                      stop.arrival_at),
+                                                                            stop.timezone,
+                                                                        )}
+                                                                    </span>
+                                                                    <span
+                                                                        className={cn(
+                                                                            'truncate',
+                                                                            stop.is_origin ||
+                                                                                stop.is_destination
+                                                                                ? 'font-bold text-foreground'
+                                                                                : 'text-muted-foreground',
+                                                                        )}
+                                                                    >
+                                                                        {stop.city ||
+                                                                            stop.name}
+                                                                        {stop.is_origin
+                                                                            ? ' · départ'
+                                                                            : stop.is_destination
+                                                                              ? ' · arrivée'
+                                                                              : ''}
+                                                                    </span>
+                                                                    <span className="ml-auto font-mono text-[9px] text-muted-foreground">
+                                                                        {stopIndex +
+                                                                            1}
+                                                                    </span>
+                                                                </li>
+                                                            ),
+                                                        )}
+                                                    </ol>
+                                                </div>
+                                            )}
                                     </div>
 
                                     {/* Right: Cargo Bottleneck summary + Selection check */}
@@ -294,9 +388,12 @@ return allItineraries;
                                                     : 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300',
                                             )}
                                         >
-                                            {cargoLow
-                                                ? `Soute limitée : ${itinerary.minAvailableCargoKg} kg max`
-                                                : `Soute ouverte : ${itinerary.minAvailableCargoKg} kg dispo`}
+                                            {itinerary.minAvailableCargoKg >=
+                                            9999
+                                                ? 'Soute non plafonnée'
+                                                : cargoLow
+                                                  ? `Soute limitée : ${itinerary.minAvailableCargoKg} kg max`
+                                                  : `Soute ouverte : ${itinerary.minAvailableCargoKg} kg dispo`}
                                         </div>
 
                                         {isSelected && (
@@ -324,8 +421,8 @@ return allItineraries;
                             onToggleDefer(checked);
 
                             if (checked) {
-onSelectItinerary(null);
-}
+                                onSelectItinerary(null);
+                            }
                         }}
                         className="size-4 rounded border-border text-kora focus:ring-gold"
                     />
@@ -334,8 +431,8 @@ onSelectItinerary(null);
                             Enregistrer en dépôt libre (sans bloquer un car)
                         </strong>
                         <span className="block text-[11px] text-muted-foreground">
-                            Utile pour les colis volumineux qui partiront avec le
-                            prochain car ayant la soute requise.
+                            Utile pour les colis volumineux qui partiront avec
+                            le prochain car ayant la soute requise.
                         </span>
                     </span>
                 </label>

@@ -50,7 +50,7 @@ test('parcel operators can open the page and configure locations', function (): 
     $operationsDirector = parcelRoleUser('operations_director');
 
     $this->actingAs($operationsDirector, 'web')
-        ->get('/parcels')
+        ->get('/sale/parcels')
         ->assertOk();
 
     $this->actingAs($operationsDirector, 'web')
@@ -79,7 +79,7 @@ test('network viewers can read configuration but cannot configure or archive', f
     $agency = Agency::factory()->create(['country' => 'BJ']);
 
     $this->actingAs($viewer, 'web')
-        ->get('/parcels')
+        ->get('/sale/parcels')
         ->assertOk();
 
     $this->actingAs($viewer, 'web')
@@ -121,9 +121,9 @@ test('agency and point operators cannot open the administration screen', functio
     $unassignedPointAgent = User::factory()->create()->assignRole('kora_point_agent');
 
     $this->actingAs($agencyAgent, 'web')
-        ->get('/parcels')
+        ->get('/sale/parcels')
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page->component('parcels'));
+        ->assertInertia(fn (Assert $page) => $page->component('sale-parcels-index'));
 
     $this->actingAs($agencyAgent, 'web')
         ->get('/administration/parcels')
@@ -136,7 +136,7 @@ test('agency and point operators cannot open the administration screen', functio
     $this->actingAs($pointAgent, 'web')
         ->get('/kora-point/parcels')
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page->component('parcels'));
+        ->assertInertia(fn (Assert $page) => $page->component('sale-parcels'));
 
     $this->actingAs($pointAgent, 'web')
         ->get('/administration/parcels')

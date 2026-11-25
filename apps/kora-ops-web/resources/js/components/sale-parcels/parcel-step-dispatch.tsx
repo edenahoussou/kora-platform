@@ -12,6 +12,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { ParcelButton } from '@/components/parcels/parcel-button';
+import { ParcelReceiptDialog } from '@/components/parcels/parcel-receipt-dialog';
 import type { FinalizedParcel } from './types';
 
 interface Props {
@@ -21,15 +22,9 @@ interface Props {
 
 export function ParcelStepDispatch({ finalized, onReset }: Props) {
     const [copied, setCopied] = useState(false);
-    const {
-        trackingNumber,
-        securityCode,
-        draft,
-        quote,
-        issuedAt,
-        receiptNumber,
-        agentName,
-    } = finalized;
+    const [receiptOpen, setReceiptOpen] = useState(false);
+    const { trackingNumber, draft, quote, issuedAt, receiptNumber, agentName } =
+        finalized;
 
     const itinerary = draft.selectedItinerary;
     const isTransfer = (itinerary?.legs.length ?? 0) > 1;
@@ -48,12 +43,14 @@ export function ParcelStepDispatch({ finalized, onReset }: Props) {
     };
 
     const handlePrintReceipt = () => {
-        toast.success('Reçu client prêt pour impression.');
-        window.print();
+        setReceiptOpen(true);
     };
 
+    const trackingUrl =
+        finalized.receiptParcel.tracking_url ??
+        `https://kora.express/track/${trackingNumber}`;
     const handleSendWhatsApp = () => {
-        const text = `Bonjour ${draft.recipientName}, un colis KORA EXPRESS vous est adressé depuis ${draft.originHub.city} par ${draft.senderName}.\n\n📦 Réf de suivi : ${trackingNumber}\n🔒 Code de retrait : ${securityCode}\n📍 Lieu de retrait : ${draft.destinationHub?.name}\n\nSuivez votre colis sur https://kora.express/track/${trackingNumber}`;
+        const text = `Bonjour ${draft.recipientName}, un colis KORA EXPRESS vous est adressé depuis ${draft.originHub.city} par ${draft.senderName}.\n\n📦 Réf. de suivi : ${trackingNumber}\n📍 Lieu de retrait : ${draft.destinationHub?.name}\n\nSuivez votre colis sur ${trackingUrl}`;
         window.open(
             `https://wa.me/${draft.recipientPhone.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`,
             '_blank',
@@ -62,7 +59,7 @@ export function ParcelStepDispatch({ finalized, onReset }: Props) {
     };
 
     return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+        <div className="animate-in space-y-6 duration-300 fade-in slide-in-from-bottom-2">
             {/* Success Banner (hidden on print) */}
             <div className="no-print flex flex-wrap items-center justify-between gap-4 rounded-[1.125rem] border border-emerald-500/30 bg-emerald-500/8 p-5">
                 <div className="flex items-center gap-3.5">
@@ -71,7 +68,7 @@ export function ParcelStepDispatch({ finalized, onReset }: Props) {
                     </div>
                     <div>
                         <div className="flex items-center gap-2">
-                            <span className="rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-[10px] font-extrabold text-emerald-700 dark:text-emerald-300 uppercase">
+                            <span className="rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-[10px] font-extrabold text-emerald-700 uppercase dark:text-emerald-300">
                                 Enregistré &amp; prêt à charger
                             </span>
                             <span className="text-[11px] text-muted-foreground">
@@ -106,10 +103,11 @@ export function ParcelStepDispatch({ finalized, onReset }: Props) {
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
                 {/* Thermal Label (Isolated printable block) */}
-                <div className="lg:col-span-7 space-y-3">
+                <div className="space-y-3 lg:col-span-7">
                     <div className="no-print flex items-center justify-between">
                         <span className="section-kicker">
-                            Étiquette Thermique Autocollante · Format 100 × 150 mm
+                            Étiquette Thermique Autocollante · Format 100 × 150
+                            mm
                         </span>
                         <ParcelButton
                             variant="navy"
@@ -118,7 +116,7 @@ export function ParcelStepDispatch({ finalized, onReset }: Props) {
                         >
                             <Printer className="size-3.5 text-gold" />
                             <span>Imprimer</span>
-                            <kbd className="rounded bg-white/15 px-1 py-0.2 font-mono text-[9px]">
+                            <kbd className="py-0.2 rounded bg-white/15 px-1 font-mono text-[9px]">
                                 Alt+P
                             </kbd>
                         </ParcelButton>
@@ -177,7 +175,7 @@ export function ParcelStepDispatch({ finalized, onReset }: Props) {
 
                             <div className="flex shrink-0 flex-col items-center justify-center rounded-xl border-2 border-slate-900 bg-white p-2">
                                 <QRCodeSVG
-                                    value={`https://kora.express/track/${trackingNumber}`}
+                                    value={trackingUrl}
                                     size={96}
                                     level="H"
                                 />
@@ -187,23 +185,14 @@ export function ParcelStepDispatch({ finalized, onReset }: Props) {
                             </div>
                         </div>
 
-                        {/* Tracking + Security PIN */}
-                        <div className="grid grid-cols-2 gap-3 border-b-2 border-slate-900 pb-3 text-xs">
-                            <div>
-                                <span className="text-[10px] font-bold text-slate-500 uppercase">
-                                    N° de Suivi
-                                </span>
-                                <div className="text-lg font-black tracking-wider text-slate-950">
-                                    {trackingNumber}
-                                </div>
-                            </div>
-                            <div className="text-right">
-                                <span className="text-[10px] font-bold text-slate-500 uppercase">
-                                    Code PIN Retrait
-                                </span>
-                                <div className="text-lg font-black tracking-widest text-emerald-700">
-                                    {securityCode}
-                                </div>
+                        {/* Tracking reference only — the pickup PIN is never printed
+                            on the sender-facing label or bordereau. */}
+                        <div className="border-b-2 border-slate-900 pb-3 text-xs">
+                            <span className="text-[10px] font-bold text-slate-500 uppercase">
+                                N° de Suivi
+                            </span>
+                            <div className="text-lg font-black tracking-wider text-slate-950">
+                                {trackingNumber}
                             </div>
                         </div>
 
@@ -278,11 +267,9 @@ export function ParcelStepDispatch({ finalized, onReset }: Props) {
                 </div>
 
                 {/* Right: Actions & Digital Receipt (hidden on print) */}
-                <div className="no-print lg:col-span-5 space-y-4">
-                    <div className="rounded-[1.125rem] border border-border bg-card p-5 space-y-3 shadow-xs">
-                        <span className="section-kicker">
-                            Actions Guichet
-                        </span>
+                <div className="no-print space-y-4 lg:col-span-5">
+                    <div className="space-y-3 rounded-[1.125rem] border border-border bg-card p-5 shadow-xs">
+                        <span className="section-kicker">Actions Guichet</span>
 
                         <div className="grid gap-2.5">
                             <ParcelButton
@@ -325,7 +312,7 @@ export function ParcelStepDispatch({ finalized, onReset }: Props) {
                         </div>
                     </div>
 
-                    <div className="rounded-[1.125rem] border border-border bg-muted/35 p-4 space-y-2 text-xs">
+                    <div className="space-y-2 rounded-[1.125rem] border border-border bg-muted/35 p-4 text-xs">
                         <div className="flex justify-between text-muted-foreground">
                             <span>Reçu N° :</span>
                             <span className="font-mono font-bold text-foreground">
@@ -372,6 +359,12 @@ export function ParcelStepDispatch({ finalized, onReset }: Props) {
                     </ParcelButton>
                 </div>
             </div>
+
+            <ParcelReceiptDialog
+                open={receiptOpen}
+                parcel={finalized.receiptParcel}
+                onOpenChange={setReceiptOpen}
+            />
         </div>
     );
 }

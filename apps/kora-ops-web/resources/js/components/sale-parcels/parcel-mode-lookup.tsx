@@ -50,8 +50,8 @@ export function ParcelModeLookup({
         const q = searchQuery.trim().toLowerCase();
 
         if (!q) {
-return PRE_REGISTERED_PARCELS;
-}
+            return PRE_REGISTERED_PARCELS;
+        }
 
         return PRE_REGISTERED_PARCELS.filter(
             (p) =>
@@ -64,8 +64,8 @@ return PRE_REGISTERED_PARCELS;
 
     const suggestedItinerary = useMemo(() => {
         if (!selectedParcel) {
-return null;
-}
+            return null;
+        }
 
         const list = getItinerariesForHub(selectedParcel.destinationHub);
 
@@ -78,8 +78,8 @@ return null;
 
     const declaredQuote = useMemo(() => {
         if (!selectedParcel) {
-return null;
-}
+            return null;
+        }
 
         return calculateParcelPricing(
             selectedParcel.nature,
@@ -91,8 +91,8 @@ return null;
 
     const actualQuote = useMemo(() => {
         if (!selectedParcel) {
-return null;
-}
+            return null;
+        }
 
         return calculateParcelPricing(
             selectedParcel.nature,
@@ -143,8 +143,8 @@ return null;
 
     const handleConfirmIntake = () => {
         if (!selectedParcel || !actualQuote) {
-return;
-}
+            return;
+        }
 
         const draft: ParcelIntakeDraft = {
             originHub: selectedParcel.originHub,
@@ -166,8 +166,7 @@ return;
             notes: selectedParcel.notes,
             paymentMethod:
                 amountDueAtCounter === 0 ? 'mobile_money' : paymentMethod,
-            cashTendered:
-                amountDueAtCounter === 0 ? 0 : cashTendered,
+            cashTendered: amountDueAtCounter === 0 ? 0 : cashTendered,
             payerName: selectedParcel.senderName,
             payerPhone: selectedParcel.senderPhone,
             momoPhone: selectedParcel.senderPhone,
@@ -179,9 +178,12 @@ return;
             preRegistrationUuid: selectedParcel.uuid,
         };
 
-        const finalized: FinalizedParcel = {
+        const finalized = {
             trackingNumber: selectedParcel.trackingNumber,
-            securityCode: selectedParcel.securityCode,
+            parcelUuid: selectedParcel.uuid,
+            labelUrl: '#',
+            receiptUrl: '#',
+            receiptParcel: null,
             issuedAt: new Date().toLocaleString('fr-FR', {
                 dateStyle: 'medium',
                 timeStyle: 'short',
@@ -191,7 +193,7 @@ return;
             receiptNumber: `CA-${Date.now().toString().slice(-6)}`,
             agentName: 'Eden A. (Guichet)',
             agentSite: selectedParcel.originHub.name,
-        };
+        } as unknown as FinalizedParcel;
 
         toast.success(
             `Pré-enregistrement ${selectedParcel.trackingNumber} confirmé !`,
@@ -200,9 +202,9 @@ return;
     };
 
     return (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 animate-in fade-in slide-in-from-bottom-2 duration-200">
+        <div className="grid animate-in grid-cols-1 gap-6 duration-200 fade-in slide-in-from-bottom-2 lg:grid-cols-12">
             {/* Pending Queue List (5 cols) */}
-            <div className="lg:col-span-5 space-y-3">
+            <div className="space-y-3 lg:col-span-5">
                 <div className="flex items-center justify-between">
                     <span className="section-kicker">
                         File d&apos;attente dépôt ({filteredParcels.length})
@@ -218,7 +220,8 @@ return;
 
                 {filteredParcels.length === 0 ? (
                     <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center text-xs text-muted-foreground">
-                        Aucun pré-enregistrement ne correspond à « {searchQuery} ».
+                        Aucun pré-enregistrement ne correspond à « {searchQuery}{' '}
+                        ».
                     </div>
                 ) : (
                     <div className="space-y-2.5">
@@ -288,7 +291,7 @@ return;
             {/* Detail, Scale Verification & Counter Payment (7 cols) */}
             <div className="lg:col-span-7">
                 {selectedParcel && actualQuote ? (
-                    <div className="rounded-[1.125rem] border border-border bg-card p-5 shadow-xs space-y-4">
+                    <div className="space-y-4 rounded-[1.125rem] border border-border bg-card p-5 shadow-xs">
                         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 pb-3">
                             <div className="flex items-center gap-2.5">
                                 <span className="flex size-9 items-center justify-center rounded-xl bg-kora text-gold">
@@ -311,8 +314,9 @@ return;
                                     {suggestedItinerary.legs.length > 1 && (
                                         <Repeat2 className="size-3 text-digital" />
                                     )}
-                                    Car {suggestedItinerary.legs[0].departureTime}{' '}
-                                    ({suggestedItinerary.minAvailableCargoKg} kg
+                                    Car{' '}
+                                    {suggestedItinerary.legs[0].departureTime} (
+                                    {suggestedItinerary.minAvailableCargoKg} kg
                                     soute)
                                 </span>
                             )}
@@ -345,7 +349,7 @@ return;
                         </div>
 
                         {/* Scale Verification */}
-                        <div className="rounded-2xl border border-border bg-muted/25 p-4 space-y-3">
+                        <div className="space-y-3 rounded-2xl border border-border bg-muted/25 p-4">
                             <div className="flex items-center justify-between">
                                 <span className="flex items-center gap-1.5 text-xs font-extrabold text-foreground">
                                     <Scale className="size-4 text-gold" />
@@ -477,7 +481,7 @@ return;
                                 </div>
 
                                 {paymentMethod === 'cash' ? (
-                                    <div className="grid grid-cols-2 gap-3 items-center">
+                                    <div className="grid grid-cols-2 items-center gap-3">
                                         <label className="field">
                                             <span className="field-label">
                                                 Montant remis (FCFA){' '}

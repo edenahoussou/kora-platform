@@ -1,5 +1,7 @@
+import { Link } from '@inertiajs/react';
 import type { LucideIcon } from 'lucide-react';
 import {
+    AlertCircle,
     ArrowLeft,
     Banknote,
     Building2,
@@ -18,19 +20,21 @@ import { useMemo, useState } from 'react';
 import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
 import phoneLabels from 'react-phone-number-input/locale/fr.json';
 import { cn } from '@/lib/utils';
-import {
-    AGENCY_MOMO_ACCOUNTS,
-    COMPANY_ACCOUNTS,
-    calculateParcelPricing,
-} from './mock-data';
 import type {
+    ParcelAgencyPaymentAccount,
     ParcelIntakeDraft,
     ParcelMobileMoneyNetwork,
+    ParcelQuoteBreakdown,
     PaymentMethod,
 } from './types';
 
 interface Props {
     draft: ParcelIntakeDraft;
+    quote: ParcelQuoteBreakdown;
+    accounts: ParcelAgencyPaymentAccount[];
+    cashSessionOpen: boolean;
+    isPartner: boolean;
+    submitError?: string | null;
     onChange: (updates: Partial<ParcelIntakeDraft>) => void;
     onSubmit: () => void;
     onBack: () => void;
@@ -170,6 +174,11 @@ function smartQuickAmounts(total: number): number[] {
 
 export function ParcelStepPayment({
     draft,
+    quote,
+    accounts,
+    cashSessionOpen,
+    isPartner,
+    submitError,
     onChange,
     onSubmit,
     onBack,
@@ -179,22 +188,6 @@ export function ParcelStepPayment({
     const [countryFilter, setCountryFilter] = useState<
         'all' | 'bj' | 'tg' | 'ci'
     >('all');
-
-    const quote = useMemo(
-        () =>
-            calculateParcelPricing(
-                draft.nature,
-                draft.weightKg,
-                draft.destinationHub,
-                draft.selectedItinerary,
-            ),
-        [
-            draft.nature,
-            draft.weightKg,
-            draft.destinationHub,
-            draft.selectedItinerary,
-        ],
-    );
 
     const total = quote.totalTtc;
     const effectivePayerName = draft.payerName || draft.senderName;
@@ -208,11 +201,9 @@ export function ParcelStepPayment({
     const networkAccounts = useMemo(
         () =>
             draft.momoProvider
-                ? AGENCY_MOMO_ACCOUNTS.filter(
-                      (acc) => acc.network === draft.momoProvider,
-                  )
+                ? accounts.filter((acc) => acc.network === draft.momoProvider)
                 : [],
-        [draft.momoProvider],
+        [draft.momoProvider, accounts],
     );
 
     const selectedAgencyAccount = useMemo(
@@ -223,26 +214,21 @@ export function ParcelStepPayment({
         [networkAccounts, draft.agencyPaymentAccountUuid],
     );
 
-    const selectedCompanyAccount = useMemo(
-        () =>
-            COMPANY_ACCOUNTS.find((acc) => acc.id === draft.companyAccountId) ??
-            COMPANY_ACCOUNTS[0],
-        [draft.companyAccountId],
-    );
-
     const payerPhoneValid =
         effectivePayerPhone.trim() !== '' &&
         isValidPhoneNumber(effectivePayerPhone);
 
     const cashReady =
-        isCashSufficient && effectivePayerName.trim().length >= 2;
+        (cashSessionOpen || isPartner) &&
+        isCashSufficient &&
+        effectivePayerName.trim().length >= 2;
     const mobileReady =
+        (cashSessionOpen || isPartner) &&
         draft.momoProvider !== '' &&
-        draft.agencyPaymentAccountUuid !== '' &&
+        (isPartner || draft.agencyPaymentAccountUuid !== '') &&
         payerPhoneValid &&
         draft.momoReference.trim() !== '' &&
         draft.momoVerifiedManually;
-    const companyCreditReady = Boolean(draft.companyAccountId);
 
     const canSubmit =
         !isSubmitting &&
@@ -250,7 +236,7 @@ export function ParcelStepPayment({
             ? cashReady
             : draft.paymentMethod === 'mobile_money'
               ? mobileReady
-              : companyCreditReady);
+              : false);
 
     const handleMethodChange = (method: PaymentMethod) => {
         setAttemptedSubmit(false);
@@ -267,13 +253,13 @@ export function ParcelStepPayment({
     };
 
     const handleSelectNetwork = (value: ParcelMobileMoneyNetwork) => {
-        const accounts = AGENCY_MOMO_ACCOUNTS.filter(
+        const matchingAccounts = accounts.filter(
             (acc) => acc.network === value,
         );
         onChange({
             momoProvider: value,
             agencyPaymentAccountUuid:
-                accounts.length === 1 ? accounts[0].uuid : '',
+                matchingAccounts.length === 1 ? matchingAccounts[0].uuid : '',
         });
     };
 
@@ -299,7 +285,7 @@ export function ParcelStepPayment({
 
     return (
         <form
-            className="checkout-main kora-panel animate-in fade-in slide-in-from-bottom-2 duration-200"
+            className="checkout-main kora-panel animate-in duration-200 fade-in slide-in-from-bottom-2"
             onSubmit={handleFormSubmit}
             noValidate
         >
@@ -323,8 +309,9 @@ export function ParcelStepPayment({
                     </div>
                 </div>
                 <p className="mt-2 text-[10px] text-muted-foreground">
-                    Les champs marqués <span className="required-asterisk">*</span>{' '}
-                    sont obligatoires.
+                    Les champs marqués{' '}
+                    <span className="required-asterisk">*</span> sont
+                    obligatoires.
                 </p>
             </div>
 
@@ -348,14 +335,39 @@ export function ParcelStepPayment({
                     title="Mobile Money"
                     description="Vérification manuelle"
                 />
-                <PaymentChoice
-                    active={draft.paymentMethod === 'company_account'}
-                    onClick={() => handleMethodChange('company_account')}
-                    icon={Building2}
-                    title="Crédit entreprise"
-                    description="Facturation fin mois"
-                />
             </div>
+
+            {!cashSessionOpen && !isPartner && (
+                <div className="mb-4 flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2.5 text-xs text-amber-800 dark:text-amber-200">
+                    <LockKeyhole className="mt-0.5 size-4 shrink-0" />
+                    <div>
+                        <p className="font-bold">
+                            Votre caisse est encore fermée.
+                        </p>
+                        <p className="mt-0.5 text-[11px] leading-relaxed">
+                            Ouvrez votre caisse pour encaisser ce colis. Les
+                            comptes Mobile Money de l’agence seront proposés dès
+                            l’ouverture.
+                        </p>
+                        <Link
+                            href="/cash"
+                            className="mt-1 inline-flex font-bold underline underline-offset-2"
+                        >
+                            Ouvrir la caisse
+                        </Link>
+                    </div>
+                </div>
+            )}
+
+            {submitError && (
+                <div
+                    role="alert"
+                    className="mb-4 flex items-start gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-xs text-destructive"
+                >
+                    <AlertCircle className="mt-0.5 size-4 shrink-0" />
+                    <span className="leading-relaxed">{submitError}</span>
+                </div>
+            )}
 
             {/* 1 · ESPÈCES */}
             {draft.paymentMethod === 'cash' && (
@@ -608,10 +620,9 @@ export function ParcelStepPayment({
                                         const Icon = meta.icon;
                                         const isActive =
                                             draft.momoProvider === value;
-                                        const count =
-                                            AGENCY_MOMO_ACCOUNTS.filter(
-                                                (a) => a.network === value,
-                                            ).length;
+                                        const count = accounts.filter(
+                                            (a) => a.network === value,
+                                        ).length;
 
                                         return (
                                             <button
@@ -665,59 +676,69 @@ export function ParcelStepPayment({
                                     })}
                             </div>
 
-                            <label className="field">
-                                <span className="field-label">
-                                    <Building2 className="size-3.5" />
-                                    Compte agence crédité{' '}
-                                    <span className="required-asterisk">*</span>
-                                </span>
-                                <select
-                                    className="control"
-                                    value={draft.agencyPaymentAccountUuid}
-                                    aria-invalid={
-                                        attemptedSubmit &&
-                                        !draft.agencyPaymentAccountUuid
-                                    }
-                                    onChange={(e) =>
-                                        onChange({
-                                            agencyPaymentAccountUuid:
-                                                e.target.value,
-                                        })
-                                    }
-                                    disabled={
-                                        !draft.momoProvider ||
-                                        networkAccounts.length === 1
-                                    }
-                                >
-                                    <option value="">
-                                        {draft.momoProvider
-                                            ? networkAccounts.length > 0
-                                                ? 'Sélectionner le compte'
-                                                : 'Aucun compte configuré sur ce réseau (simulé)'
-                                            : "Choisir le réseau d'abord"}
-                                    </option>
-                                    {networkAccounts.map((account) => (
-                                        <option
-                                            key={account.uuid}
-                                            value={account.uuid}
-                                        >
-                                            {account.label} ·{' '}
-                                            {account.accountIdentifier}
+                            {isPartner ? (
+                                <div className="rounded-xl border border-border bg-muted/30 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
+                                    Point partenaire : le paiement est encaissé
+                                    et confirmé sans suivi de trésorerie. Aucun
+                                    compte agence n’est requis.
+                                </div>
+                            ) : (
+                                <label className="field">
+                                    <span className="field-label">
+                                        <Building2 className="size-3.5" />
+                                        Compte agence crédité{' '}
+                                        <span className="required-asterisk">
+                                            *
+                                        </span>
+                                    </span>
+                                    <select
+                                        className="control"
+                                        value={draft.agencyPaymentAccountUuid}
+                                        aria-invalid={
+                                            attemptedSubmit &&
+                                            !draft.agencyPaymentAccountUuid
+                                        }
+                                        onChange={(e) =>
+                                            onChange({
+                                                agencyPaymentAccountUuid:
+                                                    e.target.value,
+                                            })
+                                        }
+                                        disabled={
+                                            !draft.momoProvider ||
+                                            networkAccounts.length === 1
+                                        }
+                                    >
+                                        <option value="">
+                                            {draft.momoProvider
+                                                ? networkAccounts.length > 0
+                                                    ? 'Sélectionner le compte'
+                                                    : 'Aucun compte agence ouvert sur ce réseau'
+                                                : "Choisir le réseau d'abord"}
                                         </option>
-                                    ))}
-                                </select>
-                                <small className="payment-field-help">
-                                    Compte de l&apos;agence sur lequel le
-                                    transfert doit arriver.
-                                </small>
-                                {attemptedSubmit &&
-                                    !draft.agencyPaymentAccountUuid && (
-                                        <small className="field-error-text">
-                                            Sélectionnez un réseau et son compte
-                                            agence associé.
-                                        </small>
-                                    )}
-                            </label>
+                                        {networkAccounts.map((account) => (
+                                            <option
+                                                key={account.uuid}
+                                                value={account.uuid}
+                                            >
+                                                {account.label} ·{' '}
+                                                {account.accountIdentifier}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <small className="payment-field-help">
+                                        Compte de l&apos;agence sur lequel le
+                                        transfert doit arriver.
+                                    </small>
+                                    {attemptedSubmit &&
+                                        !draft.agencyPaymentAccountUuid && (
+                                            <small className="field-error-text">
+                                                Sélectionnez un réseau et son
+                                                compte agence associé.
+                                            </small>
+                                        )}
+                                </label>
+                            )}
                         </div>
                     </div>
 
@@ -883,64 +904,6 @@ export function ParcelStepPayment({
                 </div>
             )}
 
-            {/* 3 · CRÉDIT ENTREPRISE */}
-            {draft.paymentMethod === 'company_account' && (
-                <div className="company-credit-section mt-5 space-y-4">
-                    <label className="field">
-                        <span className="field-label">
-                            <Building2 className="size-3.5" />
-                            Compte Entreprise à imputer{' '}
-                            <span className="required-asterisk">*</span>
-                        </span>
-                        <select
-                            id="company-account-select"
-                            value={draft.companyAccountId}
-                            onChange={(e) =>
-                                onChange({
-                                    companyAccountId: e.target.value,
-                                })
-                            }
-                            className="control"
-                        >
-                            {COMPANY_ACCOUNTS.map((acc) => (
-                                <option key={acc.id} value={acc.id}>
-                                    {acc.label}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
-
-                    <div className="company-credit-info">
-                        <div className="company-credit-header">
-                            <Building2 className="size-5 text-gold" />
-                            <div>
-                                <strong>{selectedCompanyAccount.name}</strong>
-                                <small>
-                                    {selectedCompanyAccount.type === 'ngo'
-                                        ? 'ONG'
-                                        : selectedCompanyAccount.type ===
-                                            'embassy'
-                                          ? 'Ambassade'
-                                          : 'Entreprise'}{' '}
-                                    · Réf {selectedCompanyAccount.reference}
-                                </small>
-                            </div>
-                        </div>
-                        <div className="company-credit-amount">
-                            <div className="summary-row">
-                                <span>Montant à imputer</span>
-                                <strong>{formatFcfa(total)}</strong>
-                            </div>
-                            <p className="company-credit-help">
-                                Le crédit sera prélevé sur le plafond mensuel du
-                                compte et consolidé sur le relevé de fin de
-                                mois.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             {/* Actions identiques à Vente au Guichet */}
             <div className="checkout-actions payment-actions mt-5">
                 <button
@@ -995,7 +958,10 @@ function PaymentChoice({
             role="radio"
             aria-checked={active}
             onClick={onClick}
-            className={cn('payment-choice cursor-pointer', active && 'is-active')}
+            className={cn(
+                'payment-choice cursor-pointer',
+                active && 'is-active',
+            )}
         >
             <span className="payment-choice-icon">
                 <Icon className="size-4" />

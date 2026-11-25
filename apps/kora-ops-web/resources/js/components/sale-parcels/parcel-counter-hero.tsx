@@ -12,11 +12,11 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { DESTINATION_HUBS } from './mock-data';
 import type { ParcelHub } from './types';
 
 interface Props {
     originHub: ParcelHub;
+    destinationHubs: ParcelHub[];
     mode: 'new' | 'lookup';
     onModeChange: (mode: 'new' | 'lookup') => void;
     selectedDestination: ParcelHub | null;
@@ -41,6 +41,7 @@ const DISPATCH_WINDOWS: Array<{
 
 export function ParcelCounterHero({
     originHub,
+    destinationHubs,
     mode,
     onModeChange,
     selectedDestination,
@@ -59,25 +60,25 @@ export function ParcelCounterHero({
     const containerRef = useRef<HTMLDivElement>(null);
 
     const frequentHubs = useMemo(
-        () => DESTINATION_HUBS.filter((h) => h.isFrequent),
-        [],
+        () => destinationHubs.filter((h) => h.isFrequent),
+        [destinationHubs],
     );
 
     const filteredHubs = useMemo(() => {
         const q = destQuery.trim().toLowerCase();
 
         if (!q) {
-return DESTINATION_HUBS;
-}
+            return destinationHubs;
+        }
 
-        return DESTINATION_HUBS.filter(
+        return destinationHubs.filter(
             (hub) =>
                 hub.city.toLowerCase().includes(q) ||
                 hub.name.toLowerCase().includes(q) ||
                 hub.code.toLowerCase().includes(q) ||
                 hub.region.toLowerCase().includes(q),
         );
-    }, [destQuery]);
+    }, [destQuery, destinationHubs]);
 
     // Close dropdown on click outside
     useEffect(() => {
@@ -111,8 +112,8 @@ return DESTINATION_HUBS;
         }
 
         if (!dropdownOpen) {
-return;
-}
+            return;
+        }
 
         if (e.key === 'ArrowDown') {
             e.preventDefault();
@@ -127,8 +128,8 @@ return;
             const target = filteredHubs[highlightedIndex];
 
             if (target) {
-chooseHub(target);
-}
+                chooseHub(target);
+            }
         } else if (e.key === 'Escape') {
             setDropdownOpen(false);
         }
@@ -232,14 +233,17 @@ chooseHub(target);
                         </div>
 
                         {/* Scalable Destination Combobox (27+ stops) */}
-                        <div ref={containerRef} className="relative grid gap-1.5">
+                        <div
+                            ref={containerRef}
+                            className="relative grid gap-1.5"
+                        >
                             <span className="flex items-center justify-between text-[0.625rem] font-extrabold text-white/60 uppercase">
                                 <span className="flex items-center gap-1.5">
                                     <MapPin className="size-3.5 text-gold" />
                                     Destination &amp; point de retrait{' '}
                                     <span className="required-asterisk">*</span>
                                 </span>
-                                <kbd className="rounded bg-white/10 px-1.5 py-0.2 font-mono text-[9px] text-white/75">
+                                <kbd className="py-0.2 rounded bg-white/10 px-1.5 font-mono text-[9px] text-white/75">
                                     Alt+D
                                 </kbd>
                             </span>
@@ -266,8 +270,8 @@ chooseHub(target);
                                         setHighlightedIndex(0);
                                     }}
                                     onKeyDown={handleComboboxKeyDown}
-                                    placeholder={`Rechercher parmi ${DESTINATION_HUBS.length} arrêts, agences ou points relais...`}
-                                    className="h-12 w-full rounded-[0.8rem] border border-white/20 bg-white/12 pr-14 pl-9 text-xs font-bold text-white placeholder:font-normal placeholder:text-white/55 focus:border-gold focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-gold/30"
+                                    placeholder={`Rechercher parmi ${destinationHubs.length} arrêts, agences ou points relais...`}
+                                    className="h-12 w-full rounded-[0.8rem] border border-white/20 bg-white/12 pr-14 pl-9 text-xs font-bold text-white placeholder:font-normal placeholder:text-white/55 focus:border-gold focus:bg-white/15 focus:ring-2 focus:ring-gold/30 focus:outline-none"
                                 />
                                 <div className="absolute top-1/2 right-2 flex -translate-y-1/2 items-center gap-1">
                                     {selectedDestination && !dropdownOpen && (
@@ -307,15 +311,16 @@ chooseHub(target);
                                     <div className="absolute right-0 left-0 z-50 mt-2 max-h-72 overflow-y-auto rounded-2xl border border-border bg-card p-1.5 text-foreground shadow-2xl">
                                         <div className="flex items-center justify-between px-2.5 py-1.5 text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
                                             <span>
-                                                {filteredHubs.length} point(s) trouvé(s)
+                                                {filteredHubs.length} point(s)
+                                                trouvé(s)
                                             </span>
                                             <span>↑↓ Naviguer · ↵ Valider</span>
                                         </div>
 
                                         {filteredHubs.length === 0 ? (
                                             <div className="px-3 py-6 text-center text-xs text-muted-foreground">
-                                                Aucune destination trouvée pour «{' '}
-                                                {destQuery} ».
+                                                Aucune destination trouvée pour
+                                                « {destQuery} ».
                                             </div>
                                         ) : (
                                             filteredHubs.map((hub, idx) => {
@@ -465,8 +470,8 @@ chooseHub(target);
                             );
                         })}
                         <span className="ml-auto hidden text-[10px] text-white/55 sm:inline">
-                            {DESTINATION_HUBS.length} destinations actives sur
-                            le réseau
+                            {destinationHubs.length} destinations actives sur le
+                            réseau
                         </span>
                     </div>
                 </div>
@@ -483,14 +488,12 @@ chooseHub(target);
                                 onLookupQueryChange(e.target.value)
                             }
                             placeholder="Scannez le QR Code client ou saisissez la référence (ex: KC-20261125-4812), le nom ou le téléphone..."
-                            className="h-12 w-full rounded-[0.8rem] border border-white/20 bg-white/12 pr-4 pl-10 text-xs font-bold text-white placeholder:font-normal placeholder:text-white/55 focus:border-gold focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-gold/30"
+                            className="h-12 w-full rounded-[0.8rem] border border-white/20 bg-white/12 pr-4 pl-10 text-xs font-bold text-white placeholder:font-normal placeholder:text-white/55 focus:border-gold focus:bg-white/15 focus:ring-2 focus:ring-gold/30 focus:outline-none"
                         />
                     </div>
                     <button
                         type="button"
-                        onClick={() =>
-                            onLookupQueryChange('KC-20261125-4812')
-                        }
+                        onClick={() => onLookupQueryChange('KC-20261125-4812')}
                         className="btn btn-primary h-12! px-5! text-xs!"
                     >
                         <QrCode className="size-4" />

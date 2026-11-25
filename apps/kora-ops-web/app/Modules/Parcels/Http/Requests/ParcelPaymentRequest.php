@@ -38,6 +38,8 @@ class ParcelPaymentRequest extends FormRequest
                 'cash_received_amount' => ['nullable', 'integer', 'min:1'],
                 'agency_payment_account_uuid' => ['nullable', 'uuid'],
                 'provider_reference' => ['nullable', 'string', 'max:128'],
+                'payer_name' => ['nullable', 'string', 'max:120'],
+                'payer_phone' => ['nullable', 'string', 'max:32'],
             ],
             'verify' => [
                 'transaction_id' => ['nullable', 'string', 'max:128'],

@@ -20,6 +20,6 @@ class KoraPointParcelController extends Controller
             403,
         );
 
-        return Inertia::render('parcels');
+        return Inertia::render('sale-parcels');
     }
 }

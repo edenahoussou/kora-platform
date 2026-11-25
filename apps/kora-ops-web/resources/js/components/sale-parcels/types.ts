@@ -1,3 +1,5 @@
+import type { ParcelListItem } from '@/components/parcels/types';
+
 export type HubType = 'agency' | 'partner_point';
 
 export interface ParcelHub {
@@ -31,6 +33,20 @@ export interface ParcelItineraryLeg {
     status: 'boarding' | 'ready' | 'scheduled';
 }
 
+export interface ParcelItineraryStop {
+    uuid: string;
+    name: string;
+    city: string;
+    country: string | null;
+    stop_order: number;
+    position: number;
+    arrival_at: string | null;
+    departure_at: string | null;
+    timezone: string;
+    is_origin: boolean;
+    is_destination: boolean;
+}
+
 export interface ParcelItinerary {
     uuid: string;
     dayOffset: 0 | 1; // 0 = Aujourd'hui, 1 = Demain
@@ -39,6 +55,7 @@ export interface ParcelItinerary {
     destinationHubUuid: string;
     destinationCity: string;
     legs: ParcelItineraryLeg[];
+    stops?: ParcelItineraryStop[];
     transferHubCity?: string;
     transferWaitMinutes?: number;
     totalDurationLabel: string;
@@ -47,7 +64,8 @@ export interface ParcelItinerary {
     tariffMultiplier: number;
 }
 
-export type ParcelNatureId = 'standard' | 'documents' | 'fragile' | 'express_valeur';
+export type ParcelNatureId =
+    'standard' | 'documents' | 'fragile' | 'express_valeur';
 
 export interface ParcelNatureOption {
     id: ParcelNatureId;
@@ -168,12 +186,15 @@ export interface ParcelIntakeDraft {
 }
 
 export interface FinalizedParcel {
+    parcelUuid: string;
     trackingNumber: string;
-    securityCode: string;
     issuedAt: string;
     draft: ParcelIntakeDraft;
     quote: ParcelQuoteBreakdown;
     receiptNumber: string;
     agentName: string;
     agentSite: string;
+    labelUrl: string;
+    receiptUrl: string;
+    receiptParcel: ParcelListItem;
 }

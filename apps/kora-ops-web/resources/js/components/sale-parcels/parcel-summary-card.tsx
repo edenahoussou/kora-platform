@@ -8,34 +8,23 @@ import {
     Scale,
     Users,
 } from 'lucide-react';
-import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
-import { calculateParcelPricing, PARCEL_NATURE_OPTIONS } from './mock-data';
-import type { ParcelIntakeDraft } from './types';
+import { PARCEL_NATURE_OPTIONS } from './mock-data';
+import type { ParcelIntakeDraft, ParcelQuoteBreakdown } from './types';
 
 interface Props {
     draft: ParcelIntakeDraft;
+    quote: ParcelQuoteBreakdown;
     currentStep: number;
     onGoToStep: (step: number) => void;
 }
 
-export function ParcelSummaryCard({ draft, currentStep, onGoToStep }: Props) {
-    const quote = useMemo(
-        () =>
-            calculateParcelPricing(
-                draft.nature,
-                draft.weightKg,
-                draft.destinationHub,
-                draft.selectedItinerary,
-            ),
-        [
-            draft.nature,
-            draft.weightKg,
-            draft.destinationHub,
-            draft.selectedItinerary,
-        ],
-    );
-
+export function ParcelSummaryCard({
+    draft,
+    quote,
+    currentStep,
+    onGoToStep,
+}: Props) {
     const natureOption = PARCEL_NATURE_OPTIONS.find(
         (n) => n.id === draft.nature,
     );
@@ -92,7 +81,10 @@ export function ParcelSummaryCard({ draft, currentStep, onGoToStep }: Props) {
                     <span>{draft.destinationHub.city}</span>
                 </div>
                 <p className="mt-0.5 text-[11px] text-muted-foreground">
-                    Retrait : <strong className="text-foreground">{draft.destinationHub.name}</strong>
+                    Retrait :{' '}
+                    <strong className="text-foreground">
+                        {draft.destinationHub.name}
+                    </strong>
                 </p>
             </div>
 
@@ -127,7 +119,9 @@ export function ParcelSummaryCard({ draft, currentStep, onGoToStep }: Props) {
                                 {firstLeg.departureTime} → {lastLeg.arrivalTime}
                             </span>
                             <span className="text-[11px] font-medium text-muted-foreground">
-                                {itinerary.legs.map((l) => l.departureRef).join(' + ')}
+                                {itinerary.legs
+                                    .map((l) => l.departureRef)
+                                    .join(' + ')}
                             </span>
                         </div>
 
@@ -135,7 +129,8 @@ export function ParcelSummaryCard({ draft, currentStep, onGoToStep }: Props) {
                             <div className="inline-flex items-center gap-1 rounded-md bg-digital/10 px-2 py-0.5 text-[10px] font-bold text-digital">
                                 <Repeat2 className="size-3" />
                                 <span>
-                                    1 correspondance · {itinerary.transferHubCity} (
+                                    1 correspondance ·{' '}
+                                    {itinerary.transferHubCity} (
                                     {itinerary.transferWaitMinutes} min)
                                 </span>
                             </div>
@@ -160,7 +155,10 @@ export function ParcelSummaryCard({ draft, currentStep, onGoToStep }: Props) {
                                     Soute disponible
                                 </span>
                                 <span className="font-mono font-bold">
-                                    {draft.weightKg} / {minCargo} kg
+                                    {draft.weightKg} kg
+                                    {minCargo >= 9999
+                                        ? ' · non plafonnée'
+                                        : ` / ${minCargo} kg`}
                                 </span>
                             </div>
                         )}
@@ -180,13 +178,17 @@ export function ParcelSummaryCard({ draft, currentStep, onGoToStep }: Props) {
                         Acteurs
                     </div>
                     <div className="flex justify-between gap-2">
-                        <span className="text-muted-foreground">Expéditeur :</span>
+                        <span className="text-muted-foreground">
+                            Expéditeur :
+                        </span>
                         <span className="truncate font-bold text-foreground">
                             {draft.senderName || '—'}
                         </span>
                     </div>
                     <div className="flex justify-between gap-2">
-                        <span className="text-muted-foreground">Destinataire :</span>
+                        <span className="text-muted-foreground">
+                            Destinataire :
+                        </span>
                         <span className="truncate font-bold text-foreground">
                             {draft.recipientName || '—'}
                         </span>

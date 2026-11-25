@@ -277,29 +277,33 @@ class OpsParcelController extends Controller
                 ->where('status', CashLedgerStatus::Open)
                 ->with('agencyPaymentAccount')])
             ->first();
+        $isPartner = $request->user()->isKoraPointUser();
         $ledgers = $session === null ? collect() : $session->ledgers;
         $cash = $ledgers->first(fn (CashLedger $ledger): bool => $ledger->kind === CashLedgerKind::Cash);
-        $accounts = $ledgers
-            ->filter(fn (CashLedger $ledger): bool => $ledger->kind === CashLedgerKind::MobileMoney
-                && $ledger->agencyPaymentAccount?->isActive())
-            ->map(fn (CashLedger $ledger): array => [
-                'uuid' => $ledger->agencyPaymentAccount?->uuid,
-                'network' => $ledger->agencyPaymentAccount?->network?->value,
-                'label' => $ledger->agencyPaymentAccount?->label,
-            ])->values();
+        $accounts = $isPartner
+            ? collect()
+            : $ledgers
+                ->filter(fn (CashLedger $ledger): bool => $ledger->kind === CashLedgerKind::MobileMoney
+                    && $ledger->agencyPaymentAccount?->isActive())
+                ->map(fn (CashLedger $ledger): array => [
+                    'uuid' => $ledger->agencyPaymentAccount?->uuid,
+                    'network' => $ledger->agencyPaymentAccount?->network?->value,
+                    'label' => $ledger->agencyPaymentAccount?->label,
+                ])->values();
 
         return response()->json(['data' => [
             'agency' => $hub->agency === null ? null : ['uuid' => $hub->agency->uuid, 'name' => $hub->agency->name],
             'hub' => ['uuid' => $hub->uuid, 'kind' => $hub->kind, 'name' => $hub->stop?->name],
             'currency' => app(GeneralSettings::class)->currency,
+            'is_partner' => $isPartner,
             'cash_session' => $session === null ? null : [
                 'uuid' => $session->uuid,
                 'opened_at' => $session->opened_at?->toIso8601String(),
                 'cash_register' => $session->cashRegister?->label,
             ],
             'methods' => [
-                ['code' => 'cash', 'label' => 'Espèces', 'available' => $cash !== null],
-                ['code' => 'mobile_money', 'label' => 'Mobile Money', 'available' => $accounts->isNotEmpty(), 'accounts' => $accounts],
+                ['code' => 'cash', 'label' => 'Espèces', 'available' => $isPartner || $cash !== null],
+                ['code' => 'mobile_money', 'label' => 'Mobile Money', 'available' => $isPartner || $accounts->isNotEmpty(), 'accounts' => $accounts],
             ],
         ]]);
     }

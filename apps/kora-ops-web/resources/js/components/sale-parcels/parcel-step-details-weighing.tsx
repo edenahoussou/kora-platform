@@ -29,11 +29,7 @@ import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
 import phoneLabels from 'react-phone-number-input/locale/fr.json';
 import { ParcelButton } from '@/components/parcels/parcel-button';
 import { cn } from '@/lib/utils';
-import {
-    getItinerariesForHub,
-    KNOWN_CLIENTS,
-    PARCEL_NATURE_OPTIONS,
-} from './mock-data';
+import { PARCEL_NATURE_OPTIONS } from './mock-data';
 import type {
     KnownParcelClient,
     ParcelIntakeDraft,
@@ -43,6 +39,8 @@ import type {
 
 interface Props {
     draft: ParcelIntakeDraft;
+    itineraries: ParcelItinerary[];
+    knownClients: KnownParcelClient[];
     onChange: (updates: Partial<ParcelIntakeDraft>) => void;
     onNext: () => void;
     onBack: () => void;
@@ -62,6 +60,8 @@ type SenderPanelMode = 'search' | 'new_form' | 'summary';
 
 export function ParcelStepDetailsWeighing({
     draft,
+    itineraries,
+    knownClients,
     onChange,
     onNext,
     onBack,
@@ -76,7 +76,9 @@ export function ParcelStepDetailsWeighing({
             draft.senderPhone.trim() !== '' &&
             isValidPhoneNumber(draft.senderPhone))
             ? 'summary'
-            : 'search';
+            : knownClients.length > 0
+              ? 'search'
+              : 'new_form';
 
     const [senderPanelMode, setSenderPanelMode] =
         useState<SenderPanelMode>(initialSenderMode);
@@ -86,25 +88,25 @@ export function ParcelStepDetailsWeighing({
     const clientSearchRef = useRef<HTMLDivElement>(null);
 
     const selectedKnownClient = useMemo(
-        () => KNOWN_CLIENTS.find((c) => c.id === draft.knownClientId) ?? null,
-        [draft.knownClientId],
+        () => knownClients.find((c) => c.id === draft.knownClientId) ?? null,
+        [draft.knownClientId, knownClients],
     );
 
     const filteredKnownClients = useMemo(() => {
         const q = clientQuery.trim().toLowerCase();
 
         if (!q) {
-            return KNOWN_CLIENTS;
+            return knownClients;
         }
 
-        return KNOWN_CLIENTS.filter(
+        return knownClients.filter(
             (c) =>
                 c.name.toLowerCase().includes(q) ||
                 c.phone.toLowerCase().includes(q) ||
                 c.accountType.toLowerCase().includes(q) ||
                 (c.companyName?.toLowerCase().includes(q) ?? false),
         );
-    }, [clientQuery]);
+    }, [clientQuery, knownClients]);
 
     useEffect(() => {
         const onClickOutside = (e: MouseEvent) => {
@@ -167,12 +169,13 @@ export function ParcelStepDetailsWeighing({
             return [];
         }
 
-        return getItinerariesForHub(draft.destinationHub).filter(
+        return itineraries.filter(
             (i) =>
                 i.uuid !== draft.selectedItinerary?.uuid &&
                 i.minAvailableCargoKg >= draft.weightKg,
         );
     }, [
+        itineraries,
         draft.destinationHub,
         draft.selectedItinerary?.uuid,
         draft.weightKg,
@@ -269,7 +272,10 @@ export function ParcelStepDetailsWeighing({
     };
 
     const handleClientKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (!clientDropdownOpen && (e.key === 'ArrowDown' || e.key === 'Enter')) {
+        if (
+            !clientDropdownOpen &&
+            (e.key === 'ArrowDown' || e.key === 'Enter')
+        ) {
             setClientDropdownOpen(true);
 
             return;
@@ -282,7 +288,10 @@ export function ParcelStepDetailsWeighing({
         if (e.key === 'ArrowDown') {
             e.preventDefault();
             setHighlightedClientIdx((prev) =>
-                Math.min(prev + 1, Math.max(0, filteredKnownClients.length - 1)),
+                Math.min(
+                    prev + 1,
+                    Math.max(0, filteredKnownClients.length - 1),
+                ),
             );
         } else if (e.key === 'ArrowUp') {
             e.preventDefault();
@@ -300,15 +309,16 @@ export function ParcelStepDetailsWeighing({
     };
 
     return (
-        <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-200">
+        <div className="animate-in space-y-5 duration-200 fade-in slide-in-from-bottom-2">
             {/* Légende champs obligatoires */}
             <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-[11px] text-muted-foreground">
                 <span>
                     Identifiez le déposant, le destinataire puis pesez le colis.
                 </span>
                 <span>
-                    Les champs marqués <span className="required-asterisk">*</span>{' '}
-                    sont obligatoires.
+                    Les champs marqués{' '}
+                    <span className="required-asterisk">*</span> sont
+                    obligatoires.
                 </span>
             </div>
 
@@ -317,7 +327,7 @@ export function ParcelStepDetailsWeighing({
                 {/* BLOC 1 : EXPÉDITEUR (DÉPOSANT · DÉPART) — Identité Bleu Nuit / Or */}
                 <article
                     className={cn(
-                        'overflow-visible rounded-[1.125rem] border border-border border-l-4 border-l-kora bg-card shadow-xs transition-all',
+                        'overflow-visible rounded-[1.125rem] border border-l-4 border-border border-l-kora bg-card shadow-xs transition-all',
                         senderComplete && 'ring-1 ring-kora/15',
                         attemptedSubmit &&
                             !senderComplete &&
@@ -407,7 +417,7 @@ export function ParcelStepDetailsWeighing({
                                                 setClientDropdownOpen(true);
                                             }}
                                             placeholder="Tapez un nom, un numéro ou ENT-0042… ou cliquez « Nouveau déposant »"
-                                            className="control w-full pl-9! pr-9!"
+                                            className="control w-full pr-9! pl-9!"
                                         />
                                         {clientQuery && (
                                             <button
@@ -425,24 +435,30 @@ export function ParcelStepDetailsWeighing({
                                 </div>
 
                                 {/* Habitués rapides */}
-                                <div className="flex flex-wrap items-center gap-2">
-                                    <span className="text-[10px] font-bold text-muted-foreground">
-                                        Clients fréquents :
-                                    </span>
-                                    {KNOWN_CLIENTS.slice(0, 4).map((client) => (
-                                        <button
-                                            key={client.id}
-                                            type="button"
-                                            onClick={() =>
-                                                handleSelectKnownClient(client)
-                                            }
-                                            className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-border bg-muted/40 px-3 py-1 text-[11px] font-bold text-foreground transition-colors hover:border-gold hover:bg-gold/10"
-                                        >
-                                            <UserCheck className="size-3 text-gold" />
-                                            <span>{client.name}</span>
-                                        </button>
-                                    ))}
-                                </div>
+                                {knownClients.length > 0 && (
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <span className="text-[10px] font-bold text-muted-foreground">
+                                            Clients fréquents :
+                                        </span>
+                                        {knownClients
+                                            .slice(0, 4)
+                                            .map((client) => (
+                                                <button
+                                                    key={client.id}
+                                                    type="button"
+                                                    onClick={() =>
+                                                        handleSelectKnownClient(
+                                                            client,
+                                                        )
+                                                    }
+                                                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-border bg-muted/40 px-3 py-1 text-[11px] font-bold text-foreground transition-colors hover:border-gold hover:bg-gold/10"
+                                                >
+                                                    <UserCheck className="size-3 text-gold" />
+                                                    <span>{client.name}</span>
+                                                </button>
+                                            ))}
+                                    </div>
+                                )}
 
                                 {/* Dropdown résultats */}
                                 {clientDropdownOpen && (
@@ -691,8 +707,7 @@ export function ParcelStepDetailsWeighing({
                                 </div>
 
                                 <div className="flex flex-wrap items-center gap-2">
-                                    {selectedKnownClient
-                                        ?.defaultRecipientName &&
+                                    {selectedKnownClient?.defaultRecipientName &&
                                         selectedKnownClient.defaultRecipientPhone && (
                                             <button
                                                 type="button"
@@ -741,7 +756,8 @@ export function ParcelStepDetailsWeighing({
                     <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/60 px-3 py-1 text-foreground">
                         <ArrowDown className="size-3.5 text-emerald-600" />
                         <span>
-                            Expédié vers {draft.destinationHub?.city ?? 'la destination'}
+                            Expédié vers{' '}
+                            {draft.destinationHub?.city ?? 'la destination'}
                         </span>
                     </span>
                     <span className="h-px flex-1 bg-border" />
@@ -750,7 +766,7 @@ export function ParcelStepDetailsWeighing({
                 {/* BLOC 2 : DESTINATAIRE (RETRAIT · ARRIVÉE) — Identité Émeraude distincte */}
                 <article
                     className={cn(
-                        'rounded-[1.125rem] border border-border border-l-4 border-l-emerald-600 bg-card shadow-xs transition-all',
+                        'rounded-[1.125rem] border border-l-4 border-border border-l-emerald-600 bg-card shadow-xs transition-all',
                         recipientComplete && 'ring-1 ring-emerald-500/20',
                         attemptedSubmit &&
                             !recipientComplete &&
@@ -914,7 +930,7 @@ export function ParcelStepDetailsWeighing({
             </section>
 
             {/* Section 2: Qualification, Nature & Balance */}
-            <section className="rounded-[1.125rem] border border-border bg-card p-5 shadow-xs space-y-5">
+            <section className="space-y-5 rounded-[1.125rem] border border-border bg-card p-5 shadow-xs">
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 pb-3.5">
                     <div>
                         <span className="section-kicker">
@@ -941,83 +957,75 @@ export function ParcelStepDetailsWeighing({
                         <span className="required-asterisk">*</span>
                     </span>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    {PARCEL_NATURE_OPTIONS.map((opt) => {
-                        const active = draft.nature === opt.id;
+                        {PARCEL_NATURE_OPTIONS.map((opt) => {
+                            const active = draft.nature === opt.id;
 
-                        return (
-                            <button
-                                key={opt.id}
-                                type="button"
-                                onClick={() =>
-                                    onChange({
-                                        nature: opt.id as ParcelNatureId,
-                                    })
-                                }
-                                className={cn(
-                                    'group flex cursor-pointer flex-col justify-between rounded-2xl border p-3.5 text-left transition-all',
-                                    active
-                                        ? 'border-gold bg-gold/10 shadow-sm ring-2 ring-gold/75'
-                                        : 'border-border bg-background hover:-translate-y-0.5 hover:border-gold/60 hover:shadow-xs',
-                                )}
-                            >
-                                <div className="flex items-start justify-between gap-2">
-                                    <span
-                                        className={cn(
-                                            'flex size-9 items-center justify-center rounded-xl transition-colors',
-                                            active
-                                                ? 'bg-kora text-gold'
-                                                : 'bg-muted text-foreground group-hover:bg-kora/10',
-                                        )}
-                                    >
-                                        {opt.id === 'standard' && (
-                                            <Package className="size-4" />
-                                        )}
-                                        {opt.id === 'documents' && (
-                                            <FileText className="size-4" />
-                                        )}
-                                        {opt.id === 'fragile' && (
-                                            <ShieldAlert className="size-4" />
-                                        )}
-                                        {opt.id === 'express_valeur' && (
-                                            <ShieldCheck className="size-4" />
-                                        )}
-                                    </span>
-
-                                    <div className="text-right">
-                                        <span className="block font-mono text-[11px] font-black text-foreground">
-                                            {opt.basePrice.toLocaleString(
-                                                'fr-FR',
-                                            )}{' '}
-                                            F
+                            return (
+                                <button
+                                    key={opt.id}
+                                    type="button"
+                                    onClick={() =>
+                                        onChange({
+                                            nature: opt.id as ParcelNatureId,
+                                        })
+                                    }
+                                    className={cn(
+                                        'group flex cursor-pointer flex-col justify-between rounded-2xl border p-3.5 text-left transition-all',
+                                        active
+                                            ? 'border-gold bg-gold/10 shadow-sm ring-2 ring-gold/75'
+                                            : 'border-border bg-background hover:-translate-y-0.5 hover:border-gold/60 hover:shadow-xs',
+                                    )}
+                                >
+                                    <div className="flex items-start justify-between gap-2">
+                                        <span
+                                            className={cn(
+                                                'flex size-9 items-center justify-center rounded-xl transition-colors',
+                                                active
+                                                    ? 'bg-kora text-gold'
+                                                    : 'bg-muted text-foreground group-hover:bg-kora/10',
+                                            )}
+                                        >
+                                            {opt.id === 'standard' && (
+                                                <Package className="size-4" />
+                                            )}
+                                            {opt.id === 'documents' && (
+                                                <FileText className="size-4" />
+                                            )}
+                                            {opt.id === 'fragile' && (
+                                                <ShieldAlert className="size-4" />
+                                            )}
+                                            {opt.id === 'express_valeur' && (
+                                                <ShieldCheck className="size-4" />
+                                            )}
                                         </span>
-                                        <span className="text-[9px] font-bold text-muted-foreground">
-                                            +{opt.pricePerKg} F/kg
+
+                                        <span className="rounded-full border border-border bg-background px-2 py-0.5 text-[9px] font-bold tracking-wide text-muted-foreground uppercase">
+                                            Tarif au poids
                                         </span>
                                     </div>
-                                </div>
 
-                                <div className="mt-3">
-                                    <div className="flex items-center justify-between gap-1">
-                                        <p className="text-xs font-extrabold text-foreground">
-                                            {opt.label}
+                                    <div className="mt-3">
+                                        <div className="flex items-center justify-between gap-1">
+                                            <p className="text-xs font-extrabold text-foreground">
+                                                {opt.label}
+                                            </p>
+                                            {active && (
+                                                <CheckCircle2 className="size-3.5 shrink-0 text-gold" />
+                                            )}
+                                        </div>
+                                        <p className="mt-1 line-clamp-2 text-[10px] leading-snug text-muted-foreground">
+                                            {opt.description}
                                         </p>
-                                        {active && (
-                                            <CheckCircle2 className="size-3.5 shrink-0 text-gold" />
-                                        )}
                                     </div>
-                                    <p className="mt-1 line-clamp-2 text-[10px] leading-snug text-muted-foreground">
-                                        {opt.description}
-                                    </p>
-                                </div>
-                            </button>
-                        );
-                    })}
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 
                 {/* Weighing Box: LED Display + Properly Styled .field .control inputs */}
                 <div className="grid grid-cols-1 gap-4 rounded-2xl border border-border bg-muted/25 p-4 md:grid-cols-12 md:items-start">
-                    <div className="md:col-span-4 flex flex-col items-center justify-center rounded-xl border border-slate-800 bg-slate-950 px-4 py-5 text-center shadow-inner">
+                    <div className="flex flex-col items-center justify-center rounded-xl border border-slate-800 bg-slate-950 px-4 py-5 text-center shadow-inner md:col-span-4">
                         <div className="flex w-full items-center justify-between font-mono text-[9px] text-slate-400">
                             <span>BALANCE GUICHET</span>
                             <span className="text-emerald-400">● STABLE</span>
@@ -1037,7 +1045,7 @@ export function ParcelStepDetailsWeighing({
                         </span>
                     </div>
 
-                    <div className="md:col-span-8 space-y-3.5">
+                    <div className="space-y-3.5 md:col-span-8">
                         <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
                             <label className="field">
                                 <span className="field-label">
@@ -1054,8 +1062,7 @@ export function ParcelStepDetailsWeighing({
                                     step="0.1"
                                     value={draft.weightKg || ''}
                                     aria-invalid={
-                                        attemptedSubmit &&
-                                        !(draft.weightKg > 0)
+                                        attemptedSubmit && !(draft.weightKg > 0)
                                     }
                                     onChange={(e) =>
                                         onChange({
@@ -1134,15 +1141,17 @@ export function ParcelStepDetailsWeighing({
                 {isCargoExceeded && minCargo !== null && (
                     <div
                         role="alert"
-                        className="rounded-2xl border-2 border-destructive/50 bg-destructive/10 p-4 space-y-3"
+                        className="space-y-3 rounded-2xl border-2 border-destructive/50 bg-destructive/10 p-4"
                     >
                         <div className="flex items-start gap-3">
                             <AlertTriangle className="mt-0.5 size-5 shrink-0 text-destructive" />
                             <div>
                                 <h3 className="text-xs font-extrabold text-destructive uppercase">
                                     Soute insuffisante sur le car sélectionné (
-                                    {draft.selectedItinerary?.legs[0]
-                                        .departureTime}
+                                    {
+                                        draft.selectedItinerary?.legs[0]
+                                            .departureTime
+                                    }
                                     )
                                 </h3>
                                 <p className="mt-0.5 text-xs text-foreground">
