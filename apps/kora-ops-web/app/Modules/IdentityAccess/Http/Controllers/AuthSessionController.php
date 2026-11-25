@@ -22,7 +22,6 @@ use App\Modules\IdentityAccess\Services\AuthSessionService;
 use App\Modules\IdentityAccess\Services\OpsSessionTokenReader;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
 
 /**
  * @group Auth
@@ -139,7 +138,7 @@ class AuthSessionController extends Controller
      *     "expires_at": "2026-08-20T13:10:00.000Z"
      *   }
      * }
-     * @response 422 scenario="Invalid credentials" {
+     * @response 401 scenario="Invalid credentials" {
      *   "error": {
      *     "code": "invalid_credentials",
      *     "message": "Identifiants invalides."
@@ -178,13 +177,6 @@ class AuthSessionController extends Controller
                     'message' => 'Le compte est suspendu. Contactez le support.',
                 ],
             ], 403);
-        } catch (ValidationException $e) {
-            return response()->json([
-                'error' => [
-                    'code' => 'invalid_credentials',
-                    'message' => 'Identifiants invalides.',
-                ],
-            ], 422);
         } catch (AuthBusinessException $e) {
             return response()->json([
                 'error' => [

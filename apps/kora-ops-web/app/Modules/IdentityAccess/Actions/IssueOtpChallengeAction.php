@@ -70,15 +70,13 @@ class IssueOtpChallengeAction
 
         $notification = new OtpCodeNotification($code, $purpose);
 
-        // Envoi synchrone : un échec de livraison doit remonter en erreur
-        // métier dans la réponse, pas mourir silencieusement dans la file.
         if ($user) {
-            $user->notifyNow($notification);
+            $user->notify($notification);
         } else {
             Notification::route(
                 $this->isEmail($normalizedIdentifier) ? 'mail' : 'sms',
                 $normalizedIdentifier,
-            )->notifyNow($notification);
+            )->notify($notification);
         }
 
         return $challenge;

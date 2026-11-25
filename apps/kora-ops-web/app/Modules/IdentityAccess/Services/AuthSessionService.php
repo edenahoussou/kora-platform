@@ -177,14 +177,16 @@ class AuthSessionService
      * @param  array{identifier: string, pin: string, device_name: string, platform: string, device_fingerprint: string, push_token?: string|null, otp_challenge_uuid?: string|null, verification_token?: string|null}  $input
      * @return array{requires_otp?: bool, challenge?: AuthOtpChallenge, user?: User, device?: UserDevice, token?: string, token_expires_at?: CarbonInterface|null}
      *
-     * @throws ValidationException With error_code meta: invalid_credentials, account_locked, account_suspended
+     * @throws AuthBusinessException When credentials are invalid
+     * @throws AuthLockedException When the account is locked
+     * @throws AuthSuspendedException When the account is suspended
      */
     public function login(array $input, Request $request): array
     {
         $user = $this->identifierResolver->findUser($input['identifier']);
 
         if (! $user) {
-            throw ValidationException::withMessages(['identifier' => ['Identifiants invalides.']]);
+            throw new AuthBusinessException('invalid_credentials', 'Identifiants invalides.', 401);
         }
 
         $status = enum_value($user->status);
@@ -204,7 +206,7 @@ class AuthSessionService
                 throw new AuthLockedException($user->refresh()->locked_until);
             }
 
-            throw ValidationException::withMessages(['identifier' => ['Identifiants invalides.']]);
+            throw new AuthBusinessException('invalid_credentials', 'Identifiants invalides.', 401);
         }
 
         $user->forceFill([

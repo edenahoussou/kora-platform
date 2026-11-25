@@ -11,6 +11,7 @@ use App\Modules\Notifications\Jobs\SendPassengerPushJob;
 use App\Modules\Wallet\Models\Wallet;
 use App\Notifications\IdentityAccess\OtpCodeNotification;
 use Database\Seeders\KoraBusRolePermissionSeeder;
+use Illuminate\Notifications\SendQueuedNotifications;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
@@ -267,7 +268,7 @@ it('rejects a missing or malformed login identifier', function (): void {
 });
 
 it('requires otp when logging in from a new device', function (): void {
-    Notification::fake();
+    Queue::fake();
     pinUser('new-device@example.com');
 
     $this->postJson('/api/v1/auth/login', [
@@ -282,7 +283,10 @@ it('requires otp when logging in from a new device', function (): void {
         ->assertJsonPath('data.purpose', 'login_new_device')
         ->assertJsonStructure(['data' => ['otp_challenge_uuid', 'expires_at']]);
 
-    Notification::assertSentTo(User::query()->where('email', 'new-device@example.com')->firstOrFail(), OtpCodeNotification::class);
+    Queue::assertPushed(
+        SendQueuedNotifications::class,
+        fn (SendQueuedNotifications $job): bool => $job->notification instanceof OtpCodeNotification,
+    );
 });
 
 it('issues a new-device otp to WhatsApp for a phone login', function (): void {
@@ -462,6 +466,26 @@ it('shares the otp rate limit across equivalent phone formats', function (): voi
     ])->assertTooManyRequests();
 });
 
+it('returns unauthorized for an unknown account or an incorrect pin', function (): void {
+    $user = pinUser('invalid-credentials@example.com');
+    trustedDevice($user, 'invalid-credentials-device-fingerprint');
+
+    $payload = [
+        'pin' => '0000',
+        'device_name' => 'Tecno Spark 20',
+        'platform' => 'android',
+        'device_fingerprint' => 'invalid-credentials-device-fingerprint',
+    ];
+
+    $this->postJson('/api/v1/auth/login', $payload + ['email' => $user->email])
+        ->assertUnauthorized()
+        ->assertJsonPath('error.code', 'invalid_credentials');
+
+    $this->postJson('/api/v1/auth/login', $payload + ['email' => 'missing-account@example.com'])
+        ->assertUnauthorized()
+        ->assertJsonPath('error.code', 'invalid_credentials');
+});
+
 it('locks account after 5 failed pin attempts', function (): void {
     Notification::fake();
     $user = pinUser('lockout@example.com');
@@ -474,7 +498,9 @@ it('locks account after 5 failed pin attempts', function (): void {
             'device_name' => 'Tecno Spark 20',
             'platform' => 'android',
             'device_fingerprint' => 'lockout-device-fingerprint',
-        ])->assertJsonPath('error.code', 'invalid_credentials');
+        ])
+            ->assertUnauthorized()
+            ->assertJsonPath('error.code', 'invalid_credentials');
     }
 
     $this->postJson('/api/v1/auth/login', [
