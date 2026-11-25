@@ -353,7 +353,7 @@ class ParcelConfigurationController extends Controller
             $stops = $stops->slice($originIndex, $destinationIndex - $originIndex + 1)->values();
         }
 
-        return $stops->map(function (Stop $stop, int $index) use ($departure, $origin, $destination, $stopTimes): array {
+        return array_values($stops->map(function (Stop $stop, int $index) use ($departure, $origin, $destination, $stopTimes): array {
             $arrival = $stopTimes->arrivalAt($departure, $stop);
             $departureAt = $stopTimes->departureAt($departure, $stop);
             $timezone = $stopTimes->timezoneFor($departure, $stop);
@@ -371,7 +371,7 @@ class ParcelConfigurationController extends Controller
                 'is_origin' => $origin !== null && $stop->is($origin),
                 'is_destination' => $destination !== null && $stop->is($destination),
             ];
-        })->all();
+        })->all());
     }
 
     /**

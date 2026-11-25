@@ -465,7 +465,11 @@ export function getItinerariesForHub(hub: ParcelHub): ParcelItinerary[] {
     }
 
     // Cas 2 : Natitingou / Djougou / Tanguiéta / Savalou / Bassila -> Correspondances aujourd'hui via Bohicon + Direct Demain !
-    if (['Natitingou', 'Djougou', 'Tanguiéta', 'Bassila', 'Savalou'].includes(city)) {
+    if (
+        ['Natitingou', 'Djougou', 'Tanguiéta', 'Bassila', 'Savalou'].includes(
+            city,
+        )
+    ) {
         return [
             {
                 uuid: `itn-${hub.uuid}-corresp-0900`,
@@ -693,8 +697,24 @@ export function getItinerariesForHub(hub: ParcelHub): ParcelItinerary[] {
     }
 
     // Cas par défaut : Toutes les autres villes (Bohicon, Porto-Novo, Dassa, Lokossa, Lomé...)
-    const isShort = ['Porto-Novo', 'Abomey-Calavi', 'Ouidah', 'Allada'].includes(city);
-    const tariff = isShort ? 0.65 : ['Bohicon', 'Abomey', 'Comè', 'Lokossa', 'Dogbo', 'Grand-Popo'].includes(city) ? 0.9 : 1.1;
+    const isShort = [
+        'Porto-Novo',
+        'Abomey-Calavi',
+        'Ouidah',
+        'Allada',
+    ].includes(city);
+    const tariff = isShort
+        ? 0.65
+        : [
+                'Bohicon',
+                'Abomey',
+                'Comè',
+                'Lokossa',
+                'Dogbo',
+                'Grand-Popo',
+            ].includes(city)
+          ? 0.9
+          : 1.1;
 
     return [
         {
@@ -705,7 +725,9 @@ export function getItinerariesForHub(hub: ParcelHub): ParcelItinerary[] {
             destinationHubUuid: hub.uuid,
             destinationCity: city,
             isNextDeparture: true,
-            totalDurationLabel: isShort ? '1h 10min · Direct' : '2h 45min · Direct',
+            totalDurationLabel: isShort
+                ? '1h 10min · Direct'
+                : '2h 45min · Direct',
             minAvailableCargoKg: 125,
             tariffMultiplier: tariff,
             legs: [
@@ -735,7 +757,9 @@ export function getItinerariesForHub(hub: ParcelHub): ParcelItinerary[] {
             originCity: 'Cotonou',
             destinationHubUuid: hub.uuid,
             destinationCity: city,
-            totalDurationLabel: isShort ? '1h 15min · Direct' : '2h 50min · Direct',
+            totalDurationLabel: isShort
+                ? '1h 15min · Direct'
+                : '2h 50min · Direct',
             minAvailableCargoKg: 210,
             tariffMultiplier: tariff,
             legs: [
@@ -765,7 +789,9 @@ export function getItinerariesForHub(hub: ParcelHub): ParcelItinerary[] {
             originCity: 'Cotonou',
             destinationHubUuid: hub.uuid,
             destinationCity: city,
-            totalDurationLabel: isShort ? '1h 05min · Direct' : '2h 40min · Direct',
+            totalDurationLabel: isShort
+                ? '1h 05min · Direct'
+                : '2h 40min · Direct',
             minAvailableCargoKg: 260,
             tariffMultiplier: tariff,
             legs: [
@@ -820,7 +846,8 @@ export const PARCEL_NATURE_OPTIONS: ParcelNatureOption[] = [
         id: 'express_valeur',
         label: 'Colis Assuré / Valeur',
         badge: 'Sceau & Assurance',
-        description: 'Biens à haute valeur (> 100k FCFA) couverts contre valeur déclarée',
+        description:
+            'Biens à haute valeur (> 100k FCFA) couverts contre valeur déclarée',
         basePrice: 5000,
         pricePerKg: 1000,
     },
@@ -1032,12 +1059,15 @@ export function calculateParcelPricing(
         PARCEL_NATURE_OPTIONS.find((n) => n.id === natureId) ??
         PARCEL_NATURE_OPTIONS[0];
 
-    const multiplier = selectedItinerary?.tariffMultiplier ?? (destinationHub ? 1.1 : 1.0);
+    const multiplier =
+        selectedItinerary?.tariffMultiplier ?? (destinationHub ? 1.1 : 1.0);
     const hasTransfer = (selectedItinerary?.legs.length ?? 1) > 1;
 
     const basePrice = Math.round(nature.basePrice * multiplier);
     const chargeableWeight = Math.max(0, weightKg - 1);
-    const weightSurcharge = Math.round(chargeableWeight * nature.pricePerKg * multiplier);
+    const weightSurcharge = Math.round(
+        chargeableWeight * nature.pricePerKg * multiplier,
+    );
     const transferFee = hasTransfer ? 500 : 0;
 
     const subtotalHt = basePrice + weightSurcharge + transferFee;

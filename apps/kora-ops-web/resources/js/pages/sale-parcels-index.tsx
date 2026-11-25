@@ -555,10 +555,7 @@ export default function SaleParcelsIndexPage() {
                                 <RefreshCw className="size-3.5" />
                                 <span>Actualiser</span>
                             </button>
-                            <Link
-                                href="/sale"
-                                className="btn btn-ghost btn-sm"
-                            >
+                            <Link href="/sale" className="btn btn-ghost btn-sm">
                                 <Ticket className="size-3.5 text-gold" />
                                 <span>Billetterie Passagers</span>
                             </Link>

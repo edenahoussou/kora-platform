@@ -68,8 +68,7 @@ export function ParcelStepStepper({
                                         'flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-black transition-all',
                                         current &&
                                             'bg-gold text-kora shadow-xs',
-                                        done &&
-                                            'bg-emerald-600 text-white',
+                                        done && 'bg-emerald-600 text-white',
                                         !current &&
                                             !done &&
                                             'border border-border bg-muted text-muted-foreground',
@@ -115,7 +114,7 @@ export function ParcelStepStepper({
                             {index < STEPS.length - 1 && (
                                 <span
                                     className={cn(
-                                        'h-0.5 flex-1 min-w-4 rounded-full transition-colors',
+                                        'h-0.5 min-w-4 flex-1 rounded-full transition-colors',
                                         done
                                             ? 'bg-emerald-500/60'
                                             : current

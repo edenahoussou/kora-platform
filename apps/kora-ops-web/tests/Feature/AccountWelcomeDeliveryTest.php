@@ -31,8 +31,8 @@ it('sends the current temporary password only to the intended active web account
             ]);
 
         $markdown = app(Markdown::class);
-        expect($markdown->render($message->markdown, $message->data())->toHtml())->toContain('Vos accès', 'TemporaryPassword123')
-            ->and($markdown->renderText($message->markdown, $message->data())->toHtml())->toContain('Vos accès', 'TemporaryPassword123');
+        expect($markdown->renderText($message->markdown, $message->data())->toHtml())->toContain('Vos accès', 'TemporaryPassword123')
+            ->and($markdown->render($message->markdown, $message->data())->toHtml())->toContain('Vos accès', 'TemporaryPassword123');
 
         return true;
     });

@@ -1,9 +1,5 @@
 export type CounterParcelScope =
-    | 'all'
-    | 'outbound'
-    | 'inbound'
-    | 'preregistered'
-    | 'incidents';
+    'all' | 'outbound' | 'inbound' | 'preregistered' | 'incidents';
 
 export type CounterParcelDirection = 'outbound' | 'inbound' | 'network';
 
@@ -20,10 +16,7 @@ export type CounterParcelStatus =
     | 'return_pending';
 
 export type CounterPaymentMethod =
-    | 'cash'
-    | 'mobile_money'
-    | 'company_account'
-    | 'pending';
+    'cash' | 'mobile_money' | 'company_account' | 'pending';
 
 export interface CounterParcelMovement {
     id: string;
