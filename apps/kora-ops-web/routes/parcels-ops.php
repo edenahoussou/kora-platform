@@ -12,7 +12,7 @@ Route::controller(ParcelConfigurationController::class)->group(function (): void
     Route::put('hubs', 'hub')->middleware(['can:parcels.network', 'can:parcels.configure'])->name('hubs.update');
     Route::post('hubs/{hub:uuid}/archive', 'archive')->middleware(['can:parcels.network', 'can:parcels.configure'])->name('hubs.archive');
     Route::get('routing/departures', 'routing')->middleware('can:parcels.view')->name('routing.departures');
-    Route::get('capacity', 'capacityIndex')->middleware('can:parcels.configure')->name('capacity.index');
+    Route::get('capacity', 'capacityIndex')->middleware('can:parcels.network')->name('capacity.index');
     Route::put('corridors', 'corridor')->middleware('can:parcels.configure')->name('corridors.update');
     Route::post('corridors/{corridor:uuid}/tariffs', 'tariff')->middleware('can:parcels.tariffs')->name('tariffs.store');
     Route::put('departures/{departure:uuid}/capacity', 'capacity')->middleware('can:parcels.configure')->name('capacity.update');

@@ -73,7 +73,7 @@ it('ouvre la configuration Colis en lecture aux rôles terrain sans droits de co
 
     $hubs = collect($response->json('data.hubs'));
     expect($hubs->firstWhere('uuid', $ownHub->uuid)['deposit_allowed'])->toBeTrue()
-        ->and($hubs->firstWhere('uuid', $otherHub->uuid)['deposit_allowed'])->toBeFalse();
+        ->and($hubs->firstWhere('uuid', $otherHub->uuid))->toBeNull();
 });
 
 it('refuse une action Colis avant validation lorsque la permission manque', function (): void {

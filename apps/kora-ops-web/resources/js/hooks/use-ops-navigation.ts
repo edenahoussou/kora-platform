@@ -74,9 +74,9 @@ const koraPointAgentNavItems: OpsNavEntry[] = [
     },
     {
         title: 'Colis',
-        href: '/sale/parcels',
+        href: '/kora-point/parcels',
         icon: Package,
-        permission: null,
+        permission: 'parcels.view',
     },
     {
         title: 'Session caisse',
@@ -221,6 +221,12 @@ const navItems: OpsNavEntry[] = [
                 role: 'kora_point_agent',
             },
             {
+                title: 'Colis',
+                href: '/kora-point/parcels',
+                permission: 'parcels.view',
+                role: 'kora_point_agent',
+            },
+            {
                 title: 'Session caisse',
                 href: '/kora-point/cash',
                 permission: null,
@@ -301,6 +307,7 @@ const navItems: OpsNavEntry[] = [
             'counter-sales.create',
             'assisted-bookings.view-agency',
             'assisted-bookings.view-network',
+            'parcels.view',
         ],
         children: [
             {
@@ -311,7 +318,7 @@ const navItems: OpsNavEntry[] = [
             {
                 title: 'Colis',
                 href: '/sale/parcels',
-                permission: null,
+                permission: 'parcels.view',
             },
             {
                 title: 'Réservations en attente',
@@ -460,12 +467,6 @@ const navItems: OpsNavEntry[] = [
         ],
     },
     {
-        title: 'Colis',
-        href: '/parcels',
-        icon: Package,
-        permission: 'parcels.view',
-    },
-    {
         title: 'Réseau commercial',
         href: '/dynamic-pricing',
         icon: Store,
@@ -566,6 +567,7 @@ const navItems: OpsNavEntry[] = [
             'settings.operations.view',
             'settings.integrations.view',
             'monitoring.view',
+            'parcels.network',
         ],
         children: [
             {
@@ -592,6 +594,11 @@ const navItems: OpsNavEntry[] = [
                 title: 'Monitoring',
                 href: '/administration/monitoring',
                 permission: 'monitoring.view',
+            },
+            {
+                title: 'Colis',
+                href: '/administration/parcels',
+                permission: 'parcels.network',
             },
             {
                 title: 'Paramètres',

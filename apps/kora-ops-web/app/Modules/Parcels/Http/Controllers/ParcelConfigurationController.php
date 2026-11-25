@@ -48,18 +48,36 @@ class ParcelConfigurationController extends Controller
         $actor = $request->user();
         abort_unless($actor instanceof User, 403);
         $canConfigure = $actor->can('parcels.configure');
-        $canConfigureNetwork = $canConfigure && $actor->can('parcels.network');
-        $hubs = ParcelHub::query()->with(['agency', 'koraPoint', 'stop'])->get()->map(fn (ParcelHub $hub): array => [
+        $canNetwork = $actor->can('parcels.network');
+        $canConfigureNetwork = $canConfigure && $canNetwork;
+        abort_if(! $canNetwork && $actor->agency_id === null, 403);
+
+        $corridors = ParcelCorridor::query()
+            ->with(['originHub', 'destinationHub', 'tariffs'])
+            ->when(! $canNetwork, fn ($query) => $query->where(fn ($scope) => $scope
+                ->whereRelation('originHub', 'agency_id', $actor->agency_id)
+                ->orWhereRelation('destinationHub', 'agency_id', $actor->agency_id)))
+            ->get();
+        $visibleHubIds = $canNetwork ? null : $corridors
+            ->flatMap(fn (ParcelCorridor $corridor): array => [$corridor->origin_hub_id, $corridor->destination_hub_id])
+            ->merge(ParcelHub::query()->where('agency_id', $actor->agency_id)->pluck('id'))
+            ->filter()->unique()->values();
+        $hubModels = ParcelHub::query()
+            ->with(['agency', 'koraPoint', 'stop'])
+            ->when($visibleHubIds !== null, fn ($query) => $query->whereIn('id', $visibleHubIds))
+            ->get();
+        $visibleStopIds = $hubModels->pluck('stop_id')->filter()->unique()->values();
+        $hubs = $hubModels->map(fn (ParcelHub $hub): array => [
             'uuid' => $hub->uuid, 'enabled' => $hub->enabled, 'supports_weighing' => $hub->supports_weighing, 'kind' => $hub->kind,
             'agency_uuid' => $hub->agency?->uuid, 'kora_point_uuid' => $hub->koraPoint?->uuid, 'stop_uuid' => $hub->stop?->uuid,
             'name' => $hub->agency?->name, 'city' => $hub->stop?->city,
             'archived_at' => $hub->archived_at?->toIso8601String(),
             'deposit_allowed' => $actor->can('parcels.intake') && $this->access->canViewHub($actor, $hub),
         ]);
-        $corridors = ParcelCorridor::query()->with(['originHub', 'destinationHub', 'tariffs'])->get()->map(fn (ParcelCorridor $corridor): array => [
+        $corridors = $corridors->map(fn (ParcelCorridor $corridor): array => [
             'uuid' => $corridor->uuid, 'origin_hub_uuid' => $corridor->originHub?->uuid, 'origin_hub_kind' => $corridor->originHub?->kind, 'destination_hub_uuid' => $corridor->destinationHub?->uuid,
             ...$corridor->only(['enabled', 'wallet_cash_enabled']),
-            'tariffs' => $corridor->tariffs->sortByDesc('id')->values()->map(fn ($tariff) => $tariff->only([
+            'tariffs' => $corridor->tariffs->sortByDesc('id')->when(! $canNetwork, fn ($tariffs) => $tariffs->take(1))->values()->map(fn ($tariff) => $tariff->only([
                 'uuid', 'deposit_kind', 'version', 'base_amount', 'step_amount', 'step_grams', 'maximum_grams', 'return_amount', 'created_at',
             ])),
         ]);
@@ -99,6 +117,7 @@ class ParcelConfigurationController extends Controller
             'stops' => Stop::query()
                 ->where('status', 'active')
                 ->whereHas('line', fn ($query) => $query->where('status', 'active'))
+                ->when(! $canNetwork, fn ($query) => $query->whereIn('id', $visibleStopIds))
                 ->with('line')
                 ->orderBy('country')
                 ->orderBy('city')
@@ -317,7 +336,7 @@ class ParcelConfigurationController extends Controller
      */
     public function capacityIndex(Request $request, ParcelRouting $routing): JsonResponse
     {
-        $this->access->require($request->user(), 'parcels.configure');
+        $this->access->require($request->user(), 'parcels.network');
 
         $corridors = ParcelCorridor::query()
             ->where('enabled', true)

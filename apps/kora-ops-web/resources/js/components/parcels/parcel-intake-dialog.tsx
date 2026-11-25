@@ -120,13 +120,7 @@ export function ParcelIntakeDialog({
     );
 
     const activeHubs = useMemo(
-        () =>
-            hubs.filter(
-                (hub) =>
-                    hub.enabled &&
-                    hub.archived_at === null &&
-                    hub.deposit_allowed,
-            ),
+        () => hubs.filter((hub) => hub.enabled && hub.archived_at === null),
         [hubs],
     );
 
@@ -155,7 +149,9 @@ export function ParcelIntakeDialog({
                 .filter((uuid): uuid is string => uuid !== null),
         );
 
-        return activeHubs.filter((hub) => uuids.has(hub.uuid));
+        return activeHubs.filter(
+            (hub) => hub.deposit_allowed && uuids.has(hub.uuid),
+        );
     }, [activeHubs, openCorridors]);
 
     const destinationCorridors = useMemo(

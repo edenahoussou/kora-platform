@@ -187,10 +187,10 @@ test('capacity index exposes active corridor departures with soute usage', funct
         ->assertJsonPath('data.departures.0.corridor_uuids.0', $fixture['corridor']->uuid);
 });
 
-test('capacity index requires the configure permission', function (): void {
+test('capacity index requires the network permission', function (): void {
     $fixture = routingCorridor();
     routingDeparture($fixture, now()->addDay()->toDateString(), DepartureStatus::Scheduled);
-    $viewer = User::factory()->create()->assignRole('general_management');
+    $viewer = User::factory()->create()->assignRole('kora_point_agent');
 
     $this->actingAs($viewer, 'web')
         ->getJson('/parcels/data/capacity')
