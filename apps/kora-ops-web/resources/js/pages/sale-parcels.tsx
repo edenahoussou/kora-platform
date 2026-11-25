@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { Keyboard, RotateCcw, Ticket, X } from 'lucide-react';
+import { ArrowLeft, Keyboard, RotateCcw, Ticket, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { isValidPhoneNumber } from 'react-phone-number-input';
 import { toast } from 'sonner';
@@ -27,12 +27,26 @@ import type {
 } from '@/components/sale-parcels/types';
 import type { BreadcrumbItem } from '@/types';
 
+function initialCounterParams(): { mode: 'new' | 'lookup'; ref: string } {
+    if (typeof window === 'undefined') {
+        return { mode: 'new', ref: '' };
+    }
+
+    const params = new URLSearchParams(window.location.search);
+
+    return {
+        mode: params.get('mode') === 'lookup' ? 'lookup' : 'new',
+        ref: params.get('ref') ?? '',
+    };
+}
+
 export default function SaleParcelsPage() {
-    const [mode, setMode] = useState<'new' | 'lookup'>('new');
+    const initialParams = initialCounterParams();
+    const [mode, setMode] = useState<'new' | 'lookup'>(initialParams.mode);
     const [step, setStep] = useState<number>(1);
     const [maxReachedStep, setMaxReachedStep] = useState<number>(1);
     const [draft, setDraft] = useState<ParcelIntakeDraft>(INITIAL_INTAKE_DRAFT);
-    const [lookupQuery, setLookupQuery] = useState('');
+    const [lookupQuery, setLookupQuery] = useState(initialParams.ref);
     const [finalized, setFinalized] = useState<FinalizedParcel | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
@@ -319,6 +333,14 @@ export default function SaleParcelsPage() {
                         description="Recherchez une destination, affectez le car selon sa soute disponible ou finalisez un pré-enregistrement client."
                         action={
                             <div className="flex flex-wrap items-center gap-2">
+                                <Link
+                                    href="/sale/parcels"
+                                    className="btn btn-ghost btn-sm"
+                                >
+                                    <ArrowLeft className="size-3.5 text-gold" />
+                                    <span>Liste des colis</span>
+                                </Link>
+
                                 <ParcelButton
                                     variant="ghost"
                                     size="sm"
@@ -517,6 +539,7 @@ export default function SaleParcelsPage() {
 SaleParcelsPage.layout = {
     breadcrumbs: [
         { title: 'Vente', href: '/sale' },
-        { title: 'Guichet colis', href: '/sale/parcels' },
+        { title: 'Colis', href: '/sale/parcels' },
+        { title: 'Enregistrer un colis', href: '/sale/parcels/new' },
     ] as BreadcrumbItem[],
 };
