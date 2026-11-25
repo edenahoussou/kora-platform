@@ -23,6 +23,7 @@ class City extends Equatable {
     required this.name,
     required this.code,
     this.station,
+    this.stops = const [],
   });
 
   /// Ville désignée par son seul nom.
@@ -52,6 +53,16 @@ class City extends Equatable {
   /// Arrêt KORA d'un tronçon trouvé (ex: `St Michel`), ou `null`.
   final String? station;
 
+  /// Les points d'arrêt KORA de la ville, tels que `bus/cities` les
+  /// nomme (`Gare de Dantokpa`, `Gare de Godomey`).
+  ///
+  /// Ils servent à **dire** où l'on monte, pas à choisir : la recherche
+  /// part toujours au nom de la ville, et c'est le serveur qui explore
+  /// tous ses points. Les proposer un par un ramènerait le « Aucun
+  /// voyage ce jour-là » d'une ville à deux gares dont les départs
+  /// partaient de l'autre.
+  final List<String> stops;
+
   /// Vrai quand cette ville peut servir de point de départ ou d'arrivée à
   /// une recherche : il suffit qu'elle ait un nom.
   bool get isSearchable => name.isNotEmpty;
@@ -61,5 +72,5 @@ class City extends Equatable {
   String get label => station == null ? name : '$name · $station';
 
   @override
-  List<Object?> get props => [id, name, code, station];
+  List<Object?> get props => [id, name, code, station, stops];
 }

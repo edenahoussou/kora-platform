@@ -93,11 +93,28 @@ class AppConfig {
     const String rawEnv = String.fromEnvironment('ENV', defaultValue: 'dev');
     final Environment env = EnvironmentX.fromString(rawEnv);
 
+    // `--dart-define=USE_MOCK_HARDWARE=true|false` prime sur l'override
+    // committé dans le code, qui prime lui-même sur le défaut par
+    // environnement — voir docstring [useMockHardware]. Sans dart-define,
+    // le comportement reste exactement celui de [kUseMockHardwareOverride].
+    const String rawUseMockHardware =
+        String.fromEnvironment('USE_MOCK_HARDWARE');
     bool resolveUseMockHardware(bool defaultValue) {
-      return kUseMockHardwareOverride;
+      return switch (rawUseMockHardware) {
+        'true' => true,
+        'false' => false,
+        _ => kUseMockHardwareOverride,
+      };
     }
 
-    final TerminalMode terminalMode = kTerminalModeOverride;
+    // `--dart-define=TERMINAL_MODE=p501|phone` — même principe, voir
+    // docstring [terminalMode] : le dart-define doit pouvoir basculer un
+    // build de test en mode téléphone (scan caméra + PDF de confirmation)
+    // sans modifier [kTerminalModeOverride], qui reste le défaut.
+    const String rawTerminalMode = String.fromEnvironment('TERMINAL_MODE');
+    final TerminalMode terminalMode = rawTerminalMode.isEmpty
+        ? kTerminalModeOverride
+        : TerminalModeX.fromString(rawTerminalMode);
 
     // --dart-define=TICKET_SIGNING_PUBLIC_KEY=... — voir docstring
     // [ticketSigningPublicKeyBase64] sur pourquoi celle-ci passe par un

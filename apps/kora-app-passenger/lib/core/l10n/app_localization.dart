@@ -1886,6 +1886,20 @@ class AppLocalization {
 
   String departureDetailStopDistance(int km) =>
       _withArgs('departure_detail_stop_distance', {'km': '$km'});
+
+  /// « Arrivée 09:12 » : l'heure de passage à une étape, telle que
+  /// l'arrêt la vit.
+  String departureDetailStopEta(String time) =>
+      _withArgs('departure_detail_stop_eta', {'time': time});
+
+  /// « Départ 09:20 » : l'heure à laquelle le bus repart de l'étape.
+  String departureDetailStopEtd(String time) =>
+      _withArgs('departure_detail_stop_etd', {'time': time});
+
+  /// « 128 km », pour la ligne de détail d'une étape — la forme longue
+  /// « à 128 km du départ » y voisinerait deux heures et déborderait.
+  String departureDetailStopKm(int km) =>
+      _withArgs('departure_detail_stop_km', {'km': '$km'});
   String get departureDetailSegmentPrice =>
       translate('departure_detail_segment_price');
   String get departureDetailEstimates =>

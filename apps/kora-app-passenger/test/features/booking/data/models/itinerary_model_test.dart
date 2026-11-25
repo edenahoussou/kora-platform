@@ -209,4 +209,127 @@ void main() {
     expect(departure.line.duration, Duration.zero);
     expect(departure.amenities, isEmpty);
   });
+
+  test('les étapes portent le nom du point d’arrêt physique', () {
+    // Le client appelle pour savoir où prendre le bus : « Gare de
+    // Dantokpa » répond, « Cotonou » non. Le point physique l'emporte
+    // donc sur le nom de l'arrêt de ligne, et la ville passe en
+    // sous-titre.
+    final departure = ItineraryModel.fromJson(
+      itineraryWith({
+        'trip_stops': [
+          {
+            'uuid': 'stop-1',
+            'name': 'Cotonou',
+            'city': 'Cotonou',
+            'stop_order': 1,
+            'physical_stop': {
+              'uuid': 'point-1',
+              'name': 'Gare de Dantokpa',
+              'city': 'Cotonou',
+              'country': 'BJ',
+            },
+            'km_from_origin': 0,
+            'departure_at': '2026-09-09T07:00:00+01:00',
+            'arrival_at': null,
+            'timezone': 'Africa/Porto-Novo',
+          },
+          {
+            'uuid': 'stop-2',
+            'name': 'Lome',
+            'city': 'Lome',
+            'stop_order': 2,
+            'physical_stop': {
+              'uuid': 'point-2',
+              'name': 'Gare de Lomé Centre',
+              'city': 'Lomé',
+              'country': 'TG',
+            },
+            'km_from_origin': 148.5,
+            'departure_at': '2026-09-09T10:05:00+01:00',
+            'arrival_at': '2026-09-09T09:50:00+01:00',
+            'timezone': 'Africa/Lome',
+          },
+        ],
+      }),
+    ).toEntity()!.first;
+
+    expect(departure.tripStops, hasLength(2));
+
+    final first = departure.tripStops.first;
+    expect(first.name, 'Gare de Dantokpa');
+    // La ville répète le nom de l'arrêt de ligne, pas celui du point :
+    // elle reste utile en sous-titre.
+    expect(first.subtitle, 'Cotonou');
+    expect(first.departureAt, DateTime(2026, 9, 9, 7));
+    expect(first.arrivalAt, isNull);
+
+    final second = departure.tripStops.last;
+    expect(second.name, 'Gare de Lomé Centre');
+    expect(second.subtitle, 'Lomé');
+    expect(second.kmFromOrigin, 148.5);
+    expect(second.arrivalAt, DateTime(2026, 9, 9, 9, 50));
+    expect(second.departureAt, DateTime(2026, 9, 9, 10, 5));
+    expect(second.timezone, 'Africa/Lome');
+  });
+
+  test('un arrêt sans point physique garde son propre nom', () {
+    // Les arrêts hérités ne sont pas encore rattachés à un point :
+    // `physical_stop` est nul, et les masquer trouerait la frise au
+    // milieu du trajet.
+    final departure = ItineraryModel.fromJson(
+      itineraryWith({
+        'trip_stops': [
+          {
+            'uuid': 'stop-legacy',
+            'name': 'Bohicon',
+            'city': 'Bohicon',
+            'stop_order': 2,
+            'physical_stop': null,
+            'km_from_origin': 128,
+          },
+        ],
+      }),
+    ).toEntity()!.first;
+
+    final stop = departure.tripStops.single;
+    expect(stop.name, 'Bohicon');
+    // La ville ne répète pas le nom pour rien : pas de sous-titre.
+    expect(stop.subtitle, isNull);
+    expect(stop.kmFromOrigin, 128);
+    expect(stop.departureAt, isNull);
+  });
+
+  test('l’heure d’un arrêt reste celle qu’on lit sur place', () {
+    // Le serveur date déjà chaque passage dans le fuseau de l'arrêt.
+    // Ramener cet instant au fuseau du téléphone afficherait 12:40 à un
+    // voyageur béninois pour un bus qui entre en gare d'Abidjan à 11:40.
+    final departure = ItineraryModel.fromJson(
+      itineraryWith({
+        'trip_stops': [
+          {
+            'uuid': 'stop-abidjan',
+            'name': 'Abidjan',
+            'stop_order': 8,
+            'physical_stop': {'name': 'Gare d’Adjamé', 'city': 'Abidjan'},
+            'km_from_origin': 1020,
+            'arrival_at': '2026-09-09T11:40:00+00:00',
+            'timezone': 'Africa/Abidjan',
+          },
+        ],
+      }),
+    ).toEntity()!.first;
+
+    final stop = departure.tripStops.single;
+    expect(stop.arrivalAt, DateTime(2026, 9, 9, 11, 40));
+    expect(stop.arrivalAt!.isUtc, isFalse);
+  });
+
+  test('une réponse sans étapes laisse la frise se débrouiller', () {
+    // `trip_stops` est neuf : une réponse plus ancienne n'en porte pas,
+    // et l'écran retombe alors sur les arrêts de la ligne.
+    final departure = ItineraryModel.fromJson(kItinerary).toEntity()!.first;
+
+    expect(departure.tripStops, isEmpty);
+  });
 }
