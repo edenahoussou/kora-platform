@@ -104,6 +104,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('sale/{reservation:uuid}/payment', [CounterSaleController::class, 'storePayment'])->name('sale.payment');
     Route::get('sale/wallet-lookup', OpsWalletLookupController::class)->name('sale.wallet-lookup');
     Route::post('sale/{reservation:uuid}/tickets/retry', [CounterSaleController::class, 'retryTicketIssuance'])->name('sale.tickets.retry');
+    Route::inertia('sale/parcels', 'sale-parcels')->name('sale.parcels');
     Route::get('sale/{any}', function () {
         session()->reflash();
 

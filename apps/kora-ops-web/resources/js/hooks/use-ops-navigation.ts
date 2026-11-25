@@ -73,6 +73,12 @@ const koraPointAgentNavItems: OpsNavEntry[] = [
         permission: null,
     },
     {
+        title: 'Guichet colis',
+        href: '/sale/parcels',
+        icon: Package,
+        permission: null,
+    },
+    {
         title: 'Session caisse',
         href: '/kora-point/cash',
         icon: Wallet,
@@ -301,6 +307,11 @@ const navItems: OpsNavEntry[] = [
                 title: 'Vente au guichet',
                 href: '/sale',
                 permission: 'counter-sales.create',
+            },
+            {
+                title: 'Guichet colis',
+                href: '/sale/parcels',
+                permission: null,
             },
             {
                 title: 'Réservations en attente',
