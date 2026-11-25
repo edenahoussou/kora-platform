@@ -4785,6 +4785,26 @@ paths:
                       expires_at:
                         type: string
                         example: '2026-01-01T00:00:00+00:00'
+        '401':
+          description: 'Invalid credentials'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: invalid_credentials
+                    message: 'Identifiants invalides.'
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: invalid_credentials
+                      message:
+                        type: string
+                        example: 'Identifiants invalides.'
         '403':
           description: 'Account suspended'
           content:
@@ -4805,26 +4825,6 @@ paths:
                       message:
                         type: string
                         example: 'Le compte est suspendu. Contactez le support.'
-        '422':
-          description: 'Invalid credentials'
-          content:
-            application/json:
-              schema:
-                type: object
-                example:
-                  error:
-                    code: invalid_credentials
-                    message: 'Identifiants invalides.'
-                properties:
-                  error:
-                    type: object
-                    properties:
-                      code:
-                        type: string
-                        example: invalid_credentials
-                      message:
-                        type: string
-                        example: 'Identifiants invalides.'
         '423':
           description: 'Account locked'
           content:
