@@ -73,7 +73,7 @@ const koraPointAgentNavItems: OpsNavEntry[] = [
         permission: null,
     },
     {
-        title: 'Guichet colis',
+        title: 'Colis',
         href: '/sale/parcels',
         icon: Package,
         permission: null,
@@ -309,7 +309,7 @@ const navItems: OpsNavEntry[] = [
                 permission: 'counter-sales.create',
             },
             {
-                title: 'Guichet colis',
+                title: 'Colis',
                 href: '/sale/parcels',
                 permission: null,
             },
