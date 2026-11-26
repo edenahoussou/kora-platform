@@ -6,6 +6,14 @@ on:
     types: [completed]
     branches: [main]
 
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Branche interne à déployer
+        required: true
+        default: main
+        type: string
+
 permissions:
   contents: read
   packages: write
@@ -16,13 +24,33 @@ concurrency:
 
 jobs:
   build-and-push:
-    if: github.event.workflow_run.conclusion == 'success'
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.revision.outputs.sha }}
+      tag: ${{ steps.revision.outputs.tag }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && 'refs/heads/main' || github.event.workflow_run.head_sha }}
+          persist-credentials: true
+
+      - name: Resolve staging revision
+        id: revision
+        env:
+          BRANCH: ${{ inputs.branch }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
+            git check-ref-format "refs/heads/$BRANCH"
+            git fetch --no-tags origin "refs/heads/$BRANCH"
+            git checkout --detach FETCH_HEAD
+          fi
+          sha=$(git rev-parse HEAD)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "tag=staging-$sha" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -44,16 +72,15 @@ jobs:
           cache-to: type=gha,mode=max,scope=kora-ops-web
           build-args: |
             VITE_APP_ENV=staging
-            VITE_APP_VERSION=${{ github.event.workflow_run.head_sha }}
+            VITE_APP_VERSION=${{ steps.revision.outputs.sha }}
             VITE_SENTRY_DSN=${{ vars.SENTRY_DSN_PUBLIC }}
-            SENTRY_RELEASE=staging-${{ github.event.workflow_run.head_sha }}
+            SENTRY_RELEASE=${{ steps.revision.outputs.tag }}
             SENTRY_ORG=${{ vars.SENTRY_ORG }}
             SENTRY_PROJECT=${{ vars.SENTRY_PROJECT }}
           secrets: |
             sentry_auth_token=${{ secrets.SENTRY_AUTH_TOKEN }}
           tags: |
-            ghcr.io/${{ github.repository_owner }}/kora-ops-web:staging
-            ghcr.io/${{ github.repository_owner }}/kora-ops-web:staging-${{ github.event.workflow_run.head_sha }}
+            ghcr.io/${{ github.repository_owner }}/kora-ops-web:${{ steps.revision.outputs.tag }}
 
       - name: Build and push nginx image
         uses: docker/build-push-action@v6
@@ -64,7 +91,7 @@ jobs:
           cache-from: type=gha,scope=kora-ops-web-nginx
           cache-to: type=gha,mode=max,scope=kora-ops-web-nginx
           tags: |
-            ghcr.io/${{ github.repository_owner }}/kora-ops-web-nginx:latest
+            ghcr.io/${{ github.repository_owner }}/kora-ops-web-nginx:${{ steps.revision.outputs.tag }}
 
   deploy:
     needs: build-and-push
@@ -72,17 +99,25 @@ jobs:
     steps:
       - name: Deploy to VPS staging
         uses: appleboy/ssh-action@v1
+        env:
+          DEPLOY_SHA: ${{ needs.build-and-push.outputs.sha }}
+          DEPLOY_TAG: ${{ needs.build-and-push.outputs.tag }}
         with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          port: ${{ secrets.DEPLOY_PORT }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          host: ${{ secrets.STAGING_DEPLOY_HOST }}
+          port: ${{ secrets.STAGING_DEPLOY_PORT }}
+          username: ${{ secrets.STAGING_DEPLOY_USER }}
+          key: ${{ secrets.STAGING_DEPLOY_SSH_KEY }}
+          envs: DEPLOY_SHA,DEPLOY_TAG
           script: |
             set -e
             cd /opt/kora-staging
-            git checkout -- .
-            git clean -fd
-            git pull origin main
+            git fetch --no-tags origin "$DEPLOY_SHA"
+            test "$(git rev-parse 'FETCH_HEAD^{commit}')" = "$DEPLOY_SHA"
+            git checkout --detach "$DEPLOY_SHA"
+            export KORA_IMAGE_TAG="$DEPLOY_TAG" KORA_NGINX_IMAGE_TAG="$DEPLOY_TAG"
+            images=$(docker compose -f docker-compose.staging.yml --env-file .env.staging config --images)
+            printf '%s\n' "$images" | grep -Fx "ghcr.io/${{ github.repository_owner }}/kora-ops-web:$DEPLOY_TAG"
+            printf '%s\n' "$images" | grep -Fx "ghcr.io/${{ github.repository_owner }}/kora-ops-web-nginx:$DEPLOY_TAG"
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             docker compose -f docker-compose.staging.yml --env-file .env.staging pull
             docker compose -f docker-compose.staging.yml --env-file .env.staging up -d --no-build
@@ -97,3 +132,11 @@ jobs:
             docker compose -f docker-compose.staging.yml --env-file .env.staging restart nginx
             docker image prune -f
             echo "Staging deployed: $(date)"
+      - name: Check deployment health
+        run: curl --fail --silent --show-error --retry 5 --retry-all-errors --max-time 15 https://staging.koraexpress.app/api/v1/health
+
+      - name: Record deployed revision
+        env:
+          DEPLOY_SHA: ${{ needs.build-and-push.outputs.sha }}
+          DEPLOY_TAG: ${{ needs.build-and-push.outputs.tag }}
+        run: printf 'Déployé **%s** depuis `%s`\n' "$DEPLOY_TAG" "$DEPLOY_SHA" >> "$GITHUB_STEP_SUMMARY"

@@ -2,71 +2,42 @@
 
 En cas de panne CI/CD, le deploiement peut se faire manuellement via SSH au VPS.
 
-## Pre-requis
+Le parcours normal pour une feature, une livraison ou un hotfix est décrit dans [le runbook CI/CD](ci-cd.md).
 
-- Acces SSH au VPS : `ssh kora-vps` (alias configure dans `~/.ssh/config`)
-- Le tunnel Pangolin doit etre up sur le VPS pour que le VPS puisse pull depuis Gitea
-- Docker doit etre installe sur le VPS
+## Redéploiement manuel d’une révision publiée
 
-## Deploiement staging manuel
+En cas de panne CI/CD ou de retour arrière, relever le SHA et le tag d’un déploiement réussi. Utiliser les images applicative et Nginx déjà publiées sous ce même tag. Sur le VPS, se connecter avec le compte de déploiement et choisir les variables de l’environnement concerné :
 
 ```bash
-ssh kora-vps
-cd /opt/kora-staging
-git pull origin main
-docker compose -f docker-compose.staging.yml pull
-docker compose -f docker-compose.staging.yml up -d --no-build
-docker compose -f docker-compose.staging.yml exec app php artisan migrate --force
-docker compose -f docker-compose.staging.yml exec app php artisan db:seed --class=KoraBusRolePermissionSeeder --force
-docker compose -f docker-compose.staging.yml exec app php artisan db:seed --class=WalletLoyaltyRuleVersionSeeder --force
-docker compose -f docker-compose.staging.yml exec app php artisan config:cache
-docker compose -f docker-compose.staging.yml exec app php artisan route:cache
-docker compose -f docker-compose.staging.yml exec app php artisan view:cache
+set -eu
+# Staging : remplacer prod par staging, utiliser staging-<sha> et le port 8080.
+target=prod
+tag='vX.Y.Z'
+sha='<SHA complet de la livraison>'
+port=9080
+cd "/opt/kora-$target"
+git fetch --no-tags origin "$sha"
+test "$(git rev-parse 'FETCH_HEAD^{commit}')" = "$sha"
+git checkout --detach "$sha"
+export KORA_IMAGE_TAG="$tag" KORA_NGINX_IMAGE_TAG="$tag"
+
+compose() {
+    docker compose -f "docker-compose.$target.yml" --env-file ".env.$target" "$@"
+}
+images=$(compose config --images)
+printf '%s\n' "$images" | grep -Fx "ghcr.io/edenahoussou/kora-ops-web:$tag"
+printf '%s\n' "$images" | grep -Fx "ghcr.io/edenahoussou/kora-ops-web-nginx:$tag"
+compose pull
+compose up -d --no-build
+compose run --rm sync-public
+for cache in config route view event; do
+    compose exec -T -u www-data app php artisan "$cache:cache"
+done
+compose restart nginx
+curl --fail --retry 5 --retry-all-errors "http://127.0.0.1:$port/api/v1/health"
 ```
 
-Verifier : `curl -sS -o /dev/null -w "HTTP %{http_code}" http://51.255.196.129:8080/`
-
-## Deploiement manuel avec build d'image (CI en panne)
-
-Les fichiers compose referencent l'image par son nom complet registry :
-`ghcr.io/edenahoussou/kora-ops-web:latest` (prod) et `ghcr.io/edenahoussou/kora-ops-web:staging` (staging).
-
-**Piege** : builder avec un tag court (`-t kora-ops-web:latest`) cree une image
-distincte de celle que le compose attend — `docker compose up -d` ne detecte
-alors aucun changement et ne recree jamais le conteneur app (silencieusement).
-Toujours builder avec le tag exact du compose.
-
-Depuis le passage en **pull-only** (voir « Stockage Docker du VPS »), le compose
-ne contient plus de section `build:` : un build local doit etre **pousse dans
-GHCR** puis tire, sinon `pull` ecrasera l'image locale.
-
-```bash
-# Production : build + push du tag attendu par le compose
-docker buildx build -f infra/docker/kora-ops-web/Dockerfile.prod \
-    --platform linux/amd64 \
-    --push \
-    -t ghcr.io/edenahoussou/kora-ops-web:latest .
-
-# Puis sur le VPS
-cd /opt/kora-prod
-docker compose -f docker-compose.prod.yml pull
-docker compose -f docker-compose.prod.yml up -d --no-build
-
-# Staging : meme chose avec le tag :staging
-docker buildx build -f infra/docker/kora-ops-web/Dockerfile.prod \
-    --platform linux/amd64 --push \
-    -t ghcr.io/edenahoussou/kora-ops-web:staging .
-```
-
-Si un build a malgre tout tourne sur le VPS, purger le cache dans la foulee
-pour ne pas recreer 50 Go :
-
-```bash
-sudo docker builder prune -f --filter until=168h
-```
-
-Verifier que le nouveau code tourne reellement (ex. date de creation du conteneur
-ou presence d'un fichier modifie) : `docker inspect kora-prod-app --format '{{.Created}}'`.
+Pour une nouvelle livraison manuelle, reproduire aussi les étapes du workflow de l’environnement : sauvegarde avant migration en production, migrations et seeders. Pour un retour arrière, vérifier la compatibilité du schéma avant `compose up`. Évaluer les écritures postérieures au backup avant toute restauration de données. Les versions antérieures à la transition n’ont pas forcément d’image Nginx versionnée : vérifier la révision et la disponibilité des images avant toute intervention.
 
 ## Stockage Docker du VPS
 
@@ -77,9 +48,7 @@ cache, disque a 81 %).
 
 - `docker-compose.{staging,prod}.yml` : `pull_policy: always`, aucune section
   `build:` (app, nginx et sync-public viennent de GHCR).
-- `KORA_IMAGE_TAG` (optionnel, dans `.env.staging` / `.env.prod`) : force un tag
-  precis pour un rollback, ex. `KORA_IMAGE_TAG=staging-<sha>` ou `v1.0.4`.
-  Sans valeur, `staging` (staging) et `latest` (prod) sont utilises.
+- Les workflows exportent `KORA_IMAGE_TAG` et `KORA_NGINX_IMAGE_TAG` avec le même tag de livraison. En intervention manuelle, exporter les deux avant toute commande Compose.
 - `daemon.json` (`infra/vps/daemon.json`) : cache BuildKit plafonne a 8 Go,
   rotation des logs conteneurs (20 Mo x 3).
 - Purge hebdomadaire `kora-docker-prune.timer` : cache de build > 7 jours,

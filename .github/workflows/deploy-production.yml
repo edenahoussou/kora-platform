@@ -15,6 +15,9 @@ concurrency:
 
 jobs:
   build-and-push:
+    outputs:
+      sha: ${{ steps.revision.outputs.sha }}
+      tag: ${{ steps.revision.outputs.tag }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -30,9 +33,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract tag name
-        id: tag
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      - name: Resolve production revision
+        id: revision
+        run: |
+          tag=${GITHUB_REF#refs/tags/}
+          [[ "$tag" =~ ^v[0-9][A-Za-z0-9_.-]*$ && ${#tag} -le 128 ]]
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Build and push image
         uses: docker/build-push-action@v6
@@ -44,16 +51,15 @@ jobs:
           cache-to: type=gha,mode=max,scope=kora-ops-web
           build-args: |
             VITE_APP_ENV=production
-            VITE_APP_VERSION=${{ steps.tag.outputs.VERSION }}
+            VITE_APP_VERSION=${{ steps.revision.outputs.tag }}
             VITE_SENTRY_DSN=${{ vars.SENTRY_DSN_PUBLIC }}
-            SENTRY_RELEASE=${{ steps.tag.outputs.VERSION }}
+            SENTRY_RELEASE=${{ steps.revision.outputs.tag }}
             SENTRY_ORG=${{ vars.SENTRY_ORG }}
             SENTRY_PROJECT=${{ vars.SENTRY_PROJECT }}
           secrets: |
             sentry_auth_token=${{ secrets.SENTRY_AUTH_TOKEN }}
           tags: |
-            ghcr.io/${{ github.repository_owner }}/kora-ops-web:latest
-            ghcr.io/${{ github.repository_owner }}/kora-ops-web:${{ steps.tag.outputs.VERSION }}
+            ghcr.io/${{ github.repository_owner }}/kora-ops-web:${{ steps.revision.outputs.tag }}
 
       - name: Build and push nginx image
         uses: docker/build-push-action@v6
@@ -64,7 +70,7 @@ jobs:
           cache-from: type=gha,scope=kora-ops-web-nginx
           cache-to: type=gha,mode=max,scope=kora-ops-web-nginx
           tags: |
-            ghcr.io/${{ github.repository_owner }}/kora-ops-web-nginx:latest
+            ghcr.io/${{ github.repository_owner }}/kora-ops-web-nginx:${{ steps.revision.outputs.tag }}
 
   deploy:
     needs: build-and-push
@@ -72,17 +78,25 @@ jobs:
     steps:
       - name: Deploy to VPS production
         uses: appleboy/ssh-action@v1
+        env:
+          DEPLOY_SHA: ${{ needs.build-and-push.outputs.sha }}
+          DEPLOY_TAG: ${{ needs.build-and-push.outputs.tag }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           port: ${{ secrets.DEPLOY_PORT }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
+          envs: DEPLOY_SHA,DEPLOY_TAG
           script: |
             set -e
             cd /opt/kora-prod
-            git checkout -- .
-            git clean -fd
-            git pull origin main
+            git fetch --no-tags origin "refs/tags/$DEPLOY_TAG"
+            test "$(git rev-parse 'FETCH_HEAD^{commit}')" = "$DEPLOY_SHA"
+            git checkout --detach "$DEPLOY_SHA"
+            export KORA_IMAGE_TAG="$DEPLOY_TAG" KORA_NGINX_IMAGE_TAG="$DEPLOY_TAG"
+            images=$(docker compose -f docker-compose.prod.yml --env-file .env.prod config --images)
+            printf '%s\n' "$images" | grep -Fx "ghcr.io/${{ github.repository_owner }}/kora-ops-web:$DEPLOY_TAG"
+            printf '%s\n' "$images" | grep -Fx "ghcr.io/${{ github.repository_owner }}/kora-ops-web-nginx:$DEPLOY_TAG"
 
             # Backup DB avant migration
             TIMESTAMP=$(date +%Y%m%d%H%M%S)
@@ -107,3 +121,11 @@ jobs:
             docker compose -f docker-compose.prod.yml --env-file .env.prod restart nginx
             docker image prune -f
             echo "Production deployed: $(date)"
+      - name: Check deployment health
+        run: curl --fail --silent --show-error --retry 5 --retry-all-errors --max-time 15 https://prod.koraexpress.app/api/v1/health
+
+      - name: Record deployed revision
+        env:
+          DEPLOY_SHA: ${{ needs.build-and-push.outputs.sha }}
+          DEPLOY_TAG: ${{ needs.build-and-push.outputs.tag }}
+        run: printf 'Déployé **%s** depuis `%s`\n' "$DEPLOY_TAG" "$DEPLOY_SHA" >> "$GITHUB_STEP_SUMMARY"

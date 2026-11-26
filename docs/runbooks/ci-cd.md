@@ -7,7 +7,7 @@ Le pipeline CI/CD est gere par GitHub Actions. Les runners sont heberges par Git
 ```
 PR/push ──► CI (ci.yml)          ──► lint + test + build (kora-ops-web)
 PR/push ──► CI Flutter (ci-flutter.yml) ──► analyze + test + build (apps + packages)
-merge main ──► Deploy Staging    ──► build image GHCR + deploy VPS:8080
+CI verte sur main / branche choisie ──► Deploy Staging ──► images staging-<sha>
 tag v*    ──► Deploy Production  ──► build image GHCR + backup + deploy VPS:80
 tag v*    ──► Release Mobile     ──► build APK signé + GitHub Release
 ```
@@ -56,23 +56,31 @@ sera generee, le job s'activera automatiquement avec les memes etapes que
 
 ### `deploy-staging.yml` — Deploiement staging
 
-Declenche automatiquement sur push vers `main` (apres merge d'une PR).
+Le staging se déploie automatiquement après une CI réussie sur `main`. Pour tester une feature ou un hotfix avant fusion :
 
-1. Build l'image Docker `kora-ops-web:staging`
-2. Push au GitHub Container Registry (`ghcr.io/edenahoussou/kora-ops-web`)
-3. SSH au VPS : `git pull` + `docker compose pull` + `docker compose up -d` + migrations + cache
+1. Pousser la branche interne et attendre les checks de sa PR si elle en a une.
+2. Dans **Actions → Deploy Staging → Run workflow**, sélectionner `main` comme branche du workflow et renseigner la branche à tester dans le champ `branch`.
+3. Vérifier le SHA dans le résumé du run et tester sur https://staging.koraexpress.app. Le VPS utilise les fichiers de ce SHA et les deux images `staging-<sha>`.
+4. Fusionner la feature après validation. Pour rendre le staging à l’équipe, lancer le workflow avec `branch=main`.
 
-URL staging : `http://51.255.196.129:8080`
+Le staging est partagé. Un déploiement automatique sur `main` ou un autre lancement manuel peut remplacer la branche testée. Prévenir l’équipe et utiliser une base isolée pour une migration incompatible avec les autres versions.
 
-### `deploy-production.yml` — Deploiement production
+### `deploy-production.yml` — Déploiement production
 
-Declenche manuellement via un tag git `v*` (ex: `git tag v0.1.0 && git push origin v0.1.0`).
+Créer un nouveau tag `v*` sur le **SHA explicitement choisi**. Le workflow construit les deux images avec ce tag, vérifie que le VPS récupère le même commit, sauvegarde la base avant migration et vérifie la santé de l’API. Le résumé du run indique le SHA et le tag livrés.
 
-1. Build l'image Docker `kora-ops-web:latest` + `kora-ops-web:v0.1.0`
-2. Push au GitHub Container Registry
-3. SSH au VPS : backup DB + `git pull` + `docker compose pull` + `docker compose up -d` + migrations + cache
+- **Livraison normale** : choisir un commit de `main` validé en staging.
+- **Hotfix** : retrouver le tag du dernier déploiement réussi et vérifier la révision sur le VPS. Partir de ce tag, tester la branche de hotfix en staging, taguer son commit exact, puis reporter le correctif dans `main` via une PR.
 
-URL prod : `http://51.255.196.129`
+```bash
+git fetch origin --tags
+git switch -c hotfix/correction v1.0.29  # Exemple : remplacer par le tag réellement en ligne
+# Après validation, définir RELEASE_SHA et RELEASE_TAG pour cette livraison
+git tag "$RELEASE_TAG" "$RELEASE_SHA"
+git push origin "refs/tags/$RELEASE_TAG"
+```
+
+**Transition** : la première version compatible est le premier tag livré avec le nouveau workflow et les deux variables Compose. Consigner ce tag ici après sa première livraison. Pour partir d’un tag antérieur, reporter le commit d’infrastructure sur le hotfix avant de le tester et de le taguer. GitHub exécute le workflow présent dans la révision taguée. Ne jamais déplacer ou réutiliser un tag publié.
 
 ### `release-mobile.yml` — Release APK Android
 
@@ -98,6 +106,8 @@ Configurer dans GitHub > edenahoussou/kora-platform > Settings > Secrets and var
 | `DEPLOY_HOST` | `51.255.196.129` |
 | `DEPLOY_PORT` | `2222` |
 | `DEPLOY_USER` | `deploy` |
+
+Créer aussi `STAGING_DEPLOY_HOST`, `STAGING_DEPLOY_PORT`, `STAGING_DEPLOY_USER` et `STAGING_DEPLOY_SSH_KEY` avant d’activer le nouveau workflow. Fournir des identifiants propres au staging. Les secrets `DEPLOY_*` restent réservés au workflow production. Réserver le lancement manuel et les branches internes déployables aux mainteneurs de confiance. Des comptes SSH différents sur un hôte Docker partagé ne constituent pas une isolation du VPS.
 
 Note : `GITHUB_TOKEN` est fourni automatiquement par GitHub Actions pour le login au GHCR. Pas besoin de le configurer manuellement.
 
@@ -147,43 +157,4 @@ differt. En cas de besoin, regenerer les goldens localement puis committer :
 
 ## Rollback
 
-Le compose est en **pull-only** : on revient sur un tag d'image publie dans GHCR,
-jamais par `git checkout` + rebuild sur le VPS (voir « Stockage Docker du VPS »
-dans `deployment.md`).
-
-### Staging
-
-```bash
-ssh kora-vps
-cd /opt/kora-staging
-
-# Tags staging-<sha> pousses par la CI a chaque deploiement
-docker images 'ghcr.io/edenahoussou/kora-ops-web' --format '{{.Tag}}\t{{.CreatedAt}}' | grep staging- | head -5
-
-# Revenir sur un build precedent
-KORA_IMAGE_TAG=staging-<sha> docker compose -f docker-compose.staging.yml pull
-KORA_IMAGE_TAG=staging-<sha> docker compose -f docker-compose.staging.yml up -d --no-build
-```
-
-Le tag reste actif tant que `KORA_IMAGE_TAG` est exporte ; pour revenir au flux
-normal, retirer la variable (ou la commenter dans `.env.staging`) puis relancer
-`pull` + `up -d --no-build`.
-
-### Production
-
-```bash
-ssh kora-vps
-cd /opt/kora-prod
-
-# Restaurer le backup DB si la migration est en cause
-ls -t backups/db-backup-*.sql | head -5
-docker compose -f docker-compose.prod.yml exec -T postgres psql -U kora kora_prod < backups/db-backup-XXXX.sql
-
-# Revenir a un tag precedent (tags v* pousses par deploy-production)
-KORA_IMAGE_TAG=v1.0.4 docker compose -f docker-compose.prod.yml pull
-KORA_IMAGE_TAG=v1.0.4 docker compose -f docker-compose.prod.yml up -d --no-build
-```
-
-Les tags `staging-<sha>` et `v*` restent sur GHCR meme apres une purge locale :
-la purge hebdomadaire du VPS ne supprime que les anciens tags locaux (les 2
-derniers `staging-<sha>` sont conserves).
+Utiliser la procédure de redéploiement par référence dans [le runbook de déploiement](deployment.md). Choisir le SHA et les deux images du même déploiement réussi. Avant de revenir à une version précédente, vérifier que son code accepte le schéma courant. Une restauration de base est une intervention distincte qui peut supprimer les écritures intervenues depuis la sauvegarde.
