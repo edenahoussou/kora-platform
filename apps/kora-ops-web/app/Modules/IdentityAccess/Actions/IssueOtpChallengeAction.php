@@ -69,6 +69,8 @@ class IssueOtpChallengeAction
         }
 
         $notification = new OtpCodeNotification($code, $purpose);
+        $notification->challengeUuid = (string) $challenge->uuid;
+        $notification->queuedAt = microtime(true);
 
         if ($user) {
             $user->notify($notification);

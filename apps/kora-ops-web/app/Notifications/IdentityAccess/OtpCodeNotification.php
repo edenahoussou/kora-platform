@@ -21,11 +21,17 @@ class OtpCodeNotification extends Notification implements ShouldBeEncrypted, Sho
     /** @var array<int, int> */
     public array $backoff = [15, 90, 300];
 
+    public ?string $challengeUuid = null;
+
+    public ?float $queuedAt = null;
+
     public function __construct(
         private readonly string $code,
         private readonly OtpPurpose $purpose,
         private readonly int $expiresInMinutes = 5,
-    ) {}
+    ) {
+        $this->onQueue('otp');
+    }
 
     /**
      * @return list<string>

@@ -197,6 +197,14 @@ return [
     */
 
     'defaults' => [
+        'supervisor-otp' => [
+            'connection' => 'redis',
+            'queue' => ['otp'],
+            'balance' => 'simple',
+            'maxProcesses' => 1,
+            'tries' => 3,
+            'timeout' => 75,
+        ],
         'supervisor-1' => [
             'connection' => 'redis',
             'queue' => ['default'],
@@ -215,6 +223,7 @@ return [
 
     'environments' => [
         'production' => [
+            'supervisor-otp' => [],
             'supervisor-1' => [
                 'maxProcesses' => 5,
                 'balanceMaxShift' => 1,
@@ -223,12 +232,14 @@ return [
         ],
 
         'staging' => [
+            'supervisor-otp' => [],
             'supervisor-1' => [
                 'maxProcesses' => 3,
             ],
         ],
 
         'local' => [
+            'supervisor-otp' => [],
             'supervisor-1' => [
                 'maxProcesses' => 3,
             ],

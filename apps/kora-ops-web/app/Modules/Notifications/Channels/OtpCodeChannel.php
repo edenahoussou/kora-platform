@@ -31,6 +31,15 @@ class OtpCodeChannel
 
     public function send(object $notifiable, OtpCodeNotification $notification): void
     {
+        $startedAt = microtime(true);
+        $context = [
+            'challenge_uuid' => $notification->challengeUuid,
+            'queue_wait_ms' => $notification->queuedAt === null
+                ? null
+                : (int) round(max(0, $startedAt - $notification->queuedAt) * 1000),
+        ];
+        Log::info('OTP delivery started.', $context);
+
         $phone = $notifiable instanceof User
             ? $notifiable->phone
             : ($this->routeNotificationTarget($notifiable, 'sms')
@@ -79,7 +88,26 @@ class OtpCodeChannel
                 ]);
             }
 
-            $this->mail->send($notifiable, $notification);
+            $mailStartedAt = microtime(true);
+            $mailContext = $context + [
+                'before_mail_ms' => (int) round(($mailStartedAt - $startedAt) * 1000),
+            ];
+
+            try {
+                $sent = $this->mail->send($notifiable, $notification);
+            } catch (Throwable $exception) {
+                Log::warning('OTP mail transport failed.', $mailContext + [
+                    'transport_ms' => (int) round((microtime(true) - $mailStartedAt) * 1000),
+                    'exception' => $exception::class,
+                ]);
+
+                throw $exception;
+            }
+
+            Log::info('OTP mail transport finished.', $mailContext + [
+                'transport_ms' => (int) round((microtime(true) - $mailStartedAt) * 1000),
+                'accepted' => $sent !== null,
+            ]);
 
             return;
         }

@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 
 it('requests an email otp without storing the clear code', function (): void {
-    Notification::fake();
+    Queue::fake();
 
     $this->postJson('/api/v1/auth/otp/request', [
         'email' => 'aicha@example.com',
@@ -34,7 +34,8 @@ it('requests an email otp without storing the clear code', function (): void {
         ->and($challenge->code_hash)->not->toBe('123456')
         ->and($challenge->status)->toBe(OtpChallengeStatus::Pending);
 
-    Notification::assertSentOnDemand(OtpCodeNotification::class);
+    Queue::assertPushedOn('otp', SendQueuedNotifications::class,
+        fn (SendQueuedNotifications $job): bool => $job->notification instanceof OtpCodeNotification);
 });
 
 it('verifies a valid otp and returns a one-time verification token', function (): void {
@@ -283,7 +284,8 @@ it('requires otp when logging in from a new device', function (): void {
         ->assertJsonPath('data.purpose', 'login_new_device')
         ->assertJsonStructure(['data' => ['otp_challenge_uuid', 'expires_at']]);
 
-    Queue::assertPushed(
+    Queue::assertPushedOn(
+        'otp',
         SendQueuedNotifications::class,
         fn (SendQueuedNotifications $job): bool => $job->notification instanceof OtpCodeNotification,
     );
