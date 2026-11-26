@@ -54,6 +54,10 @@ RUN npm ci
 # Copier le code source
 COPY apps/kora-ops-web/ ./
 
+# Les vues Laravel personnalisées doivent être présentes dans l'image.
+RUN test -f resources/views/vendor/notifications/email.blade.php \
+    && test -f resources/views/vendor/mail/html/layout.blade.php
+
 # Preparer Laravel pour le build
 RUN mkdir -p storage/app/private storage/app/public storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs \
     && cp .env.example .env && php artisan key:generate
