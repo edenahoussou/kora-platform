@@ -1,6 +1,8 @@
 .git
 **/node_modules
 **/vendor
+!apps/kora-ops-web/resources/views/vendor
+!apps/kora-ops-web/resources/views/vendor/**
 **/.env
 **/.env.*
 !apps/kora-ops-web/.env.example
