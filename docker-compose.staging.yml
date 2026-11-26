@@ -43,7 +43,7 @@ services:
     stop_grace_period: 90s
 
   nginx:
-    image: ghcr.io/edenahoussou/kora-ops-web-nginx:latest
+    image: ghcr.io/edenahoussou/kora-ops-web-nginx:${KORA_NGINX_IMAGE_TAG:-latest}
     pull_policy: always
     container_name: kora-staging-nginx
     ports:
