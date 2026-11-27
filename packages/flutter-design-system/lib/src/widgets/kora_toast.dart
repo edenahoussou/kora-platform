@@ -146,7 +146,12 @@ class KoraToaster {
     String message, {
     Duration duration = defaultDuration,
   }) {
-    final overlay = Overlay.of(context, rootOverlay: true);
+    // `Overlay.of` lève sur un contexte posé **au-dessus** du
+    // `Navigator` — un écouteur global, par exemple. Un message
+    // d'information ne vaut pas de faire tomber l'app : faute
+    // d'`Overlay`, on renonce au toast plutôt qu'à l'écran.
+    final overlay = Overlay.maybeOf(context, rootOverlay: true);
+    if (overlay == null) return;
 
     final handle = _regions.putIfAbsent(overlay, () {
       final key = GlobalKey<_ToastRegionState>();

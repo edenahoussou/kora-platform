@@ -130,8 +130,24 @@ class BookingRemoteDataSourceImpl implements BookingDataSource {
         // Le nom part tel que `bus/cities` l'a donné. Le serveur
         // compare sans tenir compte de la casse ni des accents, mais
         // c'est son orthographe qui fait foi.
-        'from_city': from,
-        'to_city': to,
+        //
+        // Sauf quand le voyageur a précisé son arrêt : c'est alors son
+        // identifiant qui part, et le serveur ne cherche plus que les
+        // départs de ce point-là. Les deux champs s'excluent — le
+        // contrat les déclare `required_without` l'un de l'autre —, donc
+        // on n'envoie jamais le nom et l'identifiant ensemble.
+        ...switch (criteria.origin.stopUuid) {
+          final String uuid when uuid.isNotEmpty => {
+            'from_physical_stop_uuid': uuid,
+          },
+          _ => {'from_city': from},
+        },
+        ...switch (criteria.destination.stopUuid) {
+          final String uuid when uuid.isNotEmpty => {
+            'to_physical_stop_uuid': uuid,
+          },
+          _ => {'to_city': to},
+        },
         'date': _apiDate(criteria.date),
         'passenger_count': criteria.passengers,
         // `trip_type` porte l'intention, `return_date` la précise. Le

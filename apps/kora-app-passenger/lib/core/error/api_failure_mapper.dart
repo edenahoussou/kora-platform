@@ -56,8 +56,11 @@ mixin ApiFailureMapper {
   /// travail d'`ApiExceptionMapper` de lire le statut, le refaire ici
   /// dupliquerait la règle à deux endroits.
   Failure failureOf(ApiException error) => switch (error) {
-    NetworkApiException() ||
-    TimeoutApiException() => NetworkFailure(error.message),
+    NetworkApiException() => NetworkFailure(error.message),
+    // Le serveur est joignable, mais il traîne : le voyageur n'a rien à
+    // corriger de son côté, et l'inviter à vérifier sa connexion le
+    // lance sur une fausse piste.
+    TimeoutApiException() => TimeoutFailure(error.message),
     UnauthorizedApiException() ||
     ForbiddenApiException() => AuthFailure(error.message),
     ValidationApiException() => ValidationFailure(error.message),
