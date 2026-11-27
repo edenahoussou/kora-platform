@@ -1,4 +1,5 @@
 import { Head, Link, router, usePoll } from '@inertiajs/react';
+import * as Tooltip from '@radix-ui/react-tooltip';
 import {
     Armchair,
     ArrowLeft,
@@ -41,6 +42,8 @@ type Stop = {
     circulationOrder: number;
     city: string;
     physicalStopName: string | null;
+    departureTime: string | null;
+    arrivalTime: string | null;
 };
 
 type SeatItem = {
@@ -162,7 +165,14 @@ const statusTones: Record<
     boarding: 'gold',
     departed: 'blue',
     arrived: 'navy',
-    cancelled: 'muted',
+    cancelled: 'destructive',
+};
+
+const seatStatusLabels: Partial<Record<SeatMapStatus, string>> = {
+    maintenance: 'En maintenance',
+    blocked: 'Bloqué / équipage',
+    busy: 'Embarqué',
+    reserved: 'Réservé',
 };
 
 const journeyTones: Record<
@@ -338,6 +348,15 @@ export default function DepartureDetailPage({
         );
     };
 
+    const ticketedPassengers = useMemo(
+        () =>
+            passengers.filter(
+                ({ segmentStatus }) =>
+                    segmentStatus === 'ticketed' || segmentStatus === 'boarded',
+            ),
+        [passengers],
+    );
+
     const tabs: {
         key: Tab;
         label: string;
@@ -349,7 +368,7 @@ export default function DepartureDetailPage({
             key: 'passengers',
             label: 'Passagers',
             icon: Users,
-            count: passengers.length,
+            count: ticketedPassengers.length,
         },
         { key: 'crew', label: 'Équipage', icon: UserCheck },
         { key: 'parcels', label: 'Colis', icon: Package },
@@ -362,7 +381,7 @@ export default function DepartureDetailPage({
     const passengerGroups = useMemo(() => {
         const groups = new Map<string, PassengerRow[]>();
 
-        for (const row of passengers) {
+        for (const row of ticketedPassengers) {
             const list = groups.get(row.originStop) ?? [];
             list.push(row);
             groups.set(row.originStop, list);
@@ -381,10 +400,9 @@ export default function DepartureDetailPage({
                     .length,
             }))
             .sort((a, b) => a.order - b.order);
-    }, [passengers]);
+    }, [ticketedPassengers]);
 
-    const toControl =
-        boardingSummary.ticketIssued + boardingSummary.paymentPending;
+    const toControl = boardingSummary.ticketIssued;
 
     const canNoShow = (row: PassengerRow): boolean =>
         permissions.canManageReleases &&
@@ -467,36 +485,6 @@ export default function DepartureDetailPage({
         );
     };
 
-    // Horaires estimés par arrêt, répartis sur la durée de la ligne.
-    const schedule = useMemo(() => {
-        if (!departure.stops.length || !departure.departureTime) {
-            return [];
-        }
-
-        const [hours, minutes] = departure.departureTime.split(':').map(Number);
-        const baseTime = new Date();
-        baseTime.setHours(hours, minutes, 0, 0);
-
-        const totalDuration = departure.lineEstimatedDuration ?? 0;
-        const stopCount = departure.stops.length;
-
-        return departure.stops.map((stop, index) => {
-            const fraction = stopCount > 1 ? index / (stopCount - 1) : 0;
-            const time = new Date(
-                baseTime.getTime() +
-                    Math.round(totalDuration * fraction) * 60000,
-            );
-
-            return {
-                ...stop,
-                estimatedTime: time.toLocaleTimeString('fr-FR', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                }),
-            };
-        });
-    }, [departure]);
-
     const occupiedSeatsCount = departure.seats.filter(
         (s) => s.sellable && s.occupied,
     ).length;
@@ -539,6 +527,83 @@ export default function DepartureDetailPage({
 
         return map;
     }, [departure.seats]);
+
+    const occupantsBySeat = useMemo(() => {
+        const byCode = new Map<string, PassengerRow[]>();
+
+        for (const row of passengers) {
+            if (
+                ['held', 'confirmed', 'paid', 'ticketed', 'boarded'].includes(
+                    row.segmentStatus,
+                )
+            ) {
+                const rows = byCode.get(row.seatCode) ?? [];
+                rows.push(row);
+                byCode.set(row.seatCode, rows);
+            }
+        }
+
+        return byCode;
+    }, [passengers]);
+    const [inspectedSeat, setInspectedSeat] = useState<string | null>(null);
+    const inspectSeat = (code: string, button: React.ReactElement) => {
+        const status = seatStatuses[code];
+        const label = status ? (seatStatusLabels[status] ?? 'Libre') : 'Libre';
+
+        return (
+            <Tooltip.Root
+                key={code}
+                open={inspectedSeat === code}
+                delayDuration={120}
+                onOpenChange={(open) =>
+                    setInspectedSeat((current) =>
+                        open ? code : current === code ? null : current,
+                    )
+                }
+            >
+                <Tooltip.Trigger
+                    asChild
+                    onClick={(event) => {
+                        event.preventDefault();
+                        setInspectedSeat(code);
+                    }}
+                >
+                    {button}
+                </Tooltip.Trigger>
+                <Tooltip.Portal>
+                    <Tooltip.Content
+                        side="top"
+                        sideOffset={8}
+                        collisionPadding={12}
+                        className="z-50 max-w-72 rounded-xl border border-border bg-popover px-4 py-3 text-xs text-popover-foreground shadow-lg"
+                    >
+                        <strong>
+                            Siège {code} · {label}
+                        </strong>
+                        {occupantsBySeat.get(code)?.map((row) => (
+                            <div
+                                key={row.segmentUuid}
+                                className="mt-2 border-t border-border pt-2"
+                            >
+                                <span className="block font-semibold">
+                                    {row.passenger
+                                        ? [
+                                              row.passenger.firstName,
+                                              row.passenger.lastName,
+                                          ].join(' ')
+                                        : 'Passager non renseigné'}
+                                </span>
+                                <span>
+                                    {row.originStop} → {row.destinationStop} ·{' '}
+                                    {row.journeyStatus.label}
+                                </span>
+                            </div>
+                        ))}
+                    </Tooltip.Content>
+                </Tooltip.Portal>
+            </Tooltip.Root>
+        );
+    };
 
     return (
         <>
@@ -617,14 +682,14 @@ export default function DepartureDetailPage({
                             statusLabels[departure.status] ?? departure.status
                         }
                         tone={statusTones[departure.status] ?? 'gold'}
-                        className="border border-white/20 bg-white/5"
+                        variant="solid"
                     />
                 </span>
             </section>
 
             {/* Compteurs d'embarquement — cartes façon Caisse */}
             <section className="cash-ledger-grid cash-reveal mb-6">
-                <article className="cash-ledger-card">
+                <article className="cash-ledger-card cash-ledger-card-kpi-emerald">
                     <div className="cash-ledger-head">
                         <div className="cash-ledger-identity">
                             <span className="cash-ledger-brand bg-emerald-500/10 text-emerald-600">
@@ -646,7 +711,7 @@ export default function DepartureDetailPage({
                         <strong>{boardingSummary.boarded}</strong>
                     </div>
                 </article>
-                <article className="cash-ledger-card">
+                <article className="cash-ledger-card cash-ledger-card-kpi-gold">
                     <div className="cash-ledger-head">
                         <div className="cash-ledger-identity">
                             <span className="cash-ledger-brand bg-digital/10 text-digital">
@@ -668,7 +733,7 @@ export default function DepartureDetailPage({
                         <strong>{toControl}</strong>
                     </div>
                 </article>
-                <article className="cash-ledger-card">
+                <article className="cash-ledger-card cash-ledger-card-kpi-absent">
                     <div className="cash-ledger-head">
                         <div className="cash-ledger-identity">
                             <span className="cash-ledger-brand bg-destructive/10 text-destructive">
@@ -702,7 +767,7 @@ export default function DepartureDetailPage({
                         </>
                     }
                 >
-                    <article className="cash-ledger-card h-full">
+                    <article className="cash-ledger-card cash-ledger-card-kpi-digital h-full">
                         <div className="cash-ledger-head">
                             <div className="cash-ledger-identity">
                                 <span className="cash-ledger-brand bg-gold/15 text-gold">
@@ -804,6 +869,11 @@ export default function DepartureDetailPage({
                                 />
                                 <InfoCard
                                     icon={Clock}
+                                    label="Heure de départ"
+                                    value={departure.departureTime ?? '—'}
+                                />
+                                <InfoCard
+                                    icon={Clock}
                                     label="Arrivée estimée"
                                     value={formatTime(
                                         departure.estimatedArrivalAt,
@@ -835,12 +905,12 @@ export default function DepartureDetailPage({
                                 />
                             </div>
 
-                            {schedule.length > 0 && (
+                            {departure.stops.length > 0 && (
                                 <div>
                                     <div className="mb-3 flex items-center gap-2">
                                         <Clock className="size-3.5 text-muted-foreground" />
                                         <span className="text-[0.5625rem] font-black tracking-[0.13em] text-muted-foreground uppercase">
-                                            Horaires estimés par arrêt
+                                            Horaires prévus par arrêt
                                         </span>
                                     </div>
                                     <div className="overflow-x-auto">
@@ -854,12 +924,15 @@ export default function DepartureDetailPage({
                                                         Ville
                                                     </th>
                                                     <th className="pr-4 pb-3 font-medium">
-                                                        Heure estimée
+                                                        Arrivée
+                                                    </th>
+                                                    <th className="pb-3 font-medium">
+                                                        Départ
                                                     </th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {schedule.map((stop) => (
+                                                {departure.stops.map((stop) => (
                                                     <tr
                                                         key={stop.uuid}
                                                         className="border-b border-border/30 hover:bg-muted/30"
@@ -878,12 +951,21 @@ export default function DepartureDetailPage({
                                                             {stop.city}
                                                         </td>
                                                         <td className="py-2.5 font-medium text-foreground">
-                                                            {stop.estimatedTime}
+                                                            {stop.arrivalTime ??
+                                                                '—'}
+                                                        </td>
+                                                        <td className="py-2.5 font-medium text-foreground">
+                                                            {stop.departureTime ??
+                                                                '—'}
                                                         </td>
                                                     </tr>
                                                 ))}
                                             </tbody>
                                         </table>
+                                        <p className="mt-2 text-xs text-muted-foreground">
+                                            — Horaire indisponible ou sans objet
+                                            à cet arrêt.
+                                        </p>
                                     </div>
                                 </div>
                             )}
@@ -909,11 +991,11 @@ export default function DepartureDetailPage({
                                         Occupation par segment
                                     </span>
                                     <h3 className="text-[1.1875rem] font-bold text-foreground">
-                                        {passengers.length} passager
-                                        {passengers.length > 1
+                                        {ticketedPassengers.length} passager
+                                        {ticketedPassengers.length > 1
                                             ? 's'
-                                            : ''} · {departure.fillRate}% de
-                                        remplissage
+                                            : ''}{' '}
+                                        · {departure.fillRate}% de remplissage
                                     </h3>
                                     <p className="mt-1 text-[0.625rem] text-muted-foreground">
                                         Un no-show libère tout le trajet. Une
@@ -955,7 +1037,7 @@ export default function DepartureDetailPage({
                                 </div>
                             </div>
 
-                            {passengers.length > 0 && (
+                            {ticketedPassengers.length > 0 && (
                                 <div className="mb-5 space-y-2.5">
                                     {boardingSummary.absent > 0 && (
                                         <PanelAlert tone="danger" icon={UserX}>
@@ -1186,11 +1268,11 @@ export default function DepartureDetailPage({
                                 <div className="rounded-[1rem] border border-dashed border-border/60 bg-card p-12 text-center">
                                     <Users className="mx-auto size-10 text-muted-foreground/40" />
                                     <h4 className="mt-3 text-sm font-bold text-foreground">
-                                        Aucune réservation
+                                        Aucun passager avec billet
                                     </h4>
                                     <p className="mt-1 text-xs text-muted-foreground">
                                         Les passagers apparaîtront ici dès
-                                        qu'une réservation couvrira ce départ.
+                                        l’émission de leur billet.
                                     </p>
                                 </div>
                             )}
@@ -1303,9 +1385,9 @@ export default function DepartureDetailPage({
 
                 {/* Aside — le plan de sièges (info live, scannable) passe
                     avant le cycle du départ (audit, consulté après) */}
-                <aside className="space-y-4">
+                <aside className="min-w-0 space-y-6">
                     {/* Plan de sièges — occupation réelle du départ */}
-                    <section className="rounded-[var(--kora-radius)] border border-border/50 bg-card p-4 shadow-[0_16px_45px_rgba(0,29,78,0.07)]">
+                    <section className="departure-seat-plan py-2">
                         <h3 className="mb-1 text-[0.8125rem] font-bold tracking-tight text-foreground uppercase">
                             Plan de sièges
                         </h3>
@@ -1315,57 +1397,66 @@ export default function DepartureDetailPage({
                         </p>
                         {departure.seats.length > 0 ? (
                             <>
-                                {departure.seatLayout ? (
-                                    <SeatMap
-                                        grid={departure.seatLayout}
-                                        mode="display"
-                                        size="mini"
-                                        seatStatuses={seatStatuses}
-                                    />
-                                ) : (
-                                    /* Fallback plat pour les bus sans
+                                <div
+                                    role="region"
+                                    aria-label="Zone défilante du plan de sièges"
+                                    tabIndex={0}
+                                    className="max-h-[660px] [scrollbar-gutter:stable] overflow-auto rounded-sm border-y border-border/60 py-2 pr-2 focus-visible:outline-2 focus-visible:outline-ring"
+                                >
+                                    {departure.seatLayout ? (
+                                        <SeatMap
+                                            grid={departure.seatLayout}
+                                            mode="display"
+                                            cabin={false}
+                                            renderSeat={(cell, button) =>
+                                                cell.code
+                                                    ? inspectSeat(
+                                                          cell.code,
+                                                          button,
+                                                      )
+                                                    : button
+                                            }
+                                            seatStatuses={seatStatuses}
+                                        />
+                                    ) : (
+                                        /* Fallback plat pour les bus sans
                                        gabarit assigné */
-                                    <div className="bus-cabin">
-                                        <span
-                                            className="driver-wheel"
-                                            title="Conducteur"
-                                        >
-                                            <LifeBuoy className="size-3" />
-                                        </span>
-                                        <div className="seat-grid">
-                                            {seatRows.map(
-                                                ([rowNumber, seats]) => (
-                                                    <div
-                                                        key={rowNumber}
-                                                        className={`seat-row${seats.length === 5 ? 'rear' : ''}`}
-                                                    >
-                                                        {seats.map((seat) => (
-                                                            <span
-                                                                key={seat.uuid}
-                                                                className={`seat${!seat.sellable ? 'blocked' : seat.boarded ? 'busy' : seat.occupied ? 'reserved' : ''}`}
-                                                                title={`${seat.code} · ${
-                                                                    !seat.sellable
-                                                                        ? 'Bloqué / équipage'
-                                                                        : seat.boarded
-                                                                          ? 'Embarqué sur ce départ'
-                                                                          : seat.occupied
-                                                                            ? 'Réservé sur ce départ'
-                                                                            : 'Libre'
-                                                                }`}
-                                                            >
-                                                                {seat.code.replace(
-                                                                    /^\d+/,
-                                                                    '',
-                                                                ) || seat.code}
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                ),
-                                            )}
+                                        <div className="relative min-w-[257px] pt-10">
+                                            <span
+                                                className="driver-wheel"
+                                                title="Conducteur"
+                                            >
+                                                <LifeBuoy className="size-3" />
+                                            </span>
+                                            <div className="seat-grid">
+                                                {seatRows.map(
+                                                    ([rowNumber, seats]) => (
+                                                        <div
+                                                            key={rowNumber}
+                                                            className={`seat-row${seats.length === 5 ? 'rear' : ''}`}
+                                                        >
+                                                            {seats.map((seat) =>
+                                                                inspectSeat(
+                                                                    seat.code,
+                                                                    <button
+                                                                        type="button"
+                                                                        aria-label={`Siège ${seat.code}`}
+                                                                        className={`seat ${seatStatuses[seat.code] === 'blocked' ? 'sm-seat--blocked' : seatStatuses[seat.code] === 'maintenance' ? 'sm-seat--maintenance' : (seatStatuses[seat.code] ?? '')}`}
+                                                                    >
+                                                                        {
+                                                                            seat.code
+                                                                        }
+                                                                    </button>,
+                                                                ),
+                                                            )}
+                                                        </div>
+                                                    ),
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
-                                <div className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-2 text-[0.5625rem] text-muted-foreground">
+                                    )}
+                                </div>
+                                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-[0.625rem] text-muted-foreground">
                                     <span className="flex items-center gap-1.5">
                                         <span className="size-2.5 rounded-[0.2rem] border border-border bg-card" />
                                         Libre
