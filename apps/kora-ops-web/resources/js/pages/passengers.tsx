@@ -1,6 +1,5 @@
 import { Head, router } from '@inertiajs/react';
 import {
-    ChevronLeft,
     ChevronRight,
     Eye,
     Globe,
@@ -65,6 +64,22 @@ export default function PassengersPage({
     permissions = { canExport: false, canErase: false },
     pendingErasures = [],
 }: Props) {
+    const { current_page: currentPage, last_page: lastPage } = passengers;
+    const firstNearbyPage = Math.max(
+        1,
+        Math.min(currentPage - 1, lastPage - 2),
+    );
+    const pageNumbers = Array.from(
+        new Set([
+            1,
+            firstNearbyPage,
+            firstNearbyPage + 1,
+            firstNearbyPage + 2,
+            lastPage,
+        ]),
+    )
+        .filter((page) => page >= 1 && page <= lastPage)
+        .sort((a, b) => a - b);
     const [query, setQuery] = useState(filters.q ?? '');
     const [selectedStatus, setSelectedStatus] = useState(
         filters.status ?? 'all',
@@ -558,47 +573,49 @@ export default function PassengersPage({
                                     passagers
                                 </span>
 
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        type="button"
-                                        disabled={passengers.current_page <= 1}
-                                        onClick={() =>
-                                            visit({
-                                                page:
-                                                    passengers.current_page - 1,
-                                            })
-                                        }
-                                        className="btn btn-ghost inline-flex items-center gap-1 p-2 disabled:opacity-40"
-                                        aria-label="Page précédente"
+                                {lastPage > 1 && (
+                                    <nav
+                                        aria-label="Pagination des voyageurs"
+                                        className="flex flex-wrap items-center gap-1.5"
                                     >
-                                        <ChevronLeft className="size-4" />
-                                        Précédent
-                                    </button>
-
-                                    <span className="px-2 font-bold text-foreground">
-                                        Page {passengers.current_page} sur{' '}
-                                        {passengers.last_page}
-                                    </span>
-
-                                    <button
-                                        type="button"
-                                        disabled={
-                                            passengers.current_page >=
-                                            passengers.last_page
-                                        }
-                                        onClick={() =>
-                                            visit({
-                                                page:
-                                                    passengers.current_page + 1,
-                                            })
-                                        }
-                                        className="btn btn-ghost inline-flex items-center gap-1 p-2 disabled:opacity-40"
-                                        aria-label="Page suivante"
-                                    >
-                                        Suivant
-                                        <ChevronRight className="size-4" />
-                                    </button>
-                                </div>
+                                        {pageNumbers.map((page, index) => (
+                                            <span
+                                                key={page}
+                                                className="flex items-center gap-1.5"
+                                            >
+                                                {index > 0 &&
+                                                    page -
+                                                        pageNumbers[index - 1] >
+                                                        1 && (
+                                                        <span aria-hidden="true">
+                                                            …
+                                                        </span>
+                                                    )}
+                                                <button
+                                                    type="button"
+                                                    aria-current={
+                                                        page === currentPage
+                                                            ? 'page'
+                                                            : undefined
+                                                    }
+                                                    aria-label={`Page ${page}`}
+                                                    className={cn(
+                                                        'grid size-8 place-items-center rounded-lg font-bold',
+                                                        page === currentPage
+                                                            ? 'bg-kora text-white'
+                                                            : 'cursor-pointer bg-muted text-foreground hover:bg-gold/20',
+                                                    )}
+                                                    onClick={() =>
+                                                        page !== currentPage &&
+                                                        visit({ page })
+                                                    }
+                                                >
+                                                    {page}
+                                                </button>
+                                            </span>
+                                        ))}
+                                    </nav>
+                                )}
                             </div>
                         </>
                     )}
