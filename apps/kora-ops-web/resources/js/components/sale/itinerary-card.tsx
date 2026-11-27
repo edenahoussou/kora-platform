@@ -267,7 +267,7 @@ export function ItineraryCard({
     return (
         <article
             className={cn(
-                'departure premium-departure',
+                'departure premium-departure cursor-pointer',
                 selected && 'selected',
                 isNextDeparture && 'next-departure',
             )}
@@ -652,10 +652,7 @@ export function ItineraryCard({
                         e.stopPropagation();
                         onSelect();
                     }}
-                    className={cn(
-                        'btn',
-                        selected ? 'btn-primary' : 'btn-ghost',
-                    )}
+                    className="btn btn-navy cursor-pointer"
                 >
                     {selected
                         ? direction === 'inbound'
