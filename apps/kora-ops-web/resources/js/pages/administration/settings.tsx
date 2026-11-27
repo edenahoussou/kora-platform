@@ -18,6 +18,7 @@ import {
     Gauge,
     HardDrive,
     IdCard,
+    Info,
     Languages,
     LockKeyhole,
     MessageCircle,
@@ -47,6 +48,7 @@ import {
     SettingsTabs,
     SettingsToggle,
 } from '@/components/administration/settings/settings-ui';
+import { PanelAlert } from '@/components/panel-alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import administration from '@/routes/administration';
@@ -879,16 +881,32 @@ const titles: Record<SettingsGroup, { title: string; description: string }> = {
 function initialFormValues(
     values: Record<string, unknown>,
     sensitiveProperties: string[],
+    group: SettingsGroup,
 ): FormValues['values'] {
     const sensitive = new Set(sensitiveProperties);
 
     return Object.fromEntries(
-        Object.entries(values).map(([key, value]) => [
-            key,
-            sensitive.has(key)
-                ? ''
-                : (value as FormScalar | Record<string, number>),
-        ]),
+        Object.entries(values)
+            .filter(
+                ([key]) =>
+                    group !== 'wallet' ||
+                    [
+                        'walletCashEnabled',
+                        'walletPointsEnabled',
+                        'walletHoldTtlMinutes',
+                        'topupMinAmount',
+                        'topupMaxAmount',
+                        'cashBalanceCap',
+                        'topupAmountPresets',
+                        'topupInitiationTtlMinutes',
+                    ].includes(key),
+            )
+            .map(([key, value]) => [
+                key,
+                sensitive.has(key)
+                    ? ''
+                    : (value as FormScalar | Record<string, number>),
+            ]),
     );
 }
 
@@ -904,8 +922,9 @@ export default function SettingsPage({
             initialFormValues(
                 snapshot.values as Record<string, unknown>,
                 snapshot.sensitiveProperties,
+                group,
             ),
-        [snapshot],
+        [snapshot, group],
     );
     const form = useForm<FormValues>({
         values: initialValues,
@@ -943,7 +962,15 @@ export default function SettingsPage({
     const error = (key: string): string | undefined => {
         const errors = form.errors as Record<string, string | undefined>;
 
-        return errors[key] ?? errors[`values.${key}`];
+        return (
+            errors[key] ??
+            errors[`values.${key}`] ??
+            Object.entries(errors).find(
+                ([field]) =>
+                    field.startsWith(`${key}.`) ||
+                    field.startsWith(`values.${key}.`),
+            )?.[1]
+        );
     };
     const setValue = (
         key: string,
@@ -1021,7 +1048,20 @@ export default function SettingsPage({
             }
         }
 
-        form.setData('confirmed', confirmed);
+        form.transform((data) => ({
+            ...data,
+            confirmed,
+            values:
+                group === 'wallet'
+                    ? Object.fromEntries(
+                          Object.entries(data.values).filter(
+                              ([key, next]) =>
+                                  JSON.stringify(next) !==
+                                  JSON.stringify(initialValues[key]),
+                          ),
+                      )
+                    : data.values,
+        }));
         form.patch(updateUrl, {
             preserveScroll: true,
             onSuccess: () => form.setData('confirmed', false),
@@ -1240,8 +1280,6 @@ export default function SettingsPage({
 
     const renderWallet = () => {
         const wallet = snapshot.values as WalletSettingsValues;
-        const reminderDays =
-            (value('pointsExpiryReminderDays') as number[]) ?? [];
 
         return (
             <div className="cash-reveal cash-reveal-delay-2 grid gap-4">
@@ -1272,110 +1310,83 @@ export default function SettingsPage({
                         />
                     </div>
                 </SettingsSection>
-                <SettingsSection
-                    title="Fidélité"
-                    description="Lecture seule des règles actives. Leur modification, simulation et programmation se font dans Wallet → Règles de fidélité."
-                >
+                <SettingsSection title="Fidélité">
+                    <PanelAlert tone="info" icon={Info} className="mb-4">
+                        Lecture seule des règles actives. Leur modification,
+                        simulation et programmation se font dans{' '}
+                        <strong>Wallet → Règles de fidélité</strong>.
+                    </PanelAlert>
                     <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
                         <SettingsField
                             label="Taux d’acquisition"
                             hint={`${(wallet.loyaltyEarnRateBasisPoints / 100).toFixed(2)} % du montant monétaire de la jambe.`}
-                            value={
-                                value('loyaltyEarnRateBasisPoints') as number
-                            }
+                            value={wallet.loyaltyEarnRateBasisPoints}
                             type="number"
                             suffix="pts base 10000"
                             disabled={true}
                             error={error('loyaltyEarnRateBasisPoints')}
-                            onChange={(nextValue) =>
-                                setNumber(
-                                    'loyaltyEarnRateBasisPoints',
-                                    nextValue,
-                                )
-                            }
                         />
                         <SettingsField
                             label="Valeur d’un point"
                             hint="Valeur d’usage d’un point en FCFA."
-                            value={value('pointValueFcfa') as number}
+                            value={wallet.pointValueFcfa}
                             type="number"
                             suffix="FCFA"
                             disabled={true}
                             error={error('pointValueFcfa')}
-                            onChange={(nextValue) =>
-                                setNumber('pointValueFcfa', nextValue)
-                            }
                         />
                         <SettingsField
                             label="Minimum d’utilisation"
                             hint="Points minimums par paiement."
-                            value={value('pointsMinSpend') as number}
+                            value={wallet.pointsMinSpend}
                             type="number"
                             suffix="points"
                             disabled={true}
                             error={error('pointsMinSpend')}
-                            onChange={(nextValue) =>
-                                setNumber('pointsMinSpend', nextValue)
-                            }
                         />
                         <SettingsField
                             label="Bonus bienvenue"
                             hint="Versé une fois, après la première jambe effectuée."
-                            value={value('bonusWelcomePoints') as number}
+                            value={wallet.bonusWelcomePoints}
                             type="number"
                             suffix="points"
                             disabled={true}
                             error={error('bonusWelcomePoints')}
-                            onChange={(nextValue) =>
-                                setNumber('bonusWelcomePoints', nextValue)
-                            }
                         />
                         <SettingsField
                             label="Bonus parrainage"
                             hint="Versé au parrain quand le filleul utilise son premier billet."
-                            value={value('bonusReferralPoints') as number}
+                            value={wallet.bonusReferralPoints}
                             type="number"
                             suffix="points"
                             disabled={true}
                             error={error('bonusReferralPoints')}
-                            onChange={(nextValue) =>
-                                setNumber('bonusReferralPoints', nextValue)
-                            }
                         />
                         <SettingsField
                             label="Bonus anniversaire"
                             hint="Versé à l’anniversaire de création du compte."
-                            value={value('bonusAnniversaryPoints') as number}
+                            value={wallet.bonusAnniversaryPoints}
                             type="number"
                             suffix="points"
                             disabled={true}
                             error={error('bonusAnniversaryPoints')}
-                            onChange={(nextValue) =>
-                                setNumber('bonusAnniversaryPoints', nextValue)
-                            }
                         />
                         <SettingsField
                             label="Rang de l’utilisation bonus"
                             hint="Nième utilisation du mois calendaire déclenchant le bonus."
-                            value={value('bonusUsageNth') as number}
+                            value={wallet.bonusUsageNth}
                             type="number"
                             disabled={true}
                             error={error('bonusUsageNth')}
-                            onChange={(nextValue) =>
-                                setNumber('bonusUsageNth', nextValue)
-                            }
                         />
                         <SettingsField
                             label="Montant du bonus d’usage"
                             hint="Points versés au rang configuré."
-                            value={value('bonusUsagePoints') as number}
+                            value={wallet.bonusUsagePoints}
                             type="number"
                             suffix="points"
                             disabled={true}
                             error={error('bonusUsagePoints')}
-                            onChange={(nextValue) =>
-                                setNumber('bonusUsagePoints', nextValue)
-                            }
                         />
                     </div>
                 </SettingsSection>
@@ -1387,34 +1398,18 @@ export default function SettingsPage({
                         <SettingsField
                             label="Fenêtre d’expiration"
                             hint="Mois sans activité qualifiante avant expiration globale."
-                            value={value('pointsExpiryMonths') as number}
+                            value={wallet.pointsExpiryMonths}
                             type="number"
                             suffix="mois"
                             disabled={true}
                             error={error('pointsExpiryMonths')}
-                            onChange={(nextValue) =>
-                                setNumber('pointsExpiryMonths', nextValue)
-                            }
                         />
                         <SettingsField
                             label="Jalons de rappel"
                             hint="Jours avant expiration, séparés par des virgules."
-                            value={reminderDays.join(', ')}
+                            value={wallet.pointsExpiryReminderDays.join(', ')}
                             disabled={true}
                             error={error('pointsExpiryReminderDays')}
-                            onChange={(nextValue) =>
-                                setValue(
-                                    'pointsExpiryReminderDays',
-                                    nextValue
-                                        .split(',')
-                                        .map((entry) => Number(entry.trim()))
-                                        .filter(
-                                            (entry) =>
-                                                Number.isFinite(entry) &&
-                                                entry > 0,
-                                        ),
-                                )
-                            }
                         />
                     </div>
                 </SettingsSection>

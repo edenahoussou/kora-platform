@@ -4,6 +4,7 @@ namespace App\Modules\Settings\Http\Requests;
 
 use App\Modules\Settings\Data\SettingsGroup;
 use App\Modules\Settings\Settings\WalletSettings;
+use App\Modules\Wallet\Data\WalletLoyaltyRuleSet;
 use Illuminate\Support\Facades\Gate;
 
 final class UpdateWalletSettingsRequest extends SettingsUpdateRequest
@@ -26,18 +27,6 @@ final class UpdateWalletSettingsRequest extends SettingsUpdateRequest
             'topupAmountPresets',
             'topupInitiationTtlMinutes',
         ];
-        $loyaltyFields = [
-            'loyaltyEarnRateBasisPoints',
-            'pointValueFcfa',
-            'pointsMinSpend',
-            'bonusWelcomePoints',
-            'bonusReferralPoints',
-            'bonusAnniversaryPoints',
-            'bonusUsageNth',
-            'bonusUsagePoints',
-            'pointsExpiryMonths',
-            'pointsExpiryReminderDays',
-        ];
         $rules = parent::rules();
         $rules['values'] = ['sometimes', 'array:'.implode(',', $editableFields)];
         $rules['values.walletCashEnabled'] = ['sometimes', 'boolean'];
@@ -50,11 +39,17 @@ final class UpdateWalletSettingsRequest extends SettingsUpdateRequest
         $rules['values.topupAmountPresets'] = ['sometimes', 'array', 'min:1', 'max:8'];
         $rules['values.topupAmountPresets.*'] = ['required', 'integer', 'between:1,100000000'];
 
-        foreach ($loyaltyFields as $field) {
+        foreach (WalletLoyaltyRuleSet::FIELDS as $field) {
             $rules['values.'.$field] = ['prohibited'];
         }
 
         return $rules;
+    }
+
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        return ['values.*.prohibited' => 'Le champ « :attribute » se modifie dans Wallet → Règles de fidélité.'];
     }
 
     /**
