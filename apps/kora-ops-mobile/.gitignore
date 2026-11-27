@@ -47,3 +47,8 @@ app.*.map.json
 kora-key.jks
 
 keys.md
+# APK/AAB livrables copiés depuis build/ (voir dist/README) — binaires de
+# 80 Mo, jamais dans l'historique Git.
+/dist/
+*.apk
+*.aab
