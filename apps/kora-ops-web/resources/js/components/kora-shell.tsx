@@ -11,6 +11,12 @@ type Props = {
     children: ReactNode;
 };
 
+const compactSidebarQuery = '(1024px <= width < 1200px)';
+
+function preferredSidebarCollapsed(): boolean {
+    return window.localStorage.getItem('kora-sidebar-collapsed') === 'true';
+}
+
 /**
  * KORA OPS application shell — grid layout with a sticky navy sidebar
  * (264px) and a main content area with a sticky topbar.
@@ -27,15 +33,33 @@ export function KoraShell({ children }: Props) {
             return false;
         }
 
-        return window.localStorage.getItem('kora-sidebar-collapsed') === 'true';
+        return (
+            window.matchMedia(compactSidebarQuery).matches ||
+            preferredSidebarCollapsed()
+        );
     });
 
     useEffect(() => {
-        window.localStorage.setItem(
-            'kora-sidebar-collapsed',
-            String(sidebarCollapsed),
-        );
-    }, [sidebarCollapsed]);
+        const viewport = window.matchMedia(compactSidebarQuery);
+        const syncSidebar = () =>
+            setSidebarCollapsed(
+                viewport.matches || preferredSidebarCollapsed(),
+            );
+
+        syncSidebar();
+        viewport.addEventListener('change', syncSidebar);
+
+        return () => viewport.removeEventListener('change', syncSidebar);
+    }, []);
+
+    const toggleSidebar = () => {
+        const next = !sidebarCollapsed;
+        setSidebarCollapsed(next);
+
+        if (!window.matchMedia(compactSidebarQuery).matches) {
+            window.localStorage.setItem('kora-sidebar-collapsed', String(next));
+        }
+    };
 
     return (
         <div
@@ -50,7 +74,7 @@ export function KoraShell({ children }: Props) {
                 collapsed={sidebarCollapsed}
                 mobileOpen={mobileOpen}
                 onMobileClose={() => setMobileOpen(false)}
-                onToggleCollapse={() => setSidebarCollapsed((value) => !value)}
+                onToggleCollapse={toggleSidebar}
             />
             <div className="kora-main flex min-h-screen flex-col">
                 <KoraTopbar
