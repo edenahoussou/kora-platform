@@ -8,6 +8,7 @@ use App\Modules\Boarding\Models\BoardingEvent;
 use App\Modules\Boarding\Models\SeatReleaseEvent;
 use App\Modules\Booking\Data\ReservationSegmentStatus;
 use App\Modules\Booking\Models\ReservationSegment;
+use App\Modules\Booking\Services\DepartureStopTimeResolver;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\Parcels\Services\ParcelRevenue;
 use Illuminate\Support\Facades\Gate;
@@ -23,6 +24,7 @@ class DepartureDetailService
     public function __construct(
         private readonly DepartureOccupancyService $occupancyService,
         private readonly ManifestPassengerSerializer $manifestSerializer,
+        private readonly DepartureStopTimeResolver $stopTimeResolver,
     ) {}
 
     /** @return array<string, mixed> */
@@ -87,6 +89,11 @@ class DepartureDetailService
 
         $stops = [];
         foreach ($tripStops as $index => $stop) {
+            $timezone = $this->stopTimeResolver->timezoneFor($departure, $stop);
+            $departureAt = $index === 0
+                ? $departure->scheduledDepartureAt()
+                : $this->stopTimeResolver->departureAt($departure, $stop);
+
             $stops[] = [
                 'uuid' => $stop->uuid,
                 'name' => $stop->name,
@@ -98,6 +105,12 @@ class DepartureDetailService
                     ? (int) $stop->stop_order
                     : ($circulationOrder[$stop->uuid] ?? $index),
                 'city' => $stop->city,
+                'departureTime' => $index === $tripStops->count() - 1 && $index !== 0
+                    ? null
+                    : $departureAt?->setTimezone($timezone)->format('H:i'),
+                'arrivalTime' => $index === 0
+                    ? null
+                    : $this->stopTimeResolver->arrivalAt($departure, $stop)?->setTimezone($timezone)->format('H:i'),
                 'physicalStopName' => $stop->physicalStop?->name,
             ];
         }

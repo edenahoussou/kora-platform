@@ -245,7 +245,7 @@ export function SettingsField({
     label: string;
     hint?: string;
     value: string | number | null | undefined;
-    onChange: (value: string) => void;
+    onChange?: (value: string) => void;
     disabled: boolean;
     error?: string;
     type?: 'text' | 'number' | 'url';
@@ -295,7 +295,7 @@ export function SettingsField({
                     value={value ?? ''}
                     disabled={disabled}
                     placeholder={placeholder}
-                    onChange={(event) => onChange(event.target.value)}
+                    onChange={(event) => onChange?.(event.target.value)}
                     aria-invalid={Boolean(error)}
                     className={cn(
                         'h-10 rounded-[10px] border-border bg-background text-[13px] shadow-none transition-[border-color,box-shadow] focus-visible:border-gold focus-visible:ring-[3px] focus-visible:ring-gold/15',

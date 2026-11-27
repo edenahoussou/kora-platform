@@ -902,6 +902,7 @@ it('displays the real circulation direction for return departures', function ():
         'bus_id' => $bus->id,
         'departure_date' => Carbon::today(RevenuePeriod::TIMEZONE)->format('Y-m-d'),
         'departure_time' => '16:30',
+        'departure_timezone' => 'Africa/Porto-Novo',
         'status' => DepartureStatus::Scheduled->value,
         'stop_times' => [
             ['stop_uuid' => $abidjan->uuid, 'timezone' => 'Africa/Porto-Novo', 'departure_minutes' => 0, 'arrival_minutes' => null],
@@ -965,9 +966,15 @@ it('displays the real circulation direction for return departures', function ():
             ->where('departure.isReturn', true)
             ->where('departure.stops.0.uuid', $abidjan->uuid)
             ->where('departure.stops.0.circulationOrder', 0)
+            ->where('departure.stops.0.departureTime', '16:30')
+            ->where('departure.stops.0.arrivalTime', null)
             ->where('departure.stops.1.uuid', $portoNovo->uuid)
             ->where('departure.stops.1.circulationOrder', 1)
+            ->where('departure.stops.1.arrivalTime', '13:05')
+            ->where('departure.stops.1.departureTime', '13:15')
             ->where('departure.stops.2.uuid', $cotonou->uuid)
-            ->where('departure.stops.2.circulationOrder', 2),
+            ->where('departure.stops.2.circulationOrder', 2)
+            ->where('departure.stops.2.arrivalTime', '13:30')
+            ->where('departure.stops.2.departureTime', null),
         );
 });

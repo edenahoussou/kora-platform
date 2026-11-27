@@ -2,7 +2,9 @@
 
 use App\Models\User;
 use App\Modules\Settings\Settings\WalletSettings;
+use App\Modules\Wallet\Models\WalletLoyaltyRuleVersion;
 use Database\Seeders\KoraBusRolePermissionSeeder;
+use Database\Seeders\WalletLoyaltyRuleVersionSeeder;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
 
@@ -67,7 +69,7 @@ it('keeps loyalty rule values out of direct settings updates', function (): void
         ->patch(route('administration.settings.wallet.update'), [
             'values' => ['bonusWelcomePoints' => $settings->bonusWelcomePoints + 100],
         ])
-        ->assertSessionHasErrors(['values.bonusWelcomePoints']);
+        ->assertSessionHasErrors(['values.bonusWelcomePoints' => 'Le champ « Bonus bienvenue » se modifie dans Wallet → Règles de fidélité.']);
 
     expect(app(WalletSettings::class)->bonusWelcomePoints)->toBe($settings->bonusWelcomePoints);
 });
@@ -94,4 +96,23 @@ it('refuses wallet settings mutations without the operations manage permission',
             'values' => ['walletCashEnabled' => true],
         ])
         ->assertForbidden();
+});
+
+it('opens the cash balance independently of historical loyalty fields', function (): void {
+    $this->seed(WalletLoyaltyRuleVersionSeeder::class);
+    $version = WalletLoyaltyRuleVersion::query()->sole();
+    $settings = app(WalletSettings::class);
+    $settings->pointsExpiryReminderDays = [];
+    $settings->save();
+
+    $this->actingAs(walletSettingsAdmin())
+        ->patch(route('administration.settings.wallet.update'), ['values' => ['walletCashEnabled' => true]])
+        ->assertSessionHasNoErrors();
+
+    $this->get(route('administration.settings.wallet'))
+        ->assertInertia(fn (Assert $page) => $page->where('snapshot.values.walletCashEnabled', true));
+
+    expect($version->fresh()->getAttributes())->toBe($version->getAttributes())
+        ->and(Activity::query()->where('log_name', 'settings')->latest('id')->firstOrFail()->properties['fields'])
+        ->toBe(['walletCashEnabled']);
 });

@@ -2,26 +2,56 @@
 
 namespace App\Modules\Notifications\Mail;
 
+use App\Modules\AssistedBooking\Models\AssistedBooking;
+use App\Modules\AssistedBooking\Services\AssistedBookingSupportChannels;
+use App\Modules\Notifications\Data\OpsNotificationType;
 use App\Modules\Notifications\Models\OpsNotificationEvent;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 
 /**
- * E-mail d'alerte opérationnelle boarding. Même contenu que la notification :
- * aucune donnée financière, aucun identifiant numérique.
+ * E-mail d’alerte opérationnelle envoyé aux destinataires autorisés.
  */
 class OpsAlertMail extends Mailable
 {
-    public function __construct(public readonly OpsNotificationEvent $event) {}
+    private ?AssistedBooking $assistedBooking = null;
+
+    public function __construct(public readonly OpsNotificationEvent $event)
+    {
+        $uuid = $event->data['assisted_booking_uuid'] ?? null;
+        if ($event->type === OpsNotificationType::AssistedBookingRequested && is_string($uuid)) {
+            $this->assistedBooking = AssistedBooking::query()->with('reservation.tickets')->where('uuid', $uuid)->first();
+        }
+    }
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: '[KORA OPS] '.$this->event->title);
+        $reference = $this->assistedBooking?->reservation->reference;
+        $subject = $reference === null ? $this->event->title : 'Réservation '.$reference.' à prendre en charge';
+
+        return new Envelope(subject: '[KORA OPS] '.$subject);
     }
 
     public function content(): Content
     {
+        if ($this->event->type === OpsNotificationType::AssistedBookingRequested) {
+            $booking = $this->assistedBooking;
+
+            return new Content(
+                markdown: 'mail.assisted-booking-requested',
+                with: [
+                    'reference' => $booking?->reservation->reference,
+                    'contactName' => $booking?->contact_name,
+                    'contactPhone' => $booking?->contact_phone,
+                    'passengerCount' => (int) ($booking?->snapshot['passenger_count'] ?? 0),
+                    'itinerary' => $booking === null ? [] : app(AssistedBookingSupportChannels::class)->itinerary($booking),
+                    'ticketCodes' => $booking?->reservation->tickets->pluck('short_code')->filter()->implode(', '),
+                    'detailUrl' => route('assisted-bookings.index', $booking === null ? [] : ['open' => $booking->uuid]),
+                ],
+            );
+        }
+
         $departure = $this->event->departure;
         $terminal = $this->event->terminal;
 

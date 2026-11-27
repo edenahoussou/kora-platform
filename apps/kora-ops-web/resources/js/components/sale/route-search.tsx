@@ -1,5 +1,5 @@
 import { ArrowRightLeft, CalendarDays, MapPin, Search } from 'lucide-react';
-import type { ReactNode, SyntheticEvent } from 'react';
+import type { MouseEvent, ReactNode, SyntheticEvent } from 'react';
 import { cn } from '@/lib/utils';
 import type { SaleCity, SaleSearch, SaleTripType } from './sale-types';
 
@@ -15,6 +15,13 @@ const TRIP_OPTIONS: Array<{ value: SaleTripType; label: string }> = [
     { value: 'one_way', label: 'Aller simple' },
     { value: 'round_trip', label: 'Aller-retour' },
 ];
+
+const dateInputClassName =
+    'h-12 w-full cursor-pointer rounded-[0.8rem] border border-white/15 bg-white/10 px-3 text-[0.75rem] font-bold text-white outline-none focus:border-gold focus:ring-2 focus:ring-gold/30 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-datetime-edit]:cursor-pointer';
+
+function openDatePicker(event: MouseEvent<HTMLInputElement>) {
+    event.currentTarget.showPicker?.();
+}
 
 function FieldLabel({
     icon,
@@ -159,9 +166,10 @@ export function RouteSearch({
                     </FieldLabel>
                     <input
                         type="date"
+                        onClick={openDatePicker}
                         value={value.date ?? ''}
                         onChange={(event) => update('date', event.target.value)}
-                        className="h-12 w-full rounded-[0.8rem] border border-white/15 bg-white/10 px-3 text-[0.75rem] font-bold text-white outline-none focus:border-gold focus:ring-2 focus:ring-gold/30"
+                        className={dateInputClassName}
                     />
                 </label>
                 {isRoundTrip && (
@@ -173,11 +181,12 @@ export function RouteSearch({
                         </FieldLabel>
                         <input
                             type="date"
+                            onClick={openDatePicker}
                             value={value.returnDate ?? ''}
                             onChange={(event) =>
                                 update('returnDate', event.target.value)
                             }
-                            className="h-12 w-full rounded-[0.8rem] border border-white/15 bg-white/10 px-3 text-[0.75rem] font-bold text-white outline-none focus:border-gold focus:ring-2 focus:ring-gold/30"
+                            className={dateInputClassName}
                         />
                     </label>
                 )}

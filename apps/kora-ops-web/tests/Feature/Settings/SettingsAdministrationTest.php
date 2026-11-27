@@ -294,3 +294,16 @@ it('tests e-MECeF without creating a fiscal document and audits only safe fields
         ->and($activity->properties['safeMessage'])->toContain('KORA EXPRESS')
         ->and((string) $activity->properties)->not->toContain('probe-secret');
 });
+
+it('uses the French field label for invalid settings', function (string $group, array $values, string $field, string $label): void {
+    $this->actingAs(settingsAdministrator())
+        ->patch(route('administration.settings.'.$group.'.update'), ['values' => $values])
+        ->assertSessionHasErrors([$field]);
+
+    expect(session('errors')->first($field))->toContain($label)->not->toContain($field);
+})->with([
+    ['general', ['displayName' => ''], 'displayName', 'Nom d’affichage'],
+    ['operations', ['parcelMinimumWeightGrams' => -1], 'parcelMinimumWeightGrams', 'Poids minimum de pesée'],
+    ['wallet', ['topupAmountPresets' => [0]], 'values.topupAmountPresets.0', 'Paliers de recharge'],
+    ['integrations', ['firebaseProjectId' => str_repeat('x', 201)], 'firebaseProjectId', 'ID du projet Firebase'],
+]);

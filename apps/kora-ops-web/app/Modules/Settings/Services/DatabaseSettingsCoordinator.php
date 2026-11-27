@@ -149,7 +149,7 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
 
         if ($unknown !== []) {
             throw ValidationException::withMessages([
-                'settings' => ['Unknown settings: '.implode(', ', $unknown)],
+                'settings' => ['Un ou plusieurs paramètres sont inconnus.'],
             ]);
         }
 
@@ -157,7 +157,7 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
 
         if ($invalidClear !== []) {
             throw ValidationException::withMessages([
-                'clearSecrets' => ['Only sensitive integration settings may be cleared.'],
+                'clearSecrets' => ['Seuls les secrets des intégrations peuvent être effacés.'],
             ]);
         }
 
@@ -181,7 +181,7 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
             $merged['mapOsmAttribution'] = trim(strip_tags((string) $merged['mapOsmAttribution']));
         }
 
-        $validator = Validator::make($merged, $this->rules($group));
+        $validator = Validator::make($merged, $this->rules($group), [], trans('settings', [], 'fr'));
         $validator->after(function ($validator) use ($group, $merged, $submitted): void {
             foreach ($this->dependencyErrors($group, $merged, $submitted) as $field => $message) {
                 $validator->errors()->add($field, $message);
@@ -283,17 +283,6 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
             return [
                 'walletCashEnabled' => ['required', 'boolean'],
                 'walletPointsEnabled' => ['required', 'boolean'],
-                'loyaltyEarnRateBasisPoints' => ['required', 'integer', 'between:0,10000'],
-                'pointValueFcfa' => ['required', 'integer', 'between:1,100000'],
-                'pointsMinSpend' => ['required', 'integer', 'between:1,1000000'],
-                'bonusWelcomePoints' => ['required', 'integer', 'between:0,1000000'],
-                'bonusReferralPoints' => ['required', 'integer', 'between:0,1000000'],
-                'bonusAnniversaryPoints' => ['required', 'integer', 'between:0,1000000'],
-                'bonusUsageNth' => ['required', 'integer', 'between:1,1000'],
-                'bonusUsagePoints' => ['required', 'integer', 'between:0,1000000'],
-                'pointsExpiryMonths' => ['required', 'integer', 'between:1,120'],
-                'pointsExpiryReminderDays' => ['required', 'array', 'min:1', 'max:5'],
-                'pointsExpiryReminderDays.*' => ['required', 'integer', 'between:1,365'],
                 'walletHoldTtlMinutes' => ['required', 'integer', 'between:1,1440'],
                 'topupMinAmount' => ['nullable', 'integer', 'min:0', 'max:100000000'],
                 'topupMaxAmount' => ['nullable', 'integer', 'min:0', 'max:100000000'],
@@ -435,7 +424,7 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
             $errors = [];
 
             if ((int) $values['opsSessionTtlMinutes'] > (int) $values['opsSessionMaxLifetimeMinutes']) {
-                $errors['opsSessionTtlMinutes'] = 'The session TTL cannot exceed the maximum lifetime.';
+                $errors['opsSessionTtlMinutes'] = 'La durée de session ne peut pas dépasser sa durée maximale.';
             }
 
             if ((int) $values['seatHoldMinutes'] > (int) $values['quoteTtlMinutes']) {
@@ -528,7 +517,7 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
         }
 
         if ((bool) $values['fedapayEnabled'] && blank($values['fedapaySecretKey'])) {
-            $errors['fedapaySecretKey'] = 'A FedaPay secret key is required when the provider is enabled.';
+            $errors['fedapaySecretKey'] = 'La clé secrète FedaPay est requise pour activer FedaPay.';
         }
 
         if ((bool) $values['tawktoEnabled'] && (blank($values['tawktoPropertyId']) || blank($values['tawktoWidgetId']))) {
@@ -540,15 +529,15 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
         }
 
         if ((bool) $values['mtnMomoEnabled'] && (blank($values['mtnMomoSubscriptionKey']) || blank($values['mtnMomoUserId']) || blank($values['mtnMomoApiKey']))) {
-            $errors['mtnMomoSubscriptionKey'] = 'MTN MoMo credentials are required when the provider is enabled.';
+            $errors['mtnMomoSubscriptionKey'] = 'Les identifiants MTN MoMo sont requis pour activer MTN MoMo.';
         }
 
         if ((bool) $values['mtnMomoEnabled'] && blank($values['mtnMomoCallbackUrl'])) {
-            $errors['mtnMomoCallbackUrl'] = 'A public HTTPS callback URL is required when MTN MoMo is enabled.';
+            $errors['mtnMomoCallbackUrl'] = 'Une URL de rappel HTTPS publique est requise pour activer MTN MoMo.';
         }
 
         if ((bool) $values['mtnMomoEnabled'] && blank($values['mtnMomoWebhookSecret'])) {
-            $errors['mtnMomoWebhookSecret'] = 'A webhook secret of at least 32 characters is required when MTN MoMo is enabled.';
+            $errors['mtnMomoWebhookSecret'] = 'Le secret du webhook MTN MoMo doit contenir au moins 32 caractères.';
         }
 
         $mtnEnvironment = $values['mtnMomoEnvironment'] ?? null;
@@ -570,7 +559,7 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
         }
 
         if ($values['mapProvider'] === 'google' && blank($values['mapGoogleApiKey'])) {
-            $errors['mapGoogleApiKey'] = 'A Google Maps API key is required when Google is the active provider.';
+            $errors['mapGoogleApiKey'] = 'La clé API Google Maps est requise pour utiliser Google Maps.';
         }
 
         foreach (['emecfTestInvoiceUrl', 'emecfTestInfoUrl', 'emecfProductionInvoiceUrl', 'emecfProductionInfoUrl'] as $field) {
@@ -597,7 +586,7 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
             $clientSecret = $provider.'OauthClientSecret';
 
             if (filled($values[$clientId]) && blank($values[$clientSecret])) {
-                $errors[$clientSecret] = 'An OAuth client secret is required when a client ID is configured.';
+                $errors[$clientSecret] = 'Le secret client OAuth est requis lorsque l’identifiant client est renseigné.';
             }
         }
 

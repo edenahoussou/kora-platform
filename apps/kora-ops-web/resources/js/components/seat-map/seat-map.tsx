@@ -13,6 +13,10 @@ type Props = {
     seatStatuses?: Record<string, SeatMapStatus>;
     seatLabels?: Record<string, string>;
     selectedCodes?: string[];
+    renderSeat?: (
+        cell: LayoutCell,
+        button: React.ReactElement,
+    ) => React.ReactNode;
     onSeatClick?: (cell: LayoutCell, event: React.MouseEvent) => void;
 };
 
@@ -64,6 +68,7 @@ function MapCell({
     statuses,
     labels,
     selectedCodes,
+    renderSeat,
     onSeatClick,
 }: {
     cell: LayoutCell | undefined;
@@ -71,6 +76,7 @@ function MapCell({
     statuses: Record<string, SeatMapStatus>;
     labels: Record<string, string>;
     selectedCodes: string[];
+    renderSeat?: Props['renderSeat'];
     onSeatClick?: Props['onSeatClick'];
 }) {
     if (!cell || cell.kind === 'empty' || cell.kind === 'aisle') {
@@ -104,11 +110,11 @@ function MapCell({
     }
 
     const clickable =
-        (mode !== 'display' || Boolean(onSeatClick)) &&
+        (mode !== 'display' || Boolean(onSeatClick || renderSeat)) &&
         !(mode === 'select' && isUnavailableForSelection(cell, statuses));
     const label = cell.code ? labels[cell.code] : undefined;
 
-    return (
+    const button = (
         <button
             type="button"
             disabled={!clickable}
@@ -129,6 +135,8 @@ function MapCell({
             {label && <small>{label}</small>}
         </button>
     );
+
+    return renderSeat ? renderSeat(cell, button) : button;
 }
 
 export function SeatMap({
@@ -139,6 +147,7 @@ export function SeatMap({
     seatStatuses = {},
     seatLabels = {},
     selectedCodes = [],
+    renderSeat,
     onSeatClick,
 }: Props) {
     const cells: React.ReactNode[] = [];
@@ -153,6 +162,7 @@ export function SeatMap({
                     statuses={seatStatuses}
                     labels={seatLabels}
                     selectedCodes={selectedCodes}
+                    renderSeat={renderSeat}
                     onSeatClick={onSeatClick}
                 />,
             );

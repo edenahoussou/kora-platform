@@ -236,7 +236,7 @@ class PassengerDirectoryService
             'documentNumber' => $summary['document_number'] ?? null,
             'birthDate' => $summary['birth_date'] ?? null,
             'hasAccount' => $hasAccount,
-            'ticketsCount' => $ticketsCount > 0 ? $ticketsCount : (int) $summary['reservations_count'],
+            'ticketsCount' => $ticketsCount,
             'totalSpend' => $totalSpend,
             'totalSpendLabel' => number_format($totalSpend, 0, ',', ' ').' FCFA',
             'lastRoute' => $lastRoute,

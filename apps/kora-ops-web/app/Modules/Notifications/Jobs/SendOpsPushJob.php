@@ -7,6 +7,7 @@ use App\Modules\IdentityAccess\Data\UserDeviceStatus;
 use App\Modules\IdentityAccess\Models\UserDevice;
 use App\Modules\Notifications\Data\OpsNotificationChannel;
 use App\Modules\Notifications\Data\OpsNotificationDeliveryStatus;
+use App\Modules\Notifications\Data\OpsNotificationType;
 use App\Modules\Notifications\Models\OpsNotificationDelivery;
 use App\Modules\Notifications\Models\OpsNotificationEvent;
 use App\Modules\Notifications\Services\FirebaseMessagingClient;
@@ -73,7 +74,10 @@ class SendOpsPushJob implements ShouldQueue
             ];
 
             if ($device->platform === DevicePlatform::Web) {
-                $message['link'] = route('dashboard');
+                $assistedBookingUuid = $event->data['assisted_booking_uuid'] ?? null;
+                $message['link'] = is_string($assistedBookingUuid)
+                    ? route('assisted-bookings.index', ['open' => $assistedBookingUuid])
+                    : route('dashboard');
             } else {
                 $message['platform'] = $device->platform->value;
             }
@@ -124,7 +128,7 @@ class SendOpsPushJob implements ShouldQueue
         return match ($type) {
             'fiscalization_failed' => 'Une opération de fiscalisation a échoué après ses dernières tentatives.',
             'cash_variance_submitted' => 'Une clôture de caisse avec écart attend votre approbation.',
-            'assisted_booking_requested' => 'Une nouvelle demande d’assistance attend une prise en charge.',
+            OpsNotificationType::AssistedBookingRequested->value => OpsNotificationType::ASSISTED_BOOKING_REQUEST_MESSAGE,
             'assisted_booking_reassigned' => 'Une demande d’assistance vous a été réaffectée.',
             'departure_delayed' => 'Un départ de votre périmètre a été retardé.',
             default => 'Une alerte opérationnelle nécessite votre attention.',

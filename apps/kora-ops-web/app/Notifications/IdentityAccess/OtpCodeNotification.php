@@ -53,15 +53,14 @@ class OtpCodeNotification extends Notification implements ShouldBeEncrypted, Sho
 
     public function toMail(object $notifiable): MailMessage
     {
+        $instruction = $this->purpose === OtpPurpose::LoginNewDevice
+            ? 'Si vous n’êtes pas à l’origine de cette demande, ignorez ce message.'
+            : 'Ne partagez jamais ce code avec une autre personne.';
+
         return (new MailMessage)
             ->subject('Votre code de vérification KORA')
             ->markdown('notifications::email', ['preview' => 'Utilisez le code contenu dans ce message pour poursuivre votre vérification.'])
             ->greeting('Bonjour,')
-            ->line('Voici votre code de vérification KORA :')
-            ->line($this->code)
-            ->line("Ce code expire dans {$this->expiresInMinutes} minutes.")
-            ->line($this->purpose === OtpPurpose::LoginNewDevice
-                ? 'Si vous n’êtes pas à l’origine de cette demande, ignorez ce message.'
-                : 'Ne partagez jamais ce code avec une autre personne.');
+            ->line("Votre code de vérification KORA est **{$this->code}**. Il expire dans {$this->expiresInMinutes} minutes. {$instruction}");
     }
 }

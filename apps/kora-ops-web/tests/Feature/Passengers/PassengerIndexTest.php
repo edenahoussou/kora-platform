@@ -69,6 +69,7 @@ class PassengerIndexTest extends TestCase
             ->where('passengers.data.0.fullName', 'Aïcha Hounkpè')
             ->where('passengers.data.0.nationality', 'BJ')
             ->where('passengers.data.0.documentNumber', 'PP123456')
+            ->where('passengers.data.0.ticketsCount', 0)
             ->has('filters')
         );
     }
@@ -144,6 +145,8 @@ class PassengerIndexTest extends TestCase
         $response->assertJson([
             'phone' => '+22994113872',
             'fullName' => 'Fatou Dossou',
+            'ticketsCount' => 0,
+            'tickets' => [],
             'nationality' => 'BJ',
             'documentNumber' => 'PP998877',
         ]);

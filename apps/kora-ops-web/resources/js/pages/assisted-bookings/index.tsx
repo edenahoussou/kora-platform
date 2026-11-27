@@ -144,23 +144,20 @@ function KpiCard({
     icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
     label: string;
     value: string | number;
-    tone: 'navy' | 'gold' | 'blue' | 'muted' | 'green' | 'destructive';
+    tone: 'gold' | 'blue' | 'emerald' | 'destructive';
 }) {
-    const toneStyles = {
-        navy: 'bg-kora text-white',
-        gold: 'bg-gold/15 text-gold',
-        blue: 'bg-digital/10 text-digital',
-        muted: 'bg-muted text-muted-foreground',
-        green: 'bg-emerald-500/10 text-emerald-600',
-        destructive: 'bg-destructive/10 text-destructive',
+    const styles = {
+        gold: 'cash-ledger-card-kpi-gold',
+        blue: 'cash-ledger-card-kpi-digital',
+        emerald: 'cash-ledger-card-kpi-emerald',
+        destructive: 'cash-ledger-card-kpi-absent',
     };
-    const iconBg = toneStyles[tone] ?? toneStyles.muted;
 
     return (
-        <article className="cash-ledger-card cash-ledger-card-cash">
+        <article className={cn('cash-ledger-card', styles[tone])}>
             <div className="cash-ledger-head">
                 <div className="cash-ledger-identity">
-                    <span className={cn('cash-ledger-brand', iconBg)}>
+                    <span className="cash-ledger-brand">
                         <Icon className="size-4" strokeWidth={1.7} />
                     </span>
                     <div>
@@ -362,15 +359,15 @@ export default function AssistedBookingsIndex({
                     />
                     <KpiCard
                         icon={TimerOff}
-                        label="Expirés"
+                        label="Expirées"
                         value={counters.expired}
                         tone="destructive"
                     />
                     <KpiCard
                         icon={CheckCircle2}
-                        label="Finalisés"
+                        label="Finalisées"
                         value={counters.finalized}
-                        tone="navy"
+                        tone="emerald"
                     />
                 </section>
 
@@ -554,6 +551,7 @@ export default function AssistedBookingsIndex({
                                             </td>
                                             <td className="px-4 py-3.5">
                                                 <KoraStatusBadge
+                                                    variant="solid"
                                                     label={
                                                         assistedStatusLabels[
                                                             item.status

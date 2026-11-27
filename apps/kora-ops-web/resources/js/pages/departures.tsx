@@ -99,12 +99,15 @@ const statusLabels: Record<string, string> = {
     cancelled: 'Annulé',
 };
 
-const statusTones: Record<string, 'navy' | 'gold' | 'blue' | 'muted'> = {
+const statusTones: Record<
+    string,
+    'navy' | 'gold' | 'blue' | 'muted' | 'destructive'
+> = {
     scheduled: 'navy',
     boarding: 'gold',
     departed: 'blue',
     arrived: 'navy',
-    cancelled: 'muted',
+    cancelled: 'destructive',
 };
 
 function localToday(): string {
@@ -534,7 +537,7 @@ export default function DeparturesPage({
                                             }),
                                         )
                                     }
-                                    className={`ops-trip ${departure.status === 'boarding' ? 'boarding' : ''}`}
+                                    className={`ops-trip ${departure.status === 'boarding' || departure.status === 'cancelled' ? departure.status : ''}`}
                                 >
                                     <div className="ops-time">
                                         <span>
@@ -548,6 +551,12 @@ export default function DeparturesPage({
                                     <div className="ops-route">
                                         <div className="ops-route-top">
                                             <KoraStatusBadge
+                                                variant={
+                                                    departure.status ===
+                                                    'cancelled'
+                                                        ? 'solid'
+                                                        : 'subtle'
+                                                }
                                                 label={
                                                     statusLabels[
                                                         departure.status

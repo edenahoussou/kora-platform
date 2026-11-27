@@ -40,18 +40,10 @@ class AssistedBookingSupportChannels
     public function whatsappMessage(AssistedBooking $assistedBooking): string
     {
         $snapshot = $assistedBooking->snapshot;
-        $legs = [];
-        foreach ($snapshot['legs'] ?? [] as $leg) {
-            if (! is_array($leg)) {
-                continue;
-            }
-
-            $departureAt = isset($leg['departure_at'])
-                ? now()->parse($leg['departure_at'])->timezone(app(GeneralSettings::class)->timezone)->format('d/m/Y H:i')
-                : 'horaire à confirmer';
-
-            $legs[] = sprintf('%s → %s, %s', $leg['origin'] ?? '?', $leg['destination'] ?? '?', $departureAt);
-        }
+        $legs = array_map(
+            fn (array $leg): string => $leg['route'].', '.$leg['departure'],
+            $this->itinerary($assistedBooking),
+        );
 
         $seatCodes = [];
         foreach ($snapshot['requested_seats'] ?? [] as $seat) {
@@ -73,6 +65,36 @@ class AssistedBookingSupportChannels
             'Valable jusqu’au : '.$validUntil,
             'Contact : '.$assistedBooking->contact_name.' — '.$assistedBooking->contact_phone,
         ]);
+    }
+
+    /** @return list<array{route: string, departure: string, seats: list<string>}> */
+    public function itinerary(AssistedBooking $assistedBooking): array
+    {
+        $snapshot = $assistedBooking->snapshot;
+        $timezone = app(GeneralSettings::class)->timezone;
+        $requestedSeats = [];
+        foreach ($snapshot['requested_seats'] ?? [] as $seat) {
+            if (is_array($seat) && isset($seat['leg_order']) && is_string($seat['code'] ?? null)) {
+                $requestedSeats[$seat['leg_order']][] = $seat['code'];
+            }
+        }
+
+        $legs = [];
+        foreach ($snapshot['legs'] ?? [] as $leg) {
+            if (! is_array($leg)) {
+                continue;
+            }
+
+            $legs[] = [
+                'route' => sprintf('%s → %s', $leg['origin'] ?? '?', $leg['destination'] ?? '?'),
+                'departure' => isset($leg['departure_at'])
+                    ? now()->parse($leg['departure_at'])->timezone($timezone)->format('d/m/Y H:i')
+                    : 'horaire à confirmer',
+                'seats' => array_values(array_unique($requestedSeats[$leg['leg_order'] ?? null] ?? [])),
+            ];
+        }
+
+        return $legs;
     }
 
     private function phone(AssistedBookingChannel $channel): ?string

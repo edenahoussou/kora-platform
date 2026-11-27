@@ -33,11 +33,24 @@ abstract class SettingsUpdateRequest extends FormRequest
         ];
     }
 
+    /** @return array<string, string> */
+    public function attributes(): array
+    {
+        $labels = trans('settings', [], 'fr');
+        $attributes = $labels;
+
+        foreach ($labels as $field => $label) {
+            $attributes['values.'.$field] = $label;
+        }
+
+        return $attributes;
+    }
+
     /** @return array<int, callable> */
     public function after(): array
     {
         return [function (Validator $validator): void {
-            if (! $this->requiresConfirmation() || $this->boolean('confirmed')) {
+            if ($validator->errors()->isNotEmpty() || ! $this->requiresConfirmation() || $this->boolean('confirmed')) {
                 return;
             }
 
