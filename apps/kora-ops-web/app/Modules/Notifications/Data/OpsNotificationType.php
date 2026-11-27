@@ -38,6 +38,8 @@ enum OpsNotificationType: string
     case ParcelIncident = 'parcel_incident';
     case ParcelPaymentReconciliation = 'parcel_payment_reconciliation';
 
+    public const string ASSISTED_BOOKING_REQUEST_MESSAGE = 'Un voyageur souhaite terminer sa réservation avec votre aide. Ouvrez la demande pour consulter le trajet et prendre contact avec lui.';
+
     public function severity(): OpsNotificationSeverity
     {
         return match ($this) {
@@ -67,7 +69,7 @@ enum OpsNotificationType: string
             self::CashVarianceSubmitted => 'Écart de caisse à approuver',
             self::CashSessionLeftOpen => 'Caisse non clôturée',
             self::CashSessionForceClosed => 'Caisse clôturée de force',
-            self::AssistedBookingRequested => 'Nouvelle demande d’assistance',
+            self::AssistedBookingRequested => 'Un voyageur a besoin d’aide pour réserver',
             self::AssistedBookingReassigned => 'Demande réaffectée',
             self::DepartureDelayed => 'Départ retardé',
             self::ParcelIncident => 'Incident Colis',

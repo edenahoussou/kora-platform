@@ -1,5 +1,5 @@
 import type { RequestPayload } from '@inertiajs/core';
-import { http, router } from '@inertiajs/react';
+import { http, Link, router } from '@inertiajs/react';
 import {
     ArrowLeft,
     ArrowLeftRight,
@@ -25,6 +25,7 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import InputError from '@/components/input-error';
+import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -43,6 +44,7 @@ import {
     refuse,
     release,
 } from '@/routes/assisted-bookings';
+import departures from '@/routes/departures';
 
 export type QueueLeg = {
     legOrder: number;
@@ -59,7 +61,11 @@ type Seat = {
     requestedBy: number[];
 };
 
-type DetailLeg = QueueLeg & { seats: Seat[] };
+type DetailLeg = QueueLeg & {
+    departureUuid: string;
+    canViewDeparture: boolean;
+    seats: Seat[];
+};
 
 type Passenger = {
     uuid: string;
@@ -118,15 +124,15 @@ export const assistedStatusLabels: Record<string, string> = {
 
 export const assistedStatusTones: Record<
     string,
-    'navy' | 'gold' | 'blue' | 'muted' | 'destructive'
+    'gold' | 'blue' | 'emerald' | 'muted' | 'destructive'
 > = {
     pending: 'gold',
     in_progress: 'blue',
-    finalized: 'navy',
+    finalized: 'emerald',
     refused: 'destructive',
-    unavailable: 'muted',
-    cancelled: 'muted',
-    expired: 'muted',
+    unavailable: 'destructive',
+    cancelled: 'blue',
+    expired: 'destructive',
 };
 
 const reservationStatusLabels: Record<string, string> = {
@@ -390,11 +396,19 @@ export function AssistedBookingDrawer({
                                             'File réseau'}
                                     </SheetDescription>
                                     <div className="mt-3.5 flex flex-wrap items-center gap-2">
-                                        <span className="inline-flex items-center gap-1.5 rounded-md bg-white/10 px-2 py-1 text-[0.625rem] font-extrabold text-white ring-1 ring-white/20">
-                                            {assistedStatusLabels[
-                                                item.status
-                                            ] ?? item.status}
-                                        </span>
+                                        <KoraStatusBadge
+                                            label={
+                                                assistedStatusLabels[
+                                                    item.status
+                                                ] ?? item.status
+                                            }
+                                            tone={
+                                                assistedStatusTones[
+                                                    item.status
+                                                ] ?? 'muted'
+                                            }
+                                            variant="solid"
+                                        />
                                         <span
                                             className={cn(
                                                 'inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[0.625rem] font-extrabold ring-1',
@@ -657,6 +671,20 @@ export function AssistedBookingDrawer({
                                                                 )}
                                                             </span>
                                                         </div>
+                                                        {leg.canViewDeparture && (
+                                                            <Link
+                                                                href={departures.show.url(
+                                                                    {
+                                                                        departure:
+                                                                            leg.departureUuid,
+                                                                    },
+                                                                )}
+                                                                className="btn btn-navy btn-sm w-fit"
+                                                            >
+                                                                Voir le départ
+                                                                <ArrowRight className="size-3.5" />
+                                                            </Link>
+                                                        )}
                                                         <div className="flex flex-wrap items-center gap-1.5 border-t border-border/50 pt-2.5">
                                                             <Armchair
                                                                 size={12}

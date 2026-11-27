@@ -208,6 +208,7 @@ class AssistedBookingController extends Controller
                 'legOrder' => $segment->leg_order,
                 'direction' => $segment->direction,
                 'departureUuid' => $segment->departure->uuid,
+                'canViewDeparture' => Gate::allows('view', $segment->departure),
                 'line' => $segment->departure->line->name,
                 'label' => $segment->originStop->name.' → '.$segment->destinationStop->name,
                 'departureAt' => $segment->departure->scheduledDepartureAt()->toIso8601String(),

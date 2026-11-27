@@ -481,7 +481,7 @@ class OpsNotifier
         $this->publish(
             OpsNotificationType::AssistedBookingRequested,
             'assisted_booking_requested:'.$assistance->uuid,
-            'Une nouvelle demande d’assistance attend une prise en charge.',
+            OpsNotificationType::ASSISTED_BOOKING_REQUEST_MESSAGE,
             ['assisted_booking_uuid' => $assistance->uuid],
             $recipients,
             null,

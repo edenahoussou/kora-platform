@@ -22,6 +22,9 @@ use App\Modules\CompanyAccounts\Models\CompanyCreditHold;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Models\Fare;
 use App\Modules\IdentityAccess\Models\Agency;
+use App\Modules\Notifications\Data\OpsNotificationType;
+use App\Modules\Notifications\Mail\OpsAlertMail;
+use App\Modules\Notifications\Models\OpsNotificationEvent;
 use App\Modules\Settings\Settings\GeneralSettings;
 use App\Modules\Ticketing\Data\TicketIssuanceStatus;
 use App\Modules\Ticketing\Jobs\IssueReservationTicketsJob;
@@ -228,6 +231,24 @@ it('exposes an unassigned dossier to every authorized agency but not to finance'
     $financeDirector->assignRole('daf');
 
     $this->actingAs($otherManager)->get("/assisted-bookings/{$assistance->uuid}")->assertRedirect();
+    $otherManager->givePermissionTo('departures.view');
+    $this->actingAs($otherManager)
+        ->getJson(route('assisted-bookings.detail', $assistance))
+        ->assertSuccessful()
+        ->assertJsonPath('assistedBooking.legs.0.departureUuid', $scenario['departure']->uuid)
+        ->assertJsonPath('assistedBooking.legs.0.canViewDeparture', true);
+
+    $event = OpsNotificationEvent::query()->where('type', OpsNotificationType::AssistedBookingRequested)->sole();
+    expect($event->title)->toBe('Un voyageur a besoin d’aide pour réserver')
+        ->and($event->message)->toContain('Ouvrez la demande')
+        ->and($event->data)->toBe(['assisted_booking_uuid' => $assistance->uuid]);
+
+    $mail = new OpsAlertMail($event);
+    expect($mail->envelope()->subject)->toContain($scenario['reservation']->reference);
+    expect($mail->render())
+        ->toContain($scenario['reservation']->reference, 'Afi', 'souhaite réserver', 'WhatsApp', '+2290197000000', 'Ganhi → Parakou', '20/09/2026 12:00', '2A', 'aucun billet n’a encore été émis', 'Ouvrir la demande dans KORA OPS', 'open='.$assistance->uuid)
+        ->not->toContain('assisted_booking_requested');
+
     $this->actingAs($financeDirector)->get("/assisted-bookings/{$assistance->uuid}")->assertForbidden();
 });
 

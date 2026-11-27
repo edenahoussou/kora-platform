@@ -42,7 +42,8 @@ class OpsNotificationResource extends JsonResource
         } elseif (str_starts_with($type, 'cash_') && $user?->can('cash.approve-variance')) {
             $actionUrl = route('cash');
         } elseif (str_starts_with($type, 'assisted_booking_') && ($user?->can('assisted-bookings.view-network') || $user?->can('assisted-bookings.view-agency'))) {
-            $actionUrl = route('assisted-bookings.index');
+            $assistedBookingUuid = $event?->data['assisted_booking_uuid'] ?? null;
+            $actionUrl = route('assisted-bookings.index', is_string($assistedBookingUuid) ? ['open' => $assistedBookingUuid] : []);
         }
 
         return [
