@@ -11142,6 +11142,20 @@
     .ticket-screen-only {
         display: none !important;
     }
+
+    body:has(.parcel-label-printable) aside,
+    body:has(.parcel-label-printable) header,
+    body:has(.parcel-label-printable) .kora-sale-parcel-chrome {
+        display: none !important;
+    }
+
+    body:has(.parcel-label-printable) .kora-shell {
+        display: block !important;
+    }
+
+    body:has(.parcel-label-printable) main {
+        padding: 0 !important;
+    }
 }
 
 /* Carte de suivi Colis — info-bulles discrètes, sans dépendance thème. */

@@ -32,6 +32,7 @@ use App\Modules\Fiscalization\Http\Controllers\FiscalInvoiceController;
 use App\Modules\Fiscalization\Http\Controllers\FiscalTestInvoiceController;
 use App\Modules\IdentityAccess\Http\Controllers\AgencyController;
 use App\Modules\IdentityAccess\Http\Controllers\TerminalP501Controller;
+use App\Modules\Parcels\Http\Controllers\KoraPointParcelController;
 use App\Modules\Parcels\Http\Controllers\OpsParcelController;
 use App\Modules\Parcels\Http\Controllers\ParcelHandoffProofController;
 use App\Modules\Parcels\Http\Controllers\ParcelLabelController;
@@ -104,6 +105,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('sale/{reservation:uuid}/payment', [CounterSaleController::class, 'storePayment'])->name('sale.payment');
     Route::get('sale/wallet-lookup', OpsWalletLookupController::class)->name('sale.wallet-lookup');
     Route::post('sale/{reservation:uuid}/tickets/retry', [CounterSaleController::class, 'retryTicketIssuance'])->name('sale.tickets.retry');
+    Route::inertia('sale/parcels', 'sale-parcels-index')->middleware('can:parcels.view')->name('sale.parcels');
+    Route::inertia('sale/parcels/new', 'sale-parcels')->middleware('can:parcels.intake')->name('sale.parcels.new');
     Route::get('sale/{any}', function () {
         session()->reflash();
 
@@ -299,7 +302,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // =========================================================
     // V1 secondary — Colis & Wallet Lite (stubs)
     // =========================================================
-    Route::inertia('parcels', 'parcels')->middleware('can:parcels.view')->name('parcels');
+    Route::redirect('parcels', '/sale/parcels')->middleware('can:parcels.view')->name('parcels');
+    Route::get('kora-point/parcels', KoraPointParcelController::class)->middleware('can:parcels.view')->name('kora-point.parcels');
+    Route::inertia('administration/parcels', 'admin-parcels')->middleware('can:parcels.network')->name('administration.parcels');
     Route::post('parcels/data/intake', [OpsParcelController::class, 'store'])
         ->middleware('can:parcels.intake')
         ->name('parcels.data.intake');

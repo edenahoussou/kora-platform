@@ -150,9 +150,9 @@ test('parcel configuration page renders for an operator with network permission'
     ['ops' => $ops] = depositLocationFixtures();
 
     $this->actingAs($ops, 'web')
-        ->get('/parcels')
+        ->get('/sale/parcels')
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page->component('parcels'));
+        ->assertInertia(fn (Assert $page) => $page->component('sale-parcels-index'));
 });
 
 test('configuration exposes eligible deposit options without exposing numeric identifiers', function (): void {

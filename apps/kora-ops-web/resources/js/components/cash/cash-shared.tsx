@@ -81,6 +81,8 @@ export const movementTypeLabels: Record<string, string> = {
     counter_sale: 'Vente guichet',
     counter_sale_cash: 'Vente guichet espèces',
     counter_sale_mobile_money: 'Vente guichet Mobile Money',
+    parcel_sale_cash: 'Envoi colis espèces',
+    parcel_sale_mobile_money: 'Envoi colis Mobile Money',
     mobile_money_payment: 'Paiement Mobile Money',
     cash_payment: 'Paiement espèces',
     reversement: 'Reversement',

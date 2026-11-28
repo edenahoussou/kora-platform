@@ -4,6 +4,7 @@ namespace App\Modules\Parcels\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Modules\Booking\Services\DepartureStopTimeResolver;
 use App\Modules\BusNetwork\Data\LineStatus;
 use App\Modules\BusNetwork\Data\StopStatus;
 use App\Modules\BusNetwork\Models\Stop;
@@ -48,18 +49,37 @@ class ParcelConfigurationController extends Controller
         $actor = $request->user();
         abort_unless($actor instanceof User, 403);
         $canConfigure = $actor->can('parcels.configure');
-        $canConfigureNetwork = $canConfigure && $actor->can('parcels.network');
-        $hubs = ParcelHub::query()->with(['agency', 'koraPoint', 'stop'])->get()->map(fn (ParcelHub $hub): array => [
+        $canNetwork = $actor->can('parcels.network');
+        $canConfigureNetwork = $canConfigure && $canNetwork;
+        abort_if(! $canNetwork && $actor->agency_id === null, 403);
+
+        $corridors = ParcelCorridor::query()
+            ->with(['originHub', 'destinationHub', 'tariffs'])
+            ->when(! $canNetwork, fn ($query) => $query->where(fn ($scope) => $scope
+                ->whereRelation('originHub', 'agency_id', $actor->agency_id)
+                ->orWhereRelation('destinationHub', 'agency_id', $actor->agency_id)))
+            ->get();
+        $visibleHubIds = $canNetwork ? null : $corridors
+            ->flatMap(fn (ParcelCorridor $corridor): array => [$corridor->origin_hub_id, $corridor->destination_hub_id])
+            ->merge(ParcelHub::query()->where('agency_id', $actor->agency_id)->pluck('id'))
+            ->filter()->unique()->values();
+        $hubModels = ParcelHub::query()
+            ->with(['agency', 'koraPoint', 'stop'])
+            ->when($visibleHubIds !== null, fn ($query) => $query->whereIn('id', $visibleHubIds))
+            ->get();
+        $visibleStopIds = $hubModels->pluck('stop_id')->filter()->unique()->values();
+        $hubs = $hubModels->map(fn (ParcelHub $hub): array => [
             'uuid' => $hub->uuid, 'enabled' => $hub->enabled, 'supports_weighing' => $hub->supports_weighing, 'kind' => $hub->kind,
             'agency_uuid' => $hub->agency?->uuid, 'kora_point_uuid' => $hub->koraPoint?->uuid, 'stop_uuid' => $hub->stop?->uuid,
-            'name' => $hub->agency?->name, 'city' => $hub->stop?->city,
+            'name' => $hub->agency?->name, 'city' => $hub->stop?->city, 'country' => $hub->stop?->country,
+            'address' => $hub->stop?->name,
             'archived_at' => $hub->archived_at?->toIso8601String(),
             'deposit_allowed' => $actor->can('parcels.intake') && $this->access->canViewHub($actor, $hub),
         ]);
-        $corridors = ParcelCorridor::query()->with(['originHub', 'destinationHub', 'tariffs'])->get()->map(fn (ParcelCorridor $corridor): array => [
+        $corridors = $corridors->map(fn (ParcelCorridor $corridor): array => [
             'uuid' => $corridor->uuid, 'origin_hub_uuid' => $corridor->originHub?->uuid, 'origin_hub_kind' => $corridor->originHub?->kind, 'destination_hub_uuid' => $corridor->destinationHub?->uuid,
             ...$corridor->only(['enabled', 'wallet_cash_enabled']),
-            'tariffs' => $corridor->tariffs->sortByDesc('id')->values()->map(fn ($tariff) => $tariff->only([
+            'tariffs' => $corridor->tariffs->sortByDesc('id')->when(! $canNetwork, fn ($tariffs) => $tariffs->take(1))->values()->map(fn ($tariff) => $tariff->only([
                 'uuid', 'deposit_kind', 'version', 'base_amount', 'step_amount', 'step_grams', 'maximum_grams', 'return_amount', 'created_at',
             ])),
         ]);
@@ -99,6 +119,7 @@ class ParcelConfigurationController extends Controller
             'stops' => Stop::query()
                 ->where('status', 'active')
                 ->whereHas('line', fn ($query) => $query->where('status', 'active'))
+                ->when(! $canNetwork, fn ($query) => $query->whereIn('id', $visibleStopIds))
                 ->with('line')
                 ->orderBy('country')
                 ->orderBy('city')
@@ -121,6 +142,12 @@ class ParcelConfigurationController extends Controller
             'hubs' => $hubs,
             'corridors' => $corridors,
             'options' => $options,
+            'counter' => [
+                'agency_uuid' => $actor->agency?->uuid,
+                'agency_name' => $actor->agency?->name,
+                'is_partner' => $actor->isKoraPointUser(),
+                'hub_uuid' => $hubModels->firstWhere('agency_id', $actor->agency_id)?->uuid,
+            ],
             'permissions' => [
                 'canConfigure' => $canConfigure,
                 'canPublishTariffs' => $actor->can('parcels.tariffs'),
@@ -278,7 +305,7 @@ class ParcelConfigurationController extends Controller
      * @response 403 {"message":"Droits insuffisants pour ce périmètre Colis."}
      * @response 409 {"message":"Corridor is not configured or enabled."}
      */
-    public function routing(ParcelConfigurationRequest $request, ParcelRouting $routing): JsonResponse
+    public function routing(ParcelConfigurationRequest $request, ParcelRouting $routing, DepartureStopTimeResolver $stopTimes): JsonResponse
     {
         $this->access->require($request->user(), 'parcels.view');
         $origin = ParcelHub::query()->where('uuid', $request->validated('origin_hub_uuid'))->with(['agency', 'stop'])->firstOrFail();
@@ -290,6 +317,8 @@ class ParcelConfigurationController extends Controller
         abort_if($corridor === null || ! $corridor->enabled || ! $routing->isActiveHub($origin) || ! $routing->isActiveHub($destination), 409, 'Corridor is not configured or enabled.');
 
         $availability = $routing->availability($origin, $destination);
+        $originStop = $origin->stop;
+        $destinationStop = $destination->stop;
 
         return response()->json(['data' => [
             'origin_hub_uuid' => $origin->uuid,
@@ -298,13 +327,51 @@ class ParcelConfigurationController extends Controller
             'departures' => $availability->map(fn (array $row): array => [
                 'uuid' => $row['departure']->uuid,
                 'line_code' => $row['departure']->line?->code,
+                'line_name' => $row['departure']->line?->name,
                 'departure_at' => $row['departure']->scheduledDepartureAt()->toIso8601String(),
                 'status' => $row['departure']->status,
                 'capacity_grams' => $row['capacity_grams'],
                 'reserved_grams' => $row['reserved_grams'],
                 'available_grams' => $row['capacity_grams'] === null ? null : max(0, $row['capacity_grams'] - $row['reserved_grams']),
+                'stops' => $this->departureStops($row['departure'], $originStop, $destinationStop, $stopTimes),
             ]),
         ]]);
+    }
+
+    /**
+     * The ordered stops actually served by this departure, with local hours.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function departureStops(Departure $departure, ?Stop $origin, ?Stop $destination, DepartureStopTimeResolver $stopTimes): array
+    {
+        $stops = $departure->tripStops()->values();
+        $originIndex = $origin === null ? null : $stops->search(fn (Stop $stop): bool => $stop->is($origin));
+        $destinationIndex = $destination === null ? null : $stops->search(fn (Stop $stop): bool => $stop->is($destination));
+
+        if ($originIndex !== false && $originIndex !== null && $destinationIndex !== false && $destinationIndex !== null && $destinationIndex >= $originIndex) {
+            $stops = $stops->slice($originIndex, $destinationIndex - $originIndex + 1)->values();
+        }
+
+        return array_values($stops->map(function (Stop $stop, int $index) use ($departure, $origin, $destination, $stopTimes): array {
+            $arrival = $stopTimes->arrivalAt($departure, $stop);
+            $departureAt = $stopTimes->departureAt($departure, $stop);
+            $timezone = $stopTimes->timezoneFor($departure, $stop);
+
+            return [
+                'uuid' => $stop->uuid,
+                'name' => $stop->name,
+                'city' => $stop->city,
+                'country' => $stop->country,
+                'stop_order' => $stop->stop_order,
+                'position' => $index + 1,
+                'arrival_at' => $arrival?->setTimezone($timezone)->toIso8601String(),
+                'departure_at' => $departureAt?->setTimezone($timezone)->toIso8601String(),
+                'timezone' => $timezone,
+                'is_origin' => $origin !== null && $stop->is($origin),
+                'is_destination' => $destination !== null && $stop->is($destination),
+            ];
+        })->all());
     }
 
     /**
@@ -317,7 +384,7 @@ class ParcelConfigurationController extends Controller
      */
     public function capacityIndex(Request $request, ParcelRouting $routing): JsonResponse
     {
-        $this->access->require($request->user(), 'parcels.configure');
+        $this->access->require($request->user(), 'parcels.network');
 
         $corridors = ParcelCorridor::query()
             ->where('enabled', true)

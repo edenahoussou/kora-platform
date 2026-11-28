@@ -297,7 +297,7 @@ test('a configured electronic account settles through its own cash ledger', func
 
     expect($record->agency_payment_account_id)->toBe($fixture['account']->id)
         ->and($record->cash_ledger_id)->toBe($fixture['mobile']->id)
-        ->and(CashMovement::query()->where('source_type', Payment::class)->where('type', 'counter_sale_mobile_money')->count())->toBe(1)
+        ->and(CashMovement::query()->where('source_type', Payment::class)->where('type', 'parcel_sale_mobile_money')->count())->toBe(1)
         ->and(FiscalInvoice::query()->count())->toBe(1);
 });
 
@@ -417,18 +417,76 @@ test('a non-intake user cannot collect a parcel', function (): void {
     payCash($this, $fixture, actor: $viewer)->assertForbidden();
 });
 
-test('a partner point uses its own agency cash session', function (): void {
+test('a partner point collects cash without a cash session or treasury movement', function (): void {
     $fixture = paymentReceiptFixture(partnerPoint: true);
     $fixture['parcel']->load('corridor.originHub.agency');
+    $fixture['mobile']->delete();
+    $fixture['cash']->delete();
+    $fixture['session']->delete();
+    $pointAgent = User::factory()->create(['agency_id' => $fixture['originAgency']->id])
+        ->assignRole('kora_point_agent');
+    $charge = $fixture['parcel']->charges()->whereNull('superseded_at')->sole();
 
-    $this->actingAs($fixture['agent'], 'web')
+    $this->actingAs($pointAgent, 'web')
         ->getJson("/parcels/data/{$fixture['parcel']->uuid}/payment-options")
         ->assertOk()
-        ->assertJsonPath('data.hub.kind', ParcelHub::KIND_PARTNER_POINT)
-        ->assertJsonPath('data.agency.uuid', $fixture['originAgency']->uuid)
-        ->assertJsonPath('data.currency', 'XOF');
+        ->assertJsonPath('data.is_partner', true)
+        ->assertJsonPath('data.cash_session', null)
+        ->assertJsonPath('data.methods.0.available', true)
+        ->assertJsonPath('data.methods.1.available', true)
+        ->assertJsonPath('data.methods.1.accounts', []);
 
-    payCash($this, $fixture)->assertSuccessful();
+    $payment = $this->actingAs($pointAgent, 'web')
+        ->postJson("/parcels/data/{$fixture['parcel']->uuid}/pay", [
+            'idempotency_key' => (string) Str::uuid(),
+            'method' => 'cash',
+            'amount' => $charge->total,
+            'cash_received_amount' => $charge->total + 500,
+            'payer_name' => 'Client guichet partenaire',
+            'payer_phone' => '+2290191000020',
+        ])
+        ->assertSuccessful()
+        ->assertJsonPath('data.status', 'confirmed')
+        ->assertJsonPath('data.method', 'cash');
+
+    $record = Payment::query()->where('uuid', $payment->json('data.uuid'))->sole();
+
+    expect($record->cash_session_id)->toBeNull()
+        ->and($record->cash_ledger_id)->toBeNull()
+        ->and($record->change_amount)->toBe(500)
+        ->and(CashMovement::query()->where('source_type', Payment::class)->count())->toBe(0);
+});
+
+test('a partner point collects mobile money without an agency account or treasury movement', function (): void {
+    $fixture = paymentReceiptFixture(partnerPoint: true);
+    $fixture['mobile']->delete();
+    $fixture['cash']->delete();
+    $fixture['session']->delete();
+    $pointAgent = User::factory()->create(['agency_id' => $fixture['originAgency']->id])
+        ->assignRole('kora_point_agent');
+    $charge = $fixture['parcel']->charges()->whereNull('superseded_at')->sole();
+
+    $payment = $this->actingAs($pointAgent, 'web')
+        ->postJson("/parcels/data/{$fixture['parcel']->uuid}/pay", [
+            'idempotency_key' => (string) Str::uuid(),
+            'method' => 'mobile_money',
+            'amount' => $charge->total,
+            'mobile_money_network' => 'mtn_momo',
+            'provider_reference' => 'POINT-MM-'.Str::random(10),
+            'payer_name' => 'Client MoMo partenaire',
+            'payer_phone' => '+2290191000021',
+        ])
+        ->assertSuccessful()
+        ->assertJsonPath('data.status', 'confirmed')
+        ->assertJsonPath('data.method', 'mobile_money');
+
+    $record = Payment::query()->where('uuid', $payment->json('data.uuid'))->sole();
+
+    expect($record->agency_payment_account_id)->toBeNull()
+        ->and($record->cash_session_id)->toBeNull()
+        ->and($record->cash_ledger_id)->toBeNull()
+        ->and($record->provider)->toBe('mtn_momo')
+        ->and(CashMovement::query()->where('source_type', Payment::class)->count())->toBe(0);
 });
 
 final class WebhookCorrelationProvider implements PaymentProvider

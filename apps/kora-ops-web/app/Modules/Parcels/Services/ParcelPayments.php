@@ -351,6 +351,39 @@ class ParcelPayments
      */
     private function counterAttributes(User $actor, int $total, PaymentMethod $method, ?MobileMoneyNetwork $network, array $input, int $hubAgencyId): array
     {
+        $payer = array_filter([
+            'payer_name' => trim((string) ($input['payer_name'] ?? '')),
+            'payer_phone' => trim((string) ($input['payer_phone'] ?? '')),
+        ], fn (?string $value): bool => $value !== null && $value !== '');
+
+        // KORA Points have no cash register and no treasury follow-up: the
+        // payment is recorded as manually verified, exactly like ticket sales.
+        if ($actor->isKoraPointUser()) {
+            if ($method === PaymentMethod::Cash) {
+                $received = (int) ($input['cash_received_amount'] ?? 0);
+                abort_if($received < $total, 422, 'The amount received is insufficient.');
+
+                return $payer + [
+                    'cash_received_amount' => $received,
+                    'change_amount' => $received - $total,
+                    'verified_by' => $actor->id,
+                    'verified_at' => now(),
+                    'provider_payload' => ['manualVerification' => true, 'channel' => 'kora_point'],
+                ];
+            }
+
+            abort_unless($network !== null && filled($input['provider_reference'] ?? null), 422, 'Choose a Mobile Money network and enter the provider reference.');
+            $reference = trim((string) $input['provider_reference']);
+            abort_if(Payment::query()->where('provider', $network->value)->where('provider_reference', $reference)->exists(), 409, 'This Mobile Money reference has already been recorded.');
+
+            return $payer + [
+                'provider_reference' => $reference,
+                'verified_by' => $actor->id,
+                'verified_at' => now(),
+                'provider_payload' => ['manualVerification' => true, 'channel' => 'kora_point'],
+            ];
+        }
+
         $session = CashSession::query()->where('agent_id', $actor->id)->where('agency_id', $actor->agency_id)
             ->whereDate('business_date', now()->toDateString())->where('status', CashSessionStatus::Open)->lockForUpdate()->first();
         if ($session === null) {
@@ -365,17 +398,21 @@ class ParcelPayments
             $ledger->where('kind', CashLedgerKind::Cash);
             $extra = ['cash_received_amount' => $received, 'change_amount' => $received - $total];
         } else {
-            abort_unless($network !== null && filled($input['provider_reference'] ?? null), 422);
+            abort_unless($network !== null && filled($input['provider_reference'] ?? null), 422, 'Choose a Mobile Money network and enter the provider reference.');
             $account = AgencyPaymentAccount::query()->where('uuid', $input['agency_payment_account_uuid'] ?? '')
-                ->where('agency_id', $actor->agency_id)->where('network', $network)->where('status', 'active')->lockForUpdate()->firstOrFail();
+                ->where('agency_id', $actor->agency_id)->where('network', $network)->where('status', 'active')->lockForUpdate()->first();
+            abort_if($account === null, 422, 'The selected Mobile Money account is not active for this agency.');
             $ledger->where('agency_payment_account_id', $account->id);
             $reference = $input['provider_reference'];
-            abort_if(Payment::query()->where('agency_payment_account_id', $account->id)->where('provider', $network->value)->where('provider_reference', $reference)->exists(), 409);
+            abort_if(Payment::query()->where('agency_payment_account_id', $account->id)->where('provider', $network->value)->where('provider_reference', $reference)->exists(), 409, 'This Mobile Money reference has already been recorded.');
             $extra = ['agency_payment_account_id' => $account->id, 'provider_reference' => $reference];
         }
 
-        return $extra + [
-            'cash_session_id' => $session->id, 'cash_ledger_id' => $ledger->where('status', 'open')->lockForUpdate()->firstOrFail()->id,
+        $cashLedger = $ledger->where('status', 'open')->lockForUpdate()->first();
+        abort_if($cashLedger === null, 409, 'This cash register has no open ledger for the selected payment method.');
+
+        return $payer + $extra + [
+            'cash_session_id' => $session->id, 'cash_ledger_id' => $cashLedger->id,
             'verified_by' => $actor->id, 'verified_at' => now(),
         ];
     }
@@ -384,12 +421,14 @@ class ParcelPayments
     {
         $session = CashSession::query()->findOrFail($payment->cash_session_id);
         $ledger = CashLedger::query()->findOrFail($payment->cash_ledger_id);
+        $parcelReference = $payment->parcelCharge?->parcel?->reference;
         CashMovement::query()->create([
             'cash_session_id' => $session->id, 'cash_register_id' => $session->cash_register_id, 'cash_ledger_id' => $ledger->id,
             'source_type' => Payment::class, 'source_id' => $payment->id,
-            'type' => $payment->method === PaymentMethod::Cash ? 'counter_sale_cash' : 'counter_sale_mobile_money',
+            'type' => $payment->method === PaymentMethod::Cash ? 'parcel_sale_cash' : 'parcel_sale_mobile_money',
+            'reference' => $parcelReference ?? $payment->parcel_charge_id,
             'direction' => CashMovementDirection::In, 'status' => CashMovementStatus::Posted, 'amount' => $payment->amount,
-            'currency' => app(GeneralSettings::class)->currency, 'description' => 'Vente KORA Colis', 'created_by' => $actor->id, 'occurred_at' => now(),
+            'currency' => app(GeneralSettings::class)->currency, 'description' => 'Envoi colis '.($parcelReference ?? $payment->parcel_charge_id), 'created_by' => $actor->id, 'occurred_at' => now(),
         ]);
         $ledger->increment('expected_balance', $payment->amount);
         if ($payment->method === PaymentMethod::Cash) {
