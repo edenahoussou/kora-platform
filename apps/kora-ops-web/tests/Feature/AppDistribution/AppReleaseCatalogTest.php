@@ -119,7 +119,7 @@ it('compares versions with semver precedence then build number', function (strin
 
 it('reads the cached catalog back from a serializing cache store without incomplete objects', function (): void {
     config(['cache.default' => 'file']);
-    Cache::forget(AppReleaseCatalog::cacheKey(ReleasedApp::OpsMobile));
+    Cache::forget(AppReleaseCatalog::apkCacheKey(ReleasedApp::OpsMobile));
     AppRelease::factory()->version('1.3.0', 35)->mandatory()->create();
     AppRelease::factory()->version('1.4.0', 42)->create();
 
@@ -132,5 +132,5 @@ it('reads the cached catalog back from a serializing cache store without incompl
         ->and($check->latest?->app)->toBe(ReleasedApp::OpsMobile)
         ->and($check->latest?->published_at)->not->toBeNull();
 
-    Cache::forget(AppReleaseCatalog::cacheKey(ReleasedApp::OpsMobile));
+    Cache::forget(AppReleaseCatalog::apkCacheKey(ReleasedApp::OpsMobile));
 });

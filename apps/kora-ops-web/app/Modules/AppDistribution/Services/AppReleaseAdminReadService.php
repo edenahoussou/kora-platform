@@ -76,7 +76,7 @@ class AppReleaseAdminReadService
     {
         $releases = AppRelease::query()
             ->forApp($app)
-            ->with('creator:id,uuid,name')
+            ->with(['creator:id,uuid,name', 'pushCampaign.creator:id,uuid,name', 'pushCampaign.retryDecisionBy:id,uuid,name'])
             ->get()
             ->sort(fn (AppRelease $left, AppRelease $right): int => $right->appVersion()->compare($left->appVersion()))
             ->map(fn (AppRelease $release): array => $this->serializeRelease($release, $latest, $mandatory))
@@ -101,16 +101,58 @@ class AppReleaseAdminReadService
             'is_latest' => $latest !== null && $latest->is($release),
             'is_minimum' => $mandatory !== null && $mandatory->is($release),
             'state' => $release->isArchived() ? 'archived' : 'published',
-            'size_bytes' => $release->artifact_size,
-            'sha256' => $release->sha256,
+            'channel' => $release->channel->value,
+            'platform' => $release->platform?->value,
+            'environment' => $release->environment?->value,
+            'store_url' => $release->store_url,
+            'publicly_confirmed_at' => $release->publicly_confirmed_at?->toISOString(),
+            'rollout_completed_at' => $release->rollout_completed_at?->toISOString(),
+            'size_bytes' => $release->isStore() ? null : $release->artifact_size,
+            'sha256' => $release->isStore() ? null : $release->sha256,
             'original_filename' => $release->original_filename,
-            'download_url' => $release->downloadUrl(),
+            'download_url' => $release->isStore() ? null : $release->downloadUrl(),
             'published_at' => $release->published_at?->toISOString(),
             'archived_at' => $release->archived_at?->toISOString(),
             'created_at' => $release->created_at?->toISOString(),
             'author' => $release->relationLoaded('creator') && $release->creator ? [
                 'uuid' => $release->creator->uuid,
                 'name' => $release->creator->name,
+            ] : null,
+            'push_campaign' => $this->serializeCampaign($release),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function serializeCampaign(AppRelease $release): ?array
+    {
+        $campaign = $release->relationLoaded('pushCampaign') ? $release->pushCampaign : null;
+
+        if ($campaign === null) {
+            return null;
+        }
+
+        return [
+            'uuid' => $campaign->uuid,
+            'topic' => $campaign->topic,
+            'status' => $campaign->status->value,
+            'title' => $campaign->title,
+            'body' => $campaign->body,
+            'attempts' => $campaign->attempts,
+            'error' => $campaign->error,
+            'fcm_message_id' => $campaign->fcm_message_id,
+            'accepted_at' => $campaign->accepted_at?->toISOString(),
+            'created_at' => $campaign->created_at?->toISOString(),
+            'retry_decision_at' => $campaign->retry_decision_at?->toISOString(),
+            'retry_decision_note' => $campaign->retry_decision_note,
+            'author' => $campaign->relationLoaded('creator') && $campaign->creator ? [
+                'uuid' => $campaign->creator->uuid,
+                'name' => $campaign->creator->name,
+            ] : null,
+            'retry_decision_by' => $campaign->relationLoaded('retryDecisionBy') && $campaign->retryDecisionBy ? [
+                'uuid' => $campaign->retryDecisionBy->uuid,
+                'name' => $campaign->retryDecisionBy->name,
             ] : null,
         ];
     }

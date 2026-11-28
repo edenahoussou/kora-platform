@@ -25,6 +25,23 @@ export type ReleasedAppTab = {
     releases_count: number;
 };
 
+export type PushCampaignSummary = {
+    uuid: string;
+    topic: string;
+    status: 'pending' | 'accepted' | 'failed' | 'uncertain';
+    title: string;
+    body: string;
+    attempts: number;
+    error: string | null;
+    fcm_message_id: string | null;
+    accepted_at: string | null;
+    created_at: string | null;
+    retry_decision_at: string | null;
+    retry_decision_note: string | null;
+    author: { uuid: string; name: string } | null;
+    retry_decision_by: { uuid: string; name: string } | null;
+};
+
 export type AppRelease = {
     uuid: string;
     version: string;
@@ -35,14 +52,21 @@ export type AppRelease = {
     is_latest: boolean;
     is_minimum: boolean;
     state: 'published' | 'archived';
-    size_bytes: number;
-    sha256: string;
+    channel?: 'ops_apk' | 'store';
+    platform?: 'android' | 'ios' | null;
+    environment?: 'staging' | 'production' | null;
+    store_url?: string | null;
+    publicly_confirmed_at?: string | null;
+    rollout_completed_at?: string | null;
+    size_bytes: number | null;
+    sha256: string | null;
     original_filename: string | null;
-    download_url: string;
+    download_url: string | null;
     published_at: string | null;
     archived_at: string | null;
     created_at: string | null;
     author: { uuid: string; name: string } | null;
+    push_campaign?: PushCampaignSummary | null;
 };
 
 export type VersionDistributionRow = {

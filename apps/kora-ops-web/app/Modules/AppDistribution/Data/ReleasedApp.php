@@ -6,29 +6,26 @@ use App\Modules\IdentityAccess\Models\TerminalP501;
 use App\Modules\Support\Enums\Concerns\HasEnumUtilities;
 
 /**
- * Applications distribuées hors store par KORA OPS Web (MEZ-150).
+ * Applications distribuées par KORA OPS Web (MEZ-150).
  *
- * Modèle générique : la table `app_releases` porte un champ `app`, de sorte
- * que l'app passager puisse réutiliser la même distribution plus tard en
- * ajoutant simplement un cas ici. En V1, seule l'app convoyeur
- * (`apps/kora-ops-mobile`, terminaux P501 + téléphones) est concernée.
+ * - `ops_mobile` : Convoyeur, APK hors store (`ops_apk`).
+ * - `passenger_mobile` : Passager, release store Android/iOS (`store`).
  *
- * - `value` : identifiant stocké en base et exposé dans le bloc `update`
- *   des réponses OPS Mobile (`ops_mobile`).
- * - `slug()` : forme lisible utilisée dans les URL publiques de
- *   téléchargement (`/downloads/apps/ops-mobile`). Les deux formes sont
- *   acceptées en entrée (voir [fromRouteKey]).
+ * - `value` : identifiant stocké en base et exposé dans les réponses API.
+ * - `slug()` : forme lisible utilisée dans les URL publiques.
  */
 enum ReleasedApp: string
 {
     use HasEnumUtilities;
 
     case OpsMobile = 'ops_mobile';
+    case PassengerMobile = 'passenger_mobile';
 
     public function label(): string
     {
         return match ($this) {
             self::OpsMobile => 'KORA OPS Mobile',
+            self::PassengerMobile => 'KORA Passager',
         };
     }
 
@@ -44,6 +41,7 @@ enum ReleasedApp: string
     {
         return match ($this) {
             self::OpsMobile => 'Convoyeurs, chauffeurs et agents KORA EXPRESS — terminaux P501 et téléphones Android.',
+            self::PassengerMobile => 'Voyageurs KORA — applications Android et iOS disponibles sur les stores.',
         };
     }
 
@@ -54,17 +52,18 @@ enum ReleasedApp: string
     {
         return match ($this) {
             self::OpsMobile => 'Téléchargez la dernière version de KORA OPS Mobile, l’application terrain des équipes KORA EXPRESS : embarquement, manifestes, synchronisation et suivi des départs.',
+            self::PassengerMobile => 'Découvrez KORA Passager : recherche de trajets, réservation, suivi du bus et informations en temps réel.',
         };
     }
 
     /**
-     * Préfixe du nom de fichier proposé au téléchargement
-     * (`kora-ops-mobile-1.4.0-42.apk`).
+     * Préfixe du nom de fichier proposé au téléchargement.
      */
     public function fileBasename(): string
     {
         return match ($this) {
             self::OpsMobile => 'kora-ops-mobile',
+            self::PassengerMobile => 'kora-passenger',
         };
     }
 
@@ -79,9 +78,7 @@ enum ReleasedApp: string
     }
 
     /**
-     * Application installée sur un terminal OPS. P501 et téléphones en mode
-     * caméra font tourner la même app convoyeur — le paramètre est conservé
-     * pour le jour où un autre type de terminal embarquera une autre app.
+     * Application installée sur un terminal OPS.
      */
     public static function forTerminal(TerminalP501 $terminal): self
     {
@@ -90,12 +87,13 @@ enum ReleasedApp: string
 
     /**
      * Cette application est-elle celle installée sur [terminal] ? Écrit en
-     * `match` exhaustif : l'ajout d'une app (passager…) oblige à trancher.
+     * `match` exhaustif : l'ajout d'une app oblige à trancher.
      */
     public function runsOn(TerminalP501 $terminal): bool
     {
         return match ($this) {
             self::OpsMobile => true,
+            self::PassengerMobile => false,
         };
     }
 }

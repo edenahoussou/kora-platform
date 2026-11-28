@@ -3,6 +3,7 @@
 namespace App\Modules\Notifications\Services;
 
 use App\Modules\Settings\Settings\IntegrationsSettings;
+use Kreait\Firebase\Contract\Messaging;
 use Kreait\Firebase\Exception\Messaging\NotFound;
 use Kreait\Firebase\Exception\Messaging\SenderIdMismatch;
 use Kreait\Firebase\Factory;
@@ -26,62 +27,94 @@ class FirebaseMessagingClient
             return false;
         }
 
-        $serviceAccount = $this->serviceAccount();
-        if (! $this->settings->firebasePushEnabled || $serviceAccount === null) {
-            return false;
-        }
-
         try {
-            $messaging = (new Factory)
-                ->withServiceAccount($serviceAccount)
-                ->createMessaging();
-
-            $cloudMessage = CloudMessage::new()
-                ->withToken($token)
-                ->withNotification([
-                    'title' => $message['title'],
-                    'body' => $message['body'],
-                ]);
-
-            /** @var array<non-empty-string, string> $filteredData */
-            $filteredData = [];
-            foreach ($message['data'] ?? [] as $key => $value) {
-                if ($key !== '') {
-                    /** @var non-empty-string $safeKey */
-                    $safeKey = $key;
-                    $filteredData[$safeKey] = (string) $value;
-                }
-            }
-
-            if ($filteredData !== []) {
-                $cloudMessage = $cloudMessage->withData($filteredData);
-            }
-
-            // Appareils mobiles : priorité haute + canal Android de l'app KORA OPS.
-            if (($message['platform'] ?? null) === 'android') {
-                $cloudMessage = $cloudMessage->withAndroidConfig([
-                    'priority' => 'high',
-                    'notification' => ['channel_id' => 'kora_ops_alerts'],
-                ]);
-            } elseif (($message['platform'] ?? null) === 'ios') {
-                $cloudMessage = $cloudMessage->withApnsConfig([
-                    'headers' => ['apns-priority' => '10'],
-                    'payload' => ['aps' => ['sound' => 'default']],
-                ]);
-            }
-
-            if (isset($message['link'])) {
-                $cloudMessage = $cloudMessage->withWebPushConfig([
-                    'fcm_options' => ['link' => $this->requireNonEmptyLink($message['link'])],
-                ]);
-            }
-
+            $messaging = $this->messaging();
+            $cloudMessage = $this->prepareMessage(CloudMessage::new()->withToken($token), $message);
             $messaging->send($cloudMessage);
 
             return true;
         } catch (NotFound|SenderIdMismatch) {
             return false;
         }
+    }
+
+    /**
+     * Envoie une campagne FCM à un topic. Retourne l'identifiant de message
+     * FCM en cas d'acceptation ; lève une exception sinon.
+     *
+     * @param  array{title: string, body: string, data?: array<string, string>, platform?: string}  $message
+     */
+    public function sendToTopic(string $topic, array $message): string
+    {
+        if ($topic === '') {
+            throw new RuntimeException('An FCM topic cannot be empty.');
+        }
+
+        $messaging = $this->messaging();
+        $cloudMessage = $this->prepareMessage(CloudMessage::new()->withTopic($topic), $message);
+        $result = $messaging->send($cloudMessage);
+
+        $messageId = $result['name'] ?? $result['messageId'] ?? null;
+
+        if (! is_string($messageId) || $messageId === '') {
+            throw new RuntimeException('FCM did not return a message identifier.');
+        }
+
+        return $messageId;
+    }
+
+    /** @param array{title: string, body: string, link?: string, data?: array<string, string>, platform?: string} $message */
+    private function prepareMessage(CloudMessage $cloudMessage, array $message): CloudMessage
+    {
+        $cloudMessage = $cloudMessage->withNotification([
+            'title' => $message['title'],
+            'body' => $message['body'],
+        ]);
+
+        /** @var array<non-empty-string, string> $filteredData */
+        $filteredData = [];
+        foreach ($message['data'] ?? [] as $key => $value) {
+            if ($key !== '') {
+                /** @var non-empty-string $safeKey */
+                $safeKey = $key;
+                $filteredData[$safeKey] = (string) $value;
+            }
+        }
+
+        if ($filteredData !== []) {
+            $cloudMessage = $cloudMessage->withData($filteredData);
+        }
+
+        if (($message['platform'] ?? null) === 'android') {
+            $cloudMessage = $cloudMessage->withAndroidConfig([
+                'priority' => 'high',
+                'notification' => ['channel_id' => 'kora_ops_alerts'],
+            ]);
+        } elseif (($message['platform'] ?? null) === 'ios') {
+            $cloudMessage = $cloudMessage->withApnsConfig([
+                'headers' => ['apns-priority' => '10'],
+                'payload' => ['aps' => ['sound' => 'default']],
+            ]);
+        }
+
+        if (isset($message['link'])) {
+            $cloudMessage = $cloudMessage->withWebPushConfig([
+                'fcm_options' => ['link' => $this->requireNonEmptyLink($message['link'])],
+            ]);
+        }
+
+        return $cloudMessage;
+    }
+
+    private function messaging(): Messaging
+    {
+        if (! $this->settings->firebasePushEnabled || $this->serviceAccount() === null) {
+            throw new RuntimeException('Firebase push is not configured.');
+        }
+
+        return (new Factory)
+            ->withServiceAccount($this->serviceAccount())
+            ->createMessaging();
     }
 
     /** @return non-empty-string */
