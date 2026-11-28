@@ -11,52 +11,52 @@ use Illuminate\Http\JsonResponse;
 /**
  * @group Distribution des applications
  *
- * Vérification de mise à jour au lancement de l'app (MEZ-150).
+ * Vérification de mise à jour au lancement de l'app (#342).
  */
 class AppUpdateCheckController extends Controller
 {
     /**
      * Vérifier si une mise à jour est disponible ou obligatoire.
      *
-     * Appelé par l'app au démarrage, AVANT toute connexion (un terminal dont
-     * la version est obsolète doit être bloqué même sans session). Renvoie
-     * le même bloc `update` que les réponses `ops-mobile/terminal/handshake`,
-     * `sync` et `activity`. `data` vaut `null` tant qu'aucune version n'est
-     * publiée pour l'application.
+     * Appelé par l'app au démarrage, AVANT toute connexion. `data` vaut `null`
+     * seulement lorsqu'aucune release publique confirmée n'existe pour le
+     * triplet `app × platform × environment`. Si une release confirmée existe
+     * et que l'installée est à jour, la réponse contient un objet
+     * `status: "up_to_date"` plutôt que `null`.
      *
-     * Règle : `mandatory = true` dès qu'une release obligatoire plus récente
-     * que la version installée est publiée ; la cible proposée
-     * (`download_url`, `sha256`) est toujours la dernière release publiée.
-     * Le client DOIT vérifier le `sha256` du fichier téléchargé avant de
-     * lancer l'installation.
+     * Pour le canal store (`passenger_mobile`), `platform` est obligatoire.
+     * `environment` est optionnel et vaut `production` par défaut côté
+     * serveur. Aucun binaire, empreinte ou secret FCM n'est exposé par cette
+     * réponse ; le mobile ouvre le `store_url` officiel.
      *
      * @unauthenticated
      *
-     * @urlParam app string required Application (`ops-mobile` ou `ops_mobile`). Example: ops-mobile
+     * @urlParam app string required Application (`ops-mobile`, `ops_mobile`, `passenger-mobile` ou `passenger_mobile`). Example: passenger-mobile
      *
-     * @response 200 scenario="Mise à jour obligatoire" {
+     * @response 200 scenario="Release store à jour" {
      *   "data": {
-     *     "app": "ops_mobile",
-     *     "status": "update_required",
-     *     "installed_version": "1.2.0",
-     *     "installed_build": 30,
+     *     "app": "passenger_mobile",
+     *     "channel": "store",
+     *     "platform": "android",
+     *     "environment": "production",
+     *     "status": "up_to_date",
+     *     "installed_version": "1.4.0",
+     *     "installed_build": 42,
      *     "latest_version": "1.4.0",
      *     "latest_build": 42,
      *     "latest_full_version": "1.4.0+42",
-     *     "update_available": true,
-     *     "mandatory": true,
-     *     "minimum_version": "1.3.0",
-     *     "minimum_build": 35,
+     *     "update_available": false,
+     *     "mandatory": false,
+     *     "minimum_version": null,
+     *     "minimum_build": null,
      *     "release_uuid": "6f0c1d3e-7c1b-4a8a-9d6e-2b1a0c9f8e71",
-     *     "release_notes": "Correctifs d'impression du manifeste.",
-     *     "download_url": "https://ops.koraexpress.app/downloads/apps/ops-mobile/releases/6f0c1d3e-7c1b-4a8a-9d6e-2b1a0c9f8e71",
-     *     "download_page_url": "https://ops.koraexpress.app/downloads/apps/ops-mobile",
-     *     "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
-     *     "size_bytes": 31457280,
-     *     "published_at": "2026-10-25T09:00:00.000Z"
+     *     "release_notes": "Version stable disponible sur le store.",
+     *     "store_url": "https://play.google.com/store/apps/details?id=app.kora.passenger",
+     *     "published_at": "2026-11-28T09:00:00.000Z"
      *   }
      * }
-     * @response 200 scenario="Aucune version publiée" { "data": null }
+     * @response 200 scenario="Aucune release store confirmée" { "data": null }
+     * @response 422 scenario="Requête invalide" { "message": "The platform field is required." }
      * @response 404 scenario="Application inconnue" { "message": "Not Found" }
      */
     public function __invoke(AppUpdateCheckRequest $request, AppReleaseCatalog $catalog, string $app): JsonResponse
@@ -65,8 +65,22 @@ class AppUpdateCheckController extends Controller
 
         abort_if($releasedApp === null, 404);
 
+        if ($releasedApp === ReleasedApp::PassengerMobile) {
+            $platform = $request->platform();
+            abort_if($platform === null, 422, 'The platform field is required for store releases.');
+
+            $check = $catalog->checkStore(
+                app: $releasedApp,
+                platform: $platform,
+                environment: $request->environment(),
+                installed: $request->installedVersion(),
+            );
+        } else {
+            $check = $catalog->check($releasedApp, $request->installedVersion());
+        }
+
         return response()->json([
-            'data' => $catalog->check($releasedApp, $request->installedVersion())->toPayload(),
+            'data' => $check->toPayload(),
             'meta' => ['server_time' => now()->toISOString()],
         ]);
     }

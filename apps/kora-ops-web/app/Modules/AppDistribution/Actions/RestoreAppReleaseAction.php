@@ -25,7 +25,7 @@ class RestoreAppReleaseAction
             ]);
         }
 
-        if (! Storage::disk(AppRelease::DISK)->exists($release->artifact_path)) {
+        if (! $release->isStore() && ! Storage::disk(AppRelease::DISK)->exists($release->artifact_path)) {
             throw ValidationException::withMessages([
                 'release' => 'Le package de cette version est introuvable sur le serveur : publiez une nouvelle version.',
             ]);

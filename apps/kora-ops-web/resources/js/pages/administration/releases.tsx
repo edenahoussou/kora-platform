@@ -5,6 +5,7 @@ import {
     ArchiveRestore,
     CheckCircle2,
     Copy,
+    Globe,
     HelpCircle,
     Laptop,
     Package,
@@ -18,6 +19,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { ReleaseEditModal } from '@/components/app-releases/release-edit-modal';
 import { ReleaseSharePanel } from '@/components/app-releases/release-share-panel';
+import { ReleaseStoreModal } from '@/components/app-releases/release-store-modal';
 import { ReleaseUploadModal } from '@/components/app-releases/release-upload-modal';
 import {
     copyToClipboard,
@@ -118,12 +120,19 @@ export default function AppReleasesPage({
     permissions,
 }: PageProps) {
     const [uploadOpen, setUploadOpen] = useState(false);
+    const [storeOpen, setStoreOpen] = useState(false);
     const [editing, setEditing] = useState<AppRelease | null>(null);
     const [pending, setPending] = useState<PendingAction | null>(null);
     const [processing, setProcessing] = useState(false);
+    const isPassenger = selectedApp === 'passenger_mobile';
 
     const copyReleaseLink = async (release: AppRelease) => {
-        if (await copyToClipboard(release.download_url)) {
+        const link =
+            release.channel === 'store'
+                ? (release.store_url ?? '')
+                : (release.download_url ?? '');
+
+        if (await copyToClipboard(link)) {
             toast.success(
                 `Lien de la version ${release.full_version} copié dans le presse-papiers.`,
             );
@@ -133,6 +142,45 @@ export default function AppReleasesPage({
             );
         }
     };
+
+    const postAction = (
+        url: string,
+        payload: Record<string, string | boolean | number> = {},
+    ) => {
+        router.post(url, payload, {
+            preserveScroll: true,
+            onStart: () => setProcessing(true),
+            onFinish: () => setProcessing(false),
+            onError: (errors) =>
+                toast.error(
+                    errors.release ??
+                        errors.campaign ??
+                        errors.message ??
+                        'L’opération n’a pas pu aboutir.',
+                ),
+        });
+    };
+
+    const confirmStoreRelease = (release: AppRelease) =>
+        postAction(`/administration/releases/${release.uuid}/confirm-store`, {
+            rollout_completed: true,
+        });
+
+    const dispatchCampaign = (release: AppRelease) =>
+        postAction(`/administration/releases/${release.uuid}/push-campaign`, {
+            title: 'Mise à jour KORA Passager',
+            body:
+                release.release_notes ??
+                `La version ${release.version} est disponible sur le store.`,
+        });
+
+    const retryCampaign = (campaignUuid: string) =>
+        postAction(
+            `/administration/releases/push-campaigns/${campaignUuid}/retry`,
+            {
+                note: 'Relance validée depuis l’administration des releases.',
+            },
+        );
 
     const confirmPending = () => {
         if (!pending) {
@@ -190,14 +238,25 @@ export default function AppReleasesPage({
 
                     {permissions.canManage && (
                         <div className="flex flex-wrap items-center gap-2.5">
-                            <button
-                                type="button"
-                                className="btn btn-primary"
-                                onClick={() => setUploadOpen(true)}
-                            >
-                                <Upload className="size-4" /> Publier une
-                                version
-                            </button>
+                            {isPassenger ? (
+                                <button
+                                    type="button"
+                                    className="btn btn-primary"
+                                    onClick={() => setStoreOpen(true)}
+                                >
+                                    <Globe className="size-4" /> Ajouter une
+                                    release store
+                                </button>
+                            ) : (
+                                <button
+                                    type="button"
+                                    className="btn btn-primary"
+                                    onClick={() => setUploadOpen(true)}
+                                >
+                                    <Upload className="size-4" /> Publier une
+                                    version
+                                </button>
+                            )}
                         </div>
                     )}
                 </div>
@@ -250,104 +309,115 @@ export default function AppReleasesPage({
                     </nav>
                 )}
 
-                <section className="cash-ledger-grid cash-reveal cash-reveal-delay-1 mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-                    <KpiCard
-                        icon={Laptop}
-                        label="Parc suivi"
-                        hint="terminaux non perdus"
-                        value={distribution.total}
-                        tone="navy"
-                    />
-                    <KpiCard
-                        icon={CheckCircle2}
-                        label="À jour"
-                        hint="dernière version installée"
-                        value={distribution.by_status.up_to_date ?? 0}
-                        tone="green"
-                    />
-                    <KpiCard
-                        icon={AlertTriangle}
-                        label="MAJ disponible"
-                        hint="mise à jour proposée"
-                        value={distribution.by_status.update_available ?? 0}
-                        tone="gold"
-                    />
-                    <KpiCard
-                        icon={ShieldAlert}
-                        label="MAJ requise"
-                        hint="bloqués jusqu’à la mise à jour"
-                        value={distribution.by_status.update_required ?? 0}
-                        tone={
-                            (distribution.by_status.update_required ?? 0) > 0
-                                ? 'rose'
-                                : 'muted'
-                        }
-                    />
-                </section>
-
-                <div className="cash-reveal cash-reveal-delay-2 mb-6 grid gap-5 xl:grid-cols-[1.35fr_1fr]">
-                    <ReleaseSharePanel
-                        appLabel={app.label}
-                        appSlug={app.slug}
-                        downloadPageUrl={links.download_page}
-                        latestApkUrl={links.latest_apk}
-                        hasPublishedRelease={latest !== null}
-                    />
-
-                    <section className="cash-table-card p-5 md:p-6">
-                        <span className="section-kicker flex items-center gap-1.5">
-                            <Package className="size-3.5" /> Politique en
-                            vigueur
-                        </span>
-                        {latest ? (
-                            <div className="mt-3 grid gap-4">
-                                <div>
-                                    <span className="text-[0.6875rem] font-bold text-muted-foreground uppercase">
-                                        Dernière version publiée
-                                    </span>
-                                    <p className="mt-0.5 font-mono text-2xl font-black tracking-tight text-foreground">
-                                        {latest.version}
-                                        <span className="ml-2 text-sm font-semibold text-muted-foreground">
-                                            build {latest.build_number}
-                                        </span>
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        {formatReleaseDate(latest.published_at)}{' '}
-                                        · {formatBytes(latest.size_bytes)}
-                                    </p>
-                                </div>
-                                <div className="rounded-xl bg-muted/45 p-3.5 ring-1 ring-black/[0.045]">
-                                    <span className="flex items-center gap-1.5 text-xs font-extrabold text-foreground">
-                                        <ShieldAlert className="size-3.5 text-destructive" />
-                                        Version minimale requise
-                                    </span>
-                                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                                        {minimum ? (
-                                            <>
-                                                Toute installation antérieure à{' '}
-                                                <strong className="font-mono text-foreground">
-                                                    {minimum.version} (build{' '}
-                                                    {minimum.build_number})
-                                                </strong>{' '}
-                                                est bloquée jusqu’à la mise à
-                                                jour.
-                                            </>
-                                        ) : (
-                                            'Aucune version obligatoire : les mises à jour sont proposées, jamais imposées.'
-                                        )}
-                                    </p>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="mt-3 rounded-xl bg-muted/45 p-4 text-xs leading-5 text-muted-foreground">
-                                Aucune version publiée pour {app.label}.{' '}
-                                {permissions.canManage
-                                    ? 'Publiez le premier APK pour activer la distribution et le contrôle de version.'
-                                    : 'Un administrateur doit publier le premier APK.'}
-                            </div>
-                        )}
+                {!isPassenger && (
+                    <section className="cash-ledger-grid cash-reveal cash-reveal-delay-1 mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                        <KpiCard
+                            icon={Laptop}
+                            label="Parc suivi"
+                            hint="terminaux non perdus"
+                            value={distribution.total}
+                            tone="navy"
+                        />
+                        <KpiCard
+                            icon={CheckCircle2}
+                            label="À jour"
+                            hint="dernière version installée"
+                            value={distribution.by_status.up_to_date ?? 0}
+                            tone="green"
+                        />
+                        <KpiCard
+                            icon={AlertTriangle}
+                            label="MAJ disponible"
+                            hint="mise à jour proposée"
+                            value={distribution.by_status.update_available ?? 0}
+                            tone="gold"
+                        />
+                        <KpiCard
+                            icon={ShieldAlert}
+                            label="MAJ requise"
+                            hint="bloqués jusqu’à la mise à jour"
+                            value={distribution.by_status.update_required ?? 0}
+                            tone={
+                                (distribution.by_status.update_required ?? 0) >
+                                0
+                                    ? 'rose'
+                                    : 'muted'
+                            }
+                        />
                     </section>
-                </div>
+                )}
+
+                {!isPassenger && (
+                    <div className="cash-reveal cash-reveal-delay-2 mb-6 grid gap-5 xl:grid-cols-[1.35fr_1fr]">
+                        <ReleaseSharePanel
+                            appLabel={app.label}
+                            appSlug={app.slug}
+                            downloadPageUrl={links.download_page}
+                            latestApkUrl={links.latest_apk}
+                            hasPublishedRelease={latest !== null}
+                        />
+
+                        <section className="cash-table-card p-5 md:p-6">
+                            <span className="section-kicker flex items-center gap-1.5">
+                                <Package className="size-3.5" /> Politique en
+                                vigueur
+                            </span>
+                            {latest ? (
+                                <div className="mt-3 grid gap-4">
+                                    <div>
+                                        <span className="text-[0.6875rem] font-bold text-muted-foreground uppercase">
+                                            Dernière version publiée
+                                        </span>
+                                        <p className="mt-0.5 font-mono text-2xl font-black tracking-tight text-foreground">
+                                            {latest.version}
+                                            <span className="ml-2 text-sm font-semibold text-muted-foreground">
+                                                build {latest.build_number}
+                                            </span>
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                            {formatReleaseDate(
+                                                latest.published_at,
+                                            )}{' '}
+                                            ·{' '}
+                                            {latest.size_bytes
+                                                ? formatBytes(latest.size_bytes)
+                                                : '—'}
+                                        </p>
+                                    </div>
+                                    <div className="rounded-xl bg-muted/45 p-3.5 ring-1 ring-black/[0.045]">
+                                        <span className="flex items-center gap-1.5 text-xs font-extrabold text-foreground">
+                                            <ShieldAlert className="size-3.5 text-destructive" />
+                                            Version minimale requise
+                                        </span>
+                                        <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                                            {minimum ? (
+                                                <>
+                                                    Toute installation
+                                                    antérieure à{' '}
+                                                    <strong className="font-mono text-foreground">
+                                                        {minimum.version} (build{' '}
+                                                        {minimum.build_number})
+                                                    </strong>{' '}
+                                                    est bloquée jusqu’à la mise
+                                                    à jour.
+                                                </>
+                                            ) : (
+                                                'Aucune version obligatoire : les mises à jour sont proposées, jamais imposées.'
+                                            )}
+                                        </p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="mt-3 rounded-xl bg-muted/45 p-4 text-xs leading-5 text-muted-foreground">
+                                    Aucune version publiée pour {app.label}.{' '}
+                                    {permissions.canManage
+                                        ? 'Publiez le premier APK pour activer la distribution et le contrôle de version.'
+                                        : 'Un administrateur doit publier le premier APK.'}
+                                </div>
+                            )}
+                        </section>
+                    </div>
+                )}
 
                 <section className="cash-table-card cash-reveal cash-reveal-delay-2 mt-6 p-5 md:p-6">
                     <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
@@ -478,20 +548,44 @@ export default function AppReleasesPage({
                                                         {release.release_notes}
                                                     </p>
                                                 )}
-                                                <span
-                                                    className="mt-1 block font-mono text-[0.625rem] text-muted-foreground/80"
-                                                    title={`SHA-256 ${release.sha256}`}
-                                                >
-                                                    {formatBytes(
-                                                        release.size_bytes,
-                                                    )}{' '}
-                                                    · sha256{' '}
-                                                    {release.sha256.slice(
-                                                        0,
-                                                        12,
-                                                    )}
-                                                    …
-                                                </span>
+                                                {release.channel === 'store' ? (
+                                                    <span className="mt-1 block font-mono text-[0.625rem] text-muted-foreground/80">
+                                                        {release.platform} ·{' '}
+                                                        {release.environment}
+                                                        {release.store_url ? (
+                                                            <a
+                                                                href={
+                                                                    release.store_url
+                                                                }
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                className="ml-1 underline decoration-dotted"
+                                                            >
+                                                                Ouvrir le store
+                                                            </a>
+                                                        ) : null}
+                                                    </span>
+                                                ) : (
+                                                    <span
+                                                        className="mt-1 block font-mono text-[0.625rem] text-muted-foreground/80"
+                                                        title={
+                                                            release.sha256
+                                                                ? `SHA-256 ${release.sha256}`
+                                                                : undefined
+                                                        }
+                                                    >
+                                                        {release.size_bytes
+                                                            ? formatBytes(
+                                                                  release.size_bytes,
+                                                              )
+                                                            : '—'}{' '}
+                                                        · sha256{' '}
+                                                        {release.sha256?.slice(
+                                                            0,
+                                                            12,
+                                                        ) ?? '—'}
+                                                    </span>
+                                                )}
                                             </td>
                                             <td className="px-4 py-3.5 font-mono text-xs text-foreground">
                                                 {release.build_number}
@@ -534,6 +628,26 @@ export default function AppReleasesPage({
                                                         tone="blue"
                                                     />
                                                 )}
+                                                {release.push_campaign && (
+                                                    <span className="mt-1 block text-[0.625rem] text-muted-foreground">
+                                                        Campagne :{' '}
+                                                        {
+                                                            release
+                                                                .push_campaign
+                                                                .status
+                                                        }
+                                                        {release.push_campaign
+                                                            .error ? (
+                                                            <span className="block text-destructive">
+                                                                {
+                                                                    release
+                                                                        .push_campaign
+                                                                        .error
+                                                                }
+                                                            </span>
+                                                        ) : null}
+                                                    </span>
+                                                )}
                                             </td>
                                             <td className="px-4 py-3.5 text-xs text-foreground">
                                                 {release.author?.name ?? '—'}
@@ -570,6 +684,65 @@ export default function AppReleasesPage({
                                                                 <PencilLine className="size-3.5" />
                                                                 Modifier
                                                             </button>
+                                                            {release.channel ===
+                                                                'store' &&
+                                                                !release.publicly_confirmed_at && (
+                                                                    <button
+                                                                        type="button"
+                                                                        className="btn btn-ghost gap-1.5 px-2.5 py-1 text-xs font-bold text-gold"
+                                                                        onClick={() =>
+                                                                            confirmStoreRelease(
+                                                                                release,
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <CheckCircle2 className="size-3.5" />
+                                                                        Confirmer
+                                                                        la
+                                                                        publication
+                                                                    </button>
+                                                                )}
+                                                            {release.channel ===
+                                                                'store' &&
+                                                                release.publicly_confirmed_at &&
+                                                                !release.push_campaign && (
+                                                                    <button
+                                                                        type="button"
+                                                                        className="btn btn-ghost gap-1.5 px-2.5 py-1 text-xs font-bold text-digital"
+                                                                        onClick={() =>
+                                                                            dispatchCampaign(
+                                                                                release,
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <Globe className="size-3.5" />
+                                                                        Lancer
+                                                                        la
+                                                                        notification
+                                                                    </button>
+                                                                )}
+                                                            {release
+                                                                .push_campaign
+                                                                ?.status ===
+                                                                'uncertain' &&
+                                                                !release
+                                                                    .push_campaign
+                                                                    .retry_decision_at && (
+                                                                    <button
+                                                                        type="button"
+                                                                        className="btn btn-ghost gap-1.5 px-2.5 py-1 text-xs font-bold text-gold"
+                                                                        onClick={() =>
+                                                                            retryCampaign(
+                                                                                release
+                                                                                    .push_campaign!
+                                                                                    .uuid,
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <ArchiveRestore className="size-3.5" />
+                                                                        Relancer
+                                                                    </button>
+                                                                )}
                                                             {release.state ===
                                                             'published' ? (
                                                                 <button
@@ -625,6 +798,14 @@ export default function AppReleasesPage({
                     serverMaxUploadBytes={constraints.server_max_upload_bytes}
                     maxBuildNumber={constraints.max_build_number}
                     onClose={() => setUploadOpen(false)}
+                />
+            )}
+
+            {storeOpen && (
+                <ReleaseStoreModal
+                    latest={releases[0] ?? null}
+                    maxBuildNumber={constraints.max_build_number}
+                    onClose={() => setStoreOpen(false)}
                 />
             )}
 

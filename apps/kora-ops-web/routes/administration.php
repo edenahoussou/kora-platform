@@ -93,6 +93,14 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         ->name('administration.releases.archive');
     Route::post('administration/releases/{release:uuid}/restore', [AppReleaseController::class, 'restore'])
         ->name('administration.releases.restore');
+    Route::post('administration/releases/store', [AppReleaseController::class, 'storeStore'])
+        ->name('administration.releases.store-store');
+    Route::post('administration/releases/{release:uuid}/confirm-store', [AppReleaseController::class, 'confirmStore'])
+        ->name('administration.releases.confirm-store');
+    Route::post('administration/releases/{release:uuid}/push-campaign', [AppReleaseController::class, 'dispatchCampaign'])
+        ->name('administration.releases.push-campaign');
+    Route::post('administration/releases/push-campaigns/{campaign:uuid}/retry', [AppReleaseController::class, 'retryCampaign'])
+        ->name('administration.releases.push-campaign-retry');
     Route::get('integrations', $comingSoon('Intégrations', 'Supervisez CassKai, MECeF, Mobile Money et les files de synchronisation.', 'Administration'))
         ->name('integrations');
     Route::get('audit', $comingSoon('Journal d’audit', 'Retrouvez chaque action sensible et son contexte.', 'Administration'))

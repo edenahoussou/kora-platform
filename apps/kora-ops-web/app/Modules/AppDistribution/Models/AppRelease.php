@@ -4,21 +4,33 @@ namespace App\Modules\AppDistribution\Models;
 
 use App\Models\User;
 use App\Modules\AppDistribution\Data\AppVersion;
+use App\Modules\AppDistribution\Data\ReleaseChannel;
 use App\Modules\AppDistribution\Data\ReleasedApp;
+use App\Modules\AppDistribution\Data\ReleaseEnvironment;
+use App\Modules\AppDistribution\Data\ReleasePlatform;
 use App\Modules\AppDistribution\Services\AppReleaseCatalog;
 use App\Modules\Support\Models\KoraModel;
 use Database\Factories\AppReleaseFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
+use LogicException;
 
 /**
- * Package publié d'une application distribuée hors store (MEZ-150).
+ * Release d'une application distribuée par KORA OPS Web.
+ *
+ * Canal `ops_apk` : binaire APK stocké localement pour le Convoyeur.
+ * Canal `store` : release Passager sur un store Android/iOS, sans binaire.
  *
  * @property int $id
  * @property string $uuid
  * @property ReleasedApp $app
+ * @property ReleaseChannel $channel
+ * @property ReleasePlatform|null $platform
+ * @property string|null $store_url
+ * @property ReleaseEnvironment|null $environment
  * @property string $version
  * @property int $build_number
  * @property string $artifact_path
@@ -29,10 +41,13 @@ use Illuminate\Support\Carbon;
  * @property bool $is_mandatory
  * @property Carbon|null $published_at
  * @property Carbon|null $archived_at
+ * @property Carbon|null $publicly_confirmed_at
+ * @property Carbon|null $rollout_completed_at
  * @property int|null $created_by
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property User|null $creator
+ * @property AppReleasePushCampaign|null $pushCampaign
  */
 class AppRelease extends KoraModel
 {
@@ -48,9 +63,8 @@ class AppRelease extends KoraModel
     }
 
     /**
-     * Toute écriture (publication, archivage, changement du flag
-     * obligatoire) invalide immédiatement le calcul « dernière version »
-     * mis en cache par AppReleaseCatalog.
+     * Toute écriture (publication, archivage, confirmation store, campagne)
+     * invalide immédiatement le calcul « dernière version » mis en cache.
      */
     protected static function booted(): void
     {
@@ -67,6 +81,10 @@ class AppRelease extends KoraModel
     protected $fillable = [
         'uuid',
         'app',
+        'channel',
+        'platform',
+        'store_url',
+        'environment',
         'version',
         'build_number',
         'artifact_path',
@@ -77,6 +95,8 @@ class AppRelease extends KoraModel
         'is_mandatory',
         'published_at',
         'archived_at',
+        'publicly_confirmed_at',
+        'rollout_completed_at',
         'created_by',
     ];
 
@@ -86,11 +106,16 @@ class AppRelease extends KoraModel
     {
         return [
             'app' => ReleasedApp::class,
+            'channel' => ReleaseChannel::class,
+            'platform' => ReleasePlatform::class,
+            'environment' => ReleaseEnvironment::class,
             'build_number' => 'integer',
             'artifact_size' => 'integer',
             'is_mandatory' => 'boolean',
             'published_at' => 'datetime',
             'archived_at' => 'datetime',
+            'publicly_confirmed_at' => 'datetime',
+            'rollout_completed_at' => 'datetime',
         ];
     }
 
@@ -100,6 +125,14 @@ class AppRelease extends KoraModel
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * @return HasOne<AppReleasePushCampaign, $this>
+     */
+    public function pushCampaign(): HasOne
+    {
+        return $this->hasOne(AppReleasePushCampaign::class, 'release_id');
     }
 
     /**
@@ -132,6 +165,28 @@ class AppRelease extends KoraModel
             ?? new AppVersion(0, 0, 0, null, $this->build_number);
     }
 
+    public function isStore(): bool
+    {
+        return $this->channel === ReleaseChannel::Store;
+    }
+
+    public function isStorePubliclyVisible(): bool
+    {
+        return $this->isStore()
+            && $this->publicly_confirmed_at !== null
+            && $this->rollout_completed_at !== null;
+    }
+
+    public function topicName(): string
+    {
+        return sprintf(
+            'app_%s_%s_%s',
+            $this->app->value,
+            $this->platform->value,
+            $this->environment->value,
+        );
+    }
+
     public function isArchived(): bool
     {
         return $this->archived_at !== null;
@@ -149,20 +204,28 @@ class AppRelease extends KoraModel
      */
     public function downloadFilename(): string
     {
+        $this->requireApk();
+
         return sprintf('%s-%s-%d.apk', $this->app->fileBasename(), $this->version, $this->build_number);
     }
 
     /**
-     * URL publique et immuable du binaire de CETTE release — c'est elle
-     * (et non `latest.apk`) qui est renvoyée aux appareils dans le bloc
-     * `update`, pour que le sha256 annoncé corresponde toujours au fichier
-     * téléchargé même si une release plus récente est publiée entre-temps.
+     * URL publique et immuable du binaire de CETTE release.
      */
     public function downloadUrl(): string
     {
+        $this->requireApk();
+
         return route('downloads.apps.release', [
             'app' => $this->app->slug(),
             'release' => $this->uuid,
         ]);
+    }
+
+    private function requireApk(): void
+    {
+        if ($this->isStore()) {
+            throw new LogicException('A store release has no downloadable APK artifact.');
+        }
     }
 }
