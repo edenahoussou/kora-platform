@@ -15,6 +15,7 @@ function makePushCampaign(): AppReleasePushCampaign
 {
     $release = AppRelease::factory()
         ->storeRelease(ReleasePlatform::Android)
+        ->version('1.4.0', 42)
         ->confirmed()
         ->create();
 
@@ -36,14 +37,27 @@ it('marks an accepted FCM topic delivery with its message identifier', function 
     $campaign = makePushCampaign();
     $client = Mockery::mock(FirebaseMessagingClient::class);
     $client->shouldReceive('isServerConfigured')->andReturnTrue();
-    $client->shouldReceive('sendToTopic')->once()->andReturn('projects/kora/messages/abc-123');
+    $client->shouldReceive('sendToTopic')->once()
+        ->with('passenger-android-prod', Mockery::on(function (array $message) use ($campaign): bool {
+            $data = $message['data'] ?? [];
+
+            return ($data['type'] ?? null) === 'app_update'
+                && ($data['release_uuid'] ?? null) === $campaign->release?->uuid
+                && ($data['platform'] ?? null) === 'android'
+                && ($data['environment'] ?? null) === 'production'
+                && ($data['version'] ?? null) === '1.4.0'
+                && ($data['build'] ?? null) === '42'
+                && ($data['store_url'] ?? null) === $campaign->release?->store_url;
+        }))
+        ->andReturn('projects/kora/messages/abc-123');
     $this->app->instance(FirebaseMessagingClient::class, $client);
 
     (new SendReleasePushCampaignJob($campaign->id))->handle(app(FirebaseMessagingClient::class));
 
     $campaign->refresh();
 
-    expect($campaign->status)->toBe(ReleasePushStatus::Accepted)
+    expect($campaign->topic)->toBe('passenger-android-prod')
+        ->and($campaign->status)->toBe(ReleasePushStatus::Accepted)
         ->and($campaign->fcm_message_id)->toBe('projects/kora/messages/abc-123')
         ->and($campaign->accepted_at)->not->toBeNull()
         ->and($campaign->error)->toBeNull();

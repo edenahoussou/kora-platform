@@ -21,11 +21,14 @@ tags:
     name: Auth
     description: "\nOTP challenge request and verification for registration, login, PIN reset and account unlock."
   -
+    name: 'Distribution des applications'
+    description: "\nVérification de mise à jour au lancement de l'app (#342)."
+  -
     name: 'KORA App Colis'
     description: ''
   -
     name: 'Passager — Notifications'
-    description: "\nInbox BUS du passager authentifié. Les notifications sont isolées par compte."
+    description: "\nExpose uniquement la configuration Firebase cliente nécessaire à FCM."
   -
     name: Payments
     description: "\nPayment lifecycle endpoints: initiation, polling status, and provider webhook confirmation."
@@ -6239,6 +6242,230 @@ paths:
                   example: 00000000-0000-4000-8000-000000000000
             example:
               device_uuid: 00000000-0000-4000-8000-000000000000
+  '/api/v1/apps/{id}/update':
+    get:
+      summary: 'Vérifier si une mise à jour est disponible ou obligatoire.'
+      operationId: vrifierSiUneMiseJourEstDisponibleOuObligatoire
+      description: "Appelé par l'app au démarrage, AVANT toute connexion. `data` vaut `null`\nseulement lorsqu'aucune release publique confirmée n'existe pour le\ntriplet `app × platform × environment`. Si une release confirmée existe\net que l'installée est à jour, la réponse contient un objet\n`status: \"up_to_date\"` plutôt que `null`.\n\nPour le canal store (`passenger_mobile`), `platform` est obligatoire.\n`environment` est optionnel et vaut `production` par défaut côté\nserveur. Aucun binaire, empreinte ou secret FCM n'est exposé par cette\nréponse ; le mobile ouvre le `store_url` officiel."
+      parameters:
+        -
+          in: query
+          name: platform
+          description: 'Plateforme cible (`android` ou `ios`), requise pour le canal store.'
+          example: android
+          required: false
+          schema:
+            type: string
+            description: 'Plateforme cible (`android` ou `ios`), requise pour le canal store.'
+            example: android
+            enum:
+              - android
+              - ios
+            nullable: true
+        -
+          in: query
+          name: environment
+          description: 'Environnement cible. Défaut serveur : `production`.'
+          example: production
+          required: false
+          schema:
+            type: string
+            description: 'Environnement cible. Défaut serveur : `production`.'
+            example: staging
+            enum:
+              - staging
+              - production
+            nullable: true
+        -
+          in: query
+          name: version
+          description: 'Version installée (semver, build optionnel après « + »). Le champ value ne doit pas dépasser 64 caractères.'
+          example: 1.3.2+37
+          required: false
+          schema:
+            type: string
+            description: 'Version installée (semver, build optionnel après « + »). Le champ value ne doit pas dépasser 64 caractères.'
+            example: 1.3.2+37
+            nullable: true
+        -
+          in: query
+          name: build
+          description: 'Build number installé (versionCode Android / build iOS). Le champ value doit être au moins 0. Le champ value ne doit pas être supérieur à 2100000000.'
+          example: 37
+          required: false
+          schema:
+            type: integer
+            description: 'Build number installé (versionCode Android / build iOS). Le champ value doit être au moins 0. Le champ value ne doit pas être supérieur à 2100000000.'
+            example: 37
+            nullable: true
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  -
+                    description: 'Release store à jour'
+                    type: object
+                    example:
+                      data:
+                        app: passenger_mobile
+                        channel: store
+                        platform: android
+                        environment: production
+                        status: up_to_date
+                        installed_version: 1.4.0
+                        installed_build: 42
+                        latest_version: 1.4.0
+                        latest_build: 42
+                        latest_full_version: 1.4.0+42
+                        update_available: false
+                        mandatory: false
+                        minimum_version: null
+                        minimum_build: null
+                        release_uuid: 6f0c1d3e-7c1b-4a8a-9d6e-2b1a0c9f8e71
+                        release_notes: 'Version stable disponible sur le store.'
+                        store_url: 'https://play.google.com/store/apps/details?id=app.kora.passenger'
+                        published_at: '2026-11-28T09:00:00.000Z'
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          app:
+                            type: string
+                            example: passenger_mobile
+                          channel:
+                            type: string
+                            example: store
+                          platform:
+                            type: string
+                            example: android
+                          environment:
+                            type: string
+                            example: production
+                          status:
+                            type: string
+                            example: up_to_date
+                          installed_version:
+                            type: string
+                            example: 1.4.0
+                          installed_build:
+                            type: integer
+                            example: 42
+                          latest_version:
+                            type: string
+                            example: 1.4.0
+                          latest_build:
+                            type: integer
+                            example: 42
+                          latest_full_version:
+                            type: string
+                            example: 1.4.0+42
+                          update_available:
+                            type: boolean
+                            example: false
+                          mandatory:
+                            type: boolean
+                            example: false
+                          minimum_version:
+                            type: string
+                            example: null
+                            nullable: true
+                          minimum_build:
+                            type: string
+                            example: null
+                            nullable: true
+                          release_uuid:
+                            type: string
+                            example: 00000000-0000-4000-8000-000000000000
+                          release_notes:
+                            type: string
+                            example: 'Version stable disponible sur le store.'
+                          store_url:
+                            type: string
+                            example: 'https://play.google.com/store/apps/details?id=app.kora.passenger'
+                          published_at:
+                            type: string
+                            example: '2026-01-01T00:00:00+00:00'
+                  -
+                    description: 'Aucune release store confirmée'
+                    type: object
+                    example:
+                      data: null
+                    properties:
+                      data:
+                        type: string
+                        example: null
+                        nullable: true
+              example:
+                data:
+                  app: passenger_mobile
+                  channel: store
+                  platform: android
+                  environment: production
+                  status: up_to_date
+                  installed_version: 1.4.0
+                  installed_build: 42
+                  latest_version: 1.4.0
+                  latest_build: 42
+                  latest_full_version: 1.4.0+42
+                  update_available: false
+                  mandatory: false
+                  minimum_version: null
+                  minimum_build: null
+                  release_uuid: 6f0c1d3e-7c1b-4a8a-9d6e-2b1a0c9f8e71
+                  release_notes: 'Version stable disponible sur le store.'
+                  store_url: 'https://play.google.com/store/apps/details?id=app.kora.passenger'
+                  published_at: '2026-11-28T09:00:00.000Z'
+        '404':
+          description: 'Application inconnue'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Not Found'
+                properties:
+                  message:
+                    type: string
+                    example: 'Not Found'
+        '422':
+          description: 'Requête invalide'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'The platform field is required.'
+                properties:
+                  message:
+                    type: string
+                    example: 'The platform field is required.'
+        '429':
+          description: 'Limite de débit dépassée'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Too Many Requests'
+                properties:
+                  message:
+                    type: string
+                    example: 'Too Many Requests'
+      tags:
+        - 'Distribution des applications'
+      security: []
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the app.'
+        example: architecto
+        required: true
+        schema:
+          type: string
   /api/v1/parcels/corridors:
     get:
       summary: 'Lister les corridors Colis ouverts.'
@@ -8769,6 +8996,117 @@ paths:
         required: true
         schema:
           type: string
+  /api/v1/passenger/firebase-configuration:
+    get:
+      summary: 'Retourne la configuration Firebase publique correspondant à la plateforme.'
+      operationId: retourneLaConfigurationFirebasePubliqueCorrespondantLaPlateforme
+      description: "Cette route est publique : le client mobile doit pouvoir initialiser FCM\navant la connexion. Elle ne renvoie que des identifiants client déjà\nprésents en clair dans l'APK, jamais de compte de service ou de secret serveur."
+      parameters:
+        -
+          in: query
+          name: platform
+          description: 'Plateforme cliente : android ou ios.'
+          example: android
+          required: true
+          schema:
+            type: string
+            description: 'Plateforme cliente : android ou ios.'
+            example: android
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  -
+                    description: 'Configuration disponible'
+                    type: object
+                    example:
+                      data:
+                        enabled: true
+                        api_key: AIzaSyExamplePublicKey
+                        project_id: kora-bus-prod
+                        messaging_sender_id: '123456789012'
+                        app_id: '1:123456789012:android:abcdef123456'
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          enabled:
+                            type: boolean
+                            example: false
+                          api_key:
+                            type: string
+                            example: AIzaSyExamplePublicKey
+                          project_id:
+                            type: string
+                            example: kora-bus-prod
+                          messaging_sender_id:
+                            type: string
+                            example: '123456789012'
+                          app_id:
+                            type: string
+                            example: '1:123456789012:android:abcdef123456'
+                  -
+                    description: 'Configuration indisponible'
+                    type: object
+                    example:
+                      data:
+                        enabled: false
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          enabled:
+                            type: boolean
+                            example: false
+              example:
+                data:
+                  enabled: true
+                  api_key: AIzaSyExamplePublicKey
+                  project_id: kora-bus-prod
+                  messaging_sender_id: '123456789012'
+                  app_id: '1:123456789012:android:abcdef123456'
+        '422':
+          description: 'Plateforme invalide'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'The given data was invalid.'
+                  errors:
+                    platform:
+                      - 'The selected platform is invalid.'
+                properties:
+                  message:
+                    type: string
+                    example: 'The given data was invalid.'
+                  errors:
+                    type: object
+                    properties:
+                      platform:
+                        type: array
+                        example:
+                          - 'The selected platform is invalid.'
+                        items:
+                          type: string
+        '429':
+          description: 'Limite de débit dépassée'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Too Many Requests'
+                properties:
+                  message:
+                    type: string
+                    example: 'Too Many Requests'
+      tags:
+        - 'Passager — Notifications'
+      security: []
   /api/v1/auth/passenger/notifications:
     get:
       summary: 'Liste l’inbox passager, de la plus récente à la plus ancienne.'
@@ -9088,116 +9426,6 @@ paths:
         required: true
         schema:
           type: string
-  /api/v1/auth/passenger/firebase-configuration:
-    get:
-      summary: 'Retourne la configuration Firebase publique correspondant à la plateforme.'
-      operationId: retourneLaConfigurationFirebasePubliqueCorrespondantLaPlateforme
-      description: ''
-      parameters:
-        -
-          in: query
-          name: platform
-          description: 'Plateforme cliente : android ou ios.'
-          example: android
-          required: true
-          schema:
-            type: string
-            description: 'Plateforme cliente : android ou ios.'
-            example: android
-      responses:
-        '200':
-          description: ''
-          content:
-            application/json:
-              schema:
-                oneOf:
-                  -
-                    description: 'Configuration disponible'
-                    type: object
-                    example:
-                      data:
-                        enabled: true
-                        api_key: AIzaSyExamplePublicKey
-                        project_id: kora-bus-prod
-                        messaging_sender_id: '123456789012'
-                        app_id: '1:123456789012:android:abcdef123456'
-                    properties:
-                      data:
-                        type: object
-                        properties:
-                          enabled:
-                            type: boolean
-                            example: false
-                          api_key:
-                            type: string
-                            example: AIzaSyExamplePublicKey
-                          project_id:
-                            type: string
-                            example: kora-bus-prod
-                          messaging_sender_id:
-                            type: string
-                            example: '123456789012'
-                          app_id:
-                            type: string
-                            example: '1:123456789012:android:abcdef123456'
-                  -
-                    description: 'Configuration indisponible'
-                    type: object
-                    example:
-                      data:
-                        enabled: false
-                    properties:
-                      data:
-                        type: object
-                        properties:
-                          enabled:
-                            type: boolean
-                            example: false
-              example:
-                data:
-                  enabled: true
-                  api_key: AIzaSyExamplePublicKey
-                  project_id: kora-bus-prod
-                  messaging_sender_id: '123456789012'
-                  app_id: '1:123456789012:android:abcdef123456'
-        '401':
-          description: 'Non authentifié'
-          content:
-            application/json:
-              schema:
-                type: object
-                example:
-                  message: Unauthenticated.
-                properties:
-                  message:
-                    type: string
-                    example: Unauthenticated.
-        '422':
-          description: 'Plateforme invalide'
-          content:
-            application/json:
-              schema:
-                type: object
-                example:
-                  message: 'The given data was invalid.'
-                  errors:
-                    platform:
-                      - 'The selected platform is invalid.'
-                properties:
-                  message:
-                    type: string
-                    example: 'The given data was invalid.'
-                  errors:
-                    type: object
-                    properties:
-                      platform:
-                        type: array
-                        example:
-                          - 'The selected platform is invalid.'
-                        items:
-                          type: string
-      tags:
-        - 'Passager — Notifications'
   /api/v1/auth/passenger/support-chat-configuration:
     get:
       summary: "Retourne la configuration tawk.to publique pour l'app mobile."

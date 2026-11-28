@@ -88,6 +88,13 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         ->middleware('throttle:app-update-check')
         ->name('apps.update');
 
+    // Configuration Firebase client publique (#344) : le mobile doit pouvoir
+    // initialiser FCM et s'abonner aux topics avant toute session. Seuls des
+    // identifiants client exposés dans l'APK sont renvoyés, jamais de secret serveur.
+    Route::get('passenger/firebase-configuration', [PassengerFirebaseConfigurationController::class, 'show'])
+        ->middleware('throttle:firebase-config')
+        ->name('passenger.firebase-configuration');
+
     Route::prefix('auth')->name('auth.')->group(function (): void {
         Route::middleware('throttle:auth-otp')->group(function (): void {
             Route::post('otp/request', [AuthOtpController::class, 'request'])->name('otp.request');
@@ -126,7 +133,6 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                 Route::post('read-all', [PassengerNotificationController::class, 'markAllRead'])->name('read-all');
                 Route::post('{notification}/read', [PassengerNotificationController::class, 'markRead'])->name('read');
             });
-            Route::get('passenger/firebase-configuration', [PassengerFirebaseConfigurationController::class, 'show'])->name('passenger.firebase-configuration');
             Route::get('passenger/support-chat-configuration', [PassengerSupportChatConfigurationController::class, 'show'])->name('passenger.support-chat-configuration');
             Route::post('logout', [AuthSessionController::class, 'logout'])->name('logout');
         });

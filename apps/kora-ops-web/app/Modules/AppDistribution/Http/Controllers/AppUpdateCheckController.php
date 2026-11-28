@@ -31,7 +31,7 @@ class AppUpdateCheckController extends Controller
      *
      * @unauthenticated
      *
-     * @urlParam app string required Application (`ops-mobile`, `ops_mobile`, `passenger-mobile` ou `passenger_mobile`). Example: passenger-mobile
+     * Path `app` accepte `ops-mobile`, `ops_mobile`, `passenger-mobile` ou `passenger_mobile`.
      *
      * @response 200 scenario="Release store à jour" {
      *   "data": {
@@ -57,6 +57,7 @@ class AppUpdateCheckController extends Controller
      * }
      * @response 200 scenario="Aucune release store confirmée" { "data": null }
      * @response 422 scenario="Requête invalide" { "message": "The platform field is required." }
+     * @response 429 scenario="Limite de débit dépassée" { "message": "Too Many Requests" }
      * @response 404 scenario="Application inconnue" { "message": "Not Found" }
      */
     public function __invoke(AppUpdateCheckRequest $request, AppReleaseCatalog $catalog, string $app): JsonResponse

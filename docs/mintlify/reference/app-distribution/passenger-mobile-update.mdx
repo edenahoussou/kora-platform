@@ -1,0 +1,86 @@
+---
+title: Vérification de mise à jour Passager
+description: "Vérifier au démarrage si une mise à jour mobile est disponible ou obligatoire."
+api: GET /api/v1/apps/{id}/update
+---
+
+Cette route est **publique** (`auth: none`) et est appelée par l’application mobile Passager avant toute connexion. Elle reste la source serveur pour une mise à jour obligatoire ou une version minimale imposée ; le flux Play in-app update reste géré côté mobile Android.
+
+## Paramètres
+
+### Path
+
+| Paramètre | Type | Requis | Description |
+| --- | --- | --- | --- |
+| `app` | string | Oui | Pour l’app Passager : `passenger-mobile` ou `passenger_mobile`. |
+
+### Query
+
+| Paramètre | Type | Requis | Description |
+| --- | --- | --- | --- |
+| `platform` | `android` \| `ios` | Oui pour `passenger-mobile` | Plateforme de l’appareil. |
+| `environment` | `production` \| `staging` | Non | Environnement cible. Défaut serveur : `production`. |
+| `version` | string | Non | Version installée (`1.3.2` ou `1.3.2+37`). |
+| `build` | integer | Non | Build number installé ; il prime sur le build inclus dans `version`. |
+
+## Exemple curl
+
+```bash
+curl 'https://staging.koraexpress.app/api/v1/apps/passenger-mobile/update?platform=android&environment=production&version=1.3.2&build=37' \
+  -H 'Accept: application/json'
+```
+
+## Réponse 200 — mise à jour disponible
+
+```json
+{
+  "data": {
+    "app": "passenger_mobile",
+    "channel": "store",
+    "platform": "android",
+    "environment": "production",
+    "status": "update_available",
+    "installed_version": "1.3.2",
+    "installed_build": 37,
+    "latest_version": "1.4.0",
+    "latest_build": 42,
+    "latest_full_version": "1.4.0+42",
+    "update_available": true,
+    "mandatory": false,
+    "minimum_version": null,
+    "minimum_build": null,
+    "release_uuid": "6f0c1d3e-7c1b-4a8a-9d6e-2b1a0c9f8e71",
+    "release_notes": "Version stable disponible sur le store.",
+    "store_url": "https://play.google.com/store/apps/details?id=app.kora.passenger",
+    "published_at": "2026-01-01T00:00:00+00:00"
+  },
+  "meta": {
+    "server_time": "2026-01-01T00:00:00+00:00"
+  }
+}
+```
+
+## Réponse 200 — aucune release confirmée
+
+```json
+{
+  "data": null,
+  "meta": {
+    "server_time": "2026-01-01T00:00:00+00:00"
+  }
+}
+```
+
+## Erreurs
+
+| Statut | Description |
+| --- | --- |
+| `404` | Application inconnue. |
+| `422` | `platform` manquant/invalide pour une release store, ou champ de version/build invalide. |
+| `429` | Limite de débit atteinte pour cette IP. |
+
+```json
+{
+  "message": "The platform field is required for store releases."
+}
+```

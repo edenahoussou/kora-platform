@@ -399,5 +399,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('app-downloads', fn (Request $request) => Limit::perMinute(60)->by($request->ip()));
 
         RateLimiter::for('app-update-check', fn (Request $request) => Limit::perMinute(120)->by($request->ip()));
+
+        // Configuration Firebase client publique (#344) : appel léger avant login,
+        // mais limitée par IP pour éviter tout abus de scraping de configuration.
+        RateLimiter::for('firebase-config', fn (Request $request) => Limit::perMinute(45)->by($request->ip()));
     }
 }

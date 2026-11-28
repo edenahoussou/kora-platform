@@ -1,15 +1,67 @@
 ---
 title: Configuration Firebase mobile
-description: "Récupérer les paramètres publics Firebase pour configurer le client Android ou iOS."
-api: GET /api/v1/auth/passenger/firebase-configuration
+description: "Récupérer les identifiants Firebase publics pour initialiser FCM avant la connexion."
+api: GET /api/v1/passenger/firebase-configuration
 ---
 
-Retourne les paramètres Firebase publics prévus pour le client mobile authentifié. `platform` est requis et accepte `android` ou `ios`.
+Cette route est **publique** (`auth: none`). Le mobile doit pouvoir initialiser Firebase et s’abonner aux topics avant toute session. Elle ne renvoie que des identifiants client déjà présents en clair dans l’APK ; aucun compte de service, clé privée ou secret serveur n’est exposé.
+
+## Query
+
+| Paramètre | Type | Requis | Description |
+| --- | --- | --- | --- |
+| `platform` | `android` \| `ios` | Oui | Plateforme mobile concernée. |
+
+## Exemple curl
 
 ```bash
-curl 'https://staging.koraexpress.app/api/v1/auth/passenger/firebase-configuration?platform=android' \
-  -H 'Authorization: Bearer <token-de-session>' \
+curl 'https://staging.koraexpress.app/api/v1/passenger/firebase-configuration?platform=android' \
   -H 'Accept: application/json'
 ```
 
-Lorsque Firebase est disponible, `data` contient `enabled`, `api_key`, `project_id`, `messaging_sender_id` et `app_id`. Sinon la réponse est `{"data":{"enabled":false}}`. Cette route n’expose aucune clé de compte de service ni secret serveur.
+Pour un environnement local :
+
+```bash
+curl 'http://localhost:8000/api/v1/passenger/firebase-configuration?platform=ios' \
+  -H 'Accept: application/json'
+```
+
+## Réponse 200 — configuration disponible
+
+```json
+{
+  "data": {
+    "enabled": true,
+    "api_key": "AIzaSyExamplePublicKey",
+    "project_id": "kora-bus-prod",
+    "messaging_sender_id": "123456789012",
+    "app_id": "1:123456789012:android:abcdef123456"
+  }
+}
+```
+
+## Réponse 200 — Firebase non configuré
+
+```json
+{
+  "data": {
+    "enabled": false
+  }
+}
+```
+
+## Erreurs
+
+| Statut | Description |
+| --- | --- |
+| `422` | `platform` manquant ou invalide. |
+| `429` | Limite de débit atteinte pour cette IP. |
+
+```json
+{
+  "message": "The given data was invalid.",
+  "errors": {
+    "platform": ["The selected platform is invalid."]
+  }
+}
+```

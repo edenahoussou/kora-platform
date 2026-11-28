@@ -81,9 +81,8 @@ class SendReleasePushCampaignJob implements ShouldQueue
     private function payloadData(AppReleasePushCampaign $campaign): array
     {
         return array_filter([
-            'type' => 'app_release_update',
+            'type' => 'app_update',
             'release_uuid' => $campaign->release?->uuid,
-            'app' => $campaign->app->value,
             'platform' => $campaign->platform->value,
             'environment' => $campaign->environment->value,
             'version' => $campaign->release?->version,

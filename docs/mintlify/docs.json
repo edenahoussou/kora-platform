@@ -178,6 +178,13 @@
                 ]
               },
               {
+                "group": "Mise à jour application",
+                "icon": "package",
+                "pages": [
+                  "reference/app-distribution/passenger-mobile-update"
+                ]
+              },
+              {
                 "group": "Notifications passager",
                 "icon": "bell",
                 "pages": [

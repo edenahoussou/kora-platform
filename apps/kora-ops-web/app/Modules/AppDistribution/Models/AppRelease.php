@@ -9,6 +9,7 @@ use App\Modules\AppDistribution\Data\ReleasedApp;
 use App\Modules\AppDistribution\Data\ReleaseEnvironment;
 use App\Modules\AppDistribution\Data\ReleasePlatform;
 use App\Modules\AppDistribution\Services\AppReleaseCatalog;
+use App\Modules\AppDistribution\Services\ReleaseTopicResolver;
 use App\Modules\Support\Models\KoraModel;
 use Database\Factories\AppReleaseFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -179,12 +180,7 @@ class AppRelease extends KoraModel
 
     public function topicName(): string
     {
-        return sprintf(
-            'app_%s_%s_%s',
-            $this->app->value,
-            $this->platform->value,
-            $this->environment->value,
-        );
+        return app(ReleaseTopicResolver::class)->resolve($this->platform, $this->environment);
     }
 
     public function isArchived(): bool

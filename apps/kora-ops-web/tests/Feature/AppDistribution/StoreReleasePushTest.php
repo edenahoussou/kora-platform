@@ -163,7 +163,7 @@ it('creates a store draft, confirms it, and creates one idempotent push campaign
 
     $campaign = AppReleasePushCampaign::query()->sole();
 
-    expect($campaign->topic)->toBe('app_passenger_mobile_android_production')
+    expect($campaign->topic)->toBe('passenger-android-prod')
         ->and($campaign->status->value)->toBe('pending')
         ->and($campaign->attempts)->toBe(0);
 });
